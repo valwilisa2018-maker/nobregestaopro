@@ -11,7 +11,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Plus, Loader2, FileText, Clock, Send, ListTodo, CheckCircle2, XCircle, Search } from "lucide-react";
+import { Plus, Loader2, FileText, Clock, Send, ListTodo, CheckCircle2, XCircle, Search, Paperclip, Download, ExternalLink } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { formatCurrency } from "@/lib/auth";
@@ -37,10 +37,19 @@ function InvoicesPage() {
   const [search, setSearch] = useState("");
   const [open, setOpen] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [uploadingId, setUploadingId] = useState<string | null>(null);
   const [form, setForm] = useState({
     customer_id: "", sale_id: "", number: "", amount: "", issued_at: "",
     status: "a_fazer", notes: "",
   });
+  // Sempre que abrir o dialog, puxa a data de hoje (mas pode editar)
+  const openDialog = (v: boolean) => {
+    if (v) {
+      const today = new Date().toISOString().slice(0, 10);
+      setForm((f) => ({ ...f, issued_at: f.issued_at || today }));
+    }
+    setOpen(v);
+  };
   const set = (k: string, v: string) => setForm((f) => ({ ...f, [k]: v }));
 
   const invoices = useQuery({
@@ -131,6 +140,46 @@ function InvoicesPage() {
     qc.invalidateQueries({ queryKey: ["invoices"] });
   };
 
+  const uploadFile = async (id: string, file: File) => {
+    setUploadingId(id);
+    try {
+      const ext = file.name.split(".").pop();
+      const path = `${id}/${Date.now()}.${ext}`;
+      const { error: upErr } = await supabase.storage.from("invoices").upload(path, file, { upsert: true });
+      if (upErr) throw upErr;
+      const { data: pub } = supabase.storage.from("invoices").getPublicUrl(path);
+      const { error } = await supabase.from("invoices").update({ file_url: pub.publicUrl }).eq("id", id);
+      if (error) throw error;
+      toast.success("Nota anexada");
+      qc.invalidateQueries({ queryKey: ["invoices"] });
+    } catch (e: any) {
+      toast.error(e.message ?? "Erro ao anexar arquivo");
+    } finally { setUploadingId(null); }
+  };
+
+  const exportCsv = () => {
+    const rows = filtered;
+    if (!rows.length) { toast.error("Nada para exportar"); return; }
+    const head = ["Numero", "Cliente", "Empresa", "Valor", "Emissao", "Status", "Arquivo"];
+    const body = rows.map((i: any) => [
+      i.number ?? "",
+      i.customers?.name ?? "",
+      i.customers?.company ?? "",
+      i.amount,
+      i.issued_at ?? "",
+      STATUS_META[i.status]?.label ?? i.status,
+      i.file_url ?? "",
+    ]);
+    const csv = [head, ...body].map((r) => r.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(";")).join("\n");
+    const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `notas-fiscais-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
   const summaryCards = [
     { key: "a_fazer", label: "A fazer", icon: ListTodo },
     { key: "aguardando_emissao", label: "Aguardando emissão", icon: Clock },
@@ -145,7 +194,9 @@ function InvoicesPage() {
           <h1 className="text-3xl font-bold tracking-tight">Notas Fiscais</h1>
           <p className="text-muted-foreground">Controle fiscal por cliente e status</p>
         </div>
-        <Dialog open={open} onOpenChange={setOpen}>
+        <div className="flex gap-2">
+        <Button variant="outline" onClick={exportCsv}><Download className="w-4 h-4 mr-2" />Exportar</Button>
+        <Dialog open={open} onOpenChange={openDialog}>
           <DialogTrigger asChild><Button><Plus className="w-4 h-4 mr-2" />Nova nota</Button></DialogTrigger>
           <DialogContent className="max-w-xl">
             <DialogHeader><DialogTitle>Nova nota fiscal</DialogTitle></DialogHeader>
@@ -202,6 +253,7 @@ function InvoicesPage() {
             </DialogFooter>
           </DialogContent>
         </Dialog>
+        </div>
       </div>
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
@@ -250,6 +302,7 @@ function InvoicesPage() {
                 <TableHead className="text-right">Valor</TableHead>
                 <TableHead>Emissão</TableHead>
                 <TableHead className="w-[220px]">Status</TableHead>
+                <TableHead className="w-[140px]">Arquivo</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -278,12 +331,29 @@ function InvoicesPage() {
                         </SelectContent>
                       </Select>
                     </TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-1">
+                        <label className="inline-flex">
+                          <input type="file" className="hidden" accept=".pdf,.xml,.png,.jpg,.jpeg" onChange={(e) => { const f = e.target.files?.[0]; if (f) uploadFile(i.id, f); e.currentTarget.value = ""; }} />
+                          <Button asChild size="sm" variant="ghost" disabled={uploadingId === i.id}>
+                            <span className="cursor-pointer">
+                              {uploadingId === i.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <Paperclip className="w-4 h-4" />}
+                            </span>
+                          </Button>
+                        </label>
+                        {i.file_url && (
+                          <Button size="sm" variant="ghost" asChild>
+                            <a href={i.file_url} target="_blank" rel="noreferrer"><ExternalLink className="w-4 h-4" /></a>
+                          </Button>
+                        )}
+                      </div>
+                    </TableCell>
                   </TableRow>
                 );
               })}
               {filtered.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={5} className="text-center text-muted-foreground py-12">
+                  <TableCell colSpan={6} className="text-center text-muted-foreground py-12">
                     <FileText className="w-8 h-8 mx-auto mb-2 opacity-50" />
                     {(invoices.data ?? []).length === 0 ? "Sem notas fiscais. Clique em 'Nova nota' para começar." : "Nenhuma nota encontrada com esse filtro."}
                   </TableCell>
