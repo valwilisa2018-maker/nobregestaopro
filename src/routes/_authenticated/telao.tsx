@@ -152,10 +152,12 @@ function fireConfetti() {
 }
 
 // Hook count-up
-function useCountUp(target: number, duration = 900) {
+function useCountUp(target: number, duration = 900, replayKey: number = 0) {
   const [val, setVal] = useState(target);
   const fromRef = useRef(target);
   useEffect(() => {
+    // Em replay, reanima a partir de 0 mesmo que o alvo não tenha mudado
+    if (replayKey > 0) fromRef.current = 0;
     const from = fromRef.current;
     const start = performance.now();
     let raf = 0;
@@ -168,7 +170,7 @@ function useCountUp(target: number, duration = 900) {
     };
     raf = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(raf);
-  }, [target, duration]);
+  }, [target, duration, replayKey]);
   return val;
 }
 
@@ -364,12 +366,43 @@ function Telao() {
   const totalSemana = sum(weekSales);
   const totalMes = sum(monthSales);
   const ticketMedio = todaySales.length ? totalHoje / todaySales.length : 0;
-  const heroVal = useCountUp(totalHoje);
-  const ticketVal = useCountUp(ticketMedio);
-  const opVal = useCountUp(todaySales.length);
+  const [heroBeat, setHeroBeat] = useState(0);
+  const [rotateTick, setRotateTick] = useState(0);
+  const heroVal = useCountUp(totalHoje, 900, heroBeat);
+  const ticketVal = useCountUp(ticketMedio, 900, heroBeat);
+  const opVal = useCountUp(todaySales.length, 900, heroBeat);
 
-  // últimos 8 para marquee
+  // Loop 30s — realça e reconta os números do topo
+  useEffect(() => {
+    const i = setInterval(() => {
+      qc.invalidateQueries({ queryKey: ["telao-sales"] });
+      setHeroBeat((n) => n + 1);
+      setPulseHero(true);
+      setTimeout(() => setPulseHero(false), 1600);
+    }, 30000);
+    return () => clearInterval(i);
+  }, [qc]);
+
+  // Loop 60s — rotaciona janela das vendas do dia (marquee de dados)
+  useEffect(() => {
+    const i = setInterval(() => setRotateTick((n) => n + 1), 60000);
+    return () => clearInterval(i);
+  }, []);
+
+  // últimos 12 para marquee horizontal
   const marqueeSales = useMemo(() => todaySales.slice(0, 12), [todaySales]);
+
+  // Janela rotativa para a lista inferior (5 itens por vez, troca a cada 60s)
+  const WINDOW = 6;
+  const rotatedSales = useMemo(() => {
+    if (todaySales.length <= WINDOW) return todaySales;
+    const start = (rotateTick * WINDOW) % todaySales.length;
+    const out: SaleRow[] = [];
+    for (let i = 0; i < Math.min(WINDOW, todaySales.length); i++) {
+      out.push(todaySales[(start + i) % todaySales.length]);
+    }
+    return out;
+  }, [todaySales, rotateTick]);
 
   return (
     <div
@@ -389,6 +422,7 @@ function Telao() {
         @keyframes telao-scroll-x { from { transform: translate3d(0,0,0); } to { transform: translate3d(-50%,0,0); } }
         @keyframes telao-shine { 0% { background-position: -200% 0; } 100% { background-position: 200% 0; } }
         @keyframes telao-pop { 0% { transform: scale(0.85); opacity: 0; } 60% { transform: scale(1.05); opacity: 1; } 100% { transform: scale(1); } }
+        @keyframes telao-rotate-in { 0% { opacity: 0; transform: translateY(14px); filter: blur(4px); } 100% { opacity: 1; transform: translateY(0); filter: blur(0); } }
         .telao-pulse { animation: telao-pulse-gold 1.8s ease-out 1; }
         .telao-marquee { display: inline-flex; animation: telao-scroll-x 40s linear infinite; will-change: transform; backface-visibility: hidden; }
         .telao-marquee:hover { animation-play-state: paused; }
@@ -397,6 +431,7 @@ function Telao() {
         @media (prefers-reduced-motion: reduce) { .telao-marquee { animation: none; } }
         .telao-shine { background-image: linear-gradient(90deg, #f0d78c 0%, #ffffff 50%, #f0d78c 100%); background-size: 200% 100%; background-clip: text; -webkit-background-clip: text; -webkit-text-fill-color: transparent; animation: telao-shine 4s linear infinite; }
         .telao-pop { animation: telao-pop 0.5s cubic-bezier(.34,1.56,.64,1) 1; }
+        .telao-rotate { animation: telao-rotate-in 0.7s ease-out 1; }
         .telao-flash-row { animation: telao-pop 0.6s ease-out 1; box-shadow: inset 0 0 0 1px rgba(240,215,140,0.5); }
       `}</style>
 
@@ -550,8 +585,8 @@ function Telao() {
                 Aguardando primeira venda
               </div>
             )}
-            <ul>
-              {[...todaySales, ...todaySales].map((s, i) => {
+            <ul key={`rot-${rotateTick}`} className="telao-rotate">
+              {[...rotatedSales, ...rotatedSales].map((s, i) => {
                 const name = cName(s.customer_id);
                 const initial = (name?.[0] ?? "?").toUpperCase();
                 const isFirst = i === 0 && pulseHero;
