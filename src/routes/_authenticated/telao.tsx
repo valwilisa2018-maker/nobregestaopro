@@ -360,9 +360,6 @@ function Telao() {
   const weekSales = uniqueSales.filter((s) => new Date(s.created_at) >= week0);
   const monthSales = uniqueSales.filter((s) => new Date(s.created_at) >= month0);
 
-  // Limite configurável (Configurações → Telão): abaixo disso, duplica visualmente para preencher o loop
-  const [LOOP_DUPLICATE_THRESHOLD] = useLoopDuplicateThreshold();
-
   const sum = (arr: SaleRow[]) => arr.reduce((a, s) => a + Number(s.total_amount || 0), 0);
 
   // Ranking vendedores e produtores no mês (com fallback p/ created_by)
@@ -419,9 +416,6 @@ function Telao() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [todaySales.length]);
 
-  // Auto-scroll loop nas vendas do dia (reinicia a cada rotação)
-  const [rotateTick, setRotateTick] = useState(0);
-
   const now = new Date();
 
   const totalHoje = sum(todaySales);
@@ -444,15 +438,6 @@ function Telao() {
     return () => clearInterval(i);
   }, [qc]);
 
-  // Loop 60s — rotaciona janela das vendas do dia (marquee de dados)
-  useEffect(() => {
-    const i = setInterval(() => {
-      qc.invalidateQueries({ queryKey: ["telao-sales"] });
-      setRotateTick((n) => n + 1);
-    }, 60000);
-    return () => clearInterval(i);
-  }, [qc]);
-
   // últimos 12 para marquee horizontal (sem repetição: usa apenas vendas únicas)
   const marqueeSales = useMemo(() => todaySales.slice(0, 12), [todaySales]);
 
@@ -460,30 +445,24 @@ function Telao() {
   const loopSales = useMemo(() => todaySales, [todaySales]);
 
   useEffect(() => {
-    const el = scrollRef.current;
-    const track = salesTrackRef.current;
-    if (!el || !track || loopSales.length === 0) return;
+    if (loopSales.length === 0) {
+      setCurrentSaleIndex(0);
+      return;
+    }
+    setCurrentSaleIndex((index) => (index >= loopSales.length ? 0 : index));
+    const interval = window.setInterval(() => {
+      setCurrentSaleIndex((index) => (index + 1) % loopSales.length);
+    }, 2800);
+    return () => window.clearInterval(interval);
+  }, [loopSales.length]);
 
-    let raf = 0;
-    let last = performance.now();
-    const pxPerSecond = 22;
-
-    const tick = (now: number) => {
-      const firstHalfHeight = track.scrollHeight / 2;
-      if (firstHalfHeight > el.clientHeight) {
-        el.scrollTop += ((now - last) / 1000) * pxPerSecond;
-        if (el.scrollTop >= firstHalfHeight) el.scrollTop -= firstHalfHeight;
-      } else {
-        el.scrollTop = 0;
-      }
-      last = now;
-      raf = requestAnimationFrame(tick);
-    };
-
-    el.scrollTop = 0;
-    raf = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(raf);
-  }, [loopSales]);
+  const visibleSales = useMemo(() => {
+    if (loopSales.length === 0) return [];
+    return Array.from({ length: Math.min(VISIBLE_SALES_ROWS, loopSales.length) }, (_, offset) => {
+      const index = (currentSaleIndex + offset) % loopSales.length;
+      return { sale: loopSales[index], index };
+    });
+  }, [currentSaleIndex, loopSales]);
 
   return (
     <div
