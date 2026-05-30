@@ -418,7 +418,7 @@ function InvoicesPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filtered.map((i: any) => {
+              {!grouped && filtered.map((i: any) => {
                 const meta = STATUS_META[i.status] ?? STATUS_META.a_fazer;
                 const Icon = meta.icon;
                 return (
@@ -468,7 +468,61 @@ function InvoicesPage() {
                   </TableRow>
                 );
               })}
-              {filtered.length === 0 && (
+              {grouped && groupedRows.map((g: any) => {
+                const meta = STATUS_META[g.status] ?? STATUS_META.a_fazer;
+                const Icon = meta.icon;
+                const upKey = g.ids.join("-").slice(0, 40);
+                return (
+                  <TableRow key={g.key}>
+                    <TableCell className="font-medium">
+                      {g.number ?? "—"}
+                      {g.count > 1 && <Badge variant="secondary" className="ml-2">{g.count} itens</Badge>}
+                    </TableCell>
+                    <TableCell>
+                      <div className="font-medium">{g.customers?.name}</div>
+                      {g.customers?.company && <div className="text-xs text-muted-foreground">{g.customers.company}</div>}
+                    </TableCell>
+                    <TableCell className="text-right font-semibold">{formatCurrency(g.amount)}</TableCell>
+                    <TableCell>{g.issued_at ?? "—"}</TableCell>
+                    <TableCell>
+                      <Select value={g.status} onValueChange={(v) => updateStatusBulk(g.ids, v)}>
+                        <SelectTrigger className="h-8 w-[200px]">
+                          <span className="flex items-center gap-2">
+                            <Icon className={cn("w-3.5 h-3.5", meta.tone)} />
+                            <span className="text-xs">{meta.label}</span>
+                          </span>
+                        </SelectTrigger>
+                        <SelectContent>
+                          {STATUS_ORDER.map((s) => <SelectItem key={s} value={s}>{STATUS_META[s].label}</SelectItem>)}
+                        </SelectContent>
+                      </Select>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-1">
+                        <label className="inline-flex">
+                          <input type="file" className="hidden" accept=".pdf,.xml,.png,.jpg,.jpeg" onChange={(e) => { const f = e.target.files?.[0]; if (f) uploadFileBulk(g.ids, f); e.currentTarget.value = ""; }} />
+                          <Button asChild size="sm" variant="ghost" disabled={uploadingId === upKey}>
+                            <span className="cursor-pointer">
+                              {uploadingId === upKey ? <Loader2 className="w-4 h-4 animate-spin" /> : <Paperclip className="w-4 h-4" />}
+                            </span>
+                          </Button>
+                        </label>
+                        {g.file_url && (
+                          <Button size="sm" variant="ghost" asChild>
+                            <a href={g.file_url} target="_blank" rel="noreferrer"><ExternalLink className="w-4 h-4" /></a>
+                          </Button>
+                        )}
+                        {g.status === "pronto_para_envio" && (
+                          <Button size="sm" variant="default" onClick={() => sendWhatsAppGroup(g)} className="h-8 gap-1">
+                            <MessageCircle className="w-4 h-4" />Enviar
+                          </Button>
+                        )}
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
+              {((grouped ? groupedRows.length : filtered.length) === 0) && (
                 <TableRow>
                   <TableCell colSpan={6} className="text-center text-muted-foreground py-12">
                     <FileText className="w-8 h-8 mx-auto mb-2 opacity-50" />
