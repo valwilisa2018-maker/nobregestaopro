@@ -36,6 +36,7 @@ function InvoicesPage() {
   const qc = useQueryClient();
   const [filter, setFilter] = useState<string>("all");
   const [search, setSearch] = useState("");
+  const [grouped, setGrouped] = useState(true);
   const [open, setOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [uploadingId, setUploadingId] = useState<string | null>(null);
@@ -112,6 +113,36 @@ function InvoicesPage() {
     });
   }, [invoices.data, filter, search]);
 
+  // Agrupa por cliente + status — útil quando há várias notas a fazer do mesmo cliente
+  const groupedRows = useMemo(() => {
+    const map = new Map<string, any>();
+    filtered.forEach((i: any) => {
+      const key = `${i.customer_id}__${i.status}`;
+      const existing = map.get(key);
+      if (!existing) {
+        map.set(key, {
+          key,
+          ids: [i.id],
+          customer_id: i.customer_id,
+          customers: i.customers,
+          status: i.status,
+          amount: Number(i.amount ?? 0),
+          count: 1,
+          number: i.number,
+          issued_at: i.issued_at,
+          file_url: i.file_url,
+        });
+      } else {
+        existing.ids.push(i.id);
+        existing.amount += Number(i.amount ?? 0);
+        existing.count += 1;
+        if (!existing.number && i.number) existing.number = i.number;
+        if (!existing.file_url && i.file_url) existing.file_url = i.file_url;
+      }
+    });
+    return Array.from(map.values());
+  }, [filtered]);
+
   const submit = async () => {
     if (!form.customer_id || !form.amount) { toast.error("Cliente e valor são obrigatórios"); return; }
     setSaving(true);
@@ -152,6 +183,13 @@ function InvoicesPage() {
     qc.invalidateQueries({ queryKey: ["invoices"] });
   };
 
+  const updateStatusBulk = async (ids: string[], status: string) => {
+    const { error } = await supabase.from("invoices").update({ status: status as any }).in("id", ids);
+    if (error) { toast.error(error.message); return; }
+    toast.success(`${ids.length} nota(s) atualizada(s)`);
+    qc.invalidateQueries({ queryKey: ["invoices"] });
+  };
+
   const uploadFile = async (id: string, file: File) => {
     setUploadingId(id);
     try {
@@ -167,6 +205,41 @@ function InvoicesPage() {
     } catch (e: any) {
       toast.error(e.message ?? "Erro ao anexar arquivo");
     } finally { setUploadingId(null); }
+  };
+
+  const uploadFileBulk = async (ids: string[], file: File) => {
+    const groupKey = ids.join("-").slice(0, 40);
+    setUploadingId(groupKey);
+    try {
+      const ext = file.name.split(".").pop();
+      const path = `grouped/${ids[0]}/${Date.now()}.${ext}`;
+      const { error: upErr } = await supabase.storage.from("invoices").upload(path, file, { upsert: true });
+      if (upErr) throw upErr;
+      const { data: pub } = supabase.storage.from("invoices").getPublicUrl(path);
+      const { error } = await supabase.from("invoices").update({ file_url: pub.publicUrl }).in("id", ids);
+      if (error) throw error;
+      toast.success(`Nota anexada a ${ids.length} item(s)`);
+      qc.invalidateQueries({ queryKey: ["invoices"] });
+    } catch (e: any) {
+      toast.error(e.message ?? "Erro ao anexar arquivo");
+    } finally { setUploadingId(null); }
+  };
+
+  const sendWhatsAppGroup = async (g: any) => {
+    const phone = (g.customers?.phone ?? "").replace(/\D/g, "");
+    if (!phone) { toast.error("Cliente sem telefone cadastrado"); return; }
+    const name = g.customers?.name ?? "cliente";
+    const valorTxt = formatCurrency(g.amount);
+    const linkTxt = g.file_url ? `\n\nAcesse aqui: ${g.file_url}` : "";
+    const qtdTxt = g.count > 1 ? ` (${g.count} itens agrupados)` : "";
+    const msg = `Olá ${name}, segue sua nota fiscal${qtdTxt} no valor total de ${valorTxt}.${linkTxt}`;
+    const url = `https://wa.me/${phone}?text=${encodeURIComponent(msg)}`;
+    window.open(url, "_blank", "noopener,noreferrer");
+    const { error } = await supabase.from("invoices").update({ status: "emitida" as any }).in("id", g.ids);
+    if (!error) {
+      toast.success("WhatsApp aberto — notas marcadas como Emitidas");
+      qc.invalidateQueries({ queryKey: ["invoices"] });
+    }
   };
 
   const exportCsv = () => {
