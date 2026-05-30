@@ -230,23 +230,35 @@ function Telao() {
       return (data ?? []) as SaleRow[];
     },
     refetchInterval: 15000,
+    refetchIntervalInBackground: true,
+    refetchOnWindowFocus: true,
+    refetchOnReconnect: true,
+    staleTime: 0,
   });
 
   const customersQ = useQuery({
     queryKey: ["telao-customers"],
     queryFn: async () => (await supabase.from("customers").select("id,name")).data ?? [],
+    refetchInterval: 60000,
+    refetchIntervalInBackground: true,
   });
   const sellersQ = useQuery({
     queryKey: ["telao-sellers"],
     queryFn: async () => (await supabase.from("sellers").select("id,name,user_id")).data ?? [],
+    refetchInterval: 60000,
+    refetchIntervalInBackground: true,
   });
   const producersQ = useQuery({
     queryKey: ["telao-producers"],
     queryFn: async () => (await supabase.from("producers").select("id,name,user_id")).data ?? [],
+    refetchInterval: 60000,
+    refetchIntervalInBackground: true,
   });
   const profilesQ = useQuery({
     queryKey: ["telao-profiles"],
     queryFn: async () => (await supabase.from("profiles").select("id,full_name,email")).data ?? [],
+    refetchInterval: 60000,
+    refetchIntervalInBackground: true,
   });
 
   const sales = salesQ.data ?? [];
