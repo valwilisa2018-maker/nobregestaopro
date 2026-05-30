@@ -371,17 +371,27 @@ function Telao() {
 
       {/* MARQUEE TOP — últimas vendas rolando */}
       {marqueeSales.length > 0 && (
-        <div className="mb-4 -mx-6 px-6 py-2 border-y border-[#c9a84c]/15 bg-black/40 overflow-hidden">
+        <div
+          className="mb-4 -mx-6 px-0 py-3 border-y border-[#c9a84c]/15 bg-black/40 overflow-hidden relative"
+          style={{
+            maskImage:
+              "linear-gradient(to right, transparent, #000 6%, #000 94%, transparent)",
+            WebkitMaskImage:
+              "linear-gradient(to right, transparent, #000 6%, #000 94%, transparent)",
+          }}
+        >
           <div className="telao-marquee whitespace-nowrap text-sm">
-            {[...marqueeSales, ...marqueeSales].map((s, i) => (
-              <span key={`${s.id}-mq-${i}`} className="inline-flex items-center gap-3 px-6">
-                <span className="w-1.5 h-1.5 rounded-full bg-[#c9a84c]" />
-                <span className="uppercase tracking-widest text-[#c9a84c]/70 text-xs">{fmtTime(s.created_at)}</span>
-                <span className="text-white font-semibold">{cName(s.customer_id)}</span>
-                <span className="text-[#c9a84c]/50">·</span>
-                <span className="text-[#f0d78c] font-bold tabular-nums">{formatCurrency(Number(s.total_amount || 0))}</span>
-              </span>
-            ))}
+            <div className="telao-marquee-track">
+              {[...marqueeSales, ...marqueeSales, ...marqueeSales].map((s, i) => (
+                <span key={`${s.id}-mq-${i}`} className="inline-flex items-center gap-3 px-6 shrink-0">
+                  <span className="w-1.5 h-1.5 rounded-full bg-[#c9a84c]" />
+                  <span className="uppercase tracking-widest text-[#c9a84c]/70 text-xs">{fmtTime(s.created_at)}</span>
+                  <span className="text-white font-semibold">{cName(s.customer_id)}</span>
+                  <span className="text-[#c9a84c]/50">·</span>
+                  <span className="text-[#f0d78c] font-bold tabular-nums">{formatCurrency(Number(s.total_amount || 0))}</span>
+                </span>
+              ))}
+            </div>
           </div>
         </div>
       )}
