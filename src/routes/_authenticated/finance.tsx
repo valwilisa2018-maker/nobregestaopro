@@ -421,22 +421,8 @@ function FinancePage() {
     ]);
   };
   const exportPdf = () => {
-    const methodLabel: Record<string, string> = {
-      pix: "PIX", cartao: "Cartão", boleto: "Boleto",
-      dinheiro: "Dinheiro", transferencia: "Transferência",
-    };
-    const byMethod = new Map<string, { total: number; pago: number; qtd: number }>();
-    incomesFiltered.forEach((s: any) => {
-      const key = s.payment_method ?? "outros";
-      const cur = byMethod.get(key) ?? { total: 0, pago: 0, qtd: 0 };
-      cur.total += Number(s.total_amount ?? 0);
-      cur.pago += Number(s.paid_amount ?? 0);
-      cur.qtd += 1;
-      byMethod.set(key, cur);
-    });
-    const methodRows = Array.from(byMethod.entries())
-      .sort((a, b) => b[1].pago - a[1].pago)
-      .map(([m, v]) => `<tr><td>${methodLabel[m] ?? m}</td><td>${v.qtd}</td><td>${formatCurrency(v.total)}</td><td>${formatCurrency(v.pago)}</td><td>${formatCurrency(v.total - v.pago)}</td></tr>`)
+    const methodRows = byMethod
+      .map((v) => `<tr><td>${v.label}</td><td>${v.qtd}</td><td>${formatCurrency(v.total)}</td><td>${formatCurrency(v.pago)}</td><td>${formatCurrency(v.total - v.pago)}</td></tr>`)
       .join("");
     const html = `
       <html><head><meta charset="utf-8"><title>Relatório financeiro</title>
