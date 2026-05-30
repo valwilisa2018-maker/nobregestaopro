@@ -29,6 +29,7 @@ function AdminPage() {
   const sellers = useQuery({ queryKey: ["admin-sellers"], queryFn: async () => (await supabase.from("sellers").select("*").order("name")).data ?? [] });
   const [newService, setNewService] = useState("");
   const [newCol, setNewCol] = useState("");
+  const [newSeller, setNewSeller] = useState({ name: "", email: "", phone: "", commission_rate: "", monthly_goal: "" });
 
   const updateGoal = async (id: string, amount: string) => {
     const { error } = await supabase.from("goals").update({ target_amount: Number(amount) }).eq("id", id);
@@ -54,6 +55,25 @@ function AdminPage() {
   const updateSellerGoal = async (id: string, amount: string) => {
     const { error } = await supabase.from("sellers").update({ monthly_goal: Number(amount) }).eq("id", id);
     if (error) toast.error(error.message); else { toast.success("Meta atualizada"); qc.invalidateQueries(); }
+  };
+  const addSeller = async () => {
+    if (!newSeller.name.trim()) { toast.error("Informe o nome do vendedor"); return; }
+    const { error } = await supabase.from("sellers").insert({
+      name: newSeller.name.trim(),
+      email: newSeller.email.trim() || null,
+      phone: newSeller.phone.trim() || null,
+      commission_rate: Number(newSeller.commission_rate || 0),
+      monthly_goal: Number(newSeller.monthly_goal || 0),
+    });
+    if (error) { toast.error(error.message); return; }
+    toast.success("Vendedor cadastrado");
+    setNewSeller({ name: "", email: "", phone: "", commission_rate: "", monthly_goal: "" });
+    qc.invalidateQueries({ queryKey: ["admin-sellers"] });
+    qc.invalidateQueries({ queryKey: ["sellers-page"] });
+  };
+  const toggleSellerActive = async (id: string, active: boolean) => {
+    const { error } = await supabase.from("sellers").update({ active }).eq("id", id);
+    if (error) toast.error(error.message); else { toast.success(active ? "Vendedor ativado" : "Vendedor desativado"); qc.invalidateQueries(); }
   };
 
   return (
@@ -82,19 +102,50 @@ function AdminPage() {
         <TabsContent value="commissions" className="space-y-3 mt-4">
           <Card className="border-border/50">
             <CardHeader>
+              <CardTitle className="text-base">Cadastrar vendedor</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <div className="grid gap-2 md:grid-cols-[1.4fr_1.4fr_1fr_110px_140px_auto] md:items-end">
+                <div className="space-y-1">
+                  <Label className="text-xs">Nome</Label>
+                  <Input value={newSeller.name} onChange={(e) => setNewSeller({ ...newSeller, name: e.target.value })} placeholder="Nome completo" />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs">E-mail</Label>
+                  <Input value={newSeller.email} onChange={(e) => setNewSeller({ ...newSeller, email: e.target.value })} placeholder="email@exemplo.com" />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs">Telefone</Label>
+                  <Input value={newSeller.phone} onChange={(e) => setNewSeller({ ...newSeller, phone: e.target.value })} placeholder="(00) 00000-0000" />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs">Comissão (%)</Label>
+                  <Input type="number" step="0.1" min="0" max="100" value={newSeller.commission_rate} onChange={(e) => setNewSeller({ ...newSeller, commission_rate: e.target.value })} placeholder="0" />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs">Meta mensal (R$)</Label>
+                  <Input type="number" value={newSeller.monthly_goal} onChange={(e) => setNewSeller({ ...newSeller, monthly_goal: e.target.value })} placeholder="0" />
+                </div>
+                <Button onClick={addSeller}>Adicionar</Button>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="border-border/50">
+            <CardHeader>
               <CardTitle className="text-base">Comissão por vendedor</CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
               <p className="text-sm text-muted-foreground">
-                Defina o percentual de comissão (%) sobre o valor das vendas e a meta mensal de cada vendedor.
+                Edite o percentual de comissão (%) sobre o valor das vendas e a meta mensal de cada vendedor.
               </p>
               {(sellers.data ?? []).length === 0 && (
                 <div className="p-4 rounded-lg border border-dashed border-border text-sm text-muted-foreground text-center">
-                  Nenhum vendedor cadastrado.
+                  Nenhum vendedor cadastrado ainda — use o formulário acima para adicionar o primeiro.
                 </div>
               )}
               {(sellers.data ?? []).map((s: any) => (
-                <div key={s.id} className="p-3 rounded-lg border border-border/50 bg-card grid gap-3 md:grid-cols-[1fr_140px_180px] md:items-center">
+                <div key={s.id} className="p-3 rounded-lg border border-border/50 bg-card grid gap-3 md:grid-cols-[1fr_140px_180px_110px] md:items-center">
                   <div>
                     <div className="font-medium">{s.name}</div>
                     {s.email && <div className="text-xs text-muted-foreground">{s.email}</div>}
@@ -118,6 +169,9 @@ function AdminPage() {
                       onBlur={(e) => updateSellerGoal(s.id, e.target.value)}
                     />
                   </div>
+                  <Button variant={s.active ? "outline" : "default"} size="sm" onClick={() => toggleSellerActive(s.id, !s.active)}>
+                    {s.active ? "Desativar" : "Ativar"}
+                  </Button>
                 </div>
               ))}
               <div className="text-xs text-muted-foreground">Salva automaticamente ao sair do campo.</div>
