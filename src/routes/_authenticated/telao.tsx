@@ -21,6 +21,9 @@ type SaleRow = {
   producer_id: string | null;
   customer_id: string;
   payment_method: string | null;
+  payment_status: string | null;
+  service_type_id: string | null;
+  package_id: string | null;
   created_by: string | null;
 };
 
@@ -230,7 +233,7 @@ function Telao() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("sales")
-        .select("id,total_amount,created_at,sale_date,seller_id,producer_id,customer_id,payment_method,created_by")
+        .select("id,total_amount,created_at,sale_date,seller_id,producer_id,customer_id,payment_method,payment_status,service_type_id,package_id,created_by")
         .order("created_at", { ascending: false })
         .limit(500);
       if (error) throw error;
@@ -267,12 +270,26 @@ function Telao() {
     refetchInterval: 60000,
     refetchIntervalInBackground: true,
   });
+  const serviceTypesQ = useQuery({
+    queryKey: ["telao-service-types"],
+    queryFn: async () => (await supabase.from("service_types").select("id,name")).data ?? [],
+    refetchInterval: 120000,
+    refetchIntervalInBackground: true,
+  });
+  const packagesQ = useQuery({
+    queryKey: ["telao-packages"],
+    queryFn: async () => (await supabase.from("packages").select("id,name")).data ?? [],
+    refetchInterval: 120000,
+    refetchIntervalInBackground: true,
+  });
 
   const sales = salesQ.data ?? [];
   const customers = customersQ.data ?? [];
   const sellers = sellersQ.data ?? [];
   const producers = producersQ.data ?? [];
   const profiles = profilesQ.data ?? [];
+  const serviceTypes = serviceTypesQ.data ?? [];
+  const packagesList = packagesQ.data ?? [];
 
   // Fallback: se a venda não tem seller_id/producer_id, usa created_by
   // tentando primeiro casar com sellers/producers via user_id, senão profile.
@@ -303,6 +320,29 @@ function Telao() {
   const cName = (id: string) => customers.find((c: any) => c.id === id)?.name ?? "Cliente";
   const sName = (id: string | null) => sellers.find((s: any) => s.id === id)?.name ?? "—";
   const pName = (id: string | null) => producers.find((p: any) => p.id === id)?.name ?? "—";
+
+  const serviceName = (s: SaleRow) => {
+    if (s.package_id) {
+      return packagesList.find((p: any) => p.id === s.package_id)?.name ?? "Pacote";
+    }
+    if (s.service_type_id) {
+      return serviceTypes.find((t: any) => t.id === s.service_type_id)?.name ?? "Serviço";
+    }
+    return "Serviço";
+  };
+
+  // Resolve nome do vendedor com fallback p/ created_by (mesma lógica de effectiveSellerKey)
+  const sellerNameOf = (s: SaleRow) => effectiveSellerKey(s)?.name ?? "—";
+
+  const paymentStatusLabel = (status: string | null | undefined) => {
+    switch ((status || "").toLowerCase()) {
+      case "pago": return { label: "Pago", color: "#34d399", bg: "rgba(52,211,153,0.12)" };
+      case "parcial": return { label: "Parcial", color: "#fbbf24", bg: "rgba(251,191,36,0.12)" };
+      case "pendente": return { label: "Pendente", color: "#f87171", bg: "rgba(248,113,113,0.12)" };
+      case "cancelado": return { label: "Cancelado", color: "#a3a3a3", bg: "rgba(163,163,163,0.12)" };
+      default: return { label: status || "—", color: "#c9a84c", bg: "rgba(201,168,76,0.12)" };
+    }
+  };
 
   const today0 = startOfDay();
   const week0 = startOfWeek();
@@ -346,7 +386,7 @@ function Telao() {
   const topSellers = rankBy(effectiveSellerKey);
   const topProducers = rankBy(effectiveProducerKey);
 
-  // Realtime: nova venda → confetti + buzina + flash
+  // Realtime: nova venda → confetti + buzina + flash; também escuta UPDATE/DELETE para refletir mudanças
   useEffect(() => {
     const channel = supabase
       .channel("telao-sales")
@@ -358,6 +398,12 @@ function Telao() {
         setPulseHero(true);
         setTimeout(() => setFlash(false), 1800);
         setTimeout(() => setPulseHero(false), 2000);
+      })
+      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "sales" }, () => {
+        qc.invalidateQueries({ queryKey: ["telao-sales"] });
+      })
+      .on("postgres_changes", { event: "DELETE", schema: "public", table: "sales" }, () => {
+        qc.invalidateQueries({ queryKey: ["telao-sales"] });
       })
       .subscribe();
     return () => { supabase.removeChannel(channel); };
@@ -411,35 +457,16 @@ function Telao() {
     return () => clearInterval(i);
   }, [qc]);
 
-  // últimos 12 para marquee horizontal
+  // últimos 12 para marquee horizontal (sem repetição: usa apenas vendas únicas)
   const marqueeSales = useMemo(() => todaySales.slice(0, 12), [todaySales]);
-  const effectiveLoopThreshold = Math.max(LOOP_DUPLICATE_THRESHOLD, 10);
-  const marqueeVisualSales = useMemo(
-    () => repeatToAtLeast(marqueeSales, effectiveLoopThreshold),
-    [marqueeSales, effectiveLoopThreshold],
-  );
 
-  // Janela rotativa para a lista inferior (troca a cada 60s)
-  const WINDOW = 8;
-  const rotatedSales = useMemo(() => {
-    if (todaySales.length <= WINDOW) return todaySales;
-    const start = (rotateTick * WINDOW) % todaySales.length;
-    const out: SaleRow[] = [];
-    for (let i = 0; i < WINDOW; i++) {
-      out.push(todaySales[(start + i) % todaySales.length]);
-    }
-    return out;
-  }, [todaySales, rotateTick]);
-
-  const visualSalesLoop = useMemo(
-    () => repeatToAtLeast(rotatedSales, effectiveLoopThreshold),
-    [rotatedSales, effectiveLoopThreshold],
-  );
+  // Lista única do loop principal — TODAS as vendas do dia, sem repetir nem pular
+  const loopSales = useMemo(() => todaySales, [todaySales]);
 
   useEffect(() => {
     const el = scrollRef.current;
     const track = salesTrackRef.current;
-    if (!el || !track || visualSalesLoop.length === 0) return;
+    if (!el || !track || loopSales.length === 0) return;
 
     let raf = 0;
     let last = performance.now();
@@ -460,7 +487,7 @@ function Telao() {
     el.scrollTop = 0;
     raf = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(raf);
-  }, [visualSalesLoop, rotateTick]);
+  }, [loopSales]);
 
   return (
     <div
@@ -509,7 +536,7 @@ function Telao() {
           <div className="telao-marquee whitespace-nowrap text-sm">
             {[0, 1].map((copy) => (
               <div key={`mq-copy-${copy}`} className="telao-marquee-segment" aria-hidden={copy === 1}>
-                {marqueeVisualSales.map((s, i) => (
+                {marqueeSales.map((s, i) => (
                   <span key={`${s.id}-mq-${copy}-${i}`} className="inline-flex items-center gap-3 px-6 shrink-0">
                     <span className="w-1.5 h-1.5 rounded-full bg-[#c9a84c]" />
                     <span className="uppercase tracking-widest text-[#c9a84c]/70 text-xs">{fmtTime(s.created_at)}</span>
@@ -651,42 +678,53 @@ function Telao() {
               WebkitMaskImage: todaySales.length ? "linear-gradient(to bottom, transparent, #000 7%, #000 93%, transparent)" : undefined,
             }}
           >
-            {todaySales.length === 0 && (
-              <div className="h-full grid place-items-center text-[#c9a84c]/40 uppercase tracking-widest text-sm">
-                Aguardando primeira venda
+            {loopSales.length === 0 ? (
+              <div className="h-full grid place-items-center text-[#c9a84c]/50 uppercase tracking-widest text-sm px-6 text-center">
+                Nenhuma venda registrada ainda.
               </div>
+            ) : (
+              <ul ref={salesTrackRef} key={`loop-${loopSales.length}`} className="telao-sales-loop">
+                {[0, 1].map((copy) =>
+                  loopSales.map((s, i) => {
+                    const name = cName(s.customer_id);
+                    const initial = (name?.[0] ?? "?").toUpperCase();
+                    const isFirst = copy === 0 && i === 0 && pulseHero;
+                    const ps = paymentStatusLabel(s.payment_status);
+                    return (
+                      <li
+                        key={`${s.id}-c${copy}`}
+                        aria-hidden={copy === 1}
+                        className={`grid grid-cols-[auto_1fr_auto] items-center gap-4 px-5 py-3 border-b border-[#c9a84c]/8 transition ${isFirst ? "telao-flash-row bg-[#c9a84c]/10" : ""}`}
+                      >
+                        <div className="w-10 h-10 rounded grid place-items-center border border-[#c9a84c]/30 bg-[#1a1a1a] text-[#c9a84c] font-bold">
+                          {initial}
+                        </div>
+                        <div className="min-w-0">
+                          <div className="font-semibold text-white truncate">{name}</div>
+                          <div className="text-[11px] uppercase tracking-wider text-[#c9a84c]/60 truncate">
+                            {sellerNameOf(s)} · {serviceName(s)} · {fmtTime(s.created_at)}
+                          </div>
+                        </div>
+                        <div className="flex flex-col items-end gap-1">
+                          <div
+                            style={{ fontFamily: '"Bebas Neue", sans-serif' }}
+                            className="text-2xl text-[#f0d78c] tabular-nums leading-none"
+                          >
+                            {formatCurrency(Number(s.total_amount || 0))}
+                          </div>
+                          <span
+                            className="text-[10px] uppercase tracking-widest px-2 py-0.5 rounded"
+                            style={{ color: ps.color, backgroundColor: ps.bg, border: `1px solid ${ps.color}40` }}
+                          >
+                            {ps.label}
+                          </span>
+                        </div>
+                      </li>
+                    );
+                  })
+                )}
+              </ul>
             )}
-            <ul ref={salesTrackRef} key={`rot-${rotateTick}-${rotatedSales.length}-${LOOP_DUPLICATE_THRESHOLD}`} className="telao-sales-loop">
-              {[...visualSalesLoop, ...visualSalesLoop].map((s, i) => {
-                const name = cName(s.customer_id);
-                const initial = (name?.[0] ?? "?").toUpperCase();
-                const isFirst = i === 0 && pulseHero;
-                return (
-                  <li
-                    key={`${s.id}-${i}`}
-                    aria-hidden={i >= visualSalesLoop.length}
-                    className={`grid grid-cols-[auto_1fr_auto_auto] items-center gap-4 px-5 py-3 border-b border-[#c9a84c]/8 hover:bg-[#c9a84c]/5 transition ${isFirst ? "telao-flash-row bg-[#c9a84c]/10" : ""}`}
-                  >
-                    <div className="w-10 h-10 rounded grid place-items-center border border-[#c9a84c]/30 bg-[#1a1a1a] text-[#c9a84c] font-bold">
-                      {initial}
-                    </div>
-                    <div className="min-w-0">
-                      <div className="font-semibold text-white truncate">{name}</div>
-                      <div className="text-[11px] uppercase tracking-wider text-[#c9a84c]/60 truncate">
-                        {sName(s.seller_id)} · {fmtTime(s.created_at)} · {s.payment_method ?? "—"}
-                      </div>
-                    </div>
-                    <div
-                      style={{ fontFamily: '"Bebas Neue", sans-serif' }}
-                      className="text-2xl text-[#f0d78c] tabular-nums"
-                    >
-                      {formatCurrency(Number(s.total_amount || 0))}
-                    </div>
-                    <ArrowUpRight className="w-4 h-4 text-[#c9a84c]/60" />
-                  </li>
-                );
-              })}
-            </ul>
           </div>
         </div>
 
