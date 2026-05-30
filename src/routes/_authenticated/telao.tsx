@@ -556,6 +556,7 @@ function Telao() {
 }
 
 function KpiBlock({ label, value, count, accent }: { label: string; value: number; count: number; accent?: boolean }) {
+  const animated = useCountUp(value, 700);
   return (
     <div
       className={`col-span-6 lg:col-span-3 rounded-lg border p-5 relative overflow-hidden ${accent ? "border-[#c9a84c]/40 bg-gradient-to-br from-[#1a1a1a] to-[#0d0d0d]" : "border-[#c9a84c]/20 bg-[#111]"}`}
@@ -565,12 +566,12 @@ function KpiBlock({ label, value, count, accent }: { label: string; value: numbe
         style={{ fontFamily: '"Bebas Neue", sans-serif', letterSpacing: "0.02em" }}
         className={`mt-3 text-4xl tabular-nums leading-none ${accent ? "text-[#f0d78c]" : "text-white"}`}
       >
-        {new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 }).format(value)}
+        {new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 }).format(animated)}
       </div>
       <div className="mt-3 text-[11px] uppercase tracking-widest text-[#c9a84c]/50">
         {count} venda{count === 1 ? "" : "s"}
       </div>
-      <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-[#c9a84c]/60 to-transparent" />
+      <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-[#c9a84c]/60 to-transparent animate-pulse" />
     </div>
   );
 }
