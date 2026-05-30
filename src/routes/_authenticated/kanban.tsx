@@ -65,6 +65,7 @@ function KanbanPage() {
   const qc = useQueryClient();
   const { card: cardParam } = Route.useSearch();
   const [dragging, setDragging] = useState<string | null>(null);
+  const [draggingGroup, setDraggingGroup] = useState<string[] | null>(null);
   const [dragMoved, setDragMoved] = useState(false);
   const [editing, setEditing] = useState<CardForm | null>(null);
   const [newLabel, setNewLabel] = useState("");
@@ -111,6 +112,15 @@ function KanbanPage() {
       .eq("id", cardId);
     if (error) toast.error(error.message);
     else { toast.success("Card movido"); qc.invalidateQueries({ queryKey: ["kanban-cards"] }); }
+  };
+
+  const moveMany = async (cardIds: string[], columnId: string) => {
+    const { error } = await supabase
+      .from("service_orders")
+      .update({ column_id: columnId, delivered_at: null })
+      .in("id", cardIds);
+    if (error) toast.error(error.message);
+    else { toast.success(`${cardIds.length} cards movidos`); qc.invalidateQueries({ queryKey: ["kanban-cards"] }); }
   };
 
   const openNew = (column_id: string) => { setEditing(emptyForm(column_id)); setNewLabel(""); };
@@ -212,7 +222,12 @@ function KanbanPage() {
               key={col.id}
               className="min-w-[280px] w-[280px] flex-shrink-0"
               onDragOver={(e) => e.preventDefault()}
-              onDrop={() => { if (dragging) move(dragging, col.id); setDragging(null); }}
+              onDrop={() => {
+                if (draggingGroup && draggingGroup.length) moveMany(draggingGroup, col.id);
+                else if (dragging) move(dragging, col.id);
+                setDragging(null);
+                setDraggingGroup(null);
+              }}
             >
               <div className="flex items-center justify-between mb-3 px-2">
                 <div className="flex items-center gap-2">
@@ -237,8 +252,12 @@ function KanbanPage() {
                     return (
                       <div key={groupKey} className="space-y-2">
                         <Card
-                          onClick={() => setExpandedGroups((s) => ({ ...s, [groupKey]: !s[groupKey] }))}
-                          className="cursor-pointer bg-card hover:border-primary/60 transition-all overflow-hidden border"
+                          draggable
+                          onDragStart={() => { setDraggingGroup(it.cards.map((x: any) => x.id)); setDragMoved(false); }}
+                          onDrag={() => setDragMoved(true)}
+                          onDragEnd={() => { setDraggingGroup(null); setTimeout(() => setDragMoved(false), 0); }}
+                          onClick={() => { if (!dragMoved) setExpandedGroups((s) => ({ ...s, [groupKey]: !s[groupKey] })); }}
+                          className="cursor-grab active:cursor-grabbing bg-card hover:border-primary/60 transition-all overflow-hidden border"
                           style={{ boxShadow: "var(--shadow-card)", borderWidth: "1px" }}>
                           <CardContent className="p-3 space-y-1">
                             <div className="flex items-center justify-between">
