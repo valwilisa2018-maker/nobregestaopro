@@ -631,13 +631,15 @@ function Telao() {
               </div>
             )}
             <ul key={`rot-${rotateTick}-${rotatedSales.length}-${LOOP_DUPLICATE_THRESHOLD}`} className="telao-sales-loop">
-              {scrollingSalesLoop.map((s, i) => {
+              {[0, 1].map((copy) => (
+                <div key={`sales-copy-${copy}`} aria-hidden={copy === 1}>
+                  {visualSalesLoop.map((s, i) => {
                 const name = cName(s.customer_id);
                 const initial = (name?.[0] ?? "?").toUpperCase();
-                const isFirst = i === 0 && pulseHero;
+                const isFirst = copy === 0 && i === 0 && pulseHero;
                 return (
                   <li
-                    key={`${s.id}-${i}`}
+                    key={`${s.id}-${copy}-${i}`}
                     className={`grid grid-cols-[auto_1fr_auto_auto] items-center gap-4 px-5 py-3 border-b border-[#c9a84c]/8 hover:bg-[#c9a84c]/5 transition ${isFirst ? "telao-flash-row bg-[#c9a84c]/10" : ""}`}
                   >
                     <div className="w-10 h-10 rounded grid place-items-center border border-[#c9a84c]/30 bg-[#1a1a1a] text-[#c9a84c] font-bold">
@@ -659,6 +661,8 @@ function Telao() {
                   </li>
                 );
               })}
+                </div>
+              ))}
             </ul>
           </div>
         </div>
