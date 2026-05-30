@@ -423,7 +423,7 @@ function Telao() {
         .telao-marquee { display: inline-flex; animation: telao-scroll-x 40s linear infinite; will-change: transform; backface-visibility: hidden; }
         .telao-marquee:hover { animation-play-state: paused; }
         .telao-marquee-track { display: inline-flex; min-width: 200%; }
-        .telao-sales-loop { animation: telao-scroll-y 26s linear infinite; will-change: transform; backface-visibility: hidden; }
+        .telao-sales-loop { animation: telao-rotate-in 0.7s ease-out 1, telao-scroll-y 26s linear infinite; will-change: transform; backface-visibility: hidden; }
         .telao-sales-loop:hover { animation-play-state: paused; }
         @media (max-width: 768px) { .telao-marquee { animation-duration: 25s; } }
         @media (prefers-reduced-motion: reduce) { .telao-marquee, .telao-sales-loop { animation: none; } }
@@ -590,7 +590,7 @@ function Telao() {
                 Aguardando primeira venda
               </div>
             )}
-            <ul key={`rot-${rotateTick}-${rotatedSales.length}`} className="telao-rotate telao-sales-loop">
+            <ul key={`rot-${rotateTick}-${rotatedSales.length}`} className="telao-sales-loop">
               {loopedSales.map((s, i) => {
                 const name = cName(s.customer_id);
                 const initial = (name?.[0] ?? "?").toUpperCase();
