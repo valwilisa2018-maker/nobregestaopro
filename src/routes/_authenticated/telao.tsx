@@ -425,13 +425,15 @@ function Telao() {
     return out;
   }, [todaySales, rotateTick]);
 
-  const loopedSales = useMemo(() => {
-    if (rotatedSales.length === 0) return [];
-    // Só duplica visualmente quando há POUCOS itens (para preencher o loop).
-    // Com itens suficientes, mostra cada venda uma única vez.
-    if (rotatedSales.length >= LOOP_DUPLICATE_THRESHOLD) return rotatedSales;
-    return [...rotatedSales, ...rotatedSales];
-  }, [rotatedSales, LOOP_DUPLICATE_THRESHOLD]);
+  const visualSalesLoop = useMemo(
+    () => repeatToAtLeast(rotatedSales, LOOP_DUPLICATE_THRESHOLD),
+    [rotatedSales, LOOP_DUPLICATE_THRESHOLD],
+  );
+
+  const scrollingSalesLoop = useMemo(() => {
+    if (visualSalesLoop.length === 0) return [];
+    return [...visualSalesLoop, ...visualSalesLoop];
+  }, [visualSalesLoop]);
 
   return (
     <div
