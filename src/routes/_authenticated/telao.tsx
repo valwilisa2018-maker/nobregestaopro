@@ -344,6 +344,7 @@ function Telao() {
   }, [todaySales.length]);
 
   // Auto-scroll loop nas vendas do dia (reinicia a cada rotação)
+  const [rotateTick, setRotateTick] = useState(0);
   useEffect(() => {
     const el = scrollRef.current;
     if (!el || todaySales.length === 0) return;
