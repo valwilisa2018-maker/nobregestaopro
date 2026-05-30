@@ -95,7 +95,7 @@ function KanbanPage() {
       title: found.title ?? "", description: found.description ?? "",
       due_date: found.due_date ?? "", due_time: (found.due_time ?? "").slice(0, 5),
       color: found.color ?? "", labels: found.labels ?? [],
-      trello_link: found.sales?.trello_link ?? null,
+      trello_link: found.trello_link ?? found.sales?.trello_link ?? null,
       customer_phone: found.sales?.customers?.phone ?? null,
       customer_name: found.sales?.customers?.name ?? null,
     });
@@ -118,7 +118,7 @@ function KanbanPage() {
       title: c.title ?? "", description: c.description ?? "",
       due_date: c.due_date ?? "", due_time: (c.due_time ?? "").slice(0, 5),
       color: c.color ?? "", labels: c.labels ?? [],
-      trello_link: c.sales?.trello_link ?? null,
+      trello_link: c.trello_link ?? c.sales?.trello_link ?? null,
       customer_phone: c.sales?.customers?.phone ?? null,
       customer_name: c.sales?.customers?.name ?? null,
     });
@@ -137,6 +137,7 @@ function KanbanPage() {
       due_time: editing.due_time || null,
       color: editing.color || null,
       labels: editing.labels,
+      trello_link: editing.trello_link?.trim() || null,
     };
     try {
       if (editing.id) {
