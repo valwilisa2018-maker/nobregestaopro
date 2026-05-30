@@ -6,7 +6,7 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { formatCurrency } from "@/lib/auth";
 import { fmtDate, fmtTime } from "@/lib/format";
-import { DollarSign, TrendingUp, Calendar, Trophy, Users, Briefcase, Sparkles } from "lucide-react";
+import { DollarSign, TrendingUp, Calendar, Trophy, Users, Briefcase, Sparkles, Maximize2, Minimize2 } from "lucide-react";
 import confetti from "canvas-confetti";
 
 export const Route = createFileRoute("/_authenticated/telao")({
@@ -70,7 +70,37 @@ function Telao() {
   const [soundEnabled, setSoundEnabled] = useState(false);
   const [lastCount, setLastCount] = useState<number | null>(null);
   const [flash, setFlash] = useState(false);
+  const [kiosk, setKiosk] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const rootRef = useRef<HTMLDivElement>(null);
+
+  const toggleKiosk = async () => {
+    try {
+      if (!document.fullscreenElement) {
+        await rootRef.current?.requestFullscreen?.();
+        setKiosk(true);
+      } else {
+        await document.exitFullscreen?.();
+        setKiosk(false);
+      }
+    } catch {
+      setKiosk((v) => !v);
+    }
+  };
+
+  useEffect(() => {
+    const onFs = () => setKiosk(!!document.fullscreenElement);
+    document.addEventListener("fullscreenchange", onFs);
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setKiosk(false);
+      if (e.key.toLowerCase() === "f") toggleKiosk();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("fullscreenchange", onFs);
+      window.removeEventListener("keydown", onKey);
+    };
+  }, []);
 
   const salesQ = useQuery({
     queryKey: ["telao-sales"],
@@ -183,20 +213,30 @@ function Telao() {
   const now = new Date();
 
   return (
-    <div className={`min-h-screen p-6 transition-colors ${flash ? "bg-emerald-500/10" : ""}`}>
+    <div ref={rootRef} className={`min-h-screen p-6 transition-colors ${flash ? "bg-emerald-500/10" : ""} ${kiosk ? "bg-background" : ""}`}>
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-4xl font-black tracking-tight flex items-center gap-3">
+          <h1 className={`font-black tracking-tight flex items-center gap-3 ${kiosk ? "text-6xl" : "text-4xl"}`}>
             <Sparkles className="w-8 h-8 text-primary" /> Telão de Vendas
           </h1>
           <p className="text-muted-foreground">{fmtDate(now)} • Atualização em tempo real</p>
         </div>
-        <button
-          onClick={() => { setSoundEnabled((v) => !v); if (!soundEnabled) playHorn(); }}
-          className={`px-4 py-2 rounded-lg font-semibold border ${soundEnabled ? "bg-emerald-500 text-white border-emerald-600" : "bg-card border-border"}`}
-        >
-          {soundEnabled ? "🔊 Som ON" : "🔇 Ativar buzina"}
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => { setSoundEnabled((v) => !v); if (!soundEnabled) playHorn(); }}
+            className={`px-4 py-2 rounded-lg font-semibold border ${soundEnabled ? "bg-emerald-500 text-white border-emerald-600" : "bg-card border-border"}`}
+          >
+            {soundEnabled ? "🔊 Som ON" : "🔇 Ativar buzina"}
+          </button>
+          <button
+            onClick={toggleKiosk}
+            title="Modo Kiosk (tela cheia) — tecla F"
+            className="px-4 py-2 rounded-lg font-semibold border bg-card border-border flex items-center gap-2"
+          >
+            {kiosk ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
+            {kiosk ? "Sair do Kiosk" : "Modo Kiosk"}
+          </button>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
