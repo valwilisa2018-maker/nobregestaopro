@@ -29,6 +29,20 @@ const CARD_COLORS = [
   { name: "Rosa", value: "#ec4899" },
 ];
 
+const LABEL_COLORS = [
+  "#ef4444", "#f97316", "#eab308", "#22c55e",
+  "#3b82f6", "#a855f7", "#ec4899", "#64748b",
+];
+
+const parseLabel = (s: string): { name: string; color: string } => {
+  const i = s.lastIndexOf("|");
+  if (i > 0 && /^#[0-9a-fA-F]{6}$/.test(s.slice(i + 1))) {
+    return { name: s.slice(0, i), color: s.slice(i + 1) };
+  }
+  return { name: s, color: "" };
+};
+const formatLabel = (name: string, color: string) => color ? `${name}|${color}` : name;
+
 type CardForm = {
   id?: string;
   column_id: string;
