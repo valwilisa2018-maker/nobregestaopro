@@ -190,6 +190,7 @@ function Telao() {
   const [kiosk, setKiosk] = useState(false);
   const [pulseHero, setPulseHero] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
+  const [currentSaleIndex, setCurrentSaleIndex] = useState(0);
   const [clock, setClock] = useState<string>(() => new Date().toLocaleTimeString("pt-BR"));
   useEffect(() => {
     const id = setInterval(() => setClock(new Date().toLocaleTimeString("pt-BR")), 1000);
