@@ -449,19 +449,20 @@ function Telao() {
       setCurrentSaleIndex(0);
       return;
     }
-    const maxStartIndex = Math.max(0, loopSales.length - VISIBLE_SALES_ROWS);
-    setCurrentSaleIndex((index) => Math.min(index, maxStartIndex));
+    setCurrentSaleIndex((index) => index % loopSales.length);
     const interval = window.setInterval(() => {
-      setCurrentSaleIndex((index) => (index >= maxStartIndex ? 0 : index + 1));
+      setCurrentSaleIndex((index) => (index + 1) % loopSales.length);
     }, 2800);
     return () => window.clearInterval(interval);
   }, [loopSales.length]);
 
   const visibleSales = useMemo(() => {
     if (loopSales.length === 0) return [];
-    return loopSales
-      .slice(currentSaleIndex, currentSaleIndex + VISIBLE_SALES_ROWS)
-      .map((sale, offset) => ({ sale, index: currentSaleIndex + offset }));
+    const visibleCount = Math.min(VISIBLE_SALES_ROWS, loopSales.length);
+    return Array.from({ length: visibleCount }, (_, offset) => {
+      const realIndex = (currentSaleIndex + offset) % loopSales.length;
+      return { sale: loopSales[realIndex], index: realIndex };
+    });
   }, [currentSaleIndex, loopSales]);
 
   return (
