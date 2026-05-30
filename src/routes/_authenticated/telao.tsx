@@ -336,20 +336,38 @@ function Telao() {
   const [editSeller, setEditSeller] = useState<string>("");
   const [editProducer, setEditProducer] = useState<string>("");
   const [savingEdit, setSavingEdit] = useState(false);
+  const [newProducerName, setNewProducerName] = useState<string>("");
   const openEdit = (s: SaleRow) => {
     setEditing(s);
     setEditSeller(s.seller_id ?? "");
     setEditProducer(s.producer_id ?? "");
+    setNewProducerName("");
   };
   const closeEdit = () => { if (!savingEdit) setEditing(null); };
   const saveEdit = async () => {
     if (!editing) return;
     setSavingEdit(true);
+    let producerIdToSave: string | null = editProducer || null;
+    const trimmedNew = newProducerName.trim();
+    if (trimmedNew) {
+      const { data: created, error: createErr } = await supabase
+        .from("producers")
+        .insert({ name: trimmedNew })
+        .select("id,name,user_id")
+        .single();
+      if (createErr) {
+        setSavingEdit(false);
+        alert("Erro ao criar produtor: " + createErr.message);
+        return;
+      }
+      producerIdToSave = created.id;
+      qc.invalidateQueries({ queryKey: ["telao-producers"] });
+    }
     const { error } = await supabase
       .from("sales")
       .update({
         seller_id: editSeller || null,
-        producer_id: editProducer || null,
+        producer_id: producerIdToSave,
       })
       .eq("id", editing.id);
     setSavingEdit(false);
@@ -798,6 +816,23 @@ function Telao() {
                     <option key={p.id} value={p.id}>{p.name}</option>
                   ))}
                 </select>
+                <div className="mt-2">
+                  <label className="block text-[10px] uppercase tracking-widest text-[#c9a84c]/70 mb-1">
+                    Ou criar novo produtor
+                  </label>
+                  <input
+                    type="text"
+                    value={newProducerName}
+                    onChange={(e) => setNewProducerName(e.target.value)}
+                    placeholder="Nome do novo produtor"
+                    className="w-full bg-[#0d0d0d] border border-[#c9a84c]/30 text-white rounded px-3 py-2 focus:outline-none focus:border-[#c9a84c] placeholder:text-[#c9a84c]/30"
+                  />
+                  {newProducerName.trim() && (
+                    <div className="text-[10px] text-[#c9a84c]/70 mt-1">
+                      Um novo produtor será criado e vinculado a esta venda.
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
             <div className="mt-6 flex items-center justify-end gap-2">
