@@ -412,14 +412,11 @@ function Telao() {
 
   // últimos 12 para marquee horizontal
   const marqueeSales = useMemo(() => todaySales.slice(0, 12), [todaySales]);
+  const effectiveLoopThreshold = Math.max(LOOP_DUPLICATE_THRESHOLD, 10);
   const marqueeVisualSales = useMemo(
-    () => repeatToAtLeast(marqueeSales, LOOP_DUPLICATE_THRESHOLD),
-    [marqueeSales, LOOP_DUPLICATE_THRESHOLD],
+    () => repeatToAtLeast(marqueeSales, effectiveLoopThreshold),
+    [marqueeSales, effectiveLoopThreshold],
   );
-  const marqueeScrollingSales = useMemo(() => {
-    if (marqueeVisualSales.length === 0) return [];
-    return [...marqueeVisualSales, ...marqueeVisualSales];
-  }, [marqueeVisualSales]);
 
   // Janela rotativa para a lista inferior (troca a cada 60s)
   const WINDOW = 8;
@@ -434,14 +431,9 @@ function Telao() {
   }, [todaySales, rotateTick]);
 
   const visualSalesLoop = useMemo(
-    () => repeatToAtLeast(rotatedSales, LOOP_DUPLICATE_THRESHOLD),
-    [rotatedSales, LOOP_DUPLICATE_THRESHOLD],
+    () => repeatToAtLeast(rotatedSales, effectiveLoopThreshold),
+    [rotatedSales, effectiveLoopThreshold],
   );
-
-  const scrollingSalesLoop = useMemo(() => {
-    if (visualSalesLoop.length === 0) return [];
-    return [...visualSalesLoop, ...visualSalesLoop];
-  }, [visualSalesLoop]);
 
   return (
     <div
