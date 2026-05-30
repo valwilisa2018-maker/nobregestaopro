@@ -32,6 +32,7 @@ function startOfMonth() { const d = startOfDay(); d.setDate(1); return d; }
 
 const VISIBLE_SALES_ROWS = 6;
 const SALE_ROW_HEIGHT = 72;
+const SALE_SCROLL_DURATION_PER_ROW = 3.2;
 
 // ============ SOM ============
 type SoundId = "buzina" | "caixa" | "sino";
@@ -189,7 +190,6 @@ function Telao() {
   const [kiosk, setKiosk] = useState(false);
   const [pulseHero, setPulseHero] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
-  const [currentSaleIndex, setCurrentSaleIndex] = useState(0);
   const [clock, setClock] = useState<string>(() => new Date().toLocaleTimeString("pt-BR"));
   useEffect(() => {
     const id = setInterval(() => setClock(new Date().toLocaleTimeString("pt-BR")), 1000);
@@ -444,26 +444,8 @@ function Telao() {
   // Lista única do loop principal — TODAS as vendas do dia, sem repetir nem pular
   const loopSales = useMemo(() => todaySales, [todaySales]);
 
-  useEffect(() => {
-    if (loopSales.length === 0) {
-      setCurrentSaleIndex(0);
-      return;
-    }
-    setCurrentSaleIndex((index) => index % loopSales.length);
-    const interval = window.setInterval(() => {
-      setCurrentSaleIndex((index) => (index + 1) % loopSales.length);
-    }, 2800);
-    return () => window.clearInterval(interval);
-  }, [loopSales.length]);
-
-  const visibleSales = useMemo(() => {
-    if (loopSales.length === 0) return [];
-    const visibleCount = Math.min(VISIBLE_SALES_ROWS, loopSales.length);
-    return Array.from({ length: visibleCount }, (_, offset) => {
-      const realIndex = (currentSaleIndex + offset) % loopSales.length;
-      return { sale: loopSales[realIndex], index: realIndex };
-    });
-  }, [currentSaleIndex, loopSales]);
+  const shouldAnimateSales = loopSales.length > 1;
+  const salesLoopDuration = Math.max(18, loopSales.length * SALE_SCROLL_DURATION_PER_ROW);
 
   return (
     <div
@@ -489,7 +471,9 @@ function Telao() {
         .telao-marquee { display: inline-flex; width: max-content; animation: telao-scroll-x 40s linear infinite; will-change: transform; backface-visibility: hidden; }
         .telao-marquee:hover { animation-play-state: paused; }
         .telao-marquee-segment { display: inline-flex; }
-        .telao-sales-loop { animation: telao-rotate-in 0.7s ease-out 1; will-change: transform; backface-visibility: hidden; }
+        .telao-sales-loop { will-change: transform; backface-visibility: hidden; transform: translate3d(0,0,0); }
+        .telao-sales-loop.is-animated { animation: telao-scroll-y var(--sales-loop-duration, 28s) linear infinite; }
+        .telao-sales-loop.is-animated:hover { animation-play-state: paused; }
         @media (max-width: 768px) { .telao-marquee { animation-duration: 25s; } }
         @media (prefers-reduced-motion: reduce) { .telao-marquee, .telao-sales-loop { animation: none; } }
         .telao-shine { background-image: linear-gradient(90deg, #f0d78c 0%, #ffffff 50%, #f0d78c 100%); background-size: 200% 100%; background-clip: text; -webkit-background-clip: text; -webkit-text-fill-color: transparent; animation: telao-shine 4s linear infinite; }
@@ -659,15 +643,21 @@ function Telao() {
                 Nenhuma venda registrada ainda.
               </div>
             ) : (
-              <ul key={`real-sales-${currentSaleIndex}-${loopSales.length}`} className="telao-sales-loop">
-                {visibleSales.map(({ sale: s, index }) => {
+              <ul
+                key={`real-sales-${loopSales.length}`}
+                className={`telao-sales-loop ${shouldAnimateSales ? "is-animated" : ""}`}
+                style={{ "--sales-loop-duration": `${salesLoopDuration}s` } as any}
+              >
+                {(shouldAnimateSales ? [0, 1] : [0]).map((segment) =>
+                  loopSales.map((s, index) => {
                     const name = cName(s.customer_id);
                     const initial = (name?.[0] ?? "?").toUpperCase();
-                    const isFirst = index === 0 && pulseHero;
+                    const isFirst = segment === 0 && index === 0 && pulseHero;
                     const ps = paymentStatusLabel(s.payment_status);
                     return (
                       <li
-                        key={s.id}
+                        key={`${s.id}-loop-${segment}`}
+                        aria-hidden={segment === 1}
                         className={`grid grid-cols-[auto_1fr_auto] items-center gap-4 px-5 py-3 border-b border-[#c9a84c]/8 transition min-h-[72px] ${isFirst ? "telao-flash-row bg-[#c9a84c]/10" : ""}`}
                       >
                         <div className="w-10 h-10 rounded grid place-items-center border border-[#c9a84c]/30 bg-[#1a1a1a] text-[#c9a84c] font-bold">
@@ -695,7 +685,8 @@ function Telao() {
                         </div>
                       </li>
                     );
-                  })}
+                  })
+                )}
               </ul>
             )}
           </div>
