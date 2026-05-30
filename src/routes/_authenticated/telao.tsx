@@ -28,6 +28,11 @@ function startOfDay() { const d = new Date(); d.setHours(0,0,0,0); return d; }
 function startOfWeek() { const d = startOfDay(); d.setDate(d.getDate() - d.getDay()); return d; }
 function startOfMonth() { const d = startOfDay(); d.setDate(1); return d; }
 
+function repeatToAtLeast<T>(items: T[], minItems: number): T[] {
+  if (items.length === 0 || items.length >= minItems) return items;
+  return Array.from({ length: minItems }, (_, i) => items[i % items.length]);
+}
+
 // ============ SOM ============
 type SoundId = "buzina" | "caixa" | "sino";
 
