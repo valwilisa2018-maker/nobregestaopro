@@ -366,12 +366,43 @@ function Telao() {
   const totalSemana = sum(weekSales);
   const totalMes = sum(monthSales);
   const ticketMedio = todaySales.length ? totalHoje / todaySales.length : 0;
-  const heroVal = useCountUp(totalHoje);
-  const ticketVal = useCountUp(ticketMedio);
-  const opVal = useCountUp(todaySales.length);
+  const [heroBeat, setHeroBeat] = useState(0);
+  const [rotateTick, setRotateTick] = useState(0);
+  const heroVal = useCountUp(totalHoje, 900, heroBeat);
+  const ticketVal = useCountUp(ticketMedio, 900, heroBeat);
+  const opVal = useCountUp(todaySales.length, 900, heroBeat);
 
-  // últimos 8 para marquee
+  // Loop 30s — realça e reconta os números do topo
+  useEffect(() => {
+    const i = setInterval(() => {
+      qc.invalidateQueries({ queryKey: ["telao-sales"] });
+      setHeroBeat((n) => n + 1);
+      setPulseHero(true);
+      setTimeout(() => setPulseHero(false), 1600);
+    }, 30000);
+    return () => clearInterval(i);
+  }, [qc]);
+
+  // Loop 60s — rotaciona janela das vendas do dia (marquee de dados)
+  useEffect(() => {
+    const i = setInterval(() => setRotateTick((n) => n + 1), 60000);
+    return () => clearInterval(i);
+  }, []);
+
+  // últimos 12 para marquee horizontal
   const marqueeSales = useMemo(() => todaySales.slice(0, 12), [todaySales]);
+
+  // Janela rotativa para a lista inferior (5 itens por vez, troca a cada 60s)
+  const WINDOW = 6;
+  const rotatedSales = useMemo(() => {
+    if (todaySales.length <= WINDOW) return todaySales;
+    const start = (rotateTick * WINDOW) % todaySales.length;
+    const out: SaleRow[] = [];
+    for (let i = 0; i < Math.min(WINDOW, todaySales.length); i++) {
+      out.push(todaySales[(start + i) % todaySales.length]);
+    }
+    return out;
+  }, [todaySales, rotateTick]);
 
   return (
     <div
