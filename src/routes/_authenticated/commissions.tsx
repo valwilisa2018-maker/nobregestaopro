@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -13,6 +13,7 @@ import { Wallet, TrendingUp, DollarSign, Download } from "lucide-react";
 import { formatCurrency } from "@/lib/auth";
 import { Progress } from "@/components/ui/progress";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Legend } from "recharts";
+import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/commissions")({
   component: CommissionsPage,
@@ -33,6 +34,7 @@ function rangeFor(period: PeriodKey, from: string, to: string): { from: string; 
 }
 
 function CommissionsPage() {
+  const qc = useQueryClient();
   const [period, setPeriod] = useState<PeriodKey>("this_month");
   const today = new Date().toISOString().slice(0, 10);
   const firstOfMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().slice(0, 10);
@@ -99,6 +101,16 @@ function CommissionsPage() {
       { sold: 0, paid: 0, commPaid: 0, commPending: 0 }
     );
   }, [rows]);
+
+  const updateRate = async (id: string, value: string) => {
+    const rate = Number(value);
+    if (isNaN(rate) || rate < 0 || rate > 100) { toast.error("Informe um percentual entre 0 e 100"); return; }
+    const { error } = await supabase.from("sellers").update({ commission_rate: rate }).eq("id", id);
+    if (error) { toast.error(error.message); return; }
+    toast.success("Comissão atualizada");
+    qc.invalidateQueries({ queryKey: ["commissions-sellers"] });
+    qc.invalidateQueries({ queryKey: ["admin-sellers"] });
+  };
 
   const exportCsv = () => {
     const head = ["Vendedor", "Comissão (%)", "Vendas", "Total vendido", "Total pago", "A receber", "Comissão paga", "Comissão pendente", "Comissão total"];
@@ -276,7 +288,22 @@ function CommissionsPage() {
                     <div className="font-medium">{r.name}</div>
                     {r.email && <div className="text-xs text-muted-foreground">{r.email}</div>}
                   </TableCell>
-                  <TableCell className="text-center">{r.rate}%</TableCell>
+                  <TableCell className="text-center">
+                    <div className="flex items-center justify-center gap-1">
+                      <Input
+                        type="number"
+                        step="0.1"
+                        min="0"
+                        max="100"
+                        defaultValue={r.rate}
+                        onBlur={(e) => {
+                          if (Number(e.target.value) !== r.rate) updateRate(r.id, e.target.value);
+                        }}
+                        className="h-8 w-20 text-center"
+                      />
+                      <span className="text-xs text-muted-foreground">%</span>
+                    </div>
+                  </TableCell>
                   <TableCell className="text-center">{r.salesCount}</TableCell>
                   <TableCell className="text-right">{formatCurrency(r.totalSold)}</TableCell>
                   <TableCell className="text-right">{formatCurrency(r.totalPaid)}</TableCell>
