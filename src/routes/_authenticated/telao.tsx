@@ -345,24 +345,6 @@ function Telao() {
 
   // Auto-scroll loop nas vendas do dia (reinicia a cada rotação)
   const [rotateTick, setRotateTick] = useState(0);
-  useEffect(() => {
-    const el = scrollRef.current;
-    if (!el || todaySales.length === 0) return;
-    el.scrollTop = 0;
-    let raf = 0;
-    const tick = () => {
-      if (!el) return;
-      // só rola se houver conteúdo excedente
-      if (el.scrollHeight > el.clientHeight + 4) {
-        el.scrollTop += 0.7;
-        const half = el.scrollHeight / 2;
-        if (el.scrollTop >= half) el.scrollTop = 0;
-      }
-      raf = requestAnimationFrame(tick);
-    };
-    raf = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(raf);
-  }, [todaySales.length, rotateTick]);
 
   const now = new Date();
 
@@ -407,6 +389,16 @@ function Telao() {
     return out;
   }, [todaySales, rotateTick]);
 
+  const loopedSales = useMemo(() => {
+    if (rotatedSales.length === 0) return [];
+    const minimumLoopRows = 18;
+    const base: SaleRow[] = [];
+    for (let i = 0; i < minimumLoopRows; i++) {
+      base.push(rotatedSales[i % rotatedSales.length]);
+    }
+    return [...base, ...base];
+  }, [rotatedSales]);
+
   return (
     <div
       ref={rootRef}
@@ -423,6 +415,7 @@ function Telao() {
       <style>{`
         @keyframes telao-pulse-gold { 0%,100% { box-shadow: 0 0 0 0 rgba(201,168,76,0); } 50% { box-shadow: 0 0 80px 8px rgba(240,215,140,0.45); } }
         @keyframes telao-scroll-x { from { transform: translate3d(0,0,0); } to { transform: translate3d(-50%,0,0); } }
+        @keyframes telao-scroll-y { from { transform: translate3d(0,0,0); } to { transform: translate3d(0,-50%,0); } }
         @keyframes telao-shine { 0% { background-position: -200% 0; } 100% { background-position: 200% 0; } }
         @keyframes telao-pop { 0% { transform: scale(0.85); opacity: 0; } 60% { transform: scale(1.05); opacity: 1; } 100% { transform: scale(1); } }
         @keyframes telao-rotate-in { 0% { opacity: 0; transform: translateY(14px); filter: blur(4px); } 100% { opacity: 1; transform: translateY(0); filter: blur(0); } }
@@ -430,8 +423,10 @@ function Telao() {
         .telao-marquee { display: inline-flex; animation: telao-scroll-x 40s linear infinite; will-change: transform; backface-visibility: hidden; }
         .telao-marquee:hover { animation-play-state: paused; }
         .telao-marquee-track { display: inline-flex; min-width: 200%; }
+        .telao-sales-loop { animation: telao-rotate-in 0.7s ease-out 1, telao-scroll-y 26s linear infinite; will-change: transform; backface-visibility: hidden; }
+        .telao-sales-loop:hover { animation-play-state: paused; }
         @media (max-width: 768px) { .telao-marquee { animation-duration: 25s; } }
-        @media (prefers-reduced-motion: reduce) { .telao-marquee { animation: none; } }
+        @media (prefers-reduced-motion: reduce) { .telao-marquee, .telao-sales-loop { animation: none; } }
         .telao-shine { background-image: linear-gradient(90deg, #f0d78c 0%, #ffffff 50%, #f0d78c 100%); background-size: 200% 100%; background-clip: text; -webkit-background-clip: text; -webkit-text-fill-color: transparent; animation: telao-shine 4s linear infinite; }
         .telao-pop { animation: telao-pop 0.5s cubic-bezier(.34,1.56,.64,1) 1; }
         .telao-rotate { animation: telao-rotate-in 0.7s ease-out 1; }
@@ -582,14 +577,21 @@ function Telao() {
               {todaySales.length} registros
             </span>
           </div>
-          <div ref={scrollRef} className="h-[460px] overflow-hidden">
+          <div
+            ref={scrollRef}
+            className="h-[460px] overflow-hidden"
+            style={{
+              maskImage: todaySales.length ? "linear-gradient(to bottom, transparent, #000 7%, #000 93%, transparent)" : undefined,
+              WebkitMaskImage: todaySales.length ? "linear-gradient(to bottom, transparent, #000 7%, #000 93%, transparent)" : undefined,
+            }}
+          >
             {todaySales.length === 0 && (
               <div className="h-full grid place-items-center text-[#c9a84c]/40 uppercase tracking-widest text-sm">
                 Aguardando primeira venda
               </div>
             )}
-            <ul key={`rot-${rotateTick}`} className="telao-rotate">
-              {[...rotatedSales, ...rotatedSales].map((s, i) => {
+            <ul key={`rot-${rotateTick}-${rotatedSales.length}`} className="telao-sales-loop">
+              {loopedSales.map((s, i) => {
                 const name = cName(s.customer_id);
                 const initial = (name?.[0] ?? "?").toUpperCase();
                 const isFirst = i === 0 && pulseHero;
