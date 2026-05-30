@@ -585,8 +585,8 @@ function Telao() {
                 Aguardando primeira venda
               </div>
             )}
-            <ul>
-              {[...todaySales, ...todaySales].map((s, i) => {
+            <ul key={`rot-${rotateTick}`} className="telao-rotate">
+              {[...rotatedSales, ...rotatedSales].map((s, i) => {
                 const name = cName(s.customer_id);
                 const initial = (name?.[0] ?? "?").toUpperCase();
                 const isFirst = i === 0 && pulseHero;
