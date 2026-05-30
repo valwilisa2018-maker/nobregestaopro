@@ -621,6 +621,37 @@ function FinancePage() {
           </Card>
 
           <Card className="border-border/50" style={{ boxShadow: "var(--shadow-card)" }}>
+            <CardHeader><CardTitle className="text-base">Recebimentos por forma de pagamento</CardTitle></CardHeader>
+            <CardContent className="p-0">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Forma</TableHead>
+                    <TableHead className="text-center">Vendas</TableHead>
+                    <TableHead className="text-right">Total</TableHead>
+                    <TableHead className="text-right">Pago</TableHead>
+                    <TableHead className="text-right">A receber</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {byMethod.map((v) => (
+                    <TableRow key={v.method}>
+                      <TableCell><Badge variant="outline">{v.label}</Badge></TableCell>
+                      <TableCell className="text-center">{v.qtd}</TableCell>
+                      <TableCell className="text-right font-medium">{formatCurrency(v.total)}</TableCell>
+                      <TableCell className="text-right text-emerald-500">{formatCurrency(v.pago)}</TableCell>
+                      <TableCell className="text-right text-amber-500">{formatCurrency(v.total - v.pago)}</TableCell>
+                    </TableRow>
+                  ))}
+                  {byMethod.length === 0 && (
+                    <TableRow><TableCell colSpan={5} className="text-center text-muted-foreground py-8">Sem entradas no período.</TableCell></TableRow>
+                  )}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+
+          <Card className="border-border/50" style={{ boxShadow: "var(--shadow-card)" }}>
             <CardHeader className="flex flex-row items-center justify-between">
               <CardTitle className="text-base">Entradas ({incomesFiltered.length})</CardTitle>
               <Button variant="outline" size="sm" onClick={exportIncomes}><Download className="w-4 h-4 mr-2" />CSV</Button>
