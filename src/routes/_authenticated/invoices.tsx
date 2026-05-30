@@ -11,6 +11,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Switch } from "@/components/ui/switch";
 import { Plus, Loader2, FileText, Clock, Send, ListTodo, CheckCircle2, XCircle, Search, Paperclip, Download, ExternalLink, MessageCircle } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -35,6 +36,7 @@ function InvoicesPage() {
   const qc = useQueryClient();
   const [filter, setFilter] = useState<string>("all");
   const [search, setSearch] = useState("");
+  const [grouped, setGrouped] = useState(true);
   const [open, setOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [uploadingId, setUploadingId] = useState<string | null>(null);
@@ -111,6 +113,36 @@ function InvoicesPage() {
     });
   }, [invoices.data, filter, search]);
 
+  // Agrupa por cliente + status — útil quando há várias notas a fazer do mesmo cliente
+  const groupedRows = useMemo(() => {
+    const map = new Map<string, any>();
+    filtered.forEach((i: any) => {
+      const key = `${i.customer_id}__${i.status}`;
+      const existing = map.get(key);
+      if (!existing) {
+        map.set(key, {
+          key,
+          ids: [i.id],
+          customer_id: i.customer_id,
+          customers: i.customers,
+          status: i.status,
+          amount: Number(i.amount ?? 0),
+          count: 1,
+          number: i.number,
+          issued_at: i.issued_at,
+          file_url: i.file_url,
+        });
+      } else {
+        existing.ids.push(i.id);
+        existing.amount += Number(i.amount ?? 0);
+        existing.count += 1;
+        if (!existing.number && i.number) existing.number = i.number;
+        if (!existing.file_url && i.file_url) existing.file_url = i.file_url;
+      }
+    });
+    return Array.from(map.values());
+  }, [filtered]);
+
   const submit = async () => {
     if (!form.customer_id || !form.amount) { toast.error("Cliente e valor são obrigatórios"); return; }
     setSaving(true);
@@ -151,6 +183,13 @@ function InvoicesPage() {
     qc.invalidateQueries({ queryKey: ["invoices"] });
   };
 
+  const updateStatusBulk = async (ids: string[], status: string) => {
+    const { error } = await supabase.from("invoices").update({ status: status as any }).in("id", ids);
+    if (error) { toast.error(error.message); return; }
+    toast.success(`${ids.length} nota(s) atualizada(s)`);
+    qc.invalidateQueries({ queryKey: ["invoices"] });
+  };
+
   const uploadFile = async (id: string, file: File) => {
     setUploadingId(id);
     try {
@@ -166,6 +205,41 @@ function InvoicesPage() {
     } catch (e: any) {
       toast.error(e.message ?? "Erro ao anexar arquivo");
     } finally { setUploadingId(null); }
+  };
+
+  const uploadFileBulk = async (ids: string[], file: File) => {
+    const groupKey = ids.join("-").slice(0, 40);
+    setUploadingId(groupKey);
+    try {
+      const ext = file.name.split(".").pop();
+      const path = `grouped/${ids[0]}/${Date.now()}.${ext}`;
+      const { error: upErr } = await supabase.storage.from("invoices").upload(path, file, { upsert: true });
+      if (upErr) throw upErr;
+      const { data: pub } = supabase.storage.from("invoices").getPublicUrl(path);
+      const { error } = await supabase.from("invoices").update({ file_url: pub.publicUrl }).in("id", ids);
+      if (error) throw error;
+      toast.success(`Nota anexada a ${ids.length} item(s)`);
+      qc.invalidateQueries({ queryKey: ["invoices"] });
+    } catch (e: any) {
+      toast.error(e.message ?? "Erro ao anexar arquivo");
+    } finally { setUploadingId(null); }
+  };
+
+  const sendWhatsAppGroup = async (g: any) => {
+    const phone = (g.customers?.phone ?? "").replace(/\D/g, "");
+    if (!phone) { toast.error("Cliente sem telefone cadastrado"); return; }
+    const name = g.customers?.name ?? "cliente";
+    const valorTxt = formatCurrency(g.amount);
+    const linkTxt = g.file_url ? `\n\nAcesse aqui: ${g.file_url}` : "";
+    const qtdTxt = g.count > 1 ? ` (${g.count} itens agrupados)` : "";
+    const msg = `Olá ${name}, segue sua nota fiscal${qtdTxt} no valor total de ${valorTxt}.${linkTxt}`;
+    const url = `https://wa.me/${phone}?text=${encodeURIComponent(msg)}`;
+    window.open(url, "_blank", "noopener,noreferrer");
+    const { error } = await supabase.from("invoices").update({ status: "emitida" as any }).in("id", g.ids);
+    if (!error) {
+      toast.success("WhatsApp aberto — notas marcadas como Emitidas");
+      qc.invalidateQueries({ queryKey: ["invoices"] });
+    }
   };
 
   const exportCsv = () => {
@@ -324,6 +398,10 @@ function InvoicesPage() {
             {STATUS_ORDER.map((s) => <SelectItem key={s} value={s}>{STATUS_META[s].label}</SelectItem>)}
           </SelectContent>
         </Select>
+        <div className="flex items-center gap-2 ml-auto px-2">
+          <Switch id="group-toggle" checked={grouped} onCheckedChange={setGrouped} />
+          <Label htmlFor="group-toggle" className="text-sm cursor-pointer">Agrupar por cliente</Label>
+        </div>
       </div>
 
       <Card className="border-border/50" style={{ boxShadow: "var(--shadow-card)" }}>
@@ -340,7 +418,7 @@ function InvoicesPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filtered.map((i: any) => {
+              {!grouped && filtered.map((i: any) => {
                 const meta = STATUS_META[i.status] ?? STATUS_META.a_fazer;
                 const Icon = meta.icon;
                 return (
@@ -390,7 +468,61 @@ function InvoicesPage() {
                   </TableRow>
                 );
               })}
-              {filtered.length === 0 && (
+              {grouped && groupedRows.map((g: any) => {
+                const meta = STATUS_META[g.status] ?? STATUS_META.a_fazer;
+                const Icon = meta.icon;
+                const upKey = g.ids.join("-").slice(0, 40);
+                return (
+                  <TableRow key={g.key}>
+                    <TableCell className="font-medium">
+                      {g.number ?? "—"}
+                      {g.count > 1 && <Badge variant="secondary" className="ml-2">{g.count} itens</Badge>}
+                    </TableCell>
+                    <TableCell>
+                      <div className="font-medium">{g.customers?.name}</div>
+                      {g.customers?.company && <div className="text-xs text-muted-foreground">{g.customers.company}</div>}
+                    </TableCell>
+                    <TableCell className="text-right font-semibold">{formatCurrency(g.amount)}</TableCell>
+                    <TableCell>{g.issued_at ?? "—"}</TableCell>
+                    <TableCell>
+                      <Select value={g.status} onValueChange={(v) => updateStatusBulk(g.ids, v)}>
+                        <SelectTrigger className="h-8 w-[200px]">
+                          <span className="flex items-center gap-2">
+                            <Icon className={cn("w-3.5 h-3.5", meta.tone)} />
+                            <span className="text-xs">{meta.label}</span>
+                          </span>
+                        </SelectTrigger>
+                        <SelectContent>
+                          {STATUS_ORDER.map((s) => <SelectItem key={s} value={s}>{STATUS_META[s].label}</SelectItem>)}
+                        </SelectContent>
+                      </Select>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-1">
+                        <label className="inline-flex">
+                          <input type="file" className="hidden" accept=".pdf,.xml,.png,.jpg,.jpeg" onChange={(e) => { const f = e.target.files?.[0]; if (f) uploadFileBulk(g.ids, f); e.currentTarget.value = ""; }} />
+                          <Button asChild size="sm" variant="ghost" disabled={uploadingId === upKey}>
+                            <span className="cursor-pointer">
+                              {uploadingId === upKey ? <Loader2 className="w-4 h-4 animate-spin" /> : <Paperclip className="w-4 h-4" />}
+                            </span>
+                          </Button>
+                        </label>
+                        {g.file_url && (
+                          <Button size="sm" variant="ghost" asChild>
+                            <a href={g.file_url} target="_blank" rel="noreferrer"><ExternalLink className="w-4 h-4" /></a>
+                          </Button>
+                        )}
+                        {g.status === "pronto_para_envio" && (
+                          <Button size="sm" variant="default" onClick={() => sendWhatsAppGroup(g)} className="h-8 gap-1">
+                            <MessageCircle className="w-4 h-4" />Enviar
+                          </Button>
+                        )}
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
+              {((grouped ? groupedRows.length : filtered.length) === 0) && (
                 <TableRow>
                   <TableCell colSpan={6} className="text-center text-muted-foreground py-12">
                     <FileText className="w-8 h-8 mx-auto mb-2 opacity-50" />
