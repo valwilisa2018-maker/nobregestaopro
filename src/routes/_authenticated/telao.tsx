@@ -828,38 +828,6 @@ function Telao() {
         <div className="col-span-12 lg:col-span-4 space-y-4">
           <Podium title="Top Vendedores" rows={topSellers} />
           <Podium title="Top Produtores" rows={topProducers} unitSingular="vídeo produzido" unitPlural="vídeos produzidos" />
-          <Podium
-            title="Vídeos Prontos"
-            rows={videosByProducer}
-            mode="videos"
-            periodLabel={`${String(videosMonth + 1).padStart(2, "0")}/${videosYear}`}
-            totalLabel={`${videosTotalPeriod} no período`}
-            filterControls={
-              <div className="flex items-center gap-1">
-                <select
-                  value={videosMonth}
-                  onChange={(e) => setVideosMonth(Number(e.target.value))}
-                  className="bg-[#1a1a1a] border border-[#c9a84c]/30 text-[#f0d78c] text-[10px] uppercase tracking-widest px-1.5 py-0.5 rounded"
-                  aria-label="Mês"
-                >
-                  {["Jan","Fev","Mar","Abr","Mai","Jun","Jul","Ago","Set","Out","Nov","Dez"].map((m, i) => (
-                    <option key={m} value={i}>{m}</option>
-                  ))}
-                </select>
-                <select
-                  value={videosYear}
-                  onChange={(e) => setVideosYear(Number(e.target.value))}
-                  className="bg-[#1a1a1a] border border-[#c9a84c]/30 text-[#f0d78c] text-[10px] uppercase tracking-widest px-1.5 py-0.5 rounded"
-                  aria-label="Ano"
-                >
-                  {Array.from({ length: 5 }).map((_, idx) => {
-                    const y = new Date().getFullYear() - 2 + idx;
-                    return <option key={y} value={y}>{y}</option>;
-                  })}
-                </select>
-              </div>
-            }
-          />
         </div>
       </div>
 
