@@ -292,16 +292,22 @@ function KanbanPage() {
                 <div><Label>Data de entrega</Label><Input type="date" value={editing.due_date} onChange={(e) => setEditing({ ...editing, due_date: e.target.value })} /></div>
                 <div><Label>Horário</Label><Input type="time" value={editing.due_time} onChange={(e) => setEditing({ ...editing, due_time: e.target.value })} /></div>
               </div>
-              {editing.trello_link && (
-                <div>
-                  <Label>Link do projeto</Label>
+              <div>
+                <Label>Link do projeto</Label>
+                <Input
+                  type="url"
+                  placeholder="https://..."
+                  value={editing.trello_link ?? ""}
+                  onChange={(e) => setEditing({ ...editing, trello_link: e.target.value })}
+                />
+                {editing.trello_link && (
                   <a href={editing.trello_link} target="_blank" rel="noreferrer"
                     className="flex items-center gap-2 text-sm text-primary hover:underline break-all mt-1">
                     <ExternalLink className="w-4 h-4 shrink-0" />
-                    {editing.trello_link}
+                    Abrir link
                   </a>
-                </div>
-              )}
+                )}
+              </div>
               {editing.customer_phone && (
                 <div>
                   <Label>Cliente</Label>
