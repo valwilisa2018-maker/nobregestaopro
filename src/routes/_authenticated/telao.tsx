@@ -577,14 +577,21 @@ function Telao() {
               {todaySales.length} registros
             </span>
           </div>
-          <div ref={scrollRef} className="h-[460px] overflow-hidden">
+          <div
+            ref={scrollRef}
+            className="h-[460px] overflow-hidden"
+            style={{
+              maskImage: todaySales.length ? "linear-gradient(to bottom, transparent, #000 7%, #000 93%, transparent)" : undefined,
+              WebkitMaskImage: todaySales.length ? "linear-gradient(to bottom, transparent, #000 7%, #000 93%, transparent)" : undefined,
+            }}
+          >
             {todaySales.length === 0 && (
               <div className="h-full grid place-items-center text-[#c9a84c]/40 uppercase tracking-widest text-sm">
                 Aguardando primeira venda
               </div>
             )}
-            <ul key={`rot-${rotateTick}`} className="telao-rotate">
-              {[...rotatedSales, ...rotatedSales].map((s, i) => {
+            <ul key={`rot-${rotateTick}-${rotatedSales.length}`} className="telao-rotate telao-sales-loop">
+              {loopedSales.map((s, i) => {
                 const name = cName(s.customer_id);
                 const initial = (name?.[0] ?? "?").toUpperCase();
                 const isFirst = i === 0 && pulseHero;
