@@ -8,7 +8,8 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
-import { Loader2, Crown } from "lucide-react";
+import { Loader2 } from "lucide-react";
+import logoUrl from "@/assets/logo.png";
 
 export const Route = createFileRoute("/login")({
   component: LoginPage,
@@ -82,10 +83,8 @@ function LoginPage() {
       <Card className="relative w-full max-w-md border-border/50 backdrop-blur-xl bg-card/70 animate-fade-in"
         style={{ boxShadow: "var(--shadow-premium)" }}>
         <CardHeader className="text-center space-y-3">
-          <div className="mx-auto w-14 h-14 rounded-2xl flex items-center justify-center"
-            style={{ background: "var(--gradient-primary)", boxShadow: "var(--shadow-premium)" }}>
-            <Crown className="w-7 h-7 text-primary-foreground" />
-          </div>
+          <img src={logoUrl} alt="Nobre MKT" className="mx-auto w-16 h-16 rounded-2xl object-cover"
+            style={{ boxShadow: "var(--shadow-premium)" }} />
           <div>
             <CardTitle className="text-2xl tracking-tight">Gestão Nobre MKT</CardTitle>
             <CardDescription>Plataforma premium de gestão</CardDescription>
