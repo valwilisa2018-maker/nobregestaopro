@@ -11,7 +11,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Loader2, Trash2, X, Calendar, Clock } from "lucide-react";
+import { Plus, Loader2, Trash2, X, Calendar, Clock, ExternalLink } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/kanban")({
   component: KanbanPage,
@@ -37,6 +37,7 @@ type CardForm = {
   due_time: string;
   color: string;
   labels: string[];
+  trello_link?: string | null;
 };
 
 const emptyForm = (column_id = ""): CardForm => ({
@@ -82,6 +83,7 @@ function KanbanPage() {
       title: c.title ?? "", description: c.description ?? "",
       due_date: c.due_date ?? "", due_time: (c.due_time ?? "").slice(0, 5),
       color: c.color ?? "", labels: c.labels ?? [],
+      trello_link: c.sales?.trello_link ?? null,
     });
     setNewLabel("");
   };
@@ -249,6 +251,16 @@ function KanbanPage() {
                 <div><Label>Data de entrega</Label><Input type="date" value={editing.due_date} onChange={(e) => setEditing({ ...editing, due_date: e.target.value })} /></div>
                 <div><Label>Horário</Label><Input type="time" value={editing.due_time} onChange={(e) => setEditing({ ...editing, due_time: e.target.value })} /></div>
               </div>
+              {editing.trello_link && (
+                <div>
+                  <Label>Link da venda (Trello)</Label>
+                  <a href={editing.trello_link} target="_blank" rel="noreferrer"
+                    className="flex items-center gap-2 text-sm text-primary hover:underline break-all mt-1">
+                    <ExternalLink className="w-4 h-4 shrink-0" />
+                    {editing.trello_link}
+                  </a>
+                </div>
+              )}
               <div>
                 <Label>Etiquetas</Label>
                 <div className="flex gap-2 mt-1">
