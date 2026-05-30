@@ -422,6 +422,7 @@ function Telao() {
         @keyframes telao-scroll-x { from { transform: translate3d(0,0,0); } to { transform: translate3d(-50%,0,0); } }
         @keyframes telao-shine { 0% { background-position: -200% 0; } 100% { background-position: 200% 0; } }
         @keyframes telao-pop { 0% { transform: scale(0.85); opacity: 0; } 60% { transform: scale(1.05); opacity: 1; } 100% { transform: scale(1); } }
+        @keyframes telao-rotate-in { 0% { opacity: 0; transform: translateY(14px); filter: blur(4px); } 100% { opacity: 1; transform: translateY(0); filter: blur(0); } }
         .telao-pulse { animation: telao-pulse-gold 1.8s ease-out 1; }
         .telao-marquee { display: inline-flex; animation: telao-scroll-x 40s linear infinite; will-change: transform; backface-visibility: hidden; }
         .telao-marquee:hover { animation-play-state: paused; }
@@ -430,6 +431,7 @@ function Telao() {
         @media (prefers-reduced-motion: reduce) { .telao-marquee { animation: none; } }
         .telao-shine { background-image: linear-gradient(90deg, #f0d78c 0%, #ffffff 50%, #f0d78c 100%); background-size: 200% 100%; background-clip: text; -webkit-background-clip: text; -webkit-text-fill-color: transparent; animation: telao-shine 4s linear infinite; }
         .telao-pop { animation: telao-pop 0.5s cubic-bezier(.34,1.56,.64,1) 1; }
+        .telao-rotate { animation: telao-rotate-in 0.7s ease-out 1; }
         .telao-flash-row { animation: telao-pop 0.6s ease-out 1; box-shadow: inset 0 0 0 1px rgba(240,215,140,0.5); }
       `}</style>
 
