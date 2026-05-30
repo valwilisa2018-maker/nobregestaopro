@@ -288,6 +288,10 @@ function AdminPage() {
             </CardContent>
           </Card>
         </TabsContent>
+
+        <TabsContent value="telao" className="mt-4 space-y-3">
+          <TelaoSettingsTab />
+        </TabsContent>
       </Tabs>
     </div>
   );
