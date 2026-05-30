@@ -38,6 +38,7 @@ function InvoicesPage() {
   const [open, setOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [uploadingId, setUploadingId] = useState<string | null>(null);
+  const [dialogFile, setDialogFile] = useState<File | null>(null);
   const [form, setForm] = useState({
     customer_id: "", sale_id: "", number: "", amount: "", issued_at: "",
     status: "a_fazer", notes: "",
@@ -114,7 +115,7 @@ function InvoicesPage() {
     if (!form.customer_id || !form.amount) { toast.error("Cliente e valor são obrigatórios"); return; }
     setSaving(true);
     try {
-      const { error } = await supabase.from("invoices").insert({
+      const { data: inserted, error } = await supabase.from("invoices").insert({
         customer_id: form.customer_id,
         sale_id: form.sale_id || null,
         number: form.number || null,
@@ -122,11 +123,21 @@ function InvoicesPage() {
         issued_at: form.issued_at || null,
         status: form.status as any,
         notes: form.notes || null,
-      });
+      }).select("id").single();
       if (error) throw error;
+      if (dialogFile && inserted?.id) {
+        const ext = dialogFile.name.split(".").pop();
+        const path = `${inserted.id}/${Date.now()}.${ext}`;
+        const { error: upErr } = await supabase.storage.from("invoices").upload(path, dialogFile, { upsert: true });
+        if (!upErr) {
+          const { data: pub } = supabase.storage.from("invoices").getPublicUrl(path);
+          await supabase.from("invoices").update({ file_url: pub.publicUrl }).eq("id", inserted.id);
+        }
+      }
       toast.success("Nota fiscal criada");
       setOpen(false);
       setForm({ customer_id: "", sale_id: "", number: "", amount: "", issued_at: "", status: "a_fazer", notes: "" });
+      setDialogFile(null);
       qc.invalidateQueries({ queryKey: ["invoices"] });
     } catch (e: any) {
       toast.error(e.message ?? "Erro ao criar nota");
@@ -264,6 +275,11 @@ function InvoicesPage() {
                 </Select>
               </div>
               <div className="col-span-2"><Label>Observações</Label><Textarea value={form.notes} onChange={(e) => set("notes", e.target.value)} /></div>
+              <div className="col-span-2">
+                <Label>Anexar nota fiscal (PDF, XML, imagem)</Label>
+                <Input type="file" accept=".pdf,.xml,image/*" onChange={(e) => setDialogFile(e.target.files?.[0] ?? null)} />
+                {dialogFile && <p className="text-xs text-muted-foreground mt-1 flex items-center gap-1"><Paperclip className="w-3 h-3" />{dialogFile.name}</p>}
+              </div>
             </div>
             <DialogFooter>
               <Button variant="outline" onClick={() => setOpen(false)}>Cancelar</Button>
