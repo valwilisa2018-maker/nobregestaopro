@@ -1,9 +1,11 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
+import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { StatCard } from "@/components/stat-card";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { formatCurrency } from "@/lib/auth";
 import {
   DollarSign, TrendingUp, Calendar, Trophy, CheckCircle2, Clock, AlertCircle, Package,
@@ -24,6 +26,7 @@ function startOf(period: "day" | "week" | "month" | "year") {
 }
 
 function Dashboard() {
+  const [period, setPeriod] = useState<"week" | "month" | "year">("month");
   const sales = useQuery({
     queryKey: ["dash-sales"],
     queryFn: async () => {
@@ -71,6 +74,16 @@ function Dashboard() {
   const monthTotal = sumIn(startOf("month"));
   const yearTotal = sumIn(startOf("year"));
 
+  const periodMap = {
+    week: { total: weekTotal, goal: goalFor("weekly"), label: "Semana", icon: Calendar },
+    month: { total: monthTotal, goal: goalFor("monthly"), label: "Mês", icon: TrendingUp },
+    year: { total: yearTotal, goal: goalFor("yearly"), label: "Ano", icon: Trophy },
+  } as const;
+  const current = periodMap[period];
+  const dayGoal = goalFor("daily");
+  const dayPct = dayGoal ? Math.min(100, Math.round((dayTotal / dayGoal) * 100)) : 0;
+  const periodPct = current.goal ? Math.min(100, Math.round((current.total / current.goal) * 100)) : 0;
+
   const goalFor = (p: string) =>
     Number((goals.data ?? []).find((g) => g.period === p)?.target_amount ?? 0);
 
@@ -108,15 +121,57 @@ function Dashboard() {
         <p className="text-muted-foreground">Visão geral de vendas e produção</p>
       </div>
 
-      <div className="grid gap-4 grid-cols-2 lg:grid-cols-4">
-        <StatCard label="Vendas hoje" value={formatCurrency(dayTotal)} icon={DollarSign} accent
-          hint={`Meta ${formatCurrency(goalFor("daily"))}`} />
-        <StatCard label="Semana" value={formatCurrency(weekTotal)} icon={Calendar}
-          hint={`Meta ${formatCurrency(goalFor("weekly"))}`} />
-        <StatCard label="Mês" value={formatCurrency(monthTotal)} icon={TrendingUp}
-          hint={`Meta ${formatCurrency(goalFor("monthly"))}`} />
-        <StatCard label="Ano" value={formatCurrency(yearTotal)} icon={Trophy}
-          hint={`Meta ${formatCurrency(goalFor("yearly"))}`} />
+      <div className="grid gap-4 lg:grid-cols-3">
+        <Card
+          className="lg:col-span-2 relative overflow-hidden border-primary/30 bg-gradient-to-br from-primary/15 via-card to-card"
+          style={{ boxShadow: "var(--shadow-premium)" }}
+        >
+          <div className="absolute -top-16 -right-16 w-64 h-64 rounded-full bg-primary/20 blur-3xl pointer-events-none" />
+          <CardContent className="relative p-6 sm:p-8">
+            <div className="flex items-center gap-2 text-primary">
+              <DollarSign className="w-5 h-5" />
+              <span className="text-sm font-semibold uppercase tracking-wider">Vendas hoje</span>
+            </div>
+            <div className="mt-3 text-4xl sm:text-6xl font-extrabold tracking-tight drop-shadow-[0_4px_30px_rgba(220,38,38,0.35)]">
+              {formatCurrency(dayTotal)}
+            </div>
+            <div className="mt-4 flex items-center justify-between text-sm text-muted-foreground">
+              <span>Meta {formatCurrency(dayGoal)}</span>
+              <span className="font-semibold text-foreground">{dayPct}%</span>
+            </div>
+            <Progress value={dayPct} className="h-2 mt-2" />
+          </CardContent>
+        </Card>
+
+        <Card className="border-border/50" style={{ boxShadow: "var(--shadow-card)" }}>
+          <CardHeader className="pb-3">
+            <div className="flex items-center justify-between gap-2">
+              <CardTitle className="text-base">Período</CardTitle>
+              <ToggleGroup
+                type="single"
+                value={period}
+                onValueChange={(v) => v && setPeriod(v as typeof period)}
+                size="sm"
+              >
+                <ToggleGroupItem value="week">Semana</ToggleGroupItem>
+                <ToggleGroupItem value="month">Mês</ToggleGroupItem>
+                <ToggleGroupItem value="year">Ano</ToggleGroupItem>
+              </ToggleGroup>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-center gap-2 text-muted-foreground text-sm">
+              <current.icon className="w-4 h-4" />
+              <span>{current.label}</span>
+            </div>
+            <div className="text-3xl font-bold mt-1">{formatCurrency(current.total)}</div>
+            <div className="mt-3 flex items-center justify-between text-xs text-muted-foreground">
+              <span>Meta {formatCurrency(current.goal)}</span>
+              <span className="font-semibold text-foreground">{periodPct}%</span>
+            </div>
+            <Progress value={periodPct} className="h-2 mt-2" />
+          </CardContent>
+        </Card>
       </div>
 
       <div className="grid gap-4 grid-cols-2 lg:grid-cols-4">
