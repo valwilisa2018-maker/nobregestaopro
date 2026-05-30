@@ -398,6 +398,10 @@ function InvoicesPage() {
             {STATUS_ORDER.map((s) => <SelectItem key={s} value={s}>{STATUS_META[s].label}</SelectItem>)}
           </SelectContent>
         </Select>
+        <div className="flex items-center gap-2 ml-auto px-2">
+          <Switch id="group-toggle" checked={grouped} onCheckedChange={setGrouped} />
+          <Label htmlFor="group-toggle" className="text-sm cursor-pointer">Agrupar por cliente</Label>
+        </div>
       </div>
 
       <Card className="border-border/50" style={{ boxShadow: "var(--shadow-card)" }}>
