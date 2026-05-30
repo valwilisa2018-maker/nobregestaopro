@@ -444,26 +444,8 @@ function Telao() {
   // Lista única do loop principal — TODAS as vendas do dia, sem repetir nem pular
   const loopSales = useMemo(() => todaySales, [todaySales]);
 
-  useEffect(() => {
-    if (loopSales.length === 0) {
-      setCurrentSaleIndex(0);
-      return;
-    }
-    setCurrentSaleIndex((index) => index % loopSales.length);
-    const interval = window.setInterval(() => {
-      setCurrentSaleIndex((index) => (index + 1) % loopSales.length);
-    }, 2800);
-    return () => window.clearInterval(interval);
-  }, [loopSales.length]);
-
-  const visibleSales = useMemo(() => {
-    if (loopSales.length === 0) return [];
-    const visibleCount = Math.min(VISIBLE_SALES_ROWS, loopSales.length);
-    return Array.from({ length: visibleCount }, (_, offset) => {
-      const realIndex = (currentSaleIndex + offset) % loopSales.length;
-      return { sale: loopSales[realIndex], index: realIndex };
-    });
-  }, [currentSaleIndex, loopSales]);
+  const shouldAnimateSales = loopSales.length > VISIBLE_SALES_ROWS;
+  const salesLoopDuration = Math.max(18, loopSales.length * SALE_SCROLL_DURATION_PER_ROW);
 
   return (
     <div
