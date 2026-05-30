@@ -120,6 +120,48 @@
   --shadow-elegant: 0 1px 3px oklch(0 0 0 / 0.3), 0 8px 24px -8px oklch(0 0 0 / 0.4);
 }
 
+/* Light mode override — applied when <html> has the .light class */
+.light {
+  --background: oklch(0.99 0.003 270);
+  --foreground: oklch(0.18 0.01 270);
+
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.18 0.01 270);
+
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.18 0.01 270);
+
+  --primary: oklch(0.55 0.22 25);
+  --primary-foreground: oklch(0.99 0 0);
+  --primary-glow: oklch(0.68 0.24 25);
+
+  --secondary: oklch(0.96 0.005 270);
+  --secondary-foreground: oklch(0.18 0.01 270);
+
+  --muted: oklch(0.96 0.005 270);
+  --muted-foreground: oklch(0.48 0.02 270);
+
+  --accent: oklch(0.94 0.04 25);
+  --accent-foreground: oklch(0.25 0.06 25);
+
+  --border: oklch(0.90 0.008 270);
+  --input: oklch(0.94 0.006 270);
+  --ring: oklch(0.55 0.22 25);
+
+  --sidebar: oklch(0.98 0.004 270);
+  --sidebar-foreground: oklch(0.22 0.01 270);
+  --sidebar-primary: oklch(0.55 0.22 25);
+  --sidebar-primary-foreground: oklch(0.99 0 0);
+  --sidebar-accent: oklch(0.94 0.006 270);
+  --sidebar-accent-foreground: oklch(0.22 0.01 270);
+  --sidebar-border: oklch(0.90 0.008 270);
+  --sidebar-ring: oklch(0.55 0.22 25);
+
+  --shadow-premium: 0 10px 40px -10px oklch(0.55 0.22 25 / 0.25);
+  --shadow-card: 0 4px 24px -8px oklch(0.18 0.01 270 / 0.08);
+  --shadow-elegant: 0 1px 3px oklch(0.18 0.01 270 / 0.06), 0 8px 24px -8px oklch(0.18 0.01 270 / 0.10);
+}
+
 @theme inline {
   --color-success: var(--success);
   --color-warning: var(--warning);
