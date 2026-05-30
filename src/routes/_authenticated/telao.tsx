@@ -646,9 +646,9 @@ function Telao() {
             </span>
           </div>
           <div
-            ref={scrollRef}
-            className="h-[460px] overflow-hidden"
+            className="overflow-hidden"
             style={{
+              height: loopSales.length ? Math.min(VISIBLE_SALES_ROWS, loopSales.length) * SALE_ROW_HEIGHT : 460,
               maskImage: todaySales.length ? "linear-gradient(to bottom, transparent, #000 7%, #000 93%, transparent)" : undefined,
               WebkitMaskImage: todaySales.length ? "linear-gradient(to bottom, transparent, #000 7%, #000 93%, transparent)" : undefined,
             }}
@@ -658,18 +658,16 @@ function Telao() {
                 Nenhuma venda registrada ainda.
               </div>
             ) : (
-              <ul ref={salesTrackRef} key={`loop-${loopSales.length}`} className="telao-sales-loop">
-                {[0, 1].map((copy) =>
-                  loopSales.map((s, i) => {
+              <ul key={`real-sales-${currentSaleIndex}-${loopSales.length}`} className="telao-sales-loop">
+                {visibleSales.map(({ sale: s, index }) => {
                     const name = cName(s.customer_id);
                     const initial = (name?.[0] ?? "?").toUpperCase();
-                    const isFirst = copy === 0 && i === 0 && pulseHero;
+                    const isFirst = index === 0 && pulseHero;
                     const ps = paymentStatusLabel(s.payment_status);
                     return (
                       <li
-                        key={`${s.id}-c${copy}`}
-                        aria-hidden={copy === 1}
-                        className={`grid grid-cols-[auto_1fr_auto] items-center gap-4 px-5 py-3 border-b border-[#c9a84c]/8 transition ${isFirst ? "telao-flash-row bg-[#c9a84c]/10" : ""}`}
+                        key={s.id}
+                        className={`grid grid-cols-[auto_1fr_auto] items-center gap-4 px-5 py-3 border-b border-[#c9a84c]/8 transition min-h-[72px] ${isFirst ? "telao-flash-row bg-[#c9a84c]/10" : ""}`}
                       >
                         <div className="w-10 h-10 rounded grid place-items-center border border-[#c9a84c]/30 bg-[#1a1a1a] text-[#c9a84c] font-bold">
                           {initial}
@@ -696,8 +694,7 @@ function Telao() {
                         </div>
                       </li>
                     );
-                  })
-                )}
+                  })}
               </ul>
             )}
           </div>
