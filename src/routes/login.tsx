@@ -60,10 +60,26 @@ function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden"
-      style={{ background: "var(--gradient-premium)" }}>
-      <div className="absolute inset-0 opacity-60" style={{ background: "var(--gradient-glow)" }} />
-      <Card className="relative w-full max-w-md border-border/50 backdrop-blur"
+    <div className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden bg-background">
+      <div className="auth-bg" aria-hidden="true">
+        <div className="auth-orb auth-orb-1" />
+        <div className="auth-orb auth-orb-2" />
+        <div className="auth-orb auth-orb-3" />
+        <div className="auth-shine" />
+        {Array.from({ length: 14 }).map((_, i) => (
+          <span
+            key={i}
+            className="auth-spark"
+            style={{
+              left: `${(i * 7 + 5) % 100}%`,
+              animationDuration: `${10 + (i % 5) * 2}s`,
+              animationDelay: `${(i * 0.8) % 9}s`,
+              opacity: 0.4 + ((i % 4) * 0.15),
+            }}
+          />
+        ))}
+      </div>
+      <Card className="relative w-full max-w-md border-border/50 backdrop-blur-xl bg-card/70 animate-fade-in"
         style={{ boxShadow: "var(--shadow-premium)" }}>
         <CardHeader className="text-center space-y-3">
           <div className="mx-auto w-14 h-14 rounded-2xl flex items-center justify-center"
