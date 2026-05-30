@@ -448,6 +448,25 @@ function Telao() {
   const shouldAnimateSales = loopSales.length > 1;
   const salesLoopDuration = Math.max(18, loopSales.length * SALE_SCROLL_DURATION_PER_ROW);
 
+  useEffect(() => {
+    if (loopSales.length <= 1) {
+      setCurrentSaleIndex(0);
+      return;
+    }
+
+    setCurrentSaleIndex((index) => index % loopSales.length);
+    const interval = window.setInterval(() => {
+      setCurrentSaleIndex((index) => (index + 1) % loopSales.length);
+    }, SALE_SCROLL_DURATION_PER_ROW * 1000);
+
+    return () => window.clearInterval(interval);
+  }, [loopSales.length]);
+
+  const orderedLoopSales = useMemo(() => {
+    if (loopSales.length <= 1) return loopSales;
+    return loopSales.map((_, offset) => loopSales[(currentSaleIndex + offset) % loopSales.length]);
+  }, [currentSaleIndex, loopSales]);
+
   return (
     <div
       ref={rootRef}
