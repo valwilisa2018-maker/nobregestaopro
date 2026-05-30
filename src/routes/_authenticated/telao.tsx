@@ -531,35 +531,6 @@ function Telao() {
         .telao-flash-row { animation: telao-pop 0.6s ease-out 1; box-shadow: inset 0 0 0 1px rgba(240,215,140,0.5); }
       `}</style>
 
-      {/* MARQUEE TOP — últimas vendas rolando */}
-      {marqueeSales.length > 0 && (
-        <div
-          className="mb-4 -mx-6 px-0 py-3 border-y border-[#c9a84c]/15 bg-black/40 overflow-hidden relative"
-          style={{
-            maskImage:
-              "linear-gradient(to right, transparent, #000 6%, #000 94%, transparent)",
-            WebkitMaskImage:
-              "linear-gradient(to right, transparent, #000 6%, #000 94%, transparent)",
-          }}
-        >
-          <div className="telao-marquee whitespace-nowrap text-sm">
-            {[0, 1].map((seg) => (
-              <div key={`mq-seg-${seg}`} className="telao-marquee-segment" aria-hidden={seg === 1}>
-                {marqueeSales.map((s) => (
-                  <span key={`${s.id}-mq-${seg}`} className="inline-flex items-center gap-3 px-6 shrink-0">
-                    <span className="w-1.5 h-1.5 rounded-full bg-[#c9a84c]" />
-                    <span className="uppercase tracking-widest text-[#c9a84c]/70 text-xs">{fmtTime(s.created_at)}</span>
-                    <span className="text-white font-semibold">{cName(s.customer_id)}</span>
-                    <span className="text-[#c9a84c]/50">·</span>
-                    <span className="text-[#f0d78c] font-bold tabular-nums">{formatCurrency(Number(s.total_amount || 0))}</span>
-                  </span>
-                ))}
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
       {/* HEADER */}
       <header className="flex items-center justify-between mb-6 pb-4 border-b border-[#c9a84c]/20">
         <div className="flex items-center gap-4">
@@ -616,6 +587,35 @@ function Telao() {
           </button>
         </div>
       </header>
+
+      {/* MARQUEE — últimas vendas rolando (abaixo do título) */}
+      {marqueeSales.length > 0 && (
+        <div
+          className="mb-4 -mx-6 px-0 py-3 border-y border-[#c9a84c]/15 bg-black/40 overflow-hidden relative"
+          style={{
+            maskImage:
+              "linear-gradient(to right, transparent, #000 6%, #000 94%, transparent)",
+            WebkitMaskImage:
+              "linear-gradient(to right, transparent, #000 6%, #000 94%, transparent)",
+          }}
+        >
+          <div className="telao-marquee whitespace-nowrap text-sm">
+            {[0, 1].map((seg) => (
+              <div key={`mq-seg-${seg}`} className="telao-marquee-segment" aria-hidden={seg === 1}>
+                {marqueeSales.map((s) => (
+                  <span key={`${s.id}-mq-${seg}`} className="inline-flex items-center gap-3 px-6 shrink-0">
+                    <span className="w-1.5 h-1.5 rounded-full bg-[#c9a84c]" />
+                    <span className="uppercase tracking-widest text-[#c9a84c]/70 text-xs">{fmtTime(s.created_at)}</span>
+                    <span className="text-white font-semibold">{cName(s.customer_id)}</span>
+                    <span className="text-[#c9a84c]/50">·</span>
+                    <span className="text-[#f0d78c] font-bold tabular-nums">{formatCurrency(Number(s.total_amount || 0))}</span>
+                  </span>
+                ))}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* BENTO GRID */}
       <div className="grid grid-cols-12 gap-4 auto-rows-auto">
