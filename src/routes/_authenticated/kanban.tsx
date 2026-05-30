@@ -65,6 +65,7 @@ function KanbanPage() {
   const qc = useQueryClient();
   const { card: cardParam } = Route.useSearch();
   const [dragging, setDragging] = useState<string | null>(null);
+  const [dragMoved, setDragMoved] = useState(false);
   const [editing, setEditing] = useState<CardForm | null>(null);
   const [newLabel, setNewLabel] = useState("");
   const [newLabelColor, setNewLabelColor] = useState<string>(LABEL_COLORS[0]);
@@ -207,8 +208,11 @@ function KanbanPage() {
               </div>
               <div className="space-y-2 min-h-[100px]">
                 {colCards.map((c: any) => (
-                  <Card key={c.id} draggable onDragStart={() => setDragging(c.id)}
-                    onClick={() => openEdit(c)}
+                  <Card key={c.id} draggable
+                    onDragStart={() => { setDragging(c.id); setDragMoved(false); }}
+                    onDrag={() => setDragMoved(true)}
+                    onDragEnd={() => { setDragging(null); setTimeout(() => setDragMoved(false), 0); }}
+                    onClick={() => { if (!dragMoved) openEdit(c); }}
                     className="cursor-pointer bg-card hover:border-primary/60 transition-all overflow-hidden border"
                     style={{
                       boxShadow: "var(--shadow-card)",
