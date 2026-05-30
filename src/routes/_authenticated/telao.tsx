@@ -827,7 +827,7 @@ function Telao() {
         {/* PÓDIOS */}
         <div className="col-span-12 lg:col-span-4 space-y-4">
           <Podium title="Top Vendedores" rows={topSellers} />
-          <Podium title="Top Produtores" rows={topProducers} />
+          <Podium title="Top Produtores" rows={topProducers} unitSingular="vídeo produzido" unitPlural="vídeos produzidos" />
           <Podium
             title="Vídeos Prontos"
             rows={videosByProducer}
