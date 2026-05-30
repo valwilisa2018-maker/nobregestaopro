@@ -479,7 +479,7 @@ function Telao() {
       {/* keyframes locais */}
       <style>{`
         @keyframes telao-pulse-gold { 0%,100% { box-shadow: 0 0 0 0 rgba(201,168,76,0); } 50% { box-shadow: 0 0 80px 8px rgba(240,215,140,0.45); } }
-        @keyframes telao-scroll-x { from { transform: translate3d(0,0,0); } to { transform: translate3d(-50%,0,0); } }
+        @keyframes telao-scroll-x { from { transform: translate3d(0,0,0); } to { transform: translate3d(-100%,0,0); } }
         @keyframes telao-scroll-y { from { transform: translate3d(0,0,0); } to { transform: translate3d(0,-50%,0); } }
         @keyframes telao-shine { 0% { background-position: -200% 0; } 100% { background-position: 200% 0; } }
         @keyframes telao-pop { 0% { transform: scale(0.85); opacity: 0; } 60% { transform: scale(1.05); opacity: 1; } 100% { transform: scale(1); } }
