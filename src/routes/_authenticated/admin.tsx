@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
+import { CheckCircle2, AlertCircle } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/admin")({
   component: AdminPage,
@@ -45,6 +46,8 @@ function AdminPage() {
           <TabsTrigger value="goals">Metas</TabsTrigger>
           <TabsTrigger value="services">Tipos de Serviço</TabsTrigger>
           <TabsTrigger value="kanban">Colunas Kanban</TabsTrigger>
+          <TabsTrigger value="pagarme">Pagar.me</TabsTrigger>
+          <TabsTrigger value="nfe">Nota Fiscal</TabsTrigger>
         </TabsList>
 
         <TabsContent value="goals" className="space-y-3 mt-4">
@@ -90,6 +93,74 @@ function AdminPage() {
               </div>
             ))}
           </div>
+        </TabsContent>
+
+        <TabsContent value="pagarme" className="mt-4 space-y-3">
+          <Card className="border-border/50">
+            <CardHeader>
+              <CardTitle className="text-base">Integração Pagar.me</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4 text-sm">
+              <p className="text-muted-foreground">
+                Para gerar links de pagamento, cadastre a chave secreta da sua conta Pagar.me (API v5).
+                A chave fica armazenada de forma segura no servidor — nunca aparece no navegador.
+              </p>
+              <ol className="list-decimal list-inside space-y-1 text-muted-foreground">
+                <li>Acesse o painel da Pagar.me → Configurações → Chaves de API.</li>
+                <li>Copie a <strong>Secret Key</strong> (começa com <code>sk_</code>).</li>
+                <li>Cole no campo de credenciais do servidor (variável <code>PAGARME_API_KEY</code>).</li>
+              </ol>
+              <div className="p-3 rounded-lg border border-border/50 bg-muted/30 flex items-start gap-2">
+                <AlertCircle className="w-4 h-4 mt-0.5 text-amber-500 shrink-0" />
+                <div>
+                  <div className="font-medium">Chave da API</div>
+                  <div className="text-muted-foreground text-xs mt-1">
+                    Peça ao administrador para configurar o segredo <code>PAGARME_API_KEY</code>. Após salvo,
+                    o menu <strong>Gerar Pagamento</strong> passa a funcionar imediatamente.
+                  </div>
+                </div>
+              </div>
+              <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                <CheckCircle2 className="w-4 h-4 text-emerald-500" />
+                Métodos suportados: Cartão de Crédito (até 12x), Pix e Boleto.
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="nfe" className="mt-4 space-y-3">
+          <Card className="border-border/50">
+            <CardHeader>
+              <CardTitle className="text-base">API de Nota Fiscal</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4 text-sm">
+              <p className="text-muted-foreground">
+                Em breve: emissão automática de NFS-e via API (NFE.io, Focus NFe, eNotas etc).
+                Cadastre aqui o token da emissora escolhida para que cada venda gere a nota fiscal automaticamente.
+              </p>
+              <div className="grid gap-3 md:grid-cols-2">
+                <div className="space-y-1">
+                  <Label>Provedor</Label>
+                  <Input placeholder="Ex.: NFE.io" disabled />
+                </div>
+                <div className="space-y-1">
+                  <Label>Token da API</Label>
+                  <Input type="password" placeholder="Será solicitado ao ativar" disabled />
+                </div>
+                <div className="space-y-1">
+                  <Label>CNPJ Emissor</Label>
+                  <Input placeholder="00.000.000/0000-00" disabled />
+                </div>
+                <div className="space-y-1">
+                  <Label>Inscrição Municipal</Label>
+                  <Input placeholder="Opcional" disabled />
+                </div>
+              </div>
+              <div className="p-3 rounded-lg border border-border/50 bg-muted/30 text-xs text-muted-foreground">
+                Estrutura pronta — aguardando credenciais e escolha do provedor para ativar a emissão.
+              </div>
+            </CardContent>
+          </Card>
         </TabsContent>
       </Tabs>
     </div>
