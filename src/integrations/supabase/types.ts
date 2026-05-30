@@ -436,6 +436,7 @@ export type Database = {
           service_index: number
           sort_order: number
           title: string
+          trello_link: string | null
           updated_at: string
         }
         Insert: {
@@ -453,6 +454,7 @@ export type Database = {
           service_index?: number
           sort_order?: number
           title: string
+          trello_link?: string | null
           updated_at?: string
         }
         Update: {
@@ -470,6 +472,7 @@ export type Database = {
           service_index?: number
           sort_order?: number
           title?: string
+          trello_link?: string | null
           updated_at?: string
         }
         Relationships: [

@@ -95,7 +95,7 @@ function KanbanPage() {
       title: found.title ?? "", description: found.description ?? "",
       due_date: found.due_date ?? "", due_time: (found.due_time ?? "").slice(0, 5),
       color: found.color ?? "", labels: found.labels ?? [],
-      trello_link: found.sales?.trello_link ?? null,
+      trello_link: found.trello_link ?? found.sales?.trello_link ?? null,
       customer_phone: found.sales?.customers?.phone ?? null,
       customer_name: found.sales?.customers?.name ?? null,
     });
@@ -118,7 +118,7 @@ function KanbanPage() {
       title: c.title ?? "", description: c.description ?? "",
       due_date: c.due_date ?? "", due_time: (c.due_time ?? "").slice(0, 5),
       color: c.color ?? "", labels: c.labels ?? [],
-      trello_link: c.sales?.trello_link ?? null,
+      trello_link: c.trello_link ?? c.sales?.trello_link ?? null,
       customer_phone: c.sales?.customers?.phone ?? null,
       customer_name: c.sales?.customers?.name ?? null,
     });
@@ -137,6 +137,7 @@ function KanbanPage() {
       due_time: editing.due_time || null,
       color: editing.color || null,
       labels: editing.labels,
+      trello_link: editing.trello_link?.trim() || null,
     };
     try {
       if (editing.id) {
@@ -292,16 +293,22 @@ function KanbanPage() {
                 <div><Label>Data de entrega</Label><Input type="date" value={editing.due_date} onChange={(e) => setEditing({ ...editing, due_date: e.target.value })} /></div>
                 <div><Label>Horário</Label><Input type="time" value={editing.due_time} onChange={(e) => setEditing({ ...editing, due_time: e.target.value })} /></div>
               </div>
-              {editing.trello_link && (
-                <div>
-                  <Label>Link do projeto</Label>
+              <div>
+                <Label>Link do projeto</Label>
+                <Input
+                  type="url"
+                  placeholder="https://..."
+                  value={editing.trello_link ?? ""}
+                  onChange={(e) => setEditing({ ...editing, trello_link: e.target.value })}
+                />
+                {editing.trello_link && (
                   <a href={editing.trello_link} target="_blank" rel="noreferrer"
                     className="flex items-center gap-2 text-sm text-primary hover:underline break-all mt-1">
                     <ExternalLink className="w-4 h-4 shrink-0" />
-                    {editing.trello_link}
+                    Abrir link
                   </a>
-                </div>
-              )}
+                )}
+              </div>
               {editing.customer_phone && (
                 <div>
                   <Label>Cliente</Label>
