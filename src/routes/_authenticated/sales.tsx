@@ -23,6 +23,7 @@ function SalesPage() {
   const qc = useQueryClient();
   const [open, setOpen] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [receiptFile, setReceiptFile] = useState<File | null>(null);
 
   const sales = useQuery({
     queryKey: ["sales-list"],
@@ -59,6 +60,19 @@ function SalesPage() {
       if (ce) throw ce;
 
       const { data: { user } } = await supabase.auth.getUser();
+
+      let receipt_url: string | null = null;
+      if (receiptFile) {
+        const ext = receiptFile.name.split(".").pop() || "bin";
+        const path = `${user?.id ?? "anon"}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+        const { error: ue } = await supabase.storage.from("receipts").upload(path, receiptFile, {
+          contentType: receiptFile.type || undefined,
+          upsert: false,
+        });
+        if (ue) throw ue;
+        receipt_url = path;
+      }
+
       const { error: se } = await supabase.from("sales").insert({
         customer_id: cust.id,
         total_amount: Number(form.total_amount),
@@ -72,11 +86,13 @@ function SalesPage() {
         service_quantity: Number(form.service_quantity || 1),
         notes: form.notes || null,
         trello_link: form.trello_link || null,
+        receipt_url,
         created_by: user?.id,
       });
       if (se) throw se;
       toast.success("Venda criada — cards de produção gerados automaticamente");
       setOpen(false);
+      setReceiptFile(null);
       qc.invalidateQueries();
     } catch (e: any) {
       toast.error(e.message ?? "Erro ao criar venda");
@@ -151,6 +167,17 @@ function SalesPage() {
               </div>
               <div><Label>Qtd. serviços no pacote</Label><Input type="number" min="1" value={form.service_quantity} onChange={(e) => set("service_quantity", e.target.value)} /></div>
               <div className="col-span-2"><Label>Link Trello / card externo</Label><Input value={form.trello_link} onChange={(e) => set("trello_link", e.target.value)} /></div>
+              <div className="col-span-2">
+                <Label>Comprovante (imagem ou PDF)</Label>
+                <Input
+                  type="file"
+                  accept="image/*,application/pdf"
+                  onChange={(e) => setReceiptFile(e.target.files?.[0] ?? null)}
+                />
+                {receiptFile && (
+                  <p className="text-xs text-muted-foreground mt-1">{receiptFile.name}</p>
+                )}
+              </div>
               <div className="col-span-2"><Label>Observações</Label><Textarea value={form.notes} onChange={(e) => set("notes", e.target.value)} /></div>
             </div>
             <DialogFooter>
