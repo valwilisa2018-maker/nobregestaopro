@@ -152,10 +152,12 @@ function fireConfetti() {
 }
 
 // Hook count-up
-function useCountUp(target: number, duration = 900) {
+function useCountUp(target: number, duration = 900, replayKey: number = 0) {
   const [val, setVal] = useState(target);
   const fromRef = useRef(target);
   useEffect(() => {
+    // Em replay, reanima a partir de 0 mesmo que o alvo não tenha mudado
+    if (replayKey > 0) fromRef.current = 0;
     const from = fromRef.current;
     const start = performance.now();
     let raf = 0;
@@ -168,7 +170,7 @@ function useCountUp(target: number, duration = 900) {
     };
     raf = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(raf);
-  }, [target, duration]);
+  }, [target, duration, replayKey]);
   return val;
 }
 
