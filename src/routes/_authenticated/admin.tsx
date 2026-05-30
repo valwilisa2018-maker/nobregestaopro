@@ -292,3 +292,62 @@ function AdminPage() {
     </div>
   );
 }
+
+function TelaoSettingsTab() {
+  const [threshold, setThreshold] = useLoopDuplicateThreshold();
+  const [draft, setDraft] = useState<string>(String(threshold));
+
+  const save = () => {
+    const n = Number(draft);
+    if (!Number.isFinite(n) || n < TELAO_THRESHOLD_MIN || n > TELAO_THRESHOLD_MAX) {
+      toast.error(`Informe um número entre ${TELAO_THRESHOLD_MIN} e ${TELAO_THRESHOLD_MAX}`);
+      return;
+    }
+    setThreshold(n);
+    toast.success("Configuração do telão salva");
+  };
+
+  return (
+    <Card className="border-border/50">
+      <CardHeader>
+        <CardTitle className="text-base">Loop de vendas do telão</CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-4 text-sm">
+        <p className="text-muted-foreground">
+          Define o limite mínimo de vendas exibidas antes do telão começar a duplicar visualmente
+          os itens (para preencher o efeito de loop). Abaixo desse número, as vendas são repetidas
+          na tela; acima, cada venda aparece uma única vez.
+        </p>
+        <div className="grid gap-3 md:grid-cols-[200px_auto] items-end">
+          <div className="space-y-1">
+            <Label>Limite para duplicar (itens)</Label>
+            <Input
+              type="number"
+              min={TELAO_THRESHOLD_MIN}
+              max={TELAO_THRESHOLD_MAX}
+              value={draft}
+              onChange={(e) => setDraft(e.target.value)}
+            />
+          </div>
+          <div className="flex gap-2">
+            <Button onClick={save}>Salvar</Button>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setDraft(String(TELAO_THRESHOLD_DEFAULT));
+                setThreshold(TELAO_THRESHOLD_DEFAULT);
+                toast.success("Restaurado para o padrão");
+              }}
+            >
+              Padrão ({TELAO_THRESHOLD_DEFAULT})
+            </Button>
+          </div>
+        </div>
+        <div className="text-xs text-muted-foreground">
+          Valor atual aplicado: <strong>{threshold}</strong>. A configuração é salva neste navegador
+          e aplicada imediatamente ao abrir o telão.
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
