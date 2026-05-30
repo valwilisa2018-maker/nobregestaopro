@@ -67,6 +67,7 @@ function KanbanPage() {
   const [dragging, setDragging] = useState<string | null>(null);
   const [editing, setEditing] = useState<CardForm | null>(null);
   const [newLabel, setNewLabel] = useState("");
+  const [newLabelColor, setNewLabelColor] = useState<string>(LABEL_COLORS[0]);
   const [saving, setSaving] = useState(false);
 
   const cols = useQuery({
@@ -166,7 +167,7 @@ function KanbanPage() {
 
   const addLabel = () => {
     if (!editing || !newLabel.trim()) return;
-    setEditing({ ...editing, labels: [...editing.labels, newLabel.trim()] });
+    setEditing({ ...editing, labels: [...editing.labels, formatLabel(newLabel.trim(), newLabelColor)] });
     setNewLabel("");
   };
   const removeLabel = (i: number) => {
