@@ -58,7 +58,7 @@ export function AppSidebar() {
     <Sidebar collapsible="icon">
       <SidebarHeader className="border-b border-sidebar-border">
         <div className="flex items-center gap-3 px-2 py-3">
-          <img src={logoUrl} alt="Nobre MKT" className="w-9 h-9 rounded-lg object-cover shrink-0"
+          <img src={logoUrl} alt="Nobre MKT" className="w-10 h-10 rounded-lg object-contain shrink-0"
             style={{ boxShadow: "var(--shadow-premium)" }} />
           {!collapsed && (
             <div className="leading-tight">
