@@ -827,7 +827,7 @@ function Telao() {
         {/* PÓDIOS */}
         <div className="col-span-12 lg:col-span-4 space-y-4">
           <Podium title="Top Vendedores" rows={topSellers} />
-          <Podium title="Top Produtores" rows={topProducers} />
+          <Podium title="Top Produtores" rows={topProducers} unitSingular="vídeo produzido" unitPlural="vídeos produzidos" />
           <Podium
             title="Vídeos Prontos"
             rows={videosByProducer}
@@ -991,6 +991,8 @@ function Podium({
   periodLabel,
   totalLabel,
   filterControls,
+  unitSingular,
+  unitPlural,
 }: {
   title: string;
   rows: { name: string; total: number; qtd: number }[];
@@ -998,6 +1000,8 @@ function Podium({
   periodLabel?: string;
   totalLabel?: string;
   filterControls?: React.ReactNode;
+  unitSingular?: string;
+  unitPlural?: string;
 }) {
   return (
     <div className="rounded-lg border border-[#c9a84c]/20 bg-[#111]/80 overflow-hidden">
@@ -1043,7 +1047,12 @@ function Podium({
             <div className="min-w-0">
               <div className="font-semibold text-white truncate">{r.name}</div>
               <div className="text-[10px] uppercase tracking-widest text-[#c9a84c]/50">
-                {r.qtd} {mode === "videos" ? `vídeo${r.qtd === 1 ? "" : "s"} pronto${r.qtd === 1 ? "" : "s"}` : `venda${r.qtd === 1 ? "" : "s"}`}
+                {r.qtd}{" "}
+                {unitSingular && unitPlural
+                  ? (r.qtd === 1 ? unitSingular : unitPlural)
+                  : mode === "videos"
+                  ? `vídeo${r.qtd === 1 ? "" : "s"} pronto${r.qtd === 1 ? "" : "s"}`
+                  : `venda${r.qtd === 1 ? "" : "s"}`}
               </div>
             </div>
             <div
