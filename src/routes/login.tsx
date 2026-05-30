@@ -60,6 +60,17 @@ function LoginPage() {
     if (r.error) { toast.error("Falha ao entrar com Google"); setLoading(false); }
   };
 
+  const handleForgot = async () => {
+    if (!email) { toast.error("Digite seu e-mail para recuperar a senha"); return; }
+    setLoading(true);
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${window.location.origin}/login`,
+    });
+    setLoading(false);
+    if (error) toast.error(error.message);
+    else toast.success("Enviamos um link de recuperação para seu e-mail.");
+  };
+
   return (
     <div className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden bg-background">
       <div className="auth-bg" aria-hidden="true">
@@ -100,11 +111,16 @@ function LoginPage() {
               <form onSubmit={handleLogin} className="space-y-4 mt-4">
                 <div className="space-y-2">
                   <Label>E-mail</Label>
-                  <Input className="border-border/60 bg-background/40" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
+                  <Input className="border-2 border-white/20 bg-background/60 focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-primary/40" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
                 </div>
                 <div className="space-y-2">
-                  <Label>Senha</Label>
-                  <Input className="border-border/60 bg-background/40" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required />
+                  <div className="flex items-center justify-between">
+                    <Label>Senha</Label>
+                    <button type="button" onClick={handleForgot} className="text-xs text-primary hover:underline">
+                      Esqueceu a senha?
+                    </button>
+                  </div>
+                  <Input className="border-2 border-white/20 bg-background/60 focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-primary/40" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required />
                 </div>
                 <Button type="submit" className="w-full" disabled={loading}>
                   {loading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}Entrar
@@ -115,15 +131,15 @@ function LoginPage() {
               <form onSubmit={handleSignup} className="space-y-4 mt-4">
                 <div className="space-y-2">
                   <Label>Nome completo</Label>
-                  <Input className="border-border/60 bg-background/40" value={fullName} onChange={(e) => setFullName(e.target.value)} required />
+                  <Input className="border-2 border-white/20 bg-background/60 focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-primary/40" value={fullName} onChange={(e) => setFullName(e.target.value)} required />
                 </div>
                 <div className="space-y-2">
                   <Label>E-mail</Label>
-                  <Input className="border-border/60 bg-background/40" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
+                  <Input className="border-2 border-white/20 bg-background/60 focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-primary/40" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
                 </div>
                 <div className="space-y-2">
                   <Label>Senha</Label>
-                  <Input className="border-border/60 bg-background/40" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required minLength={6} />
+                  <Input className="border-2 border-white/20 bg-background/60 focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-primary/40" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required minLength={6} />
                 </div>
                 <Button type="submit" className="w-full" disabled={loading}>
                   {loading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}Criar conta
