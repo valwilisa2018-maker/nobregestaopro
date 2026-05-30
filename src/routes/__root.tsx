@@ -86,6 +86,10 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { property: "og:description", content: "Plataforma premium de gestão de vendas e produção" },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
+      { name: "twitter:title", content: "Gestão Nobre MKT" },
+      { name: "twitter:description", content: "Plataforma premium de gestão de vendas e produção" },
+      { property: "og:image", content: "https://storage.googleapis.com/gpt-engineer-file-uploads/IAkaZvFEYXSf0WwJHshXeO14xq23/social-images/social-1780111238311-ChatGPT_Image_30_de_mai._de_2026,_00_20_17.webp" },
+      { name: "twitter:image", content: "https://storage.googleapis.com/gpt-engineer-file-uploads/IAkaZvFEYXSf0WwJHshXeO14xq23/social-images/social-1780111238311-ChatGPT_Image_30_de_mai._de_2026,_00_20_17.webp" },
     ],
     links: [
       {
