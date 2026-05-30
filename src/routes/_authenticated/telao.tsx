@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { formatCurrency } from "@/lib/auth";
 import { fmtDate, fmtTime } from "@/lib/format";
-import { Maximize2, Minimize2, Volume2, VolumeX, ArrowUpRight, Megaphone, Bell, Coins } from "lucide-react";
+import { Maximize2, Minimize2, Volume2, VolumeX, ArrowUpRight, Megaphone, Bell, Coins, Pencil, X } from "lucide-react";
 import confetti from "canvas-confetti";
 
 export const Route = createFileRoute("/_authenticated/telao")({
@@ -329,6 +329,37 @@ function Telao() {
 
   // Resolve nome do vendedor com fallback p/ created_by (mesma lógica de effectiveSellerKey)
   const sellerNameOf = (s: SaleRow) => effectiveSellerKey(s)?.name ?? "—";
+  const producerNameOf = (s: SaleRow) => effectiveProducerKey(s)?.name ?? "—";
+
+  // Edição inline de venda (vendedor / produtor)
+  const [editing, setEditing] = useState<SaleRow | null>(null);
+  const [editSeller, setEditSeller] = useState<string>("");
+  const [editProducer, setEditProducer] = useState<string>("");
+  const [savingEdit, setSavingEdit] = useState(false);
+  const openEdit = (s: SaleRow) => {
+    setEditing(s);
+    setEditSeller(s.seller_id ?? "");
+    setEditProducer(s.producer_id ?? "");
+  };
+  const closeEdit = () => { if (!savingEdit) setEditing(null); };
+  const saveEdit = async () => {
+    if (!editing) return;
+    setSavingEdit(true);
+    const { error } = await supabase
+      .from("sales")
+      .update({
+        seller_id: editSeller || null,
+        producer_id: editProducer || null,
+      })
+      .eq("id", editing.id);
+    setSavingEdit(false);
+    if (!error) {
+      qc.invalidateQueries({ queryKey: ["telao-sales"] });
+      setEditing(null);
+    } else {
+      alert("Erro ao salvar: " + error.message);
+    }
+  };
 
   const paymentStatusLabel = (status: string | null | undefined) => {
     switch ((status || "").toLowerCase()) {
@@ -658,7 +689,7 @@ function Telao() {
                       <li
                         key={`${s.id}-loop-${segment}`}
                         aria-hidden={segment === 1}
-                        className={`grid grid-cols-[auto_1fr_auto] items-center gap-4 px-5 py-3 border-b border-[#c9a84c]/8 transition min-h-[72px] ${isFirst ? "telao-flash-row bg-[#c9a84c]/10" : ""}`}
+                        className={`group grid grid-cols-[auto_1fr_auto_auto] items-center gap-4 px-5 py-3 border-b border-[#c9a84c]/8 transition min-h-[72px] ${isFirst ? "telao-flash-row bg-[#c9a84c]/10" : ""}`}
                       >
                         <div className="w-10 h-10 rounded grid place-items-center border border-[#c9a84c]/30 bg-[#1a1a1a] text-[#c9a84c] font-bold">
                           {initial}
@@ -666,7 +697,7 @@ function Telao() {
                         <div className="min-w-0">
                           <div className="font-semibold text-white truncate">{name}</div>
                           <div className="text-[11px] uppercase tracking-wider text-[#c9a84c]/60 truncate">
-                            {sellerNameOf(s)} · {serviceName(s)} · {fmtTime(s.created_at)}
+                            Vend: <span className="text-[#f0d78c]">{sellerNameOf(s)}</span> · Prod: <span className="text-[#f0d78c]">{producerNameOf(s)}</span> · {serviceName(s)} · {fmtTime(s.created_at)}
                           </div>
                         </div>
                         <div className="flex flex-col items-end gap-1">
@@ -683,6 +714,16 @@ function Telao() {
                             {ps.label}
                           </span>
                         </div>
+                        {segment === 0 && (
+                          <button
+                            onClick={() => openEdit(s)}
+                            title="Editar venda"
+                            className="h-8 w-8 grid place-items-center rounded border border-[#c9a84c]/30 text-[#c9a84c] hover:bg-[#c9a84c]/10 transition opacity-0 group-hover:opacity-100"
+                          >
+                            <Pencil className="w-3.5 h-3.5" />
+                          </button>
+                        )}
+                        {segment === 1 && <span aria-hidden className="w-8" />}
                       </li>
                     );
                   })
@@ -703,6 +744,81 @@ function Telao() {
         <span>Gestão Nobre · sala de operações</span>
         <span>Pressione F para tela cheia · Esc para sair</span>
       </footer>
+
+      {editing && (
+        <div
+          className="fixed inset-0 z-50 grid place-items-center bg-black/70 backdrop-blur-sm p-4"
+          onClick={closeEdit}
+        >
+          <div
+            className="w-full max-w-md rounded-lg border border-[#c9a84c]/40 bg-[#1a1a1a] p-6 shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between mb-4">
+              <h3
+                style={{ fontFamily: '"Bebas Neue", sans-serif', letterSpacing: "0.08em" }}
+                className="text-2xl text-[#f0d78c]"
+              >
+                EDITAR VENDA
+              </h3>
+              <button
+                onClick={closeEdit}
+                className="h-8 w-8 grid place-items-center rounded text-[#c9a84c] hover:bg-[#c9a84c]/10"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+            <div className="space-y-4 text-sm">
+              <div>
+                <div className="text-[10px] uppercase tracking-widest text-[#c9a84c]/70 mb-1">Cliente</div>
+                <div className="text-white">{cName(editing.customer_id)}</div>
+              </div>
+              <div>
+                <label className="block text-[10px] uppercase tracking-widest text-[#c9a84c]/70 mb-1">Vendedor</label>
+                <select
+                  value={editSeller}
+                  onChange={(e) => setEditSeller(e.target.value)}
+                  className="w-full bg-[#0d0d0d] border border-[#c9a84c]/30 text-white rounded px-3 py-2 focus:outline-none focus:border-[#c9a84c]"
+                >
+                  <option value="">— Nenhum —</option>
+                  {sellers.map((s: any) => (
+                    <option key={s.id} value={s.id}>{s.name}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-[10px] uppercase tracking-widest text-[#c9a84c]/70 mb-1">Produtor</label>
+                <select
+                  value={editProducer}
+                  onChange={(e) => setEditProducer(e.target.value)}
+                  className="w-full bg-[#0d0d0d] border border-[#c9a84c]/30 text-white rounded px-3 py-2 focus:outline-none focus:border-[#c9a84c]"
+                >
+                  <option value="">— Nenhum —</option>
+                  {producers.map((p: any) => (
+                    <option key={p.id} value={p.id}>{p.name}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+            <div className="mt-6 flex items-center justify-end gap-2">
+              <button
+                onClick={closeEdit}
+                disabled={savingEdit}
+                className="h-10 px-4 rounded border border-[#c9a84c]/30 text-[#c9a84c] hover:bg-[#c9a84c]/10 transition disabled:opacity-50"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={saveEdit}
+                disabled={savingEdit}
+                className="h-10 px-5 rounded bg-[#c9a84c] text-black font-semibold hover:bg-[#f0d78c] transition disabled:opacity-50"
+              >
+                {savingEdit ? "Salvando..." : "Salvar"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
