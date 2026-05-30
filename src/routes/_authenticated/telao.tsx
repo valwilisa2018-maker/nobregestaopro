@@ -189,6 +189,7 @@ function Telao() {
   const [kiosk, setKiosk] = useState(false);
   const [pulseHero, setPulseHero] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const salesTrackRef = useRef<HTMLUListElement>(null);
   const rootRef = useRef<HTMLDivElement>(null);
   const [clock, setClock] = useState<string>(() => new Date().toLocaleTimeString("pt-BR"));
   useEffect(() => {
@@ -435,6 +436,32 @@ function Telao() {
     [rotatedSales, effectiveLoopThreshold],
   );
 
+  useEffect(() => {
+    const el = scrollRef.current;
+    const track = salesTrackRef.current;
+    if (!el || !track || visualSalesLoop.length === 0) return;
+
+    let raf = 0;
+    let last = performance.now();
+    const pxPerSecond = 22;
+
+    const tick = (now: number) => {
+      const firstHalfHeight = track.scrollHeight / 2;
+      if (firstHalfHeight > el.clientHeight) {
+        el.scrollTop += ((now - last) / 1000) * pxPerSecond;
+        if (el.scrollTop >= firstHalfHeight) el.scrollTop -= firstHalfHeight;
+      } else {
+        el.scrollTop = 0;
+      }
+      last = now;
+      raf = requestAnimationFrame(tick);
+    };
+
+    el.scrollTop = 0;
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [visualSalesLoop, rotateTick]);
+
   return (
     <div
       ref={rootRef}
@@ -459,8 +486,7 @@ function Telao() {
         .telao-marquee { display: inline-flex; width: max-content; animation: telao-scroll-x 40s linear infinite; will-change: transform; backface-visibility: hidden; }
         .telao-marquee:hover { animation-play-state: paused; }
         .telao-marquee-segment { display: inline-flex; }
-        .telao-sales-loop { animation: telao-rotate-in 0.7s ease-out 1, telao-scroll-y 26s linear infinite; will-change: transform; backface-visibility: hidden; }
-        .telao-sales-loop:hover { animation-play-state: paused; }
+        .telao-sales-loop { animation: telao-rotate-in 0.7s ease-out 1; will-change: transform; backface-visibility: hidden; }
         @media (max-width: 768px) { .telao-marquee { animation-duration: 25s; } }
         @media (prefers-reduced-motion: reduce) { .telao-marquee, .telao-sales-loop { animation: none; } }
         .telao-shine { background-image: linear-gradient(90deg, #f0d78c 0%, #ffffff 50%, #f0d78c 100%); background-size: 200% 100%; background-clip: text; -webkit-background-clip: text; -webkit-text-fill-color: transparent; animation: telao-shine 4s linear infinite; }
@@ -630,7 +656,7 @@ function Telao() {
                 Aguardando primeira venda
               </div>
             )}
-            <ul key={`rot-${rotateTick}-${rotatedSales.length}-${LOOP_DUPLICATE_THRESHOLD}`} className="telao-sales-loop">
+            <ul ref={salesTrackRef} key={`rot-${rotateTick}-${rotatedSales.length}-${LOOP_DUPLICATE_THRESHOLD}`} className="telao-sales-loop">
               {[...visualSalesLoop, ...visualSalesLoop].map((s, i) => {
                 const name = cName(s.customer_id);
                 const initial = (name?.[0] ?? "?").toUpperCase();
