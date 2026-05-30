@@ -649,7 +649,7 @@ function Telao() {
                 style={{ "--sales-loop-duration": `${salesLoopDuration}s` } as any}
               >
                 {(shouldAnimateSales ? [0, 1] : [0]).map((segment) =>
-                  orderedLoopSales.map((s, index) => {
+                  loopSales.map((s, index) => {
                     const name = cName(s.customer_id);
                     const initial = (name?.[0] ?? "?").toUpperCase();
                     const isFirst = segment === 0 && index === 0 && pulseHero;
