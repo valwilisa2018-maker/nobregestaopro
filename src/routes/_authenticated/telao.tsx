@@ -415,9 +415,9 @@ function Telao() {
   const month0 = startOfMonth();
 
   // Filtro de período (mês/ano) para "Vídeos Prontos"
-  const now = new Date();
-  const [videosMonth, setVideosMonth] = useState<number>(now.getMonth()); // 0-11
-  const [videosYear, setVideosYear] = useState<number>(now.getFullYear());
+  const _nowForVideos = new Date();
+  const [videosMonth, setVideosMonth] = useState<number>(_nowForVideos.getMonth()); // 0-11
+  const [videosYear, setVideosYear] = useState<number>(_nowForVideos.getFullYear());
   const videosPeriodStart = useMemo(
     () => new Date(videosYear, videosMonth, 1, 0, 0, 0, 0),
     [videosYear, videosMonth],
