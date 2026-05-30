@@ -643,15 +643,21 @@ function Telao() {
                 Nenhuma venda registrada ainda.
               </div>
             ) : (
-              <ul key={`real-sales-${currentSaleIndex}-${loopSales.length}`} className="telao-sales-loop">
-                {visibleSales.map(({ sale: s, index }) => {
+              <ul
+                key={`real-sales-${loopSales.map((s) => s.id).join("-")}`}
+                className={`telao-sales-loop ${shouldAnimateSales ? "is-animated" : ""}`}
+                style={{ "--sales-loop-duration": `${salesLoopDuration}s` } as any}
+              >
+                {(shouldAnimateSales ? [0, 1] : [0]).map((segment) =>
+                  loopSales.map((s, index) => {
                     const name = cName(s.customer_id);
                     const initial = (name?.[0] ?? "?").toUpperCase();
-                    const isFirst = index === 0 && pulseHero;
+                    const isFirst = segment === 0 && index === 0 && pulseHero;
                     const ps = paymentStatusLabel(s.payment_status);
                     return (
                       <li
-                        key={s.id}
+                        key={`${s.id}-loop-${segment}`}
+                        aria-hidden={segment === 1}
                         className={`grid grid-cols-[auto_1fr_auto] items-center gap-4 px-5 py-3 border-b border-[#c9a84c]/8 transition min-h-[72px] ${isFirst ? "telao-flash-row bg-[#c9a84c]/10" : ""}`}
                       >
                         <div className="w-10 h-10 rounded grid place-items-center border border-[#c9a84c]/30 bg-[#1a1a1a] text-[#c9a84c] font-bold">
@@ -679,7 +685,8 @@ function Telao() {
                         </div>
                       </li>
                     );
-                  })}
+                  })
+                )}
               </ul>
             )}
           </div>
