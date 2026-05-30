@@ -406,12 +406,11 @@ function Telao() {
 
   const loopedSales = useMemo(() => {
     if (rotatedSales.length === 0) return [];
-    const minimumLoopRows = 18;
-    const base: SaleRow[] = [];
-    for (let i = 0; i < minimumLoopRows; i++) {
-      base.push(rotatedSales[i % rotatedSales.length]);
-    }
-    return [...base, ...base];
+    // Se houver poucas vendas, mostra cada uma uma única vez (sem loop falso).
+    // Só duplica quando há registros suficientes para realmente preencher a tela.
+    const MIN_FOR_LOOP = 10;
+    if (rotatedSales.length < MIN_FOR_LOOP) return rotatedSales;
+    return [...rotatedSales, ...rotatedSales];
   }, [rotatedSales]);
 
   return (
@@ -460,7 +459,7 @@ function Telao() {
           }}
         >
           <div className="telao-marquee whitespace-nowrap text-sm">
-            {[...marqueeSales, ...marqueeSales].map((s, i) => (
+            {(marqueeSales.length >= 6 ? [...marqueeSales, ...marqueeSales] : marqueeSales).map((s, i) => (
               <span key={`${s.id}-mq-${i}`} className="inline-flex items-center gap-3 px-6 shrink-0">
                 <span className="w-1.5 h-1.5 rounded-full bg-[#c9a84c]" />
                 <span className="uppercase tracking-widest text-[#c9a84c]/70 text-xs">{fmtTime(s.created_at)}</span>
