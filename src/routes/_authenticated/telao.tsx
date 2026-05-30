@@ -744,6 +744,81 @@ function Telao() {
         <span>Gestão Nobre · sala de operações</span>
         <span>Pressione F para tela cheia · Esc para sair</span>
       </footer>
+
+      {editing && (
+        <div
+          className="fixed inset-0 z-50 grid place-items-center bg-black/70 backdrop-blur-sm p-4"
+          onClick={closeEdit}
+        >
+          <div
+            className="w-full max-w-md rounded-lg border border-[#c9a84c]/40 bg-[#1a1a1a] p-6 shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between mb-4">
+              <h3
+                style={{ fontFamily: '"Bebas Neue", sans-serif', letterSpacing: "0.08em" }}
+                className="text-2xl text-[#f0d78c]"
+              >
+                EDITAR VENDA
+              </h3>
+              <button
+                onClick={closeEdit}
+                className="h-8 w-8 grid place-items-center rounded text-[#c9a84c] hover:bg-[#c9a84c]/10"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+            <div className="space-y-4 text-sm">
+              <div>
+                <div className="text-[10px] uppercase tracking-widest text-[#c9a84c]/70 mb-1">Cliente</div>
+                <div className="text-white">{cName(editing.customer_id)}</div>
+              </div>
+              <div>
+                <label className="block text-[10px] uppercase tracking-widest text-[#c9a84c]/70 mb-1">Vendedor</label>
+                <select
+                  value={editSeller}
+                  onChange={(e) => setEditSeller(e.target.value)}
+                  className="w-full bg-[#0d0d0d] border border-[#c9a84c]/30 text-white rounded px-3 py-2 focus:outline-none focus:border-[#c9a84c]"
+                >
+                  <option value="">— Nenhum —</option>
+                  {sellers.map((s: any) => (
+                    <option key={s.id} value={s.id}>{s.name}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-[10px] uppercase tracking-widest text-[#c9a84c]/70 mb-1">Produtor</label>
+                <select
+                  value={editProducer}
+                  onChange={(e) => setEditProducer(e.target.value)}
+                  className="w-full bg-[#0d0d0d] border border-[#c9a84c]/30 text-white rounded px-3 py-2 focus:outline-none focus:border-[#c9a84c]"
+                >
+                  <option value="">— Nenhum —</option>
+                  {producers.map((p: any) => (
+                    <option key={p.id} value={p.id}>{p.name}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+            <div className="mt-6 flex items-center justify-end gap-2">
+              <button
+                onClick={closeEdit}
+                disabled={savingEdit}
+                className="h-10 px-4 rounded border border-[#c9a84c]/30 text-[#c9a84c] hover:bg-[#c9a84c]/10 transition disabled:opacity-50"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={saveEdit}
+                disabled={savingEdit}
+                className="h-10 px-5 rounded bg-[#c9a84c] text-black font-semibold hover:bg-[#f0d78c] transition disabled:opacity-50"
+              >
+                {savingEdit ? "Salvando..." : "Salvar"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
