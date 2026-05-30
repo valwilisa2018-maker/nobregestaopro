@@ -301,9 +301,24 @@ function Telao() {
   const week0 = startOfWeek();
   const month0 = startOfMonth();
 
-  const todaySales = sales.filter((s) => new Date(s.created_at) >= today0);
-  const weekSales = sales.filter((s) => new Date(s.created_at) >= week0);
-  const monthSales = sales.filter((s) => new Date(s.created_at) >= month0);
+  // Dedup por ID (proteção contra qualquer duplicação vinda do realtime/refetch)
+  const uniqueSales = useMemo(() => {
+    const seen = new Set<string>();
+    const out: SaleRow[] = [];
+    for (const s of sales) {
+      if (seen.has(s.id)) continue;
+      seen.add(s.id);
+      out.push(s);
+    }
+    return out;
+  }, [sales]);
+
+  const todaySales = uniqueSales.filter((s) => new Date(s.created_at) >= today0);
+  const weekSales = uniqueSales.filter((s) => new Date(s.created_at) >= week0);
+  const monthSales = uniqueSales.filter((s) => new Date(s.created_at) >= month0);
+
+  // Limite configurável: abaixo disso, duplica visualmente para preencher o loop
+  const LOOP_DUPLICATE_THRESHOLD = 10;
 
   const sum = (arr: SaleRow[]) => arr.reduce((a, s) => a + Number(s.total_amount || 0), 0);
 
@@ -406,12 +421,11 @@ function Telao() {
 
   const loopedSales = useMemo(() => {
     if (rotatedSales.length === 0) return [];
-    // Se houver poucas vendas, mostra cada uma uma única vez (sem loop falso).
-    // Só duplica quando há registros suficientes para realmente preencher a tela.
-    const MIN_FOR_LOOP = 10;
-    if (rotatedSales.length < MIN_FOR_LOOP) return rotatedSales;
+    // Só duplica visualmente quando há POUCOS itens (para preencher o loop).
+    // Com itens suficientes, mostra cada venda uma única vez.
+    if (rotatedSales.length >= LOOP_DUPLICATE_THRESHOLD) return rotatedSales;
     return [...rotatedSales, ...rotatedSales];
-  }, [rotatedSales]);
+  }, [rotatedSales, LOOP_DUPLICATE_THRESHOLD]);
 
   return (
     <div
@@ -459,7 +473,7 @@ function Telao() {
           }}
         >
           <div className="telao-marquee whitespace-nowrap text-sm">
-            {(marqueeSales.length >= 6 ? [...marqueeSales, ...marqueeSales] : marqueeSales).map((s, i) => (
+            {(marqueeSales.length < LOOP_DUPLICATE_THRESHOLD ? [...marqueeSales, ...marqueeSales] : marqueeSales).map((s, i) => (
               <span key={`${s.id}-mq-${i}`} className="inline-flex items-center gap-3 px-6 shrink-0">
                 <span className="w-1.5 h-1.5 rounded-full bg-[#c9a84c]" />
                 <span className="uppercase tracking-widest text-[#c9a84c]/70 text-xs">{fmtTime(s.created_at)}</span>
