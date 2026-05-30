@@ -39,12 +39,12 @@ function AuthLayout() {
     <SidebarProvider>
       <div className="min-h-screen flex w-full bg-background">
         <AppSidebar />
-        <SidebarInset className="flex-1">
+        <SidebarInset className="flex-1 min-w-0">
           <header className="h-14 flex items-center gap-3 border-b border-border/60 px-4 sticky top-0 z-10 bg-background/80 backdrop-blur">
             <SidebarTrigger />
             <div className="text-sm text-muted-foreground">Gestão Nobre MKT</div>
           </header>
-          <main className="flex-1 p-4 md:p-6">
+          <main className="flex-1 min-w-0 p-4 md:p-6 overflow-x-hidden">
             <Outlet />
           </main>
         </SidebarInset>
