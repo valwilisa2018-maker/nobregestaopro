@@ -14,11 +14,19 @@ export const Route = createFileRoute("/_authenticated/admin")({
   component: AdminPage,
 });
 
+const PERIOD_LABEL: Record<string, string> = {
+  daily: "Diária",
+  weekly: "Semanal",
+  monthly: "Mensal",
+  yearly: "Anual",
+};
+
 function AdminPage() {
   const qc = useQueryClient();
   const goals = useQuery({ queryKey: ["admin-goals"], queryFn: async () => (await supabase.from("goals").select("*").is("seller_id", null)).data ?? [] });
   const services = useQuery({ queryKey: ["admin-services"], queryFn: async () => (await supabase.from("service_types").select("*").order("sort_order")).data ?? [] });
   const cols = useQuery({ queryKey: ["admin-cols"], queryFn: async () => (await supabase.from("kanban_columns").select("*").order("sort_order")).data ?? [] });
+  const sellers = useQuery({ queryKey: ["admin-sellers"], queryFn: async () => (await supabase.from("sellers").select("*").order("name")).data ?? [] });
   const [newService, setNewService] = useState("");
   const [newCol, setNewCol] = useState("");
 
@@ -37,6 +45,16 @@ function AdminPage() {
     const { error } = await supabase.from("kanban_columns").insert({ name: newCol, sort_order: max + 10 });
     if (error) toast.error(error.message); else { toast.success("Coluna criada"); setNewCol(""); qc.invalidateQueries(); }
   };
+  const updateCommission = async (id: string, rate: string) => {
+    const value = Number(rate);
+    if (isNaN(value) || value < 0 || value > 100) { toast.error("Informe um percentual entre 0 e 100"); return; }
+    const { error } = await supabase.from("sellers").update({ commission_rate: value }).eq("id", id);
+    if (error) toast.error(error.message); else { toast.success("Comissão atualizada"); qc.invalidateQueries(); }
+  };
+  const updateSellerGoal = async (id: string, amount: string) => {
+    const { error } = await supabase.from("sellers").update({ monthly_goal: Number(amount) }).eq("id", id);
+    if (error) toast.error(error.message); else { toast.success("Meta atualizada"); qc.invalidateQueries(); }
+  };
 
   return (
     <div className="space-y-6">
@@ -44,6 +62,7 @@ function AdminPage() {
       <Tabs defaultValue="goals">
         <TabsList>
           <TabsTrigger value="goals">Metas</TabsTrigger>
+          <TabsTrigger value="commissions">Comissões</TabsTrigger>
           <TabsTrigger value="services">Tipos de Serviço</TabsTrigger>
           <TabsTrigger value="kanban">Colunas Kanban</TabsTrigger>
           <TabsTrigger value="pagarme">Pagar.me</TabsTrigger>
@@ -53,11 +72,57 @@ function AdminPage() {
         <TabsContent value="goals" className="space-y-3 mt-4">
           {(goals.data ?? []).map((g: any) => (
             <Card key={g.id} className="border-border/50"><CardContent className="p-4 flex items-center gap-3">
-              <div className="w-32 font-medium capitalize">{g.period}</div>
+              <div className="w-32 font-medium">{PERIOD_LABEL[g.period] ?? g.period}</div>
               <Input type="number" defaultValue={g.target_amount} onBlur={(e) => updateGoal(g.id, e.target.value)} className="max-w-xs" />
               <span className="text-xs text-muted-foreground">Salva automaticamente ao sair do campo</span>
             </CardContent></Card>
           ))}
+        </TabsContent>
+
+        <TabsContent value="commissions" className="space-y-3 mt-4">
+          <Card className="border-border/50">
+            <CardHeader>
+              <CardTitle className="text-base">Comissão por vendedor</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <p className="text-sm text-muted-foreground">
+                Defina o percentual de comissão (%) sobre o valor das vendas e a meta mensal de cada vendedor.
+              </p>
+              {(sellers.data ?? []).length === 0 && (
+                <div className="p-4 rounded-lg border border-dashed border-border text-sm text-muted-foreground text-center">
+                  Nenhum vendedor cadastrado.
+                </div>
+              )}
+              {(sellers.data ?? []).map((s: any) => (
+                <div key={s.id} className="p-3 rounded-lg border border-border/50 bg-card grid gap-3 md:grid-cols-[1fr_140px_180px] md:items-center">
+                  <div>
+                    <div className="font-medium">{s.name}</div>
+                    {s.email && <div className="text-xs text-muted-foreground">{s.email}</div>}
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs">Comissão (%)</Label>
+                    <Input
+                      type="number"
+                      step="0.1"
+                      min="0"
+                      max="100"
+                      defaultValue={s.commission_rate ?? 0}
+                      onBlur={(e) => updateCommission(s.id, e.target.value)}
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs">Meta mensal (R$)</Label>
+                    <Input
+                      type="number"
+                      defaultValue={s.monthly_goal ?? 0}
+                      onBlur={(e) => updateSellerGoal(s.id, e.target.value)}
+                    />
+                  </div>
+                </div>
+              ))}
+              <div className="text-xs text-muted-foreground">Salva automaticamente ao sair do campo.</div>
+            </CardContent>
+          </Card>
         </TabsContent>
 
         <TabsContent value="services" className="mt-4 space-y-3">
