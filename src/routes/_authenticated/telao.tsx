@@ -412,14 +412,11 @@ function Telao() {
 
   // últimos 12 para marquee horizontal
   const marqueeSales = useMemo(() => todaySales.slice(0, 12), [todaySales]);
+  const effectiveLoopThreshold = Math.max(LOOP_DUPLICATE_THRESHOLD, 10);
   const marqueeVisualSales = useMemo(
-    () => repeatToAtLeast(marqueeSales, LOOP_DUPLICATE_THRESHOLD),
-    [marqueeSales, LOOP_DUPLICATE_THRESHOLD],
+    () => repeatToAtLeast(marqueeSales, effectiveLoopThreshold),
+    [marqueeSales, effectiveLoopThreshold],
   );
-  const marqueeScrollingSales = useMemo(() => {
-    if (marqueeVisualSales.length === 0) return [];
-    return [...marqueeVisualSales, ...marqueeVisualSales];
-  }, [marqueeVisualSales]);
 
   // Janela rotativa para a lista inferior (troca a cada 60s)
   const WINDOW = 8;
@@ -434,14 +431,9 @@ function Telao() {
   }, [todaySales, rotateTick]);
 
   const visualSalesLoop = useMemo(
-    () => repeatToAtLeast(rotatedSales, LOOP_DUPLICATE_THRESHOLD),
-    [rotatedSales, LOOP_DUPLICATE_THRESHOLD],
+    () => repeatToAtLeast(rotatedSales, effectiveLoopThreshold),
+    [rotatedSales, effectiveLoopThreshold],
   );
-
-  const scrollingSalesLoop = useMemo(() => {
-    if (visualSalesLoop.length === 0) return [];
-    return [...visualSalesLoop, ...visualSalesLoop];
-  }, [visualSalesLoop]);
 
   return (
     <div
@@ -464,9 +456,9 @@ function Telao() {
         @keyframes telao-pop { 0% { transform: scale(0.85); opacity: 0; } 60% { transform: scale(1.05); opacity: 1; } 100% { transform: scale(1); } }
         @keyframes telao-rotate-in { 0% { opacity: 0; transform: translateY(14px); filter: blur(4px); } 100% { opacity: 1; transform: translateY(0); filter: blur(0); } }
         .telao-pulse { animation: telao-pulse-gold 1.8s ease-out 1; }
-        .telao-marquee { display: inline-flex; animation: telao-scroll-x 40s linear infinite; will-change: transform; backface-visibility: hidden; }
+        .telao-marquee { display: inline-flex; width: max-content; animation: telao-scroll-x 40s linear infinite; will-change: transform; backface-visibility: hidden; }
         .telao-marquee:hover { animation-play-state: paused; }
-        .telao-marquee-track { display: inline-flex; min-width: 200%; }
+        .telao-marquee-segment { display: inline-flex; }
         .telao-sales-loop { animation: telao-rotate-in 0.7s ease-out 1, telao-scroll-y 26s linear infinite; will-change: transform; backface-visibility: hidden; }
         .telao-sales-loop:hover { animation-play-state: paused; }
         @media (max-width: 768px) { .telao-marquee { animation-duration: 25s; } }
@@ -489,14 +481,18 @@ function Telao() {
           }}
         >
           <div className="telao-marquee whitespace-nowrap text-sm">
-            {marqueeScrollingSales.map((s, i) => (
-              <span key={`${s.id}-mq-${i}`} className="inline-flex items-center gap-3 px-6 shrink-0">
-                <span className="w-1.5 h-1.5 rounded-full bg-[#c9a84c]" />
-                <span className="uppercase tracking-widest text-[#c9a84c]/70 text-xs">{fmtTime(s.created_at)}</span>
-                <span className="text-white font-semibold">{cName(s.customer_id)}</span>
-                <span className="text-[#c9a84c]/50">·</span>
-                <span className="text-[#f0d78c] font-bold tabular-nums">{formatCurrency(Number(s.total_amount || 0))}</span>
-              </span>
+            {[0, 1].map((copy) => (
+              <div key={`mq-copy-${copy}`} className="telao-marquee-segment" aria-hidden={copy === 1}>
+                {marqueeVisualSales.map((s, i) => (
+                  <span key={`${s.id}-mq-${copy}-${i}`} className="inline-flex items-center gap-3 px-6 shrink-0">
+                    <span className="w-1.5 h-1.5 rounded-full bg-[#c9a84c]" />
+                    <span className="uppercase tracking-widest text-[#c9a84c]/70 text-xs">{fmtTime(s.created_at)}</span>
+                    <span className="text-white font-semibold">{cName(s.customer_id)}</span>
+                    <span className="text-[#c9a84c]/50">·</span>
+                    <span className="text-[#f0d78c] font-bold tabular-nums">{formatCurrency(Number(s.total_amount || 0))}</span>
+                  </span>
+                ))}
+              </div>
             ))}
           </div>
         </div>
@@ -635,13 +631,14 @@ function Telao() {
               </div>
             )}
             <ul key={`rot-${rotateTick}-${rotatedSales.length}-${LOOP_DUPLICATE_THRESHOLD}`} className="telao-sales-loop">
-              {scrollingSalesLoop.map((s, i) => {
+              {[...visualSalesLoop, ...visualSalesLoop].map((s, i) => {
                 const name = cName(s.customer_id);
                 const initial = (name?.[0] ?? "?").toUpperCase();
                 const isFirst = i === 0 && pulseHero;
                 return (
                   <li
                     key={`${s.id}-${i}`}
+                    aria-hidden={i >= visualSalesLoop.length}
                     className={`grid grid-cols-[auto_1fr_auto_auto] items-center gap-4 px-5 py-3 border-b border-[#c9a84c]/8 hover:bg-[#c9a84c]/5 transition ${isFirst ? "telao-flash-row bg-[#c9a84c]/10" : ""}`}
                   >
                     <div className="w-10 h-10 rounded grid place-items-center border border-[#c9a84c]/30 bg-[#1a1a1a] text-[#c9a84c] font-bold">
