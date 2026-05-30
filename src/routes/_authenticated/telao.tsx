@@ -479,7 +479,7 @@ function Telao() {
       {/* keyframes locais */}
       <style>{`
         @keyframes telao-pulse-gold { 0%,100% { box-shadow: 0 0 0 0 rgba(201,168,76,0); } 50% { box-shadow: 0 0 80px 8px rgba(240,215,140,0.45); } }
-        @keyframes telao-scroll-x { from { transform: translate3d(0,0,0); } to { transform: translate3d(-100%,0,0); } }
+        @keyframes telao-scroll-x { from { transform: translate3d(0,0,0); } to { transform: translate3d(-50%,0,0); } }
         @keyframes telao-scroll-y { from { transform: translate3d(0,0,0); } to { transform: translate3d(0,-50%,0); } }
         @keyframes telao-shine { 0% { background-position: -200% 0; } 100% { background-position: 200% 0; } }
         @keyframes telao-pop { 0% { transform: scale(0.85); opacity: 0; } 60% { transform: scale(1.05); opacity: 1; } 100% { transform: scale(1); } }
@@ -509,17 +509,19 @@ function Telao() {
           }}
         >
           <div className="telao-marquee whitespace-nowrap text-sm">
-            <div className="telao-marquee-segment">
-              {marqueeSales.map((s) => (
-                <span key={`${s.id}-mq`} className="inline-flex items-center gap-3 px-6 shrink-0">
-                  <span className="w-1.5 h-1.5 rounded-full bg-[#c9a84c]" />
-                  <span className="uppercase tracking-widest text-[#c9a84c]/70 text-xs">{fmtTime(s.created_at)}</span>
-                  <span className="text-white font-semibold">{cName(s.customer_id)}</span>
-                  <span className="text-[#c9a84c]/50">·</span>
-                  <span className="text-[#f0d78c] font-bold tabular-nums">{formatCurrency(Number(s.total_amount || 0))}</span>
-                </span>
-              ))}
-            </div>
+            {[0, 1].map((seg) => (
+              <div key={`mq-seg-${seg}`} className="telao-marquee-segment" aria-hidden={seg === 1}>
+                {marqueeSales.map((s) => (
+                  <span key={`${s.id}-mq-${seg}`} className="inline-flex items-center gap-3 px-6 shrink-0">
+                    <span className="w-1.5 h-1.5 rounded-full bg-[#c9a84c]" />
+                    <span className="uppercase tracking-widest text-[#c9a84c]/70 text-xs">{fmtTime(s.created_at)}</span>
+                    <span className="text-white font-semibold">{cName(s.customer_id)}</span>
+                    <span className="text-[#c9a84c]/50">·</span>
+                    <span className="text-[#f0d78c] font-bold tabular-nums">{formatCurrency(Number(s.total_amount || 0))}</span>
+                  </span>
+                ))}
+              </div>
+            ))}
           </div>
         </div>
       )}
