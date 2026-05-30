@@ -1,8 +1,9 @@
 import { Link, useRouterState, useNavigate } from "@tanstack/react-router";
 import {
   LayoutDashboard, ShoppingCart, KanbanSquare, Users, UserCheck, Briefcase,
-  FileText, Settings, LogOut, Crown, ListTodo, Database,
+  FileText, Settings, LogOut, ListTodo, Database,
 } from "lucide-react";
+import logoUrl from "@/assets/logo.png";
 import {
   Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent, SidebarGroupLabel,
   SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarHeader, SidebarFooter, useSidebar,
@@ -57,10 +58,8 @@ export function AppSidebar() {
     <Sidebar collapsible="icon">
       <SidebarHeader className="border-b border-sidebar-border">
         <div className="flex items-center gap-3 px-2 py-3">
-          <div className="w-9 h-9 rounded-lg flex items-center justify-center shrink-0"
-            style={{ background: "var(--gradient-primary)", boxShadow: "var(--shadow-premium)" }}>
-            <Crown className="w-5 h-5 text-primary-foreground" />
-          </div>
+          <img src={logoUrl} alt="Nobre MKT" className="w-9 h-9 rounded-lg object-cover shrink-0"
+            style={{ boxShadow: "var(--shadow-premium)" }} />
           {!collapsed && (
             <div className="leading-tight">
               <div className="font-bold tracking-tight text-sidebar-foreground">Nobre MKT</div>
