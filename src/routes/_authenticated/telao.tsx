@@ -664,12 +664,12 @@ function Telao() {
               </div>
             ) : (
               <ul
-                key={`real-sales-${loopSales.map((s) => s.id).join("-")}`}
+                key={`real-sales-${loopSales.length}`}
                 className={`telao-sales-loop ${shouldAnimateSales ? "is-animated" : ""}`}
                 style={{ "--sales-loop-duration": `${salesLoopDuration}s` } as any}
               >
                 {(shouldAnimateSales ? [0, 1] : [0]).map((segment) =>
-                  loopSales.map((s, index) => {
+                  orderedLoopSales.map((s, index) => {
                     const name = cName(s.customer_id);
                     const initial = (name?.[0] ?? "?").toUpperCase();
                     const isFirst = segment === 0 && index === 0 && pulseHero;
