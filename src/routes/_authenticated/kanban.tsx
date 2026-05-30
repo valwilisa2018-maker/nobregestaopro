@@ -171,10 +171,11 @@ function KanbanPage() {
                 {colCards.map((c: any) => (
                   <Card key={c.id} draggable onDragStart={() => setDragging(c.id)}
                     onClick={() => openEdit(c)}
-                    className="cursor-pointer bg-card border-border/60 hover:border-primary/40 transition-all overflow-hidden"
+                    className="cursor-pointer bg-card hover:border-primary/60 transition-all overflow-hidden border"
                     style={{
                       boxShadow: "var(--shadow-card)",
-                      borderLeft: c.color ? `4px solid ${c.color}` : undefined,
+                      borderWidth: "1px",
+                      borderColor: c.color || "hsl(var(--border))",
                     }}>
                     <CardContent className="p-3 space-y-2">
                       {(c.labels?.length ?? 0) > 0 && (
