@@ -436,6 +436,32 @@ function Telao() {
     [rotatedSales, effectiveLoopThreshold],
   );
 
+  useEffect(() => {
+    const el = scrollRef.current;
+    const track = salesTrackRef.current;
+    if (!el || !track || visualSalesLoop.length === 0) return;
+
+    let raf = 0;
+    let last = performance.now();
+    const pxPerSecond = 22;
+
+    const tick = (now: number) => {
+      const firstHalfHeight = track.scrollHeight / 2;
+      if (firstHalfHeight > el.clientHeight) {
+        el.scrollTop += ((now - last) / 1000) * pxPerSecond;
+        if (el.scrollTop >= firstHalfHeight) el.scrollTop -= firstHalfHeight;
+      } else {
+        el.scrollTop = 0;
+      }
+      last = now;
+      raf = requestAnimationFrame(tick);
+    };
+
+    el.scrollTop = 0;
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [visualSalesLoop, rotateTick]);
+
   return (
     <div
       ref={rootRef}
