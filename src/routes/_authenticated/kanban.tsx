@@ -284,6 +284,18 @@ function KanbanPage() {
                   </a>
                 </div>
               )}
+              {editing.customer_phone && (
+                <div>
+                  <Label>Cliente</Label>
+                  <a
+                    href={`https://wa.me/${editing.customer_phone.replace(/\D/g, "")}?text=${encodeURIComponent(`Olá ${editing.customer_name ?? ""}!`.trim())}`}
+                    target="_blank" rel="noreferrer"
+                    className="mt-1 inline-flex items-center gap-2 px-3 py-2 rounded-md bg-green-600 hover:bg-green-700 text-white text-sm font-medium transition-colors">
+                    <MessageCircle className="w-4 h-4" />
+                    WhatsApp {editing.customer_phone}
+                  </a>
+                </div>
+              )}
               <div>
                 <Label>Etiquetas</Label>
                 <div className="flex gap-2 mt-1">
