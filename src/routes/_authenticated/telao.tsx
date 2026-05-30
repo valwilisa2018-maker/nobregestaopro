@@ -278,6 +278,25 @@ function Telao() {
     refetchInterval: 120000,
     refetchIntervalInBackground: true,
   });
+  const serviceOrdersQ = useQuery({
+    queryKey: ["telao-service-orders"],
+    queryFn: async () =>
+      (
+        await supabase
+          .from("service_orders")
+          .select("id,sale_id,delivered_at,column_id,created_at")
+          .order("created_at", { ascending: false })
+          .limit(2000)
+      ).data ?? [],
+    refetchInterval: 20000,
+    refetchIntervalInBackground: true,
+  });
+  const kanbanColumnsQ = useQuery({
+    queryKey: ["telao-kanban-columns"],
+    queryFn: async () => (await supabase.from("kanban_columns").select("id,is_done")).data ?? [],
+    refetchInterval: 120000,
+    refetchIntervalInBackground: true,
+  });
 
   const sales = salesQ.data ?? [];
   const customers = customersQ.data ?? [];
@@ -286,6 +305,8 @@ function Telao() {
   const profiles = profilesQ.data ?? [];
   const serviceTypes = serviceTypesQ.data ?? [];
   const packagesList = packagesQ.data ?? [];
+  const serviceOrders = serviceOrdersQ.data ?? [];
+  const kanbanColumns = kanbanColumnsQ.data ?? [];
 
   // Fallback: se a venda não tem seller_id/producer_id, usa created_by
   // tentando primeiro casar com sellers/producers via user_id, senão profile.
@@ -427,6 +448,30 @@ function Telao() {
 
   const topSellers = rankBy(effectiveSellerKey);
   const topProducers = rankBy(effectiveProducerKey);
+
+  // Vídeos prontos por produtor (mês) — service_orders entregues ou em coluna "concluído"
+  const doneColumnIds = useMemo(
+    () => new Set(kanbanColumns.filter((c: any) => c.is_done).map((c: any) => c.id)),
+    [kanbanColumns],
+  );
+  const videosByProducer = useMemo(() => {
+    const salesById = new Map(uniqueSales.map((s) => [s.id, s]));
+    const map = new Map<string, { name: string; total: number; qtd: number }>();
+    for (const so of serviceOrders as any[]) {
+      const isDone = !!so.delivered_at || doneColumnIds.has(so.column_id);
+      if (!isDone) continue;
+      const ref = so.delivered_at ?? so.created_at;
+      if (!ref || new Date(ref) < month0) continue;
+      const sale = so.sale_id ? salesById.get(so.sale_id) : undefined;
+      if (!sale) continue;
+      const r = effectiveProducerKey(sale);
+      if (!r) continue;
+      const cur = map.get(r.id) ?? { name: r.name, total: 0, qtd: 0 };
+      cur.qtd += 1;
+      map.set(r.id, cur);
+    }
+    return Array.from(map.values()).sort((a, b) => b.qtd - a.qtd).slice(0, 5);
+  }, [serviceOrders, doneColumnIds, uniqueSales, producers, profiles, month0]);
 
   // Realtime: nova venda → confetti + buzina + flash; também escuta UPDATE/DELETE para refletir mudanças
   useEffect(() => {
@@ -763,6 +808,7 @@ function Telao() {
         <div className="col-span-12 lg:col-span-4 space-y-4">
           <Podium title="Top Vendedores" rows={topSellers} />
           <Podium title="Top Produtores" rows={topProducers} />
+          <Podium title="Vídeos Prontos" rows={videosByProducer} mode="videos" />
         </div>
       </div>
 
@@ -887,7 +933,7 @@ function KpiBlock({ label, value, count, accent }: { label: string; value: numbe
   );
 }
 
-function Podium({ title, rows }: { title: string; rows: { name: string; total: number; qtd: number }[] }) {
+function Podium({ title, rows, mode = "sales" }: { title: string; rows: { name: string; total: number; qtd: number }[]; mode?: "sales" | "videos" }) {
   return (
     <div className="rounded-lg border border-[#c9a84c]/20 bg-[#111]/80 overflow-hidden">
       <div className="flex items-center justify-between px-4 py-3 border-b border-[#c9a84c]/15">
@@ -921,13 +967,15 @@ function Podium({ title, rows }: { title: string; rows: { name: string; total: n
             </span>
             <div className="min-w-0">
               <div className="font-semibold text-white truncate">{r.name}</div>
-              <div className="text-[10px] uppercase tracking-widest text-[#c9a84c]/50">{r.qtd} venda(s)</div>
+              <div className="text-[10px] uppercase tracking-widest text-[#c9a84c]/50">
+                {r.qtd} {mode === "videos" ? `vídeo${r.qtd === 1 ? "" : "s"} pronto${r.qtd === 1 ? "" : "s"}` : `venda${r.qtd === 1 ? "" : "s"}`}
+              </div>
             </div>
             <div
               style={{ fontFamily: '"Bebas Neue", sans-serif' }}
               className="text-xl text-[#f0d78c] tabular-nums"
             >
-              {formatCurrency(r.total)}
+              {mode === "videos" ? r.qtd : formatCurrency(r.total)}
             </div>
           </li>
         ))}
