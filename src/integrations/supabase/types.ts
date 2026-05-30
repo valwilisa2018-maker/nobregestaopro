@@ -422,42 +422,51 @@ export type Database = {
       }
       service_orders: {
         Row: {
+          color: string | null
           column_id: string
           created_at: string
           delivered_at: string | null
           description: string | null
           due_date: string | null
+          due_time: string | null
           id: string
+          labels: string[]
           priority: number
-          sale_id: string
+          sale_id: string | null
           service_index: number
           sort_order: number
           title: string
           updated_at: string
         }
         Insert: {
+          color?: string | null
           column_id: string
           created_at?: string
           delivered_at?: string | null
           description?: string | null
           due_date?: string | null
+          due_time?: string | null
           id?: string
+          labels?: string[]
           priority?: number
-          sale_id: string
+          sale_id?: string | null
           service_index?: number
           sort_order?: number
           title: string
           updated_at?: string
         }
         Update: {
+          color?: string | null
           column_id?: string
           created_at?: string
           delivered_at?: string | null
           description?: string | null
           due_date?: string | null
+          due_time?: string | null
           id?: string
+          labels?: string[]
           priority?: number
-          sale_id?: string
+          sale_id?: string | null
           service_index?: number
           sort_order?: number
           title?: string
