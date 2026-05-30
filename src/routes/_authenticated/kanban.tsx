@@ -252,8 +252,12 @@ function KanbanPage() {
                     return (
                       <div key={groupKey} className="space-y-2">
                         <Card
-                          onClick={() => setExpandedGroups((s) => ({ ...s, [groupKey]: !s[groupKey] }))}
-                          className="cursor-pointer bg-card hover:border-primary/60 transition-all overflow-hidden border"
+                          draggable
+                          onDragStart={() => { setDraggingGroup(it.cards.map((x: any) => x.id)); setDragMoved(false); }}
+                          onDrag={() => setDragMoved(true)}
+                          onDragEnd={() => { setDraggingGroup(null); setTimeout(() => setDragMoved(false), 0); }}
+                          onClick={() => { if (!dragMoved) setExpandedGroups((s) => ({ ...s, [groupKey]: !s[groupKey] })); }}
+                          className="cursor-grab active:cursor-grabbing bg-card hover:border-primary/60 transition-all overflow-hidden border"
                           style={{ boxShadow: "var(--shadow-card)", borderWidth: "1px" }}>
                           <CardContent className="p-3 space-y-1">
                             <div className="flex items-center justify-between">
