@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { formatCurrency } from "@/lib/auth";
 import { fmtDate, fmtTime } from "@/lib/format";
-import { Maximize2, Minimize2, Volume2, VolumeX, ArrowUpRight, Megaphone, Bell, Coins } from "lucide-react";
+import { Maximize2, Minimize2, Volume2, VolumeX, ArrowUpRight, Megaphone, Bell, Coins, Pencil, X } from "lucide-react";
 import confetti from "canvas-confetti";
 
 export const Route = createFileRoute("/_authenticated/telao")({
