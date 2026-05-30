@@ -11,7 +11,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Plus, Loader2, FileText, Clock, Send, ListTodo, CheckCircle2, XCircle, Search, Paperclip, Download, ExternalLink } from "lucide-react";
+import { Plus, Loader2, FileText, Clock, Send, ListTodo, CheckCircle2, XCircle, Search, Paperclip, Download, ExternalLink, MessageCircle } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { formatCurrency } from "@/lib/auth";
@@ -54,7 +54,7 @@ function InvoicesPage() {
 
   const invoices = useQuery({
     queryKey: ["invoices"],
-    queryFn: async () => (await supabase.from("invoices").select("*, customers(name,company)").order("created_at", { ascending: false })).data ?? [],
+    queryFn: async () => (await supabase.from("invoices").select("*, customers(name,company,phone)").order("created_at", { ascending: false })).data ?? [],
   });
   const customers = useQuery({
     queryKey: ["invoice-customers"],
@@ -178,6 +178,24 @@ function InvoicesPage() {
     a.download = `notas-fiscais-${new Date().toISOString().slice(0, 10)}.csv`;
     a.click();
     URL.revokeObjectURL(url);
+  };
+
+  const sendWhatsApp = async (inv: any) => {
+    const phone = (inv.customers?.phone ?? "").replace(/\D/g, "");
+    if (!phone) { toast.error("Cliente sem telefone cadastrado"); return; }
+    const name = inv.customers?.name ?? "cliente";
+    const numberTxt = inv.number ? `nº ${inv.number}` : "";
+    const valorTxt = formatCurrency(inv.amount);
+    const linkTxt = inv.file_url ? `\n\nAcesse aqui: ${inv.file_url}` : "";
+    const msg = `Olá ${name}, segue sua nota fiscal ${numberTxt} no valor de ${valorTxt}.${linkTxt}`;
+    const url = `https://wa.me/${phone}?text=${encodeURIComponent(msg)}`;
+    window.open(url, "_blank", "noopener,noreferrer");
+    // marca como emitida automaticamente
+    const { error } = await supabase.from("invoices").update({ status: "emitida" as any }).eq("id", inv.id);
+    if (!error) {
+      toast.success("WhatsApp aberto — nota marcada como Emitida");
+      qc.invalidateQueries({ queryKey: ["invoices"] });
+    }
   };
 
   const summaryCards = [
@@ -344,6 +362,11 @@ function InvoicesPage() {
                         {i.file_url && (
                           <Button size="sm" variant="ghost" asChild>
                             <a href={i.file_url} target="_blank" rel="noreferrer"><ExternalLink className="w-4 h-4" /></a>
+                          </Button>
+                        )}
+                        {i.status === "pronto_para_envio" && (
+                          <Button size="sm" variant="default" onClick={() => sendWhatsApp(i)} className="h-8 gap-1">
+                            <MessageCircle className="w-4 h-4" />Enviar
                           </Button>
                         )}
                       </div>
