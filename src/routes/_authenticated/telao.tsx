@@ -459,7 +459,7 @@ function Telao() {
           }}
         >
           <div className="telao-marquee whitespace-nowrap text-sm">
-            {[...marqueeSales, ...marqueeSales].map((s, i) => (
+            {(marqueeSales.length >= 6 ? [...marqueeSales, ...marqueeSales] : marqueeSales).map((s, i) => (
               <span key={`${s.id}-mq-${i}`} className="inline-flex items-center gap-3 px-6 shrink-0">
                 <span className="w-1.5 h-1.5 rounded-full bg-[#c9a84c]" />
                 <span className="uppercase tracking-widest text-[#c9a84c]/70 text-xs">{fmtTime(s.created_at)}</span>
