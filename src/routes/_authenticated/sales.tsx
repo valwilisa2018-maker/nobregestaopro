@@ -90,7 +90,7 @@ function SalesPage() {
         notes: form.notes || null,
         trello_link: form.trello_link || null,
         receipt_url,
-        sale_date: form.sale_date || null,
+        sale_date: form.sale_date || new Date().toISOString().slice(0, 10),
         created_by: user?.id,
       });
       if (se) throw se;
