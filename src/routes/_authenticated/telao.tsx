@@ -370,7 +370,6 @@ function Telao() {
   const totalMes = sum(monthSales);
   const ticketMedio = todaySales.length ? totalHoje / todaySales.length : 0;
   const [heroBeat, setHeroBeat] = useState(0);
-  const [rotateTick, setRotateTick] = useState(0);
   const heroVal = useCountUp(totalHoje, 900, heroBeat);
   const ticketVal = useCountUp(ticketMedio, 900, heroBeat);
   const opVal = useCountUp(todaySales.length, 900, heroBeat);
