@@ -14,16 +14,535 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      customers: {
+        Row: {
+          company: string | null
+          created_at: string
+          document: string | null
+          email: string | null
+          id: string
+          name: string
+          notes: string | null
+          phone: string | null
+          updated_at: string
+        }
+        Insert: {
+          company?: string | null
+          created_at?: string
+          document?: string | null
+          email?: string | null
+          id?: string
+          name: string
+          notes?: string | null
+          phone?: string | null
+          updated_at?: string
+        }
+        Update: {
+          company?: string | null
+          created_at?: string
+          document?: string | null
+          email?: string | null
+          id?: string
+          name?: string
+          notes?: string | null
+          phone?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      goals: {
+        Row: {
+          active: boolean
+          created_at: string
+          id: string
+          period: string
+          seller_id: string | null
+          target_amount: number
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          id?: string
+          period: string
+          seller_id?: string | null
+          target_amount?: number
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          id?: string
+          period?: string
+          seller_id?: string | null
+          target_amount?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "goals_seller_id_fkey"
+            columns: ["seller_id"]
+            isOneToOne: false
+            referencedRelation: "sellers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      invoices: {
+        Row: {
+          amount: number
+          created_at: string
+          customer_id: string
+          file_url: string | null
+          id: string
+          issued_at: string | null
+          notes: string | null
+          number: string | null
+          sale_id: string | null
+          status: Database["public"]["Enums"]["invoice_status"]
+          updated_at: string
+        }
+        Insert: {
+          amount?: number
+          created_at?: string
+          customer_id: string
+          file_url?: string | null
+          id?: string
+          issued_at?: string | null
+          notes?: string | null
+          number?: string | null
+          sale_id?: string | null
+          status?: Database["public"]["Enums"]["invoice_status"]
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          customer_id?: string
+          file_url?: string | null
+          id?: string
+          issued_at?: string | null
+          notes?: string | null
+          number?: string | null
+          sale_id?: string | null
+          status?: Database["public"]["Enums"]["invoice_status"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "invoices_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invoices_sale_id_fkey"
+            columns: ["sale_id"]
+            isOneToOne: false
+            referencedRelation: "sales"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      kanban_columns: {
+        Row: {
+          color: string | null
+          created_at: string
+          id: string
+          is_default: boolean
+          is_done: boolean
+          name: string
+          sort_order: number
+        }
+        Insert: {
+          color?: string | null
+          created_at?: string
+          id?: string
+          is_default?: boolean
+          is_done?: boolean
+          name: string
+          sort_order?: number
+        }
+        Update: {
+          color?: string | null
+          created_at?: string
+          id?: string
+          is_default?: boolean
+          is_done?: boolean
+          name?: string
+          sort_order?: number
+        }
+        Relationships: []
+      }
+      packages: {
+        Row: {
+          active: boolean
+          created_at: string
+          default_price: number | null
+          id: string
+          name: string
+          quantity: number
+          service_type_id: string | null
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          default_price?: number | null
+          id?: string
+          name: string
+          quantity?: number
+          service_type_id?: string | null
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          default_price?: number | null
+          id?: string
+          name?: string
+          quantity?: number
+          service_type_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "packages_service_type_id_fkey"
+            columns: ["service_type_id"]
+            isOneToOne: false
+            referencedRelation: "service_types"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      producers: {
+        Row: {
+          active: boolean
+          average_delivery_days: number | null
+          created_at: string
+          email: string | null
+          id: string
+          name: string
+          phone: string | null
+          quality_score: number | null
+          specialty: string | null
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          active?: boolean
+          average_delivery_days?: number | null
+          created_at?: string
+          email?: string | null
+          id?: string
+          name: string
+          phone?: string | null
+          quality_score?: number | null
+          specialty?: string | null
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          active?: boolean
+          average_delivery_days?: number | null
+          created_at?: string
+          email?: string | null
+          id?: string
+          name?: string
+          phone?: string | null
+          quality_score?: number | null
+          specialty?: string | null
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          avatar_url: string | null
+          created_at: string
+          email: string | null
+          full_name: string | null
+          id: string
+          phone: string | null
+          updated_at: string
+        }
+        Insert: {
+          avatar_url?: string | null
+          created_at?: string
+          email?: string | null
+          full_name?: string | null
+          id: string
+          phone?: string | null
+          updated_at?: string
+        }
+        Update: {
+          avatar_url?: string | null
+          created_at?: string
+          email?: string | null
+          full_name?: string | null
+          id?: string
+          phone?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      sales: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          customer_id: string
+          id: string
+          notes: string | null
+          package_id: string | null
+          paid_amount: number
+          payment_method: Database["public"]["Enums"]["payment_method"] | null
+          payment_status: Database["public"]["Enums"]["payment_status"]
+          producer_id: string | null
+          receipt_url: string | null
+          seller_id: string | null
+          service_quantity: number
+          service_type_id: string | null
+          total_amount: number
+          trello_link: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          customer_id: string
+          id?: string
+          notes?: string | null
+          package_id?: string | null
+          paid_amount?: number
+          payment_method?: Database["public"]["Enums"]["payment_method"] | null
+          payment_status?: Database["public"]["Enums"]["payment_status"]
+          producer_id?: string | null
+          receipt_url?: string | null
+          seller_id?: string | null
+          service_quantity?: number
+          service_type_id?: string | null
+          total_amount?: number
+          trello_link?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          customer_id?: string
+          id?: string
+          notes?: string | null
+          package_id?: string | null
+          paid_amount?: number
+          payment_method?: Database["public"]["Enums"]["payment_method"] | null
+          payment_status?: Database["public"]["Enums"]["payment_status"]
+          producer_id?: string | null
+          receipt_url?: string | null
+          seller_id?: string | null
+          service_quantity?: number
+          service_type_id?: string | null
+          total_amount?: number
+          trello_link?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sales_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sales_package_id_fkey"
+            columns: ["package_id"]
+            isOneToOne: false
+            referencedRelation: "packages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sales_producer_id_fkey"
+            columns: ["producer_id"]
+            isOneToOne: false
+            referencedRelation: "producers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sales_seller_id_fkey"
+            columns: ["seller_id"]
+            isOneToOne: false
+            referencedRelation: "sellers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sales_service_type_id_fkey"
+            columns: ["service_type_id"]
+            isOneToOne: false
+            referencedRelation: "service_types"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sellers: {
+        Row: {
+          active: boolean
+          commission_rate: number | null
+          created_at: string
+          email: string | null
+          id: string
+          monthly_goal: number | null
+          name: string
+          phone: string | null
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          active?: boolean
+          commission_rate?: number | null
+          created_at?: string
+          email?: string | null
+          id?: string
+          monthly_goal?: number | null
+          name: string
+          phone?: string | null
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          active?: boolean
+          commission_rate?: number | null
+          created_at?: string
+          email?: string | null
+          id?: string
+          monthly_goal?: number | null
+          name?: string
+          phone?: string | null
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      service_orders: {
+        Row: {
+          column_id: string
+          created_at: string
+          delivered_at: string | null
+          description: string | null
+          due_date: string | null
+          id: string
+          priority: number
+          sale_id: string
+          service_index: number
+          sort_order: number
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          column_id: string
+          created_at?: string
+          delivered_at?: string | null
+          description?: string | null
+          due_date?: string | null
+          id?: string
+          priority?: number
+          sale_id: string
+          service_index?: number
+          sort_order?: number
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          column_id?: string
+          created_at?: string
+          delivered_at?: string | null
+          description?: string | null
+          due_date?: string | null
+          id?: string
+          priority?: number
+          sale_id?: string
+          service_index?: number
+          sort_order?: number
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "service_orders_column_id_fkey"
+            columns: ["column_id"]
+            isOneToOne: false
+            referencedRelation: "kanban_columns"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "service_orders_sale_id_fkey"
+            columns: ["sale_id"]
+            isOneToOne: false
+            referencedRelation: "sales"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      service_types: {
+        Row: {
+          active: boolean
+          created_at: string
+          description: string | null
+          id: string
+          name: string
+          sort_order: number | null
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          description?: string | null
+          id?: string
+          name: string
+          sort_order?: number | null
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          description?: string | null
+          id?: string
+          name?: string
+          sort_order?: number | null
+        }
+        Relationships: []
+      }
+      user_roles: {
+        Row: {
+          created_at: string
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
     }
     Enums: {
-      [_ in never]: never
+      app_role: "admin" | "vendedor" | "produtor" | "financeiro"
+      invoice_status: "emitida" | "pendente" | "cancelada"
+      payment_method: "pix" | "cartao" | "boleto"
+      payment_status: "pago_total" | "pago_parcial" | "pendente"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +669,11 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      app_role: ["admin", "vendedor", "produtor", "financeiro"],
+      invoice_status: ["emitida", "pendente", "cancelada"],
+      payment_method: ["pix", "cartao", "boleto"],
+      payment_status: ["pago_total", "pago_parcial", "pendente"],
+    },
   },
 } as const
