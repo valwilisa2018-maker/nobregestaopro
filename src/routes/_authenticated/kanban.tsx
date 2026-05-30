@@ -11,7 +11,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Loader2, Trash2, X, Calendar, Clock, ExternalLink } from "lucide-react";
+import { Plus, Loader2, Trash2, X, Calendar, Clock, ExternalLink, MessageCircle } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/kanban")({
   component: KanbanPage,
@@ -39,6 +39,8 @@ type CardForm = {
   color: string;
   labels: string[];
   trello_link?: string | null;
+  customer_phone?: string | null;
+  customer_name?: string | null;
 };
 
 const emptyForm = (column_id = ""): CardForm => ({
@@ -63,7 +65,7 @@ function KanbanPage() {
     queryFn: async () => {
       const { data } = await supabase
         .from("service_orders")
-        .select("*, sales(total_amount, payment_status, trello_link, customers(name,company), sellers(name), producers(name))")
+        .select("*, sales(total_amount, payment_status, trello_link, customers(name,company,phone), sellers(name), producers(name))")
         .order("sort_order");
       return data ?? [];
     },
@@ -79,6 +81,8 @@ function KanbanPage() {
       due_date: found.due_date ?? "", due_time: (found.due_time ?? "").slice(0, 5),
       color: found.color ?? "", labels: found.labels ?? [],
       trello_link: found.sales?.trello_link ?? null,
+      customer_phone: found.sales?.customers?.phone ?? null,
+      customer_name: found.sales?.customers?.name ?? null,
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [cardParam, cards.data]);
@@ -100,6 +104,8 @@ function KanbanPage() {
       due_date: c.due_date ?? "", due_time: (c.due_time ?? "").slice(0, 5),
       color: c.color ?? "", labels: c.labels ?? [],
       trello_link: c.sales?.trello_link ?? null,
+      customer_phone: c.sales?.customers?.phone ?? null,
+      customer_name: c.sales?.customers?.name ?? null,
     });
     setNewLabel("");
   };
