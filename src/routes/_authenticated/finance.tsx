@@ -369,6 +369,26 @@ function FinancePage() {
     (fStatus === "all" || s.payment_status === fStatus)
   ), [salesInRange, fSeller, fProducer, fCustomer, fStype, fMethod, fStatus]);
 
+  // ---------- Totals by payment method ----------
+  const METHOD_LABEL: Record<string, string> = {
+    pix: "PIX", cartao: "Cartão", boleto: "Boleto",
+    dinheiro: "Dinheiro", transferencia: "Transferência", outros: "Outros",
+  };
+  const byMethod = useMemo(() => {
+    const map = new Map<string, { total: number; pago: number; qtd: number }>();
+    incomesFiltered.forEach((s: any) => {
+      const key = s.payment_method ?? "outros";
+      const cur = map.get(key) ?? { total: 0, pago: 0, qtd: 0 };
+      cur.total += Number(s.total_amount ?? 0);
+      cur.pago += Number(s.paid_amount ?? 0);
+      cur.qtd += 1;
+      map.set(key, cur);
+    });
+    return Array.from(map.entries())
+      .map(([m, v]) => ({ method: m, label: METHOD_LABEL[m] ?? m, ...v }))
+      .sort((a, b) => b.pago - a.pago);
+  }, [incomesFiltered]);
+
   // ---------- Export ----------
   const downloadCsv = (filename: string, rows: any[][]) => {
     const csv = rows.map((r) => r.map((c) => `"${String(c ?? "").replace(/"/g, '""')}"`).join(";")).join("\n");
@@ -401,6 +421,9 @@ function FinancePage() {
     ]);
   };
   const exportPdf = () => {
+    const methodRows = byMethod
+      .map((v) => `<tr><td>${v.label}</td><td>${v.qtd}</td><td>${formatCurrency(v.total)}</td><td>${formatCurrency(v.pago)}</td><td>${formatCurrency(v.total - v.pago)}</td></tr>`)
+      .join("");
     const html = `
       <html><head><meta charset="utf-8"><title>Relatório financeiro</title>
       <style>body{font-family:sans-serif;padding:24px;color:#111}h1{color:#dc2626}table{width:100%;border-collapse:collapse;margin:12px 0}th,td{border:1px solid #ddd;padding:6px;font-size:12px;text-align:left}th{background:#f3f4f6}.kpi{display:inline-block;margin:6px 12px 6px 0;padding:10px 14px;border:1px solid #e5e7eb;border-radius:8px}</style>
@@ -415,6 +438,10 @@ function FinancePage() {
         <div class="kpi"><b>Lucro líquido:</b> ${formatCurrency(lucroLiquido)}</div>
         <div class="kpi"><b>Saldo caixa:</b> ${formatCurrency(saldoCaixa)}</div>
       </div>
+      <h2>Recebimentos por forma de pagamento</h2>
+      <table><thead><tr><th>Forma</th><th>Vendas</th><th>Total</th><th>Pago</th><th>A receber</th></tr></thead><tbody>
+        ${methodRows || `<tr><td colspan="5" style="text-align:center;color:#666">Sem dados no período.</td></tr>`}
+      </tbody></table>
       <h2>Entradas no período</h2>
       <table><thead><tr><th>Data</th><th>Cliente</th><th>Vendedor</th><th>Total</th><th>Pago</th><th>Status</th></tr></thead><tbody>
         ${incomesFiltered.map((s: any) => `<tr><td>${fmtDate(s.sale_date)}</td><td>${lookup.customers.get(s.customer_id) ?? "—"}</td><td>${lookup.sellers.get(s.seller_id) ?? "—"}</td><td>${formatCurrency(Number(s.total_amount))}</td><td>${formatCurrency(Number(s.paid_amount))}</td><td>${s.payment_status}</td></tr>`).join("")}
@@ -590,6 +617,37 @@ function FinancePage() {
                 { id: "all", name: "Todos" }, { id: "pago_total", name: "Pago total" },
                 { id: "pago_parcial", name: "Parcial" }, { id: "pendente", name: "Pendente" },
               ]} />
+            </CardContent>
+          </Card>
+
+          <Card className="border-border/50" style={{ boxShadow: "var(--shadow-card)" }}>
+            <CardHeader><CardTitle className="text-base">Recebimentos por forma de pagamento</CardTitle></CardHeader>
+            <CardContent className="p-0">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Forma</TableHead>
+                    <TableHead className="text-center">Vendas</TableHead>
+                    <TableHead className="text-right">Total</TableHead>
+                    <TableHead className="text-right">Pago</TableHead>
+                    <TableHead className="text-right">A receber</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {byMethod.map((v) => (
+                    <TableRow key={v.method}>
+                      <TableCell><Badge variant="outline">{v.label}</Badge></TableCell>
+                      <TableCell className="text-center">{v.qtd}</TableCell>
+                      <TableCell className="text-right font-medium">{formatCurrency(v.total)}</TableCell>
+                      <TableCell className="text-right text-emerald-500">{formatCurrency(v.pago)}</TableCell>
+                      <TableCell className="text-right text-amber-500">{formatCurrency(v.total - v.pago)}</TableCell>
+                    </TableRow>
+                  ))}
+                  {byMethod.length === 0 && (
+                    <TableRow><TableCell colSpan={5} className="text-center text-muted-foreground py-8">Sem entradas no período.</TableCell></TableRow>
+                  )}
+                </TableBody>
+              </Table>
             </CardContent>
           </Card>
 
