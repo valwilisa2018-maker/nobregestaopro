@@ -28,6 +28,11 @@ function startOfDay() { const d = new Date(); d.setHours(0,0,0,0); return d; }
 function startOfWeek() { const d = startOfDay(); d.setDate(d.getDate() - d.getDay()); return d; }
 function startOfMonth() { const d = startOfDay(); d.setDate(1); return d; }
 
+function repeatToAtLeast<T>(items: T[], minItems: number): T[] {
+  if (items.length === 0 || items.length >= minItems) return items;
+  return Array.from({ length: minItems }, (_, i) => items[i % items.length]);
+}
+
 // ============ SOM ============
 type SoundId = "buzina" | "caixa" | "sino";
 
@@ -407,6 +412,14 @@ function Telao() {
 
   // últimos 12 para marquee horizontal
   const marqueeSales = useMemo(() => todaySales.slice(0, 12), [todaySales]);
+  const marqueeVisualSales = useMemo(
+    () => repeatToAtLeast(marqueeSales, LOOP_DUPLICATE_THRESHOLD),
+    [marqueeSales, LOOP_DUPLICATE_THRESHOLD],
+  );
+  const marqueeScrollingSales = useMemo(() => {
+    if (marqueeVisualSales.length === 0) return [];
+    return [...marqueeVisualSales, ...marqueeVisualSales];
+  }, [marqueeVisualSales]);
 
   // Janela rotativa para a lista inferior (troca a cada 60s)
   const WINDOW = 8;
@@ -420,13 +433,15 @@ function Telao() {
     return out;
   }, [todaySales, rotateTick]);
 
-  const loopedSales = useMemo(() => {
-    if (rotatedSales.length === 0) return [];
-    // Só duplica visualmente quando há POUCOS itens (para preencher o loop).
-    // Com itens suficientes, mostra cada venda uma única vez.
-    if (rotatedSales.length >= LOOP_DUPLICATE_THRESHOLD) return rotatedSales;
-    return [...rotatedSales, ...rotatedSales];
-  }, [rotatedSales, LOOP_DUPLICATE_THRESHOLD]);
+  const visualSalesLoop = useMemo(
+    () => repeatToAtLeast(rotatedSales, LOOP_DUPLICATE_THRESHOLD),
+    [rotatedSales, LOOP_DUPLICATE_THRESHOLD],
+  );
+
+  const scrollingSalesLoop = useMemo(() => {
+    if (visualSalesLoop.length === 0) return [];
+    return [...visualSalesLoop, ...visualSalesLoop];
+  }, [visualSalesLoop]);
 
   return (
     <div
@@ -474,7 +489,7 @@ function Telao() {
           }}
         >
           <div className="telao-marquee whitespace-nowrap text-sm">
-            {(marqueeSales.length < LOOP_DUPLICATE_THRESHOLD ? [...marqueeSales, ...marqueeSales] : marqueeSales).map((s, i) => (
+            {marqueeScrollingSales.map((s, i) => (
               <span key={`${s.id}-mq-${i}`} className="inline-flex items-center gap-3 px-6 shrink-0">
                 <span className="w-1.5 h-1.5 rounded-full bg-[#c9a84c]" />
                 <span className="uppercase tracking-widest text-[#c9a84c]/70 text-xs">{fmtTime(s.created_at)}</span>
@@ -619,8 +634,8 @@ function Telao() {
                 Aguardando primeira venda
               </div>
             )}
-            <ul key={`rot-${rotateTick}-${rotatedSales.length}`} className="telao-sales-loop">
-              {loopedSales.map((s, i) => {
+            <ul key={`rot-${rotateTick}-${rotatedSales.length}-${LOOP_DUPLICATE_THRESHOLD}`} className="telao-sales-loop">
+              {scrollingSalesLoop.map((s, i) => {
                 const name = cName(s.customer_id);
                 const initial = (name?.[0] ?? "?").toUpperCase();
                 const isFirst = i === 0 && pulseHero;
