@@ -370,9 +370,12 @@ function Telao() {
 
   // Loop 60s — rotaciona janela das vendas do dia (marquee de dados)
   useEffect(() => {
-    const i = setInterval(() => setRotateTick((n) => n + 1), 60000);
+    const i = setInterval(() => {
+      qc.invalidateQueries({ queryKey: ["telao-sales"] });
+      setRotateTick((n) => n + 1);
+    }, 60000);
     return () => clearInterval(i);
-  }, []);
+  }, [qc]);
 
   // últimos 12 para marquee horizontal
   const marqueeSales = useMemo(() => todaySales.slice(0, 12), [todaySales]);
