@@ -656,7 +656,7 @@ function Telao() {
                 Aguardando primeira venda
               </div>
             )}
-            <ul key={`rot-${rotateTick}-${rotatedSales.length}-${LOOP_DUPLICATE_THRESHOLD}`} className="telao-sales-loop">
+            <ul ref={salesTrackRef} key={`rot-${rotateTick}-${rotatedSales.length}-${LOOP_DUPLICATE_THRESHOLD}`} className="telao-sales-loop">
               {[...visualSalesLoop, ...visualSalesLoop].map((s, i) => {
                 const name = cName(s.customer_id);
                 const initial = (name?.[0] ?? "?").toUpperCase();
