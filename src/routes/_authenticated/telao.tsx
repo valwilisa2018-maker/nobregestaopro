@@ -20,6 +20,7 @@ type SaleRow = {
   producer_id: string | null;
   customer_id: string;
   payment_method: string | null;
+  created_by: string | null;
 };
 
 function startOfDay() { const d = new Date(); d.setHours(0,0,0,0); return d; }
@@ -220,7 +221,7 @@ function Telao() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("sales")
-        .select("id,total_amount,created_at,sale_date,seller_id,producer_id,customer_id,payment_method")
+        .select("id,total_amount,created_at,sale_date,seller_id,producer_id,customer_id,payment_method,created_by")
         .order("created_at", { ascending: false })
         .limit(500);
       if (error) throw error;
@@ -235,17 +236,48 @@ function Telao() {
   });
   const sellersQ = useQuery({
     queryKey: ["telao-sellers"],
-    queryFn: async () => (await supabase.from("sellers").select("id,name")).data ?? [],
+    queryFn: async () => (await supabase.from("sellers").select("id,name,user_id")).data ?? [],
   });
   const producersQ = useQuery({
     queryKey: ["telao-producers"],
-    queryFn: async () => (await supabase.from("producers").select("id,name")).data ?? [],
+    queryFn: async () => (await supabase.from("producers").select("id,name,user_id")).data ?? [],
+  });
+  const profilesQ = useQuery({
+    queryKey: ["telao-profiles"],
+    queryFn: async () => (await supabase.from("profiles").select("id,full_name,email")).data ?? [],
   });
 
   const sales = salesQ.data ?? [];
   const customers = customersQ.data ?? [];
   const sellers = sellersQ.data ?? [];
   const producers = producersQ.data ?? [];
+  const profiles = profilesQ.data ?? [];
+
+  // Fallback: se a venda não tem seller_id/producer_id, usa created_by
+  // tentando primeiro casar com sellers/producers via user_id, senão profile.
+  const effectiveSellerKey = (s: SaleRow): { id: string; name: string } | null => {
+    if (s.seller_id) {
+      return { id: s.seller_id, name: sellers.find((x: any) => x.id === s.seller_id)?.name ?? "Vendedor" };
+    }
+    if (s.created_by) {
+      const seller = sellers.find((x: any) => x.user_id === s.created_by);
+      if (seller) return { id: seller.id, name: seller.name };
+      const prof = profiles.find((p: any) => p.id === s.created_by);
+      return { id: s.created_by, name: prof?.full_name || prof?.email || "Vendedor" };
+    }
+    return null;
+  };
+
+  const effectiveProducerKey = (s: SaleRow): { id: string; name: string } | null => {
+    if (s.producer_id) {
+      return { id: s.producer_id, name: producers.find((x: any) => x.id === s.producer_id)?.name ?? "Produtor" };
+    }
+    if (s.created_by) {
+      const producer = producers.find((x: any) => x.user_id === s.created_by);
+      if (producer) return { id: producer.id, name: producer.name };
+    }
+    return null;
+  };
 
   const cName = (id: string) => customers.find((c: any) => c.id === id)?.name ?? "Cliente";
   const sName = (id: string | null) => sellers.find((s: any) => s.id === id)?.name ?? "—";
@@ -261,23 +293,22 @@ function Telao() {
 
   const sum = (arr: SaleRow[]) => arr.reduce((a, s) => a + Number(s.total_amount || 0), 0);
 
-  // Ranking vendedores e produtores no mês
-  const rankBy = (key: "seller_id" | "producer_id") => {
+  // Ranking vendedores e produtores no mês (com fallback p/ created_by)
+  const rankBy = (resolver: (s: SaleRow) => { id: string; name: string } | null) => {
     const map = new Map<string, { name: string; total: number; qtd: number }>();
     monthSales.forEach((s) => {
-      const id = (s as any)[key];
-      if (!id) return;
-      const name = key === "seller_id" ? sName(id) : pName(id);
-      const cur = map.get(id) ?? { name, total: 0, qtd: 0 };
+      const r = resolver(s);
+      if (!r) return;
+      const cur = map.get(r.id) ?? { name: r.name, total: 0, qtd: 0 };
       cur.total += Number(s.total_amount || 0);
       cur.qtd += 1;
-      map.set(id, cur);
+      map.set(r.id, cur);
     });
     return Array.from(map.values()).sort((a, b) => b.total - a.total).slice(0, 5);
   };
 
-  const topSellers = rankBy("seller_id");
-  const topProducers = rankBy("producer_id");
+  const topSellers = rankBy(effectiveSellerKey);
+  const topProducers = rankBy(effectiveProducerKey);
 
   // Realtime: nova venda → confetti + buzina + flash
   useEffect(() => {
