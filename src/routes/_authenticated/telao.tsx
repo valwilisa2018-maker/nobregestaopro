@@ -6,6 +6,7 @@ import { formatCurrency } from "@/lib/auth";
 import { fmtDate, fmtTime } from "@/lib/format";
 import { Maximize2, Minimize2, Volume2, VolumeX, ArrowUpRight, Megaphone, Bell, Coins } from "lucide-react";
 import confetti from "canvas-confetti";
+import { useLoopDuplicateThreshold } from "@/hooks/use-telao-settings";
 
 export const Route = createFileRoute("/_authenticated/telao")({
   component: Telao,
@@ -317,8 +318,8 @@ function Telao() {
   const weekSales = uniqueSales.filter((s) => new Date(s.created_at) >= week0);
   const monthSales = uniqueSales.filter((s) => new Date(s.created_at) >= month0);
 
-  // Limite configurável: abaixo disso, duplica visualmente para preencher o loop
-  const LOOP_DUPLICATE_THRESHOLD = 10;
+  // Limite configurável (Configurações → Telão): abaixo disso, duplica visualmente para preencher o loop
+  const [LOOP_DUPLICATE_THRESHOLD] = useLoopDuplicateThreshold();
 
   const sum = (arr: SaleRow[]) => arr.reduce((a, s) => a + Number(s.total_amount || 0), 0);
 
