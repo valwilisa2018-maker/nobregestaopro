@@ -355,11 +355,15 @@ function Telao() {
       {/* keyframes locais */}
       <style>{`
         @keyframes telao-pulse-gold { 0%,100% { box-shadow: 0 0 0 0 rgba(201,168,76,0); } 50% { box-shadow: 0 0 80px 8px rgba(240,215,140,0.45); } }
-        @keyframes telao-scroll-x { 0% { transform: translateX(0); } 100% { transform: translateX(-50%); } }
+        @keyframes telao-scroll-x { from { transform: translate3d(0,0,0); } to { transform: translate3d(-50%,0,0); } }
         @keyframes telao-shine { 0% { background-position: -200% 0; } 100% { background-position: 200% 0; } }
         @keyframes telao-pop { 0% { transform: scale(0.85); opacity: 0; } 60% { transform: scale(1.05); opacity: 1; } 100% { transform: scale(1); } }
         .telao-pulse { animation: telao-pulse-gold 1.8s ease-out 1; }
-        .telao-marquee { display: inline-flex; animation: telao-scroll-x 45s linear infinite; }
+        .telao-marquee { display: inline-flex; animation: telao-scroll-x 40s linear infinite; will-change: transform; backface-visibility: hidden; }
+        .telao-marquee:hover { animation-play-state: paused; }
+        .telao-marquee-track { display: inline-flex; min-width: 200%; }
+        @media (max-width: 768px) { .telao-marquee { animation-duration: 25s; } }
+        @media (prefers-reduced-motion: reduce) { .telao-marquee { animation: none; } }
         .telao-shine { background-image: linear-gradient(90deg, #f0d78c 0%, #ffffff 50%, #f0d78c 100%); background-size: 200% 100%; background-clip: text; -webkit-background-clip: text; -webkit-text-fill-color: transparent; animation: telao-shine 4s linear infinite; }
         .telao-pop { animation: telao-pop 0.5s cubic-bezier(.34,1.56,.64,1) 1; }
         .telao-flash-row { animation: telao-pop 0.6s ease-out 1; box-shadow: inset 0 0 0 1px rgba(240,215,140,0.5); }
@@ -367,17 +371,27 @@ function Telao() {
 
       {/* MARQUEE TOP — últimas vendas rolando */}
       {marqueeSales.length > 0 && (
-        <div className="mb-4 -mx-6 px-6 py-2 border-y border-[#c9a84c]/15 bg-black/40 overflow-hidden">
+        <div
+          className="mb-4 -mx-6 px-0 py-3 border-y border-[#c9a84c]/15 bg-black/40 overflow-hidden relative"
+          style={{
+            maskImage:
+              "linear-gradient(to right, transparent, #000 6%, #000 94%, transparent)",
+            WebkitMaskImage:
+              "linear-gradient(to right, transparent, #000 6%, #000 94%, transparent)",
+          }}
+        >
           <div className="telao-marquee whitespace-nowrap text-sm">
-            {[...marqueeSales, ...marqueeSales].map((s, i) => (
-              <span key={`${s.id}-mq-${i}`} className="inline-flex items-center gap-3 px-6">
-                <span className="w-1.5 h-1.5 rounded-full bg-[#c9a84c]" />
-                <span className="uppercase tracking-widest text-[#c9a84c]/70 text-xs">{fmtTime(s.created_at)}</span>
-                <span className="text-white font-semibold">{cName(s.customer_id)}</span>
-                <span className="text-[#c9a84c]/50">·</span>
-                <span className="text-[#f0d78c] font-bold tabular-nums">{formatCurrency(Number(s.total_amount || 0))}</span>
-              </span>
-            ))}
+            <div className="telao-marquee-track">
+              {[...marqueeSales, ...marqueeSales, ...marqueeSales].map((s, i) => (
+                <span key={`${s.id}-mq-${i}`} className="inline-flex items-center gap-3 px-6 shrink-0">
+                  <span className="w-1.5 h-1.5 rounded-full bg-[#c9a84c]" />
+                  <span className="uppercase tracking-widest text-[#c9a84c]/70 text-xs">{fmtTime(s.created_at)}</span>
+                  <span className="text-white font-semibold">{cName(s.customer_id)}</span>
+                  <span className="text-[#c9a84c]/50">·</span>
+                  <span className="text-[#f0d78c] font-bold tabular-nums">{formatCurrency(Number(s.total_amount || 0))}</span>
+                </span>
+              ))}
+            </div>
           </div>
         </div>
       )}
