@@ -984,18 +984,42 @@ function KpiBlock({ label, value, count, accent }: { label: string; value: numbe
   );
 }
 
-function Podium({ title, rows, mode = "sales" }: { title: string; rows: { name: string; total: number; qtd: number }[]; mode?: "sales" | "videos" }) {
+function Podium({
+  title,
+  rows,
+  mode = "sales",
+  periodLabel,
+  totalLabel,
+  filterControls,
+}: {
+  title: string;
+  rows: { name: string; total: number; qtd: number }[];
+  mode?: "sales" | "videos";
+  periodLabel?: string;
+  totalLabel?: string;
+  filterControls?: React.ReactNode;
+}) {
   return (
     <div className="rounded-lg border border-[#c9a84c]/20 bg-[#111]/80 overflow-hidden">
-      <div className="flex items-center justify-between px-4 py-3 border-b border-[#c9a84c]/15">
+      <div className="flex items-center justify-between gap-2 px-4 py-3 border-b border-[#c9a84c]/15">
         <h3
           style={{ fontFamily: '"Bebas Neue", sans-serif', letterSpacing: "0.08em" }}
           className="text-xl text-[#f0d78c]"
         >
           {title.toUpperCase()}
         </h3>
-        <span className="text-[10px] uppercase tracking-[0.3em] text-[#c9a84c]/60">mês</span>
+        <div className="flex items-center gap-2">
+          {filterControls}
+          <span className="text-[10px] uppercase tracking-[0.3em] text-[#c9a84c]/60">
+            {periodLabel ?? "mês"}
+          </span>
+        </div>
       </div>
+      {totalLabel && (
+        <div className="px-4 py-2 border-b border-[#c9a84c]/10 text-[10px] uppercase tracking-[0.3em] text-[#c9a84c]/70">
+          Total: <span className="text-[#f0d78c]">{totalLabel}</span>
+        </div>
+      )}
       <ul className="divide-y divide-[#c9a84c]/8">
         {rows.length === 0 && (
           <li className="px-4 py-8 text-center text-xs uppercase tracking-widest text-[#c9a84c]/40">sem dados</li>
