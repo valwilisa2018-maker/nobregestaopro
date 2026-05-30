@@ -486,8 +486,7 @@ function Telao() {
         .telao-marquee { display: inline-flex; width: max-content; animation: telao-scroll-x 40s linear infinite; will-change: transform; backface-visibility: hidden; }
         .telao-marquee:hover { animation-play-state: paused; }
         .telao-marquee-segment { display: inline-flex; }
-        .telao-sales-loop { animation: telao-rotate-in 0.7s ease-out 1, telao-scroll-y 26s linear infinite; will-change: transform; backface-visibility: hidden; }
-        .telao-sales-loop:hover { animation-play-state: paused; }
+        .telao-sales-loop { animation: telao-rotate-in 0.7s ease-out 1; will-change: transform; backface-visibility: hidden; }
         @media (max-width: 768px) { .telao-marquee { animation-duration: 25s; } }
         @media (prefers-reduced-motion: reduce) { .telao-marquee, .telao-sales-loop { animation: none; } }
         .telao-shine { background-image: linear-gradient(90deg, #f0d78c 0%, #ffffff 50%, #f0d78c 100%); background-size: 200% 100%; background-clip: text; -webkit-background-clip: text; -webkit-text-fill-color: transparent; animation: telao-shine 4s linear infinite; }
