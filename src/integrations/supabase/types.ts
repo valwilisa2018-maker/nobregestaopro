@@ -295,6 +295,7 @@ export type Database = {
           payment_status: Database["public"]["Enums"]["payment_status"]
           producer_id: string | null
           receipt_url: string | null
+          sale_date: string
           seller_id: string | null
           service_quantity: number
           service_type_id: string | null
@@ -314,6 +315,7 @@ export type Database = {
           payment_status?: Database["public"]["Enums"]["payment_status"]
           producer_id?: string | null
           receipt_url?: string | null
+          sale_date?: string
           seller_id?: string | null
           service_quantity?: number
           service_type_id?: string | null
@@ -333,6 +335,7 @@ export type Database = {
           payment_status?: Database["public"]["Enums"]["payment_status"]
           producer_id?: string | null
           receipt_url?: string | null
+          sale_date?: string
           seller_id?: string | null
           service_quantity?: number
           service_type_id?: string | null
