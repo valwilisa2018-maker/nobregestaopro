@@ -184,7 +184,7 @@ function KanbanPage() {
         <p className="text-muted-foreground">Arraste os cards entre as colunas para atualizar o status</p>
       </div>
 
-      <div className="flex gap-4 overflow-x-auto pb-4 pr-4 -mx-4 md:-mx-6 px-4 md:px-6">
+      <div className="flex gap-4 overflow-x-auto pb-4">
         {(cols.data ?? []).map((col: any) => {
           const colCards = (cards.data ?? []).filter((c: any) => c.column_id === col.id);
           return (
