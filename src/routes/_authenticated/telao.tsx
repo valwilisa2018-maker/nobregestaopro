@@ -412,6 +412,14 @@ function Telao() {
 
   // últimos 12 para marquee horizontal
   const marqueeSales = useMemo(() => todaySales.slice(0, 12), [todaySales]);
+  const marqueeVisualSales = useMemo(
+    () => repeatToAtLeast(marqueeSales, LOOP_DUPLICATE_THRESHOLD),
+    [marqueeSales, LOOP_DUPLICATE_THRESHOLD],
+  );
+  const marqueeScrollingSales = useMemo(() => {
+    if (marqueeVisualSales.length === 0) return [];
+    return [...marqueeVisualSales, ...marqueeVisualSales];
+  }, [marqueeVisualSales]);
 
   // Janela rotativa para a lista inferior (troca a cada 60s)
   const WINDOW = 8;
