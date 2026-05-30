@@ -14,6 +14,39 @@ export type Database = {
   }
   public: {
     Tables: {
+      cash_movements: {
+        Row: {
+          amount: number
+          category: string | null
+          created_at: string
+          created_by: string | null
+          description: string | null
+          id: string
+          movement_date: string
+          movement_type: Database["public"]["Enums"]["cash_movement_type"]
+        }
+        Insert: {
+          amount?: number
+          category?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          movement_date?: string
+          movement_type: Database["public"]["Enums"]["cash_movement_type"]
+        }
+        Update: {
+          amount?: number
+          category?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          movement_date?: string
+          movement_type?: Database["public"]["Enums"]["cash_movement_type"]
+        }
+        Relationships: []
+      }
       customers: {
         Row: {
           company: string | null
@@ -46,6 +79,54 @@ export type Database = {
           name?: string
           notes?: string | null
           phone?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      expenses: {
+        Row: {
+          amount: number
+          category: Database["public"]["Enums"]["expense_category"]
+          created_at: string
+          created_by: string | null
+          due_date: string | null
+          id: string
+          name: string
+          notes: string | null
+          paid_date: string | null
+          receipt_url: string | null
+          status: Database["public"]["Enums"]["expense_status"]
+          supplier: string | null
+          updated_at: string
+        }
+        Insert: {
+          amount?: number
+          category?: Database["public"]["Enums"]["expense_category"]
+          created_at?: string
+          created_by?: string | null
+          due_date?: string | null
+          id?: string
+          name: string
+          notes?: string | null
+          paid_date?: string | null
+          receipt_url?: string | null
+          status?: Database["public"]["Enums"]["expense_status"]
+          supplier?: string | null
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          category?: Database["public"]["Enums"]["expense_category"]
+          created_at?: string
+          created_by?: string | null
+          due_date?: string | null
+          id?: string
+          name?: string
+          notes?: string | null
+          paid_date?: string | null
+          receipt_url?: string | null
+          status?: Database["public"]["Enums"]["expense_status"]
+          supplier?: string | null
           updated_at?: string
         }
         Relationships: []
@@ -558,6 +639,22 @@ export type Database = {
     }
     Enums: {
       app_role: "admin" | "vendedor" | "produtor" | "financeiro"
+      cash_movement_type: "entrada" | "saida"
+      expense_category:
+        | "trafego_pago"
+        | "impostos"
+        | "nota_fiscal"
+        | "aluguel"
+        | "agua"
+        | "luz"
+        | "internet"
+        | "limpeza"
+        | "folha_pagamento"
+        | "comissoes"
+        | "ferramentas"
+        | "producao"
+        | "outras"
+      expense_status: "pago" | "pendente" | "atrasado"
       invoice_status:
         | "emitida"
         | "pendente"
@@ -695,6 +792,23 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["admin", "vendedor", "produtor", "financeiro"],
+      cash_movement_type: ["entrada", "saida"],
+      expense_category: [
+        "trafego_pago",
+        "impostos",
+        "nota_fiscal",
+        "aluguel",
+        "agua",
+        "luz",
+        "internet",
+        "limpeza",
+        "folha_pagamento",
+        "comissoes",
+        "ferramentas",
+        "producao",
+        "outras",
+      ],
+      expense_status: ["pago", "pendente", "atrasado"],
       invoice_status: [
         "emitida",
         "pendente",
