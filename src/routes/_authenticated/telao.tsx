@@ -933,7 +933,7 @@ function KpiBlock({ label, value, count, accent }: { label: string; value: numbe
   );
 }
 
-function Podium({ title, rows }: { title: string; rows: { name: string; total: number; qtd: number }[] }) {
+function Podium({ title, rows, mode = "sales" }: { title: string; rows: { name: string; total: number; qtd: number }[]; mode?: "sales" | "videos" }) {
   return (
     <div className="rounded-lg border border-[#c9a84c]/20 bg-[#111]/80 overflow-hidden">
       <div className="flex items-center justify-between px-4 py-3 border-b border-[#c9a84c]/15">
@@ -967,13 +967,15 @@ function Podium({ title, rows }: { title: string; rows: { name: string; total: n
             </span>
             <div className="min-w-0">
               <div className="font-semibold text-white truncate">{r.name}</div>
-              <div className="text-[10px] uppercase tracking-widest text-[#c9a84c]/50">{r.qtd} venda(s)</div>
+              <div className="text-[10px] uppercase tracking-widest text-[#c9a84c]/50">
+                {r.qtd} {mode === "videos" ? `vídeo${r.qtd === 1 ? "" : "s"} pronto${r.qtd === 1 ? "" : "s"}` : `venda${r.qtd === 1 ? "" : "s"}`}
+              </div>
             </div>
             <div
               style={{ fontFamily: '"Bebas Neue", sans-serif' }}
               className="text-xl text-[#f0d78c] tabular-nums"
             >
-              {formatCurrency(r.total)}
+              {mode === "videos" ? r.qtd : formatCurrency(r.total)}
             </div>
           </li>
         ))}
