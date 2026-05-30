@@ -364,6 +364,11 @@ function InvoicesPage() {
                             <a href={i.file_url} target="_blank" rel="noreferrer"><ExternalLink className="w-4 h-4" /></a>
                           </Button>
                         )}
+                        {i.status === "pronto_para_envio" && (
+                          <Button size="sm" variant="default" onClick={() => sendWhatsApp(i)} className="h-8 gap-1">
+                            <MessageCircle className="w-4 h-4" />Enviar
+                          </Button>
+                        )}
                       </div>
                     </TableCell>
                   </TableRow>
