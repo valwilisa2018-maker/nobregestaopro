@@ -406,12 +406,11 @@ function Telao() {
 
   const loopedSales = useMemo(() => {
     if (rotatedSales.length === 0) return [];
-    const minimumLoopRows = 18;
-    const base: SaleRow[] = [];
-    for (let i = 0; i < minimumLoopRows; i++) {
-      base.push(rotatedSales[i % rotatedSales.length]);
-    }
-    return [...base, ...base];
+    // Se houver poucas vendas, mostra cada uma uma única vez (sem loop falso).
+    // Só duplica quando há registros suficientes para realmente preencher a tela.
+    const MIN_FOR_LOOP = 10;
+    if (rotatedSales.length < MIN_FOR_LOOP) return rotatedSales;
+    return [...rotatedSales, ...rotatedSales];
   }, [rotatedSales]);
 
   return (
