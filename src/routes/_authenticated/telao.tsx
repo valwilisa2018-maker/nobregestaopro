@@ -6,7 +6,6 @@ import { formatCurrency } from "@/lib/auth";
 import { fmtDate, fmtTime } from "@/lib/format";
 import { Maximize2, Minimize2, Volume2, VolumeX, ArrowUpRight, Megaphone, Bell, Coins } from "lucide-react";
 import confetti from "canvas-confetti";
-import { useLoopDuplicateThreshold } from "@/hooks/use-telao-settings";
 
 export const Route = createFileRoute("/_authenticated/telao")({
   component: Telao,
@@ -31,10 +30,8 @@ function startOfDay() { const d = new Date(); d.setHours(0,0,0,0); return d; }
 function startOfWeek() { const d = startOfDay(); d.setDate(d.getDate() - d.getDay()); return d; }
 function startOfMonth() { const d = startOfDay(); d.setDate(1); return d; }
 
-function repeatToAtLeast<T>(items: T[], minItems: number): T[] {
-  if (items.length === 0 || items.length >= minItems) return items;
-  return Array.from({ length: minItems }, (_, i) => items[i % items.length]);
-}
+const VISIBLE_SALES_ROWS = 6;
+const SALE_ROW_HEIGHT = 72;
 
 // ============ SOM ============
 type SoundId = "buzina" | "caixa" | "sino";
@@ -191,9 +188,8 @@ function Telao() {
   const [flash, setFlash] = useState(false);
   const [kiosk, setKiosk] = useState(false);
   const [pulseHero, setPulseHero] = useState(false);
-  const scrollRef = useRef<HTMLDivElement>(null);
-  const salesTrackRef = useRef<HTMLUListElement>(null);
   const rootRef = useRef<HTMLDivElement>(null);
+  const [currentSaleIndex, setCurrentSaleIndex] = useState(0);
   const [clock, setClock] = useState<string>(() => new Date().toLocaleTimeString("pt-BR"));
   useEffect(() => {
     const id = setInterval(() => setClock(new Date().toLocaleTimeString("pt-BR")), 1000);
@@ -364,9 +360,6 @@ function Telao() {
   const weekSales = uniqueSales.filter((s) => new Date(s.created_at) >= week0);
   const monthSales = uniqueSales.filter((s) => new Date(s.created_at) >= month0);
 
-  // Limite configurável (Configurações → Telão): abaixo disso, duplica visualmente para preencher o loop
-  const [LOOP_DUPLICATE_THRESHOLD] = useLoopDuplicateThreshold();
-
   const sum = (arr: SaleRow[]) => arr.reduce((a, s) => a + Number(s.total_amount || 0), 0);
 
   // Ranking vendedores e produtores no mês (com fallback p/ created_by)
@@ -423,9 +416,6 @@ function Telao() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [todaySales.length]);
 
-  // Auto-scroll loop nas vendas do dia (reinicia a cada rotação)
-  const [rotateTick, setRotateTick] = useState(0);
-
   const now = new Date();
 
   const totalHoje = sum(todaySales);
@@ -448,15 +438,6 @@ function Telao() {
     return () => clearInterval(i);
   }, [qc]);
 
-  // Loop 60s — rotaciona janela das vendas do dia (marquee de dados)
-  useEffect(() => {
-    const i = setInterval(() => {
-      qc.invalidateQueries({ queryKey: ["telao-sales"] });
-      setRotateTick((n) => n + 1);
-    }, 60000);
-    return () => clearInterval(i);
-  }, [qc]);
-
   // últimos 12 para marquee horizontal (sem repetição: usa apenas vendas únicas)
   const marqueeSales = useMemo(() => todaySales.slice(0, 12), [todaySales]);
 
@@ -464,30 +445,24 @@ function Telao() {
   const loopSales = useMemo(() => todaySales, [todaySales]);
 
   useEffect(() => {
-    const el = scrollRef.current;
-    const track = salesTrackRef.current;
-    if (!el || !track || loopSales.length === 0) return;
+    if (loopSales.length === 0) {
+      setCurrentSaleIndex(0);
+      return;
+    }
+    setCurrentSaleIndex((index) => (index >= loopSales.length ? 0 : index));
+    const interval = window.setInterval(() => {
+      setCurrentSaleIndex((index) => (index + 1) % loopSales.length);
+    }, 2800);
+    return () => window.clearInterval(interval);
+  }, [loopSales.length]);
 
-    let raf = 0;
-    let last = performance.now();
-    const pxPerSecond = 22;
-
-    const tick = (now: number) => {
-      const firstHalfHeight = track.scrollHeight / 2;
-      if (firstHalfHeight > el.clientHeight) {
-        el.scrollTop += ((now - last) / 1000) * pxPerSecond;
-        if (el.scrollTop >= firstHalfHeight) el.scrollTop -= firstHalfHeight;
-      } else {
-        el.scrollTop = 0;
-      }
-      last = now;
-      raf = requestAnimationFrame(tick);
-    };
-
-    el.scrollTop = 0;
-    raf = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(raf);
-  }, [loopSales]);
+  const visibleSales = useMemo(() => {
+    if (loopSales.length === 0) return [];
+    return Array.from({ length: Math.min(VISIBLE_SALES_ROWS, loopSales.length) }, (_, offset) => {
+      const index = (currentSaleIndex + offset) % loopSales.length;
+      return { sale: loopSales[index], index };
+    });
+  }, [currentSaleIndex, loopSales]);
 
   return (
     <div
@@ -504,7 +479,7 @@ function Telao() {
       {/* keyframes locais */}
       <style>{`
         @keyframes telao-pulse-gold { 0%,100% { box-shadow: 0 0 0 0 rgba(201,168,76,0); } 50% { box-shadow: 0 0 80px 8px rgba(240,215,140,0.45); } }
-        @keyframes telao-scroll-x { from { transform: translate3d(0,0,0); } to { transform: translate3d(-50%,0,0); } }
+        @keyframes telao-scroll-x { from { transform: translate3d(0,0,0); } to { transform: translate3d(-100%,0,0); } }
         @keyframes telao-scroll-y { from { transform: translate3d(0,0,0); } to { transform: translate3d(0,-50%,0); } }
         @keyframes telao-shine { 0% { background-position: -200% 0; } 100% { background-position: 200% 0; } }
         @keyframes telao-pop { 0% { transform: scale(0.85); opacity: 0; } 60% { transform: scale(1.05); opacity: 1; } 100% { transform: scale(1); } }
@@ -534,19 +509,17 @@ function Telao() {
           }}
         >
           <div className="telao-marquee whitespace-nowrap text-sm">
-            {[0, 1].map((copy) => (
-              <div key={`mq-copy-${copy}`} className="telao-marquee-segment" aria-hidden={copy === 1}>
-                {marqueeSales.map((s, i) => (
-                  <span key={`${s.id}-mq-${copy}-${i}`} className="inline-flex items-center gap-3 px-6 shrink-0">
-                    <span className="w-1.5 h-1.5 rounded-full bg-[#c9a84c]" />
-                    <span className="uppercase tracking-widest text-[#c9a84c]/70 text-xs">{fmtTime(s.created_at)}</span>
-                    <span className="text-white font-semibold">{cName(s.customer_id)}</span>
-                    <span className="text-[#c9a84c]/50">·</span>
-                    <span className="text-[#f0d78c] font-bold tabular-nums">{formatCurrency(Number(s.total_amount || 0))}</span>
-                  </span>
-                ))}
-              </div>
-            ))}
+            <div className="telao-marquee-segment">
+              {marqueeSales.map((s) => (
+                <span key={`${s.id}-mq`} className="inline-flex items-center gap-3 px-6 shrink-0">
+                  <span className="w-1.5 h-1.5 rounded-full bg-[#c9a84c]" />
+                  <span className="uppercase tracking-widest text-[#c9a84c]/70 text-xs">{fmtTime(s.created_at)}</span>
+                  <span className="text-white font-semibold">{cName(s.customer_id)}</span>
+                  <span className="text-[#c9a84c]/50">·</span>
+                  <span className="text-[#f0d78c] font-bold tabular-nums">{formatCurrency(Number(s.total_amount || 0))}</span>
+                </span>
+              ))}
+            </div>
           </div>
         </div>
       )}
@@ -671,9 +644,9 @@ function Telao() {
             </span>
           </div>
           <div
-            ref={scrollRef}
-            className="h-[460px] overflow-hidden"
+            className="overflow-hidden"
             style={{
+              height: loopSales.length ? Math.min(VISIBLE_SALES_ROWS, loopSales.length) * SALE_ROW_HEIGHT : 460,
               maskImage: todaySales.length ? "linear-gradient(to bottom, transparent, #000 7%, #000 93%, transparent)" : undefined,
               WebkitMaskImage: todaySales.length ? "linear-gradient(to bottom, transparent, #000 7%, #000 93%, transparent)" : undefined,
             }}
@@ -683,18 +656,16 @@ function Telao() {
                 Nenhuma venda registrada ainda.
               </div>
             ) : (
-              <ul ref={salesTrackRef} key={`loop-${loopSales.length}`} className="telao-sales-loop">
-                {[0, 1].map((copy) =>
-                  loopSales.map((s, i) => {
+              <ul key={`real-sales-${currentSaleIndex}-${loopSales.length}`} className="telao-sales-loop">
+                {visibleSales.map(({ sale: s, index }) => {
                     const name = cName(s.customer_id);
                     const initial = (name?.[0] ?? "?").toUpperCase();
-                    const isFirst = copy === 0 && i === 0 && pulseHero;
+                    const isFirst = index === 0 && pulseHero;
                     const ps = paymentStatusLabel(s.payment_status);
                     return (
                       <li
-                        key={`${s.id}-c${copy}`}
-                        aria-hidden={copy === 1}
-                        className={`grid grid-cols-[auto_1fr_auto] items-center gap-4 px-5 py-3 border-b border-[#c9a84c]/8 transition ${isFirst ? "telao-flash-row bg-[#c9a84c]/10" : ""}`}
+                        key={s.id}
+                        className={`grid grid-cols-[auto_1fr_auto] items-center gap-4 px-5 py-3 border-b border-[#c9a84c]/8 transition min-h-[72px] ${isFirst ? "telao-flash-row bg-[#c9a84c]/10" : ""}`}
                       >
                         <div className="w-10 h-10 rounded grid place-items-center border border-[#c9a84c]/30 bg-[#1a1a1a] text-[#c9a84c] font-bold">
                           {initial}
@@ -721,8 +692,7 @@ function Telao() {
                         </div>
                       </li>
                     );
-                  })
-                )}
+                  })}
               </ul>
             )}
           </div>
