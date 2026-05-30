@@ -11,6 +11,8 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Wallet, TrendingUp, DollarSign, Download } from "lucide-react";
 import { formatCurrency } from "@/lib/auth";
+import { Progress } from "@/components/ui/progress";
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Legend } from "recharts";
 
 export const Route = createFileRoute("/_authenticated/commissions")({
   component: CommissionsPage,
@@ -63,6 +65,9 @@ function CommissionsPage() {
       const commissionPaid = (totalPaid * rate) / 100;
       const commissionPending = (pending * rate) / 100;
       const commissionTotal = commissionPaid + commissionPending;
+      const monthlyGoal = Number(s.monthly_goal ?? 0);
+      const goalPct = monthlyGoal > 0 ? Math.min(100, (totalSold / monthlyGoal) * 100) : 0;
+      const goalPaidPct = monthlyGoal > 0 ? Math.min(100, (totalPaid / monthlyGoal) * 100) : 0;
       return {
         id: s.id,
         name: s.name,
@@ -75,6 +80,9 @@ function CommissionsPage() {
         commissionPaid,
         commissionPending,
         commissionTotal,
+        monthlyGoal,
+        goalPct,
+        goalPaidPct,
       };
     });
     return list.sort((a, b) => b.commissionPaid - a.commissionPaid);
@@ -114,6 +122,20 @@ function CommissionsPage() {
     { label: "Comissão pendente", value: totals.commPending, icon: Wallet },
   ];
 
+  const chartData = useMemo(
+    () =>
+      rows
+        .filter((r) => r.monthlyGoal > 0 || r.totalSold > 0)
+        .map((r) => ({
+          name: r.name.length > 14 ? r.name.slice(0, 12) + "…" : r.name,
+          Meta: r.monthlyGoal,
+          Vendido: r.totalSold,
+          Pago: r.totalPaid,
+          Comissão: Number(r.commissionTotal.toFixed(2)),
+        })),
+    [rows]
+  );
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between flex-wrap gap-3">
@@ -122,6 +144,58 @@ function CommissionsPage() {
           <p className="text-muted-foreground">Cálculo automático com base no valor pago de cada venda</p>
         </div>
         <Button variant="outline" onClick={exportCsv}><Download className="w-4 h-4 mr-2" />Exportar</Button>
+      </div>
+
+      <div className="grid gap-4 lg:grid-cols-3">
+        <Card className="border-border/50 lg:col-span-2" style={{ boxShadow: "var(--shadow-card)" }}>
+          <CardHeader><CardTitle className="text-base">Meta × Vendido × Pago × Comissão</CardTitle></CardHeader>
+          <CardContent className="h-[320px]">
+            {chartData.length === 0 ? (
+              <div className="h-full flex items-center justify-center text-sm text-muted-foreground">
+                Sem dados no período. Defina metas mensais em Configurações → Comissões.
+              </div>
+            ) : (
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={chartData} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                  <XAxis dataKey="name" stroke="hsl(var(--muted-foreground))" fontSize={12} />
+                  <YAxis stroke="hsl(var(--muted-foreground))" fontSize={12} tickFormatter={(v) => `R$ ${Math.round(v / 1000)}k`} />
+                  <Tooltip
+                    contentStyle={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: 8 }}
+                    formatter={(value: any) => formatCurrency(Number(value))}
+                  />
+                  <Legend />
+                  <Bar dataKey="Meta" fill="hsl(var(--muted-foreground))" opacity={0.4} radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="Vendido" fill="hsl(var(--primary))" opacity={0.6} radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="Pago" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="Comissão" fill="#10b981" radius={[4, 4, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card className="border-border/50" style={{ boxShadow: "var(--shadow-card)" }}>
+          <CardHeader><CardTitle className="text-base">Progresso individual</CardTitle></CardHeader>
+          <CardContent className="space-y-4 max-h-[320px] overflow-y-auto">
+            {rows.length === 0 && <p className="text-sm text-muted-foreground">Sem vendedores.</p>}
+            {rows.map((r) => (
+              <div key={r.id} className="space-y-2">
+                <div className="flex items-center justify-between gap-2">
+                  <div className="font-medium text-sm truncate">{r.name}</div>
+                  <Badge variant="secondary" className="text-xs">
+                    {r.monthlyGoal > 0 ? `${r.goalPct.toFixed(0)}%` : "sem meta"}
+                  </Badge>
+                </div>
+                <Progress value={r.goalPct} className="h-2" />
+                <div className="flex items-center justify-between text-xs text-muted-foreground">
+                  <span>Pago {formatCurrency(r.totalPaid)} / {formatCurrency(r.monthlyGoal)}</span>
+                  <span className="text-success font-medium">+{formatCurrency(r.commissionTotal)}</span>
+                </div>
+              </div>
+            ))}
+          </CardContent>
+        </Card>
       </div>
 
       <Card className="border-border/50" style={{ boxShadow: "var(--shadow-card)" }}>
