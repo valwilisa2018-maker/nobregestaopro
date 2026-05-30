@@ -329,6 +329,37 @@ function Telao() {
 
   // Resolve nome do vendedor com fallback p/ created_by (mesma lógica de effectiveSellerKey)
   const sellerNameOf = (s: SaleRow) => effectiveSellerKey(s)?.name ?? "—";
+  const producerNameOf = (s: SaleRow) => effectiveProducerKey(s)?.name ?? "—";
+
+  // Edição inline de venda (vendedor / produtor)
+  const [editing, setEditing] = useState<SaleRow | null>(null);
+  const [editSeller, setEditSeller] = useState<string>("");
+  const [editProducer, setEditProducer] = useState<string>("");
+  const [savingEdit, setSavingEdit] = useState(false);
+  const openEdit = (s: SaleRow) => {
+    setEditing(s);
+    setEditSeller(s.seller_id ?? "");
+    setEditProducer(s.producer_id ?? "");
+  };
+  const closeEdit = () => { if (!savingEdit) setEditing(null); };
+  const saveEdit = async () => {
+    if (!editing) return;
+    setSavingEdit(true);
+    const { error } = await supabase
+      .from("sales")
+      .update({
+        seller_id: editSeller || null,
+        producer_id: editProducer || null,
+      })
+      .eq("id", editing.id);
+    setSavingEdit(false);
+    if (!error) {
+      qc.invalidateQueries({ queryKey: ["telao-sales"] });
+      setEditing(null);
+    } else {
+      alert("Erro ao salvar: " + error.message);
+    }
+  };
 
   const paymentStatusLabel = (status: string | null | undefined) => {
     switch ((status || "").toLowerCase()) {
