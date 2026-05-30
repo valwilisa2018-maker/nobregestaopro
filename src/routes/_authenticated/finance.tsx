@@ -401,6 +401,23 @@ function FinancePage() {
     ]);
   };
   const exportPdf = () => {
+    const methodLabel: Record<string, string> = {
+      pix: "PIX", cartao: "Cartão", boleto: "Boleto",
+      dinheiro: "Dinheiro", transferencia: "Transferência",
+    };
+    const byMethod = new Map<string, { total: number; pago: number; qtd: number }>();
+    incomesFiltered.forEach((s: any) => {
+      const key = s.payment_method ?? "outros";
+      const cur = byMethod.get(key) ?? { total: 0, pago: 0, qtd: 0 };
+      cur.total += Number(s.total_amount ?? 0);
+      cur.pago += Number(s.paid_amount ?? 0);
+      cur.qtd += 1;
+      byMethod.set(key, cur);
+    });
+    const methodRows = Array.from(byMethod.entries())
+      .sort((a, b) => b[1].pago - a[1].pago)
+      .map(([m, v]) => `<tr><td>${methodLabel[m] ?? m}</td><td>${v.qtd}</td><td>${formatCurrency(v.total)}</td><td>${formatCurrency(v.pago)}</td><td>${formatCurrency(v.total - v.pago)}</td></tr>`)
+      .join("");
     const html = `
       <html><head><meta charset="utf-8"><title>Relatório financeiro</title>
       <style>body{font-family:sans-serif;padding:24px;color:#111}h1{color:#dc2626}table{width:100%;border-collapse:collapse;margin:12px 0}th,td{border:1px solid #ddd;padding:6px;font-size:12px;text-align:left}th{background:#f3f4f6}.kpi{display:inline-block;margin:6px 12px 6px 0;padding:10px 14px;border:1px solid #e5e7eb;border-radius:8px}</style>
@@ -415,6 +432,10 @@ function FinancePage() {
         <div class="kpi"><b>Lucro líquido:</b> ${formatCurrency(lucroLiquido)}</div>
         <div class="kpi"><b>Saldo caixa:</b> ${formatCurrency(saldoCaixa)}</div>
       </div>
+      <h2>Recebimentos por forma de pagamento</h2>
+      <table><thead><tr><th>Forma</th><th>Vendas</th><th>Total</th><th>Pago</th><th>A receber</th></tr></thead><tbody>
+        ${methodRows || `<tr><td colspan="5" style="text-align:center;color:#666">Sem dados no período.</td></tr>`}
+      </tbody></table>
       <h2>Entradas no período</h2>
       <table><thead><tr><th>Data</th><th>Cliente</th><th>Vendedor</th><th>Total</th><th>Pago</th><th>Status</th></tr></thead><tbody>
         ${incomesFiltered.map((s: any) => `<tr><td>${fmtDate(s.sale_date)}</td><td>${lookup.customers.get(s.customer_id) ?? "—"}</td><td>${lookup.sellers.get(s.seller_id) ?? "—"}</td><td>${formatCurrency(Number(s.total_amount))}</td><td>${formatCurrency(Number(s.paid_amount))}</td><td>${s.payment_status}</td></tr>`).join("")}
