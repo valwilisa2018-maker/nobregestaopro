@@ -301,9 +301,24 @@ function Telao() {
   const week0 = startOfWeek();
   const month0 = startOfMonth();
 
-  const todaySales = sales.filter((s) => new Date(s.created_at) >= today0);
-  const weekSales = sales.filter((s) => new Date(s.created_at) >= week0);
-  const monthSales = sales.filter((s) => new Date(s.created_at) >= month0);
+  // Dedup por ID (proteção contra qualquer duplicação vinda do realtime/refetch)
+  const uniqueSales = useMemo(() => {
+    const seen = new Set<string>();
+    const out: SaleRow[] = [];
+    for (const s of sales) {
+      if (seen.has(s.id)) continue;
+      seen.add(s.id);
+      out.push(s);
+    }
+    return out;
+  }, [sales]);
+
+  const todaySales = uniqueSales.filter((s) => new Date(s.created_at) >= today0);
+  const weekSales = uniqueSales.filter((s) => new Date(s.created_at) >= week0);
+  const monthSales = uniqueSales.filter((s) => new Date(s.created_at) >= month0);
+
+  // Limite configurável: abaixo disso, duplica visualmente para preencher o loop
+  const LOOP_DUPLICATE_THRESHOLD = 10;
 
   const sum = (arr: SaleRow[]) => arr.reduce((a, s) => a + Number(s.total_amount || 0), 0);
 
