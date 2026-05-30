@@ -689,7 +689,7 @@ function Telao() {
                       <li
                         key={`${s.id}-loop-${segment}`}
                         aria-hidden={segment === 1}
-                        className={`grid grid-cols-[auto_1fr_auto] items-center gap-4 px-5 py-3 border-b border-[#c9a84c]/8 transition min-h-[72px] ${isFirst ? "telao-flash-row bg-[#c9a84c]/10" : ""}`}
+                        className={`group grid grid-cols-[auto_1fr_auto_auto] items-center gap-4 px-5 py-3 border-b border-[#c9a84c]/8 transition min-h-[72px] ${isFirst ? "telao-flash-row bg-[#c9a84c]/10" : ""}`}
                       >
                         <div className="w-10 h-10 rounded grid place-items-center border border-[#c9a84c]/30 bg-[#1a1a1a] text-[#c9a84c] font-bold">
                           {initial}
@@ -697,7 +697,7 @@ function Telao() {
                         <div className="min-w-0">
                           <div className="font-semibold text-white truncate">{name}</div>
                           <div className="text-[11px] uppercase tracking-wider text-[#c9a84c]/60 truncate">
-                            {sellerNameOf(s)} · {serviceName(s)} · {fmtTime(s.created_at)}
+                            Vend: <span className="text-[#f0d78c]">{sellerNameOf(s)}</span> · Prod: <span className="text-[#f0d78c]">{producerNameOf(s)}</span> · {serviceName(s)} · {fmtTime(s.created_at)}
                           </div>
                         </div>
                         <div className="flex flex-col items-end gap-1">
@@ -714,6 +714,16 @@ function Telao() {
                             {ps.label}
                           </span>
                         </div>
+                        {segment === 0 && (
+                          <button
+                            onClick={() => openEdit(s)}
+                            title="Editar venda"
+                            className="h-8 w-8 grid place-items-center rounded border border-[#c9a84c]/30 text-[#c9a84c] hover:bg-[#c9a84c]/10 transition opacity-0 group-hover:opacity-100"
+                          >
+                            <Pencil className="w-3.5 h-3.5" />
+                          </button>
+                        )}
+                        {segment === 1 && <span aria-hidden className="w-8" />}
                       </li>
                     );
                   })
