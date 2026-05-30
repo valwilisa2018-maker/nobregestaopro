@@ -2,11 +2,9 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { Card } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { formatCurrency } from "@/lib/auth";
 import { fmtDate, fmtTime } from "@/lib/format";
-import { DollarSign, TrendingUp, Calendar, Trophy, Users, Briefcase, Sparkles, Maximize2, Minimize2 } from "lucide-react";
+import { Maximize2, Minimize2, Volume2, VolumeX, ArrowUpRight } from "lucide-react";
 import confetti from "canvas-confetti";
 
 export const Route = createFileRoute("/_authenticated/telao")({
@@ -73,6 +71,11 @@ function Telao() {
   const [kiosk, setKiosk] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const rootRef = useRef<HTMLDivElement>(null);
+  const [clock, setClock] = useState<string>(() => new Date().toLocaleTimeString("pt-BR"));
+  useEffect(() => {
+    const id = setInterval(() => setClock(new Date().toLocaleTimeString("pt-BR")), 1000);
+    return () => clearInterval(id);
+  }, []);
 
   const toggleKiosk = async () => {
     try {
@@ -213,141 +216,237 @@ function Telao() {
   const now = new Date();
 
   return (
-    <div ref={rootRef} className={`min-h-screen p-6 transition-colors ${flash ? "bg-emerald-500/10" : ""} ${kiosk ? "bg-background" : ""}`}>
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className={`font-black tracking-tight flex items-center gap-3 ${kiosk ? "text-6xl" : "text-4xl"}`}>
-            <Sparkles className="w-8 h-8 text-primary" /> Telão de Vendas
-          </h1>
-          <p className="text-muted-foreground">{fmtDate(now)} • Atualização em tempo real</p>
+    <div
+      ref={rootRef}
+      style={{
+        fontFamily: '"Barlow", system-ui, sans-serif',
+        backgroundColor: "#0d0d0d",
+        color: "#f5f5f5",
+        backgroundImage:
+          "radial-gradient(circle at 15% 0%, rgba(201,168,76,0.08), transparent 45%), radial-gradient(circle at 100% 100%, rgba(201,168,76,0.05), transparent 50%)",
+      }}
+      className={`min-h-screen p-6 transition-all ${flash ? "ring-4 ring-[#c9a84c]/60" : ""}`}
+    >
+      {/* HEADER */}
+      <header className="flex items-center justify-between mb-6 pb-4 border-b border-[#c9a84c]/20">
+        <div className="flex items-center gap-4">
+          <div className="w-1 h-12 bg-gradient-to-b from-[#f0d78c] to-[#c9a84c]" />
+          <div>
+            <h1
+              style={{ fontFamily: '"Bebas Neue", sans-serif', letterSpacing: "0.04em" }}
+              className={`leading-none text-[#f5f5f5] ${kiosk ? "text-6xl" : "text-5xl"}`}
+            >
+              TELÃO <span className="text-[#c9a84c]">DE VENDAS</span>
+            </h1>
+            <p className="text-xs uppercase tracking-[0.3em] text-[#c9a84c]/70 mt-1">
+              {fmtDate(now)} · ao vivo
+            </p>
+          </div>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-3">
+          <div
+            style={{ fontFamily: '"Bebas Neue", sans-serif', letterSpacing: "0.08em" }}
+            className="hidden md:block text-4xl text-[#f0d78c] tabular-nums"
+          >
+            {clock}
+          </div>
           <button
             onClick={() => { setSoundEnabled((v) => !v); if (!soundEnabled) playHorn(); }}
-            className={`px-4 py-2 rounded-lg font-semibold border ${soundEnabled ? "bg-emerald-500 text-white border-emerald-600" : "bg-card border-border"}`}
+            className={`h-10 w-10 grid place-items-center rounded border transition ${soundEnabled ? "bg-[#c9a84c] text-black border-[#c9a84c]" : "bg-[#1a1a1a] border-[#c9a84c]/30 text-[#c9a84c] hover:border-[#c9a84c]"}`}
+            title={soundEnabled ? "Som ON" : "Ativar buzina"}
           >
-            {soundEnabled ? "🔊 Som ON" : "🔇 Ativar buzina"}
+            {soundEnabled ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4" />}
           </button>
           <button
             onClick={toggleKiosk}
             title="Modo Kiosk (tela cheia) — tecla F"
-            className="px-4 py-2 rounded-lg font-semibold border bg-card border-border flex items-center gap-2"
+            className="h-10 px-4 grid place-items-center rounded border bg-[#1a1a1a] border-[#c9a84c]/30 text-[#c9a84c] hover:border-[#c9a84c] transition"
           >
             {kiosk ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
-            {kiosk ? "Sair do Kiosk" : "Modo Kiosk"}
           </button>
         </div>
-      </div>
+      </header>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-        <Card className="p-6 bg-gradient-to-br from-emerald-500/20 to-emerald-500/5 border-emerald-500/30">
-          <div className="flex items-center justify-between">
-            <span className="text-sm uppercase tracking-widest text-emerald-400">Hoje</span>
-            <Calendar className="w-5 h-5 text-emerald-400" />
+      {/* BENTO GRID */}
+      <div className="grid grid-cols-12 gap-4 auto-rows-auto">
+        {/* HERO HOJE */}
+        <div
+          className="col-span-12 lg:col-span-6 row-span-2 relative overflow-hidden rounded-lg p-8 border border-[#c9a84c]/30"
+          style={{
+            background:
+              "linear-gradient(135deg, #1a1a1a 0%, #0d0d0d 60%, #1a1a1a 100%)",
+          }}
+        >
+          <div
+            className="absolute -top-32 -right-32 w-96 h-96 rounded-full opacity-20 blur-3xl"
+            style={{ background: "radial-gradient(circle, #c9a84c 0%, transparent 70%)" }}
+          />
+          <div className="relative">
+            <div className="flex items-center justify-between mb-6">
+              <span className="text-xs uppercase tracking-[0.4em] text-[#c9a84c]">Faturamento · Hoje</span>
+              <span className="text-xs uppercase tracking-widest text-[#f0d78c]/60 flex items-center gap-1">
+                <span className="inline-block w-2 h-2 rounded-full bg-emerald-400 animate-pulse" /> tempo real
+              </span>
+            </div>
+            <div
+              style={{ fontFamily: '"Bebas Neue", sans-serif', letterSpacing: "0.01em" }}
+              className="text-[clamp(3.5rem,9vw,8rem)] leading-none text-transparent bg-clip-text bg-gradient-to-br from-[#f0d78c] via-[#c9a84c] to-[#a07d2a] tabular-nums"
+            >
+              {formatCurrency(sum(todaySales))}
+            </div>
+            <div className="mt-6 flex items-end justify-between border-t border-[#c9a84c]/15 pt-4">
+              <div>
+                <div className="text-[10px] uppercase tracking-widest text-[#c9a84c]/60">Operações</div>
+                <div style={{ fontFamily: '"Bebas Neue", sans-serif' }} className="text-4xl text-white tabular-nums">
+                  {todaySales.length}
+                </div>
+              </div>
+              <div className="text-right">
+                <div className="text-[10px] uppercase tracking-widest text-[#c9a84c]/60">Ticket médio</div>
+                <div style={{ fontFamily: '"Bebas Neue", sans-serif' }} className="text-4xl text-white tabular-nums">
+                  {formatCurrency(todaySales.length ? sum(todaySales) / todaySales.length : 0)}
+                </div>
+              </div>
+            </div>
           </div>
-          <div className="mt-2 text-4xl font-black">{formatCurrency(sum(todaySales))}</div>
-          <div className="text-sm text-muted-foreground mt-1">{todaySales.length} venda(s)</div>
-        </Card>
-        <Card className="p-6 bg-gradient-to-br from-blue-500/20 to-blue-500/5 border-blue-500/30">
-          <div className="flex items-center justify-between">
-            <span className="text-sm uppercase tracking-widest text-blue-400">Semana</span>
-            <TrendingUp className="w-5 h-5 text-blue-400" />
-          </div>
-          <div className="mt-2 text-4xl font-black">{formatCurrency(sum(weekSales))}</div>
-          <div className="text-sm text-muted-foreground mt-1">{weekSales.length} venda(s)</div>
-        </Card>
-        <Card className="p-6 bg-gradient-to-br from-amber-500/20 to-amber-500/5 border-amber-500/30">
-          <div className="flex items-center justify-between">
-            <span className="text-sm uppercase tracking-widest text-amber-400">Mês</span>
-            <DollarSign className="w-5 h-5 text-amber-400" />
-          </div>
-          <div className="mt-2 text-4xl font-black">{formatCurrency(sum(monthSales))}</div>
-          <div className="text-sm text-muted-foreground mt-1">{monthSales.length} venda(s)</div>
-        </Card>
-      </div>
+        </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        {/* Vendas do dia em loop */}
-        <Card className="lg:col-span-2 p-4 overflow-hidden">
-          <div className="flex items-center justify-between mb-3">
-            <h2 className="text-xl font-bold flex items-center gap-2">
-              <Sparkles className="w-5 h-5 text-primary" /> Vendas de hoje
+        {/* SEMANA */}
+        <KpiBlock label="Semana" value={sum(weekSales)} count={weekSales.length} />
+        {/* MÊS */}
+        <KpiBlock label="Mês" value={sum(monthSales)} count={monthSales.length} accent />
+
+        {/* TICKER VENDAS DO DIA */}
+        <div className="col-span-12 lg:col-span-8 rounded-lg border border-[#c9a84c]/20 bg-[#111]/80 overflow-hidden">
+          <div className="flex items-center justify-between px-5 py-3 border-b border-[#c9a84c]/15">
+            <h2
+              style={{ fontFamily: '"Bebas Neue", sans-serif', letterSpacing: "0.08em" }}
+              className="text-2xl text-[#f0d78c]"
+            >
+              VENDAS DO DIA
             </h2>
-            <Badge variant="secondary">{todaySales.length} hoje</Badge>
+            <span className="text-[10px] uppercase tracking-[0.3em] text-[#c9a84c]/70">
+              {todaySales.length} registros
+            </span>
           </div>
-          <div ref={scrollRef} className="h-[480px] overflow-hidden space-y-2 pr-2">
+          <div ref={scrollRef} className="h-[460px] overflow-hidden">
             {todaySales.length === 0 && (
-              <div className="text-center text-muted-foreground py-20">
-                Nenhuma venda registrada hoje ainda. Bora vender! 🚀
+              <div className="h-full grid place-items-center text-[#c9a84c]/40 uppercase tracking-widest text-sm">
+                Aguardando primeira venda
               </div>
             )}
-            {[...todaySales, ...todaySales].map((s, i) => (
-              <div
-                key={`${s.id}-${i}`}
-                className="flex items-center justify-between p-3 rounded-lg bg-card border border-border hover:border-primary/50 transition-colors"
-              >
-                <div className="flex-1 min-w-0">
-                  <div className="font-semibold truncate">{cName(s.customer_id)}</div>
-                  <div className="text-xs text-muted-foreground truncate">
-                    Vendedor: {sName(s.seller_id)} • {fmtTime(s.created_at)}
-                  </div>
-                </div>
-                <div className="text-right">
-                  <div className="text-lg font-black text-emerald-400">
-                    {formatCurrency(Number(s.total_amount || 0))}
-                  </div>
-                  <div className="text-[10px] uppercase text-muted-foreground">{s.payment_method ?? "—"}</div>
-                </div>
-              </div>
-            ))}
+            <ul>
+              {[...todaySales, ...todaySales].map((s, i) => {
+                const name = cName(s.customer_id);
+                const initial = (name?.[0] ?? "?").toUpperCase();
+                return (
+                  <li
+                    key={`${s.id}-${i}`}
+                    className="grid grid-cols-[auto_1fr_auto_auto] items-center gap-4 px-5 py-3 border-b border-[#c9a84c]/8 hover:bg-[#c9a84c]/5 transition"
+                  >
+                    <div className="w-10 h-10 rounded grid place-items-center border border-[#c9a84c]/30 bg-[#1a1a1a] text-[#c9a84c] font-bold">
+                      {initial}
+                    </div>
+                    <div className="min-w-0">
+                      <div className="font-semibold text-white truncate">{name}</div>
+                      <div className="text-[11px] uppercase tracking-wider text-[#c9a84c]/60 truncate">
+                        {sName(s.seller_id)} · {fmtTime(s.created_at)} · {s.payment_method ?? "—"}
+                      </div>
+                    </div>
+                    <div
+                      style={{ fontFamily: '"Bebas Neue", sans-serif' }}
+                      className="text-2xl text-[#f0d78c] tabular-nums"
+                    >
+                      {formatCurrency(Number(s.total_amount || 0))}
+                    </div>
+                    <ArrowUpRight className="w-4 h-4 text-[#c9a84c]/60" />
+                  </li>
+                );
+              })}
+            </ul>
           </div>
-        </Card>
+        </div>
 
-        {/* Rankings */}
-        <div className="space-y-4">
-          <Card className="p-4">
-            <h2 className="text-lg font-bold mb-3 flex items-center gap-2">
-              <Trophy className="w-5 h-5 text-amber-400" /> Top Vendedores (mês)
-            </h2>
-            <div className="space-y-2">
-              {topSellers.length === 0 && <div className="text-sm text-muted-foreground">Sem dados</div>}
-              {topSellers.map((r, i) => (
-                <div key={r.name + i} className="flex items-center justify-between p-2 rounded-lg bg-muted/50">
-                  <div className="flex items-center gap-2 min-w-0">
-                    <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-black ${i===0?"bg-amber-400 text-black":i===1?"bg-slate-300 text-black":i===2?"bg-orange-400 text-black":"bg-muted"}`}>{i+1}</span>
-                    <span className="font-semibold truncate flex items-center gap-1"><Users className="w-3 h-3" />{r.name}</span>
-                  </div>
-                  <div className="text-right">
-                    <div className="font-bold text-emerald-400">{formatCurrency(r.total)}</div>
-                    <div className="text-[10px] text-muted-foreground">{r.qtd} venda(s)</div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </Card>
-
-          <Card className="p-4">
-            <h2 className="text-lg font-bold mb-3 flex items-center gap-2">
-              <Briefcase className="w-5 h-5 text-blue-400" /> Top Produtores (mês)
-            </h2>
-            <div className="space-y-2">
-              {topProducers.length === 0 && <div className="text-sm text-muted-foreground">Sem dados</div>}
-              {topProducers.map((r, i) => (
-                <div key={r.name + i} className="flex items-center justify-between p-2 rounded-lg bg-muted/50">
-                  <div className="flex items-center gap-2 min-w-0">
-                    <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-black ${i===0?"bg-amber-400 text-black":i===1?"bg-slate-300 text-black":i===2?"bg-orange-400 text-black":"bg-muted"}`}>{i+1}</span>
-                    <span className="font-semibold truncate">{r.name}</span>
-                  </div>
-                  <div className="text-right">
-                    <div className="font-bold text-blue-400">{formatCurrency(r.total)}</div>
-                    <div className="text-[10px] text-muted-foreground">{r.qtd} venda(s)</div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </Card>
+        {/* PÓDIOS */}
+        <div className="col-span-12 lg:col-span-4 space-y-4">
+          <Podium title="Top Vendedores" rows={topSellers} />
+          <Podium title="Top Produtores" rows={topProducers} />
         </div>
       </div>
+
+      <footer className="mt-6 pt-4 border-t border-[#c9a84c]/15 flex items-center justify-between text-[10px] uppercase tracking-[0.3em] text-[#c9a84c]/40">
+        <span>Gestão Nobre · sala de operações</span>
+        <span>Pressione F para tela cheia · Esc para sair</span>
+      </footer>
+    </div>
+  );
+}
+
+function KpiBlock({ label, value, count, accent }: { label: string; value: number; count: number; accent?: boolean }) {
+  return (
+    <div
+      className={`col-span-6 lg:col-span-3 rounded-lg border p-5 relative overflow-hidden ${accent ? "border-[#c9a84c]/40 bg-gradient-to-br from-[#1a1a1a] to-[#0d0d0d]" : "border-[#c9a84c]/20 bg-[#111]"}`}
+    >
+      <div className="text-[10px] uppercase tracking-[0.35em] text-[#c9a84c]/70">{label}</div>
+      <div
+        style={{ fontFamily: '"Bebas Neue", sans-serif', letterSpacing: "0.02em" }}
+        className={`mt-3 text-4xl tabular-nums leading-none ${accent ? "text-[#f0d78c]" : "text-white"}`}
+      >
+        {new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 }).format(value)}
+      </div>
+      <div className="mt-3 text-[11px] uppercase tracking-widest text-[#c9a84c]/50">
+        {count} venda{count === 1 ? "" : "s"}
+      </div>
+      <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-[#c9a84c]/60 to-transparent" />
+    </div>
+  );
+}
+
+function Podium({ title, rows }: { title: string; rows: { name: string; total: number; qtd: number }[] }) {
+  return (
+    <div className="rounded-lg border border-[#c9a84c]/20 bg-[#111]/80 overflow-hidden">
+      <div className="flex items-center justify-between px-4 py-3 border-b border-[#c9a84c]/15">
+        <h3
+          style={{ fontFamily: '"Bebas Neue", sans-serif', letterSpacing: "0.08em" }}
+          className="text-xl text-[#f0d78c]"
+        >
+          {title.toUpperCase()}
+        </h3>
+        <span className="text-[10px] uppercase tracking-[0.3em] text-[#c9a84c]/60">mês</span>
+      </div>
+      <ul className="divide-y divide-[#c9a84c]/8">
+        {rows.length === 0 && (
+          <li className="px-4 py-8 text-center text-xs uppercase tracking-widest text-[#c9a84c]/40">sem dados</li>
+        )}
+        {rows.map((r, i) => (
+          <li key={r.name + i} className="grid grid-cols-[auto_1fr_auto] items-center gap-3 px-4 py-3">
+            <span
+              style={{ fontFamily: '"Bebas Neue", sans-serif' }}
+              className={`w-8 h-8 grid place-items-center rounded text-lg ${
+                i === 0
+                  ? "bg-gradient-to-br from-[#f0d78c] to-[#c9a84c] text-black"
+                  : i === 1
+                  ? "bg-[#3a3a3a] text-[#f0d78c] border border-[#c9a84c]/40"
+                  : i === 2
+                  ? "bg-[#2a1f0a] text-[#c9a84c] border border-[#c9a84c]/40"
+                  : "bg-[#1a1a1a] text-[#c9a84c]/70 border border-[#c9a84c]/15"
+              }`}
+            >
+              {String(i + 1).padStart(2, "0")}
+            </span>
+            <div className="min-w-0">
+              <div className="font-semibold text-white truncate">{r.name}</div>
+              <div className="text-[10px] uppercase tracking-widest text-[#c9a84c]/50">{r.qtd} venda(s)</div>
+            </div>
+            <div
+              style={{ fontFamily: '"Bebas Neue", sans-serif' }}
+              className="text-xl text-[#f0d78c] tabular-nums"
+            >
+              {formatCurrency(r.total)}
+            </div>
+          </li>
+        ))}
+      </ul>
     </div>
   );
 }
