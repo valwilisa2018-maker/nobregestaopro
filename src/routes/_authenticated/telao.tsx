@@ -714,8 +714,16 @@ function Telao() {
                         </div>
                         <div className="min-w-0">
                           <div className="font-semibold text-white truncate">{name}</div>
-                          <div className="text-[11px] uppercase tracking-wider text-[#c9a84c]/60 truncate">
-                            Vend: <span className="text-[#f0d78c]">{sellerNameOf(s)}</span> · Prod: <span className="text-[#f0d78c]">{producerNameOf(s)}</span> · {serviceName(s)} · {fmtTime(s.created_at)}
+                          <div className="flex flex-wrap items-center gap-1.5 mt-1">
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded border border-[#c9a84c]/30 bg-[#c9a84c]/10 text-[10px] uppercase tracking-wider text-[#f0d78c]">
+                              <span className="text-[#c9a84c]/70">Vend:</span> {sellerNameOf(s)}
+                            </span>
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded border border-[#c9a84c]/30 bg-[#c9a84c]/10 text-[10px] uppercase tracking-wider text-[#f0d78c]">
+                              <span className="text-[#c9a84c]/70">Prod:</span> {producerNameOf(s)}
+                            </span>
+                            <span className="text-[10px] uppercase tracking-wider text-[#c9a84c]/60">
+                              {serviceName(s)} · {fmtTime(s.created_at)}
+                            </span>
                           </div>
                         </div>
                         <div className="flex flex-col items-end gap-1">
