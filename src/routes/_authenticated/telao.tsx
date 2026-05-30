@@ -582,14 +582,14 @@ function Telao() {
         @keyframes telao-pop { 0% { transform: scale(0.85); opacity: 0; } 60% { transform: scale(1.05); opacity: 1; } 100% { transform: scale(1); } }
         @keyframes telao-rotate-in { 0% { opacity: 0; transform: translateY(14px); filter: blur(4px); } 100% { opacity: 1; transform: translateY(0); filter: blur(0); } }
         .telao-pulse { animation: telao-pulse-gold 1.8s ease-out 1; }
-        .telao-marquee { display: inline-flex; width: max-content; animation-name: telao-scroll-x; animation-duration: 40s; animation-timing-function: linear; animation-iteration-count: infinite; will-change: transform; backface-visibility: hidden; }
+        .telao-marquee { display: flex; flex-wrap: nowrap; gap: 0; width: max-content; min-width: max-content; white-space: nowrap; animation: telao-scroll-x 25s linear infinite; will-change: transform; backface-visibility: hidden; transform: translate3d(0,0,0); }
         .telao-marquee:hover { animation-play-state: paused; }
-        .telao-marquee-segment { display: inline-flex; }
+        .telao-marquee-segment { display: flex; flex-wrap: nowrap; flex-shrink: 0; }
         .telao-sales-loop { will-change: transform; backface-visibility: hidden; transform: translate3d(0,0,0); }
         .telao-sales-loop.is-animated { animation: telao-scroll-y var(--sales-loop-duration, 28s) linear infinite; }
         .telao-sales-loop.is-animated:hover { animation-play-state: paused; }
-        @media (max-width: 768px) { .telao-marquee { animation-duration: 25s; } }
-        @media (prefers-reduced-motion: reduce) { .telao-marquee, .telao-sales-loop { animation: none; } }
+        @media (max-width: 768px) { .telao-marquee { animation-duration: 18s; } }
+        @media (prefers-reduced-motion: reduce) { .telao-sales-loop { animation: none; } }
         .telao-shine { background-image: linear-gradient(90deg, #f0d78c 0%, #ffffff 50%, #f0d78c 100%); background-size: 200% 100%; background-clip: text; -webkit-background-clip: text; -webkit-text-fill-color: transparent; animation: telao-shine 4s linear infinite; }
         .telao-pop { animation: telao-pop 0.5s cubic-bezier(.34,1.56,.64,1) 1; }
         .telao-rotate { animation: telao-rotate-in 0.7s ease-out 1; }
