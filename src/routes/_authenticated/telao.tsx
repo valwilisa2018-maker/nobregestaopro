@@ -345,24 +345,6 @@ function Telao() {
 
   // Auto-scroll loop nas vendas do dia (reinicia a cada rotação)
   const [rotateTick, setRotateTick] = useState(0);
-  useEffect(() => {
-    const el = scrollRef.current;
-    if (!el || todaySales.length === 0) return;
-    el.scrollTop = 0;
-    let raf = 0;
-    const tick = () => {
-      if (!el) return;
-      // só rola se houver conteúdo excedente
-      if (el.scrollHeight > el.clientHeight + 4) {
-        el.scrollTop += 0.7;
-        const half = el.scrollHeight / 2;
-        if (el.scrollTop >= half) el.scrollTop = 0;
-      }
-      raf = requestAnimationFrame(tick);
-    };
-    raf = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(raf);
-  }, [todaySales.length, rotateTick]);
 
   const now = new Date();
 
@@ -406,6 +388,16 @@ function Telao() {
     }
     return out;
   }, [todaySales, rotateTick]);
+
+  const loopedSales = useMemo(() => {
+    if (rotatedSales.length === 0) return [];
+    const minimumLoopRows = 18;
+    const base: SaleRow[] = [];
+    for (let i = 0; i < minimumLoopRows; i++) {
+      base.push(rotatedSales[i % rotatedSales.length]);
+    }
+    return [...base, ...base];
+  }, [rotatedSales]);
 
   return (
     <div
