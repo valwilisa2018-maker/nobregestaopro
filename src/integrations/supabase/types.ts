@@ -555,7 +555,13 @@ export type Database = {
     }
     Enums: {
       app_role: "admin" | "vendedor" | "produtor" | "financeiro"
-      invoice_status: "emitida" | "pendente" | "cancelada"
+      invoice_status:
+        | "emitida"
+        | "pendente"
+        | "cancelada"
+        | "aguardando_emissao"
+        | "pronto_para_envio"
+        | "a_fazer"
       payment_method: "pix" | "cartao" | "boleto"
       payment_status: "pago_total" | "pago_parcial" | "pendente"
     }
@@ -686,7 +692,14 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["admin", "vendedor", "produtor", "financeiro"],
-      invoice_status: ["emitida", "pendente", "cancelada"],
+      invoice_status: [
+        "emitida",
+        "pendente",
+        "cancelada",
+        "aguardando_emissao",
+        "pronto_para_envio",
+        "a_fazer",
+      ],
       payment_method: ["pix", "cartao", "boleto"],
       payment_status: ["pago_total", "pago_parcial", "pendente"],
     },
