@@ -582,7 +582,7 @@ function Telao() {
         @keyframes telao-pop { 0% { transform: scale(0.85); opacity: 0; } 60% { transform: scale(1.05); opacity: 1; } 100% { transform: scale(1); } }
         @keyframes telao-rotate-in { 0% { opacity: 0; transform: translateY(14px); filter: blur(4px); } 100% { opacity: 1; transform: translateY(0); filter: blur(0); } }
         .telao-pulse { animation: telao-pulse-gold 1.8s ease-out 1; }
-        .telao-marquee { display: inline-flex; width: max-content; animation-name: telao-scroll-x; animation-duration: 40s; animation-timing-function: linear; animation-iteration-count: infinite; animation-direction: reverse; will-change: transform; backface-visibility: hidden; }
+        .telao-marquee { display: inline-flex; width: max-content; animation-name: telao-scroll-x; animation-duration: 40s; animation-timing-function: linear; animation-iteration-count: infinite; will-change: transform; backface-visibility: hidden; }
         .telao-marquee:hover { animation-play-state: paused; }
         .telao-marquee-segment { display: inline-flex; }
         .telao-sales-loop { will-change: transform; backface-visibility: hidden; transform: translate3d(0,0,0); }
