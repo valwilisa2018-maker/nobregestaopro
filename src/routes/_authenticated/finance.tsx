@@ -369,6 +369,26 @@ function FinancePage() {
     (fStatus === "all" || s.payment_status === fStatus)
   ), [salesInRange, fSeller, fProducer, fCustomer, fStype, fMethod, fStatus]);
 
+  // ---------- Totals by payment method ----------
+  const METHOD_LABEL: Record<string, string> = {
+    pix: "PIX", cartao: "Cartão", boleto: "Boleto",
+    dinheiro: "Dinheiro", transferencia: "Transferência", outros: "Outros",
+  };
+  const byMethod = useMemo(() => {
+    const map = new Map<string, { total: number; pago: number; qtd: number }>();
+    incomesFiltered.forEach((s: any) => {
+      const key = s.payment_method ?? "outros";
+      const cur = map.get(key) ?? { total: 0, pago: 0, qtd: 0 };
+      cur.total += Number(s.total_amount ?? 0);
+      cur.pago += Number(s.paid_amount ?? 0);
+      cur.qtd += 1;
+      map.set(key, cur);
+    });
+    return Array.from(map.entries())
+      .map(([m, v]) => ({ method: m, label: METHOD_LABEL[m] ?? m, ...v }))
+      .sort((a, b) => b.pago - a.pago);
+  }, [incomesFiltered]);
+
   // ---------- Export ----------
   const downloadCsv = (filename: string, rows: any[][]) => {
     const csv = rows.map((r) => r.map((c) => `"${String(c ?? "").replace(/"/g, '""')}"`).join(";")).join("\n");
