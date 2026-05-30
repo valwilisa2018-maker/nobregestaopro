@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AuthenticatedTelaoRouteImport } from './routes/_authenticated/telao'
 import { Route as AuthenticatedServicesTodoRouteImport } from './routes/_authenticated/services-todo'
 import { Route as AuthenticatedSellersRouteImport } from './routes/_authenticated/sellers'
 import { Route as AuthenticatedSalesRouteImport } from './routes/_authenticated/sales'
@@ -39,6 +40,11 @@ const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
+} as any)
+const AuthenticatedTelaoRoute = AuthenticatedTelaoRouteImport.update({
+  id: '/telao',
+  path: '/telao',
+  getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedServicesTodoRoute =
   AuthenticatedServicesTodoRouteImport.update({
@@ -125,6 +131,7 @@ export interface FileRoutesByFullPath {
   '/sales': typeof AuthenticatedSalesRoute
   '/sellers': typeof AuthenticatedSellersRoute
   '/services-todo': typeof AuthenticatedServicesTodoRoute
+  '/telao': typeof AuthenticatedTelaoRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -142,6 +149,7 @@ export interface FileRoutesByTo {
   '/sales': typeof AuthenticatedSalesRoute
   '/sellers': typeof AuthenticatedSellersRoute
   '/services-todo': typeof AuthenticatedServicesTodoRoute
+  '/telao': typeof AuthenticatedTelaoRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -161,6 +169,7 @@ export interface FileRoutesById {
   '/_authenticated/sales': typeof AuthenticatedSalesRoute
   '/_authenticated/sellers': typeof AuthenticatedSellersRoute
   '/_authenticated/services-todo': typeof AuthenticatedServicesTodoRoute
+  '/_authenticated/telao': typeof AuthenticatedTelaoRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -180,6 +189,7 @@ export interface FileRouteTypes {
     | '/sales'
     | '/sellers'
     | '/services-todo'
+    | '/telao'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -197,6 +207,7 @@ export interface FileRouteTypes {
     | '/sales'
     | '/sellers'
     | '/services-todo'
+    | '/telao'
   id:
     | '__root__'
     | '/'
@@ -215,6 +226,7 @@ export interface FileRouteTypes {
     | '/_authenticated/sales'
     | '/_authenticated/sellers'
     | '/_authenticated/services-todo'
+    | '/_authenticated/telao'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -245,6 +257,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/_authenticated/telao': {
+      id: '/_authenticated/telao'
+      path: '/telao'
+      fullPath: '/telao'
+      preLoaderRoute: typeof AuthenticatedTelaoRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/services-todo': {
       id: '/_authenticated/services-todo'
@@ -354,6 +373,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedSalesRoute: typeof AuthenticatedSalesRoute
   AuthenticatedSellersRoute: typeof AuthenticatedSellersRoute
   AuthenticatedServicesTodoRoute: typeof AuthenticatedServicesTodoRoute
+  AuthenticatedTelaoRoute: typeof AuthenticatedTelaoRoute
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
@@ -370,6 +390,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedSalesRoute: AuthenticatedSalesRoute,
   AuthenticatedSellersRoute: AuthenticatedSellersRoute,
   AuthenticatedServicesTodoRoute: AuthenticatedServicesTodoRoute,
+  AuthenticatedTelaoRoute: AuthenticatedTelaoRoute,
 }
 
 const AuthenticatedRouteRouteWithChildren =
