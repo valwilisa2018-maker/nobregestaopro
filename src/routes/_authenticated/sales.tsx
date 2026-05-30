@@ -14,6 +14,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Plus, Loader2, Pencil } from "lucide-react";
 import { toast } from "sonner";
 import { formatCurrency } from "@/lib/auth";
+import { fmtDate } from "@/lib/format";
 
 export const Route = createFileRoute("/_authenticated/sales")({
   component: SalesPage,
@@ -133,12 +134,6 @@ function SalesPage() {
     } catch (e: any) {
       toast.error(e.message ?? "Erro ao atualizar");
     } finally { setEditSaving(false); }
-  };
-
-  const fmtDate = (d?: string | null) => {
-    if (!d) return "—";
-    const [y, m, day] = d.split("-");
-    return `${day}/${m}/${y}`;
   };
 
   return (
