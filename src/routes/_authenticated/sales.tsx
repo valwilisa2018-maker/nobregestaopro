@@ -11,7 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Plus, Loader2 } from "lucide-react";
+import { Plus, Loader2, Pencil } from "lucide-react";
 import { toast } from "sonner";
 import { formatCurrency } from "@/lib/auth";
 
@@ -24,6 +24,8 @@ function SalesPage() {
   const [open, setOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [receiptFile, setReceiptFile] = useState<File | null>(null);
+  const [editing, setEditing] = useState<any | null>(null);
+  const [editSaving, setEditSaving] = useState(false);
 
   const sales = useQuery({
     queryKey: ["sales-list"],
@@ -31,7 +33,7 @@ function SalesPage() {
       const { data } = await supabase
         .from("sales")
         .select("*, customers(name,company), sellers(name), producers(name), service_types(name)")
-        .order("created_at", { ascending: false });
+        .order("sale_date", { ascending: false });
       return data ?? [];
     },
   });
@@ -46,6 +48,7 @@ function SalesPage() {
     total_amount: "", paid_amount: "0", payment_status: "pendente",
     payment_method: "pix", seller_id: "", producer_id: "", service_type_id: "",
     package_id: "", service_quantity: "1", notes: "", trello_link: "",
+    sale_date: new Date().toISOString().slice(0, 10),
   });
   const set = (k: string, v: string) => setForm((f) => ({ ...f, [k]: v }));
 
@@ -87,6 +90,7 @@ function SalesPage() {
         notes: form.notes || null,
         trello_link: form.trello_link || null,
         receipt_url,
+        sale_date: form.sale_date || null,
         created_by: user?.id,
       });
       if (se) throw se;
@@ -101,6 +105,41 @@ function SalesPage() {
 
   const statusVariant = (s: string) =>
     s === "pago_total" ? "default" : s === "pago_parcial" ? "secondary" : "destructive";
+
+  const editSet = (k: string, v: any) => setEditing((e: any) => ({ ...e, [k]: v }));
+
+  const submitEdit = async () => {
+    if (!editing) return;
+    setEditSaving(true);
+    try {
+      const { error } = await supabase.from("sales").update({
+        sale_date: editing.sale_date,
+        total_amount: Number(editing.total_amount),
+        paid_amount: Number(editing.paid_amount || 0),
+        payment_status: editing.payment_status,
+        payment_method: editing.payment_method,
+        seller_id: editing.seller_id || null,
+        producer_id: editing.producer_id || null,
+        service_type_id: editing.service_type_id || null,
+        package_id: editing.package_id || null,
+        service_quantity: Number(editing.service_quantity || 1),
+        notes: editing.notes || null,
+        trello_link: editing.trello_link || null,
+      }).eq("id", editing.id);
+      if (error) throw error;
+      toast.success("Venda atualizada");
+      setEditing(null);
+      qc.invalidateQueries();
+    } catch (e: any) {
+      toast.error(e.message ?? "Erro ao atualizar");
+    } finally { setEditSaving(false); }
+  };
+
+  const fmtDate = (d?: string | null) => {
+    if (!d) return "—";
+    const [y, m, day] = d.split("-");
+    return `${day}/${m}/${y}`;
+  };
 
   return (
     <div className="space-y-6">
@@ -166,6 +205,7 @@ function SalesPage() {
                 </Select>
               </div>
               <div><Label>Qtd. serviços no pacote</Label><Input type="number" min="1" value={form.service_quantity} onChange={(e) => set("service_quantity", e.target.value)} /></div>
+              <div><Label>Data da venda</Label><Input type="date" value={form.sale_date} onChange={(e) => set("sale_date", e.target.value)} /></div>
               <div className="col-span-2"><Label>Link Trello / card externo</Label><Input value={form.trello_link} onChange={(e) => set("trello_link", e.target.value)} /></div>
               <div className="col-span-2">
                 <Label>Comprovante (imagem ou PDF)</Label>
@@ -192,17 +232,20 @@ function SalesPage() {
           <Table>
             <TableHeader>
               <TableRow>
+                <TableHead>Data</TableHead>
                 <TableHead>Cliente</TableHead>
                 <TableHead>Serviço</TableHead>
                 <TableHead>Vendedor</TableHead>
                 <TableHead>Produtor</TableHead>
                 <TableHead className="text-right">Valor</TableHead>
                 <TableHead>Status</TableHead>
+                <TableHead className="w-12"></TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {(sales.data ?? []).map((s: any) => (
                 <TableRow key={s.id}>
+                  <TableCell className="whitespace-nowrap">{fmtDate(s.sale_date)}</TableCell>
                   <TableCell>
                     <div className="font-medium">{s.customers?.name}</div>
                     <div className="text-xs text-muted-foreground">{s.customers?.company}</div>
@@ -212,15 +255,84 @@ function SalesPage() {
                   <TableCell>{s.producers?.name ?? "—"}</TableCell>
                   <TableCell className="text-right font-semibold">{formatCurrency(s.total_amount)}</TableCell>
                   <TableCell><Badge variant={statusVariant(s.payment_status) as any}>{s.payment_status.replace("_", " ")}</Badge></TableCell>
+                  <TableCell>
+                    <Button size="icon" variant="ghost" onClick={() => setEditing({ ...s })}>
+                      <Pencil className="w-4 h-4" />
+                    </Button>
+                  </TableCell>
                 </TableRow>
               ))}
               {(sales.data ?? []).length === 0 && (
-                <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground py-8">Nenhuma venda cadastrada ainda</TableCell></TableRow>
+                <TableRow><TableCell colSpan={8} className="text-center text-muted-foreground py-8">Nenhuma venda cadastrada ainda</TableCell></TableRow>
               )}
             </TableBody>
           </Table>
         </CardContent>
       </Card>
+
+      <Dialog open={!!editing} onOpenChange={(o) => !o && setEditing(null)}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader><DialogTitle>Editar venda</DialogTitle></DialogHeader>
+          {editing && (
+            <div className="grid grid-cols-2 gap-3">
+              <div><Label>Data da venda</Label><Input type="date" value={editing.sale_date ?? ""} onChange={(e) => editSet("sale_date", e.target.value)} /></div>
+              <div><Label>Valor total</Label><Input type="number" step="0.01" value={editing.total_amount ?? ""} onChange={(e) => editSet("total_amount", e.target.value)} /></div>
+              <div><Label>Valor pago</Label><Input type="number" step="0.01" value={editing.paid_amount ?? ""} onChange={(e) => editSet("paid_amount", e.target.value)} /></div>
+              <div><Label>Status pagamento</Label>
+                <Select value={editing.payment_status} onValueChange={(v) => editSet("payment_status", v)}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="pago_total">Pago total</SelectItem>
+                    <SelectItem value="pago_parcial">Pago parcial</SelectItem>
+                    <SelectItem value="pendente">Pendente</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div><Label>Forma de pagamento</Label>
+                <Select value={editing.payment_method ?? ""} onValueChange={(v) => editSet("payment_method", v)}>
+                  <SelectTrigger><SelectValue placeholder="—" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="pix">Pix</SelectItem>
+                    <SelectItem value="cartao">Cartão</SelectItem>
+                    <SelectItem value="boleto">Boleto</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div><Label>Vendedor</Label>
+                <Select value={editing.seller_id ?? ""} onValueChange={(v) => editSet("seller_id", v)}>
+                  <SelectTrigger><SelectValue placeholder="—" /></SelectTrigger>
+                  <SelectContent>{(sellers.data ?? []).map((s: any) => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}</SelectContent>
+                </Select>
+              </div>
+              <div><Label>Produtor</Label>
+                <Select value={editing.producer_id ?? ""} onValueChange={(v) => editSet("producer_id", v)}>
+                  <SelectTrigger><SelectValue placeholder="—" /></SelectTrigger>
+                  <SelectContent>{(producers.data ?? []).map((p: any) => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}</SelectContent>
+                </Select>
+              </div>
+              <div><Label>Tipo de serviço</Label>
+                <Select value={editing.service_type_id ?? ""} onValueChange={(v) => editSet("service_type_id", v)}>
+                  <SelectTrigger><SelectValue placeholder="—" /></SelectTrigger>
+                  <SelectContent>{(serviceTypes.data ?? []).map((s: any) => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}</SelectContent>
+                </Select>
+              </div>
+              <div><Label>Pacote</Label>
+                <Select value={editing.package_id ?? ""} onValueChange={(v) => editSet("package_id", v)}>
+                  <SelectTrigger><SelectValue placeholder="—" /></SelectTrigger>
+                  <SelectContent>{(packages.data ?? []).map((p: any) => <SelectItem key={p.id} value={p.id}>{p.name} ({p.quantity})</SelectItem>)}</SelectContent>
+                </Select>
+              </div>
+              <div><Label>Qtd. serviços</Label><Input type="number" min="1" value={editing.service_quantity ?? 1} onChange={(e) => editSet("service_quantity", e.target.value)} /></div>
+              <div className="col-span-2"><Label>Link Trello</Label><Input value={editing.trello_link ?? ""} onChange={(e) => editSet("trello_link", e.target.value)} /></div>
+              <div className="col-span-2"><Label>Observações</Label><Textarea value={editing.notes ?? ""} onChange={(e) => editSet("notes", e.target.value)} /></div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditing(null)}>Cancelar</Button>
+            <Button onClick={submitEdit} disabled={editSaving}>{editSaving && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}Salvar</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
