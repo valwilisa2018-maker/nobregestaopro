@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 
 type Theme = "light" | "dark";
-const KEY = "theme";
+const KEY = "theme-v2";
 
 function apply(theme: Theme) {
   const root = document.documentElement;
