@@ -414,6 +414,19 @@ function Telao() {
   const week0 = startOfWeek();
   const month0 = startOfMonth();
 
+  // Filtro de período (mês/ano) para "Vídeos Prontos"
+  const now = new Date();
+  const [videosMonth, setVideosMonth] = useState<number>(now.getMonth()); // 0-11
+  const [videosYear, setVideosYear] = useState<number>(now.getFullYear());
+  const videosPeriodStart = useMemo(
+    () => new Date(videosYear, videosMonth, 1, 0, 0, 0, 0),
+    [videosYear, videosMonth],
+  );
+  const videosPeriodEnd = useMemo(
+    () => new Date(videosYear, videosMonth + 1, 1, 0, 0, 0, 0),
+    [videosYear, videosMonth],
+  );
+
   // Dedup por ID (proteção contra qualquer duplicação vinda do realtime/refetch)
   const uniqueSales = useMemo(() => {
     const seen = new Set<string>();
@@ -461,7 +474,9 @@ function Telao() {
       const isDone = !!so.delivered_at || doneColumnIds.has(so.column_id);
       if (!isDone) continue;
       const ref = so.delivered_at ?? so.created_at;
-      if (!ref || new Date(ref) < month0) continue;
+      if (!ref) continue;
+      const refDate = new Date(ref);
+      if (refDate < videosPeriodStart || refDate >= videosPeriodEnd) continue;
       const sale = so.sale_id ? salesById.get(so.sale_id) : undefined;
       if (!sale) continue;
       const r = effectiveProducerKey(sale);
@@ -471,7 +486,12 @@ function Telao() {
       map.set(r.id, cur);
     }
     return Array.from(map.values()).sort((a, b) => b.qtd - a.qtd).slice(0, 5);
-  }, [serviceOrders, doneColumnIds, uniqueSales, producers, profiles, month0]);
+  }, [serviceOrders, doneColumnIds, uniqueSales, producers, profiles, videosPeriodStart, videosPeriodEnd]);
+
+  const videosTotalPeriod = useMemo(
+    () => videosByProducer.reduce((a, r) => a + r.qtd, 0),
+    [videosByProducer],
+  );
 
   // Realtime: nova venda → confetti + buzina + flash; também escuta UPDATE/DELETE para refletir mudanças
   useEffect(() => {
