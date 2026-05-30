@@ -74,6 +74,9 @@ function Dashboard() {
   const monthTotal = sumIn(startOf("month"));
   const yearTotal = sumIn(startOf("year"));
 
+  const goalFor = (p: string) =>
+    Number((goals.data ?? []).find((g) => g.period === p)?.target_amount ?? 0);
+
   const periodMap = {
     week: { total: weekTotal, goal: goalFor("weekly"), label: "Semana", icon: Calendar },
     month: { total: monthTotal, goal: goalFor("monthly"), label: "Mês", icon: TrendingUp },
@@ -83,9 +86,6 @@ function Dashboard() {
   const dayGoal = goalFor("daily");
   const dayPct = dayGoal ? Math.min(100, Math.round((dayTotal / dayGoal) * 100)) : 0;
   const periodPct = current.goal ? Math.min(100, Math.round((current.total / current.goal) * 100)) : 0;
-
-  const goalFor = (p: string) =>
-    Number((goals.data ?? []).find((g) => g.period === p)?.target_amount ?? 0);
 
   const counts = {
     pago_total: all.filter((s) => s.payment_status === "pago_total").length,
