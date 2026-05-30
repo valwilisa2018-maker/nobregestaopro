@@ -49,8 +49,38 @@ function InvoicesPage() {
   });
   const customers = useQuery({
     queryKey: ["invoice-customers"],
-    queryFn: async () => (await supabase.from("customers").select("id,name,company").order("name")).data ?? [],
+    queryFn: async () => (await supabase.from("customers").select("id,name,company,document,email,phone").order("name")).data ?? [],
   });
+
+  const selectedCustomer = useMemo(
+    () => (customers.data ?? []).find((c: any) => c.id === form.customer_id),
+    [customers.data, form.customer_id]
+  );
+
+  const customerSales = useQuery({
+    queryKey: ["invoice-customer-sales", form.customer_id],
+    enabled: !!form.customer_id,
+    queryFn: async () => (await supabase.from("sales").select("id,total_amount,sale_date,service_quantity").eq("customer_id", form.customer_id).order("sale_date", { ascending: false })).data ?? [],
+  });
+
+  // Auto-preencher valor com a soma das vendas do cliente quando seleciona
+  const onSelectCustomer = (id: string) => {
+    setForm((f) => ({ ...f, customer_id: id, sale_id: "", amount: "" }));
+  };
+
+  const applySale = (saleId: string) => {
+    const sale = (customerSales.data ?? []).find((s: any) => s.id === saleId);
+    setForm((f) => ({
+      ...f,
+      sale_id: saleId,
+      amount: sale ? String(sale.total_amount) : f.amount,
+    }));
+  };
+
+  const applyAllSales = () => {
+    const total = (customerSales.data ?? []).reduce((sum: number, s: any) => sum + Number(s.total_amount ?? 0), 0);
+    setForm((f) => ({ ...f, sale_id: "", amount: total ? String(total) : f.amount }));
+  };
 
   const counts = useMemo(() => {
     const c: Record<string, number> = {};
@@ -121,11 +151,38 @@ function InvoicesPage() {
             <DialogHeader><DialogTitle>Nova nota fiscal</DialogTitle></DialogHeader>
             <div className="grid grid-cols-2 gap-3">
               <div className="col-span-2"><Label>Cliente *</Label>
-                <Select value={form.customer_id} onValueChange={(v) => set("customer_id", v)}>
+                <Select value={form.customer_id} onValueChange={onSelectCustomer}>
                   <SelectTrigger><SelectValue placeholder="Selecione…" /></SelectTrigger>
                   <SelectContent>{(customers.data ?? []).map((c: any) => <SelectItem key={c.id} value={c.id}>{c.name}{c.company ? ` — ${c.company}` : ""}</SelectItem>)}</SelectContent>
                 </Select>
               </div>
+              {selectedCustomer && (
+                <div className="col-span-2 rounded-lg border border-border/60 bg-muted/40 p-3 text-sm space-y-1">
+                  <div className="flex justify-between gap-2"><span className="text-muted-foreground">CPF/CNPJ</span><span className="font-medium">{selectedCustomer.document || "—"}</span></div>
+                  <div className="flex justify-between gap-2"><span className="text-muted-foreground">E-mail</span><span className="font-medium">{selectedCustomer.email || "—"}</span></div>
+                  <div className="flex justify-between gap-2"><span className="text-muted-foreground">Telefone</span><span className="font-medium">{selectedCustomer.phone || "—"}</span></div>
+                </div>
+              )}
+              {form.customer_id && (customerSales.data ?? []).length > 0 && (
+                <div className="col-span-2">
+                  <div className="flex items-center justify-between mb-1">
+                    <Label>Venda relacionada</Label>
+                    <Button type="button" variant="ghost" size="sm" className="h-7 text-xs" onClick={applyAllSales}>
+                      Somar todas ({formatCurrency((customerSales.data ?? []).reduce((s: number, x: any) => s + Number(x.total_amount ?? 0), 0))})
+                    </Button>
+                  </div>
+                  <Select value={form.sale_id} onValueChange={applySale}>
+                    <SelectTrigger><SelectValue placeholder="Selecione uma venda para puxar o valor…" /></SelectTrigger>
+                    <SelectContent>
+                      {(customerSales.data ?? []).map((s: any) => (
+                        <SelectItem key={s.id} value={s.id}>
+                          {s.sale_date} — {formatCurrency(s.total_amount)} ({s.service_quantity} serv.)
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
               <div><Label>Número</Label><Input value={form.number} onChange={(e) => set("number", e.target.value)} /></div>
               <div><Label>Valor *</Label><Input type="number" step="0.01" value={form.amount} onChange={(e) => set("amount", e.target.value)} /></div>
               <div><Label>Data emissão</Label><Input type="date" value={form.issued_at} onChange={(e) => set("issued_at", e.target.value)} /></div>
