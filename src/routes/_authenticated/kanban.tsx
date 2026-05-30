@@ -3,7 +3,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -15,6 +15,7 @@ import { Plus, Loader2, Trash2, X, Calendar, Clock, ExternalLink } from "lucide-
 
 export const Route = createFileRoute("/_authenticated/kanban")({
   component: KanbanPage,
+  validateSearch: (s: Record<string, unknown>) => ({ card: typeof s.card === "string" ? s.card : undefined }),
 });
 
 const CARD_COLORS = [
@@ -46,6 +47,7 @@ const emptyForm = (column_id = ""): CardForm => ({
 
 function KanbanPage() {
   const qc = useQueryClient();
+  const { card: cardParam } = Route.useSearch();
   const [dragging, setDragging] = useState<string | null>(null);
   const [editing, setEditing] = useState<CardForm | null>(null);
   const [newLabel, setNewLabel] = useState("");
@@ -61,11 +63,25 @@ function KanbanPage() {
     queryFn: async () => {
       const { data } = await supabase
         .from("service_orders")
-        .select("*, sales(total_amount, payment_status, customers(name,company), sellers(name), producers(name))")
+        .select("*, sales(total_amount, payment_status, trello_link, customers(name,company), sellers(name), producers(name))")
         .order("sort_order");
       return data ?? [];
     },
   });
+
+  useEffect(() => {
+    if (!cardParam || !cards.data) return;
+    const found = cards.data.find((c: any) => c.id === cardParam);
+    if (!found) return;
+    setEditing({
+      id: found.id, column_id: found.column_id,
+      title: found.title ?? "", description: found.description ?? "",
+      due_date: found.due_date ?? "", due_time: (found.due_time ?? "").slice(0, 5),
+      color: found.color ?? "", labels: found.labels ?? [],
+      trello_link: found.sales?.trello_link ?? null,
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cardParam, cards.data]);
 
   const move = async (cardId: string, columnId: string) => {
     const { error } = await supabase
