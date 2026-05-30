@@ -632,7 +632,6 @@ function Telao() {
             )}
             <ul key={`rot-${rotateTick}-${rotatedSales.length}-${LOOP_DUPLICATE_THRESHOLD}`} className="telao-sales-loop">
               {[...visualSalesLoop, ...visualSalesLoop].map((s, i) => {
-                const originalIndex = i % visualSalesLoop.length;
                 const name = cName(s.customer_id);
                 const initial = (name?.[0] ?? "?").toUpperCase();
                 const isFirst = i === 0 && pulseHero;
