@@ -12,6 +12,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Plus, Loader2, Trash2, X, Calendar, Clock, ExternalLink, MessageCircle, ChevronDown, ChevronRight, Layers } from "lucide-react";
+import { fmtDate } from "@/lib/format";
 
 export const Route = createFileRoute("/_authenticated/kanban")({
   component: KanbanPage,
@@ -300,7 +301,7 @@ function KanbanPage() {
                               <div className="text-sm font-medium leading-tight">{c.title}</div>
                               {(c.due_date || c.due_time) && (
                                 <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
-                                  {c.due_date && (<span className="flex items-center gap-1"><Calendar className="w-3 h-3" />{c.due_date.split("-").reverse().join("/")}</span>)}
+                                  {c.due_date && (<span className="flex items-center gap-1"><Calendar className="w-3 h-3" />{fmtDate(c.due_date)}</span>)}
                                   {c.due_time && (<span className="flex items-center gap-1"><Clock className="w-3 h-3" />{c.due_time.slice(0, 5)}</span>)}
                                 </div>
                               )}
@@ -351,7 +352,7 @@ function KanbanPage() {
                       )}
                       {(c.due_date || c.due_time) && (
                         <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
-                          {c.due_date && (<span className="flex items-center gap-1"><Calendar className="w-3 h-3" />{c.due_date.split("-").reverse().join("/")}</span>)}
+                          {c.due_date && (<span className="flex items-center gap-1"><Calendar className="w-3 h-3" />{fmtDate(c.due_date)}</span>)}
                           {c.due_time && (<span className="flex items-center gap-1"><Clock className="w-3 h-3" />{c.due_time.slice(0, 5)}</span>)}
                         </div>
                       )}

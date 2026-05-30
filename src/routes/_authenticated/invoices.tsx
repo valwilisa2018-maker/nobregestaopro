@@ -16,6 +16,7 @@ import { Plus, Loader2, FileText, Clock, Send, ListTodo, CheckCircle2, XCircle, 
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { formatCurrency } from "@/lib/auth";
+import { fmtDate } from "@/lib/format";
 
 export const Route = createFileRoute("/_authenticated/invoices")({
   component: InvoicesPage,
@@ -330,7 +331,7 @@ function InvoicesPage() {
                     <SelectContent>
                       {(customerSales.data ?? []).map((s: any) => (
                         <SelectItem key={s.id} value={s.id}>
-                          {s.sale_date} — {formatCurrency(s.total_amount)} ({s.service_quantity} serv.)
+                          {fmtDate(s.sale_date)} — {formatCurrency(s.total_amount)} ({s.service_quantity} serv.)
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -429,7 +430,7 @@ function InvoicesPage() {
                       {i.customers?.company && <div className="text-xs text-muted-foreground">{i.customers.company}</div>}
                     </TableCell>
                     <TableCell className="text-right font-semibold">{formatCurrency(i.amount)}</TableCell>
-                    <TableCell>{i.issued_at ?? "—"}</TableCell>
+                    <TableCell>{fmtDate(i.issued_at)}</TableCell>
                     <TableCell>
                       <Select value={i.status} onValueChange={(v) => updateStatus(i.id, v)}>
                         <SelectTrigger className="h-8 w-[200px]">
@@ -483,7 +484,7 @@ function InvoicesPage() {
                       {g.customers?.company && <div className="text-xs text-muted-foreground">{g.customers.company}</div>}
                     </TableCell>
                     <TableCell className="text-right font-semibold">{formatCurrency(g.amount)}</TableCell>
-                    <TableCell>{g.issued_at ?? "—"}</TableCell>
+                    <TableCell>{fmtDate(g.issued_at)}</TableCell>
                     <TableCell>
                       <Select value={g.status} onValueChange={(v) => updateStatusBulk(g.ids, v)}>
                         <SelectTrigger className="h-8 w-[200px]">

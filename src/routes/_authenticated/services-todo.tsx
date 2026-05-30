@@ -7,6 +7,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Search, ChevronRight, ChevronDown } from "lucide-react";
+import { fmtDate } from "@/lib/format";
 
 export const Route = createFileRoute("/_authenticated/services-todo")({
   component: () => {
@@ -87,7 +88,7 @@ export const Route = createFileRoute("/_authenticated/services-todo")({
                           </Badge>
                         )}
                       </TableCell>
-                      <TableCell>{!multi ? (first.due_date ?? "—") : "—"}</TableCell>
+                      <TableCell>{!multi ? fmtDate(first.due_date) : "—"}</TableCell>
                       <TableCell>{!multi ? (first.priority === 1 ? "Alta" : first.priority === 2 ? "Média" : "Baixa") : "—"}</TableCell>
                     </TableRow>
                     {multi && isOpen && g.items.map((o: any) => (
@@ -101,7 +102,7 @@ export const Route = createFileRoute("/_authenticated/services-todo")({
                             {o.kanban_columns?.name}
                           </Badge>
                         </TableCell>
-                        <TableCell>{o.due_date ?? "—"}</TableCell>
+                        <TableCell>{fmtDate(o.due_date)}</TableCell>
                         <TableCell>{o.priority === 1 ? "Alta" : o.priority === 2 ? "Média" : "Baixa"}</TableCell>
                       </TableRow>
                     ))}
