@@ -251,9 +251,6 @@ function KanbanPage() {
                 <div><Label>Data de entrega</Label><Input type="date" value={editing.due_date} onChange={(e) => setEditing({ ...editing, due_date: e.target.value })} /></div>
                 <div><Label>Horário</Label><Input type="time" value={editing.due_time} onChange={(e) => setEditing({ ...editing, due_time: e.target.value })} /></div>
               </div>
-              <div>
-                <Label>Etiquetas</Label>
-              </div>
               {editing.trello_link && (
                 <div>
                   <Label>Link da venda (Trello)</Label>
@@ -265,6 +262,7 @@ function KanbanPage() {
                 </div>
               )}
               <div>
+                <Label>Etiquetas</Label>
                 <div className="flex gap-2 mt-1">
                   <Input value={newLabel} onChange={(e) => setNewLabel(e.target.value)}
                     onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); addLabel(); } }}
