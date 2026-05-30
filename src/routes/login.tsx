@@ -147,15 +147,6 @@ function LoginPage() {
               </form>
             </TabsContent>
           </Tabs>
-          <div className="relative my-6">
-            <div className="absolute inset-0 flex items-center"><span className="w-full border-t border-border/50" /></div>
-            <div className="relative flex justify-center text-xs uppercase">
-              <span className="bg-card px-2 text-muted-foreground">ou</span>
-            </div>
-          </div>
-          <Button variant="outline" className="w-full" onClick={handleGoogle} disabled={loading}>
-            Continuar com Google
-          </Button>
         </CardContent>
       </Card>
     </div>
