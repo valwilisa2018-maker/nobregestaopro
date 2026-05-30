@@ -9,6 +9,12 @@ import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import { CheckCircle2, AlertCircle } from "lucide-react";
+import {
+  useLoopDuplicateThreshold,
+  TELAO_THRESHOLD_DEFAULT,
+  TELAO_THRESHOLD_MIN,
+  TELAO_THRESHOLD_MAX,
+} from "@/hooks/use-telao-settings";
 
 export const Route = createFileRoute("/_authenticated/admin")({
   component: AdminPage,
@@ -87,6 +93,7 @@ function AdminPage() {
           <TabsTrigger value="kanban">Colunas Kanban</TabsTrigger>
           <TabsTrigger value="pagarme">Pagar.me</TabsTrigger>
           <TabsTrigger value="nfe">Nota Fiscal</TabsTrigger>
+          <TabsTrigger value="telao">Telão</TabsTrigger>
         </TabsList>
 
         <TabsContent value="goals" className="space-y-3 mt-4">
