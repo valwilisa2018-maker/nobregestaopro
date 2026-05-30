@@ -11,7 +11,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Loader2, Trash2, X, Calendar, Clock, ExternalLink, MessageCircle } from "lucide-react";
+import { Plus, Loader2, Trash2, X, Calendar, Clock, ExternalLink, MessageCircle, ChevronDown, ChevronRight, Layers } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/kanban")({
   component: KanbanPage,
@@ -70,6 +70,7 @@ function KanbanPage() {
   const [newLabel, setNewLabel] = useState("");
   const [newLabelColor, setNewLabelColor] = useState<string>(LABEL_COLORS[0]);
   const [saving, setSaving] = useState(false);
+  const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({});
 
   const cols = useQuery({
     queryKey: ["kanban-cols"],
@@ -187,6 +188,25 @@ function KanbanPage() {
       <div className="flex gap-4 overflow-x-auto pb-4">
         {(cols.data ?? []).map((col: any) => {
           const colCards = (cards.data ?? []).filter((c: any) => c.column_id === col.id);
+          // Group by sale_id (same customer/sale = same package). Cards without sale_id stay solo.
+          const groupsMap = new Map<string, any[]>();
+          const soloCards: any[] = [];
+          for (const c of colCards) {
+            if (c.sale_id) {
+              const arr = groupsMap.get(c.sale_id) ?? [];
+              arr.push(c);
+              groupsMap.set(c.sale_id, arr);
+            } else {
+              soloCards.push(c);
+            }
+          }
+          type Item = { kind: "solo"; card: any } | { kind: "group"; saleId: string; cards: any[] };
+          const items: Item[] = [];
+          for (const [saleId, arr] of groupsMap) {
+            if (arr.length > 1) items.push({ kind: "group", saleId, cards: arr });
+            else items.push({ kind: "solo", card: arr[0] });
+          }
+          for (const c of soloCards) items.push({ kind: "solo", card: c });
           return (
             <div
               key={col.id}
@@ -207,8 +227,81 @@ function KanbanPage() {
                 </div>
               </div>
               <div className="space-y-2 min-h-[100px]">
-                {colCards.map((c: any) => (
-                  <Card key={c.id} draggable
+                {items.map((it) => {
+                  if (it.kind === "group") {
+                    const groupKey = `${col.id}:${it.saleId}`;
+                    const isOpen = !!expandedGroups[groupKey];
+                    const first = it.cards[0];
+                    const customerName = first.sales?.customers?.name ?? "Cliente";
+                    const company = first.sales?.customers?.company;
+                    return (
+                      <div key={groupKey} className="space-y-2">
+                        <Card
+                          onClick={() => setExpandedGroups((s) => ({ ...s, [groupKey]: !s[groupKey] }))}
+                          className="cursor-pointer bg-card hover:border-primary/60 transition-all overflow-hidden border"
+                          style={{ boxShadow: "var(--shadow-card)", borderWidth: "1px" }}>
+                          <CardContent className="p-3 space-y-1">
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-2">
+                                {isOpen ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
+                                <Layers className="w-4 h-4 text-primary" />
+                                <span className="text-sm font-medium">{customerName}</span>
+                              </div>
+                              <Badge variant="secondary" className="text-[10px]">{it.cards.length} serviços</Badge>
+                            </div>
+                            {company && <div className="text-xs text-muted-foreground pl-6">{company}</div>}
+                          </CardContent>
+                        </Card>
+                        {isOpen && it.cards.map((c: any) => (
+                          <Card key={c.id} draggable
+                            onDragStart={() => { setDragging(c.id); setDragMoved(false); }}
+                            onDrag={() => setDragMoved(true)}
+                            onDragEnd={() => { setDragging(null); setTimeout(() => setDragMoved(false), 0); }}
+                            onClick={() => { if (!dragMoved) openEdit(c); }}
+                            className="cursor-pointer bg-card hover:border-primary/60 transition-all overflow-hidden border ml-4"
+                            style={{
+                              boxShadow: "var(--shadow-card)",
+                              borderWidth: "1px",
+                              borderColor: c.color || "hsl(var(--border))",
+                            }}>
+                            <CardContent className="p-3 space-y-2">
+                              {(c.labels?.length ?? 0) > 0 && (
+                                <div className="flex flex-wrap gap-1">
+                                  {c.labels.map((raw: string, i: number) => {
+                                    const { name, color } = parseLabel(raw);
+                                    return (
+                                      <span key={i} className="text-[10px] px-1.5 py-0.5 rounded font-medium"
+                                        style={{ background: color || "hsl(var(--primary) / 0.15)", color: color ? "#fff" : "hsl(var(--primary))" }}>
+                                        {name}
+                                      </span>
+                                    );
+                                  })}
+                                </div>
+                              )}
+                              <div className="text-sm font-medium leading-tight">{c.title}</div>
+                              {(c.due_date || c.due_time) && (
+                                <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
+                                  {c.due_date && (<span className="flex items-center gap-1"><Calendar className="w-3 h-3" />{c.due_date.split("-").reverse().join("/")}</span>)}
+                                  {c.due_time && (<span className="flex items-center gap-1"><Clock className="w-3 h-3" />{c.due_time.slice(0, 5)}</span>)}
+                                </div>
+                              )}
+                              <div className="flex items-center justify-between text-xs">
+                                <span className="text-muted-foreground">{c.sales?.producers?.name ?? "—"}</span>
+                                {c.sales?.payment_status && (
+                                  <Badge variant={c.sales.payment_status === "pago_total" ? "default" : "destructive"} className="text-[10px]">
+                                    {c.sales.payment_status.replace("_", " ")}
+                                  </Badge>
+                                )}
+                              </div>
+                            </CardContent>
+                          </Card>
+                        ))}
+                      </div>
+                    );
+                  }
+                  const c = it.card;
+                  return (
+                    <Card key={c.id} draggable
                     onDragStart={() => { setDragging(c.id); setDragMoved(false); }}
                     onDrag={() => setDragMoved(true)}
                     onDragEnd={() => { setDragging(null); setTimeout(() => setDragMoved(false), 0); }}
@@ -253,7 +346,8 @@ function KanbanPage() {
                       </div>
                     </CardContent>
                   </Card>
-                ))}
+                  );
+                })}
               </div>
             </div>
           );
