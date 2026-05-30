@@ -65,6 +65,7 @@ function KanbanPage() {
   const qc = useQueryClient();
   const { card: cardParam } = Route.useSearch();
   const [dragging, setDragging] = useState<string | null>(null);
+  const [dragMoved, setDragMoved] = useState(false);
   const [editing, setEditing] = useState<CardForm | null>(null);
   const [newLabel, setNewLabel] = useState("");
   const [newLabelColor, setNewLabelColor] = useState<string>(LABEL_COLORS[0]);
@@ -183,7 +184,7 @@ function KanbanPage() {
         <p className="text-muted-foreground">Arraste os cards entre as colunas para atualizar o status</p>
       </div>
 
-      <div className="flex gap-4 overflow-x-auto pb-4 pr-4 -mx-4 md:-mx-6 px-4 md:px-6">
+      <div className="flex gap-4 overflow-x-auto pb-4">
         {(cols.data ?? []).map((col: any) => {
           const colCards = (cards.data ?? []).filter((c: any) => c.column_id === col.id);
           return (
@@ -207,8 +208,11 @@ function KanbanPage() {
               </div>
               <div className="space-y-2 min-h-[100px]">
                 {colCards.map((c: any) => (
-                  <Card key={c.id} draggable onDragStart={() => setDragging(c.id)}
-                    onClick={() => openEdit(c)}
+                  <Card key={c.id} draggable
+                    onDragStart={() => { setDragging(c.id); setDragMoved(false); }}
+                    onDrag={() => setDragMoved(true)}
+                    onDragEnd={() => { setDragging(null); setTimeout(() => setDragMoved(false), 0); }}
+                    onClick={() => { if (!dragMoved) openEdit(c); }}
                     className="cursor-pointer bg-card hover:border-primary/60 transition-all overflow-hidden border"
                     style={{
                       boxShadow: "var(--shadow-card)",
