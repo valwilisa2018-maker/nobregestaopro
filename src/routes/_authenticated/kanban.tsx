@@ -217,12 +217,15 @@ function KanbanPage() {
                     <CardContent className="p-3 space-y-2">
                       {(c.labels?.length ?? 0) > 0 && (
                         <div className="flex flex-wrap gap-1">
-                          {c.labels.map((l: string, i: number) => (
-                            <span key={i} className="text-[10px] px-1.5 py-0.5 rounded font-medium"
-                              style={{ background: c.color || "hsl(var(--primary) / 0.15)", color: c.color ? "#fff" : "hsl(var(--primary))" }}>
-                              {l}
-                            </span>
-                          ))}
+                          {c.labels.map((raw: string, i: number) => {
+                            const { name, color } = parseLabel(raw);
+                            return (
+                              <span key={i} className="text-[10px] px-1.5 py-0.5 rounded font-medium"
+                                style={{ background: color || "hsl(var(--primary) / 0.15)", color: color ? "#fff" : "hsl(var(--primary))" }}>
+                                {name}
+                              </span>
+                            );
+                          })}
                         </div>
                       )}
                       <div className="text-sm font-medium leading-tight">{c.title}</div>
@@ -291,7 +294,7 @@ function KanbanPage() {
               </div>
               {editing.trello_link && (
                 <div>
-                  <Label>Link da venda (Trello)</Label>
+                  <Label>Link do projeto</Label>
                   <a href={editing.trello_link} target="_blank" rel="noreferrer"
                     className="flex items-center gap-2 text-sm text-primary hover:underline break-all mt-1">
                     <ExternalLink className="w-4 h-4 shrink-0" />
@@ -319,14 +322,29 @@ function KanbanPage() {
                     placeholder="Nova etiqueta…" />
                   <Button type="button" variant="outline" onClick={addLabel}>Adicionar</Button>
                 </div>
+                <div className="flex items-center gap-1 mt-2">
+                  <span className="text-[11px] text-muted-foreground mr-1">Cor:</span>
+                  {LABEL_COLORS.map((c) => (
+                    <button key={c} type="button" onClick={() => setNewLabelColor(c)}
+                      className={`w-5 h-5 rounded-full border-2 transition-all ${newLabelColor === c ? "border-foreground scale-110" : "border-transparent"}`}
+                      style={{ background: c }} aria-label={c} />
+                  ))}
+                </div>
                 {editing.labels.length > 0 && (
                   <div className="flex flex-wrap gap-1 mt-2">
-                    {editing.labels.map((l, i) => (
-                      <span key={i} className="flex items-center gap-1 text-xs px-2 py-1 rounded bg-muted">
-                        {l}
-                        <button type="button" onClick={() => removeLabel(i)} className="hover:text-destructive"><X className="w-3 h-3" /></button>
-                      </span>
-                    ))}
+                    {editing.labels.map((raw, i) => {
+                      const { name, color } = parseLabel(raw);
+                      return (
+                        <span key={i} className="flex items-center gap-1 text-xs px-2 py-1 rounded font-medium"
+                          style={{ background: color || "hsl(var(--muted))", color: color ? "#fff" : "hsl(var(--foreground))" }}>
+                          {name}
+                          <button type="button" onClick={() => removeLabel(i)}
+                            className="hover:opacity-70" style={{ color: color ? "#fff" : undefined }}>
+                            <X className="w-3 h-3" />
+                          </button>
+                        </span>
+                      );
+                    })}
                   </div>
                 )}
               </div>
