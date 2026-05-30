@@ -1,6 +1,6 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { useState, useMemo } from "react";
+import { useState, useMemo, Fragment } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -67,7 +67,7 @@ export const Route = createFileRoute("/_authenticated/services-todo")({
                   else navigate({ to: "/kanban", search: { card: first.id } as any });
                 };
                 return (
-                  <>
+                  <Fragment key={g.key}>
                     <TableRow key={g.key} className="cursor-pointer hover:bg-muted/40" onClick={onRowClick}>
                       <TableCell>
                         <div className="flex items-center gap-2">
@@ -105,7 +105,7 @@ export const Route = createFileRoute("/_authenticated/services-todo")({
                         <TableCell>{o.priority === 1 ? "Alta" : o.priority === 2 ? "Média" : "Baixa"}</TableCell>
                       </TableRow>
                     ))}
-                  </>
+                  </Fragment>
                 );
               })}
               {grouped.length === 0 && <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground py-8">Nenhum serviço encontrado</TableCell></TableRow>}
