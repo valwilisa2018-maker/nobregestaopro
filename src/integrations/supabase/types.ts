@@ -91,6 +91,7 @@ export type Database = {
           created_at: string
           customer_id: string
           file_url: string | null
+          from_package: boolean
           id: string
           issued_at: string | null
           notes: string | null
@@ -104,6 +105,7 @@ export type Database = {
           created_at?: string
           customer_id: string
           file_url?: string | null
+          from_package?: boolean
           id?: string
           issued_at?: string | null
           notes?: string | null
@@ -117,6 +119,7 @@ export type Database = {
           created_at?: string
           customer_id?: string
           file_url?: string | null
+          from_package?: boolean
           id?: string
           issued_at?: string | null
           notes?: string | null
