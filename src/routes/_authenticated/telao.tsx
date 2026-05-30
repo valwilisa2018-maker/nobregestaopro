@@ -414,6 +414,19 @@ function Telao() {
   const week0 = startOfWeek();
   const month0 = startOfMonth();
 
+  // Filtro de período (mês/ano) para "Vídeos Prontos"
+  const _nowForVideos = new Date();
+  const [videosMonth, setVideosMonth] = useState<number>(_nowForVideos.getMonth()); // 0-11
+  const [videosYear, setVideosYear] = useState<number>(_nowForVideos.getFullYear());
+  const videosPeriodStart = useMemo(
+    () => new Date(videosYear, videosMonth, 1, 0, 0, 0, 0),
+    [videosYear, videosMonth],
+  );
+  const videosPeriodEnd = useMemo(
+    () => new Date(videosYear, videosMonth + 1, 1, 0, 0, 0, 0),
+    [videosYear, videosMonth],
+  );
+
   // Dedup por ID (proteção contra qualquer duplicação vinda do realtime/refetch)
   const uniqueSales = useMemo(() => {
     const seen = new Set<string>();
@@ -461,7 +474,9 @@ function Telao() {
       const isDone = !!so.delivered_at || doneColumnIds.has(so.column_id);
       if (!isDone) continue;
       const ref = so.delivered_at ?? so.created_at;
-      if (!ref || new Date(ref) < month0) continue;
+      if (!ref) continue;
+      const refDate = new Date(ref);
+      if (refDate < videosPeriodStart || refDate >= videosPeriodEnd) continue;
       const sale = so.sale_id ? salesById.get(so.sale_id) : undefined;
       if (!sale) continue;
       const r = effectiveProducerKey(sale);
@@ -471,7 +486,12 @@ function Telao() {
       map.set(r.id, cur);
     }
     return Array.from(map.values()).sort((a, b) => b.qtd - a.qtd).slice(0, 5);
-  }, [serviceOrders, doneColumnIds, uniqueSales, producers, profiles, month0]);
+  }, [serviceOrders, doneColumnIds, uniqueSales, producers, profiles, videosPeriodStart, videosPeriodEnd]);
+
+  const videosTotalPeriod = useMemo(
+    () => videosByProducer.reduce((a, r) => a + r.qtd, 0),
+    [videosByProducer],
+  );
 
   // Realtime: nova venda → confetti + buzina + flash; também escuta UPDATE/DELETE para refletir mudanças
   useEffect(() => {
@@ -808,7 +828,38 @@ function Telao() {
         <div className="col-span-12 lg:col-span-4 space-y-4">
           <Podium title="Top Vendedores" rows={topSellers} />
           <Podium title="Top Produtores" rows={topProducers} />
-          <Podium title="Vídeos Prontos" rows={videosByProducer} mode="videos" />
+          <Podium
+            title="Vídeos Prontos"
+            rows={videosByProducer}
+            mode="videos"
+            periodLabel={`${String(videosMonth + 1).padStart(2, "0")}/${videosYear}`}
+            totalLabel={`${videosTotalPeriod} no período`}
+            filterControls={
+              <div className="flex items-center gap-1">
+                <select
+                  value={videosMonth}
+                  onChange={(e) => setVideosMonth(Number(e.target.value))}
+                  className="bg-[#1a1a1a] border border-[#c9a84c]/30 text-[#f0d78c] text-[10px] uppercase tracking-widest px-1.5 py-0.5 rounded"
+                  aria-label="Mês"
+                >
+                  {["Jan","Fev","Mar","Abr","Mai","Jun","Jul","Ago","Set","Out","Nov","Dez"].map((m, i) => (
+                    <option key={m} value={i}>{m}</option>
+                  ))}
+                </select>
+                <select
+                  value={videosYear}
+                  onChange={(e) => setVideosYear(Number(e.target.value))}
+                  className="bg-[#1a1a1a] border border-[#c9a84c]/30 text-[#f0d78c] text-[10px] uppercase tracking-widest px-1.5 py-0.5 rounded"
+                  aria-label="Ano"
+                >
+                  {Array.from({ length: 5 }).map((_, idx) => {
+                    const y = new Date().getFullYear() - 2 + idx;
+                    return <option key={y} value={y}>{y}</option>;
+                  })}
+                </select>
+              </div>
+            }
+          />
         </div>
       </div>
 
@@ -933,18 +984,42 @@ function KpiBlock({ label, value, count, accent }: { label: string; value: numbe
   );
 }
 
-function Podium({ title, rows, mode = "sales" }: { title: string; rows: { name: string; total: number; qtd: number }[]; mode?: "sales" | "videos" }) {
+function Podium({
+  title,
+  rows,
+  mode = "sales",
+  periodLabel,
+  totalLabel,
+  filterControls,
+}: {
+  title: string;
+  rows: { name: string; total: number; qtd: number }[];
+  mode?: "sales" | "videos";
+  periodLabel?: string;
+  totalLabel?: string;
+  filterControls?: React.ReactNode;
+}) {
   return (
     <div className="rounded-lg border border-[#c9a84c]/20 bg-[#111]/80 overflow-hidden">
-      <div className="flex items-center justify-between px-4 py-3 border-b border-[#c9a84c]/15">
+      <div className="flex items-center justify-between gap-2 px-4 py-3 border-b border-[#c9a84c]/15">
         <h3
           style={{ fontFamily: '"Bebas Neue", sans-serif', letterSpacing: "0.08em" }}
           className="text-xl text-[#f0d78c]"
         >
           {title.toUpperCase()}
         </h3>
-        <span className="text-[10px] uppercase tracking-[0.3em] text-[#c9a84c]/60">mês</span>
+        <div className="flex items-center gap-2">
+          {filterControls}
+          <span className="text-[10px] uppercase tracking-[0.3em] text-[#c9a84c]/60">
+            {periodLabel ?? "mês"}
+          </span>
+        </div>
       </div>
+      {totalLabel && (
+        <div className="px-4 py-2 border-b border-[#c9a84c]/10 text-[10px] uppercase tracking-[0.3em] text-[#c9a84c]/70">
+          Total: <span className="text-[#f0d78c]">{totalLabel}</span>
+        </div>
+      )}
       <ul className="divide-y divide-[#c9a84c]/8">
         {rows.length === 0 && (
           <li className="px-4 py-8 text-center text-xs uppercase tracking-widest text-[#c9a84c]/40">sem dados</li>
