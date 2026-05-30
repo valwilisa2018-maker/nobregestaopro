@@ -343,22 +343,25 @@ function Telao() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [todaySales.length]);
 
-  // Auto-scroll loop nas vendas do dia
+  // Auto-scroll loop nas vendas do dia (reinicia a cada rotação)
   useEffect(() => {
     const el = scrollRef.current;
     if (!el || todaySales.length === 0) return;
+    el.scrollTop = 0;
     let raf = 0;
     const tick = () => {
       if (!el) return;
-      el.scrollTop += 0.6;
-      if (el.scrollTop + el.clientHeight >= el.scrollHeight - 1) {
-        el.scrollTop = 0;
+      // só rola se houver conteúdo excedente
+      if (el.scrollHeight > el.clientHeight + 4) {
+        el.scrollTop += 0.7;
+        const half = el.scrollHeight / 2;
+        if (el.scrollTop >= half) el.scrollTop = 0;
       }
       raf = requestAnimationFrame(tick);
     };
     raf = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(raf);
-  }, [todaySales.length]);
+  }, [todaySales.length, rotateTick]);
 
   const now = new Date();
 
@@ -392,13 +395,13 @@ function Telao() {
   // últimos 12 para marquee horizontal
   const marqueeSales = useMemo(() => todaySales.slice(0, 12), [todaySales]);
 
-  // Janela rotativa para a lista inferior (5 itens por vez, troca a cada 60s)
-  const WINDOW = 6;
+  // Janela rotativa para a lista inferior (troca a cada 60s)
+  const WINDOW = 8;
   const rotatedSales = useMemo(() => {
     if (todaySales.length <= WINDOW) return todaySales;
     const start = (rotateTick * WINDOW) % todaySales.length;
     const out: SaleRow[] = [];
-    for (let i = 0; i < Math.min(WINDOW, todaySales.length); i++) {
+    for (let i = 0; i < WINDOW; i++) {
       out.push(todaySales[(start + i) % todaySales.length]);
     }
     return out;
