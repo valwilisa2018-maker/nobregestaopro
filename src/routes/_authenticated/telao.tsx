@@ -444,7 +444,7 @@ function Telao() {
   // Lista única do loop principal — TODAS as vendas do dia, sem repetir nem pular
   const loopSales = useMemo(() => todaySales, [todaySales]);
 
-  const shouldAnimateSales = loopSales.length > VISIBLE_SALES_ROWS;
+  const shouldAnimateSales = loopSales.length > 1;
   const salesLoopDuration = Math.max(18, loopSales.length * SALE_SCROLL_DURATION_PER_ROW);
 
   return (
