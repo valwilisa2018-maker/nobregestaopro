@@ -289,8 +289,8 @@ function KanbanPage() {
                             </div>
                             {company && <div className="text-xs text-muted-foreground pl-6">{company}</div>}
                             <div className="flex flex-col gap-0.5 text-[11px] text-muted-foreground pl-6">
-                              <span>Vendedor: <span className="font-semibold" style={{ color: "#10b981" }}>{first.sales?.sellers?.name ?? "—"}</span></span>
-                              <span>Produtor: <span className="font-semibold" style={{ color: "#10b981" }}>{first.producer?.name ?? first.sales?.producers?.name ?? "—"}</span></span>
+                              <span>Vendedor: <span className="font-semibold text-success" style={{}}>{first.sales?.sellers?.name ?? "—"}</span></span>
+                              <span>Produtor: <span className="font-semibold text-success" style={{}}>{first.producer?.name ?? first.sales?.producers?.name ?? "—"}</span></span>
                             </div>
                             {first.sales?.payment_status && (
                               <div className="pl-6 pt-1">
@@ -341,8 +341,8 @@ function KanbanPage() {
                               )}
                               <div className="flex items-center justify-between text-xs">
                                 <div className="flex flex-col gap-0.5 text-muted-foreground">
-                                  <span>Vendedor: <span className="font-semibold" style={{ color: "#10b981" }}>{c.sales?.sellers?.name ?? "—"}</span></span>
-                                  <span>Produtor: <span className="font-semibold" style={{ color: "#10b981" }}>{c.producer?.name ?? c.sales?.producers?.name ?? "—"}</span></span>
+                                  <span>Vendedor: <span className="font-semibold text-success" style={{}}>{c.sales?.sellers?.name ?? "—"}</span></span>
+                                  <span>Produtor: <span className="font-semibold text-success" style={{}}>{c.producer?.name ?? c.sales?.producers?.name ?? "—"}</span></span>
                                 </div>
                                 {c.sales?.payment_status && (
                                   <span
@@ -400,8 +400,8 @@ function KanbanPage() {
                       )}
                       <div className="flex items-center justify-between text-xs">
                         <div className="flex flex-col gap-0.5 text-muted-foreground">
-                          <span>Vendedor: <span className="font-semibold" style={{ color: "#10b981" }}>{c.sales?.sellers?.name ?? "—"}</span></span>
-                          <span>Produtor: <span className="font-semibold" style={{ color: "#10b981" }}>{c.producer?.name ?? c.sales?.producers?.name ?? "—"}</span></span>
+                          <span>Vendedor: <span className="font-semibold text-success" style={{}}>{c.sales?.sellers?.name ?? "—"}</span></span>
+                          <span>Produtor: <span className="font-semibold text-success" style={{}}>{c.producer?.name ?? c.sales?.producers?.name ?? "—"}</span></span>
                         </div>
                         {c.sales?.payment_status && (
                           <span
