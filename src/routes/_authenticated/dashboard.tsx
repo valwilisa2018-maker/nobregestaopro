@@ -685,7 +685,7 @@ function DrillDialog({
         if (drill.kind === "seller") return s.seller_id === drill.id;
         if (drill.kind === "producer") return s.producer_id === drill.id;
         const name = s.package_id ? (pkName.get(s.package_id) ?? "Pacote") : (stName.get(s.service_type_id ?? "") ?? "Outro");
-        return name === drill.name;
+        return name === (drill as { name: string }).name;
       })
       .sort((a, b) => (a.created_at < b.created_at ? 1 : -1));
   })();
