@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
-import { CheckCircle2, AlertCircle } from "lucide-react";
+import { CheckCircle2, AlertCircle, AlertTriangle, Loader2 } from "lucide-react";
 import {
   useLoopDuplicateThreshold,
   TELAO_THRESHOLD_DEFAULT,
@@ -94,6 +94,7 @@ function AdminPage() {
           <TabsTrigger value="pagarme">Pagar.me</TabsTrigger>
           <TabsTrigger value="nfe">Nota Fiscal</TabsTrigger>
           <TabsTrigger value="telao">Telão</TabsTrigger>
+          <TabsTrigger value="reset" className="text-destructive">Resetar</TabsTrigger>
         </TabsList>
 
         <TabsContent value="goals" className="space-y-3 mt-4">
@@ -292,8 +293,108 @@ function AdminPage() {
         <TabsContent value="telao" className="mt-4 space-y-3">
           <TelaoSettingsTab />
         </TabsContent>
+
+        <TabsContent value="reset" className="mt-4 space-y-3">
+          <ResetPlatformTab />
+        </TabsContent>
       </Tabs>
     </div>
+  );
+}
+
+function ResetPlatformTab() {
+  const qc = useQueryClient();
+  const [confirmText, setConfirmText] = useState("");
+  const [loading, setLoading] = useState(false);
+  const PHRASE = "RESETAR TUDO";
+
+  const handleReset = async () => {
+    if (confirmText !== PHRASE) {
+      toast.error(`Digite exatamente: ${PHRASE}`);
+      return;
+    }
+    setLoading(true);
+    try {
+      // Ordem importa por causa das dependências (invoices/service_orders referenciam sales)
+      const tables = [
+        "invoices",
+        "service_orders",
+        "cash_movements",
+        "expenses",
+        "sales",
+        "packages",
+        "customers",
+      ] as const;
+      for (const t of tables) {
+        const { error } = await supabase
+          .from(t)
+          .delete()
+          .not("id", "is", null);
+        if (error) throw new Error(`${t}: ${error.message}`);
+      }
+      toast.success("Plataforma resetada com sucesso");
+      setConfirmText("");
+      qc.invalidateQueries();
+    } catch (e: any) {
+      toast.error(e.message ?? "Falha ao resetar");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <Card className="border-destructive/50">
+      <CardHeader>
+        <CardTitle className="text-base flex items-center gap-2 text-destructive">
+          <AlertTriangle className="w-5 h-5" />
+          Zona de perigo — Resetar plataforma
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-4 text-sm">
+        <div className="p-3 rounded-lg border border-destructive/40 bg-destructive/5">
+          <p className="font-medium text-destructive mb-2">
+            Esta ação apaga PERMANENTEMENTE todos os dados operacionais:
+          </p>
+          <ul className="list-disc list-inside space-y-1 text-muted-foreground">
+            <li>Clientes cadastrados</li>
+            <li>Vendas registradas</li>
+            <li>Ordens de serviço (Kanban)</li>
+            <li>Notas fiscais</li>
+            <li>Despesas e movimentações de caixa</li>
+            <li>Pacotes</li>
+          </ul>
+          <p className="text-xs text-muted-foreground mt-2">
+            Mantém: vendedores, produtores, tipos de serviço, colunas do kanban, metas e usuários.
+            Faça um backup antes em "Becape".
+          </p>
+        </div>
+        <div className="space-y-1">
+          <Label>
+            Digite <code className="px-1 bg-muted rounded">{PHRASE}</code> para confirmar
+          </Label>
+          <Input
+            value={confirmText}
+            onChange={(e) => setConfirmText(e.target.value)}
+            placeholder={PHRASE}
+            disabled={loading}
+          />
+        </div>
+        <Button
+          variant="destructive"
+          onClick={handleReset}
+          disabled={loading || confirmText !== PHRASE}
+        >
+          {loading ? (
+            <>
+              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              Resetando...
+            </>
+          ) : (
+            "Resetar plataforma"
+          )}
+        </Button>
+      </CardContent>
+    </Card>
   );
 }
 
