@@ -682,16 +682,40 @@ function Telao() {
         </div>
       )}
 
-      {/* BENTO GRID */}
-      <div className="grid grid-cols-12 gap-4 auto-rows-auto">
-        {/* HERO HOJE */}
+      {/* DASHBOARD GRID */}
+      <div
+        className="grid gap-4 lg:gap-5 items-start"
+        style={{
+          gridTemplateColumns: "1fr",
+          gridTemplateAreas: `"hero" "kpis" "sales" "tops" "topp"`,
+        }}
+      >
+        <style>{`
+          @media (min-width: 1024px) {
+            .telao-dash-grid {
+              grid-template-columns: 1.6fr 1fr !important;
+              grid-template-areas:
+                "hero  kpis"
+                "sales tops"
+                "sales topp" !important;
+            }
+          }
+        `}</style>
+        {/* Apply class hook for the media-query override above */}
+        <div className="hidden telao-dash-grid" />
+
+        {/* HERO HOJE — Faturamento */}
         <div
-          className={`col-span-12 lg:col-span-6 row-span-2 relative overflow-hidden rounded-lg p-8 border border-[#c9a84c]/30 ${pulseHero ? "telao-pulse" : ""}`}
-          style={{
-            background:
-              "linear-gradient(135deg, #1a1a1a 0%, #0d0d0d 60%, #1a1a1a 100%)",
-          }}
+          style={{ gridArea: "hero" }}
+          className={`relative overflow-hidden rounded-lg p-8 border border-[#c9a84c]/30 ${pulseHero ? "telao-pulse" : ""}`}
         >
+          <div
+            className="absolute inset-0 -z-0 pointer-events-none"
+            style={{
+              background:
+                "linear-gradient(135deg, #1a1a1a 0%, #0d0d0d 60%, #1a1a1a 100%)",
+            }}
+          />
           <div
             className="absolute -top-32 -right-32 w-96 h-96 rounded-full opacity-30 blur-3xl animate-pulse"
             style={{ background: "radial-gradient(circle, #c9a84c 0%, transparent 70%)" }}
