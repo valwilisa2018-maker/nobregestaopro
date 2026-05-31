@@ -149,6 +149,7 @@ function KanbanPage() {
       trello_link: c.trello_link ?? c.sales?.trello_link ?? null,
       customer_phone: c.sales?.customers?.phone ?? null,
       customer_name: c.sales?.customers?.name ?? null,
+      producer_id: c.producer_id ?? null,
     });
     setNewLabel("");
   };
@@ -166,6 +167,7 @@ function KanbanPage() {
       color: editing.color || null,
       labels: editing.labels,
       trello_link: editing.trello_link?.trim() || null,
+      producer_id: editing.producer_id || null,
     };
     try {
       if (editing.id) {
