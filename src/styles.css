@@ -270,8 +270,6 @@
     radial-gradient(600px 300px at 100% 0%, oklch(0.58 0.22 25 / 0.10), transparent 60%),
     radial-gradient(500px 400px at 0% 100%, oklch(0.68 0.24 25 / 0.08), transparent 60%),
     linear-gradient(180deg, var(--sidebar) 0%, oklch(0.08 0.005 270) 100%);
-  position: relative;
-  overflow: hidden;
 }
 .light [data-sidebar="sidebar"] {
   background:
@@ -281,14 +279,7 @@
 }
 
 [data-sidebar="sidebar"]::before {
-  content: "";
-  position: absolute; inset: 0;
-  background-image:
-    linear-gradient(oklch(1 0 0 / 0.025) 1px, transparent 1px),
-    linear-gradient(90deg, oklch(1 0 0 / 0.025) 1px, transparent 1px);
-  background-size: 32px 32px;
-  mask-image: radial-gradient(ellipse at center, black 30%, transparent 80%);
-  pointer-events: none;
+  content: none;
 }
 .light [data-sidebar="sidebar"]::before {
   background-image:
