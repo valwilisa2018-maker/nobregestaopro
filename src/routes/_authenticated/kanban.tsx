@@ -276,7 +276,7 @@ function KanbanPage() {
                           onDrag={() => setDragMoved(true)}
                           onDragEnd={() => { setDraggingGroup(null); setTimeout(() => setDragMoved(false), 0); }}
                           onClick={() => { if (!dragMoved) setExpandedGroups((s) => ({ ...s, [groupKey]: !s[groupKey] })); }}
-                          className="cursor-grab active:cursor-grabbing bg-card hover:border-primary/60 transition-all overflow-hidden border border-border/60"
+                          className="cursor-grab active:cursor-grabbing bg-background hover:border-primary/70 transition-all overflow-hidden border-2 border-foreground/15 shadow-md"
                           style={{ boxShadow: "var(--shadow-card)", borderLeft: `4px solid ${col.color || "hsl(var(--primary))"}` }}>
                           <CardContent className="p-3 space-y-1">
                             <div className="flex items-center justify-between">
@@ -313,7 +313,7 @@ function KanbanPage() {
                             onDrag={() => setDragMoved(true)}
                             onDragEnd={() => { setDragging(null); setTimeout(() => setDragMoved(false), 0); }}
                             onClick={() => { if (!dragMoved) openEdit(c); }}
-                            className="cursor-pointer bg-card hover:border-primary/60 transition-all overflow-hidden border border-border/60 ml-4"
+                            className="cursor-pointer bg-background hover:border-primary/70 transition-all overflow-hidden border-2 border-foreground/15 shadow-md ml-4"
                             style={{
                               boxShadow: "var(--shadow-card)",
                               borderLeft: `4px solid ${col.color || "hsl(var(--primary))"}`,
@@ -369,7 +369,7 @@ function KanbanPage() {
                     onDrag={() => setDragMoved(true)}
                     onDragEnd={() => { setDragging(null); setTimeout(() => setDragMoved(false), 0); }}
                     onClick={() => { if (!dragMoved) openEdit(c); }}
-                    className="cursor-pointer bg-card hover:border-primary/60 transition-all overflow-hidden border border-border/60"
+                    className="cursor-pointer bg-background hover:border-primary/70 transition-all overflow-hidden border-2 border-foreground/15 shadow-md"
                     style={{
                       boxShadow: "var(--shadow-card)",
                       borderLeft: `4px solid ${col.color || "hsl(var(--primary))"}`,
