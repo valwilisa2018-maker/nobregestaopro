@@ -321,6 +321,27 @@ export type Database = {
           },
         ]
       }
+      pagarme_settings: {
+        Row: {
+          api_key: string | null
+          id: boolean
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          api_key?: string | null
+          id?: boolean
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          api_key?: string | null
+          id?: boolean
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
       producers: {
         Row: {
           active: boolean
