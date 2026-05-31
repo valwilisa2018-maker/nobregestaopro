@@ -38,6 +38,12 @@ function Dashboard() {
   const [scope, setScope] = useState<"day" | "week" | "month">("month");
   const [sellerFilter, setSellerFilter] = useState<string>("all");
   const [serviceFilter, setServiceFilter] = useState<string>("all");
+  // Drill-down: clique em ranking abre lista detalhada
+  const [drill, setDrill] = useState<
+    | { kind: "seller" | "producer"; id: string; label: string }
+    | { kind: "product"; name: string; label: string }
+    | null
+  >(null);
   const qc = useQueryClient();
 
   // Tick a cada 60s — vira o dia/semana/mês automaticamente
