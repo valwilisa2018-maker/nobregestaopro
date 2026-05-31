@@ -279,14 +279,7 @@
 }
 
 [data-sidebar="sidebar"]::before {
-  content: "";
-  position: absolute; inset: 0;
-  background-image:
-    linear-gradient(oklch(1 0 0 / 0.025) 1px, transparent 1px),
-    linear-gradient(90deg, oklch(1 0 0 / 0.025) 1px, transparent 1px);
-  background-size: 32px 32px;
-  mask-image: radial-gradient(ellipse at center, black 30%, transparent 80%);
-  pointer-events: none;
+  content: none;
 }
 .light [data-sidebar="sidebar"]::before {
   background-image:
