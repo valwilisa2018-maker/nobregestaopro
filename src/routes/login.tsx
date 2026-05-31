@@ -107,9 +107,19 @@ function LoginPage() {
         </CardHeader>
         <CardContent className="px-8 py-6">
           <Tabs defaultValue="login">
-            <TabsList className="grid grid-cols-2 w-full">
-              <TabsTrigger value="login">Entrar</TabsTrigger>
-              <TabsTrigger value="signup">Criar conta</TabsTrigger>
+            <TabsList className="grid grid-cols-2 w-full bg-transparent gap-2 p-0">
+              <TabsTrigger
+                value="login"
+                className="border-2 border-red-600/60 text-red-500 data-[state=active]:bg-red-600 data-[state=active]:text-white data-[state=active]:border-red-600 data-[state=active]:shadow-[0_0_18px_rgba(220,38,38,0.55)]"
+              >
+                Entrar
+              </TabsTrigger>
+              <TabsTrigger
+                value="signup"
+                className="border-2 border-red-600/60 text-red-500 data-[state=active]:bg-red-600 data-[state=active]:text-white data-[state=active]:border-red-600 data-[state=active]:shadow-[0_0_18px_rgba(220,38,38,0.55)]"
+              >
+                Criar conta
+              </TabsTrigger>
             </TabsList>
             <TabsContent value="login">
               <form onSubmit={handleLogin} className="space-y-5 mt-6">
