@@ -65,17 +65,8 @@ export function AppSidebar() {
       <SidebarHeader className="border-b border-sidebar-border">
         <div className="flex items-center gap-3 px-2 py-3 group">
           <div className="relative shrink-0">
-            <div
-              className="absolute inset-0 rounded-xl blur-md opacity-60 group-hover:opacity-100 transition-opacity"
-              style={{ background: "var(--gradient-primary)" }}
-            />
-            <div
-              className="relative w-10 h-10 rounded-xl p-[1.5px] transition-transform group-hover:scale-105"
-              style={{ background: "var(--gradient-primary)" }}
-            >
-              <div className="w-full h-full rounded-[10px] bg-sidebar flex items-center justify-center overflow-hidden">
-                <img src={logoUrl} alt="Nobre MKT" className="w-8 h-8 object-contain" />
-              </div>
+            <div className="relative w-10 h-10 rounded-xl bg-black flex items-center justify-center overflow-hidden transition-transform group-hover:scale-105">
+              <img src={logoUrl} alt="Nobre MKT" className="w-8 h-8 object-contain" />
             </div>
           </div>
           {!collapsed && (
