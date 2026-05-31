@@ -9,6 +9,7 @@ import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { formatCurrency } from "@/lib/auth";
 import {
   DollarSign, TrendingUp, Calendar, Trophy, AlertCircle,
@@ -111,6 +112,10 @@ function Dashboard() {
   const packages = useQuery({
     queryKey: ["dash-packages"],
     queryFn: async () => (await supabase.from("packages").select("id,name")).data ?? [],
+  });
+  const customers = useQuery({
+    queryKey: ["dash-customers"],
+    queryFn: async () => (await supabase.from("customers").select("id,name")).data ?? [],
   });
 
   const allRaw = sales.data ?? [];
