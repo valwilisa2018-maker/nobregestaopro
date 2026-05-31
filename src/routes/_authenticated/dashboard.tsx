@@ -35,7 +35,7 @@ function startOf(period: "day" | "week" | "month" | "year") {
 
 function Dashboard() {
   // Filtros principais
-  const [scope, setScope] = useState<"day" | "week" | "month">("month");
+  const [scope, setScope] = useState<"day" | "week" | "month">("day");
   const [sellerFilter, setSellerFilter] = useState<string>("all");
   const [serviceFilter, setServiceFilter] = useState<string>("all");
   // Drill-down: clique em ranking abre lista detalhada
