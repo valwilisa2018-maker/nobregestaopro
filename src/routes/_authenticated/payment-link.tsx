@@ -1,21 +1,30 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
-import { Copy, ExternalLink } from "lucide-react";
-import { createPaymentLink } from "@/lib/pagarme.functions";
+import { Copy, ExternalLink, KeyRound, CheckCircle2, AlertCircle, Loader2, Link2 } from "lucide-react";
+import { createPaymentLink, getPagarmeKeyStatus, savePagarmeKey } from "@/lib/pagarme.functions";
 
 export const Route = createFileRoute("/_authenticated/payment-link")({
   component: PaymentLinkPage,
 });
 
+// Verde + branco — paleta fixa para a área Pagar.me (a pedido do usuário).
+const GREEN = "#16a34a";          // emerald-600
+const GREEN_DARK = "#15803d";     // emerald-700
+const GREEN_SOFT = "#dcfce7";     // emerald-100
+const GREEN_BORDER = "#86efac";   // emerald-300
+
 function PaymentLinkPage() {
   const callCreate = useServerFn(createPaymentLink);
+  const callStatus = useServerFn(getPagarmeKeyStatus);
+  const callSave = useServerFn(savePagarmeKey);
+
   const [name, setName] = useState("Pagamento Nobre MKT");
   const [valueBrl, setValueBrl] = useState("");
   const [installments, setInstallments] = useState("1");
@@ -24,6 +33,37 @@ function PaymentLinkPage() {
   });
   const [loading, setLoading] = useState(false);
   const [link, setLink] = useState<string | null>(null);
+
+  // credencial
+  const [status, setStatus] = useState<{ configured: boolean; masked: string | null; source: "database" | "env" | null } | null>(null);
+  const [apiKey, setApiKey] = useState("");
+  const [savingKey, setSavingKey] = useState(false);
+  const [showKey, setShowKey] = useState(false);
+
+  const refreshStatus = async () => {
+    try {
+      const s = await callStatus({});
+      setStatus({ configured: s.configured, masked: s.masked, source: s.source });
+    } catch {
+      setStatus({ configured: false, masked: null, source: null });
+    }
+  };
+
+  useEffect(() => { refreshStatus(); }, []);
+
+  const saveKey = async () => {
+    if (apiKey.trim().length < 10) return toast.error("Chave inválida");
+    setSavingKey(true);
+    try {
+      const res = await callSave({ data: { api_key: apiKey.trim() } });
+      if (!res.ok) return toast.error(res.error);
+      toast.success("Credencial salva com sucesso");
+      setApiKey("");
+      await refreshStatus();
+    } catch (e: any) {
+      toast.error(e?.message ?? "Falha ao salvar credencial");
+    } finally { setSavingKey(false); }
+  };
 
   const submit = async () => {
     const v = Number(valueBrl.replace(",", "."));
@@ -51,54 +91,188 @@ function PaymentLinkPage() {
     toast.success("Link copiado");
   };
 
+  // estilos verde/branco reutilizáveis
+  const greenCardStyle: React.CSSProperties = {
+    background: "#ffffff",
+    borderColor: GREEN_BORDER,
+    color: "#0a0a0a",
+    boxShadow: "0 8px 28px -12px rgba(22,163,74,0.35)",
+  };
+  const greenInputClass =
+    "bg-white text-neutral-900 placeholder:text-neutral-400 border-emerald-300 " +
+    "focus-visible:ring-emerald-500 focus-visible:border-emerald-500";
+
   return (
     <div className="space-y-6 max-w-2xl">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">Gerar Pagamento</h1>
-        <p className="text-muted-foreground">Crie um link de pagamento via Pagar.me</p>
+      {/* Cabeçalho verde */}
+      <div
+        className="rounded-2xl p-5 text-white"
+        style={{
+          background: `linear-gradient(135deg, ${GREEN}, ${GREEN_DARK})`,
+          boxShadow: "0 12px 40px -12px rgba(22,163,74,0.55)",
+        }}
+      >
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-white/15 flex items-center justify-center">
+            <Link2 className="w-5 h-5" />
+          </div>
+          <div>
+            <h1 className="text-2xl md:text-3xl font-bold tracking-tight">Gerar Pagamento</h1>
+            <p className="text-white/85 text-sm">Crie um link de pagamento via Pagar.me</p>
+          </div>
+        </div>
       </div>
 
-      <Card className="border-border/50">
-        <CardHeader><CardTitle className="text-base">Dados do pagamento</CardTitle></CardHeader>
+      {/* Credencial Pagar.me */}
+      <Card className="border-2" style={greenCardStyle}>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base flex items-center gap-2" style={{ color: GREEN_DARK }}>
+            <KeyRound className="w-4 h-4" />
+            Credencial Pagar.me
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div
+            className="flex items-start gap-2 p-3 rounded-lg"
+            style={{ background: GREEN_SOFT, border: `1px solid ${GREEN_BORDER}` }}
+          >
+            {status?.configured ? (
+              <>
+                <CheckCircle2 className="w-4 h-4 mt-0.5 shrink-0" style={{ color: GREEN_DARK }} />
+                <div className="text-sm" style={{ color: GREEN_DARK }}>
+                  <div className="font-semibold">Credencial configurada</div>
+                  <div className="text-xs opacity-80">
+                    Chave atual: <code className="bg-white/70 px-1 rounded">{status.masked}</code>
+                    {status.source === "env" && " (variável de ambiente)"}
+                  </div>
+                </div>
+              </>
+            ) : (
+              <>
+                <AlertCircle className="w-4 h-4 mt-0.5 shrink-0 text-amber-600" />
+                <div className="text-sm text-amber-700">
+                  <div className="font-semibold">Nenhuma credencial configurada</div>
+                  <div className="text-xs">Cole abaixo a Secret Key (sk_…) da sua conta Pagar.me.</div>
+                </div>
+              </>
+            )}
+          </div>
+
+          <div className="space-y-1">
+            <Label style={{ color: GREEN_DARK }}>Secret Key (sk_…)</Label>
+            <div className="flex gap-2">
+              <Input
+                type={showKey ? "text" : "password"}
+                value={apiKey}
+                onChange={(e) => setApiKey(e.target.value)}
+                placeholder="sk_test_••••••••••••"
+                className={greenInputClass}
+                autoComplete="off"
+              />
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setShowKey((s) => !s)}
+                className="bg-white border-emerald-300 text-emerald-700 hover:bg-emerald-50 hover:text-emerald-800"
+              >
+                {showKey ? "Ocultar" : "Ver"}
+              </Button>
+            </div>
+            <p className="text-xs text-neutral-500">
+              A chave fica armazenada com segurança e nunca aparece em telas públicas.
+            </p>
+          </div>
+
+          <Button
+            onClick={saveKey}
+            disabled={savingKey || !apiKey.trim()}
+            className="text-white font-semibold"
+            style={{ background: GREEN, borderColor: GREEN_DARK }}
+          >
+            {savingKey ? (<><Loader2 className="w-4 h-4 mr-2 animate-spin" />Salvando…</>) : "Salvar credencial"}
+          </Button>
+        </CardContent>
+      </Card>
+
+      {/* Dados do pagamento */}
+      <Card className="border-2" style={greenCardStyle}>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base" style={{ color: GREEN_DARK }}>Dados do pagamento</CardTitle>
+        </CardHeader>
         <CardContent className="space-y-4">
           <div className="space-y-1">
-            <Label>Descrição</Label>
-            <Input value={name} onChange={(e) => setName(e.target.value)} />
+            <Label style={{ color: GREEN_DARK }}>Descrição</Label>
+            <Input className={greenInputClass} value={name} onChange={(e) => setName(e.target.value)} />
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1">
-              <Label>Valor (R$)</Label>
-              <Input inputMode="decimal" placeholder="0,00" value={valueBrl} onChange={(e) => setValueBrl(e.target.value)} />
+              <Label style={{ color: GREEN_DARK }}>Valor (R$)</Label>
+              <Input className={greenInputClass} inputMode="decimal" placeholder="0,00" value={valueBrl} onChange={(e) => setValueBrl(e.target.value)} />
             </div>
             <div className="space-y-1">
-              <Label>Parcelas</Label>
-              <Input type="number" min={1} max={12} value={installments} onChange={(e) => setInstallments(e.target.value)} />
+              <Label style={{ color: GREEN_DARK }}>Parcelas</Label>
+              <Input className={greenInputClass} type="number" min={1} max={12} value={installments} onChange={(e) => setInstallments(e.target.value)} />
             </div>
           </div>
           <div className="space-y-2">
-            <Label>Métodos aceitos</Label>
+            <Label style={{ color: GREEN_DARK }}>Métodos aceitos</Label>
             <div className="flex gap-4 flex-wrap">
               {([
                 ["credit_card", "Cartão de Crédito"],
                 ["pix", "Pix"],
                 ["boleto", "Boleto"],
               ] as const).map(([k, l]) => (
-                <label key={k} className="flex items-center gap-2 text-sm">
-                  <Checkbox checked={methods[k]} onCheckedChange={(c) => setMethods((m) => ({ ...m, [k]: !!c }))} />
+                <label
+                  key={k}
+                  className="flex items-center gap-2 text-sm px-3 py-1.5 rounded-md border bg-white"
+                  style={{ borderColor: GREEN_BORDER, color: GREEN_DARK }}
+                >
+                  <Checkbox
+                    checked={methods[k]}
+                    onCheckedChange={(c) => setMethods((m) => ({ ...m, [k]: !!c }))}
+                    className="border-emerald-500 data-[state=checked]:bg-emerald-600 data-[state=checked]:border-emerald-600"
+                  />
                   {l}
                 </label>
               ))}
             </div>
           </div>
-          <Button onClick={submit} disabled={loading}>{loading ? "Gerando…" : "Gerar link"}</Button>
+
+          <Button
+            onClick={submit}
+            disabled={loading}
+            className="text-white font-semibold"
+            style={{ background: GREEN, borderColor: GREEN_DARK }}
+          >
+            {loading ? (<><Loader2 className="w-4 h-4 mr-2 animate-spin" />Gerando…</>) : "Gerar link"}
+          </Button>
 
           {link && (
-            <div className="p-3 rounded-lg border border-border/50 bg-muted/30 space-y-2">
-              <div className="text-xs text-muted-foreground">Link gerado</div>
-              <div className="text-sm break-all">{link}</div>
+            <div
+              className="p-3 rounded-lg space-y-2"
+              style={{ background: GREEN_SOFT, border: `1px solid ${GREEN_BORDER}` }}
+            >
+              <div className="text-xs font-semibold" style={{ color: GREEN_DARK }}>Link gerado</div>
+              <div className="text-sm break-all text-neutral-800">{link}</div>
               <div className="flex gap-2">
-                <Button size="sm" variant="outline" onClick={copy}><Copy className="w-3 h-3 mr-1" />Copiar</Button>
-                <Button size="sm" variant="outline" asChild><a href={link} target="_blank" rel="noreferrer"><ExternalLink className="w-3 h-3 mr-1" />Abrir</a></Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={copy}
+                  className="bg-white border-emerald-300 text-emerald-700 hover:bg-emerald-50 hover:text-emerald-800"
+                >
+                  <Copy className="w-3 h-3 mr-1" />Copiar
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  asChild
+                  className="bg-white border-emerald-300 text-emerald-700 hover:bg-emerald-50 hover:text-emerald-800"
+                >
+                  <a href={link} target="_blank" rel="noreferrer">
+                    <ExternalLink className="w-3 h-3 mr-1" />Abrir
+                  </a>
+                </Button>
               </div>
             </div>
           )}
