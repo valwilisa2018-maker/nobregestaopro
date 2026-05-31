@@ -56,6 +56,7 @@ type CardForm = {
   trello_link?: string | null;
   customer_phone?: string | null;
   customer_name?: string | null;
+  producer_id?: string | null;
 };
 
 const emptyForm = (column_id = ""): CardForm => ({
@@ -93,10 +94,15 @@ function KanbanPage() {
     queryFn: async () => {
       const { data } = await supabase
         .from("service_orders")
-        .select("*, sales(total_amount, payment_status, trello_link, customers(name,company,phone), sellers(name), producers(name))")
+        .select("*, producer:producers!service_orders_producer_id_fkey(name), sales(total_amount, payment_status, trello_link, customers(name,company,phone), sellers(name), producers(name))")
         .order("sort_order");
       return data ?? [];
     },
+  });
+
+  const producers = useQuery({
+    queryKey: ["producers-select"],
+    queryFn: async () => (await supabase.from("producers").select("id,name").eq("active", true).order("name")).data ?? [],
   });
 
   useEffect(() => {
@@ -111,6 +117,7 @@ function KanbanPage() {
       trello_link: found.trello_link ?? found.sales?.trello_link ?? null,
       customer_phone: found.sales?.customers?.phone ?? null,
       customer_name: found.sales?.customers?.name ?? null,
+      producer_id: found.producer_id ?? null,
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [cardParam, cards.data]);
@@ -143,6 +150,7 @@ function KanbanPage() {
       trello_link: c.trello_link ?? c.sales?.trello_link ?? null,
       customer_phone: c.sales?.customers?.phone ?? null,
       customer_name: c.sales?.customers?.name ?? null,
+      producer_id: c.producer_id ?? null,
     });
     setNewLabel("");
   };
@@ -160,6 +168,7 @@ function KanbanPage() {
       color: editing.color || null,
       labels: editing.labels,
       trello_link: editing.trello_link?.trim() || null,
+      producer_id: editing.producer_id || null,
     };
     try {
       if (editing.id) {
@@ -281,7 +290,7 @@ function KanbanPage() {
                             {company && <div className="text-xs text-muted-foreground pl-6">{company}</div>}
                             <div className="flex flex-col gap-0.5 text-[11px] text-muted-foreground pl-6">
                               <span>Vendedor: {first.sales?.sellers?.name ?? "—"}</span>
-                              <span>Produtor: {first.sales?.producers?.name ?? "—"}</span>
+                              <span>Produtor: {first.producer?.name ?? first.sales?.producers?.name ?? "—"}</span>
                             </div>
                             {first.sales?.payment_status && (
                               <div className="pl-6 pt-1">
@@ -333,7 +342,7 @@ function KanbanPage() {
                               <div className="flex items-center justify-between text-xs">
                                 <div className="flex flex-col gap-0.5 text-muted-foreground">
                                   <span>Vendedor: {c.sales?.sellers?.name ?? "—"}</span>
-                                  <span>Produtor: {c.sales?.producers?.name ?? "—"}</span>
+                                  <span>Produtor: {c.producer?.name ?? c.sales?.producers?.name ?? "—"}</span>
                                 </div>
                                 {c.sales?.payment_status && (
                                   <span
@@ -392,7 +401,7 @@ function KanbanPage() {
                       <div className="flex items-center justify-between text-xs">
                         <div className="flex flex-col gap-0.5 text-muted-foreground">
                           <span>Vendedor: {c.sales?.sellers?.name ?? "—"}</span>
-                          <span>Produtor: {c.sales?.producers?.name ?? "—"}</span>
+                          <span>Produtor: {c.producer?.name ?? c.sales?.producers?.name ?? "—"}</span>
                         </div>
                         {c.sales?.payment_status && (
                           <span
@@ -452,6 +461,21 @@ function KanbanPage() {
                 </div>
                 <div><Label>Data de entrega</Label><Input type="date" value={editing.due_date} onChange={(e) => setEditing({ ...editing, due_date: e.target.value })} /></div>
                 <div><Label>Horário</Label><Input type="time" value={editing.due_time} onChange={(e) => setEditing({ ...editing, due_time: e.target.value })} /></div>
+              </div>
+              <div>
+                <Label>Produtor</Label>
+                <Select
+                  value={editing.producer_id || "_none"}
+                  onValueChange={(v) => setEditing({ ...editing, producer_id: v === "_none" ? null : v })}
+                >
+                  <SelectTrigger><SelectValue placeholder="Selecionar produtor" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="_none">Nenhum</SelectItem>
+                    {(producers.data ?? []).map((p: any) => (
+                      <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
               <div>
                 <Label>Link do projeto</Label>

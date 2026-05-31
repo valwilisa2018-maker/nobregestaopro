@@ -516,6 +516,7 @@ export type Database = {
           id: string
           labels: string[]
           priority: number
+          producer_id: string | null
           sale_id: string | null
           service_index: number
           sort_order: number
@@ -534,6 +535,7 @@ export type Database = {
           id?: string
           labels?: string[]
           priority?: number
+          producer_id?: string | null
           sale_id?: string | null
           service_index?: number
           sort_order?: number
@@ -552,6 +554,7 @@ export type Database = {
           id?: string
           labels?: string[]
           priority?: number
+          producer_id?: string | null
           sale_id?: string | null
           service_index?: number
           sort_order?: number
@@ -565,6 +568,13 @@ export type Database = {
             columns: ["column_id"]
             isOneToOne: false
             referencedRelation: "kanban_columns"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "service_orders_producer_id_fkey"
+            columns: ["producer_id"]
+            isOneToOne: false
+            referencedRelation: "producers"
             referencedColumns: ["id"]
           },
           {

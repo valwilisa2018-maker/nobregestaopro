@@ -1,0 +1,2 @@
+ALTER TABLE public.service_orders ADD COLUMN IF NOT EXISTS producer_id uuid REFERENCES public.producers(id) ON DELETE SET NULL;
+CREATE INDEX IF NOT EXISTS service_orders_producer_id_idx ON public.service_orders(producer_id);
