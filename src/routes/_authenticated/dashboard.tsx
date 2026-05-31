@@ -420,8 +420,7 @@ function Dashboard() {
       </div>
 
       {/* KPIs principais */}
-      <div className="grid gap-4 grid-cols-2 lg:grid-cols-6">
-        <StatCard tone="success" accent label="Hoje" value={formatCurrency(dayTotal)} icon={DollarSign} hint={`${dayCount} vendas`} />
+      <div className="grid gap-4 grid-cols-2 lg:grid-cols-5">
         <StatCard tone="info" label="Semana" value={formatCurrency(weekTotal)} icon={Calendar} hint={`${weekCount} vendas`} />
         <StatCard tone="violet" label="Mês" value={formatCurrency(monthTotal)} icon={TrendingUp} hint={`${monthCount} vendas`} />
         <StatCard tone="amber" label="Ticket médio" value={formatCurrency(ticketMedio)} icon={ShoppingCart} hint="no mês" />
