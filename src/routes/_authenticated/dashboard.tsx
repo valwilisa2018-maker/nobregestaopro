@@ -148,6 +148,11 @@ function Dashboard() {
   const monthCount = all.filter((s) => s.created_at >= startOf("month")).length;
   const ticketMedio = monthCount ? monthTotal / monthCount : 0;
 
+  // Valores pendentes a receber (parcial + pendente)
+  const pendingList = all.filter((s) => s.payment_status === "pago_parcial" || s.payment_status === "pendente");
+  const pendingTotal = pendingList.reduce((a, s) => a + (Number(s.total_amount) - Number(s.paid_amount ?? 0)), 0);
+  const pendingCount = pendingList.length;
+
   const goalFor = (p: string) =>
     Number((goals.data ?? []).find((g) => g.period === p)?.target_amount ?? 0);
 
