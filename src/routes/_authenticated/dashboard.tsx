@@ -3,6 +3,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { StatCard } from "@/components/stat-card";
+import { useAuth } from "@/lib/auth";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
@@ -13,7 +14,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { formatCurrency } from "@/lib/auth";
 import {
   DollarSign, TrendingUp, Calendar, Trophy, AlertCircle,
-  Package, FileText, FileCheck2, ListTodo, Truck, ShoppingCart, Users, Factory, Filter, X,
+  Package, FileText, FileCheck2, ListTodo, Truck, ShoppingCart, Users, Factory, Filter, X, Sparkles,
 } from "lucide-react";
 import {
   ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid,
@@ -36,6 +37,7 @@ function startOf(period: "day" | "week" | "month" | "year") {
 function Dashboard() {
   // Filtros principais
   const [scope, setScope] = useState<"day" | "week" | "month">("day");
+  const { user } = useAuth();
   const [sellerFilter, setSellerFilter] = useState<string>("all");
   const [serviceFilter, setServiceFilter] = useState<string>("all");
   // Drill-down: clique em ranking abre lista detalhada
@@ -278,10 +280,43 @@ function Dashboard() {
 
   return (
     <div className="space-y-6 animate-fade-in">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
-        <p className="text-muted-foreground">Visão geral de vendas, produção e faturamento — atualizado em tempo real</p>
-      </div>
+      {(() => {
+        const hour = new Date().getHours();
+        const greet = hour < 12 ? "Bom dia" : hour < 18 ? "Boa tarde" : "Boa noite";
+        const fullName: string =
+          (user?.user_metadata as any)?.full_name ||
+          (user?.email ? user.email.split("@")[0] : "");
+        const firstName = fullName ? fullName.split(" ")[0] : "";
+        const today = new Intl.DateTimeFormat("pt-BR", {
+          weekday: "long", day: "2-digit", month: "long", year: "numeric",
+        }).format(new Date());
+        return (
+          <Card
+            className="relative overflow-hidden border-primary/30 bg-gradient-to-br from-primary/20 via-card to-card"
+            style={{ boxShadow: "0 20px 60px -20px oklch(0.65 0.22 30 / 0.4)" }}
+          >
+            <div className="absolute -top-20 -right-20 w-72 h-72 rounded-full bg-primary/30 blur-3xl pointer-events-none" />
+            <div className="absolute -bottom-16 -left-16 w-56 h-56 rounded-full bg-primary-glow/20 blur-3xl pointer-events-none" />
+            <CardContent className="relative p-6 sm:p-8 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+              <div className="space-y-2">
+                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/15 border border-primary/30 text-primary text-xs font-semibold uppercase tracking-wider">
+                  <Sparkles className="w-3.5 h-3.5" />
+                  {today}
+                </div>
+                <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-foreground">
+                  {greet}{firstName ? `, ${firstName}` : ""}! 👋
+                </h1>
+                <p className="text-muted-foreground max-w-xl">
+                  Bem-vindo de volta. Aqui está a visão geral de vendas, produção e faturamento — atualizado em tempo real.
+                </p>
+              </div>
+              <div className="hidden sm:flex items-center justify-center w-20 h-20 rounded-2xl bg-gradient-to-br from-primary to-primary-glow shadow-lg shrink-0">
+                <Sparkles className="w-10 h-10 text-primary-foreground" />
+              </div>
+            </CardContent>
+          </Card>
+        );
+      })()}
 
       {/* Filtros */}
       <Card className="border-border/50" style={{ boxShadow: "var(--shadow-card)" }}>
