@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import { CheckCircle2, AlertCircle, AlertTriangle, Loader2 } from "lucide-react";
+import { format } from "date-fns";
 import {
   useLoopDuplicateThreshold,
   TELAO_THRESHOLD_DEFAULT,
@@ -95,6 +96,7 @@ function AdminPage() {
           <TabsTrigger value="nfe">Nota Fiscal</TabsTrigger>
           <TabsTrigger value="telao">Telão</TabsTrigger>
           <TabsTrigger value="reset" className="text-destructive">Resetar</TabsTrigger>
+          <TabsTrigger value="audit">Auditoria</TabsTrigger>
         </TabsList>
 
         <TabsContent value="goals" className="space-y-3 mt-4">
@@ -297,6 +299,10 @@ function AdminPage() {
         <TabsContent value="reset" className="mt-4 space-y-3">
           <ResetPlatformTab />
         </TabsContent>
+
+        <TabsContent value="audit" className="mt-4 space-y-3">
+          <AuditLogTab />
+        </TabsContent>
       </Tabs>
     </div>
   );
@@ -325,13 +331,31 @@ function ResetPlatformTab() {
         "packages",
         "customers",
       ] as const;
+      const counts: Record<string, number> = {};
       for (const t of tables) {
+        const { count: before } = await supabase
+          .from(t)
+          .select("id", { count: "exact", head: true });
         const { error } = await supabase
           .from(t)
           .delete()
           .not("id", "is", null);
         if (error) throw new Error(`${t}: ${error.message}`);
+        counts[t] = before ?? 0;
       }
+
+      const totalDeleted = Object.values(counts).reduce((a, b) => a + b, 0);
+      const { data: userRes } = await supabase.auth.getUser();
+      const user = userRes.user;
+      if (user) {
+        await supabase.from("audit_logs").insert({
+          action: "platform_reset",
+          performed_by: user.id,
+          performed_by_email: user.email ?? null,
+          details: { tables: counts, total_deleted: totalDeleted },
+        });
+      }
+
       toast.success("Plataforma resetada com sucesso");
       setConfirmText("");
       qc.invalidateQueries();
@@ -393,6 +417,81 @@ function ResetPlatformTab() {
             "Resetar plataforma"
           )}
         </Button>
+      </CardContent>
+    </Card>
+  );
+}
+
+function AuditLogTab() {
+  const logs = useQuery({
+    queryKey: ["audit-logs"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("audit_logs")
+        .select("*")
+        .order("created_at", { ascending: false })
+        .limit(200);
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+
+  const actionLabel = (a: string) =>
+    a === "platform_reset" ? "Reset da plataforma" : a;
+
+  return (
+    <Card className="border-border/50">
+      <CardHeader>
+        <CardTitle className="text-base">Log de auditoria</CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-3 text-sm">
+        <p className="text-muted-foreground">
+          Histórico das últimas 200 ações sensíveis executadas na plataforma.
+        </p>
+        {logs.isLoading && (
+          <div className="flex items-center gap-2 text-muted-foreground">
+            <Loader2 className="w-4 h-4 animate-spin" /> Carregando...
+          </div>
+        )}
+        {!logs.isLoading && (logs.data ?? []).length === 0 && (
+          <div className="p-4 rounded-lg border border-dashed border-border text-muted-foreground text-center">
+            Nenhum evento registrado ainda.
+          </div>
+        )}
+        <div className="space-y-2">
+          {(logs.data ?? []).map((l: any) => {
+            const total = l.details?.total_deleted;
+            const tables = l.details?.tables as Record<string, number> | undefined;
+            return (
+              <div key={l.id} className="p-3 rounded-lg border border-border/50 bg-card">
+                <div className="flex items-center justify-between gap-2 flex-wrap">
+                  <div className="font-medium">{actionLabel(l.action)}</div>
+                  <div className="text-xs text-muted-foreground">
+                    {format(new Date(l.created_at), "dd/MM/yyyy HH:mm:ss")}
+                  </div>
+                </div>
+                <div className="text-xs text-muted-foreground mt-1">
+                  Executado por: <strong>{l.performed_by_email ?? l.performed_by ?? "—"}</strong>
+                </div>
+                {typeof total === "number" && (
+                  <div className="text-xs mt-2">
+                    Total apagado: <strong>{total}</strong> registros
+                  </div>
+                )}
+                {tables && (
+                  <div className="mt-2 grid grid-cols-2 md:grid-cols-4 gap-1 text-xs">
+                    {Object.entries(tables).map(([t, n]) => (
+                      <div key={t} className="px-2 py-1 rounded bg-muted/40">
+                        <span className="text-muted-foreground">{t}: </span>
+                        <strong>{n}</strong>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
       </CardContent>
     </Card>
   );
