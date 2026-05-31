@@ -62,6 +62,15 @@ const emptyForm = (column_id = ""): CardForm => ({
   column_id, title: "", description: "", due_date: "", due_time: "", color: "", labels: [],
 });
 
+// Premium standardized styles
+const PAYMENT_STYLE: Record<string, { bg: string; fg: string; label: string }> = {
+  pago_total:   { bg: "#10b981", fg: "#fff", label: "Pago total" },
+  pago_parcial: { bg: "#f59e0b", fg: "#1a1a1a", label: "Pago parcial" },
+  pendente:     { bg: "#ef4444", fg: "#fff", label: "Pendente" },
+};
+const paymentStyle = (s?: string | null) =>
+  PAYMENT_STYLE[s ?? ""] ?? { bg: "hsl(var(--muted))", fg: "hsl(var(--foreground))", label: (s ?? "—").replace("_", " ") };
+
 function KanbanPage() {
   const qc = useQueryClient();
   const { card: cardParam } = Route.useSearch();
@@ -278,11 +287,10 @@ function KanbanPage() {
                             onDrag={() => setDragMoved(true)}
                             onDragEnd={() => { setDragging(null); setTimeout(() => setDragMoved(false), 0); }}
                             onClick={() => { if (!dragMoved) openEdit(c); }}
-                            className="cursor-pointer bg-card hover:border-primary/60 transition-all overflow-hidden border ml-4"
+                            className="cursor-pointer bg-card hover:border-primary/60 transition-all overflow-hidden border border-border/60 ml-4"
                             style={{
                               boxShadow: "var(--shadow-card)",
-                              borderWidth: "1px",
-                              borderColor: c.color || "hsl(var(--border))",
+                              borderLeft: `4px solid ${col.color || "hsl(var(--primary))"}`,
                             }}>
                             <CardContent className="p-3 space-y-2">
                               {(c.labels?.length ?? 0) > 0 && (
@@ -311,9 +319,15 @@ function KanbanPage() {
                                   <span>Produtor: {c.sales?.producers?.name ?? "—"}</span>
                                 </div>
                                 {c.sales?.payment_status && (
-                                  <Badge variant={c.sales.payment_status === "pago_total" ? "default" : "destructive"} className="text-[10px]">
-                                    {c.sales.payment_status.replace("_", " ")}
-                                  </Badge>
+                                  <span
+                                    className="text-[10px] px-2 py-0.5 rounded-full font-semibold"
+                                    style={{
+                                      background: paymentStyle(c.sales.payment_status).bg,
+                                      color: paymentStyle(c.sales.payment_status).fg,
+                                    }}
+                                  >
+                                    {paymentStyle(c.sales.payment_status).label}
+                                  </span>
                                 )}
                               </div>
                             </CardContent>
@@ -329,11 +343,10 @@ function KanbanPage() {
                     onDrag={() => setDragMoved(true)}
                     onDragEnd={() => { setDragging(null); setTimeout(() => setDragMoved(false), 0); }}
                     onClick={() => { if (!dragMoved) openEdit(c); }}
-                    className="cursor-pointer bg-card hover:border-primary/60 transition-all overflow-hidden border"
+                    className="cursor-pointer bg-card hover:border-primary/60 transition-all overflow-hidden border border-border/60"
                     style={{
                       boxShadow: "var(--shadow-card)",
-                      borderWidth: "1px",
-                      borderColor: c.color || "hsl(var(--border))",
+                      borderLeft: `4px solid ${col.color || "hsl(var(--primary))"}`,
                     }}>
                     <CardContent className="p-3 space-y-2">
                       {(c.labels?.length ?? 0) > 0 && (
@@ -365,9 +378,15 @@ function KanbanPage() {
                           <span>Produtor: {c.sales?.producers?.name ?? "—"}</span>
                         </div>
                         {c.sales?.payment_status && (
-                          <Badge variant={c.sales.payment_status === "pago_total" ? "default" : "destructive"} className="text-[10px]">
-                            {c.sales.payment_status.replace("_", " ")}
-                          </Badge>
+                          <span
+                            className="text-[10px] px-2 py-0.5 rounded-full font-semibold"
+                            style={{
+                              background: paymentStyle(c.sales.payment_status).bg,
+                              color: paymentStyle(c.sales.payment_status).fg,
+                            }}
+                          >
+                            {paymentStyle(c.sales.payment_status).label}
+                          </span>
                         )}
                       </div>
                     </CardContent>
