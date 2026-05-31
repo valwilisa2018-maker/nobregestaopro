@@ -365,21 +365,49 @@ function Dashboard() {
           </CardContent>
         </Card>
 
-        <Card className="border-border/50" style={{ boxShadow: "var(--shadow-card)" }}>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-base">Resumo do ano</CardTitle>
+        <Card
+          className="relative overflow-hidden border-info/30 bg-gradient-to-br from-info/15 via-card to-card"
+          style={{ boxShadow: "0 10px 40px -10px oklch(0.62 0.18 240 / 0.35)" }}
+        >
+          <div className="absolute -top-12 -right-12 w-48 h-48 rounded-full bg-info/25 blur-3xl pointer-events-none" />
+          <CardHeader className="pb-2 relative">
+            <CardTitle className="text-base flex items-center gap-2 text-info">
+              <Calendar className="w-4 h-4" />
+              <span className="uppercase tracking-wider text-xs font-semibold">Meta da semana</span>
+            </CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className="flex items-center gap-2 text-muted-foreground text-sm">
-              <Trophy className="w-4 h-4" />
-              <span>Ano</span>
+          <CardContent className="relative">
+            <div className="text-3xl font-extrabold tracking-tight text-foreground">
+              {formatCurrency(weekTotal)}
             </div>
-            <div className="text-3xl font-bold mt-1">{formatCurrency(yearTotal)}</div>
-            <div className="mt-3 flex items-center justify-between text-xs text-muted-foreground">
-              <span>Meta {formatCurrency(goalFor("yearly"))}</span>
-              <span className="font-semibold text-foreground">{goalFor("yearly") ? Math.min(100, Math.round((yearTotal / goalFor("yearly")) * 100)) : 0}%</span>
+            <div className="text-xs text-muted-foreground mt-1">
+              {weekCount} {weekCount === 1 ? "venda" : "vendas"} na semana
             </div>
-            <Progress value={goalFor("yearly") ? Math.min(100, (yearTotal / goalFor("yearly")) * 100) : 0} className="h-2 mt-2" />
+            {(() => {
+              const weekGoal = goalFor("weekly");
+              const pct = weekGoal ? Math.min(100, Math.round((weekTotal / weekGoal) * 100)) : 0;
+              const missing = Math.max(0, weekGoal - weekTotal);
+              return (
+                <>
+                  <div className="mt-4 flex items-center justify-between text-xs text-muted-foreground">
+                    <span>Meta {formatCurrency(weekGoal)}</span>
+                    <span className="font-bold text-info">{pct}%</span>
+                  </div>
+                  <Progress value={pct} className="h-2 mt-2 [&>div]:bg-info" />
+                  <div className="mt-3 text-xs">
+                    {weekGoal === 0 ? (
+                      <span className="text-muted-foreground">Defina a meta semanal nas configurações</span>
+                    ) : missing > 0 ? (
+                      <span className="text-muted-foreground">
+                        Faltam <span className="font-semibold text-foreground">{formatCurrency(missing)}</span> para bater a meta
+                      </span>
+                    ) : (
+                      <span className="font-semibold text-success">🎯 Meta da semana batida!</span>
+                    )}
+                  </div>
+                </>
+              );
+            })()}
           </CardContent>
         </Card>
       </div>
