@@ -113,7 +113,7 @@ function LoginPage() {
               <form onSubmit={handleLogin} className="space-y-4 mt-4">
                 <div className="space-y-2">
                   <Label>E-mail</Label>
-                  <Input className="border-2 border-white/20 bg-background/60 focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-primary/40" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
+                  <Input className="border-2 border-foreground/20 bg-background/60 focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-primary/40" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
                 </div>
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
@@ -123,7 +123,7 @@ function LoginPage() {
                     </button>
                   </div>
                   <div className="relative">
-                    <Input className="pr-10 border-2 border-white/20 bg-background/60 focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-primary/40" type={showPassword ? "text" : "password"} value={password} onChange={(e) => setPassword(e.target.value)} required />
+                    <Input className="pr-10 border-2 border-foreground/20 bg-background/60 focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-primary/40" type={showPassword ? "text" : "password"} value={password} onChange={(e) => setPassword(e.target.value)} required />
                     <button type="button" onClick={() => setShowPassword((v) => !v)} aria-label={showPassword ? "Ocultar senha" : "Mostrar senha"} className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
                       {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                     </button>
@@ -138,16 +138,16 @@ function LoginPage() {
               <form onSubmit={handleSignup} className="space-y-4 mt-4">
                 <div className="space-y-2">
                   <Label>Nome completo</Label>
-                  <Input className="border-2 border-white/20 bg-background/60 focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-primary/40" value={fullName} onChange={(e) => setFullName(e.target.value)} required />
+                  <Input className="border-2 border-foreground/20 bg-background/60 focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-primary/40" value={fullName} onChange={(e) => setFullName(e.target.value)} required />
                 </div>
                 <div className="space-y-2">
                   <Label>E-mail</Label>
-                  <Input className="border-2 border-white/20 bg-background/60 focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-primary/40" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
+                  <Input className="border-2 border-foreground/20 bg-background/60 focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-primary/40" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
                 </div>
                 <div className="space-y-2">
                   <Label>Senha</Label>
                   <div className="relative">
-                    <Input className="pr-10 border-2 border-white/20 bg-background/60 focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-primary/40" type={showSignupPassword ? "text" : "password"} value={password} onChange={(e) => setPassword(e.target.value)} required minLength={6} />
+                    <Input className="pr-10 border-2 border-foreground/20 bg-background/60 focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-primary/40" type={showSignupPassword ? "text" : "password"} value={password} onChange={(e) => setPassword(e.target.value)} required minLength={6} />
                     <button type="button" onClick={() => setShowSignupPassword((v) => !v)} aria-label={showSignupPassword ? "Ocultar senha" : "Mostrar senha"} className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
                       {showSignupPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                     </button>
