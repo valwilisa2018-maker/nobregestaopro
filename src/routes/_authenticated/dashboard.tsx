@@ -342,12 +342,12 @@ function Dashboard() {
       {/* Hero — Hoje */}
       <div className="grid gap-4 lg:grid-cols-3">
         <Card
-          className="lg:col-span-2 relative overflow-hidden border-primary/30 bg-gradient-to-br from-primary/15 via-card to-card"
-          style={{ boxShadow: "var(--shadow-premium)" }}
+          className="lg:col-span-2 relative overflow-hidden border-success/30 bg-gradient-to-br from-success/15 via-card to-card"
+          style={{ boxShadow: "0 10px 40px -10px oklch(0.65 0.18 145 / 0.35)" }}
         >
-          <div className="absolute -top-16 -right-16 w-64 h-64 rounded-full bg-primary/20 blur-3xl pointer-events-none" />
+          <div className="absolute -top-16 -right-16 w-64 h-64 rounded-full bg-success/25 blur-3xl pointer-events-none" />
           <CardContent className="relative p-6 sm:p-8">
-            <div className="flex items-center gap-2 text-primary">
+            <div className="flex items-center gap-2 text-success">
               <current.icon className="w-5 h-5" />
               <span className="text-sm font-semibold uppercase tracking-wider">Vendas — {current.label}</span>
             </div>
@@ -361,7 +361,7 @@ function Dashboard() {
               <span>Meta {formatCurrency(current.goal)}</span>
               <span className="font-semibold text-foreground">{scopePct}%</span>
             </div>
-            <Progress value={scopePct} className="h-2 mt-2" />
+            <Progress value={scopePct} className="h-2 mt-2 [&>div]:bg-success" />
           </CardContent>
         </Card>
 
