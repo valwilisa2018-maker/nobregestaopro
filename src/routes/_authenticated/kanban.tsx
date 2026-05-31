@@ -267,8 +267,8 @@ function KanbanPage() {
                           onDrag={() => setDragMoved(true)}
                           onDragEnd={() => { setDraggingGroup(null); setTimeout(() => setDragMoved(false), 0); }}
                           onClick={() => { if (!dragMoved) setExpandedGroups((s) => ({ ...s, [groupKey]: !s[groupKey] })); }}
-                          className="cursor-grab active:cursor-grabbing bg-card hover:border-primary/60 transition-all overflow-hidden border"
-                          style={{ boxShadow: "var(--shadow-card)", borderWidth: "1px" }}>
+                          className="cursor-grab active:cursor-grabbing bg-card hover:border-primary/60 transition-all overflow-hidden border border-border/60"
+                          style={{ boxShadow: "var(--shadow-card)", borderLeft: `4px solid ${col.color || "hsl(var(--primary))"}` }}>
                           <CardContent className="p-3 space-y-1">
                             <div className="flex items-center justify-between">
                               <div className="flex items-center gap-2">
@@ -279,6 +279,23 @@ function KanbanPage() {
                               <Badge variant="secondary" className="text-[10px]">{it.cards.length} serviços</Badge>
                             </div>
                             {company && <div className="text-xs text-muted-foreground pl-6">{company}</div>}
+                            <div className="flex flex-col gap-0.5 text-[11px] text-muted-foreground pl-6">
+                              <span>Vendedor: {first.sales?.sellers?.name ?? "—"}</span>
+                              <span>Produtor: {first.sales?.producers?.name ?? "—"}</span>
+                            </div>
+                            {first.sales?.payment_status && (
+                              <div className="pl-6 pt-1">
+                                <span
+                                  className="text-[10px] px-2 py-0.5 rounded-full font-semibold"
+                                  style={{
+                                    background: paymentStyle(first.sales.payment_status).bg,
+                                    color: paymentStyle(first.sales.payment_status).fg,
+                                  }}
+                                >
+                                  {paymentStyle(first.sales.payment_status).label}
+                                </span>
+                              </div>
+                            )}
                           </CardContent>
                         </Card>
                         {isOpen && it.cards.map((c: any) => (
