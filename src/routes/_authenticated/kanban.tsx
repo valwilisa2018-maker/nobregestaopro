@@ -290,7 +290,7 @@ function KanbanPage() {
                             {company && <div className="text-xs text-muted-foreground pl-6">{company}</div>}
                             <div className="flex flex-col gap-0.5 text-[11px] text-muted-foreground pl-6">
                               <span>Vendedor: {first.sales?.sellers?.name ?? "—"}</span>
-                              <span>Produtor: {first.sales?.producers?.name ?? "—"}</span>
+                              <span>Produtor: {first.producer?.name ?? first.sales?.producers?.name ?? "—"}</span>
                             </div>
                             {first.sales?.payment_status && (
                               <div className="pl-6 pt-1">
@@ -342,7 +342,7 @@ function KanbanPage() {
                               <div className="flex items-center justify-between text-xs">
                                 <div className="flex flex-col gap-0.5 text-muted-foreground">
                                   <span>Vendedor: {c.sales?.sellers?.name ?? "—"}</span>
-                                  <span>Produtor: {c.sales?.producers?.name ?? "—"}</span>
+                                  <span>Produtor: {c.producer?.name ?? c.sales?.producers?.name ?? "—"}</span>
                                 </div>
                                 {c.sales?.payment_status && (
                                   <span
@@ -401,7 +401,7 @@ function KanbanPage() {
                       <div className="flex items-center justify-between text-xs">
                         <div className="flex flex-col gap-0.5 text-muted-foreground">
                           <span>Vendedor: {c.sales?.sellers?.name ?? "—"}</span>
-                          <span>Produtor: {c.sales?.producers?.name ?? "—"}</span>
+                          <span>Produtor: {c.producer?.name ?? c.sales?.producers?.name ?? "—"}</span>
                         </div>
                         {c.sales?.payment_status && (
                           <span
