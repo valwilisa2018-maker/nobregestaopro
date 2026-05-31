@@ -239,7 +239,7 @@ function KanbanPage() {
           return (
             <div
               key={col.id}
-              className="min-w-[280px] w-[280px] flex-shrink-0 rounded-lg border-2 border-primary/40 bg-muted/30 p-3 shadow-sm"
+              className="min-w-[280px] w-[280px] flex-shrink-0 rounded-lg border-2 border-black bg-muted/30 p-3 shadow-sm"
               onDragOver={(e) => e.preventDefault()}
               onDrop={() => {
                 if (draggingGroup && draggingGroup.length) moveMany(draggingGroup, col.id);
@@ -248,14 +248,14 @@ function KanbanPage() {
                 setDraggingGroup(null);
               }}
             >
-              <div className="flex items-center justify-between mb-3 px-1">
+              <div className="flex items-center justify-between mb-3 px-2 py-2 rounded-md bg-black text-white">
                 <div className="flex items-center gap-2">
                   <span className="w-2.5 h-2.5 rounded-full" style={{ background: col.color }} />
                   <span className="font-semibold text-sm">{col.name}</span>
                 </div>
                 <div className="flex items-center gap-1">
-                  <Badge variant="outline">{colCards.length}</Badge>
-                  <Button size="icon" variant="ghost" className="h-6 w-6" onClick={() => openNew(col.id)}>
+                  <Badge variant="outline" className="border-white/40 text-white">{colCards.length}</Badge>
+                  <Button size="icon" variant="ghost" className="h-6 w-6 text-white hover:bg-white/10 hover:text-white" onClick={() => openNew(col.id)}>
                     <Plus className="w-4 h-4" />
                   </Button>
                 </div>
