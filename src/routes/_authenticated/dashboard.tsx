@@ -148,6 +148,11 @@ function Dashboard() {
   const monthCount = all.filter((s) => s.created_at >= startOf("month")).length;
   const ticketMedio = monthCount ? monthTotal / monthCount : 0;
 
+  // Valores pendentes a receber (parcial + pendente)
+  const pendingList = all.filter((s) => s.payment_status === "pago_parcial" || s.payment_status === "pendente");
+  const pendingTotal = pendingList.reduce((a, s) => a + (Number(s.total_amount) - Number(s.paid_amount ?? 0)), 0);
+  const pendingCount = pendingList.length;
+
   const goalFor = (p: string) =>
     Number((goals.data ?? []).find((g) => g.period === p)?.target_amount ?? 0);
 
@@ -413,12 +418,13 @@ function Dashboard() {
       </div>
 
       {/* KPIs principais */}
-      <div className="grid gap-4 grid-cols-2 lg:grid-cols-5">
+      <div className="grid gap-4 grid-cols-2 lg:grid-cols-6">
         <StatCard tone="success" accent label="Hoje" value={formatCurrency(dayTotal)} icon={DollarSign} hint={`${dayCount} vendas`} />
         <StatCard tone="info" label="Semana" value={formatCurrency(weekTotal)} icon={Calendar} hint={`${weekCount} vendas`} />
         <StatCard tone="violet" label="Mês" value={formatCurrency(monthTotal)} icon={TrendingUp} hint={`${monthCount} vendas`} />
         <StatCard tone="amber" label="Ticket médio" value={formatCurrency(ticketMedio)} icon={ShoppingCart} hint="no mês" />
         <StatCard tone="warning" label="Ano" value={formatCurrency(yearTotal)} icon={Trophy} />
+        <StatCard tone="warning" label="Valores Pendentes" value={formatCurrency(pendingTotal)} icon={AlertCircle} hint={`${pendingCount} ${pendingCount === 1 ? "cliente" : "clientes"}`} />
       </div>
 
       {/* Produção */}
