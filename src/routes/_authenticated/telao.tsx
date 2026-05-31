@@ -410,9 +410,15 @@ function Telao() {
     }
   };
 
-  const today0 = startOfDay();
-  const week0 = startOfWeek();
-  const month0 = startOfMonth();
+  // Tick a cada 30s para detectar virada de dia/semana/mês e zerar contadores
+  const [nowTick, setNowTick] = useState(() => Date.now());
+  useEffect(() => {
+    const id = setInterval(() => setNowTick(Date.now()), 30_000);
+    return () => clearInterval(id);
+  }, []);
+  const today0 = useMemo(() => startOfDay(), [nowTick]);
+  const week0 = useMemo(() => startOfWeek(), [nowTick]);
+  const month0 = useMemo(() => startOfMonth(), [nowTick]);
 
   // Filtro de período (mês/ano) para "Vídeos Prontos"
   const _nowForVideos = new Date();
