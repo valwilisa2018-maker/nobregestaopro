@@ -463,6 +463,21 @@ function KanbanPage() {
                 <div><Label>Horário</Label><Input type="time" value={editing.due_time} onChange={(e) => setEditing({ ...editing, due_time: e.target.value })} /></div>
               </div>
               <div>
+                <Label>Produtor</Label>
+                <Select
+                  value={editing.producer_id || "_none"}
+                  onValueChange={(v) => setEditing({ ...editing, producer_id: v === "_none" ? null : v })}
+                >
+                  <SelectTrigger><SelectValue placeholder="Selecionar produtor" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="_none">Nenhum</SelectItem>
+                    {(producers.data ?? []).map((p: any) => (
+                      <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
                 <Label>Link do projeto</Label>
                 <Input
                   type="url"
