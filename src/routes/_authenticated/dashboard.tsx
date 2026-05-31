@@ -9,7 +9,7 @@ import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { Badge } from "@/components/ui/badge";
 import { formatCurrency } from "@/lib/auth";
 import {
-  DollarSign, TrendingUp, Calendar, Trophy, CheckCircle2, Clock, AlertCircle,
+  DollarSign, TrendingUp, Calendar, Trophy, AlertCircle,
   Package, FileText, FileCheck2, ListTodo, Truck, ShoppingCart, Users, Factory,
 } from "lucide-react";
 import {
