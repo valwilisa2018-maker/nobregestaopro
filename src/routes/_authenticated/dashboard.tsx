@@ -33,7 +33,10 @@ function startOf(period: "day" | "week" | "month" | "year") {
 }
 
 function Dashboard() {
-  const [period, setPeriod] = useState<"week" | "month" | "year">("month");
+  // Filtros principais
+  const [scope, setScope] = useState<"day" | "week" | "month">("month");
+  const [sellerFilter, setSellerFilter] = useState<string>("all");
+  const [serviceFilter, setServiceFilter] = useState<string>("all");
   const qc = useQueryClient();
 
   // Tick a cada 60s — vira o dia/semana/mês automaticamente
