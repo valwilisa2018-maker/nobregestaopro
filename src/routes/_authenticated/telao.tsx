@@ -413,7 +413,7 @@ function Telao() {
   // Tick a cada 30s para detectar virada de dia/semana/mês e zerar contadores
   const [nowTick, setNowTick] = useState(() => Date.now());
   useEffect(() => {
-    const id = setInterval(() => setNowTick(Date.now()), 30_000);
+    const id = setInterval(() => setNowTick(Date.now()), 5 * 60_000);
     return () => clearInterval(id);
   }, []);
   const today0 = useMemo(() => startOfDay(), [nowTick]);
