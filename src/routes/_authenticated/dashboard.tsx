@@ -467,6 +467,40 @@ function Dashboard() {
         </Card>
       </div>
 
+      {/* Produtos / serviços mais vendidos (mês) */}
+      <Card className="border-border/50 hover:border-primary/40 transition" style={{ boxShadow: "var(--shadow-card)" }}>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <CardTitle className="flex items-center gap-2"><Package className="w-4 h-4 text-primary" />Produtos / serviços mais vendidos (mês)</CardTitle>
+            <Badge variant="outline">{productRanking.length}</Badge>
+          </div>
+        </CardHeader>
+        <CardContent className="h-80">
+          {productRanking.length === 0 ? (
+            <p className="text-sm text-muted-foreground">Sem vendas registradas no mês.</p>
+          ) : (
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={productRanking} layout="vertical" margin={{ left: 12, right: 16, top: 8, bottom: 0 }}>
+                <defs>
+                  <linearGradient id="prodBar" x1="0" y1="0" x2="1" y2="0">
+                    <stop offset="0%" stopColor={chartTheme.primary} stopOpacity={0.95} />
+                    <stop offset="100%" stopColor={chartTheme.primaryGlow} stopOpacity={1} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" stroke={chartTheme.grid} horizontal={false} />
+                <XAxis type="number" stroke={chartTheme.axis} tick={{ fontSize: 11 }} />
+                <YAxis type="category" dataKey="name" stroke={chartTheme.axis} tick={{ fontSize: 11 }} width={140} />
+                <Tooltip
+                  contentStyle={{ background: chartTheme.tooltipBg, border: `1px solid ${chartTheme.tooltipBorder}`, borderRadius: 8, color: "var(--popover-foreground)" }}
+                  formatter={(v: any, _n, p: any) => [`${formatCurrency(Number(v))} • ${p?.payload?.qtd ?? 0} vendas`, "Total"]}
+                />
+                <Bar dataKey="total" fill="url(#prodBar)" radius={[0, 6, 6, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          )}
+        </CardContent>
+      </Card>
+
       {/* Notas fiscais — mês */}
       <div className="grid gap-4 lg:grid-cols-3">
         <Card className="border-border/50" style={{ boxShadow: "var(--shadow-card)" }}>
