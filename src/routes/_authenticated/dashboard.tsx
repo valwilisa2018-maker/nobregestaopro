@@ -113,7 +113,17 @@ function Dashboard() {
     queryFn: async () => (await supabase.from("packages").select("id,name")).data ?? [],
   });
 
-  const all = sales.data ?? [];
+  const allRaw = sales.data ?? [];
+
+  // Aplica filtros de vendedor + tipo de serviço a TODAS as métricas
+  const all = useMemo(() => {
+    return allRaw.filter((s) => {
+      if (sellerFilter !== "all" && s.seller_id !== sellerFilter) return false;
+      if (serviceFilter !== "all" && s.service_type_id !== serviceFilter) return false;
+      return true;
+    });
+  }, [allRaw, sellerFilter, serviceFilter]);
+
   const sumIn = (since: string) =>
     all.filter((s) => s.created_at >= since).reduce((a, s) => a + Number(s.total_amount), 0);
 
@@ -130,20 +140,22 @@ function Dashboard() {
   const goalFor = (p: string) =>
     Number((goals.data ?? []).find((g) => g.period === p)?.target_amount ?? 0);
 
-  const periodMap = {
-    week: { total: weekTotal, goal: goalFor("weekly"), label: "Semana", icon: Calendar },
-    month: { total: monthTotal, goal: goalFor("monthly"), label: "Mês", icon: TrendingUp },
-    year: { total: yearTotal, goal: goalFor("yearly"), label: "Ano", icon: Trophy },
+  // Escopo principal — dia / semana / mês
+  const scopeMap = {
+    day: { total: dayTotal, count: dayCount, goal: goalFor("daily"), label: "Hoje", icon: DollarSign, since: startOf("day") },
+    week: { total: weekTotal, count: weekCount, goal: goalFor("weekly"), label: "Semana", icon: Calendar, since: startOf("week") },
+    month: { total: monthTotal, count: monthCount, goal: goalFor("monthly"), label: "Mês", icon: TrendingUp, since: startOf("month") },
   } as const;
-  const current = periodMap[period];
+  const current = scopeMap[scope];
+  const scopeSince = current.since;
   const dayGoal = goalFor("daily");
   const dayPct = dayGoal ? Math.min(100, Math.round((dayTotal / dayGoal) * 100)) : 0;
-  const periodPct = current.goal ? Math.min(100, Math.round((current.total / current.goal) * 100)) : 0;
+  const scopePct = current.goal ? Math.min(100, Math.round((current.total / current.goal) * 100)) : 0;
 
   const counts = {
-    pago_total: all.filter((s) => s.payment_status === "pago_total").length,
-    pago_parcial: all.filter((s) => s.payment_status === "pago_parcial").length,
-    pendente: all.filter((s) => s.payment_status === "pendente").length,
+    pago_total: all.filter((s) => s.payment_status === "pago_total" && s.created_at >= scopeSince).length,
+    pago_parcial: all.filter((s) => s.payment_status === "pago_parcial" && s.created_at >= scopeSince).length,
+    pendente: all.filter((s) => s.payment_status === "pendente" && s.created_at >= scopeSince).length,
   };
 
   // Service Orders por etapa
@@ -157,42 +169,41 @@ function Dashboard() {
   const invIssued = invList.filter((i) => i.status === "emitida" || !!i.issued_at).length;
   const invPending = invList.length - invIssued;
 
-  // Vendas sem nota / com nota (no mês)
-  const monthSaleIds = new Set(
-    all.filter((s) => s.created_at >= startOf("month")).map((s) => s.id),
+  // Vendas sem nota / com nota (no escopo selecionado)
+  const scopeSaleIds = new Set(
+    all.filter((s) => s.created_at >= scopeSince).map((s) => s.id),
   );
-  const salesWithInvoice = new Set(invList.filter((i) => i.sale_id && monthSaleIds.has(i.sale_id)).map((i) => i.sale_id));
-  const monthSalesWithInvoice = salesWithInvoice.size;
-  const monthSalesWithoutInvoice = monthSaleIds.size - monthSalesWithInvoice;
+  const salesWithInvoice = new Set(invList.filter((i) => i.sale_id && scopeSaleIds.has(i.sale_id)).map((i) => i.sale_id));
+  const scopeSalesWithInvoice = salesWithInvoice.size;
+  const scopeSalesWithoutInvoice = scopeSaleIds.size - scopeSalesWithInvoice;
 
-  // Ranking vendedores (no mês)
-  const monthSince = startOf("month");
+  // Ranking vendedores (no escopo)
   const sellerRanking = (sellers.data ?? []).map((s) => {
-    const list = all.filter((x) => x.seller_id === s.id && x.created_at >= monthSince);
+    const list = all.filter((x) => x.seller_id === s.id && x.created_at >= scopeSince);
     return {
       name: s.name,
       total: list.reduce((a, x) => a + Number(x.total_amount), 0),
       qtd: list.length,
     };
-  }).sort((a, b) => b.total - a.total).slice(0, 5);
+  }).filter((s) => s.qtd > 0).sort((a, b) => b.total - a.total).slice(0, 5);
 
-  // Ranking produtores (no mês) por valor das vendas
+  // Ranking produtores (no escopo)
   const producerRanking = (producers.data ?? []).map((p: any) => {
-    const list = all.filter((x) => x.producer_id === p.id && x.created_at >= monthSince);
+    const list = all.filter((x) => x.producer_id === p.id && x.created_at >= scopeSince);
     return {
       name: p.name,
       total: list.reduce((a, x) => a + Number(x.total_amount), 0),
       qtd: list.length,
     };
-  }).sort((a, b) => b.total - a.total).slice(0, 5);
+  }).filter((p) => p.qtd > 0).sort((a, b) => b.total - a.total).slice(0, 5);
 
-  // Produtos / serviços mais vendidos (no mês) — combina service_types + packages
+  // Produtos / serviços mais vendidos (no escopo) — combina service_types + packages
   const productRanking = useMemo(() => {
     const map = new Map<string, { name: string; total: number; qtd: number }>();
     const stById = new Map((serviceTypes.data ?? []).map((s: any) => [s.id, s.name]));
     const pkById = new Map((packages.data ?? []).map((p: any) => [p.id, p.name]));
     for (const s of all) {
-      if (s.created_at < monthSince) continue;
+      if (s.created_at < scopeSince) continue;
       const name = s.package_id
         ? (pkById.get(s.package_id) ?? "Pacote")
         : (stById.get(s.service_type_id ?? "") ?? "Outro");
@@ -202,7 +213,7 @@ function Dashboard() {
       map.set(name, cur);
     }
     return Array.from(map.values()).sort((a, b) => b.total - a.total).slice(0, 8);
-  }, [all, serviceTypes.data, packages.data, monthSince]);
+  }, [all, serviceTypes.data, packages.data, scopeSince]);
 
   const monthChart = Array.from({ length: 12 }, (_, i) => {
     const m = new Date().getMonth();
