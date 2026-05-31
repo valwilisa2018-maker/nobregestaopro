@@ -682,40 +682,42 @@ function Telao() {
         </div>
       )}
 
-      {/* DASHBOARD GRID */}
-      <div
-        className="grid gap-4 lg:gap-5 items-start"
-        style={{
-          gridTemplateColumns: "1fr",
-          gridTemplateAreas: `"hero" "kpis" "sales" "tops" "topp"`,
-        }}
-      >
-        <style>{`
-          @media (min-width: 1024px) {
-            .telao-dash-grid {
-              grid-template-columns: 1.6fr 1fr !important;
-              grid-template-areas:
-                "hero  kpis"
-                "sales tops"
-                "sales topp" !important;
-            }
+      <style>{`
+        .telao-dash-grid {
+          display: grid;
+          gap: 18px;
+          align-items: start;
+          grid-template-columns: 1fr;
+          grid-template-areas: "hero" "kpis" "sales" "tops" "topp";
+        }
+        @media (min-width: 1024px) {
+          .telao-dash-grid {
+            gap: 20px;
+            grid-template-columns: 1.6fr 1fr;
+            grid-template-areas:
+              "hero  kpis"
+              "sales tops"
+              "sales topp";
           }
-        `}</style>
-        {/* Apply class hook for the media-query override above */}
-        <div className="hidden telao-dash-grid" />
+        }
+        .telao-area-hero  { grid-area: hero; }
+        .telao-area-kpis  { grid-area: kpis; }
+        .telao-area-sales { grid-area: sales; }
+        .telao-area-tops  { grid-area: tops; }
+        .telao-area-topp  { grid-area: topp; }
+        .telao-kpi-pair { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+      `}</style>
 
+      {/* DASHBOARD GRID */}
+      <div className="telao-dash-grid">
         {/* HERO HOJE — Faturamento */}
         <div
-          style={{ gridArea: "hero" }}
-          className={`relative overflow-hidden rounded-lg p-8 border border-[#c9a84c]/30 ${pulseHero ? "telao-pulse" : ""}`}
+          className={`telao-area-hero relative overflow-hidden rounded-lg p-8 border border-[#c9a84c]/30 ${pulseHero ? "telao-pulse" : ""}`}
+          style={{
+            background:
+              "linear-gradient(135deg, #1a1a1a 0%, #0d0d0d 60%, #1a1a1a 100%)",
+          }}
         >
-          <div
-            className="absolute inset-0 -z-0 pointer-events-none"
-            style={{
-              background:
-                "linear-gradient(135deg, #1a1a1a 0%, #0d0d0d 60%, #1a1a1a 100%)",
-            }}
-          />
           <div
             className="absolute -top-32 -right-32 w-96 h-96 rounded-full opacity-30 blur-3xl animate-pulse"
             style={{ background: "radial-gradient(circle, #c9a84c 0%, transparent 70%)" }}
@@ -750,13 +752,14 @@ function Telao() {
           </div>
         </div>
 
-        {/* SEMANA */}
-        <KpiBlock label="Semana" value={totalSemana} count={weekSales.length} />
-        {/* MÊS */}
-        <KpiBlock label="Mês" value={totalMes} count={monthSales.length} accent />
+        {/* KPIs Semana + Mês */}
+        <div className="telao-area-kpis telao-kpi-pair">
+          <KpiBlock label="Semana" value={totalSemana} count={weekSales.length} />
+          <KpiBlock label="Mês" value={totalMes} count={monthSales.length} accent />
+        </div>
 
         {/* TICKER VENDAS DO DIA */}
-        <div className="col-span-12 lg:col-span-8 rounded-lg border border-[#c9a84c]/20 bg-[#111]/80 overflow-hidden">
+        <div className="telao-area-sales rounded-lg border border-[#c9a84c]/20 bg-[#111]/80 overflow-hidden">
           <div className="flex items-center justify-between px-5 py-3 border-b border-[#c9a84c]/15">
             <h2
               style={{ fontFamily: '"Bebas Neue", sans-serif', letterSpacing: "0.08em" }}
@@ -849,8 +852,10 @@ function Telao() {
         </div>
 
         {/* PÓDIOS */}
-        <div className="col-span-12 lg:col-span-4 space-y-4">
+        <div className="telao-area-tops">
           <Podium title="Top Vendedores" rows={topSellers} />
+        </div>
+        <div className="telao-area-topp">
           <Podium title="Top Produtores" rows={topProducers} unitSingular="vídeo produzido" unitPlural="vídeos produzidos" />
         </div>
       </div>
