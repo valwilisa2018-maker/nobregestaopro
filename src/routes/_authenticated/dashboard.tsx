@@ -321,11 +321,11 @@ function Dashboard() {
             </SelectContent>
           </Select>
 
-          {(sellerFilter !== "all" || serviceFilter !== "all" || scope !== "month") && (
+          {(sellerFilter !== "all" || serviceFilter !== "all" || scope !== "day") && (
             <Button
               size="sm"
               variant="ghost"
-              onClick={() => { setSellerFilter("all"); setServiceFilter("all"); setScope("month"); }}
+              onClick={() => { setSellerFilter("all"); setServiceFilter("all"); setScope("day"); }}
               className="gap-1"
             >
               <X className="w-4 h-4" />
