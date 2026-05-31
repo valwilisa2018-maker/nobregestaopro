@@ -48,7 +48,7 @@ function SalesPage() {
     customer_name: "", company: "", document: "", phone: "", email: "",
     total_amount: "", paid_amount: "0", payment_status: "pendente",
     payment_method: "pix", seller_id: "", producer_id: "", service_type_id: "",
-    package_id: "", service_quantity: "1", notes: "", trello_link: "",
+    package_id: "", package_name: "", service_quantity: "1", notes: "", trello_link: "",
     sale_date: new Date().toISOString().slice(0, 10),
   });
   const set = (k: string, v: string) => setForm((f) => ({ ...f, [k]: v }));
@@ -87,6 +87,7 @@ function SalesPage() {
         producer_id: form.producer_id || null,
         service_type_id: form.service_type_id || null,
         package_id: form.package_id || null,
+        package_name: form.package_name || null,
         service_quantity: Number(form.service_quantity || 1),
         notes: form.notes || null,
         trello_link: form.trello_link || null,
@@ -123,6 +124,7 @@ function SalesPage() {
         producer_id: editing.producer_id || null,
         service_type_id: editing.service_type_id || null,
         package_id: editing.package_id || null,
+        package_name: editing.package_name || null,
         service_quantity: Number(editing.service_quantity || 1),
         notes: editing.notes || null,
         trello_link: editing.trello_link || null,
@@ -199,6 +201,7 @@ function SalesPage() {
                   <SelectContent>{(packages.data ?? []).map((p: any) => <SelectItem key={p.id} value={p.id}>{p.name} ({p.quantity})</SelectItem>)}</SelectContent>
                 </Select>
               </div>
+              <div><Label>Nome do pacote</Label><Input value={form.package_name} onChange={(e) => set("package_name", e.target.value)} placeholder="Ex: Pacote Casamento João" /></div>
               <div><Label>Qtd. serviços no pacote</Label><Input type="number" min="1" value={form.service_quantity} onChange={(e) => set("service_quantity", e.target.value)} /></div>
               <div><Label>Data da venda</Label><Input type="date" value={form.sale_date} onChange={(e) => set("sale_date", e.target.value)} /></div>
               <div className="col-span-2"><Label>Link Trello / card externo</Label><Input value={form.trello_link} onChange={(e) => set("trello_link", e.target.value)} /></div>
@@ -317,6 +320,7 @@ function SalesPage() {
                   <SelectContent>{(packages.data ?? []).map((p: any) => <SelectItem key={p.id} value={p.id}>{p.name} ({p.quantity})</SelectItem>)}</SelectContent>
                 </Select>
               </div>
+              <div><Label>Nome do pacote</Label><Input value={editing.package_name ?? ""} onChange={(e) => editSet("package_name", e.target.value)} placeholder="Ex: Pacote Casamento João" /></div>
               <div><Label>Qtd. serviços</Label><Input type="number" min="1" value={editing.service_quantity ?? 1} onChange={(e) => editSet("service_quantity", e.target.value)} /></div>
               <div className="col-span-2"><Label>Link Trello</Label><Input value={editing.trello_link ?? ""} onChange={(e) => editSet("trello_link", e.target.value)} /></div>
               <div className="col-span-2"><Label>Observações</Label><Textarea value={editing.notes ?? ""} onChange={(e) => editSet("notes", e.target.value)} /></div>

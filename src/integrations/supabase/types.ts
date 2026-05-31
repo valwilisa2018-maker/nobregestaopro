@@ -374,6 +374,7 @@ export type Database = {
           id: string
           notes: string | null
           package_id: string | null
+          package_name: string | null
           paid_amount: number
           payment_method: Database["public"]["Enums"]["payment_method"] | null
           payment_status: Database["public"]["Enums"]["payment_status"]
@@ -394,6 +395,7 @@ export type Database = {
           id?: string
           notes?: string | null
           package_id?: string | null
+          package_name?: string | null
           paid_amount?: number
           payment_method?: Database["public"]["Enums"]["payment_method"] | null
           payment_status?: Database["public"]["Enums"]["payment_status"]
@@ -414,6 +416,7 @@ export type Database = {
           id?: string
           notes?: string | null
           package_id?: string | null
+          package_name?: string | null
           paid_amount?: number
           payment_method?: Database["public"]["Enums"]["payment_method"] | null
           payment_status?: Database["public"]["Enums"]["payment_status"]
