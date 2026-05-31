@@ -13,7 +13,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { formatCurrency } from "@/lib/auth";
 import {
   DollarSign, TrendingUp, Calendar, Trophy, AlertCircle,
-  Package, FileText, FileCheck2, ListTodo, Truck, ShoppingCart, Users, Factory, Filter, X,
+  Package, FileText, FileCheck2, ListTodo, Truck, ShoppingCart, Users, Factory, Filter, X, Sparkles,
 } from "lucide-react";
 import {
   ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid,
