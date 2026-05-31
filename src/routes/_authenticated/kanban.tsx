@@ -94,10 +94,15 @@ function KanbanPage() {
     queryFn: async () => {
       const { data } = await supabase
         .from("service_orders")
-        .select("*, sales(total_amount, payment_status, trello_link, customers(name,company,phone), sellers(name), producers(name))")
+        .select("*, producer:producers!service_orders_producer_id_fkey(name), sales(total_amount, payment_status, trello_link, customers(name,company,phone), sellers(name), producers(name))")
         .order("sort_order");
       return data ?? [];
     },
+  });
+
+  const producers = useQuery({
+    queryKey: ["producers-select"],
+    queryFn: async () => (await supabase.from("producers").select("id,name").eq("active", true).order("name")).data ?? [],
   });
 
   useEffect(() => {
