@@ -306,7 +306,10 @@ function KanbanPage() {
                                 </div>
                               )}
                               <div className="flex items-center justify-between text-xs">
-                                <span className="text-muted-foreground">{c.sales?.producers?.name ?? "—"}</span>
+                                <div className="flex flex-col gap-0.5 text-muted-foreground">
+                                  <span>Vendedor: {c.sales?.sellers?.name ?? "—"}</span>
+                                  <span>Produtor: {c.sales?.producers?.name ?? "—"}</span>
+                                </div>
                                 {c.sales?.payment_status && (
                                   <Badge variant={c.sales.payment_status === "pago_total" ? "default" : "destructive"} className="text-[10px]">
                                     {c.sales.payment_status.replace("_", " ")}
@@ -357,7 +360,10 @@ function KanbanPage() {
                         </div>
                       )}
                       <div className="flex items-center justify-between text-xs">
-                        <span className="text-muted-foreground">{c.sales?.producers?.name ?? "—"}</span>
+                        <div className="flex flex-col gap-0.5 text-muted-foreground">
+                          <span>Vendedor: {c.sales?.sellers?.name ?? "—"}</span>
+                          <span>Produtor: {c.sales?.producers?.name ?? "—"}</span>
+                        </div>
                         {c.sales?.payment_status && (
                           <Badge variant={c.sales.payment_status === "pago_total" ? "default" : "destructive"} className="text-[10px]">
                             {c.sales.payment_status.replace("_", " ")}
