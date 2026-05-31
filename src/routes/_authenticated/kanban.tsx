@@ -221,7 +221,7 @@ function KanbanPage() {
           return (
             <div
               key={col.id}
-              className="min-w-[280px] w-[280px] flex-shrink-0 rounded-lg border border-border bg-muted/30 p-3"
+              className="min-w-[280px] w-[280px] flex-shrink-0 rounded-lg border-2 border-primary/40 bg-muted/30 p-3 shadow-sm"
               onDragOver={(e) => e.preventDefault()}
               onDrop={() => {
                 if (draggingGroup && draggingGroup.length) moveMany(draggingGroup, col.id);
