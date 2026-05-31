@@ -32,7 +32,7 @@ function PendingPaymentsPage() {
       const { data, error } = await supabase
         .from("sales")
         .select("id, sale_date, total_amount, paid_amount, payment_status, notes, receipt_url, customer:customers(id, name, company, phone, email)")
-        .in("payment_status", ["pendente", "parcial"])
+        .in("payment_status", ["pendente", "pago_parcial"])
         .order("sale_date", { ascending: false });
       if (error) throw error;
       return data ?? [];
@@ -87,7 +87,7 @@ function PendingPaymentsPage() {
       }
       const newPaid = Number(selected.paid_amount ?? 0) + value;
       const total = Number(selected.total_amount ?? 0);
-      const newStatus = newPaid + 0.01 >= total ? "pago" : "parcial";
+      const newStatus = newPaid + 0.01 >= total ? "pago_total" : "pago_parcial";
 
       const { error } = await supabase
         .from("sales")
@@ -164,8 +164,8 @@ function PendingPaymentsPage() {
                     <TableCell className="text-right">{formatCurrency(s.paid_amount)}</TableCell>
                     <TableCell className="text-right font-semibold text-red-500">{formatCurrency(remaining)}</TableCell>
                     <TableCell>
-                      <Badge variant={s.payment_status === "parcial" ? "secondary" : "outline"}>
-                        {s.payment_status}
+                      <Badge variant={s.payment_status === "pago_parcial" ? "secondary" : "outline"}>
+                        {s.payment_status === "pago_parcial" ? "parcial" : s.payment_status}
                       </Badge>
                     </TableCell>
                     <TableCell className="text-right">
