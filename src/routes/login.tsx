@@ -105,7 +105,7 @@ function LoginPage() {
             <CardDescription>Plataforma premium de gestão</CardDescription>
           </div>
         </CardHeader>
-        <CardContent className="px-8">
+        <CardContent className="px-8 py-6">
           <Tabs defaultValue="login">
             <TabsList className="grid grid-cols-2 w-full">
               <TabsTrigger value="login">Entrar</TabsTrigger>
