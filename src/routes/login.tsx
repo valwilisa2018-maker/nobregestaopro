@@ -94,7 +94,10 @@ function LoginPage() {
         ))}
       </div>
       <Card className="relative w-full max-w-md border-border/50 backdrop-blur-xl bg-card/70 animate-fade-in"
-        style={{ boxShadow: "var(--shadow-premium)" }}>
+        style={{
+          boxShadow:
+            "0 0 0 1px rgba(220,38,38,0.45), 0 0 24px 2px rgba(220,38,38,0.45), 0 0 60px 8px rgba(220,38,38,0.35), var(--shadow-premium)",
+        }}>
         <CardHeader className="text-center space-y-3">
           <img src={logoUrl} alt="Nobre MKT" className="mx-auto w-24 h-24 rounded-2xl object-contain" />
           <div>
@@ -102,7 +105,7 @@ function LoginPage() {
             <CardDescription>Plataforma premium de gestão</CardDescription>
           </div>
         </CardHeader>
-        <CardContent>
+        <CardContent className="px-8">
           <Tabs defaultValue="login">
             <TabsList className="grid grid-cols-2 w-full">
               <TabsTrigger value="login">Entrar</TabsTrigger>
