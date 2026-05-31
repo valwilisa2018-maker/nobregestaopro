@@ -241,33 +241,43 @@ function AdminPage() {
         </TabsContent>
 
         <TabsContent value="pagarme" className="mt-4 space-y-3">
-          <Card className="border-border/50">
-            <CardHeader>
-              <CardTitle className="text-base">Integração Pagar.me</CardTitle>
+          <Card
+            className="border-2"
+            style={{
+              background: "#ffffff",
+              borderColor: "#86efac",
+              color: "#0a0a0a",
+              boxShadow: "0 8px 28px -12px rgba(22,163,74,0.35)",
+            }}
+          >
+            <CardHeader
+              className="rounded-t-xl"
+              style={{ background: "linear-gradient(135deg, #16a34a, #15803d)" }}
+            >
+              <CardTitle className="text-base text-white">Integração Pagar.me</CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4 text-sm">
-              <p className="text-muted-foreground">
-                Para gerar links de pagamento, cadastre a chave secreta da sua conta Pagar.me (API v5).
-                A chave fica armazenada de forma segura no servidor — nunca aparece no navegador.
+            <CardContent className="space-y-4 text-sm pt-4">
+              <p className="text-neutral-700">
+                Cadastre a chave secreta diretamente em <strong style={{ color: "#15803d" }}>Gerar Pagamento</strong>.
+                A credencial fica salva com segurança e o link passa a ser gerado imediatamente.
               </p>
-              <ol className="list-decimal list-inside space-y-1 text-muted-foreground">
+              <ol className="list-decimal list-inside space-y-1 text-neutral-700">
                 <li>Acesse o painel da Pagar.me → Configurações → Chaves de API.</li>
                 <li>Copie a <strong>Secret Key</strong> (começa com <code>sk_</code>).</li>
-                <li>Cole no campo de credenciais do servidor (variável <code>PAGARME_API_KEY</code>).</li>
+                <li>
+                  No menu <strong style={{ color: "#15803d" }}>Gerar Pagamento</strong>,
+                  cole no campo <em>Credencial Pagar.me</em> e clique em Salvar.
+                </li>
               </ol>
-              <div className="p-3 rounded-lg border border-border/50 bg-muted/30 flex items-start gap-2">
-                <AlertCircle className="w-4 h-4 mt-0.5 text-amber-500 shrink-0" />
-                <div>
-                  <div className="font-medium">Chave da API</div>
-                  <div className="text-muted-foreground text-xs mt-1">
-                    Peça ao administrador para configurar o segredo <code>PAGARME_API_KEY</code>. Após salvo,
-                    o menu <strong>Gerar Pagamento</strong> passa a funcionar imediatamente.
-                  </div>
+              <div
+                className="p-3 rounded-lg flex items-start gap-2"
+                style={{ background: "#dcfce7", border: "1px solid #86efac" }}
+              >
+                <CheckCircle2 className="w-4 h-4 mt-0.5 shrink-0" style={{ color: "#15803d" }} />
+                <div style={{ color: "#15803d" }}>
+                  <div className="font-semibold">Métodos suportados</div>
+                  <div className="text-xs opacity-90">Cartão de Crédito (até 12x), Pix e Boleto.</div>
                 </div>
-              </div>
-              <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                <CheckCircle2 className="w-4 h-4 text-emerald-500" />
-                Métodos suportados: Cartão de Crédito (até 12x), Pix e Boleto.
               </div>
             </CardContent>
           </Card>
