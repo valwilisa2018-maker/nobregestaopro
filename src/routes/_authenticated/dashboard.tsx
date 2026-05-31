@@ -506,7 +506,12 @@ function Dashboard() {
           <CardContent className="space-y-2">
             {sellerRanking.length === 0 && <p className="text-sm text-muted-foreground">Sem vendas no período para os filtros atuais.</p>}
             {sellerRanking.map((s, i) => (
-              <div key={s.name} className="flex items-center justify-between p-2.5 rounded-lg bg-muted/40 hover:bg-muted/70 transition">
+              <button
+                key={s.id}
+                type="button"
+                onClick={() => setDrill({ kind: "seller", id: s.id, label: s.name })}
+                className="w-full flex items-center justify-between p-2.5 rounded-lg bg-muted/40 hover:bg-muted/70 hover:ring-1 hover:ring-primary/40 transition text-left cursor-pointer"
+              >
                 <div className="flex items-center gap-3">
                   <div className={`w-7 h-7 rounded-full text-xs font-bold flex items-center justify-center ${i === 0 ? "bg-primary text-primary-foreground" : "bg-primary/20 text-primary"}`}>{i + 1}</div>
                   <div>
@@ -515,7 +520,7 @@ function Dashboard() {
                   </div>
                 </div>
                 <span className="font-semibold">{formatCurrency(s.total)}</span>
-              </div>
+              </button>
             ))}
           </CardContent>
         </Card>
@@ -530,7 +535,12 @@ function Dashboard() {
           <CardContent className="space-y-2">
             {producerRanking.length === 0 && <p className="text-sm text-muted-foreground">Sem produtores com vendas no período.</p>}
             {producerRanking.map((p, i) => (
-              <div key={p.name} className="flex items-center justify-between p-2.5 rounded-lg bg-muted/40 hover:bg-muted/70 transition">
+              <button
+                key={p.id}
+                type="button"
+                onClick={() => setDrill({ kind: "producer", id: p.id, label: p.name })}
+                className="w-full flex items-center justify-between p-2.5 rounded-lg bg-muted/40 hover:bg-muted/70 hover:ring-1 hover:ring-primary/40 transition text-left cursor-pointer"
+              >
                 <div className="flex items-center gap-3">
                   <div className={`w-7 h-7 rounded-full text-xs font-bold flex items-center justify-center ${i === 0 ? "bg-primary text-primary-foreground" : "bg-primary/20 text-primary"}`}>{i + 1}</div>
                   <div>
@@ -539,7 +549,7 @@ function Dashboard() {
                   </div>
                 </div>
                 <span className="font-semibold">{formatCurrency(p.total)}</span>
-              </div>
+              </button>
             ))}
           </CardContent>
         </Card>
