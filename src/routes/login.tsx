@@ -113,11 +113,11 @@ function LoginPage() {
             </TabsList>
             <TabsContent value="login">
               <form onSubmit={handleLogin} className="space-y-5 mt-6">
-                <div className="space-y-2">
+                <div className="space-y-2.5">
                   <Label>E-mail</Label>
                   <Input className="border-2 border-foreground/20 bg-background/60 focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-primary/40" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
                 </div>
-                <div className="space-y-2">
+                <div className="space-y-2.5">
                   <div className="flex items-center justify-between">
                     <Label>Senha</Label>
                     <button type="button" onClick={handleForgot} className="text-xs text-primary hover:underline">
@@ -138,15 +138,15 @@ function LoginPage() {
             </TabsContent>
             <TabsContent value="signup">
               <form onSubmit={handleSignup} className="space-y-5 mt-6">
-                <div className="space-y-2">
+                <div className="space-y-2.5">
                   <Label>Nome completo</Label>
                   <Input className="border-2 border-foreground/20 bg-background/60 focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-primary/40" value={fullName} onChange={(e) => setFullName(e.target.value)} required />
                 </div>
-                <div className="space-y-2">
+                <div className="space-y-2.5">
                   <Label>E-mail</Label>
                   <Input className="border-2 border-foreground/20 bg-background/60 focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-primary/40" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
                 </div>
-                <div className="space-y-2">
+                <div className="space-y-2.5">
                   <Label>Senha</Label>
                   <div className="relative">
                     <Input className="pr-10 border-2 border-foreground/20 bg-background/60 focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-primary/40" type={showSignupPassword ? "text" : "password"} value={password} onChange={(e) => setPassword(e.target.value)} required minLength={6} />
