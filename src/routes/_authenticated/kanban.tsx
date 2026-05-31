@@ -56,6 +56,7 @@ type CardForm = {
   trello_link?: string | null;
   customer_phone?: string | null;
   customer_name?: string | null;
+  producer_id?: string | null;
 };
 
 const emptyForm = (column_id = ""): CardForm => ({
