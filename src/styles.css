@@ -96,6 +96,7 @@
 
   --success: oklch(0.65 0.18 145);
   --warning: oklch(0.78 0.17 75);
+  --info: oklch(0.62 0.18 240);
 
   --border: oklch(0.25 0.01 270);
   --input: oklch(0.20 0.008 270);
@@ -169,6 +170,7 @@
 @theme inline {
   --color-success: var(--success);
   --color-warning: var(--warning);
+  --color-info: var(--info);
   --color-primary-glow: var(--primary-glow);
 }
 
