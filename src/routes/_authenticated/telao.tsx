@@ -682,11 +682,37 @@ function Telao() {
         </div>
       )}
 
-      {/* BENTO GRID */}
-      <div className="grid grid-cols-12 gap-4 auto-rows-auto">
-        {/* HERO HOJE */}
+      <style>{`
+        .telao-dash-grid {
+          display: grid;
+          gap: 18px;
+          align-items: start;
+          grid-template-columns: 1fr;
+          grid-template-areas: "hero" "kpis" "sales" "tops" "topp";
+        }
+        @media (min-width: 1024px) {
+          .telao-dash-grid {
+            gap: 20px;
+            grid-template-columns: 1.6fr 1fr;
+            grid-template-areas:
+              "hero  kpis"
+              "sales tops"
+              "sales topp";
+          }
+        }
+        .telao-area-hero  { grid-area: hero; }
+        .telao-area-kpis  { grid-area: kpis; }
+        .telao-area-sales { grid-area: sales; }
+        .telao-area-tops  { grid-area: tops; }
+        .telao-area-topp  { grid-area: topp; }
+        .telao-kpi-pair { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+      `}</style>
+
+      {/* DASHBOARD GRID */}
+      <div className="telao-dash-grid">
+        {/* HERO HOJE — Faturamento */}
         <div
-          className={`col-span-12 lg:col-span-6 row-span-2 relative overflow-hidden rounded-lg p-8 border border-[#c9a84c]/30 ${pulseHero ? "telao-pulse" : ""}`}
+          className={`telao-area-hero relative overflow-hidden rounded-lg p-8 border border-[#c9a84c]/30 ${pulseHero ? "telao-pulse" : ""}`}
           style={{
             background:
               "linear-gradient(135deg, #1a1a1a 0%, #0d0d0d 60%, #1a1a1a 100%)",
@@ -726,13 +752,14 @@ function Telao() {
           </div>
         </div>
 
-        {/* SEMANA */}
-        <KpiBlock label="Semana" value={totalSemana} count={weekSales.length} />
-        {/* MÊS */}
-        <KpiBlock label="Mês" value={totalMes} count={monthSales.length} accent />
+        {/* KPIs Semana + Mês */}
+        <div className="telao-area-kpis telao-kpi-pair">
+          <KpiBlock label="Semana" value={totalSemana} count={weekSales.length} />
+          <KpiBlock label="Mês" value={totalMes} count={monthSales.length} accent />
+        </div>
 
         {/* TICKER VENDAS DO DIA */}
-        <div className="col-span-12 lg:col-span-8 rounded-lg border border-[#c9a84c]/20 bg-[#111]/80 overflow-hidden">
+        <div className="telao-area-sales rounded-lg border border-[#c9a84c]/20 bg-[#111]/80 overflow-hidden">
           <div className="flex items-center justify-between px-5 py-3 border-b border-[#c9a84c]/15">
             <h2
               style={{ fontFamily: '"Bebas Neue", sans-serif', letterSpacing: "0.08em" }}
@@ -825,8 +852,10 @@ function Telao() {
         </div>
 
         {/* PÓDIOS */}
-        <div className="col-span-12 lg:col-span-4 space-y-4">
+        <div className="telao-area-tops">
           <Podium title="Top Vendedores" rows={topSellers} />
+        </div>
+        <div className="telao-area-topp">
           <Podium title="Top Produtores" rows={topProducers} unitSingular="vídeo produzido" unitPlural="vídeos produzidos" />
         </div>
       </div>
