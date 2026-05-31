@@ -89,7 +89,7 @@ export function StatCard({ label, value, icon: Icon, hint, accent, trend, tone =
               {label}
             </p>
             <p
-              className="text-base md:text-lg xl:text-xl font-black tracking-tight leading-tight break-words text-foreground"
+              className="text-sm md:text-base lg:text-lg font-black tracking-tight leading-tight whitespace-nowrap text-foreground"
             >
               {value}
             </p>
