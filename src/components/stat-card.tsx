@@ -2,6 +2,47 @@ import { Card, CardContent } from "@/components/ui/card";
 import type { LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 
+type Tone = "primary" | "success" | "warning" | "info" | "violet" | "amber";
+
+const TONES: Record<Tone, { grad: string; glow: string; shadow: string; ring: string }> = {
+  primary: {
+    grad: "linear-gradient(135deg, oklch(0.58 0.22 25), oklch(0.45 0.20 25))",
+    glow: "radial-gradient(ellipse at top, oklch(0.58 0.22 25 / 0.18), transparent 70%)",
+    shadow: "0 10px 40px -10px oklch(0.58 0.22 25 / 0.45)",
+    ring: "oklch(0.58 0.22 25 / 0.5)",
+  },
+  success: {
+    grad: "linear-gradient(135deg, oklch(0.72 0.19 150), oklch(0.55 0.17 150))",
+    glow: "radial-gradient(ellipse at top, oklch(0.72 0.19 150 / 0.18), transparent 70%)",
+    shadow: "0 10px 40px -10px oklch(0.65 0.18 150 / 0.45)",
+    ring: "oklch(0.65 0.18 150 / 0.5)",
+  },
+  warning: {
+    grad: "linear-gradient(135deg, oklch(0.82 0.17 75), oklch(0.65 0.18 60))",
+    glow: "radial-gradient(ellipse at top, oklch(0.78 0.17 75 / 0.18), transparent 70%)",
+    shadow: "0 10px 40px -10px oklch(0.75 0.17 70 / 0.45)",
+    ring: "oklch(0.78 0.17 75 / 0.5)",
+  },
+  info: {
+    grad: "linear-gradient(135deg, oklch(0.72 0.16 235), oklch(0.55 0.18 245))",
+    glow: "radial-gradient(ellipse at top, oklch(0.65 0.17 240 / 0.18), transparent 70%)",
+    shadow: "0 10px 40px -10px oklch(0.65 0.17 240 / 0.45)",
+    ring: "oklch(0.65 0.17 240 / 0.5)",
+  },
+  violet: {
+    grad: "linear-gradient(135deg, oklch(0.68 0.20 295), oklch(0.50 0.22 295))",
+    glow: "radial-gradient(ellipse at top, oklch(0.60 0.21 295 / 0.18), transparent 70%)",
+    shadow: "0 10px 40px -10px oklch(0.60 0.21 295 / 0.45)",
+    ring: "oklch(0.60 0.21 295 / 0.5)",
+  },
+  amber: {
+    grad: "linear-gradient(135deg, oklch(0.78 0.18 50), oklch(0.60 0.20 40))",
+    glow: "radial-gradient(ellipse at top, oklch(0.72 0.19 45 / 0.18), transparent 70%)",
+    shadow: "0 10px 40px -10px oklch(0.70 0.19 45 / 0.45)",
+    ring: "oklch(0.72 0.19 45 / 0.5)",
+  },
+};
+
 interface StatCardProps {
   label: string;
   value: string;
@@ -9,28 +50,32 @@ interface StatCardProps {
   hint?: string;
   accent?: boolean;
   trend?: string;
+  tone?: Tone;
 }
 
-export function StatCard({ label, value, icon: Icon, hint, accent, trend }: StatCardProps) {
+export function StatCard({ label, value, icon: Icon, hint, accent, trend, tone = "primary" }: StatCardProps) {
+  const t = TONES[tone];
   return (
     <Card
       className={cn(
-        "group relative overflow-hidden border-2 border-primary/20 transition-all duration-300",
-        "hover:border-primary/60 hover:-translate-y-1 hover:scale-[1.02] animate-fade-in",
-        accent && "border-primary/50",
+        "group relative overflow-hidden border-2 transition-all duration-300",
+        "hover:-translate-y-1 hover:scale-[1.02] animate-fade-in",
       )}
-      style={{ boxShadow: "var(--shadow-premium)" }}
+      style={{
+        boxShadow: t.shadow,
+        borderColor: accent ? t.ring : `color-mix(in oklch, ${t.ring} 40%, transparent)`,
+      }}
     >
       {/* glow background — always on, brighter on accent */}
       <div
         className={cn("absolute inset-0 pointer-events-none transition-opacity duration-500",
           accent ? "opacity-90" : "opacity-40 group-hover:opacity-70")}
-        style={{ background: "var(--gradient-glow)" }}
+        style={{ background: t.glow }}
       />
       {/* top accent bar */}
       <div
         className="absolute top-0 left-0 right-0 h-1"
-        style={{ background: "var(--gradient-primary)" }}
+        style={{ background: t.grad }}
       />
       {/* shine sweep on hover */}
       <div className="absolute inset-0 -translate-x-full group-hover:translate-x-full transition-transform duration-1000 pointer-events-none"
@@ -46,7 +91,7 @@ export function StatCard({ label, value, icon: Icon, hint, accent, trend }: Stat
             <p
               className="text-3xl md:text-4xl font-black tracking-tight leading-none truncate"
               style={{
-                backgroundImage: "var(--gradient-primary)",
+                backgroundImage: t.grad,
                 WebkitBackgroundClip: "text",
                 WebkitTextFillColor: "transparent",
                 backgroundClip: "text",
@@ -59,11 +104,11 @@ export function StatCard({ label, value, icon: Icon, hint, accent, trend }: Stat
           <div
             className="w-14 h-14 rounded-2xl flex items-center justify-center shrink-0 transition-transform duration-300 group-hover:scale-110 group-hover:rotate-6"
             style={{
-              background: "var(--gradient-primary)",
-              boxShadow: "var(--shadow-premium)",
+              background: t.grad,
+              boxShadow: t.shadow,
             }}
           >
-            <Icon className="w-7 h-7 text-primary-foreground drop-shadow" />
+            <Icon className="w-7 h-7 text-white drop-shadow" />
           </div>
         </div>
         {trend && (

@@ -386,19 +386,19 @@ function Dashboard() {
 
       {/* KPIs principais */}
       <div className="grid gap-4 grid-cols-2 lg:grid-cols-5">
-        <StatCard label="Hoje" value={formatCurrency(dayTotal)} icon={DollarSign} accent hint={`${dayCount} vendas`} />
-        <StatCard label="Semana" value={formatCurrency(weekTotal)} icon={Calendar} hint={`${weekCount} vendas`} />
-        <StatCard label="Mês" value={formatCurrency(monthTotal)} icon={TrendingUp} hint={`${monthCount} vendas`} />
-        <StatCard label="Ticket médio" value={formatCurrency(ticketMedio)} icon={ShoppingCart} hint="no mês" />
-        <StatCard label="Ano" value={formatCurrency(yearTotal)} icon={Trophy} />
+        <StatCard tone="success" accent label="Hoje" value={formatCurrency(dayTotal)} icon={DollarSign} hint={`${dayCount} vendas`} />
+        <StatCard tone="info" label="Semana" value={formatCurrency(weekTotal)} icon={Calendar} hint={`${weekCount} vendas`} />
+        <StatCard tone="violet" label="Mês" value={formatCurrency(monthTotal)} icon={TrendingUp} hint={`${monthCount} vendas`} />
+        <StatCard tone="amber" label="Ticket médio" value={formatCurrency(ticketMedio)} icon={ShoppingCart} hint="no mês" />
+        <StatCard tone="warning" label="Ano" value={formatCurrency(yearTotal)} icon={Trophy} />
       </div>
 
       {/* Produção */}
       <div className="grid gap-4 grid-cols-2 lg:grid-cols-4">
-        <StatCard label="Serviços a fazer" value={String(ordersTodo)} icon={ListTodo} />
-        <StatCard label="Em produção" value={String(ordersInProd)} icon={Package} />
-        <StatCard label="Entregues" value={String(ordersDelivered)} icon={Truck} />
-        <StatCard label="Notas emitidas" value={`${invIssued} / ${invList.length}`} icon={FileCheck2} hint={`${invPending} aguardando`} />
+        <StatCard tone="warning" label="Serviços a fazer" value={String(ordersTodo)} icon={ListTodo} />
+        <StatCard tone="info" label="Em produção" value={String(ordersInProd)} icon={Package} />
+        <StatCard tone="success" label="Entregues" value={String(ordersDelivered)} icon={Truck} />
+        <StatCard tone="violet" label="Notas emitidas" value={`${invIssued} / ${invList.length}`} icon={FileCheck2} hint={`${invPending} aguardando`} />
       </div>
 
       {/* Charts: 30 dias + Pagamento */}
