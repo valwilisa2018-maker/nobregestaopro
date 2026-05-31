@@ -102,7 +102,7 @@ export function AppSidebar() {
                   return (
                     <SidebarMenuItem key={it.url}>
                       <SidebarMenuButton asChild isActive={active} tooltip={it.title}>
-                        <Link to={it.url} className="flex items-center gap-3">
+                        <Link to={it.url} className="flex items-center gap-3" data-tour={`menu-${it.url.replace(/\//g, "")}`}>
                           <it.icon className="w-4 h-4" />
                           <span>{it.title}</span>
                         </Link>

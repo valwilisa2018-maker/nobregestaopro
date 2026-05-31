@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { SidebarProvider, SidebarTrigger, SidebarInset } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/app-sidebar";
+import { OnboardingTour } from "@/components/onboarding-tour";
 import { Loader2 } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated")({
@@ -47,6 +48,7 @@ function AuthLayout() {
           <main className="flex-1 min-w-0 p-4 md:p-6 overflow-x-hidden">
             <Outlet />
           </main>
+          <OnboardingTour />
         </SidebarInset>
       </div>
     </SidebarProvider>
