@@ -112,7 +112,7 @@ function LoginPage() {
               <TabsTrigger value="signup">Criar conta</TabsTrigger>
             </TabsList>
             <TabsContent value="login">
-              <form onSubmit={handleLogin} className="space-y-4 mt-4">
+              <form onSubmit={handleLogin} className="space-y-5 mt-6">
                 <div className="space-y-2">
                   <Label>E-mail</Label>
                   <Input className="border-2 border-foreground/20 bg-background/60 focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-primary/40" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
@@ -137,7 +137,7 @@ function LoginPage() {
               </form>
             </TabsContent>
             <TabsContent value="signup">
-              <form onSubmit={handleSignup} className="space-y-4 mt-4">
+              <form onSubmit={handleSignup} className="space-y-5 mt-6">
                 <div className="space-y-2">
                   <Label>Nome completo</Label>
                   <Input className="border-2 border-foreground/20 bg-background/60 focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-primary/40" value={fullName} onChange={(e) => setFullName(e.target.value)} required />
