@@ -63,13 +63,38 @@ export function AppSidebar() {
   return (
     <Sidebar collapsible="icon">
       <SidebarHeader className="border-b border-sidebar-border">
-        <div className="flex items-center gap-3 px-2 py-3">
-          <img src={logoUrl} alt="Nobre MKT" className="w-10 h-10 rounded-lg object-contain shrink-0"
-            style={{ boxShadow: "var(--shadow-premium)" }} />
+        <div className="flex items-center gap-3 px-2 py-3 group">
+          <div className="relative shrink-0">
+            <div
+              className="absolute inset-0 rounded-xl blur-md opacity-60 group-hover:opacity-100 transition-opacity"
+              style={{ background: "var(--gradient-primary)" }}
+            />
+            <div
+              className="relative w-10 h-10 rounded-xl p-[1.5px] transition-transform group-hover:scale-105"
+              style={{ background: "var(--gradient-primary)" }}
+            >
+              <div className="w-full h-full rounded-[10px] bg-sidebar flex items-center justify-center overflow-hidden">
+                <img src={logoUrl} alt="Nobre MKT" className="w-8 h-8 object-contain" />
+              </div>
+            </div>
+          </div>
           {!collapsed && (
-            <div className="leading-tight">
-              <div className="font-bold tracking-tight text-sidebar-foreground">Nobre MKT</div>
-              <div className="text-[10px] uppercase tracking-widest text-primary">Premium</div>
+            <div className="leading-tight overflow-hidden">
+              <div
+                className="font-bold tracking-tight text-base"
+                style={{
+                  background: "var(--gradient-primary)",
+                  WebkitBackgroundClip: "text",
+                  WebkitTextFillColor: "transparent",
+                  backgroundClip: "text",
+                }}
+              >
+                Nobre MKT
+              </div>
+              <div className="flex items-center gap-1.5 text-[9px] uppercase tracking-[0.2em] text-primary/80 font-semibold">
+                <span className="inline-block w-1 h-1 rounded-full bg-primary animate-pulse" />
+                Premium
+              </div>
             </div>
           )}
         </div>
