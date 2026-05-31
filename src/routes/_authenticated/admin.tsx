@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import { CheckCircle2, AlertCircle, AlertTriangle, Loader2 } from "lucide-react";
+import { PagarmeCredentialCard } from "@/components/pagarme-credential-card";
 import { format } from "date-fns";
 import {
   useLoopDuplicateThreshold,
@@ -241,6 +242,8 @@ function AdminPage() {
         </TabsContent>
 
         <TabsContent value="pagarme" className="mt-4 space-y-3">
+          <PagarmeCredentialCard />
+
           <Card
             className="border-2"
             style={{
@@ -258,16 +261,14 @@ function AdminPage() {
             </CardHeader>
             <CardContent className="space-y-4 text-sm pt-4">
               <p className="text-neutral-700">
-                Cadastre a chave secreta diretamente em <strong style={{ color: "#15803d" }}>Gerar Pagamento</strong>.
-                A credencial fica salva com segurança e o link passa a ser gerado imediatamente.
+                Cadastre a chave secreta no card acima. A credencial fica salva com segurança
+                e o menu <strong style={{ color: "#15803d" }}>Gerar Pagamento</strong> passa
+                a funcionar imediatamente.
               </p>
               <ol className="list-decimal list-inside space-y-1 text-neutral-700">
                 <li>Acesse o painel da Pagar.me → Configurações → Chaves de API.</li>
                 <li>Copie a <strong>Secret Key</strong> (começa com <code>sk_</code>).</li>
-                <li>
-                  No menu <strong style={{ color: "#15803d" }}>Gerar Pagamento</strong>,
-                  cole no campo <em>Credencial Pagar.me</em> e clique em Salvar.
-                </li>
+                <li>Cole no card <strong style={{ color: "#15803d" }}>Credencial Pagar.me</strong> acima e clique em Salvar.</li>
               </ol>
               <div
                 className="p-3 rounded-lg flex items-start gap-2"
