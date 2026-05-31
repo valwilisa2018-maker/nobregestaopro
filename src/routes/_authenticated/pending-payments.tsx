@@ -100,6 +100,7 @@ function PendingPaymentsPage() {
       setFile(null);
       setAmount("");
       qc.invalidateQueries({ queryKey: ["pending-sales"] });
+      qc.invalidateQueries({ queryKey: ["customers-all"] });
     } catch (e: any) {
       toast.error(e.message ?? "Erro ao confirmar recebimento");
     } finally {
