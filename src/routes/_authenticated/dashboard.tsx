@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { StatCard } from "@/components/stat-card";
@@ -10,7 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { formatCurrency } from "@/lib/auth";
 import {
   DollarSign, TrendingUp, Calendar, Trophy, AlertCircle,
-  Package, FileText, FileCheck2, ListTodo, Truck, ShoppingCart, Users, Factory,
+  Package, FileText, FileCheck2, ListTodo, Truck, ShoppingCart, Users, Factory, Sparkles,
 } from "lucide-react";
 import {
   ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid,
@@ -32,6 +32,7 @@ function startOf(period: "day" | "week" | "month" | "year") {
 
 function Dashboard() {
   const [period, setPeriod] = useState<"week" | "month" | "year">("month");
+  const qc = useQueryClient();
 
   // Tick a cada 60s — vira o dia/semana/mês automaticamente
   const [, setNowTick] = useState(() => Date.now());
@@ -40,12 +41,29 @@ function Dashboard() {
     return () => clearInterval(id);
   }, []);
 
+  // Realtime — recarrega quando vendas / serviços / notas mudam
+  useEffect(() => {
+    const ch = supabase
+      .channel("dashboard-rt")
+      .on("postgres_changes", { event: "*", schema: "public", table: "sales" }, () => {
+        qc.invalidateQueries({ queryKey: ["dash-sales"] });
+      })
+      .on("postgres_changes", { event: "*", schema: "public", table: "service_orders" }, () => {
+        qc.invalidateQueries({ queryKey: ["dash-orders"] });
+      })
+      .on("postgres_changes", { event: "*", schema: "public", table: "invoices" }, () => {
+        qc.invalidateQueries({ queryKey: ["dash-invoices"] });
+      })
+      .subscribe();
+    return () => { supabase.removeChannel(ch); };
+  }, [qc]);
+
   const sales = useQuery({
     queryKey: ["dash-sales"],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("sales")
-        .select("id,total_amount,paid_amount,payment_status,created_at,seller_id,producer_id,customer_id");
+        .select("id,total_amount,paid_amount,payment_status,created_at,seller_id,producer_id,customer_id,service_type_id,package_id");
       if (error) throw error;
       return data ?? [];
     },
@@ -80,6 +98,14 @@ function Dashboard() {
   const invoices = useQuery({
     queryKey: ["dash-invoices"],
     queryFn: async () => (await supabase.from("invoices").select("id,status,sale_id,amount,issued_at,created_at")).data ?? [],
+  });
+  const serviceTypes = useQuery({
+    queryKey: ["dash-service-types"],
+    queryFn: async () => (await supabase.from("service_types").select("id,name")).data ?? [],
+  });
+  const packages = useQuery({
+    queryKey: ["dash-packages"],
+    queryFn: async () => (await supabase.from("packages").select("id,name")).data ?? [],
   });
 
   const all = sales.data ?? [];
@@ -155,6 +181,24 @@ function Dashboard() {
     };
   }).sort((a, b) => b.total - a.total).slice(0, 5);
 
+  // Produtos / serviços mais vendidos (no mês) — combina service_types + packages
+  const productRanking = useMemo(() => {
+    const map = new Map<string, { name: string; total: number; qtd: number }>();
+    const stById = new Map((serviceTypes.data ?? []).map((s: any) => [s.id, s.name]));
+    const pkById = new Map((packages.data ?? []).map((p: any) => [p.id, p.name]));
+    for (const s of all) {
+      if (s.created_at < monthSince) continue;
+      const name = s.package_id
+        ? (pkById.get(s.package_id) ?? "Pacote")
+        : (stById.get(s.service_type_id ?? "") ?? "Outro");
+      const cur = map.get(name) ?? { name, total: 0, qtd: 0 };
+      cur.total += Number(s.total_amount);
+      cur.qtd += 1;
+      map.set(name, cur);
+    }
+    return Array.from(map.values()).sort((a, b) => b.total - a.total).slice(0, 8);
+  }, [all, serviceTypes.data, packages.data, monthSince]);
+
   const monthChart = Array.from({ length: 12 }, (_, i) => {
     const m = new Date().getMonth();
     const month = (m - 11 + i + 12) % 12;
@@ -199,10 +243,13 @@ function Dashboard() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 animate-fade-in">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
-        <p className="text-muted-foreground">Visão geral de vendas, produção e faturamento</p>
+        <h1 className="text-3xl font-bold tracking-tight flex items-center gap-2">
+          <Sparkles className="w-6 h-6 text-primary" />
+          Dashboard
+        </h1>
+        <p className="text-muted-foreground">Visão geral de vendas, produção e faturamento — atualizado em tempo real</p>
       </div>
 
       {/* Hero — Hoje */}
@@ -419,6 +466,40 @@ function Dashboard() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Produtos / serviços mais vendidos (mês) */}
+      <Card className="border-border/50 hover:border-primary/40 transition" style={{ boxShadow: "var(--shadow-card)" }}>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <CardTitle className="flex items-center gap-2"><Package className="w-4 h-4 text-primary" />Produtos / serviços mais vendidos (mês)</CardTitle>
+            <Badge variant="outline">{productRanking.length}</Badge>
+          </div>
+        </CardHeader>
+        <CardContent className="h-80">
+          {productRanking.length === 0 ? (
+            <p className="text-sm text-muted-foreground">Sem vendas registradas no mês.</p>
+          ) : (
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={productRanking} layout="vertical" margin={{ left: 12, right: 16, top: 8, bottom: 0 }}>
+                <defs>
+                  <linearGradient id="prodBar" x1="0" y1="0" x2="1" y2="0">
+                    <stop offset="0%" stopColor={chartTheme.primary} stopOpacity={0.95} />
+                    <stop offset="100%" stopColor={chartTheme.primaryGlow} stopOpacity={1} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" stroke={chartTheme.grid} horizontal={false} />
+                <XAxis type="number" stroke={chartTheme.axis} tick={{ fontSize: 11 }} />
+                <YAxis type="category" dataKey="name" stroke={chartTheme.axis} tick={{ fontSize: 11 }} width={140} />
+                <Tooltip
+                  contentStyle={{ background: chartTheme.tooltipBg, border: `1px solid ${chartTheme.tooltipBorder}`, borderRadius: 8, color: "var(--popover-foreground)" }}
+                  formatter={(v: any, _n, p: any) => [`${formatCurrency(Number(v))} • ${p?.payload?.qtd ?? 0} vendas`, "Total"]}
+                />
+                <Bar dataKey="total" fill="url(#prodBar)" radius={[0, 6, 6, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          )}
+        </CardContent>
+      </Card>
 
       {/* Notas fiscais — mês */}
       <div className="grid gap-4 lg:grid-cols-3">
