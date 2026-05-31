@@ -239,7 +239,7 @@ function KanbanPage() {
           return (
             <div
               key={col.id}
-              className="min-w-[280px] w-[280px] flex-shrink-0 rounded-lg border-2 border-black bg-slate-100 p-3 shadow-md overflow-hidden"
+              className="min-w-[280px] w-[280px] flex-shrink-0 rounded-lg border-2 border-foreground bg-muted p-3 shadow-md overflow-hidden"
               onDragOver={(e) => e.preventDefault()}
               onDrop={() => {
                 if (draggingGroup && draggingGroup.length) moveMany(draggingGroup, col.id);
@@ -248,14 +248,14 @@ function KanbanPage() {
                 setDraggingGroup(null);
               }}
             >
-              <div className="flex items-center justify-between px-4 py-3 rounded-t-md bg-black text-white -m-3 mb-3">
+              <div className="flex items-center justify-between px-4 py-3 rounded-t-md bg-foreground text-background -m-3 mb-3">
                 <div className="flex items-center gap-2">
                   <span className="w-2.5 h-2.5 rounded-full" style={{ background: col.color }} />
                   <span className="font-semibold text-sm">{col.name}</span>
                 </div>
                 <div className="flex items-center gap-1">
-                  <Badge variant="outline" className="border-white/40 text-white">{colCards.length}</Badge>
-                  <Button size="icon" variant="ghost" className="h-6 w-6 text-white hover:bg-white/10 hover:text-white" onClick={() => openNew(col.id)}>
+                  <Badge variant="outline" className="border-background/40 text-background">{colCards.length}</Badge>
+                  <Button size="icon" variant="ghost" className="h-6 w-6 text-background hover:bg-background/10 hover:text-background" onClick={() => openNew(col.id)}>
                     <Plus className="w-4 h-4" />
                   </Button>
                 </div>
