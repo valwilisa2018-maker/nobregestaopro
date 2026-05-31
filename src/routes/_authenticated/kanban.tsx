@@ -239,7 +239,7 @@ function KanbanPage() {
           return (
             <div
               key={col.id}
-              className="min-w-[280px] w-[280px] flex-shrink-0 rounded-lg border-2 border-black bg-slate-100 p-3 shadow-md overflow-hidden"
+              className="min-w-[280px] w-[280px] flex-shrink-0 rounded-lg border-2 border-foreground bg-muted p-3 shadow-md overflow-hidden"
               onDragOver={(e) => e.preventDefault()}
               onDrop={() => {
                 if (draggingGroup && draggingGroup.length) moveMany(draggingGroup, col.id);
@@ -248,14 +248,14 @@ function KanbanPage() {
                 setDraggingGroup(null);
               }}
             >
-              <div className="flex items-center justify-between px-4 py-3 rounded-t-md bg-black text-white -m-3 mb-3">
+              <div className="flex items-center justify-between px-4 py-3 rounded-t-md bg-foreground text-background -m-3 mb-3">
                 <div className="flex items-center gap-2">
                   <span className="w-2.5 h-2.5 rounded-full" style={{ background: col.color }} />
                   <span className="font-semibold text-sm">{col.name}</span>
                 </div>
                 <div className="flex items-center gap-1">
-                  <Badge variant="outline" className="border-white/40 text-white">{colCards.length}</Badge>
-                  <Button size="icon" variant="ghost" className="h-6 w-6 text-white hover:bg-white/10 hover:text-white" onClick={() => openNew(col.id)}>
+                  <Badge variant="outline" className="border-background/40 text-background">{colCards.length}</Badge>
+                  <Button size="icon" variant="ghost" className="h-6 w-6 text-background hover:bg-background/10 hover:text-background" onClick={() => openNew(col.id)}>
                     <Plus className="w-4 h-4" />
                   </Button>
                 </div>
@@ -289,8 +289,8 @@ function KanbanPage() {
                             </div>
                             {company && <div className="text-xs text-muted-foreground pl-6">{company}</div>}
                             <div className="flex flex-col gap-0.5 text-[11px] text-muted-foreground pl-6">
-                              <span>Vendedor: <span className="font-semibold" style={{ color: "#10b981" }}>{first.sales?.sellers?.name ?? "—"}</span></span>
-                              <span>Produtor: <span className="font-semibold" style={{ color: "#10b981" }}>{first.producer?.name ?? first.sales?.producers?.name ?? "—"}</span></span>
+                              <span>Vendedor: <span className="font-semibold text-success" style={{}}>{first.sales?.sellers?.name ?? "—"}</span></span>
+                              <span>Produtor: <span className="font-semibold text-success" style={{}}>{first.producer?.name ?? first.sales?.producers?.name ?? "—"}</span></span>
                             </div>
                             {first.sales?.payment_status && (
                               <div className="pl-6 pt-1">
@@ -341,8 +341,8 @@ function KanbanPage() {
                               )}
                               <div className="flex items-center justify-between text-xs">
                                 <div className="flex flex-col gap-0.5 text-muted-foreground">
-                                  <span>Vendedor: <span className="font-semibold" style={{ color: "#10b981" }}>{c.sales?.sellers?.name ?? "—"}</span></span>
-                                  <span>Produtor: <span className="font-semibold" style={{ color: "#10b981" }}>{c.producer?.name ?? c.sales?.producers?.name ?? "—"}</span></span>
+                                  <span>Vendedor: <span className="font-semibold text-success" style={{}}>{c.sales?.sellers?.name ?? "—"}</span></span>
+                                  <span>Produtor: <span className="font-semibold text-success" style={{}}>{c.producer?.name ?? c.sales?.producers?.name ?? "—"}</span></span>
                                 </div>
                                 {c.sales?.payment_status && (
                                   <span
@@ -400,8 +400,8 @@ function KanbanPage() {
                       )}
                       <div className="flex items-center justify-between text-xs">
                         <div className="flex flex-col gap-0.5 text-muted-foreground">
-                          <span>Vendedor: <span className="font-semibold" style={{ color: "#10b981" }}>{c.sales?.sellers?.name ?? "—"}</span></span>
-                          <span>Produtor: <span className="font-semibold" style={{ color: "#10b981" }}>{c.producer?.name ?? c.sales?.producers?.name ?? "—"}</span></span>
+                          <span>Vendedor: <span className="font-semibold text-success" style={{}}>{c.sales?.sellers?.name ?? "—"}</span></span>
+                          <span>Produtor: <span className="font-semibold text-success" style={{}}>{c.producer?.name ?? c.sales?.producers?.name ?? "—"}</span></span>
                         </div>
                         {c.sales?.payment_status && (
                           <span
