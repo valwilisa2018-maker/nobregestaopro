@@ -82,6 +82,17 @@ function AdminPage() {
     const { error } = await supabase.from("sellers").update({ active }).eq("id", id);
     if (error) toast.error(error.message); else { toast.success(active ? "Vendedor ativado" : "Vendedor desativado"); qc.invalidateQueries(); }
   };
+  const deleteSeller = async (id: string, name: string) => {
+    if (!window.confirm(`Excluir o vendedor "${name}"? Esta ação não pode ser desfeita.`)) return;
+    const { count } = await supabase.from("sales").select("id", { count: "exact", head: true }).eq("seller_id", id);
+    if ((count ?? 0) > 0) {
+      toast.error(`Não é possível excluir: ${count} venda(s) vinculadas. Desative-o em vez disso.`);
+      return;
+    }
+    const { error } = await supabase.from("sellers").delete().eq("id", id);
+    if (error) toast.error(error.message);
+    else { toast.success("Vendedor excluído"); qc.invalidateQueries({ queryKey: ["admin-sellers"] }); qc.invalidateQueries({ queryKey: ["sellers-page"] }); }
+  };
 
   return (
     <div className="space-y-6">
@@ -179,9 +190,14 @@ function AdminPage() {
                       onBlur={(e) => updateSellerGoal(s.id, e.target.value)}
                     />
                   </div>
-                  <Button variant={s.active ? "outline" : "default"} size="sm" onClick={() => toggleSellerActive(s.id, !s.active)}>
-                    {s.active ? "Desativar" : "Ativar"}
-                  </Button>
+                  <div className="flex gap-1">
+                    <Button variant={s.active ? "outline" : "default"} size="sm" onClick={() => toggleSellerActive(s.id, !s.active)}>
+                      {s.active ? "Desativar" : "Ativar"}
+                    </Button>
+                    <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive" onClick={() => deleteSeller(s.id, s.name)}>
+                      Excluir
+                    </Button>
+                  </div>
                 </div>
               ))}
               <div className="text-xs text-muted-foreground">Salva automaticamente ao sair do campo.</div>
