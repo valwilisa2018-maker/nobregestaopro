@@ -7,10 +7,12 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { Badge } from "@/components/ui/badge";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Button } from "@/components/ui/button";
 import { formatCurrency } from "@/lib/auth";
 import {
   DollarSign, TrendingUp, Calendar, Trophy, AlertCircle,
-  Package, FileText, FileCheck2, ListTodo, Truck, ShoppingCart, Users, Factory, Sparkles,
+  Package, FileText, FileCheck2, ListTodo, Truck, ShoppingCart, Users, Factory, Sparkles, Filter, X,
 } from "lucide-react";
 import {
   ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid,
@@ -31,7 +33,10 @@ function startOf(period: "day" | "week" | "month" | "year") {
 }
 
 function Dashboard() {
-  const [period, setPeriod] = useState<"week" | "month" | "year">("month");
+  // Filtros principais
+  const [scope, setScope] = useState<"day" | "week" | "month">("month");
+  const [sellerFilter, setSellerFilter] = useState<string>("all");
+  const [serviceFilter, setServiceFilter] = useState<string>("all");
   const qc = useQueryClient();
 
   // Tick a cada 60s — vira o dia/semana/mês automaticamente
@@ -108,7 +113,17 @@ function Dashboard() {
     queryFn: async () => (await supabase.from("packages").select("id,name")).data ?? [],
   });
 
-  const all = sales.data ?? [];
+  const allRaw = sales.data ?? [];
+
+  // Aplica filtros de vendedor + tipo de serviço a TODAS as métricas
+  const all = useMemo(() => {
+    return allRaw.filter((s) => {
+      if (sellerFilter !== "all" && s.seller_id !== sellerFilter) return false;
+      if (serviceFilter !== "all" && s.service_type_id !== serviceFilter) return false;
+      return true;
+    });
+  }, [allRaw, sellerFilter, serviceFilter]);
+
   const sumIn = (since: string) =>
     all.filter((s) => s.created_at >= since).reduce((a, s) => a + Number(s.total_amount), 0);
 
@@ -125,20 +140,22 @@ function Dashboard() {
   const goalFor = (p: string) =>
     Number((goals.data ?? []).find((g) => g.period === p)?.target_amount ?? 0);
 
-  const periodMap = {
-    week: { total: weekTotal, goal: goalFor("weekly"), label: "Semana", icon: Calendar },
-    month: { total: monthTotal, goal: goalFor("monthly"), label: "Mês", icon: TrendingUp },
-    year: { total: yearTotal, goal: goalFor("yearly"), label: "Ano", icon: Trophy },
+  // Escopo principal — dia / semana / mês
+  const scopeMap = {
+    day: { total: dayTotal, count: dayCount, goal: goalFor("daily"), label: "Hoje", icon: DollarSign, since: startOf("day") },
+    week: { total: weekTotal, count: weekCount, goal: goalFor("weekly"), label: "Semana", icon: Calendar, since: startOf("week") },
+    month: { total: monthTotal, count: monthCount, goal: goalFor("monthly"), label: "Mês", icon: TrendingUp, since: startOf("month") },
   } as const;
-  const current = periodMap[period];
+  const current = scopeMap[scope];
+  const scopeSince = current.since;
   const dayGoal = goalFor("daily");
   const dayPct = dayGoal ? Math.min(100, Math.round((dayTotal / dayGoal) * 100)) : 0;
-  const periodPct = current.goal ? Math.min(100, Math.round((current.total / current.goal) * 100)) : 0;
+  const scopePct = current.goal ? Math.min(100, Math.round((current.total / current.goal) * 100)) : 0;
 
   const counts = {
-    pago_total: all.filter((s) => s.payment_status === "pago_total").length,
-    pago_parcial: all.filter((s) => s.payment_status === "pago_parcial").length,
-    pendente: all.filter((s) => s.payment_status === "pendente").length,
+    pago_total: all.filter((s) => s.payment_status === "pago_total" && s.created_at >= scopeSince).length,
+    pago_parcial: all.filter((s) => s.payment_status === "pago_parcial" && s.created_at >= scopeSince).length,
+    pendente: all.filter((s) => s.payment_status === "pendente" && s.created_at >= scopeSince).length,
   };
 
   // Service Orders por etapa
@@ -152,42 +169,41 @@ function Dashboard() {
   const invIssued = invList.filter((i) => i.status === "emitida" || !!i.issued_at).length;
   const invPending = invList.length - invIssued;
 
-  // Vendas sem nota / com nota (no mês)
-  const monthSaleIds = new Set(
-    all.filter((s) => s.created_at >= startOf("month")).map((s) => s.id),
+  // Vendas sem nota / com nota (no escopo selecionado)
+  const scopeSaleIds = new Set(
+    all.filter((s) => s.created_at >= scopeSince).map((s) => s.id),
   );
-  const salesWithInvoice = new Set(invList.filter((i) => i.sale_id && monthSaleIds.has(i.sale_id)).map((i) => i.sale_id));
-  const monthSalesWithInvoice = salesWithInvoice.size;
-  const monthSalesWithoutInvoice = monthSaleIds.size - monthSalesWithInvoice;
+  const salesWithInvoice = new Set(invList.filter((i) => i.sale_id && scopeSaleIds.has(i.sale_id)).map((i) => i.sale_id));
+  const scopeSalesWithInvoice = salesWithInvoice.size;
+  const scopeSalesWithoutInvoice = scopeSaleIds.size - scopeSalesWithInvoice;
 
-  // Ranking vendedores (no mês)
-  const monthSince = startOf("month");
+  // Ranking vendedores (no escopo)
   const sellerRanking = (sellers.data ?? []).map((s) => {
-    const list = all.filter((x) => x.seller_id === s.id && x.created_at >= monthSince);
+    const list = all.filter((x) => x.seller_id === s.id && x.created_at >= scopeSince);
     return {
       name: s.name,
       total: list.reduce((a, x) => a + Number(x.total_amount), 0),
       qtd: list.length,
     };
-  }).sort((a, b) => b.total - a.total).slice(0, 5);
+  }).filter((s) => s.qtd > 0).sort((a, b) => b.total - a.total).slice(0, 5);
 
-  // Ranking produtores (no mês) por valor das vendas
+  // Ranking produtores (no escopo)
   const producerRanking = (producers.data ?? []).map((p: any) => {
-    const list = all.filter((x) => x.producer_id === p.id && x.created_at >= monthSince);
+    const list = all.filter((x) => x.producer_id === p.id && x.created_at >= scopeSince);
     return {
       name: p.name,
       total: list.reduce((a, x) => a + Number(x.total_amount), 0),
       qtd: list.length,
     };
-  }).sort((a, b) => b.total - a.total).slice(0, 5);
+  }).filter((p) => p.qtd > 0).sort((a, b) => b.total - a.total).slice(0, 5);
 
-  // Produtos / serviços mais vendidos (no mês) — combina service_types + packages
+  // Produtos / serviços mais vendidos (no escopo) — combina service_types + packages
   const productRanking = useMemo(() => {
     const map = new Map<string, { name: string; total: number; qtd: number }>();
     const stById = new Map((serviceTypes.data ?? []).map((s: any) => [s.id, s.name]));
     const pkById = new Map((packages.data ?? []).map((p: any) => [p.id, p.name]));
     for (const s of all) {
-      if (s.created_at < monthSince) continue;
+      if (s.created_at < scopeSince) continue;
       const name = s.package_id
         ? (pkById.get(s.package_id) ?? "Pacote")
         : (stById.get(s.service_type_id ?? "") ?? "Outro");
@@ -197,7 +213,7 @@ function Dashboard() {
       map.set(name, cur);
     }
     return Array.from(map.values()).sort((a, b) => b.total - a.total).slice(0, 8);
-  }, [all, serviceTypes.data, packages.data, monthSince]);
+  }, [all, serviceTypes.data, packages.data, scopeSince]);
 
   const monthChart = Array.from({ length: 12 }, (_, i) => {
     const m = new Date().getMonth();
@@ -252,6 +268,67 @@ function Dashboard() {
         <p className="text-muted-foreground">Visão geral de vendas, produção e faturamento — atualizado em tempo real</p>
       </div>
 
+      {/* Filtros */}
+      <Card className="border-border/50" style={{ boxShadow: "var(--shadow-card)" }}>
+        <CardContent className="p-4 flex flex-wrap items-center gap-3">
+          <div className="flex items-center gap-2 text-sm font-semibold text-muted-foreground mr-2">
+            <Filter className="w-4 h-4 text-primary" />
+            Filtros
+          </div>
+
+          <ToggleGroup
+            type="single"
+            value={scope}
+            onValueChange={(v) => v && setScope(v as typeof scope)}
+            size="sm"
+          >
+            <ToggleGroupItem value="day">Dia</ToggleGroupItem>
+            <ToggleGroupItem value="week">Semana</ToggleGroupItem>
+            <ToggleGroupItem value="month">Mês</ToggleGroupItem>
+          </ToggleGroup>
+
+          <Select value={sellerFilter} onValueChange={setSellerFilter}>
+            <SelectTrigger className="w-[200px]">
+              <SelectValue placeholder="Vendedor" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todos os vendedores</SelectItem>
+              {(sellers.data ?? []).map((s) => (
+                <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          <Select value={serviceFilter} onValueChange={setServiceFilter}>
+            <SelectTrigger className="w-[220px]">
+              <SelectValue placeholder="Tipo de serviço" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todos os serviços</SelectItem>
+              {(serviceTypes.data ?? []).map((st: any) => (
+                <SelectItem key={st.id} value={st.id}>{st.name}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          {(sellerFilter !== "all" || serviceFilter !== "all" || scope !== "month") && (
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={() => { setSellerFilter("all"); setServiceFilter("all"); setScope("month"); }}
+              className="gap-1"
+            >
+              <X className="w-4 h-4" />
+              Limpar
+            </Button>
+          )}
+
+          <div className="ml-auto text-xs text-muted-foreground">
+            Exibindo <span className="font-semibold text-foreground">{all.length}</span> de {allRaw.length} vendas
+          </div>
+        </CardContent>
+      </Card>
+
       {/* Hero — Hoje */}
       <div className="grid gap-4 lg:grid-cols-3">
         <Card
@@ -261,50 +338,38 @@ function Dashboard() {
           <div className="absolute -top-16 -right-16 w-64 h-64 rounded-full bg-primary/20 blur-3xl pointer-events-none" />
           <CardContent className="relative p-6 sm:p-8">
             <div className="flex items-center gap-2 text-primary">
-              <DollarSign className="w-5 h-5" />
-              <span className="text-sm font-semibold uppercase tracking-wider">Vendas hoje</span>
+              <current.icon className="w-5 h-5" />
+              <span className="text-sm font-semibold uppercase tracking-wider">Vendas — {current.label}</span>
             </div>
             <div className="mt-3 text-4xl sm:text-6xl font-extrabold tracking-tight text-foreground">
-              {formatCurrency(dayTotal)}
+              {formatCurrency(current.total)}
             </div>
             <div className="mt-2 text-sm text-muted-foreground">
-              {dayCount} {dayCount === 1 ? "venda" : "vendas"} hoje
+              {current.count} {current.count === 1 ? "venda" : "vendas"} no período
             </div>
             <div className="mt-4 flex items-center justify-between text-sm text-muted-foreground">
-              <span>Meta {formatCurrency(dayGoal)}</span>
-              <span className="font-semibold text-foreground">{dayPct}%</span>
+              <span>Meta {formatCurrency(current.goal)}</span>
+              <span className="font-semibold text-foreground">{scopePct}%</span>
             </div>
-            <Progress value={dayPct} className="h-2 mt-2" />
+            <Progress value={scopePct} className="h-2 mt-2" />
           </CardContent>
         </Card>
 
         <Card className="border-border/50" style={{ boxShadow: "var(--shadow-card)" }}>
           <CardHeader className="pb-3">
-            <div className="flex items-center justify-between gap-2">
-              <CardTitle className="text-base">Período</CardTitle>
-              <ToggleGroup
-                type="single"
-                value={period}
-                onValueChange={(v) => v && setPeriod(v as typeof period)}
-                size="sm"
-              >
-                <ToggleGroupItem value="week">Semana</ToggleGroupItem>
-                <ToggleGroupItem value="month">Mês</ToggleGroupItem>
-                <ToggleGroupItem value="year">Ano</ToggleGroupItem>
-              </ToggleGroup>
-            </div>
+            <CardTitle className="text-base">Resumo do ano</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="flex items-center gap-2 text-muted-foreground text-sm">
-              <current.icon className="w-4 h-4" />
-              <span>{current.label}</span>
+              <Trophy className="w-4 h-4" />
+              <span>Ano</span>
             </div>
-            <div className="text-3xl font-bold mt-1">{formatCurrency(current.total)}</div>
+            <div className="text-3xl font-bold mt-1">{formatCurrency(yearTotal)}</div>
             <div className="mt-3 flex items-center justify-between text-xs text-muted-foreground">
-              <span>Meta {formatCurrency(current.goal)}</span>
-              <span className="font-semibold text-foreground">{periodPct}%</span>
+              <span>Meta {formatCurrency(goalFor("yearly"))}</span>
+              <span className="font-semibold text-foreground">{goalFor("yearly") ? Math.min(100, Math.round((yearTotal / goalFor("yearly")) * 100)) : 0}%</span>
             </div>
-            <Progress value={periodPct} className="h-2 mt-2" />
+            <Progress value={goalFor("yearly") ? Math.min(100, (yearTotal / goalFor("yearly")) * 100) : 0} className="h-2 mt-2" />
           </CardContent>
         </Card>
       </div>
@@ -421,12 +486,12 @@ function Dashboard() {
         <Card className="border-border/50" style={{ boxShadow: "var(--shadow-card)" }}>
           <CardHeader>
             <div className="flex items-center justify-between">
-              <CardTitle className="flex items-center gap-2"><Users className="w-4 h-4 text-primary" />Top Vendedores (mês)</CardTitle>
+              <CardTitle className="flex items-center gap-2"><Users className="w-4 h-4 text-primary" />Top Vendedores ({current.label})</CardTitle>
               <Badge variant="outline">{sellerRanking.length}</Badge>
             </div>
           </CardHeader>
           <CardContent className="space-y-2">
-            {sellerRanking.length === 0 && <p className="text-sm text-muted-foreground">Sem vendedores cadastrados ainda.</p>}
+            {sellerRanking.length === 0 && <p className="text-sm text-muted-foreground">Sem vendas no período para os filtros atuais.</p>}
             {sellerRanking.map((s, i) => (
               <div key={s.name} className="flex items-center justify-between p-2.5 rounded-lg bg-muted/40 hover:bg-muted/70 transition">
                 <div className="flex items-center gap-3">
@@ -445,12 +510,12 @@ function Dashboard() {
         <Card className="border-border/50" style={{ boxShadow: "var(--shadow-card)" }}>
           <CardHeader>
             <div className="flex items-center justify-between">
-              <CardTitle className="flex items-center gap-2"><Factory className="w-4 h-4 text-primary" />Top Produtores (mês)</CardTitle>
+              <CardTitle className="flex items-center gap-2"><Factory className="w-4 h-4 text-primary" />Top Produtores ({current.label})</CardTitle>
               <Badge variant="outline">{producerRanking.length}</Badge>
             </div>
           </CardHeader>
           <CardContent className="space-y-2">
-            {producerRanking.length === 0 && <p className="text-sm text-muted-foreground">Sem produtores com vendas no mês.</p>}
+            {producerRanking.length === 0 && <p className="text-sm text-muted-foreground">Sem produtores com vendas no período.</p>}
             {producerRanking.map((p, i) => (
               <div key={p.name} className="flex items-center justify-between p-2.5 rounded-lg bg-muted/40 hover:bg-muted/70 transition">
                 <div className="flex items-center gap-3">
@@ -471,13 +536,13 @@ function Dashboard() {
       <Card className="border-border/50 hover:border-primary/40 transition" style={{ boxShadow: "var(--shadow-card)" }}>
         <CardHeader>
           <div className="flex items-center justify-between">
-            <CardTitle className="flex items-center gap-2"><Package className="w-4 h-4 text-primary" />Produtos / serviços mais vendidos (mês)</CardTitle>
+            <CardTitle className="flex items-center gap-2"><Package className="w-4 h-4 text-primary" />Produtos / serviços mais vendidos ({current.label})</CardTitle>
             <Badge variant="outline">{productRanking.length}</Badge>
           </div>
         </CardHeader>
         <CardContent className="h-80">
           {productRanking.length === 0 ? (
-            <p className="text-sm text-muted-foreground">Sem vendas registradas no mês.</p>
+            <p className="text-sm text-muted-foreground">Sem vendas registradas no período.</p>
           ) : (
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={productRanking} layout="vertical" margin={{ left: 12, right: 16, top: 8, bottom: 0 }}>
@@ -504,17 +569,17 @@ function Dashboard() {
       {/* Notas fiscais — mês */}
       <div className="grid gap-4 lg:grid-cols-3">
         <Card className="border-border/50" style={{ boxShadow: "var(--shadow-card)" }}>
-          <CardHeader><CardTitle className="flex items-center gap-2"><FileCheck2 className="w-4 h-4 text-success" />Com nota (mês)</CardTitle></CardHeader>
+          <CardHeader><CardTitle className="flex items-center gap-2"><FileCheck2 className="w-4 h-4 text-success" />Com nota ({current.label})</CardTitle></CardHeader>
           <CardContent>
-            <div className="text-4xl font-bold text-success">{monthSalesWithInvoice}</div>
-            <div className="text-xs text-muted-foreground mt-1">vendas do mês já com nota emitida ou registrada</div>
+            <div className="text-4xl font-bold text-success">{scopeSalesWithInvoice}</div>
+            <div className="text-xs text-muted-foreground mt-1">vendas no período já com nota emitida ou registrada</div>
           </CardContent>
         </Card>
         <Card className="border-border/50" style={{ boxShadow: "var(--shadow-card)" }}>
-          <CardHeader><CardTitle className="flex items-center gap-2"><FileText className="w-4 h-4 text-warning" />Sem nota (mês)</CardTitle></CardHeader>
+          <CardHeader><CardTitle className="flex items-center gap-2"><FileText className="w-4 h-4 text-warning" />Sem nota ({current.label})</CardTitle></CardHeader>
           <CardContent>
-            <div className="text-4xl font-bold text-warning">{monthSalesWithoutInvoice}</div>
-            <div className="text-xs text-muted-foreground mt-1">vendas do mês ainda sem nota</div>
+            <div className="text-4xl font-bold text-warning">{scopeSalesWithoutInvoice}</div>
+            <div className="text-xs text-muted-foreground mt-1">vendas no período ainda sem nota</div>
           </CardContent>
         </Card>
         <Card className="border-border/50" style={{ boxShadow: "var(--shadow-card)" }}>
