@@ -9,6 +9,7 @@ import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { formatCurrency } from "@/lib/auth";
 import {
   DollarSign, TrendingUp, Calendar, Trophy, AlertCircle,
@@ -37,6 +38,12 @@ function Dashboard() {
   const [scope, setScope] = useState<"day" | "week" | "month">("month");
   const [sellerFilter, setSellerFilter] = useState<string>("all");
   const [serviceFilter, setServiceFilter] = useState<string>("all");
+  // Drill-down: clique em ranking abre lista detalhada
+  const [drill, setDrill] = useState<
+    | { kind: "seller" | "producer"; id: string; label: string }
+    | { kind: "product"; name: string; label: string }
+    | null
+  >(null);
   const qc = useQueryClient();
 
   // Tick a cada 60s — vira o dia/semana/mês automaticamente
@@ -112,6 +119,10 @@ function Dashboard() {
     queryKey: ["dash-packages"],
     queryFn: async () => (await supabase.from("packages").select("id,name")).data ?? [],
   });
+  const customers = useQuery({
+    queryKey: ["dash-customers"],
+    queryFn: async () => (await supabase.from("customers").select("id,name")).data ?? [],
+  });
 
   const allRaw = sales.data ?? [];
 
@@ -181,6 +192,7 @@ function Dashboard() {
   const sellerRanking = (sellers.data ?? []).map((s) => {
     const list = all.filter((x) => x.seller_id === s.id && x.created_at >= scopeSince);
     return {
+      id: s.id,
       name: s.name,
       total: list.reduce((a, x) => a + Number(x.total_amount), 0),
       qtd: list.length,
@@ -191,6 +203,7 @@ function Dashboard() {
   const producerRanking = (producers.data ?? []).map((p: any) => {
     const list = all.filter((x) => x.producer_id === p.id && x.created_at >= scopeSince);
     return {
+      id: p.id,
       name: p.name,
       total: list.reduce((a, x) => a + Number(x.total_amount), 0),
       qtd: list.length,
@@ -493,7 +506,12 @@ function Dashboard() {
           <CardContent className="space-y-2">
             {sellerRanking.length === 0 && <p className="text-sm text-muted-foreground">Sem vendas no período para os filtros atuais.</p>}
             {sellerRanking.map((s, i) => (
-              <div key={s.name} className="flex items-center justify-between p-2.5 rounded-lg bg-muted/40 hover:bg-muted/70 transition">
+              <button
+                key={s.id}
+                type="button"
+                onClick={() => setDrill({ kind: "seller", id: s.id, label: s.name })}
+                className="w-full flex items-center justify-between p-2.5 rounded-lg bg-muted/40 hover:bg-muted/70 hover:ring-1 hover:ring-primary/40 transition text-left cursor-pointer"
+              >
                 <div className="flex items-center gap-3">
                   <div className={`w-7 h-7 rounded-full text-xs font-bold flex items-center justify-center ${i === 0 ? "bg-primary text-primary-foreground" : "bg-primary/20 text-primary"}`}>{i + 1}</div>
                   <div>
@@ -502,7 +520,7 @@ function Dashboard() {
                   </div>
                 </div>
                 <span className="font-semibold">{formatCurrency(s.total)}</span>
-              </div>
+              </button>
             ))}
           </CardContent>
         </Card>
@@ -517,7 +535,12 @@ function Dashboard() {
           <CardContent className="space-y-2">
             {producerRanking.length === 0 && <p className="text-sm text-muted-foreground">Sem produtores com vendas no período.</p>}
             {producerRanking.map((p, i) => (
-              <div key={p.name} className="flex items-center justify-between p-2.5 rounded-lg bg-muted/40 hover:bg-muted/70 transition">
+              <button
+                key={p.id}
+                type="button"
+                onClick={() => setDrill({ kind: "producer", id: p.id, label: p.name })}
+                className="w-full flex items-center justify-between p-2.5 rounded-lg bg-muted/40 hover:bg-muted/70 hover:ring-1 hover:ring-primary/40 transition text-left cursor-pointer"
+              >
                 <div className="flex items-center gap-3">
                   <div className={`w-7 h-7 rounded-full text-xs font-bold flex items-center justify-center ${i === 0 ? "bg-primary text-primary-foreground" : "bg-primary/20 text-primary"}`}>{i + 1}</div>
                   <div>
@@ -526,7 +549,7 @@ function Dashboard() {
                   </div>
                 </div>
                 <span className="font-semibold">{formatCurrency(p.total)}</span>
-              </div>
+              </button>
             ))}
           </CardContent>
         </Card>
@@ -540,28 +563,53 @@ function Dashboard() {
             <Badge variant="outline">{productRanking.length}</Badge>
           </div>
         </CardHeader>
-        <CardContent className="h-80">
+        <CardContent className="space-y-3">
           {productRanking.length === 0 ? (
             <p className="text-sm text-muted-foreground">Sem vendas registradas no período.</p>
           ) : (
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={productRanking} layout="vertical" margin={{ left: 12, right: 16, top: 8, bottom: 0 }}>
-                <defs>
-                  <linearGradient id="prodBar" x1="0" y1="0" x2="1" y2="0">
-                    <stop offset="0%" stopColor={chartTheme.primary} stopOpacity={0.95} />
-                    <stop offset="100%" stopColor={chartTheme.primaryGlow} stopOpacity={1} />
-                  </linearGradient>
-                </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke={chartTheme.grid} horizontal={false} />
-                <XAxis type="number" stroke={chartTheme.axis} tick={{ fontSize: 11 }} />
-                <YAxis type="category" dataKey="name" stroke={chartTheme.axis} tick={{ fontSize: 11 }} width={140} />
-                <Tooltip
-                  contentStyle={{ background: chartTheme.tooltipBg, border: `1px solid ${chartTheme.tooltipBorder}`, borderRadius: 8, color: "var(--popover-foreground)" }}
-                  formatter={(v: any, _n, p: any) => [`${formatCurrency(Number(v))} • ${p?.payload?.qtd ?? 0} vendas`, "Total"]}
-                />
-                <Bar dataKey="total" fill="url(#prodBar)" radius={[0, 6, 6, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
+            <>
+              <div className="h-72">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart
+                    data={productRanking}
+                    layout="vertical"
+                    margin={{ left: 12, right: 16, top: 8, bottom: 0 }}
+                    onClick={(e: any) => {
+                      const name = e?.activePayload?.[0]?.payload?.name;
+                      if (name) setDrill({ kind: "product", name, label: name });
+                    }}
+                  >
+                    <defs>
+                      <linearGradient id="prodBar" x1="0" y1="0" x2="1" y2="0">
+                        <stop offset="0%" stopColor={chartTheme.primary} stopOpacity={0.95} />
+                        <stop offset="100%" stopColor={chartTheme.primaryGlow} stopOpacity={1} />
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid strokeDasharray="3 3" stroke={chartTheme.grid} horizontal={false} />
+                    <XAxis type="number" stroke={chartTheme.axis} tick={{ fontSize: 11 }} />
+                    <YAxis type="category" dataKey="name" stroke={chartTheme.axis} tick={{ fontSize: 11 }} width={140} />
+                    <Tooltip
+                      contentStyle={{ background: chartTheme.tooltipBg, border: `1px solid ${chartTheme.tooltipBorder}`, borderRadius: 8, color: "var(--popover-foreground)" }}
+                      formatter={(v: any, _n, p: any) => [`${formatCurrency(Number(v))} • ${p?.payload?.qtd ?? 0} vendas`, "Total"]}
+                    />
+                    <Bar dataKey="total" fill="url(#prodBar)" radius={[0, 6, 6, 0]} className="cursor-pointer" />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+              <div className="grid sm:grid-cols-2 gap-2">
+                {productRanking.map((p) => (
+                  <button
+                    key={p.name}
+                    type="button"
+                    onClick={() => setDrill({ kind: "product", name: p.name, label: p.name })}
+                    className="flex items-center justify-between p-2 rounded-md bg-muted/40 hover:bg-muted/70 hover:ring-1 hover:ring-primary/40 transition text-left cursor-pointer text-sm"
+                  >
+                    <span className="font-medium truncate">{p.name}</span>
+                    <span className="text-xs text-muted-foreground ml-2">{p.qtd} • {formatCurrency(p.total)}</span>
+                  </button>
+                ))}
+              </div>
+            </>
           )}
         </CardContent>
       </Card>
@@ -590,6 +638,117 @@ function Dashboard() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Drill-down dialog */}
+      <DrillDialog
+        drill={drill}
+        onClose={() => setDrill(null)}
+        sales={all}
+        scopeSince={scopeSince}
+        scopeLabel={current.label}
+        customers={customers.data ?? []}
+        sellers={sellers.data ?? []}
+        producers={(producers.data ?? []) as any}
+        serviceTypes={(serviceTypes.data ?? []) as any}
+        packages={(packages.data ?? []) as any}
+      />
     </div>
+  );
+}
+
+function DrillDialog({
+  drill, onClose, sales, scopeSince, scopeLabel, customers, sellers, producers, serviceTypes, packages,
+}: {
+  drill: { kind: "seller" | "producer"; id: string; label: string } | { kind: "product"; name: string; label: string } | null;
+  onClose: () => void;
+  sales: any[];
+  scopeSince: string;
+  scopeLabel: string;
+  customers: { id: string; name: string }[];
+  sellers: { id: string; name: string }[];
+  producers: { id: string; name: string }[];
+  serviceTypes: { id: string; name: string }[];
+  packages: { id: string; name: string }[];
+}) {
+  const open = !!drill;
+  const cName = new Map(customers.map((c) => [c.id, c.name]));
+  const sName = new Map(sellers.map((s) => [s.id, s.name]));
+  const pName = new Map(producers.map((p) => [p.id, p.name]));
+  const stName = new Map(serviceTypes.map((s) => [s.id, s.name]));
+  const pkName = new Map(packages.map((p) => [p.id, p.name]));
+
+  const rows = (() => {
+    if (!drill) return [] as any[];
+    return sales
+      .filter((s) => s.created_at >= scopeSince)
+      .filter((s) => {
+        if (drill.kind === "seller") return s.seller_id === drill.id;
+        if (drill.kind === "producer") return s.producer_id === drill.id;
+        const name = s.package_id ? (pkName.get(s.package_id) ?? "Pacote") : (stName.get(s.service_type_id ?? "") ?? "Outro");
+        return name === (drill as { name: string }).name;
+      })
+      .sort((a, b) => (a.created_at < b.created_at ? 1 : -1));
+  })();
+
+  const total = rows.reduce((a, r) => a + Number(r.total_amount), 0);
+  const paid = rows.reduce((a, r) => a + Number(r.paid_amount ?? 0), 0);
+
+  const kindLabel = drill?.kind === "seller" ? "Vendedor" : drill?.kind === "producer" ? "Produtor" : "Produto / serviço";
+
+  const statusBadge = (st: string | null) => {
+    if (st === "pago_total") return <Badge className="bg-success/15 text-success border-success/30">Pago</Badge>;
+    if (st === "pago_parcial") return <Badge className="bg-warning/15 text-warning border-warning/30">Parcial</Badge>;
+    return <Badge className="bg-destructive/15 text-destructive border-destructive/30">Pendente</Badge>;
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
+      <DialogContent className="max-w-3xl">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            {kindLabel}: <span className="text-primary">{drill?.label}</span>
+          </DialogTitle>
+          <DialogDescription>
+            Vendas no período: <span className="font-semibold text-foreground">{scopeLabel}</span> — {rows.length} {rows.length === 1 ? "venda" : "vendas"} • Total {formatCurrency(total)} • Recebido {formatCurrency(paid)}
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="max-h-[60vh] overflow-y-auto rounded-md border border-border">
+          {rows.length === 0 ? (
+            <div className="p-6 text-sm text-muted-foreground text-center">Nenhuma venda encontrada no período.</div>
+          ) : (
+            <table className="w-full text-sm">
+              <thead className="sticky top-0 bg-muted/60 backdrop-blur">
+                <tr className="text-left text-xs text-muted-foreground">
+                  <th className="p-2 font-medium">Data</th>
+                  <th className="p-2 font-medium">Cliente</th>
+                  <th className="p-2 font-medium">Serviço</th>
+                  {drill?.kind !== "seller" && <th className="p-2 font-medium">Vendedor</th>}
+                  {drill?.kind !== "producer" && <th className="p-2 font-medium">Produtor</th>}
+                  <th className="p-2 font-medium text-right">Valor</th>
+                  <th className="p-2 font-medium">Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {rows.map((r) => {
+                  const svc = r.package_id ? (pkName.get(r.package_id) ?? "Pacote") : (stName.get(r.service_type_id ?? "") ?? "—");
+                  return (
+                    <tr key={r.id} className="border-t border-border hover:bg-muted/40">
+                      <td className="p-2 whitespace-nowrap">{new Date(r.created_at).toLocaleDateString("pt-BR")}</td>
+                      <td className="p-2">{cName.get(r.customer_id) ?? "—"}</td>
+                      <td className="p-2">{svc}</td>
+                      {drill?.kind !== "seller" && <td className="p-2">{r.seller_id ? (sName.get(r.seller_id) ?? "—") : "—"}</td>}
+                      {drill?.kind !== "producer" && <td className="p-2">{r.producer_id ? (pName.get(r.producer_id) ?? "—") : "—"}</td>}
+                      <td className="p-2 text-right font-semibold">{formatCurrency(Number(r.total_amount))}</td>
+                      <td className="p-2">{statusBadge(r.payment_status)}</td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          )}
+        </div>
+      </DialogContent>
+    </Dialog>
   );
 }
