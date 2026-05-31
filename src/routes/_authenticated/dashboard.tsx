@@ -486,12 +486,12 @@ function Dashboard() {
         <Card className="border-border/50" style={{ boxShadow: "var(--shadow-card)" }}>
           <CardHeader>
             <div className="flex items-center justify-between">
-              <CardTitle className="flex items-center gap-2"><Users className="w-4 h-4 text-primary" />Top Vendedores (mês)</CardTitle>
+              <CardTitle className="flex items-center gap-2"><Users className="w-4 h-4 text-primary" />Top Vendedores ({current.label})</CardTitle>
               <Badge variant="outline">{sellerRanking.length}</Badge>
             </div>
           </CardHeader>
           <CardContent className="space-y-2">
-            {sellerRanking.length === 0 && <p className="text-sm text-muted-foreground">Sem vendedores cadastrados ainda.</p>}
+            {sellerRanking.length === 0 && <p className="text-sm text-muted-foreground">Sem vendas no período para os filtros atuais.</p>}
             {sellerRanking.map((s, i) => (
               <div key={s.name} className="flex items-center justify-between p-2.5 rounded-lg bg-muted/40 hover:bg-muted/70 transition">
                 <div className="flex items-center gap-3">
@@ -510,12 +510,12 @@ function Dashboard() {
         <Card className="border-border/50" style={{ boxShadow: "var(--shadow-card)" }}>
           <CardHeader>
             <div className="flex items-center justify-between">
-              <CardTitle className="flex items-center gap-2"><Factory className="w-4 h-4 text-primary" />Top Produtores (mês)</CardTitle>
+              <CardTitle className="flex items-center gap-2"><Factory className="w-4 h-4 text-primary" />Top Produtores ({current.label})</CardTitle>
               <Badge variant="outline">{producerRanking.length}</Badge>
             </div>
           </CardHeader>
           <CardContent className="space-y-2">
-            {producerRanking.length === 0 && <p className="text-sm text-muted-foreground">Sem produtores com vendas no mês.</p>}
+            {producerRanking.length === 0 && <p className="text-sm text-muted-foreground">Sem produtores com vendas no período.</p>}
             {producerRanking.map((p, i) => (
               <div key={p.name} className="flex items-center justify-between p-2.5 rounded-lg bg-muted/40 hover:bg-muted/70 transition">
                 <div className="flex items-center gap-3">
@@ -536,13 +536,13 @@ function Dashboard() {
       <Card className="border-border/50 hover:border-primary/40 transition" style={{ boxShadow: "var(--shadow-card)" }}>
         <CardHeader>
           <div className="flex items-center justify-between">
-            <CardTitle className="flex items-center gap-2"><Package className="w-4 h-4 text-primary" />Produtos / serviços mais vendidos (mês)</CardTitle>
+            <CardTitle className="flex items-center gap-2"><Package className="w-4 h-4 text-primary" />Produtos / serviços mais vendidos ({current.label})</CardTitle>
             <Badge variant="outline">{productRanking.length}</Badge>
           </div>
         </CardHeader>
         <CardContent className="h-80">
           {productRanking.length === 0 ? (
-            <p className="text-sm text-muted-foreground">Sem vendas registradas no mês.</p>
+            <p className="text-sm text-muted-foreground">Sem vendas registradas no período.</p>
           ) : (
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={productRanking} layout="vertical" margin={{ left: 12, right: 16, top: 8, bottom: 0 }}>
