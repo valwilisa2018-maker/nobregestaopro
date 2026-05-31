@@ -35,7 +35,7 @@ function startOf(period: "day" | "week" | "month" | "year") {
 
 function Dashboard() {
   // Filtros principais
-  const [scope, setScope] = useState<"day" | "week" | "month">("month");
+  const [scope, setScope] = useState<"day" | "week" | "month">("day");
   const [sellerFilter, setSellerFilter] = useState<string>("all");
   const [serviceFilter, setServiceFilter] = useState<string>("all");
   // Drill-down: clique em ranking abre lista detalhada
@@ -321,11 +321,11 @@ function Dashboard() {
             </SelectContent>
           </Select>
 
-          {(sellerFilter !== "all" || serviceFilter !== "all" || scope !== "month") && (
+          {(sellerFilter !== "all" || serviceFilter !== "all" || scope !== "day") && (
             <Button
               size="sm"
               variant="ghost"
-              onClick={() => { setSellerFilter("all"); setServiceFilter("all"); setScope("month"); }}
+              onClick={() => { setSellerFilter("all"); setServiceFilter("all"); setScope("day"); }}
               className="gap-1"
             >
               <X className="w-4 h-4" />
