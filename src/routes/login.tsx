@@ -66,7 +66,7 @@ function LoginPage() {
     if (!email) { toast.error("Digite seu e-mail para recuperar a senha"); return; }
     setLoading(true);
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${window.location.origin}/login`,
+      redirectTo: `${window.location.origin}/reset-password`,
     });
     setLoading(false);
     if (error) toast.error(error.message);
