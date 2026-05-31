@@ -170,7 +170,7 @@ function PendingPaymentsPage() {
                       </Badge>
                     </TableCell>
                     <TableCell className="text-right">
-                      <Button size="sm" onClick={() => openDialog(s)}>Confirmar recebimento</Button>
+                      <Button size="sm" className="bg-green-600 hover:bg-green-700 text-white" onClick={() => openDialog(s)}>Confirmar recebimento</Button>
                     </TableCell>
                   </TableRow>
                 );
@@ -216,7 +216,7 @@ function PendingPaymentsPage() {
           )}
           <DialogFooter>
             <Button variant="outline" onClick={() => setSelected(null)} disabled={saving}>Cancelar</Button>
-            <Button onClick={confirm} disabled={saving}>
+            <Button className="bg-green-600 hover:bg-green-700 text-white" onClick={confirm} disabled={saving}>
               {saving && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
               Confirmar recebimento
             </Button>
