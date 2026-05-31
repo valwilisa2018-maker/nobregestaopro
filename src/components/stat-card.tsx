@@ -82,14 +82,14 @@ export function StatCard({ label, value, icon: Icon, hint, accent, trend, tone =
         style={{ background: "linear-gradient(110deg, transparent 40%, oklch(1 0 0 / 0.08) 50%, transparent 60%)" }}
       />
 
-      <CardContent className="p-6 relative">
-        <div className="flex items-start justify-between gap-4">
-          <div className="space-y-2 min-w-0 flex-1">
-            <p className="text-[11px] uppercase tracking-[0.15em] text-muted-foreground font-semibold">
+      <CardContent className="p-4 md:p-5 relative">
+        <div className="flex items-start justify-between gap-3">
+          <div className="space-y-1.5 min-w-0 flex-1">
+            <p className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground font-semibold">
               {label}
             </p>
             <p
-              className="text-3xl md:text-4xl font-black tracking-tight leading-none truncate"
+              className="text-xl md:text-2xl xl:text-[26px] font-black tracking-tight leading-none break-words"
               style={{
                 backgroundImage: t.grad,
                 WebkitBackgroundClip: "text",
@@ -99,16 +99,16 @@ export function StatCard({ label, value, icon: Icon, hint, accent, trend, tone =
             >
               {value}
             </p>
-            {hint && <p className="text-xs text-muted-foreground/80">{hint}</p>}
+            {hint && <p className="text-[11px] text-muted-foreground/80">{hint}</p>}
           </div>
           <div
-            className="w-14 h-14 rounded-2xl flex items-center justify-center shrink-0 transition-transform duration-300 group-hover:scale-110 group-hover:rotate-6"
+            className="w-10 h-10 md:w-11 md:h-11 rounded-xl flex items-center justify-center shrink-0 transition-transform duration-300 group-hover:scale-110 group-hover:rotate-6"
             style={{
               background: t.grad,
               boxShadow: t.shadow,
             }}
           >
-            <Icon className="w-7 h-7 text-white drop-shadow" />
+            <Icon className="w-5 h-5 md:w-[22px] md:h-[22px] text-white drop-shadow" />
           </div>
         </div>
         {trend && (
