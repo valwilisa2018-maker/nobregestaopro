@@ -85,8 +85,7 @@ function PaymentLinkPage() {
           <div>
             <h1 className="text-2xl md:text-3xl font-bold tracking-tight">Gerar Pagamento</h1>
             <p className="text-white/85 text-sm">
-              Crie um link de pagamento via Pagar.me. Para configurar a credencial,
-              acesse <strong>Configurações → Pagar.me</strong>.
+              Crie um link de pagamento via Pagar.me.
             </p>
           </div>
         </div>
