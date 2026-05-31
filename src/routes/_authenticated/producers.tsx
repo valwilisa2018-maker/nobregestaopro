@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Plus } from "lucide-react";
+import { Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/producers")({
@@ -23,6 +23,24 @@ export const Route = createFileRoute("/_authenticated/producers")({
       const { error } = await supabase.from("producers").insert(form);
       if (error) toast.error(error.message);
       else { toast.success("Produtor cadastrado"); setOpen(false); setForm({ name: "", specialty: "", phone: "", email: "" }); qc.invalidateQueries(); }
+    };
+    const toggleActive = async (id: string, active: boolean) => {
+      const { error } = await supabase.from("producers").update({ active }).eq("id", id);
+      if (error) toast.error(error.message);
+      else { toast.success(active ? "Produtor ativado" : "Produtor desativado"); qc.invalidateQueries(); }
+    };
+    const remove = async (id: string, name: string) => {
+      if (!window.confirm(`Excluir o produtor "${name}"? Esta ação não pode ser desfeita.`)) return;
+      const { count: salesCount } = await supabase.from("sales").select("id", { count: "exact", head: true }).eq("producer_id", id);
+      const { count: ordersCount } = await supabase.from("service_orders").select("id", { count: "exact", head: true }).eq("producer_id", id);
+      const linked = (salesCount ?? 0) + (ordersCount ?? 0);
+      if (linked > 0) {
+        toast.error(`Não é possível excluir: ${linked} registro(s) vinculados. Desative-o em vez disso.`);
+        return;
+      }
+      const { error } = await supabase.from("producers").delete().eq("id", id);
+      if (error) toast.error(error.message);
+      else { toast.success("Produtor excluído"); qc.invalidateQueries(); }
     };
     return (
       <div className="space-y-6">
@@ -43,7 +61,7 @@ export const Route = createFileRoute("/_authenticated/producers")({
         </div>
         <Card className="border-border/50" style={{ boxShadow: "var(--shadow-card)" }}><CardContent className="p-0">
           <Table>
-            <TableHeader><TableRow><TableHead>Nome</TableHead><TableHead>Especialidade</TableHead><TableHead>Qualidade</TableHead><TableHead>Prazo médio</TableHead><TableHead>Status</TableHead></TableRow></TableHeader>
+            <TableHeader><TableRow><TableHead>Nome</TableHead><TableHead>Especialidade</TableHead><TableHead>Qualidade</TableHead><TableHead>Prazo médio</TableHead><TableHead>Status</TableHead><TableHead className="text-right">Ações</TableHead></TableRow></TableHeader>
             <TableBody>
               {(q.data ?? []).map((p: any) => (
                 <TableRow key={p.id}>
@@ -52,9 +70,19 @@ export const Route = createFileRoute("/_authenticated/producers")({
                   <TableCell>{Number(p.quality_score ?? 0).toFixed(1)} ⭐</TableCell>
                   <TableCell>{Number(p.average_delivery_days ?? 0).toFixed(1)} dias</TableCell>
                   <TableCell><Badge variant={p.active ? "default" : "secondary"}>{p.active ? "Ativo" : "Inativo"}</Badge></TableCell>
+                  <TableCell className="text-right">
+                    <div className="flex gap-1 justify-end">
+                      <Button variant="outline" size="sm" onClick={() => toggleActive(p.id, !p.active)}>
+                        {p.active ? "Desativar" : "Ativar"}
+                      </Button>
+                      <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive" onClick={() => remove(p.id, p.name)}>
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  </TableCell>
                 </TableRow>
               ))}
-              {(q.data ?? []).length === 0 && <TableRow><TableCell colSpan={5} className="text-center text-muted-foreground py-8">Sem produtores</TableCell></TableRow>}
+              {(q.data ?? []).length === 0 && <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground py-8">Sem produtores</TableCell></TableRow>}
             </TableBody>
           </Table>
         </CardContent></Card>
