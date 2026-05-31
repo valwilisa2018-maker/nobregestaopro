@@ -192,6 +192,7 @@ function Dashboard() {
   const sellerRanking = (sellers.data ?? []).map((s) => {
     const list = all.filter((x) => x.seller_id === s.id && x.created_at >= scopeSince);
     return {
+      id: s.id,
       name: s.name,
       total: list.reduce((a, x) => a + Number(x.total_amount), 0),
       qtd: list.length,
@@ -202,6 +203,7 @@ function Dashboard() {
   const producerRanking = (producers.data ?? []).map((p: any) => {
     const list = all.filter((x) => x.producer_id === p.id && x.created_at >= scopeSince);
     return {
+      id: p.id,
       name: p.name,
       total: list.reduce((a, x) => a + Number(x.total_amount), 0),
       qtd: list.length,
