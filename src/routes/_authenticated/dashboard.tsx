@@ -268,6 +268,67 @@ function Dashboard() {
         <p className="text-muted-foreground">Visão geral de vendas, produção e faturamento — atualizado em tempo real</p>
       </div>
 
+      {/* Filtros */}
+      <Card className="border-border/50" style={{ boxShadow: "var(--shadow-card)" }}>
+        <CardContent className="p-4 flex flex-wrap items-center gap-3">
+          <div className="flex items-center gap-2 text-sm font-semibold text-muted-foreground mr-2">
+            <Filter className="w-4 h-4 text-primary" />
+            Filtros
+          </div>
+
+          <ToggleGroup
+            type="single"
+            value={scope}
+            onValueChange={(v) => v && setScope(v as typeof scope)}
+            size="sm"
+          >
+            <ToggleGroupItem value="day">Dia</ToggleGroupItem>
+            <ToggleGroupItem value="week">Semana</ToggleGroupItem>
+            <ToggleGroupItem value="month">Mês</ToggleGroupItem>
+          </ToggleGroup>
+
+          <Select value={sellerFilter} onValueChange={setSellerFilter}>
+            <SelectTrigger className="w-[200px]">
+              <SelectValue placeholder="Vendedor" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todos os vendedores</SelectItem>
+              {(sellers.data ?? []).map((s) => (
+                <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          <Select value={serviceFilter} onValueChange={setServiceFilter}>
+            <SelectTrigger className="w-[220px]">
+              <SelectValue placeholder="Tipo de serviço" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todos os serviços</SelectItem>
+              {(serviceTypes.data ?? []).map((st: any) => (
+                <SelectItem key={st.id} value={st.id}>{st.name}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          {(sellerFilter !== "all" || serviceFilter !== "all" || scope !== "month") && (
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={() => { setSellerFilter("all"); setServiceFilter("all"); setScope("month"); }}
+              className="gap-1"
+            >
+              <X className="w-4 h-4" />
+              Limpar
+            </Button>
+          )}
+
+          <div className="ml-auto text-xs text-muted-foreground">
+            Exibindo <span className="font-semibold text-foreground">{all.length}</span> de {allRaw.length} vendas
+          </div>
+        </CardContent>
+      </Card>
+
       {/* Hero — Hoje */}
       <div className="grid gap-4 lg:grid-cols-3">
         <Card
@@ -277,50 +338,38 @@ function Dashboard() {
           <div className="absolute -top-16 -right-16 w-64 h-64 rounded-full bg-primary/20 blur-3xl pointer-events-none" />
           <CardContent className="relative p-6 sm:p-8">
             <div className="flex items-center gap-2 text-primary">
-              <DollarSign className="w-5 h-5" />
-              <span className="text-sm font-semibold uppercase tracking-wider">Vendas hoje</span>
+              <current.icon className="w-5 h-5" />
+              <span className="text-sm font-semibold uppercase tracking-wider">Vendas — {current.label}</span>
             </div>
             <div className="mt-3 text-4xl sm:text-6xl font-extrabold tracking-tight text-foreground">
-              {formatCurrency(dayTotal)}
+              {formatCurrency(current.total)}
             </div>
             <div className="mt-2 text-sm text-muted-foreground">
-              {dayCount} {dayCount === 1 ? "venda" : "vendas"} hoje
+              {current.count} {current.count === 1 ? "venda" : "vendas"} no período
             </div>
             <div className="mt-4 flex items-center justify-between text-sm text-muted-foreground">
-              <span>Meta {formatCurrency(dayGoal)}</span>
-              <span className="font-semibold text-foreground">{dayPct}%</span>
+              <span>Meta {formatCurrency(current.goal)}</span>
+              <span className="font-semibold text-foreground">{scopePct}%</span>
             </div>
-            <Progress value={dayPct} className="h-2 mt-2" />
+            <Progress value={scopePct} className="h-2 mt-2" />
           </CardContent>
         </Card>
 
         <Card className="border-border/50" style={{ boxShadow: "var(--shadow-card)" }}>
           <CardHeader className="pb-3">
-            <div className="flex items-center justify-between gap-2">
-              <CardTitle className="text-base">Período</CardTitle>
-              <ToggleGroup
-                type="single"
-                value={period}
-                onValueChange={(v) => v && setPeriod(v as typeof period)}
-                size="sm"
-              >
-                <ToggleGroupItem value="week">Semana</ToggleGroupItem>
-                <ToggleGroupItem value="month">Mês</ToggleGroupItem>
-                <ToggleGroupItem value="year">Ano</ToggleGroupItem>
-              </ToggleGroup>
-            </div>
+            <CardTitle className="text-base">Resumo do ano</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="flex items-center gap-2 text-muted-foreground text-sm">
-              <current.icon className="w-4 h-4" />
-              <span>{current.label}</span>
+              <Trophy className="w-4 h-4" />
+              <span>Ano</span>
             </div>
-            <div className="text-3xl font-bold mt-1">{formatCurrency(current.total)}</div>
+            <div className="text-3xl font-bold mt-1">{formatCurrency(yearTotal)}</div>
             <div className="mt-3 flex items-center justify-between text-xs text-muted-foreground">
-              <span>Meta {formatCurrency(current.goal)}</span>
-              <span className="font-semibold text-foreground">{periodPct}%</span>
+              <span>Meta {formatCurrency(goalFor("yearly"))}</span>
+              <span className="font-semibold text-foreground">{goalFor("yearly") ? Math.min(100, Math.round((yearTotal / goalFor("yearly")) * 100)) : 0}%</span>
             </div>
-            <Progress value={periodPct} className="h-2 mt-2" />
+            <Progress value={goalFor("yearly") ? Math.min(100, (yearTotal / goalFor("yearly")) * 100) : 0} className="h-2 mt-2" />
           </CardContent>
         </Card>
       </div>
