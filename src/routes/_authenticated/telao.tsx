@@ -774,7 +774,7 @@ function Telao() {
           <div
             className="overflow-hidden"
             style={{
-              height: loopSales.length ? Math.min(VISIBLE_SALES_ROWS, loopSales.length) * SALE_ROW_HEIGHT : 460,
+              height: `clamp(260px, 38vh, ${loopSales.length ? Math.min(VISIBLE_SALES_ROWS, loopSales.length) * SALE_ROW_HEIGHT : 460}px)`,
               maskImage: todaySales.length ? "linear-gradient(to bottom, transparent, #000 7%, #000 93%, transparent)" : undefined,
               WebkitMaskImage: todaySales.length ? "linear-gradient(to bottom, transparent, #000 7%, #000 93%, transparent)" : undefined,
             }}
