@@ -96,8 +96,7 @@ function LoginPage() {
       <Card className="relative w-full max-w-md border-border/50 backdrop-blur-xl bg-card/70 animate-fade-in"
         style={{ boxShadow: "var(--shadow-premium)" }}>
         <CardHeader className="text-center space-y-3">
-          <img src={logoUrl} alt="Nobre MKT" className="mx-auto w-24 h-24 rounded-2xl object-contain drop-shadow-[0_8px_30px_rgba(220,38,38,0.35)]"
-            style={{ boxShadow: "var(--shadow-premium)" }} />
+          <img src={logoUrl} alt="Nobre MKT" className="mx-auto w-24 h-24 rounded-2xl object-contain" />
           <div>
             <CardTitle className="text-2xl tracking-tight">Gestão Nobre MKT</CardTitle>
             <CardDescription>Plataforma premium de gestão</CardDescription>
