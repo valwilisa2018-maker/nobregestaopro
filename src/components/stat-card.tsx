@@ -89,13 +89,7 @@ export function StatCard({ label, value, icon: Icon, hint, accent, trend, tone =
               {label}
             </p>
             <p
-              className="text-xl md:text-2xl xl:text-[26px] font-black tracking-tight leading-none break-words"
-              style={{
-                backgroundImage: t.grad,
-                WebkitBackgroundClip: "text",
-                WebkitTextFillColor: "transparent",
-                backgroundClip: "text",
-              }}
+              className="text-base md:text-lg xl:text-xl font-black tracking-tight leading-tight break-words text-foreground"
             >
               {value}
             </p>
