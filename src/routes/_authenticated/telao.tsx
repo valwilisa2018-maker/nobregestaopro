@@ -705,6 +705,10 @@ function Telao() {
         .telao-area-sales { grid-area: sales; }
         .telao-area-tops  { grid-area: tops; }
         .telao-area-topp  { grid-area: topp; }
+        @media (min-width: 1024px) {
+          .telao-area-tops { align-self: start; }
+          .telao-area-topp { align-self: start; margin-top: -8px; }
+        }
         .telao-kpi-pair { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
       `}</style>
 
