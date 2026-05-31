@@ -248,7 +248,7 @@ function KanbanPage() {
                 setDraggingGroup(null);
               }}
             >
-              <div className="flex items-center justify-between mb-3 px-2 py-2 rounded-md bg-black text-white">
+              <div className="flex items-center justify-between px-4 py-3 rounded-t-md bg-black text-white -m-3 mb-3">
                 <div className="flex items-center gap-2">
                   <span className="w-2.5 h-2.5 rounded-full" style={{ background: col.color }} />
                   <span className="font-semibold text-sm">{col.name}</span>
