@@ -62,6 +62,15 @@ const emptyForm = (column_id = ""): CardForm => ({
   column_id, title: "", description: "", due_date: "", due_time: "", color: "", labels: [],
 });
 
+// Premium standardized styles
+const PAYMENT_STYLE: Record<string, { bg: string; fg: string; label: string }> = {
+  pago_total:   { bg: "#10b981", fg: "#fff", label: "Pago total" },
+  pago_parcial: { bg: "#f59e0b", fg: "#1a1a1a", label: "Pago parcial" },
+  pendente:     { bg: "#ef4444", fg: "#fff", label: "Pendente" },
+};
+const paymentStyle = (s?: string | null) =>
+  PAYMENT_STYLE[s ?? ""] ?? { bg: "hsl(var(--muted))", fg: "hsl(var(--foreground))", label: (s ?? "—").replace("_", " ") };
+
 function KanbanPage() {
   const qc = useQueryClient();
   const { card: cardParam } = Route.useSearch();
