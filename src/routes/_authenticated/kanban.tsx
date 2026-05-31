@@ -117,6 +117,7 @@ function KanbanPage() {
       trello_link: found.trello_link ?? found.sales?.trello_link ?? null,
       customer_phone: found.sales?.customers?.phone ?? null,
       customer_name: found.sales?.customers?.name ?? null,
+      producer_id: found.producer_id ?? null,
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [cardParam, cards.data]);
