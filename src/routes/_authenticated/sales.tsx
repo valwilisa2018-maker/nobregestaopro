@@ -54,7 +54,32 @@ function SalesPage() {
   const set = (k: string, v: string) => setForm((f) => ({ ...f, [k]: v }));
 
   const submit = async () => {
-    if (!form.customer_name || !form.total_amount) { toast.error("Cliente e valor são obrigatórios"); return; }
+    const required: [string, string][] = [
+      ["customer_name", "Nome do cliente"],
+      ["company", "Empresa"],
+      ["document", "CPF/CNPJ"],
+      ["phone", "Telefone"],
+      ["email", "E-mail"],
+      ["total_amount", "Valor total"],
+      ["paid_amount", "Valor pago"],
+      ["payment_status", "Status pagamento"],
+      ["payment_method", "Forma de pagamento"],
+      ["seller_id", "Vendedor"],
+      ["producer_id", "Produtor"],
+      ["service_type_id", "Tipo de serviço"],
+      ["package_name", "Nome do pacote"],
+      ["service_quantity", "Qtd. serviços"],
+      ["sale_date", "Data da venda"],
+      ["trello_link", "Link Trello"],
+      ["notes", "Observações"],
+    ];
+    for (const [k, label] of required) {
+      if (!String((form as any)[k] ?? "").trim()) {
+        toast.error(`Preencha o campo: ${label}`);
+        return;
+      }
+    }
+    if (!receiptFile) { toast.error("Anexe o comprovante"); return; }
     setSaving(true);
     try {
       const { data: cust, error: ce } = await supabase.from("customers").insert({
