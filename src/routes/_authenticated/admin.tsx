@@ -51,10 +51,20 @@ function AdminPage() {
       toast.error("Senha incorreta");
     }
   };
+  const pwdChecks = {
+    length: newPwd.length >= 8,
+    upper: /[A-Z]/.test(newPwd),
+    lower: /[a-z]/.test(newPwd),
+    number: /[0-9]/.test(newPwd),
+    symbol: /[^A-Za-z0-9]/.test(newPwd),
+  };
+  const pwdValid = Object.values(pwdChecks).every(Boolean);
+  const pwdMatch = newPwd.length > 0 && newPwd === newPwd2;
   const changePwd = () => {
     if (curPwd !== getStoredPwd()) { toast.error("Senha atual incorreta"); return; }
-    if (!newPwd || newPwd.length < 4) { toast.error("Nova senha deve ter ao menos 4 caracteres"); return; }
-    if (newPwd !== newPwd2) { toast.error("As senhas não coincidem"); return; }
+    if (!pwdValid) { toast.error("A nova senha não atende aos requisitos de complexidade"); return; }
+    if (newPwd === curPwd) { toast.error("A nova senha deve ser diferente da atual"); return; }
+    if (!pwdMatch) { toast.error("A confirmação não coincide com a nova senha"); return; }
     localStorage.setItem(PASS_KEY, newPwd);
     setCurPwd(""); setNewPwd(""); setNewPwd2("");
     toast.success("Senha alterada com sucesso");
