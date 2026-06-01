@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { persistTelaoSettings } from "./use-telao-settings-sync";
 
 const KEY = "telao.loopDuplicateThreshold";
 export const TELAO_THRESHOLD_DEFAULT = 10;
@@ -37,6 +38,7 @@ export function useLoopDuplicateThreshold(): [number, (n: number) => void] {
     window.localStorage.setItem(KEY, String(clamped));
     window.dispatchEvent(new Event("telao-settings-changed"));
     setVal(clamped);
+    void persistTelaoSettings({ loop_duplicate_threshold: clamped }).catch(() => {});
   };
 
   return [val, set];
@@ -79,6 +81,7 @@ export function useBigSellerOverlaySeconds(): [number, (n: number) => void] {
     window.localStorage.setItem(OVERLAY_KEY, String(clamped));
     window.dispatchEvent(new Event("telao-settings-changed"));
     setVal(clamped);
+    void persistTelaoSettings({ big_seller_overlay_seconds: clamped }).catch(() => {});
   };
 
   return [val, set];

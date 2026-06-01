@@ -705,6 +705,39 @@ export type Database = {
         }
         Relationships: []
       }
+      telao_settings: {
+        Row: {
+          big_seller_overlay_seconds: number
+          celebration_confetti_enabled: boolean
+          celebration_sound_enabled: boolean
+          celebration_volume: number
+          id: boolean
+          loop_duplicate_threshold: number
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          big_seller_overlay_seconds?: number
+          celebration_confetti_enabled?: boolean
+          celebration_sound_enabled?: boolean
+          celebration_volume?: number
+          id?: boolean
+          loop_duplicate_threshold?: number
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          big_seller_overlay_seconds?: number
+          celebration_confetti_enabled?: boolean
+          celebration_sound_enabled?: boolean
+          celebration_volume?: number
+          id?: boolean
+          loop_duplicate_threshold?: number
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           created_at: string

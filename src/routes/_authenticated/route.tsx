@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { SidebarProvider, SidebarTrigger, SidebarInset } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/app-sidebar";
 import { Loader2 } from "lucide-react";
+import { useTelaoSettingsSync } from "@/hooks/use-telao-settings-sync";
 
 export const Route = createFileRoute("/_authenticated")({
   component: AuthLayout,
@@ -13,6 +14,7 @@ function AuthLayout() {
   const navigate = useNavigate();
   const [ready, setReady] = useState(false);
   const [authed, setAuthed] = useState(false);
+  useTelaoSettingsSync();
 
   useEffect(() => {
     const { data: sub } = supabase.auth.onAuthStateChange((_e, s) => {
