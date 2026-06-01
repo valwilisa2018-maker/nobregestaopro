@@ -11,6 +11,28 @@ import { toast } from "sonner";
 import { Loader2, Eye, EyeOff } from "lucide-react";
 import logoUrl from "@/assets/logo.png";
 
+const PASSWORD_RULES = [
+  { test: (p: string) => p.length >= 8, label: "Mínimo de 8 caracteres" },
+  { test: (p: string) => /[A-Z]/.test(p), label: "Pelo menos 1 letra maiúscula" },
+  { test: (p: string) => /[a-z]/.test(p), label: "Pelo menos 1 letra minúscula" },
+  { test: (p: string) => /\d/.test(p), label: "Pelo menos 1 número" },
+  { test: (p: string) => /[^A-Za-z0-9]/.test(p), label: "Pelo menos 1 caractere especial (!@#$...)" },
+];
+
+function translateAuthError(msg: string): string {
+  const m = msg.toLowerCase();
+  if (m.includes("password should be at least")) return "A senha é muito curta. Use no mínimo 8 caracteres.";
+  if (m.includes("password") && (m.includes("weak") || m.includes("pwned") || m.includes("compromised") || m.includes("breach"))) {
+    return "Essa senha foi vazada em vazamentos públicos. Escolha uma senha diferente e mais forte.";
+  }
+  if (m.includes("password")) return "Senha inválida. Verifique os requisitos de segurança abaixo.";
+  if (m.includes("invalid login credentials")) return "E-mail ou senha incorretos.";
+  if (m.includes("user already registered") || m.includes("already been registered")) return "Este e-mail já está cadastrado. Faça login.";
+  if (m.includes("email") && m.includes("invalid")) return "E-mail inválido.";
+  if (m.includes("rate limit")) return "Muitas tentativas. Aguarde alguns minutos e tente novamente.";
+  return msg;
+}
+
 export const Route = createFileRoute("/login")({
   component: LoginPage,
 });
@@ -39,12 +61,17 @@ function LoginPage() {
     setLoading(true);
     const { error } = await supabase.auth.signInWithPassword({ email, password });
     setLoading(false);
-    if (error) toast.error(error.message);
+    if (error) toast.error(translateAuthError(error.message));
     else toast.success("Bem-vindo!");
   };
 
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
+    const failed = PASSWORD_RULES.filter((r) => !r.test(password));
+    if (failed.length > 0) {
+      toast.error("Sua senha não atende aos requisitos:\n• " + failed.map((r) => r.label).join("\n• "));
+      return;
+    }
     setLoading(true);
     const { error } = await supabase.auth.signUp({
       email,
@@ -52,7 +79,7 @@ function LoginPage() {
       options: { data: { full_name: fullName }, emailRedirectTo: window.location.origin },
     });
     setLoading(false);
-    if (error) toast.error(error.message);
+    if (error) toast.error(translateAuthError(error.message));
     else toast.success("Conta criada! Você já pode entrar.");
   };
 
@@ -69,7 +96,7 @@ function LoginPage() {
       redirectTo: `${window.location.origin}/reset-password`,
     });
     setLoading(false);
-    if (error) toast.error(error.message);
+    if (error) toast.error(translateAuthError(error.message));
     else toast.success("Enviamos um link de recuperação para seu e-mail.");
   };
 
@@ -159,11 +186,21 @@ function LoginPage() {
                 <div className="space-y-2.5">
                   <Label>Senha</Label>
                   <div className="relative">
-                    <Input className="pr-10 border-2 border-foreground/20 bg-background/60 focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-primary/40" type={showSignupPassword ? "text" : "password"} value={password} onChange={(e) => setPassword(e.target.value)} required minLength={6} />
+                    <Input className="pr-10 border-2 border-foreground/20 bg-background/60 focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-primary/40" type={showSignupPassword ? "text" : "password"} value={password} onChange={(e) => setPassword(e.target.value)} required minLength={8} />
                     <button type="button" onClick={() => setShowSignupPassword((v) => !v)} aria-label={showSignupPassword ? "Ocultar senha" : "Mostrar senha"} className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
                       {showSignupPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                     </button>
                   </div>
+                  <ul className="text-xs space-y-1 mt-2">
+                    {PASSWORD_RULES.map((r) => {
+                      const ok = r.test(password);
+                      return (
+                        <li key={r.label} className={ok ? "text-emerald-500" : "text-muted-foreground"}>
+                          {ok ? "✓" : "•"} {r.label}
+                        </li>
+                      );
+                    })}
+                  </ul>
                 </div>
                 <Button type="submit" className="w-full" disabled={loading}>
                   {loading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}Criar conta
