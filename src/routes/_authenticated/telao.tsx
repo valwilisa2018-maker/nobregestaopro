@@ -510,7 +510,7 @@ function Telao() {
   useEffect(() => {
     const channel = supabase
       .channel("telao-sales")
-      .on("postgres_changes", { event: "INSERT", schema: "public", table: "sales" }, () => {
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "sales" }, (payload: any) => {
         qc.invalidateQueries({ queryKey: ["telao-sales"] });
         fireConfetti();
         if (soundEnabled) playSound(soundId);
@@ -518,6 +518,8 @@ function Telao() {
         setPulseHero(true);
         setTimeout(() => setFlash(false), 1800);
         setTimeout(() => setPulseHero(false), 2000);
+        const row = payload?.new as SaleRow | undefined;
+        if (row) showBigSeller(sellerNameOf(row));
       })
       .on("postgres_changes", { event: "UPDATE", schema: "public", table: "sales" }, () => {
         qc.invalidateQueries({ queryKey: ["telao-sales"] });
