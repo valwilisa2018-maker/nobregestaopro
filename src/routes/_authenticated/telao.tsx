@@ -732,6 +732,42 @@ function Telao() {
         .telao-kpi-pair { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
       `}</style>
 
+      {/* OVERLAY: nova venda - nome do vendedor gigante */}
+      {bigSeller && (
+        <div
+          className="fixed inset-0 z-[9999] flex flex-col items-center justify-center pointer-events-none"
+          style={{ background: "radial-gradient(circle at center, rgba(13,13,13,0.85) 0%, rgba(13,13,13,0.95) 70%)", backdropFilter: "blur(6px)" }}
+        >
+          <div
+            className="text-center px-8"
+            style={{ animation: "telao-big-in 0.7s cubic-bezier(.34,1.56,.64,1) 1" }}
+          >
+            <div
+              className="uppercase tracking-[0.5em] text-[#c9a84c] mb-4"
+              style={{ fontSize: "clamp(1rem, 2.5vw, 2rem)", animation: "telao-sub-bounce 0.6s ease-in-out infinite" }}
+            >
+              + Mais uma venda!
+            </div>
+            <div
+              className="font-black telao-shine leading-none"
+              style={{
+                fontSize: "clamp(4rem, 14vw, 18rem)",
+                letterSpacing: "-0.04em",
+                animation: "telao-big-glow 1.2s ease-in-out infinite",
+              }}
+            >
+              {bigSeller}
+            </div>
+            <div
+              className="mt-6 uppercase tracking-[0.4em] text-[#f0d78c]/80"
+              style={{ fontSize: "clamp(1rem, 2vw, 1.75rem)" }}
+            >
+              Parabéns!
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* DASHBOARD GRID */}
       <div className="telao-dash-grid">
         {/* HERO HOJE — Faturamento */}
