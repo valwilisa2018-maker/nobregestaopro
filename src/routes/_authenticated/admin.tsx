@@ -107,6 +107,27 @@ function AdminPage() {
     if (error) toast.error(error.message);
     else { qc.invalidateQueries({ queryKey: ["admin-packages"] }); qc.invalidateQueries({ queryKey: ["pkg-all"] }); }
   };
+  const [editPkg, setEditPkg] = useState<{ id: string; name: string; default_price: string } | null>(null);
+  const saveEditPackage = async () => {
+    if (!editPkg) return;
+    const { error } = await supabase.from("packages").update({
+      name: editPkg.name.trim() || "Pacote",
+      default_price: Number(editPkg.default_price || 0),
+    }).eq("id", editPkg.id);
+    if (error) { toast.error(error.message); return; }
+    toast.success("Pacote atualizado");
+    setEditPkg(null);
+    qc.invalidateQueries({ queryKey: ["admin-packages"] });
+    qc.invalidateQueries({ queryKey: ["pkg-all"] });
+  };
+  const deletePackage = async (id: string, name: string) => {
+    if (!confirm(`Excluir o pacote "${name}"? Esta ação não pode ser desfeita.`)) return;
+    const { error } = await supabase.from("packages").delete().eq("id", id);
+    if (error) { toast.error(error.message); return; }
+    toast.success("Pacote excluído");
+    qc.invalidateQueries({ queryKey: ["admin-packages"] });
+    qc.invalidateQueries({ queryKey: ["pkg-all"] });
+  };
 
   const updateGoal = async (id: string, amount: string) => {
     const { error } = await supabase.from("goals").update({ target_amount: Number(amount) }).eq("id", id);
