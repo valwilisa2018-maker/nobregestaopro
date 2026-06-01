@@ -89,9 +89,9 @@ function AdminPage() {
   const packages = useQuery({ queryKey: ["admin-packages"], queryFn: async () => (await supabase.from("packages").select("*").order("name")).data ?? [] });
   const [newPkg, setNewPkg] = useState({ name: "", quantity: "1", default_price: "" });
   const addPackage = async () => {
-    if (!newPkg.name.trim()) { toast.error("Informe o nome do pacote"); return; }
+    const nameTrim = newPkg.name.trim() || `Pacote ${new Date().toLocaleDateString("pt-BR")}`;
     const { error } = await supabase.from("packages").insert({
-      name: newPkg.name.trim(),
+      name: nameTrim,
       quantity: Number(newPkg.quantity || 1),
       default_price: Number(newPkg.default_price || 0),
       active: true,
