@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
-import { CheckCircle2, AlertCircle, AlertTriangle, Loader2 } from "lucide-react";
+import { CheckCircle2, AlertCircle, AlertTriangle, Loader2, Pencil, Trash2 } from "lucide-react";
 import { PagarmeCredentialCard } from "@/components/pagarme-credential-card";
 import { format } from "date-fns";
 import {
@@ -106,6 +106,27 @@ function AdminPage() {
     const { error } = await supabase.from("packages").update({ active: !active }).eq("id", id);
     if (error) toast.error(error.message);
     else { qc.invalidateQueries({ queryKey: ["admin-packages"] }); qc.invalidateQueries({ queryKey: ["pkg-all"] }); }
+  };
+  const [editPkg, setEditPkg] = useState<{ id: string; name: string; default_price: string } | null>(null);
+  const saveEditPackage = async () => {
+    if (!editPkg) return;
+    const { error } = await supabase.from("packages").update({
+      name: editPkg.name.trim() || "Pacote",
+      default_price: Number(editPkg.default_price || 0),
+    }).eq("id", editPkg.id);
+    if (error) { toast.error(error.message); return; }
+    toast.success("Pacote atualizado");
+    setEditPkg(null);
+    qc.invalidateQueries({ queryKey: ["admin-packages"] });
+    qc.invalidateQueries({ queryKey: ["pkg-all"] });
+  };
+  const deletePackage = async (id: string, name: string) => {
+    if (!confirm(`Excluir o pacote "${name}"? Esta ação não pode ser desfeita.`)) return;
+    const { error } = await supabase.from("packages").delete().eq("id", id);
+    if (error) { toast.error(error.message); return; }
+    toast.success("Pacote excluído");
+    qc.invalidateQueries({ queryKey: ["admin-packages"] });
+    qc.invalidateQueries({ queryKey: ["pkg-all"] });
   };
 
   const updateGoal = async (id: string, amount: string) => {
@@ -400,12 +421,31 @@ function AdminPage() {
                 <Button size="sm" variant={p.active ? "outline" : "secondary"} onClick={() => togglePackage(p.id, p.active)}>
                   {p.active ? "Desativar" : "Ativar"}
                 </Button>
+                <Button size="icon" variant="ghost" onClick={() => setEditPkg({ id: p.id, name: p.name, default_price: String(p.default_price ?? 0) })}>
+                  <Pencil className="w-4 h-4" />
+                </Button>
+                <Button size="icon" variant="ghost" onClick={() => deletePackage(p.id, p.name)}>
+                  <Trash2 className="w-4 h-4 text-destructive" />
+                </Button>
               </div>
             ))}
             {(packages.data ?? []).length === 0 && (
               <div className="text-sm text-muted-foreground p-4 text-center">Nenhum pacote cadastrado.</div>
             )}
           </div>
+          {editPkg && (
+            <Card className="border-border/50">
+              <CardHeader><CardTitle className="text-base">Editar pacote</CardTitle></CardHeader>
+              <CardContent className="grid gap-2 md:grid-cols-3">
+                <Input className="md:col-span-2" placeholder="Nome do pacote" value={editPkg.name} onChange={(e) => setEditPkg({ ...editPkg, name: e.target.value })} />
+                <Input type="number" step="0.01" placeholder="Preço sugerido (R$)" value={editPkg.default_price} onChange={(e) => setEditPkg({ ...editPkg, default_price: e.target.value })} />
+                <div className="md:col-span-3 flex gap-2">
+                  <Button onClick={saveEditPackage}>Salvar</Button>
+                  <Button variant="outline" onClick={() => setEditPkg(null)}>Cancelar</Button>
+                </div>
+              </CardContent>
+            </Card>
+          )}
         </TabsContent>
 
         <TabsContent value="nfe" className="mt-4 space-y-3">
