@@ -203,6 +203,7 @@ function SalesPage() {
         service_quantity: Number(editing.service_quantity || 1),
         notes: editing.notes || null,
         trello_link: editing.trello_link || null,
+        lead_source: editing.lead_source || null,
       }).eq("id", editing.id);
       if (error) throw error;
       toast.success("Venda atualizada");
