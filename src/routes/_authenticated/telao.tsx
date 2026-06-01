@@ -514,8 +514,8 @@ function Telao() {
       .channel("telao-sales")
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "sales" }, (payload: any) => {
         qc.invalidateQueries({ queryKey: ["telao-sales"] });
-        fireConfetti();
-        if (soundEnabled) playSound(soundId);
+        if (celebration.confettiEnabled) fireConfetti();
+        if (soundEnabled && celebration.soundEnabled) playSound(soundId, celebration.volume / 100);
         setFlash(true);
         setPulseHero(true);
         setTimeout(() => setFlash(false), 1800);
@@ -531,13 +531,13 @@ function Telao() {
       })
       .subscribe();
     return () => { supabase.removeChannel(channel); };
-  }, [qc, soundEnabled, soundId]);
+  }, [qc, soundEnabled, soundId, celebration.soundEnabled, celebration.confettiEnabled, celebration.volume]);
 
   // Detecta crescimento por polling como fallback
   useEffect(() => {
     if (lastCount !== null && todaySales.length > lastCount) {
-      fireConfetti();
-      if (soundEnabled) playSound(soundId);
+      if (celebration.confettiEnabled) fireConfetti();
+      if (soundEnabled && celebration.soundEnabled) playSound(soundId, celebration.volume / 100);
       setFlash(true);
       setPulseHero(true);
       setTimeout(() => setFlash(false), 1800);
