@@ -540,6 +540,8 @@ function Telao() {
       setPulseHero(true);
       setTimeout(() => setFlash(false), 1800);
       setTimeout(() => setPulseHero(false), 2000);
+      const newest = todaySales[0];
+      if (newest) showBigSeller(sellerNameOf(newest));
     }
     setLastCount(todaySales.length);
     // eslint-disable-next-line react-hooks/exhaustive-deps
