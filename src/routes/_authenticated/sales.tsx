@@ -94,6 +94,19 @@ function SalesPage() {
         receipt_url,
         sale_date: form.sale_date || new Date().toISOString().slice(0, 10),
         created_by: user?.id,
+      }).select("id").single().then(async (res) => {
+        if (res.error) return { error: res.error };
+        if (receipt_url && res.data?.id) {
+          await supabase.from("sale_receipts").insert({
+            sale_id: res.data.id,
+            file_path: receipt_url,
+            amount: Number(form.paid_amount || 0),
+            paid_at: form.sale_date || new Date().toISOString().slice(0, 10),
+            uploaded_by: user?.id ?? null,
+            notes: "Comprovante inicial",
+          });
+        }
+        return { error: null };
       });
       if (se) throw se;
       toast.success("Venda criada — cards de produção gerados automaticamente");

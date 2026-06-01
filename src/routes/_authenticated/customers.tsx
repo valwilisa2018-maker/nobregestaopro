@@ -10,9 +10,10 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { MessageCircle, Search, Mail, Phone, Building2, FileText } from "lucide-react";
+import { MessageCircle, Search, Mail, Phone, Building2, FileText, Paperclip, Loader2 } from "lucide-react";
 import { formatCurrency } from "@/lib/auth";
 import { fmtDate } from "@/lib/format";
+import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/customers")({
   component: CustomersPage,
@@ -39,13 +40,53 @@ function CustomersPage() {
   const [month, setMonth] = useState<string>("all");
   const [search, setSearch] = useState("");
   const [selected, setSelected] = useState<any | null>(null);
+  const [receiptsSale, setReceiptsSale] = useState<any | null>(null);
+  const [receipts, setReceipts] = useState<any[]>([]);
+  const [loadingReceipts, setLoadingReceipts] = useState(false);
+
+  const openReceipts = async (sale: any) => {
+    setReceiptsSale(sale);
+    setReceipts([]);
+    setLoadingReceipts(true);
+    try {
+      const { data, error } = await supabase
+        .from("sale_receipts")
+        .select("id, file_path, amount, paid_at, notes, created_at")
+        .eq("sale_id", sale.id)
+        .order("paid_at", { ascending: false });
+      if (error) throw error;
+      let list = data ?? [];
+      // Fallback: include legacy receipt_url if no rows
+      if (list.length === 0 && sale.receipt_url) {
+        list = [{
+          id: "legacy",
+          file_path: sale.receipt_url,
+          amount: sale.paid_amount ?? 0,
+          paid_at: sale.sale_date,
+          notes: "Comprovante inicial",
+          created_at: sale.created_at ?? new Date().toISOString(),
+        }];
+      }
+      setReceipts(list);
+    } catch (e: any) {
+      toast.error(e.message ?? "Erro ao carregar comprovantes");
+    } finally {
+      setLoadingReceipts(false);
+    }
+  };
+
+  const openReceiptFile = async (filePath: string) => {
+    const { data, error } = await supabase.storage.from("receipts").createSignedUrl(filePath, 60);
+    if (error || !data?.signedUrl) { toast.error("Não foi possível abrir o comprovante"); return; }
+    window.open(data.signedUrl, "_blank", "noopener,noreferrer");
+  };
 
   const q = useQuery({
     queryKey: ["customers-all"],
     queryFn: async () => {
       const { data } = await supabase
         .from("customers")
-        .select("*, sales(id, sale_date, total_amount, paid_amount, payment_status, payment_method, service_quantity, notes, seller_id, service_type_id, producer_id, package_id, created_at)")
+        .select("*, sales(id, sale_date, total_amount, paid_amount, payment_status, payment_method, service_quantity, notes, seller_id, service_type_id, producer_id, package_id, receipt_url, created_at)")
         .order("created_at", { ascending: false });
       return data ?? [];
     },
@@ -285,11 +326,12 @@ function CustomersPage() {
                         <TableHead className="text-right">Valor</TableHead>
                         <TableHead className="text-right">Pago</TableHead>
                         <TableHead>Status</TableHead>
+                        <TableHead>Comprov.</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       {selected._sales.length === 0 && (
-                        <TableRow><TableCell colSpan={8} className="text-center text-muted-foreground py-6">Sem compras no período selecionado</TableCell></TableRow>
+                        <TableRow><TableCell colSpan={9} className="text-center text-muted-foreground py-6">Sem compras no período selecionado</TableCell></TableRow>
                       )}
                       {selected._sales
                         .slice()
@@ -315,12 +357,44 @@ function CustomersPage() {
                                 {s.payment_status}
                               </Badge>
                             </TableCell>
+                            <TableCell>
+                              <Button size="sm" variant="outline" onClick={() => openReceipts(s)}>
+                                <Paperclip className="w-3.5 h-3.5 mr-1" /> Ver
+                              </Button>
+                            </TableCell>
                           </TableRow>
                         ))}
                     </TableBody>
                   </Table>
                 </div>
               </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={!!receiptsSale} onOpenChange={(o) => !o && setReceiptsSale(null)}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Comprovantes da venda</DialogTitle>
+          </DialogHeader>
+          {loadingReceipts ? (
+            <div className="py-8 text-center"><Loader2 className="w-5 h-5 animate-spin inline" /></div>
+          ) : receipts.length === 0 ? (
+            <div className="py-6 text-center text-sm text-muted-foreground">Nenhum comprovante anexado.</div>
+          ) : (
+            <div className="space-y-2">
+              {receipts.map((r) => (
+                <div key={r.id} className="flex items-center justify-between border rounded-md px-3 py-2">
+                  <div className="text-sm">
+                    <div className="font-medium">{fmtDate(r.paid_at)} — {formatCurrency(r.amount)}</div>
+                    {r.notes && <div className="text-xs text-muted-foreground">{r.notes}</div>}
+                  </div>
+                  <Button size="sm" variant="outline" onClick={() => openReceiptFile(r.file_path)}>
+                    <Paperclip className="w-3.5 h-3.5 mr-1" /> Abrir
+                  </Button>
+                </div>
+              ))}
             </div>
           )}
         </DialogContent>
