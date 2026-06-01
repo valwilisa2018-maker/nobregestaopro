@@ -414,6 +414,47 @@ export type Database = {
         }
         Relationships: []
       }
+      sale_receipts: {
+        Row: {
+          amount: number
+          created_at: string
+          file_path: string
+          id: string
+          notes: string | null
+          paid_at: string
+          sale_id: string
+          uploaded_by: string | null
+        }
+        Insert: {
+          amount?: number
+          created_at?: string
+          file_path: string
+          id?: string
+          notes?: string | null
+          paid_at?: string
+          sale_id: string
+          uploaded_by?: string | null
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          file_path?: string
+          id?: string
+          notes?: string | null
+          paid_at?: string
+          sale_id?: string
+          uploaded_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sale_receipts_sale_id_fkey"
+            columns: ["sale_id"]
+            isOneToOne: false
+            referencedRelation: "sales"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       sales: {
         Row: {
           created_at: string
