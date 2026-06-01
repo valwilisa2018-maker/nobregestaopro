@@ -510,40 +510,11 @@ function ResetPlatformTab() {
     }
     setLoading(true);
     try {
-      // Ordem importa por causa das dependências (invoices/service_orders referenciam sales)
-      const tables = [
-        "invoices",
-        "service_orders",
-        "cash_movements",
-        "expenses",
-        "sales",
-        "packages",
-        "customers",
-      ] as const;
-      const counts: Record<string, number> = {};
-      for (const t of tables) {
-        const { count: before } = await supabase
-          .from(t)
-          .select("id", { count: "exact", head: true });
-        const { error } = await supabase
-          .from(t)
-          .delete()
-          .not("id", "is", null);
-        if (error) throw new Error(`${t}: ${error.message}`);
-        counts[t] = before ?? 0;
-      }
-
-      const totalDeleted = Object.values(counts).reduce((a, b) => a + b, 0);
-      const { data: userRes } = await supabase.auth.getUser();
-      const user = userRes.user;
-      if (user) {
-        await supabase.from("audit_logs").insert({
-          action: "platform_reset",
-          performed_by: user.id,
-          performed_by_email: user.email ?? null,
-          details: { tables: counts, total_deleted: totalDeleted },
-        });
-      }
+      // Executa via função SECURITY DEFINER no banco: bypassa RLS, valida admin
+      // e respeita a ordem correta das dependências (sale_receipts, invoices,
+      // service_orders, cash_movements, expenses, sales, packages, customers).
+      const { error } = await supabase.rpc("admin_reset_platform");
+      if (error) throw new Error(error.message);
 
       toast.success("Plataforma resetada com sucesso");
       setConfirmText("");
