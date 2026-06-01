@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useNavigate } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -17,6 +17,10 @@ import {
   TELAO_THRESHOLD_DEFAULT,
   TELAO_THRESHOLD_MIN,
   TELAO_THRESHOLD_MAX,
+  useBigSellerOverlaySeconds,
+  TELAO_OVERLAY_DEFAULT,
+  TELAO_OVERLAY_MIN,
+  TELAO_OVERLAY_MAX,
 } from "@/hooks/use-telao-settings";
 import { useCelebrationSettings } from "@/hooks/use-celebration-settings";
 import { Switch } from "@/components/ui/switch";
@@ -443,6 +447,7 @@ function AdminPage() {
 
         <TabsContent value="telao" className="mt-4 space-y-3">
           <TelaoSettingsTab />
+          <TelaoOverlayDurationCard />
           <CelebrationSettingsCard />
         </TabsContent>
 
@@ -741,6 +746,72 @@ function TelaoSettingsTab() {
 }
 
 function CelebrationSettingsCard() {
+  return <CelebrationSettingsCardInner />;
+}
+
+function TelaoOverlayDurationCard() {
+  const [seconds, setSeconds] = useBigSellerOverlaySeconds();
+  const [draft, setDraft] = useState<string>(String(seconds));
+
+  useEffect(() => {
+    setDraft(String(seconds));
+  }, [seconds]);
+
+  const save = () => {
+    const n = Number(draft);
+    if (!Number.isFinite(n) || n < TELAO_OVERLAY_MIN || n > TELAO_OVERLAY_MAX) {
+      toast.error(`Informe um número entre ${TELAO_OVERLAY_MIN} e ${TELAO_OVERLAY_MAX} segundos`);
+      return;
+    }
+    setSeconds(n);
+    toast.success("Tempo de exibição do overlay salvo");
+  };
+
+  return (
+    <Card className="border-border/50">
+      <CardHeader>
+        <CardTitle className="text-base">Tempo de exibição do overlay</CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-4 text-sm">
+        <p className="text-muted-foreground">
+          Define por quantos segundos o overlay de destaque (nome do vendedor, valor da venda
+          e "+ Mais uma venda!") fica visível no centro do telão após uma nova venda.
+        </p>
+        <div className="grid gap-3 md:grid-cols-[200px_auto] items-end">
+          <div className="space-y-1">
+            <Label>Duração (segundos)</Label>
+            <Input
+              type="number"
+              min={TELAO_OVERLAY_MIN}
+              max={TELAO_OVERLAY_MAX}
+              value={draft}
+              onChange={(e) => setDraft(e.target.value)}
+            />
+          </div>
+          <div className="flex gap-2">
+            <Button onClick={save}>Salvar</Button>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setDraft(String(TELAO_OVERLAY_DEFAULT));
+                setSeconds(TELAO_OVERLAY_DEFAULT);
+                toast.success("Restaurado para o padrão");
+              }}
+            >
+              Padrão ({TELAO_OVERLAY_DEFAULT}s)
+            </Button>
+          </div>
+        </div>
+        <div className="text-xs text-muted-foreground">
+          Valor atual aplicado: <strong>{seconds} segundos</strong>. A configuração é salva
+          neste navegador e aplicada imediatamente ao abrir o telão.
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+function CelebrationSettingsCardInner() {
   const [settings, update] = useCelebrationSettings();
 
   const preview = () => {
