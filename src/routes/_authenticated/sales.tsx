@@ -54,7 +54,7 @@ function SalesPage() {
     total_amount: "", paid_amount: "0", payment_status: "pendente",
     payment_method: "pix", seller_id: "", producer_id: "", service_type_id: "",
     package_id: "", package_name: "", service_quantity: "1", notes: "", trello_link: "",
-    sale_date: new Date().toISOString().slice(0, 10),
+    sale_date: new Date().toISOString().slice(0, 10), lead_source: "",
   });
   const set = (k: string, v: string) => setForm((f) => ({ ...f, [k]: v }));
 
@@ -96,6 +96,7 @@ function SalesPage() {
       ["service_quantity", "Qtd. serviços"],
       ["sale_date", "Data da venda"],
       ["trello_link", "Link Trello"],
+      ["lead_source", "Origem da venda"],
     ];
     for (const [k, label] of required) {
       if (!String((form as any)[k] ?? "").trim()) {
@@ -151,6 +152,7 @@ function SalesPage() {
         service_quantity: Number(form.service_quantity || 1),
         notes: form.notes || null,
         trello_link: form.trello_link || null,
+        lead_source: form.lead_source || null,
         receipt_url,
         sale_date: form.sale_date || new Date().toISOString().slice(0, 10),
         created_by: user?.id,
@@ -201,6 +203,7 @@ function SalesPage() {
         service_quantity: Number(editing.service_quantity || 1),
         notes: editing.notes || null,
         trello_link: editing.trello_link || null,
+        lead_source: editing.lead_source || null,
       }).eq("id", editing.id);
       if (error) throw error;
       toast.success("Venda atualizada");
@@ -308,6 +311,20 @@ function SalesPage() {
               </div>
               <div><Label>Qtd. serviços *</Label><Input type="number" min="1" value={form.service_quantity} onChange={(e) => set("service_quantity", e.target.value)} /></div>
               <div><Label>Data da venda *</Label><Input type="date" value={form.sale_date} onChange={(e) => set("sale_date", e.target.value)} /></div>
+              <div className="col-span-2"><Label>Origem da venda *</Label>
+                <Select value={form.lead_source} onValueChange={(v) => set("lead_source", v)}>
+                  <SelectTrigger><SelectValue placeholder="Selecione a origem" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="cliente_recuperacao">Cliente Recuperação</SelectItem>
+                    <SelectItem value="trafego_pago">Tráfego Pago</SelectItem>
+                    <SelectItem value="indicacao">Indicação</SelectItem>
+                    <SelectItem value="organico">Orgânico / Redes Sociais</SelectItem>
+                    <SelectItem value="cliente_antigo">Cliente Antigo</SelectItem>
+                    <SelectItem value="prospeccao">Prospecção Ativa</SelectItem>
+                    <SelectItem value="outros">Outros</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
               <div className="col-span-2">
                 <Label>Link Trello / card externo *</Label>
                 <div className="flex gap-2">
@@ -442,6 +459,20 @@ function SalesPage() {
                 </Select>
               </div>
               <div><Label>Qtd. serviços</Label><Input type="number" min="1" value={editing.service_quantity ?? 1} onChange={(e) => editSet("service_quantity", e.target.value)} /></div>
+              <div className="col-span-2"><Label>Origem da venda</Label>
+                <Select value={editing.lead_source ?? ""} onValueChange={(v) => editSet("lead_source", v)}>
+                  <SelectTrigger><SelectValue placeholder="Selecione a origem" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="cliente_recuperacao">Cliente Recuperação</SelectItem>
+                    <SelectItem value="trafego_pago">Tráfego Pago</SelectItem>
+                    <SelectItem value="indicacao">Indicação</SelectItem>
+                    <SelectItem value="organico">Orgânico / Redes Sociais</SelectItem>
+                    <SelectItem value="cliente_antigo">Cliente Antigo</SelectItem>
+                    <SelectItem value="prospeccao">Prospecção Ativa</SelectItem>
+                    <SelectItem value="outros">Outros</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
               <div className="col-span-2">
                 <Label>Link Trello</Label>
                 <div className="flex gap-2">
