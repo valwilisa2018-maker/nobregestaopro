@@ -191,10 +191,10 @@ function Telao() {
   const [flash, setFlash] = useState(false);
   const [kiosk, setKiosk] = useState(false);
   const [pulseHero, setPulseHero] = useState(false);
-  const [bigSeller, setBigSeller] = useState<string | null>(null);
+  const [bigSeller, setBigSeller] = useState<{ name: string; amount: number } | null>(null);
   const bigSellerTimer = useRef<number | null>(null);
-  const showBigSeller = (name: string) => {
-    setBigSeller(name || "Vendedor");
+  const showBigSeller = (name: string, amount: number) => {
+    setBigSeller({ name: name || "Vendedor", amount: Number(amount) || 0 });
     if (bigSellerTimer.current) window.clearTimeout(bigSellerTimer.current);
     bigSellerTimer.current = window.setTimeout(() => setBigSeller(null), 4500);
   };
