@@ -42,6 +42,17 @@ function InvoicesPage() {
   const [saving, setSaving] = useState(false);
   const [uploadingId, setUploadingId] = useState<string | null>(null);
   const [dialogFile, setDialogFile] = useState<File | null>(null);
+  const [detail, setDetail] = useState<any | null>(null);
+  const detailSale = useQuery({
+    queryKey: ["invoice-detail-sale", detail?.sale_id],
+    enabled: !!detail?.sale_id,
+    queryFn: async () => (await supabase.from("sales").select("*, sellers(name), service_types(name), producers(name), packages(name)").eq("id", detail!.sale_id).maybeSingle()).data,
+  });
+  const detailCustomer = useQuery({
+    queryKey: ["invoice-detail-customer", detail?.customer_id],
+    enabled: !!detail?.customer_id,
+    queryFn: async () => (await supabase.from("customers").select("*").eq("id", detail!.customer_id).maybeSingle()).data,
+  });
   const [form, setForm] = useState({
     customer_id: "", sale_id: "", number: "", amount: "", issued_at: "",
     status: "a_fazer", notes: "",
@@ -423,14 +434,14 @@ function InvoicesPage() {
                 const meta = STATUS_META[i.status] ?? STATUS_META.a_fazer;
                 const Icon = meta.icon;
                 return (
-                  <TableRow key={i.id}>
-                    <TableCell className="font-medium">{i.number ?? "—"}</TableCell>
-                    <TableCell>
+                  <TableRow key={i.id} className="cursor-pointer hover:bg-muted/40">
+                    <TableCell className="font-medium" onClick={() => setDetail(i)}>{i.number ?? "—"}</TableCell>
+                    <TableCell onClick={() => setDetail(i)}>
                       <div className="font-medium">{i.customers?.name}</div>
                       {i.customers?.company && <div className="text-xs text-muted-foreground">{i.customers.company}</div>}
                     </TableCell>
-                    <TableCell className="text-right font-semibold">{formatCurrency(i.amount)}</TableCell>
-                    <TableCell>{fmtDate(i.issued_at)}</TableCell>
+                    <TableCell className="text-right font-semibold" onClick={() => setDetail(i)}>{formatCurrency(i.amount)}</TableCell>
+                    <TableCell onClick={() => setDetail(i)}>{fmtDate(i.issued_at)}</TableCell>
                     <TableCell>
                       <Select value={i.status} onValueChange={(v) => updateStatus(i.id, v)}>
                         <SelectTrigger className="h-8 w-[200px]">
@@ -474,17 +485,17 @@ function InvoicesPage() {
                 const Icon = meta.icon;
                 const upKey = g.ids.join("-").slice(0, 40);
                 return (
-                  <TableRow key={g.key}>
-                    <TableCell className="font-medium">
+                  <TableRow key={g.key} className="cursor-pointer hover:bg-muted/40">
+                    <TableCell className="font-medium" onClick={() => setDetail({ ...g, id: g.ids[0] })}>
                       {g.number ?? "—"}
                       {g.count > 1 && <Badge variant="secondary" className="ml-2">{g.count} itens</Badge>}
                     </TableCell>
-                    <TableCell>
+                    <TableCell onClick={() => setDetail({ ...g, id: g.ids[0] })}>
                       <div className="font-medium">{g.customers?.name}</div>
                       {g.customers?.company && <div className="text-xs text-muted-foreground">{g.customers.company}</div>}
                     </TableCell>
-                    <TableCell className="text-right font-semibold">{formatCurrency(g.amount)}</TableCell>
-                    <TableCell>{fmtDate(g.issued_at)}</TableCell>
+                    <TableCell className="text-right font-semibold" onClick={() => setDetail({ ...g, id: g.ids[0] })}>{formatCurrency(g.amount)}</TableCell>
+                    <TableCell onClick={() => setDetail({ ...g, id: g.ids[0] })}>{fmtDate(g.issued_at)}</TableCell>
                     <TableCell>
                       <Select value={g.status} onValueChange={(v) => updateStatusBulk(g.ids, v)}>
                         <SelectTrigger className="h-8 w-[200px]">
@@ -535,6 +546,64 @@ function InvoicesPage() {
           </Table>
         </CardContent>
       </Card>
+
+      <Dialog open={!!detail} onOpenChange={(o) => !o && setDetail(null)}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Detalhes da nota fiscal</DialogTitle>
+          </DialogHeader>
+          {detail && (
+            <div className="space-y-4 text-sm">
+              <div className="grid grid-cols-2 gap-3">
+                <div><div className="text-xs text-muted-foreground">Número</div><div className="font-medium">{detail.number ?? "—"}</div></div>
+                <div><div className="text-xs text-muted-foreground">Status</div><div className="font-medium">{STATUS_META[detail.status]?.label ?? detail.status}</div></div>
+                <div><div className="text-xs text-muted-foreground">Valor</div><div className="font-semibold">{formatCurrency(detail.amount)}</div></div>
+                <div><div className="text-xs text-muted-foreground">Emissão</div><div className="font-medium">{fmtDate(detail.issued_at)}</div></div>
+                {detail.count > 1 && (
+                  <div className="col-span-2"><Badge variant="secondary">{detail.count} notas agrupadas</Badge></div>
+                )}
+                {detail.notes && (
+                  <div className="col-span-2"><div className="text-xs text-muted-foreground">Observações</div><div className="font-medium whitespace-pre-wrap">{detail.notes}</div></div>
+                )}
+              </div>
+
+              <div className="rounded-lg border border-border/60 bg-muted/40 p-3 space-y-1">
+                <div className="font-semibold mb-1">Cliente</div>
+                <div className="flex justify-between gap-2"><span className="text-muted-foreground">Nome</span><span className="font-medium">{detailCustomer.data?.name ?? detail.customers?.name ?? "—"}</span></div>
+                <div className="flex justify-between gap-2"><span className="text-muted-foreground">Empresa</span><span className="font-medium">{detailCustomer.data?.company ?? detail.customers?.company ?? "—"}</span></div>
+                <div className="flex justify-between gap-2"><span className="text-muted-foreground">CPF/CNPJ</span><span className="font-medium">{detailCustomer.data?.document ?? "—"}</span></div>
+                <div className="flex justify-between gap-2"><span className="text-muted-foreground">E-mail</span><span className="font-medium">{detailCustomer.data?.email ?? "—"}</span></div>
+                <div className="flex justify-between gap-2"><span className="text-muted-foreground">Telefone</span><span className="font-medium">{detailCustomer.data?.phone ?? detail.customers?.phone ?? "—"}</span></div>
+                {detailCustomer.data?.address && (
+                  <div className="flex justify-between gap-2"><span className="text-muted-foreground">Endereço</span><span className="font-medium text-right">{detailCustomer.data.address}</span></div>
+                )}
+              </div>
+
+              {detail.sale_id && detailSale.data && (
+                <div className="rounded-lg border border-border/60 bg-muted/40 p-3 space-y-1">
+                  <div className="font-semibold mb-1">Venda relacionada</div>
+                  <div className="flex justify-between gap-2"><span className="text-muted-foreground">Data</span><span className="font-medium">{fmtDate(detailSale.data.sale_date)}</span></div>
+                  <div className="flex justify-between gap-2"><span className="text-muted-foreground">Serviço</span><span className="font-medium">{detailSale.data.packages?.name ?? detailSale.data.service_types?.name ?? "—"}</span></div>
+                  <div className="flex justify-between gap-2"><span className="text-muted-foreground">Vendedor</span><span className="font-medium">{detailSale.data.sellers?.name ?? "—"}</span></div>
+                  <div className="flex justify-between gap-2"><span className="text-muted-foreground">Produtor</span><span className="font-medium">{detailSale.data.producers?.name ?? "—"}</span></div>
+                  <div className="flex justify-between gap-2"><span className="text-muted-foreground">Qtd. serviços</span><span className="font-medium">{detailSale.data.service_quantity ?? 1}</span></div>
+                  <div className="flex justify-between gap-2"><span className="text-muted-foreground">Total</span><span className="font-medium">{formatCurrency(detailSale.data.total_amount)}</span></div>
+                  <div className="flex justify-between gap-2"><span className="text-muted-foreground">Pago</span><span className="font-medium">{formatCurrency(detailSale.data.paid_amount)}</span></div>
+                  <div className="flex justify-between gap-2"><span className="text-muted-foreground">Pagamento</span><span className="font-medium">{detailSale.data.payment_status} · {detailSale.data.payment_method ?? "—"}</span></div>
+                </div>
+              )}
+
+              {detail.file_url && (
+                <div>
+                  <Button asChild variant="outline">
+                    <a href={detail.file_url} target="_blank" rel="noreferrer"><ExternalLink className="w-4 h-4 mr-2" />Abrir arquivo da nota</a>
+                  </Button>
+                </div>
+              )}
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
