@@ -176,7 +176,7 @@ function AdminPage() {
               placeholder="Digite a senha"
             />
             <Button className="w-full" onClick={tryUnlock}>Entrar</Button>
-            <Button variant="outline" className="w-full" onClick={() => window.history.back()}>Voltar</Button>
+            <Button variant="outline" className="w-full" onClick={() => navigate({ to: "/dashboard" })}>Voltar</Button>
           </CardContent>
         </Card>
       </div>
