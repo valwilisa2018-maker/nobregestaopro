@@ -64,6 +64,7 @@ function CustomersPage() {
           amount: sale.paid_amount ?? 0,
           paid_at: sale.sale_date,
           notes: "Comprovante inicial",
+          created_at: sale.created_at ?? new Date().toISOString(),
         }];
       }
       setReceipts(list);
