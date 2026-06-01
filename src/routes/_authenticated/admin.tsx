@@ -89,9 +89,9 @@ function AdminPage() {
   const packages = useQuery({ queryKey: ["admin-packages"], queryFn: async () => (await supabase.from("packages").select("*").order("name")).data ?? [] });
   const [newPkg, setNewPkg] = useState({ name: "", quantity: "1", default_price: "" });
   const addPackage = async () => {
-    if (!newPkg.name.trim()) { toast.error("Informe o nome do pacote"); return; }
+    const nameTrim = newPkg.name.trim() || `Pacote ${new Date().toLocaleDateString("pt-BR")}`;
     const { error } = await supabase.from("packages").insert({
-      name: newPkg.name.trim(),
+      name: nameTrim,
       quantity: Number(newPkg.quantity || 1),
       default_price: Number(newPkg.default_price || 0),
       active: true,
@@ -387,7 +387,7 @@ function AdminPage() {
         <TabsContent value="packages" className="mt-4 space-y-3">
           <Card className="border-border/50"><CardHeader><CardTitle className="text-base">Adicionar pacote</CardTitle></CardHeader>
             <CardContent className="grid gap-2 md:grid-cols-4">
-              <Input className="md:col-span-2" placeholder="Nome do pacote" value={newPkg.name} onChange={(e) => setNewPkg({ ...newPkg, name: e.target.value })} />
+              <Input className="md:col-span-2" placeholder="Nome do pacote (opcional)" value={newPkg.name} onChange={(e) => setNewPkg({ ...newPkg, name: e.target.value })} />
               <Input type="number" min="1" placeholder="Qtd. serviços" value={newPkg.quantity} onChange={(e) => setNewPkg({ ...newPkg, quantity: e.target.value })} />
               <Input type="number" step="0.01" placeholder="Preço sugerido (R$)" value={newPkg.default_price} onChange={(e) => setNewPkg({ ...newPkg, default_price: e.target.value })} />
               <Button className="md:col-span-4" onClick={addPackage}>Adicionar pacote</Button>
