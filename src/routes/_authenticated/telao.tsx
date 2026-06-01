@@ -598,6 +598,9 @@ function Telao() {
         @keyframes telao-shine { 0% { background-position: -200% 0; } 100% { background-position: 200% 0; } }
         @keyframes telao-pop { 0% { transform: scale(0.85); opacity: 0; } 60% { transform: scale(1.05); opacity: 1; } 100% { transform: scale(1); } }
         @keyframes telao-rotate-in { 0% { opacity: 0; transform: translateY(14px); filter: blur(4px); } 100% { opacity: 1; transform: translateY(0); filter: blur(0); } }
+        @keyframes telao-big-in { 0% { opacity: 0; transform: scale(0.4) rotate(-6deg); filter: blur(12px); } 60% { opacity: 1; transform: scale(1.08) rotate(2deg); filter: blur(0); } 100% { opacity: 1; transform: scale(1) rotate(0); } }
+        @keyframes telao-big-glow { 0%,100% { text-shadow: 0 0 30px rgba(240,215,140,0.6), 0 0 80px rgba(201,168,76,0.4); } 50% { text-shadow: 0 0 60px rgba(240,215,140,1), 0 0 140px rgba(201,168,76,0.9); } }
+        @keyframes telao-sub-bounce { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }
         .telao-pulse { animation: telao-pulse-gold 1.8s ease-out 1; }
         .telao-marquee { display: flex; flex-wrap: nowrap; gap: 0; width: max-content; min-width: max-content; white-space: nowrap; animation: telao-scroll-x 25s linear infinite; will-change: transform; backface-visibility: hidden; transform: translate3d(0,0,0); }
         .telao-marquee:hover { animation-play-state: paused; }
