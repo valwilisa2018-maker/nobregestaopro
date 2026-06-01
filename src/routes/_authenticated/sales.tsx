@@ -54,7 +54,32 @@ function SalesPage() {
   const set = (k: string, v: string) => setForm((f) => ({ ...f, [k]: v }));
 
   const submit = async () => {
-    if (!form.customer_name || !form.total_amount) { toast.error("Cliente e valor são obrigatórios"); return; }
+    const required: [string, string][] = [
+      ["customer_name", "Nome do cliente"],
+      ["company", "Empresa"],
+      ["document", "CPF/CNPJ"],
+      ["phone", "Telefone"],
+      ["email", "E-mail"],
+      ["total_amount", "Valor total"],
+      ["paid_amount", "Valor pago"],
+      ["payment_status", "Status pagamento"],
+      ["payment_method", "Forma de pagamento"],
+      ["seller_id", "Vendedor"],
+      ["producer_id", "Produtor"],
+      ["service_type_id", "Tipo de serviço"],
+      ["package_name", "Nome do pacote"],
+      ["service_quantity", "Qtd. serviços"],
+      ["sale_date", "Data da venda"],
+      ["trello_link", "Link Trello"],
+      ["notes", "Observações"],
+    ];
+    for (const [k, label] of required) {
+      if (!String((form as any)[k] ?? "").trim()) {
+        toast.error(`Preencha o campo: ${label}`);
+        return;
+      }
+    }
+    if (!receiptFile) { toast.error("Anexe o comprovante"); return; }
     setSaving(true);
     try {
       const { data: cust, error: ce } = await supabase.from("customers").insert({
@@ -164,13 +189,13 @@ function SalesPage() {
             <DialogHeader><DialogTitle>Nova Venda</DialogTitle></DialogHeader>
             <div className="grid grid-cols-2 gap-3">
               <div className="col-span-2"><Label>Nome do cliente *</Label><Input value={form.customer_name} onChange={(e) => set("customer_name", e.target.value)} /></div>
-              <div><Label>Empresa</Label><Input value={form.company} onChange={(e) => set("company", e.target.value)} /></div>
-              <div><Label>CPF/CNPJ</Label><Input value={form.document} onChange={(e) => set("document", e.target.value)} /></div>
-              <div><Label>Telefone</Label><Input value={form.phone} onChange={(e) => set("phone", e.target.value)} /></div>
-              <div><Label>E-mail</Label><Input value={form.email} onChange={(e) => set("email", e.target.value)} /></div>
+              <div><Label>Empresa *</Label><Input value={form.company} onChange={(e) => set("company", e.target.value)} /></div>
+              <div><Label>CPF/CNPJ *</Label><Input value={form.document} onChange={(e) => set("document", e.target.value)} /></div>
+              <div><Label>Telefone *</Label><Input value={form.phone} onChange={(e) => set("phone", e.target.value)} /></div>
+              <div><Label>E-mail *</Label><Input value={form.email} onChange={(e) => set("email", e.target.value)} /></div>
               <div><Label>Valor total *</Label><Input type="number" step="0.01" value={form.total_amount} onChange={(e) => set("total_amount", e.target.value)} /></div>
-              <div><Label>Valor pago</Label><Input type="number" step="0.01" value={form.paid_amount} onChange={(e) => set("paid_amount", e.target.value)} /></div>
-              <div><Label>Status pagamento</Label>
+              <div><Label>Valor pago *</Label><Input type="number" step="0.01" value={form.paid_amount} onChange={(e) => set("paid_amount", e.target.value)} /></div>
+              <div><Label>Status pagamento *</Label>
                 <Select value={form.payment_status} onValueChange={(v) => set("payment_status", v)}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
@@ -180,7 +205,7 @@ function SalesPage() {
                   </SelectContent>
                 </Select>
               </div>
-              <div><Label>Forma de pagamento</Label>
+              <div><Label>Forma de pagamento *</Label>
                 <Select value={form.payment_method} onValueChange={(v) => set("payment_method", v)}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
@@ -190,25 +215,25 @@ function SalesPage() {
                   </SelectContent>
                 </Select>
               </div>
-              <div><Label>Vendedor</Label>
+              <div><Label>Vendedor *</Label>
                 <Select value={form.seller_id} onValueChange={(v) => set("seller_id", v)}>
                   <SelectTrigger><SelectValue placeholder="—" /></SelectTrigger>
                   <SelectContent>{(sellers.data ?? []).map((s: any) => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}</SelectContent>
                 </Select>
               </div>
-              <div><Label>Produtor</Label>
+              <div><Label>Produtor *</Label>
                 <Select value={form.producer_id} onValueChange={(v) => set("producer_id", v)}>
                   <SelectTrigger><SelectValue placeholder="—" /></SelectTrigger>
                   <SelectContent>{(producers.data ?? []).map((p: any) => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}</SelectContent>
                 </Select>
               </div>
-              <div><Label>Tipo de serviço</Label>
+              <div><Label>Tipo de serviço *</Label>
                 <Select value={form.service_type_id} onValueChange={(v) => set("service_type_id", v)}>
                   <SelectTrigger><SelectValue placeholder="—" /></SelectTrigger>
                   <SelectContent>{(serviceTypes.data ?? []).map((s: any) => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}</SelectContent>
                 </Select>
               </div>
-              <div><Label>Pacote</Label>
+              <div><Label>Pacote (opcional)</Label>
                 <Select value={form.package_id} onValueChange={(v) => set("package_id", v)}>
                   <SelectTrigger><SelectValue placeholder="—" /></SelectTrigger>
                   <SelectContent>
@@ -223,12 +248,12 @@ function SalesPage() {
                   </SelectContent>
                 </Select>
               </div>
-              <div><Label>Nome do pacote</Label><Input value={form.package_name} onChange={(e) => set("package_name", e.target.value)} placeholder="Ex: Pacote Casamento João" /></div>
-              <div><Label>Qtd. serviços no pacote</Label><Input type="number" min="1" value={form.service_quantity} onChange={(e) => set("service_quantity", e.target.value)} /></div>
-              <div><Label>Data da venda</Label><Input type="date" value={form.sale_date} onChange={(e) => set("sale_date", e.target.value)} /></div>
-              <div className="col-span-2"><Label>Link Trello / card externo</Label><Input value={form.trello_link} onChange={(e) => set("trello_link", e.target.value)} /></div>
+              <div><Label>Nome do pacote *</Label><Input value={form.package_name} onChange={(e) => set("package_name", e.target.value)} placeholder="Ex: Pacote Casamento João" /></div>
+              <div><Label>Qtd. serviços *</Label><Input type="number" min="1" value={form.service_quantity} onChange={(e) => set("service_quantity", e.target.value)} /></div>
+              <div><Label>Data da venda *</Label><Input type="date" value={form.sale_date} onChange={(e) => set("sale_date", e.target.value)} /></div>
+              <div className="col-span-2"><Label>Link Trello / card externo *</Label><Input value={form.trello_link} onChange={(e) => set("trello_link", e.target.value)} /></div>
               <div className="col-span-2">
-                <Label>Comprovante (imagem ou PDF)</Label>
+                <Label>Comprovante (imagem ou PDF) *</Label>
                 <Input
                   type="file"
                   accept="image/*,application/pdf"
@@ -238,7 +263,7 @@ function SalesPage() {
                   <p className="text-xs text-muted-foreground mt-1">{receiptFile.name}</p>
                 )}
               </div>
-              <div className="col-span-2"><Label>Observações</Label><Textarea value={form.notes} onChange={(e) => set("notes", e.target.value)} /></div>
+              <div className="col-span-2"><Label>Observações *</Label><Textarea value={form.notes} onChange={(e) => set("notes", e.target.value)} /></div>
             </div>
             <DialogFooter>
               <Button onClick={submit} disabled={saving}>{saving && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}Criar venda</Button>
