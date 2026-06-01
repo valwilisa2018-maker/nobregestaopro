@@ -3,6 +3,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { StatCard } from "@/components/stat-card";
+import { TopVendorBadge } from "@/components/top-vendor-badge";
 import { useAuth } from "@/lib/auth";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
@@ -545,7 +546,11 @@ function Dashboard() {
                 className="w-full flex items-center justify-between p-2.5 rounded-lg bg-muted/40 hover:bg-muted/70 hover:ring-1 hover:ring-primary/40 transition text-left cursor-pointer"
               >
                 <div className="flex items-center gap-3">
-                  <div className={`w-7 h-7 rounded-full text-xs font-bold flex items-center justify-center ${i === 0 ? "bg-primary text-primary-foreground" : "bg-primary/20 text-primary"}`}>{i + 1}</div>
+                  {i === 0 ? (
+                    <TopVendorBadge rank={1} size="sm" />
+                  ) : (
+                    <div className="w-7 h-7 rounded-full text-xs font-bold flex items-center justify-center bg-primary/20 text-primary">{i + 1}</div>
+                  )}
                   <div>
                     <div className="font-medium leading-tight">{s.name}</div>
                     <div className="text-[11px] text-muted-foreground">{s.qtd} vendas</div>
@@ -574,7 +579,11 @@ function Dashboard() {
                 className="w-full flex items-center justify-between p-2.5 rounded-lg bg-muted/40 hover:bg-muted/70 hover:ring-1 hover:ring-primary/40 transition text-left cursor-pointer"
               >
                 <div className="flex items-center gap-3">
-                  <div className={`w-7 h-7 rounded-full text-xs font-bold flex items-center justify-center ${i === 0 ? "bg-primary text-primary-foreground" : "bg-primary/20 text-primary"}`}>{i + 1}</div>
+                  {i === 0 ? (
+                    <TopVendorBadge rank={1} size="sm" />
+                  ) : (
+                    <div className="w-7 h-7 rounded-full text-xs font-bold flex items-center justify-center bg-primary/20 text-primary">{i + 1}</div>
+                  )}
                   <div>
                     <div className="font-medium leading-tight">{p.name}</div>
                     <div className="text-[11px] text-muted-foreground">{p.qtd} vendas</div>
