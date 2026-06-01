@@ -159,7 +159,10 @@ function AdminPage() {
     return (
       <div className="flex min-h-[60vh] items-center justify-center">
         <Card className="w-full max-w-md">
-          <CardHeader><CardTitle>Acesso às Configurações</CardTitle></CardHeader>
+          <CardHeader>
+            <CardTitle>Acesso às Configurações</CardTitle>
+            <p className="text-sm text-muted-foreground mt-1">Área restrita — somente administradores.</p>
+          </CardHeader>
           <CardContent className="space-y-3">
             <Label>Senha</Label>
             <Input
@@ -171,7 +174,7 @@ function AdminPage() {
               placeholder="Digite a senha"
             />
             <Button className="w-full" onClick={tryUnlock}>Entrar</Button>
-            <p className="text-xs text-muted-foreground">Senha padrão: <code>admin</code> (pode ser alterada após o acesso, na aba Senha).</p>
+            <Button variant="outline" className="w-full" onClick={() => window.history.back()}>Voltar</Button>
           </CardContent>
         </Card>
       </div>
