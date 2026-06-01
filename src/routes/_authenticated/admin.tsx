@@ -31,6 +31,7 @@ const PERIOD_LABEL: Record<string, string> = {
 };
 
 function AdminPage() {
+  const navigate = useNavigate();
   const PASS_KEY = "admin_settings_password";
   const SESSION_KEY = "admin_settings_unlocked";
   const [unlocked, setUnlocked] = useState<boolean>(() => {
