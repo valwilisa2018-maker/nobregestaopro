@@ -746,7 +746,6 @@ function TelaoSettingsTab() {
 }
 
 function CelebrationSettingsCard() {
-  // see below
   const [settings, update] = useCelebrationSettings();
 
   const preview = () => {
