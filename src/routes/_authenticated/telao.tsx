@@ -650,7 +650,7 @@ function Telao() {
             ] as { id: SoundId; icon: any; label: string }[]).map(({ id, icon: Icon, label }) => (
               <button
                 key={id}
-                onClick={() => { setSoundId(id); if (soundEnabled) playSound(id); }}
+                onClick={() => { setSoundId(id); if (soundEnabled && celebration.soundEnabled) playSound(id, celebration.volume / 100); }}
                 title={label}
                 className={`h-10 w-10 grid place-items-center transition ${soundId === id ? "bg-[#c9a84c] text-black" : "text-[#c9a84c] hover:bg-[#c9a84c]/10"}`}
               >
@@ -659,7 +659,7 @@ function Telao() {
             ))}
           </div>
           <button
-            onClick={() => { setSoundEnabled((v) => !v); if (!soundEnabled) playSound(soundId); }}
+            onClick={() => { setSoundEnabled((v) => !v); if (!soundEnabled && celebration.soundEnabled) playSound(soundId, celebration.volume / 100); }}
             className={`h-10 w-10 grid place-items-center rounded border transition ${soundEnabled ? "bg-[#c9a84c] text-black border-[#c9a84c]" : "bg-[#1a1a1a] border-[#c9a84c]/30 text-[#c9a84c] hover:border-[#c9a84c]"}`}
             title={soundEnabled ? "Som ON" : "Ativar buzina"}
           >
