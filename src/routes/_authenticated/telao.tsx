@@ -191,10 +191,10 @@ function Telao() {
   const [flash, setFlash] = useState(false);
   const [kiosk, setKiosk] = useState(false);
   const [pulseHero, setPulseHero] = useState(false);
-  const [bigSeller, setBigSeller] = useState<string | null>(null);
+  const [bigSeller, setBigSeller] = useState<{ name: string; amount: number } | null>(null);
   const bigSellerTimer = useRef<number | null>(null);
-  const showBigSeller = (name: string) => {
-    setBigSeller(name || "Vendedor");
+  const showBigSeller = (name: string, amount: number) => {
+    setBigSeller({ name: name || "Vendedor", amount: Number(amount) || 0 });
     if (bigSellerTimer.current) window.clearTimeout(bigSellerTimer.current);
     bigSellerTimer.current = window.setTimeout(() => setBigSeller(null), 4500);
   };
@@ -521,7 +521,7 @@ function Telao() {
         setTimeout(() => setFlash(false), 1800);
         setTimeout(() => setPulseHero(false), 2000);
         const row = payload?.new as SaleRow | undefined;
-        if (row) showBigSeller(sellerNameOf(row));
+        if (row) showBigSeller(sellerNameOf(row), Number(row.total_amount || 0));
       })
       .on("postgres_changes", { event: "UPDATE", schema: "public", table: "sales" }, () => {
         qc.invalidateQueries({ queryKey: ["telao-sales"] });
@@ -543,7 +543,7 @@ function Telao() {
       setTimeout(() => setFlash(false), 1800);
       setTimeout(() => setPulseHero(false), 2000);
       const newest = todaySales[0];
-      if (newest) showBigSeller(sellerNameOf(newest));
+      if (newest) showBigSeller(sellerNameOf(newest), Number(newest.total_amount || 0));
     }
     setLastCount(todaySales.length);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -745,8 +745,8 @@ function Telao() {
             style={{ animation: "telao-big-in 0.7s cubic-bezier(.34,1.56,.64,1) 1" }}
           >
             <div
-              className="uppercase tracking-[0.5em] text-[#c9a84c] mb-4"
-              style={{ fontSize: "clamp(1rem, 2.5vw, 2rem)", animation: "telao-sub-bounce 0.6s ease-in-out infinite" }}
+              className="inline-block uppercase tracking-[0.4em] text-black bg-gradient-to-r from-[#f0d78c] to-[#c9a84c] px-6 py-2 rounded-full font-bold mb-6 shadow-[0_0_60px_rgba(240,215,140,0.6)]"
+              style={{ fontSize: "clamp(1.2rem, 3vw, 2.5rem)", animation: "telao-sub-bounce 0.6s ease-in-out infinite" }}
             >
               + Mais uma venda!
             </div>
@@ -758,11 +758,22 @@ function Telao() {
                 animation: "telao-big-glow 1.2s ease-in-out infinite",
               }}
             >
-              {bigSeller}
+              {bigSeller.name}
             </div>
             <div
-              className="mt-6 uppercase tracking-[0.4em] text-[#f0d78c]/80"
-              style={{ fontSize: "clamp(1rem, 2vw, 1.75rem)" }}
+              className="mt-8 font-extrabold tabular-nums text-[#34d399] leading-none"
+              style={{
+                fontSize: "clamp(2.5rem, 9vw, 11rem)",
+                letterSpacing: "-0.03em",
+                textShadow: "0 0 40px rgba(52,211,153,0.7), 0 0 100px rgba(52,211,153,0.4)",
+                animation: "telao-pop 0.6s cubic-bezier(.34,1.56,.64,1) 1",
+              }}
+            >
+              {formatCurrency(bigSeller.amount)}
+            </div>
+            <div
+              className="mt-6 uppercase tracking-[0.5em] text-[#f0d78c]"
+              style={{ fontSize: "clamp(1rem, 2.2vw, 2rem)" }}
             >
               Parabéns!
             </div>
