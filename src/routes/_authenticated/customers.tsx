@@ -10,9 +10,10 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { MessageCircle, Search, Mail, Phone, Building2, FileText } from "lucide-react";
+import { MessageCircle, Search, Mail, Phone, Building2, FileText, Paperclip, Loader2 } from "lucide-react";
 import { formatCurrency } from "@/lib/auth";
 import { fmtDate } from "@/lib/format";
+import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/customers")({
   component: CustomersPage,
@@ -39,13 +40,52 @@ function CustomersPage() {
   const [month, setMonth] = useState<string>("all");
   const [search, setSearch] = useState("");
   const [selected, setSelected] = useState<any | null>(null);
+  const [receiptsSale, setReceiptsSale] = useState<any | null>(null);
+  const [receipts, setReceipts] = useState<any[]>([]);
+  const [loadingReceipts, setLoadingReceipts] = useState(false);
+
+  const openReceipts = async (sale: any) => {
+    setReceiptsSale(sale);
+    setReceipts([]);
+    setLoadingReceipts(true);
+    try {
+      const { data, error } = await supabase
+        .from("sale_receipts")
+        .select("id, file_path, amount, paid_at, notes, created_at")
+        .eq("sale_id", sale.id)
+        .order("paid_at", { ascending: false });
+      if (error) throw error;
+      let list = data ?? [];
+      // Fallback: include legacy receipt_url if no rows
+      if (list.length === 0 && sale.receipt_url) {
+        list = [{
+          id: "legacy",
+          file_path: sale.receipt_url,
+          amount: sale.paid_amount ?? 0,
+          paid_at: sale.sale_date,
+          notes: "Comprovante inicial",
+        }];
+      }
+      setReceipts(list);
+    } catch (e: any) {
+      toast.error(e.message ?? "Erro ao carregar comprovantes");
+    } finally {
+      setLoadingReceipts(false);
+    }
+  };
+
+  const openReceiptFile = async (filePath: string) => {
+    const { data, error } = await supabase.storage.from("receipts").createSignedUrl(filePath, 60);
+    if (error || !data?.signedUrl) { toast.error("Não foi possível abrir o comprovante"); return; }
+    window.open(data.signedUrl, "_blank", "noopener,noreferrer");
+  };
 
   const q = useQuery({
     queryKey: ["customers-all"],
     queryFn: async () => {
       const { data } = await supabase
         .from("customers")
-        .select("*, sales(id, sale_date, total_amount, paid_amount, payment_status, payment_method, service_quantity, notes, seller_id, service_type_id, producer_id, package_id, created_at)")
+        .select("*, sales(id, sale_date, total_amount, paid_amount, payment_status, payment_method, service_quantity, notes, seller_id, service_type_id, producer_id, package_id, receipt_url, created_at)")
         .order("created_at", { ascending: false });
       return data ?? [];
     },
