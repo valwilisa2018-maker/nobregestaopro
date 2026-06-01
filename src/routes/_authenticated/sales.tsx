@@ -287,7 +287,15 @@ function SalesPage() {
                 </Select>
               </div>
               <div><Label>Pacote (opcional)</Label>
-                <Select value={form.package_id} onValueChange={(v) => set("package_id", v)}>
+                <Select value={form.package_id} onValueChange={(v) => {
+                  const p = (packages.data ?? []).find((x: any) => x.id === v);
+                  setForm((f) => ({
+                    ...f,
+                    package_id: v,
+                    package_name: p?.name ?? f.package_name,
+                    service_quantity: p?.quantity ? String(p.quantity) : f.service_quantity,
+                  }));
+                }}>
                   <SelectTrigger><SelectValue placeholder="—" /></SelectTrigger>
                   <SelectContent>
                     {(packages.data ?? []).length === 0 ? (
