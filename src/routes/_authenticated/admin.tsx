@@ -125,6 +125,7 @@ function AdminPage() {
           <TabsTrigger value="commissions">Comissões</TabsTrigger>
           <TabsTrigger value="services">Tipos de Serviço</TabsTrigger>
           <TabsTrigger value="kanban">Colunas Kanban</TabsTrigger>
+          <TabsTrigger value="packages">Pacotes</TabsTrigger>
           <TabsTrigger value="pagarme">Pagar.me</TabsTrigger>
           <TabsTrigger value="nfe">Nota Fiscal</TabsTrigger>
           <TabsTrigger value="telao">Telão</TabsTrigger>
