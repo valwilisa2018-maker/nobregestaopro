@@ -54,7 +54,7 @@ function SalesPage() {
     total_amount: "", paid_amount: "0", payment_status: "pendente",
     payment_method: "pix", seller_id: "", producer_id: "", service_type_id: "",
     package_id: "", package_name: "", service_quantity: "1", notes: "", trello_link: "",
-    sale_date: new Date().toISOString().slice(0, 10),
+    sale_date: new Date().toISOString().slice(0, 10), lead_source: "",
   });
   const set = (k: string, v: string) => setForm((f) => ({ ...f, [k]: v }));
 
@@ -96,6 +96,7 @@ function SalesPage() {
       ["service_quantity", "Qtd. serviços"],
       ["sale_date", "Data da venda"],
       ["trello_link", "Link Trello"],
+      ["lead_source", "Origem da venda"],
     ];
     for (const [k, label] of required) {
       if (!String((form as any)[k] ?? "").trim()) {
@@ -151,6 +152,7 @@ function SalesPage() {
         service_quantity: Number(form.service_quantity || 1),
         notes: form.notes || null,
         trello_link: form.trello_link || null,
+        lead_source: form.lead_source || null,
         receipt_url,
         sale_date: form.sale_date || new Date().toISOString().slice(0, 10),
         created_by: user?.id,
