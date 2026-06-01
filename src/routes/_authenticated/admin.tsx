@@ -18,6 +18,9 @@ import {
   TELAO_THRESHOLD_MIN,
   TELAO_THRESHOLD_MAX,
 } from "@/hooks/use-telao-settings";
+import { useCelebrationSettings } from "@/hooks/use-celebration-settings";
+import { Switch } from "@/components/ui/switch";
+import { Slider } from "@/components/ui/slider";
 
 export const Route = createFileRoute("/_authenticated/admin")({
   component: AdminPage,
@@ -440,6 +443,7 @@ function AdminPage() {
 
         <TabsContent value="telao" className="mt-4 space-y-3">
           <TelaoSettingsTab />
+          <CelebrationSettingsCard />
         </TabsContent>
 
         <TabsContent value="senha" className="mt-4 space-y-3">
@@ -730,6 +734,86 @@ function TelaoSettingsTab() {
         <div className="text-xs text-muted-foreground">
           Valor atual aplicado: <strong>{threshold}</strong>. A configuração é salva neste navegador
           e aplicada imediatamente ao abrir o telão.
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+function CelebrationSettingsCard() {
+  const [settings, update] = useCelebrationSettings();
+
+  const preview = () => {
+    try {
+      const AC = (window.AudioContext || (window as any).webkitAudioContext);
+      const ctx = new AC();
+      const master = ctx.createGain();
+      master.gain.value = (settings.volume / 100) * 0.5;
+      master.connect(ctx.destination);
+      const o = ctx.createOscillator();
+      o.type = "sine";
+      o.frequency.value = 880;
+      o.connect(master);
+      o.start();
+      o.stop(ctx.currentTime + 0.25);
+      setTimeout(() => ctx.close(), 400);
+    } catch {}
+  };
+
+  return (
+    <Card className="border-border/50">
+      <CardHeader>
+        <CardTitle className="text-base">Efeitos de celebração</CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-5 text-sm">
+        <p className="text-muted-foreground">
+          Controle os efeitos disparados no telão quando uma nova venda é registrada.
+        </p>
+
+        <div className="flex items-center justify-between gap-4 p-3 rounded-md border border-border/50">
+          <div>
+            <Label className="text-sm">Som de celebração</Label>
+            <p className="text-xs text-muted-foreground">Toca o efeito sonoro escolhido no telão.</p>
+          </div>
+          <Switch
+            checked={settings.soundEnabled}
+            onCheckedChange={(v) => { update({ soundEnabled: v }); toast.success(v ? "Som ativado" : "Som desativado"); }}
+          />
+        </div>
+
+        <div className="flex items-center justify-between gap-4 p-3 rounded-md border border-border/50">
+          <div>
+            <Label className="text-sm">Confete</Label>
+            <p className="text-xs text-muted-foreground">Anima confetes dourados na tela a cada nova venda.</p>
+          </div>
+          <Switch
+            checked={settings.confettiEnabled}
+            onCheckedChange={(v) => { update({ confettiEnabled: v }); toast.success(v ? "Confete ativado" : "Confete desativado"); }}
+          />
+        </div>
+
+        <div className="space-y-2 p-3 rounded-md border border-border/50">
+          <div className="flex items-center justify-between">
+            <Label className="text-sm">Volume dos efeitos</Label>
+            <span className="text-xs text-muted-foreground tabular-nums">{settings.volume}%</span>
+          </div>
+          <Slider
+            value={[settings.volume]}
+            min={0}
+            max={100}
+            step={1}
+            onValueChange={(v) => update({ volume: v[0] ?? 0 })}
+            disabled={!settings.soundEnabled}
+          />
+          <div className="flex justify-end">
+            <Button size="sm" variant="outline" onClick={preview} disabled={!settings.soundEnabled}>
+              Testar volume
+            </Button>
+          </div>
+        </div>
+
+        <div className="text-xs text-muted-foreground">
+          As preferências são salvas neste navegador e aplicadas imediatamente no telão.
         </div>
       </CardContent>
     </Card>

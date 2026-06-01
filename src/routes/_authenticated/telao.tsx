@@ -6,6 +6,7 @@ import { formatCurrency } from "@/lib/auth";
 import { fmtDate, fmtTime } from "@/lib/format";
 import { Maximize2, Minimize2, Volume2, VolumeX, ArrowUpRight, Megaphone, Bell, Coins, Pencil, X } from "lucide-react";
 import confetti from "canvas-confetti";
+import { useCelebrationSettings } from "@/hooks/use-celebration-settings";
 
 export const Route = createFileRoute("/_authenticated/telao")({
   component: Telao,
@@ -45,10 +46,10 @@ function getCtx(): AudioContext | null {
 }
 
 // Buzina de caminhão / air horn — dois osciladores sawtooth detuned + ataque agressivo
-function playBuzina(ctx: AudioContext) {
+function playBuzina(ctx: AudioContext, vol = 1) {
   const now = ctx.currentTime;
   const master = ctx.createGain();
-  master.gain.value = 0.5;
+  master.gain.value = 0.5 * vol;
   master.connect(ctx.destination);
 
   const blast = (t: number, dur: number, base: number) => {
@@ -75,10 +76,10 @@ function playBuzina(ctx: AudioContext) {
 }
 
 // Caixa registradora — "cha-ching" com bell + click
-function playCaixa(ctx: AudioContext) {
+function playCaixa(ctx: AudioContext, vol = 1) {
   const now = ctx.currentTime;
   const master = ctx.createGain();
-  master.gain.value = 0.55;
+  master.gain.value = 0.55 * vol;
   master.connect(ctx.destination);
 
   // click (ding inicial)
@@ -112,10 +113,10 @@ function playCaixa(ctx: AudioContext) {
 }
 
 // Sino de vitória — arpejo C-E-G-C ascendente
-function playSino(ctx: AudioContext) {
+function playSino(ctx: AudioContext, vol = 1) {
   const now = ctx.currentTime;
   const master = ctx.createGain();
-  master.gain.value = 0.5;
+  master.gain.value = 0.5 * vol;
   master.connect(ctx.destination);
   const notes = [523.25, 659.25, 783.99, 1046.5]; // C5 E5 G5 C6
   notes.forEach((f, i) => {
@@ -135,12 +136,12 @@ function playSino(ctx: AudioContext) {
   setTimeout(() => ctx.close(), 1800);
 }
 
-function playSound(id: SoundId) {
+function playSound(id: SoundId, vol = 1) {
   const ctx = getCtx();
   if (!ctx) return;
-  if (id === "buzina") playBuzina(ctx);
-  else if (id === "caixa") playCaixa(ctx);
-  else playSino(ctx);
+  if (id === "buzina") playBuzina(ctx, vol);
+  else if (id === "caixa") playCaixa(ctx, vol);
+  else playSino(ctx, vol);
 }
 
 // Confetti dourado, mais intenso
@@ -183,6 +184,7 @@ function useCountUp(target: number, duration = 900, replayKey: number = 0) {
 
 function Telao() {
   const qc = useQueryClient();
+  const [celebration] = useCelebrationSettings();
   const [soundEnabled, setSoundEnabled] = useState(false);
   const [soundId, setSoundId] = useState<SoundId>("buzina");
   const [lastCount, setLastCount] = useState<number | null>(null);
@@ -512,8 +514,8 @@ function Telao() {
       .channel("telao-sales")
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "sales" }, (payload: any) => {
         qc.invalidateQueries({ queryKey: ["telao-sales"] });
-        fireConfetti();
-        if (soundEnabled) playSound(soundId);
+        if (celebration.confettiEnabled) fireConfetti();
+        if (soundEnabled && celebration.soundEnabled) playSound(soundId, celebration.volume / 100);
         setFlash(true);
         setPulseHero(true);
         setTimeout(() => setFlash(false), 1800);
@@ -529,13 +531,13 @@ function Telao() {
       })
       .subscribe();
     return () => { supabase.removeChannel(channel); };
-  }, [qc, soundEnabled, soundId]);
+  }, [qc, soundEnabled, soundId, celebration.soundEnabled, celebration.confettiEnabled, celebration.volume]);
 
   // Detecta crescimento por polling como fallback
   useEffect(() => {
     if (lastCount !== null && todaySales.length > lastCount) {
-      fireConfetti();
-      if (soundEnabled) playSound(soundId);
+      if (celebration.confettiEnabled) fireConfetti();
+      if (soundEnabled && celebration.soundEnabled) playSound(soundId, celebration.volume / 100);
       setFlash(true);
       setPulseHero(true);
       setTimeout(() => setFlash(false), 1800);
@@ -648,7 +650,7 @@ function Telao() {
             ] as { id: SoundId; icon: any; label: string }[]).map(({ id, icon: Icon, label }) => (
               <button
                 key={id}
-                onClick={() => { setSoundId(id); if (soundEnabled) playSound(id); }}
+                onClick={() => { setSoundId(id); if (soundEnabled && celebration.soundEnabled) playSound(id, celebration.volume / 100); }}
                 title={label}
                 className={`h-10 w-10 grid place-items-center transition ${soundId === id ? "bg-[#c9a84c] text-black" : "text-[#c9a84c] hover:bg-[#c9a84c]/10"}`}
               >
@@ -657,7 +659,7 @@ function Telao() {
             ))}
           </div>
           <button
-            onClick={() => { setSoundEnabled((v) => !v); if (!soundEnabled) playSound(soundId); }}
+            onClick={() => { setSoundEnabled((v) => !v); if (!soundEnabled && celebration.soundEnabled) playSound(soundId, celebration.volume / 100); }}
             className={`h-10 w-10 grid place-items-center rounded border transition ${soundEnabled ? "bg-[#c9a84c] text-black border-[#c9a84c]" : "bg-[#1a1a1a] border-[#c9a84c]/30 text-[#c9a84c] hover:border-[#c9a84c]"}`}
             title={soundEnabled ? "Som ON" : "Ativar buzina"}
           >
