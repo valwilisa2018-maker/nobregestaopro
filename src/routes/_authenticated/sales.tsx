@@ -93,11 +93,9 @@ function SalesPage() {
       ["seller_id", "Vendedor"],
       ["producer_id", "Produtor"],
       ["service_type_id", "Tipo de serviço"],
-      ["package_name", "Nome do pacote"],
       ["service_quantity", "Qtd. serviços"],
       ["sale_date", "Data da venda"],
       ["trello_link", "Link Trello"],
-      ["notes", "Observações"],
     ];
     for (const [k, label] of required) {
       if (!String((form as any)[k] ?? "").trim()) {
