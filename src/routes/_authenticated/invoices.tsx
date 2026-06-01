@@ -590,13 +590,20 @@ function InvoicesPage() {
                 </div>
               )}
 
-              {detail.file_url && (
-                <div>
-                  <Button asChild variant="outline">
-                    <a href={detail.file_url} target="_blank" rel="noreferrer"><ExternalLink className="w-4 h-4 mr-2" />Abrir arquivo da nota</a>
+              <div className="flex gap-2 pt-2 border-t">
+                {detail.file_url ? (
+                  <Button asChild>
+                    <a href={detail.file_url} target="_blank" rel="noreferrer">
+                      <ExternalLink className="w-4 h-4 mr-2" />Ver nota fiscal
+                    </a>
                   </Button>
-                </div>
-              )}
+                ) : (
+                  <Button disabled variant="outline">
+                    <Paperclip className="w-4 h-4 mr-2" />Nenhum arquivo anexado
+                  </Button>
+                )}
+                <Button variant="outline" onClick={() => setDetail(null)}>Fechar</Button>
+              </div>
             </div>
           )}
         </DialogContent>
