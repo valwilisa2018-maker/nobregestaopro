@@ -145,9 +145,35 @@ function AdminPage() {
     else { toast.success("Vendedor excluído"); qc.invalidateQueries({ queryKey: ["admin-sellers"] }); qc.invalidateQueries({ queryKey: ["sellers-page"] }); }
   };
 
+  if (!unlocked) {
+    return (
+      <div className="flex min-h-[60vh] items-center justify-center">
+        <Card className="w-full max-w-md">
+          <CardHeader><CardTitle>Acesso às Configurações</CardTitle></CardHeader>
+          <CardContent className="space-y-3">
+            <Label>Senha</Label>
+            <Input
+              type="password"
+              autoFocus
+              value={pwdInput}
+              onChange={(e) => setPwdInput(e.target.value)}
+              onKeyDown={(e) => { if (e.key === "Enter") tryUnlock(); }}
+              placeholder="Digite a senha"
+            />
+            <Button className="w-full" onClick={tryUnlock}>Entrar</Button>
+            <p className="text-xs text-muted-foreground">Senha padrão: <code>admin</code> (pode ser alterada após o acesso, na aba Senha).</p>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
-      <div><h1 className="text-3xl font-bold tracking-tight">Configurações</h1><p className="text-muted-foreground">Painel administrativo</p></div>
+      <div className="flex items-start justify-between gap-3">
+        <div><h1 className="text-3xl font-bold tracking-tight">Configurações</h1><p className="text-muted-foreground">Painel administrativo</p></div>
+        <Button variant="outline" size="sm" onClick={() => { sessionStorage.removeItem(SESSION_KEY); setUnlocked(false); }}>Bloquear</Button>
+      </div>
       <Tabs defaultValue="goals">
         <TabsList>
           <TabsTrigger value="goals">Metas</TabsTrigger>
@@ -158,6 +184,7 @@ function AdminPage() {
           <TabsTrigger value="pagarme">Pagar.me</TabsTrigger>
           <TabsTrigger value="nfe">Nota Fiscal</TabsTrigger>
           <TabsTrigger value="telao">Telão</TabsTrigger>
+          <TabsTrigger value="senha">Senha</TabsTrigger>
           <TabsTrigger value="reset" className="text-destructive">Resetar</TabsTrigger>
           <TabsTrigger value="audit">Auditoria</TabsTrigger>
         </TabsList>
