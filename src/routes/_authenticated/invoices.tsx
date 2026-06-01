@@ -574,9 +574,6 @@ function InvoicesPage() {
                 <div className="flex justify-between gap-2"><span className="text-muted-foreground">CPF/CNPJ</span><span className="font-medium">{detailCustomer.data?.document ?? "—"}</span></div>
                 <div className="flex justify-between gap-2"><span className="text-muted-foreground">E-mail</span><span className="font-medium">{detailCustomer.data?.email ?? "—"}</span></div>
                 <div className="flex justify-between gap-2"><span className="text-muted-foreground">Telefone</span><span className="font-medium">{detailCustomer.data?.phone ?? detail.customers?.phone ?? "—"}</span></div>
-                {detailCustomer.data?.address && (
-                  <div className="flex justify-between gap-2"><span className="text-muted-foreground">Endereço</span><span className="font-medium text-right">{detailCustomer.data.address}</span></div>
-                )}
               </div>
 
               {detail.sale_id && detailSale.data && (
