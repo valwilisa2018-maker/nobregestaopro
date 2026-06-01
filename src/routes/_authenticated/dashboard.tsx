@@ -207,16 +207,19 @@ function Dashboard() {
     };
   }).filter((s) => s.qtd > 0).sort((a, b) => b.total - a.total).slice(0, 5);
 
-  // Ranking produtores (no escopo)
+  // Ranking produtores (no escopo) — por PRODUÇÃO de vídeos (service_orders), não vendas
   const producerRanking = (producers.data ?? []).map((p: any) => {
-    const list = all.filter((x) => x.producer_id === p.id && x.created_at >= scopeSince);
+    const list = ordersList.filter((o) => o.producer_id === p.id && o.created_at >= scopeSince);
+    const entregues = list.filter((o) => !!o.delivered_at || o.kanban_columns?.is_done).length;
+    const emProducao = list.length - entregues;
     return {
       id: p.id,
       name: p.name,
-      total: list.reduce((a, x) => a + Number(x.total_amount), 0),
+      entregues,
+      emProducao,
       qtd: list.length,
     };
-  }).filter((p) => p.qtd > 0).sort((a, b) => b.total - a.total).slice(0, 5);
+  }).filter((p) => p.qtd > 0).sort((a, b) => b.entregues - a.entregues || b.qtd - a.qtd).slice(0, 5);
 
   // Produtos / serviços mais vendidos (no escopo) — combina service_types + packages
   const productRanking = useMemo(() => {
