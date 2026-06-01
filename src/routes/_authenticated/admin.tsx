@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { useNavigate } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -30,6 +31,7 @@ const PERIOD_LABEL: Record<string, string> = {
 };
 
 function AdminPage() {
+  const navigate = useNavigate();
   const PASS_KEY = "admin_settings_password";
   const SESSION_KEY = "admin_settings_unlocked";
   const [unlocked, setUnlocked] = useState<boolean>(() => {
@@ -174,7 +176,7 @@ function AdminPage() {
               placeholder="Digite a senha"
             />
             <Button className="w-full" onClick={tryUnlock}>Entrar</Button>
-            <Button variant="outline" className="w-full" onClick={() => window.history.back()}>Voltar</Button>
+            <Button variant="outline" className="w-full" onClick={() => navigate({ to: "/dashboard" })}>Voltar</Button>
           </CardContent>
         </Card>
       </div>
