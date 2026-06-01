@@ -30,6 +30,35 @@ const PERIOD_LABEL: Record<string, string> = {
 };
 
 function AdminPage() {
+  const PASS_KEY = "admin_settings_password";
+  const SESSION_KEY = "admin_settings_unlocked";
+  const [unlocked, setUnlocked] = useState<boolean>(() => {
+    if (typeof window === "undefined") return false;
+    return sessionStorage.getItem(SESSION_KEY) === "1";
+  });
+  const [pwdInput, setPwdInput] = useState("");
+  const [curPwd, setCurPwd] = useState("");
+  const [newPwd, setNewPwd] = useState("");
+  const [newPwd2, setNewPwd2] = useState("");
+  const getStoredPwd = () =>
+    (typeof window !== "undefined" && localStorage.getItem(PASS_KEY)) || "admin";
+  const tryUnlock = () => {
+    if (pwdInput === getStoredPwd()) {
+      sessionStorage.setItem(SESSION_KEY, "1");
+      setUnlocked(true);
+      setPwdInput("");
+    } else {
+      toast.error("Senha incorreta");
+    }
+  };
+  const changePwd = () => {
+    if (curPwd !== getStoredPwd()) { toast.error("Senha atual incorreta"); return; }
+    if (!newPwd || newPwd.length < 4) { toast.error("Nova senha deve ter ao menos 4 caracteres"); return; }
+    if (newPwd !== newPwd2) { toast.error("As senhas não coincidem"); return; }
+    localStorage.setItem(PASS_KEY, newPwd);
+    setCurPwd(""); setNewPwd(""); setNewPwd2("");
+    toast.success("Senha alterada com sucesso");
+  };
   const qc = useQueryClient();
   const goals = useQuery({ queryKey: ["admin-goals"], queryFn: async () => (await supabase.from("goals").select("*").is("seller_id", null)).data ?? [] });
   const services = useQuery({ queryKey: ["admin-services"], queryFn: async () => (await supabase.from("service_types").select("*").order("sort_order")).data ?? [] });
