@@ -12,6 +12,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Plus, Loader2, Trash2, X, Calendar, Clock, ExternalLink, MessageCircle, ChevronDown, ChevronRight, Layers } from "lucide-react";
+import { Search } from "lucide-react";
 import { fmtDate } from "@/lib/format";
 
 export const Route = createFileRoute("/_authenticated/kanban")({
@@ -83,6 +84,8 @@ function KanbanPage() {
   const [newLabelColor, setNewLabelColor] = useState<string>(LABEL_COLORS[0]);
   const [saving, setSaving] = useState(false);
   const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({});
+  const [producerFilter, setProducerFilter] = useState<string>("all");
+  const [search, setSearch] = useState<string>("");
 
   const cols = useQuery({
     queryKey: ["kanban-cols"],
@@ -215,9 +218,60 @@ function KanbanPage() {
         <p className="text-muted-foreground">Arraste os cards entre as colunas para atualizar o status</p>
       </div>
 
+      <div className="space-y-3">
+        <div className="relative max-w-md">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+          <Input
+            placeholder="Pesquisar por cliente, serviço, vendedor..."
+            className="pl-9"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
+        </div>
+        <div className="flex gap-2 overflow-x-auto pb-1">
+          <Button
+            size="sm"
+            variant={producerFilter === "all" ? "default" : "outline"}
+            onClick={() => setProducerFilter("all")}
+          >
+            Todos
+          </Button>
+          {(producers.data ?? []).map((p: any) => (
+            <Button
+              key={p.id}
+              size="sm"
+              variant={producerFilter === p.id ? "default" : "outline"}
+              onClick={() => setProducerFilter(p.id)}
+              className="whitespace-nowrap"
+            >
+              {p.name}
+            </Button>
+          ))}
+        </div>
+      </div>
+
       <div className="flex gap-4 overflow-x-auto pb-4">
         {(cols.data ?? []).map((col: any) => {
-          const colCards = (cards.data ?? []).filter((c: any) => c.column_id === col.id);
+          const q = search.trim().toLowerCase();
+          const colCards = (cards.data ?? []).filter((c: any) => {
+            if (c.column_id !== col.id) return false;
+            if (producerFilter !== "all") {
+              const pid = c.producer_id ?? c.sales?.producers?.id ?? null;
+              const salePid = (c as any).sales?.producer_id ?? null;
+              if (pid !== producerFilter && salePid !== producerFilter) return false;
+            }
+            if (q) {
+              const hay = [
+                c.title, c.description,
+                c.sales?.customers?.name, c.sales?.customers?.company,
+                c.sales?.sellers?.name,
+                c.producer?.name, c.sales?.producers?.name,
+                ...(c.labels ?? []),
+              ].filter(Boolean).join(" ").toLowerCase();
+              if (!hay.includes(q)) return false;
+            }
+            return true;
+          });
           // Group by sale_id (same customer/sale = same package). Cards without sale_id stay solo.
           const groupsMap = new Map<string, any[]>();
           const soloCards: any[] = [];
