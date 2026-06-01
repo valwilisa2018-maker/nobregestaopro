@@ -310,6 +310,20 @@ function SalesPage() {
               </div>
               <div><Label>Qtd. serviços *</Label><Input type="number" min="1" value={form.service_quantity} onChange={(e) => set("service_quantity", e.target.value)} /></div>
               <div><Label>Data da venda *</Label><Input type="date" value={form.sale_date} onChange={(e) => set("sale_date", e.target.value)} /></div>
+              <div className="col-span-2"><Label>Origem da venda *</Label>
+                <Select value={form.lead_source} onValueChange={(v) => set("lead_source", v)}>
+                  <SelectTrigger><SelectValue placeholder="Selecione a origem" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="cliente_recuperacao">Cliente Recuperação</SelectItem>
+                    <SelectItem value="trafego_pago">Tráfego Pago</SelectItem>
+                    <SelectItem value="indicacao">Indicação</SelectItem>
+                    <SelectItem value="organico">Orgânico / Redes Sociais</SelectItem>
+                    <SelectItem value="cliente_antigo">Cliente Antigo</SelectItem>
+                    <SelectItem value="prospeccao">Prospecção Ativa</SelectItem>
+                    <SelectItem value="outros">Outros</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
               <div className="col-span-2">
                 <Label>Link Trello / card externo *</Label>
                 <div className="flex gap-2">
