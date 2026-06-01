@@ -44,6 +44,11 @@ function SalesPage() {
   const serviceTypes = useQuery({ queryKey: ["st-all"], queryFn: async () => (await supabase.from("service_types").select("id,name").eq("active", true).order("sort_order")).data ?? [] });
   const packages = useQuery({ queryKey: ["pkg-all"], queryFn: async () => (await supabase.from("packages").select("id,name,quantity").eq("active", true)).data ?? [] });
 
+  const customersAll = useQuery({
+    queryKey: ["customers-all"],
+    queryFn: async () => (await supabase.from("customers").select("id,name,company,document,phone,email")).data ?? [],
+  });
+
   const [form, setForm] = useState({
     customer_name: "", company: "", document: "", phone: "", email: "",
     total_amount: "", paid_amount: "0", payment_status: "pendente",
@@ -52,6 +57,28 @@ function SalesPage() {
     sale_date: new Date().toISOString().slice(0, 10),
   });
   const set = (k: string, v: string) => setForm((f) => ({ ...f, [k]: v }));
+
+  const autofillFromCustomer = (field: "customer_name" | "company", value: string) => {
+    setForm((f) => ({ ...f, [field]: value }));
+    const list = customersAll.data ?? [];
+    const v = value.trim().toLowerCase();
+    if (!v) return;
+    const match = list.find((c: any) =>
+      field === "customer_name"
+        ? (c.name ?? "").toLowerCase() === v
+        : (c.company ?? "").toLowerCase() === v
+    );
+    if (match) {
+      setForm((f) => ({
+        ...f,
+        customer_name: match.name ?? f.customer_name,
+        company: match.company ?? f.company,
+        document: match.document ?? f.document,
+        phone: match.phone ?? f.phone,
+        email: match.email ?? f.email,
+      }));
+    }
+  };
 
   const submit = async () => {
     const required: [string, string][] = [
@@ -82,11 +109,22 @@ function SalesPage() {
     if (!receiptFile) { toast.error("Anexe o comprovante"); return; }
     setSaving(true);
     try {
-      const { data: cust, error: ce } = await supabase.from("customers").insert({
-        name: form.customer_name, company: form.company || null, document: form.document || null,
-        phone: form.phone || null, email: form.email || null,
-      }).select().single();
-      if (ce) throw ce;
+      const list = customersAll.data ?? [];
+      const existing = list.find((c: any) =>
+        (c.name ?? "").toLowerCase() === form.customer_name.trim().toLowerCase() &&
+        (c.company ?? "").toLowerCase() === form.company.trim().toLowerCase()
+      );
+      let cust: any;
+      if (existing) {
+        cust = existing;
+      } else {
+        const { data, error: ce } = await supabase.from("customers").insert({
+          name: form.customer_name, company: form.company || null, document: form.document || null,
+          phone: form.phone || null, email: form.email || null,
+        }).select().single();
+        if (ce) throw ce;
+        cust = data;
+      }
 
       const { data: { user } } = await supabase.auth.getUser();
 
@@ -188,8 +226,24 @@ function SalesPage() {
           <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
             <DialogHeader><DialogTitle>Nova Venda</DialogTitle></DialogHeader>
             <div className="grid grid-cols-2 gap-3">
-              <div className="col-span-2"><Label>Nome do cliente *</Label><Input value={form.customer_name} onChange={(e) => set("customer_name", e.target.value)} /></div>
-              <div><Label>Empresa *</Label><Input value={form.company} onChange={(e) => set("company", e.target.value)} /></div>
+              <div className="col-span-2">
+                <Label>Nome do cliente *</Label>
+                <Input list="customers-names" value={form.customer_name} onChange={(e) => autofillFromCustomer("customer_name", e.target.value)} />
+                <datalist id="customers-names">
+                  {(customersAll.data ?? []).map((c: any) => (
+                    <option key={`n-${c.id}`} value={c.name} />
+                  ))}
+                </datalist>
+              </div>
+              <div>
+                <Label>Empresa *</Label>
+                <Input list="customers-companies" value={form.company} onChange={(e) => autofillFromCustomer("company", e.target.value)} />
+                <datalist id="customers-companies">
+                  {(customersAll.data ?? []).filter((c: any) => c.company).map((c: any) => (
+                    <option key={`c-${c.id}`} value={c.company} />
+                  ))}
+                </datalist>
+              </div>
               <div><Label>CPF/CNPJ *</Label><Input value={form.document} onChange={(e) => set("document", e.target.value)} /></div>
               <div><Label>Telefone *</Label><Input value={form.phone} onChange={(e) => set("phone", e.target.value)} /></div>
               <div><Label>E-mail *</Label><Input value={form.email} onChange={(e) => set("email", e.target.value)} /></div>
