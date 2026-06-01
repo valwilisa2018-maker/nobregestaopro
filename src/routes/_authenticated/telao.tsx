@@ -196,7 +196,7 @@ function Telao() {
   const showBigSeller = (name: string, amount: number) => {
     setBigSeller({ name: name || "Vendedor", amount: Number(amount) || 0 });
     if (bigSellerTimer.current) window.clearTimeout(bigSellerTimer.current);
-    bigSellerTimer.current = window.setTimeout(() => setBigSeller(null), 10000);
+    bigSellerTimer.current = window.setTimeout(() => setBigSeller(null), 20000);
   };
   const rootRef = useRef<HTMLDivElement>(null);
   const [clock, setClock] = useState<string>(() => new Date().toLocaleTimeString("pt-BR"));
