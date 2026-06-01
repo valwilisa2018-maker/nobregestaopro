@@ -95,6 +95,16 @@ function PendingPaymentsPage() {
         .eq("id", selected.id);
       if (error) throw error;
 
+      if (file && receipt_url) {
+        await supabase.from("sale_receipts").insert({
+          sale_id: selected.id,
+          file_path: receipt_url,
+          amount: value,
+          paid_at: new Date().toISOString().slice(0, 10),
+          uploaded_by: user?.id ?? null,
+        });
+      }
+
       toast.success("Recebimento confirmado");
       setSelected(null);
       setFile(null);
