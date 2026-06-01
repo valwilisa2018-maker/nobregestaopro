@@ -18,6 +18,9 @@ import {
   TELAO_THRESHOLD_MIN,
   TELAO_THRESHOLD_MAX,
 } from "@/hooks/use-telao-settings";
+import { useCelebrationSettings } from "@/hooks/use-celebration-settings";
+import { Switch } from "@/components/ui/switch";
+import { Slider } from "@/components/ui/slider";
 
 export const Route = createFileRoute("/_authenticated/admin")({
   component: AdminPage,
@@ -440,6 +443,7 @@ function AdminPage() {
 
         <TabsContent value="telao" className="mt-4 space-y-3">
           <TelaoSettingsTab />
+          <CelebrationSettingsCard />
         </TabsContent>
 
         <TabsContent value="senha" className="mt-4 space-y-3">
