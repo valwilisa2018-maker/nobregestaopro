@@ -589,10 +589,13 @@ function Dashboard() {
                   )}
                   <div>
                     <div className="font-medium leading-tight">{p.name}</div>
-                    <div className="text-[11px] text-muted-foreground">{p.qtd} vendas</div>
+                    <div className="text-[11px] text-muted-foreground">
+                      {p.entregues} entregue{p.entregues === 1 ? "" : "s"}
+                      {p.emProducao > 0 && ` · ${p.emProducao} em produção`}
+                    </div>
                   </div>
                 </div>
-                <span className="font-semibold">{formatCurrency(p.total)}</span>
+                <span className="font-semibold">{p.qtd} vídeo{p.qtd === 1 ? "" : "s"}</span>
               </button>
             ))}
           </CardContent>
