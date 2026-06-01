@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
-import { CheckCircle2, AlertCircle, AlertTriangle, Loader2 } from "lucide-react";
+import { CheckCircle2, AlertCircle, AlertTriangle, Loader2, Pencil, Trash2 } from "lucide-react";
 import { PagarmeCredentialCard } from "@/components/pagarme-credential-card";
 import { format } from "date-fns";
 import {
@@ -421,12 +421,31 @@ function AdminPage() {
                 <Button size="sm" variant={p.active ? "outline" : "secondary"} onClick={() => togglePackage(p.id, p.active)}>
                   {p.active ? "Desativar" : "Ativar"}
                 </Button>
+                <Button size="icon" variant="ghost" onClick={() => setEditPkg({ id: p.id, name: p.name, default_price: String(p.default_price ?? 0) })}>
+                  <Pencil className="w-4 h-4" />
+                </Button>
+                <Button size="icon" variant="ghost" onClick={() => deletePackage(p.id, p.name)}>
+                  <Trash2 className="w-4 h-4 text-destructive" />
+                </Button>
               </div>
             ))}
             {(packages.data ?? []).length === 0 && (
               <div className="text-sm text-muted-foreground p-4 text-center">Nenhum pacote cadastrado.</div>
             )}
           </div>
+          {editPkg && (
+            <Card className="border-border/50">
+              <CardHeader><CardTitle className="text-base">Editar pacote</CardTitle></CardHeader>
+              <CardContent className="grid gap-2 md:grid-cols-3">
+                <Input className="md:col-span-2" placeholder="Nome do pacote" value={editPkg.name} onChange={(e) => setEditPkg({ ...editPkg, name: e.target.value })} />
+                <Input type="number" step="0.01" placeholder="Preço sugerido (R$)" value={editPkg.default_price} onChange={(e) => setEditPkg({ ...editPkg, default_price: e.target.value })} />
+                <div className="md:col-span-3 flex gap-2">
+                  <Button onClick={saveEditPackage}>Salvar</Button>
+                  <Button variant="outline" onClick={() => setEditPkg(null)}>Cancelar</Button>
+                </div>
+              </CardContent>
+            </Card>
+          )}
         </TabsContent>
 
         <TabsContent value="nfe" className="mt-4 space-y-3">
