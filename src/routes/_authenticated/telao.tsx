@@ -7,6 +7,7 @@ import { fmtDate, fmtTime } from "@/lib/format";
 import { Maximize2, Minimize2, Volume2, VolumeX, ArrowUpRight, Megaphone, Bell, Coins, Pencil, X } from "lucide-react";
 import confetti from "canvas-confetti";
 import { useCelebrationSettings } from "@/hooks/use-celebration-settings";
+import { useBigSellerOverlaySeconds } from "@/hooks/use-telao-settings";
 
 export const Route = createFileRoute("/_authenticated/telao")({
   component: Telao,
@@ -185,6 +186,7 @@ function useCountUp(target: number, duration = 900, replayKey: number = 0) {
 function Telao() {
   const qc = useQueryClient();
   const [celebration] = useCelebrationSettings();
+  const [overlaySeconds] = useBigSellerOverlaySeconds();
   const [soundEnabled, setSoundEnabled] = useState(false);
   const [soundId, setSoundId] = useState<SoundId>("buzina");
   const [lastCount, setLastCount] = useState<number | null>(null);
@@ -196,7 +198,7 @@ function Telao() {
   const showBigSeller = (name: string, amount: number) => {
     setBigSeller({ name: name || "Vendedor", amount: Number(amount) || 0 });
     if (bigSellerTimer.current) window.clearTimeout(bigSellerTimer.current);
-    bigSellerTimer.current = window.setTimeout(() => setBigSeller(null), 20000);
+    bigSellerTimer.current = window.setTimeout(() => setBigSeller(null), overlaySeconds * 1000);
   };
   const rootRef = useRef<HTMLDivElement>(null);
   const [clock, setClock] = useState<string>(() => new Date().toLocaleTimeString("pt-BR"));
