@@ -339,7 +339,16 @@ function SalesPage() {
               <div><Label>Pacote</Label>
                 <Select value={editing.package_id ?? ""} onValueChange={(v) => editSet("package_id", v)}>
                   <SelectTrigger><SelectValue placeholder="—" /></SelectTrigger>
-                  <SelectContent>{(packages.data ?? []).map((p: any) => <SelectItem key={p.id} value={p.id}>{p.name} ({p.quantity})</SelectItem>)}</SelectContent>
+                  <SelectContent>
+                    {(packages.data ?? []).length === 0 ? (
+                      <div className="px-3 py-4 text-xs text-muted-foreground">
+                        Nenhum pacote cadastrado.<br />
+                        Cadastre em <span className="font-medium">Configurações → Pacotes</span>.
+                      </div>
+                    ) : (packages.data ?? []).map((p: any) => (
+                      <SelectItem key={p.id} value={p.id}>{p.name} ({p.quantity})</SelectItem>
+                    ))}
+                  </SelectContent>
                 </Select>
               </div>
               <div><Label>Nome do pacote</Label><Input value={editing.package_name ?? ""} onChange={(e) => editSet("package_name", e.target.value)} placeholder="Ex: Pacote Casamento João" /></div>
