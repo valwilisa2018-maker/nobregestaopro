@@ -449,11 +449,23 @@ function AdminPage() {
                 <Label>Nova senha</Label>
                 <Input type="password" value={newPwd} onChange={(e) => setNewPwd(e.target.value)} />
               </div>
+              <ul className="text-xs space-y-1 rounded-md border p-3 bg-muted/30">
+                <li className={pwdChecks.length ? "text-green-600" : "text-muted-foreground"}>• Mínimo de 8 caracteres</li>
+                <li className={pwdChecks.upper ? "text-green-600" : "text-muted-foreground"}>• Pelo menos 1 letra maiúscula (A-Z)</li>
+                <li className={pwdChecks.lower ? "text-green-600" : "text-muted-foreground"}>• Pelo menos 1 letra minúscula (a-z)</li>
+                <li className={pwdChecks.number ? "text-green-600" : "text-muted-foreground"}>• Pelo menos 1 número (0-9)</li>
+                <li className={pwdChecks.symbol ? "text-green-600" : "text-muted-foreground"}>• Pelo menos 1 símbolo (ex: !@#$%)</li>
+              </ul>
               <div className="space-y-1">
                 <Label>Confirmar nova senha</Label>
                 <Input type="password" value={newPwd2} onChange={(e) => setNewPwd2(e.target.value)} />
+                {newPwd2.length > 0 && (
+                  <p className={`text-xs ${pwdMatch ? "text-green-600" : "text-destructive"}`}>
+                    {pwdMatch ? "As senhas coincidem" : "As senhas não coincidem"}
+                  </p>
+                )}
               </div>
-              <Button onClick={changePwd}>Salvar nova senha</Button>
+              <Button onClick={changePwd} disabled={!pwdValid || !pwdMatch || !curPwd}>Salvar nova senha</Button>
               <p className="text-xs text-muted-foreground">A senha é armazenada localmente neste navegador. Senha padrão inicial: <code>admin</code>.</p>
             </CardContent>
           </Card>
