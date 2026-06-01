@@ -320,7 +320,7 @@ function SalesPage() {
                   <p className="text-xs text-muted-foreground mt-1">{receiptFile.name}</p>
                 )}
               </div>
-              <div className="col-span-2"><Label>Observações</Label><Textarea value={form.notes} onChange={(e) => set("notes", e.target.value)} /></div>
+              <div className="col-span-2"><Label>Observações (opcional)</Label><Textarea value={form.notes} onChange={(e) => set("notes", e.target.value)} /></div>
             </div>
             <DialogFooter>
               <Button onClick={submit} disabled={saving}>{saving && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}Criar venda</Button>
