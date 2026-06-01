@@ -293,7 +293,6 @@ function SalesPage() {
                     ...f,
                     package_id: v,
                     package_name: p?.name ?? f.package_name,
-                    service_quantity: p?.quantity ? String(p.quantity) : f.service_quantity,
                   }));
                 }}>
                   <SelectTrigger><SelectValue placeholder="—" /></SelectTrigger>
