@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { persistTelaoSettings } from "./use-telao-settings-sync";
 
 const SOUND_KEY = "telao.celebration.soundEnabled";
 const CONFETTI_KEY = "telao.celebration.confettiEnabled";
@@ -64,6 +65,14 @@ export function useCelebrationSettings(): [
     }
     window.dispatchEvent(new Event(EVENT));
     setVal(readAll());
+    const dbPatch: Record<string, unknown> = {};
+    if (patch.soundEnabled !== undefined) dbPatch.celebration_sound_enabled = patch.soundEnabled;
+    if (patch.confettiEnabled !== undefined) dbPatch.celebration_confetti_enabled = patch.confettiEnabled;
+    if (patch.volume !== undefined)
+      dbPatch.celebration_volume = Math.min(100, Math.max(0, Math.round(patch.volume)));
+    if (Object.keys(dbPatch).length > 0) {
+      void persistTelaoSettings(dbPatch as never).catch(() => {});
+    }
   };
 
   return [val, update];
