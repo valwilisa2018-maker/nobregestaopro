@@ -38,6 +38,27 @@ function AdminPage() {
   const [newService, setNewService] = useState("");
   const [newCol, setNewCol] = useState("");
   const [newSeller, setNewSeller] = useState({ name: "", email: "", phone: "", commission_rate: "", monthly_goal: "" });
+  const packages = useQuery({ queryKey: ["admin-packages"], queryFn: async () => (await supabase.from("packages").select("*").order("name")).data ?? [] });
+  const [newPkg, setNewPkg] = useState({ name: "", quantity: "1", default_price: "" });
+  const addPackage = async () => {
+    if (!newPkg.name.trim()) { toast.error("Informe o nome do pacote"); return; }
+    const { error } = await supabase.from("packages").insert({
+      name: newPkg.name.trim(),
+      quantity: Number(newPkg.quantity || 1),
+      default_price: Number(newPkg.default_price || 0),
+      active: true,
+    });
+    if (error) { toast.error(error.message); return; }
+    toast.success("Pacote cadastrado");
+    setNewPkg({ name: "", quantity: "1", default_price: "" });
+    qc.invalidateQueries({ queryKey: ["admin-packages"] });
+    qc.invalidateQueries({ queryKey: ["pkg-all"] });
+  };
+  const togglePackage = async (id: string, active: boolean) => {
+    const { error } = await supabase.from("packages").update({ active: !active }).eq("id", id);
+    if (error) toast.error(error.message);
+    else { qc.invalidateQueries({ queryKey: ["admin-packages"] }); qc.invalidateQueries({ queryKey: ["pkg-all"] }); }
+  };
 
   const updateGoal = async (id: string, amount: string) => {
     const { error } = await supabase.from("goals").update({ target_amount: Number(amount) }).eq("id", id);
@@ -104,6 +125,7 @@ function AdminPage() {
           <TabsTrigger value="commissions">Comissões</TabsTrigger>
           <TabsTrigger value="services">Tipos de Serviço</TabsTrigger>
           <TabsTrigger value="kanban">Colunas Kanban</TabsTrigger>
+          <TabsTrigger value="packages">Pacotes</TabsTrigger>
           <TabsTrigger value="pagarme">Pagar.me</TabsTrigger>
           <TabsTrigger value="nfe">Nota Fiscal</TabsTrigger>
           <TabsTrigger value="telao">Telão</TabsTrigger>
@@ -282,6 +304,32 @@ function AdminPage() {
               </div>
             </CardContent>
           </Card>
+        </TabsContent>
+
+        <TabsContent value="packages" className="mt-4 space-y-3">
+          <Card className="border-border/50"><CardHeader><CardTitle className="text-base">Adicionar pacote</CardTitle></CardHeader>
+            <CardContent className="grid gap-2 md:grid-cols-4">
+              <Input className="md:col-span-2" placeholder="Nome do pacote" value={newPkg.name} onChange={(e) => setNewPkg({ ...newPkg, name: e.target.value })} />
+              <Input type="number" min="1" placeholder="Qtd. serviços" value={newPkg.quantity} onChange={(e) => setNewPkg({ ...newPkg, quantity: e.target.value })} />
+              <Input type="number" step="0.01" placeholder="Preço sugerido (R$)" value={newPkg.default_price} onChange={(e) => setNewPkg({ ...newPkg, default_price: e.target.value })} />
+              <Button className="md:col-span-4" onClick={addPackage}>Adicionar pacote</Button>
+            </CardContent>
+          </Card>
+          <div className="grid gap-2">
+            {(packages.data ?? []).map((p: any) => (
+              <div key={p.id} className="p-3 rounded-lg border border-border/50 bg-card flex items-center gap-3">
+                <span className="flex-1 font-medium">{p.name}</span>
+                <span className="text-xs text-muted-foreground">{p.quantity} serviço(s)</span>
+                <span className="text-xs text-muted-foreground">R$ {Number(p.default_price ?? 0).toFixed(2)}</span>
+                <Button size="sm" variant={p.active ? "outline" : "secondary"} onClick={() => togglePackage(p.id, p.active)}>
+                  {p.active ? "Desativar" : "Ativar"}
+                </Button>
+              </div>
+            ))}
+            {(packages.data ?? []).length === 0 && (
+              <div className="text-sm text-muted-foreground p-4 text-center">Nenhum pacote cadastrado.</div>
+            )}
+          </div>
         </TabsContent>
 
         <TabsContent value="nfe" className="mt-4 space-y-3">
