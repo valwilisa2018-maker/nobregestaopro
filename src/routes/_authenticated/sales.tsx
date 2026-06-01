@@ -301,7 +301,7 @@ function SalesPage() {
                         Cadastre em <span className="font-medium">Configurações → Pacotes</span>.
                       </div>
                     ) : (packages.data ?? []).map((p: any) => (
-                      <SelectItem key={p.id} value={p.id}>{p.name} ({p.quantity})</SelectItem>
+                      <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
@@ -428,7 +428,7 @@ function SalesPage() {
                         Cadastre em <span className="font-medium">Configurações → Pacotes</span>.
                       </div>
                     ) : (packages.data ?? []).map((p: any) => (
-                      <SelectItem key={p.id} value={p.id}>{p.name} ({p.quantity})</SelectItem>
+                      <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>

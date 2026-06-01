@@ -87,18 +87,18 @@ function AdminPage() {
   const [newCol, setNewCol] = useState("");
   const [newSeller, setNewSeller] = useState({ name: "", email: "", phone: "", commission_rate: "", monthly_goal: "" });
   const packages = useQuery({ queryKey: ["admin-packages"], queryFn: async () => (await supabase.from("packages").select("*").order("name")).data ?? [] });
-  const [newPkg, setNewPkg] = useState({ name: "", quantity: "1", default_price: "" });
+  const [newPkg, setNewPkg] = useState({ name: "", default_price: "" });
   const addPackage = async () => {
     const nameTrim = newPkg.name.trim() || `Pacote ${new Date().toLocaleDateString("pt-BR")}`;
     const { error } = await supabase.from("packages").insert({
       name: nameTrim,
-      quantity: Number(newPkg.quantity || 1),
+      quantity: 1,
       default_price: Number(newPkg.default_price || 0),
       active: true,
     });
     if (error) { toast.error(error.message); return; }
     toast.success("Pacote cadastrado");
-    setNewPkg({ name: "", quantity: "1", default_price: "" });
+    setNewPkg({ name: "", default_price: "" });
     qc.invalidateQueries({ queryKey: ["admin-packages"] });
     qc.invalidateQueries({ queryKey: ["pkg-all"] });
   };
@@ -386,18 +386,16 @@ function AdminPage() {
 
         <TabsContent value="packages" className="mt-4 space-y-3">
           <Card className="border-border/50"><CardHeader><CardTitle className="text-base">Adicionar pacote</CardTitle></CardHeader>
-            <CardContent className="grid gap-2 md:grid-cols-4">
+            <CardContent className="grid gap-2 md:grid-cols-3">
               <Input className="md:col-span-2" placeholder="Nome do pacote (opcional)" value={newPkg.name} onChange={(e) => setNewPkg({ ...newPkg, name: e.target.value })} />
-              <Input type="number" min="1" placeholder="Qtd. serviços" value={newPkg.quantity} onChange={(e) => setNewPkg({ ...newPkg, quantity: e.target.value })} />
               <Input type="number" step="0.01" placeholder="Preço sugerido (R$)" value={newPkg.default_price} onChange={(e) => setNewPkg({ ...newPkg, default_price: e.target.value })} />
-              <Button className="md:col-span-4" onClick={addPackage}>Adicionar pacote</Button>
+              <Button className="md:col-span-3" onClick={addPackage}>Adicionar pacote</Button>
             </CardContent>
           </Card>
           <div className="grid gap-2">
             {(packages.data ?? []).map((p: any) => (
               <div key={p.id} className="p-3 rounded-lg border border-border/50 bg-card flex items-center gap-3">
                 <span className="flex-1 font-medium">{p.name}</span>
-                <span className="text-xs text-muted-foreground">{p.quantity} serviço(s)</span>
                 <span className="text-xs text-muted-foreground">R$ {Number(p.default_price ?? 0).toFixed(2)}</span>
                 <Button size="sm" variant={p.active ? "outline" : "secondary"} onClick={() => togglePackage(p.id, p.active)}>
                   {p.active ? "Desativar" : "Ativar"}
