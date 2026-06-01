@@ -95,7 +95,8 @@ function KanbanPage() {
       const { data } = await supabase
         .from("service_orders")
         .select("*, producer:producers!service_orders_producer_id_fkey(name), sales(total_amount, payment_status, trello_link, customers(name,company,phone), sellers(name), producers(name))")
-        .order("sort_order");
+        .order("created_at", { ascending: true })
+        .order("service_index", { ascending: true });
       return data ?? [];
     },
   });
