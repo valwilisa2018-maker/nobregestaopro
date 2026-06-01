@@ -86,7 +86,6 @@ function SalesPage() {
       ["company", "Empresa"],
       ["document", "CPF/CNPJ"],
       ["phone", "Telefone"],
-      ["email", "E-mail"],
       ["total_amount", "Valor total"],
       ["paid_amount", "Valor pago"],
       ["payment_status", "Status pagamento"],
