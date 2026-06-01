@@ -521,7 +521,7 @@ function Telao() {
         setTimeout(() => setFlash(false), 1800);
         setTimeout(() => setPulseHero(false), 2000);
         const row = payload?.new as SaleRow | undefined;
-        if (row) showBigSeller(sellerNameOf(row));
+        if (row) showBigSeller(sellerNameOf(row), Number(row.total_amount || 0));
       })
       .on("postgres_changes", { event: "UPDATE", schema: "public", table: "sales" }, () => {
         qc.invalidateQueries({ queryKey: ["telao-sales"] });
@@ -543,7 +543,7 @@ function Telao() {
       setTimeout(() => setFlash(false), 1800);
       setTimeout(() => setPulseHero(false), 2000);
       const newest = todaySales[0];
-      if (newest) showBigSeller(sellerNameOf(newest));
+      if (newest) showBigSeller(sellerNameOf(newest), Number(newest.total_amount || 0));
     }
     setLastCount(todaySales.length);
     // eslint-disable-next-line react-hooks/exhaustive-deps
