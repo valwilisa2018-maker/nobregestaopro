@@ -30,6 +30,35 @@ const PERIOD_LABEL: Record<string, string> = {
 };
 
 function AdminPage() {
+  const PASS_KEY = "admin_settings_password";
+  const SESSION_KEY = "admin_settings_unlocked";
+  const [unlocked, setUnlocked] = useState<boolean>(() => {
+    if (typeof window === "undefined") return false;
+    return sessionStorage.getItem(SESSION_KEY) === "1";
+  });
+  const [pwdInput, setPwdInput] = useState("");
+  const [curPwd, setCurPwd] = useState("");
+  const [newPwd, setNewPwd] = useState("");
+  const [newPwd2, setNewPwd2] = useState("");
+  const getStoredPwd = () =>
+    (typeof window !== "undefined" && localStorage.getItem(PASS_KEY)) || "admin";
+  const tryUnlock = () => {
+    if (pwdInput === getStoredPwd()) {
+      sessionStorage.setItem(SESSION_KEY, "1");
+      setUnlocked(true);
+      setPwdInput("");
+    } else {
+      toast.error("Senha incorreta");
+    }
+  };
+  const changePwd = () => {
+    if (curPwd !== getStoredPwd()) { toast.error("Senha atual incorreta"); return; }
+    if (!newPwd || newPwd.length < 4) { toast.error("Nova senha deve ter ao menos 4 caracteres"); return; }
+    if (newPwd !== newPwd2) { toast.error("As senhas não coincidem"); return; }
+    localStorage.setItem(PASS_KEY, newPwd);
+    setCurPwd(""); setNewPwd(""); setNewPwd2("");
+    toast.success("Senha alterada com sucesso");
+  };
   const qc = useQueryClient();
   const goals = useQuery({ queryKey: ["admin-goals"], queryFn: async () => (await supabase.from("goals").select("*").is("seller_id", null)).data ?? [] });
   const services = useQuery({ queryKey: ["admin-services"], queryFn: async () => (await supabase.from("service_types").select("*").order("sort_order")).data ?? [] });
@@ -116,9 +145,35 @@ function AdminPage() {
     else { toast.success("Vendedor excluído"); qc.invalidateQueries({ queryKey: ["admin-sellers"] }); qc.invalidateQueries({ queryKey: ["sellers-page"] }); }
   };
 
+  if (!unlocked) {
+    return (
+      <div className="flex min-h-[60vh] items-center justify-center">
+        <Card className="w-full max-w-md">
+          <CardHeader><CardTitle>Acesso às Configurações</CardTitle></CardHeader>
+          <CardContent className="space-y-3">
+            <Label>Senha</Label>
+            <Input
+              type="password"
+              autoFocus
+              value={pwdInput}
+              onChange={(e) => setPwdInput(e.target.value)}
+              onKeyDown={(e) => { if (e.key === "Enter") tryUnlock(); }}
+              placeholder="Digite a senha"
+            />
+            <Button className="w-full" onClick={tryUnlock}>Entrar</Button>
+            <p className="text-xs text-muted-foreground">Senha padrão: <code>admin</code> (pode ser alterada após o acesso, na aba Senha).</p>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
-      <div><h1 className="text-3xl font-bold tracking-tight">Configurações</h1><p className="text-muted-foreground">Painel administrativo</p></div>
+      <div className="flex items-start justify-between gap-3">
+        <div><h1 className="text-3xl font-bold tracking-tight">Configurações</h1><p className="text-muted-foreground">Painel administrativo</p></div>
+        <Button variant="outline" size="sm" onClick={() => { sessionStorage.removeItem(SESSION_KEY); setUnlocked(false); }}>Bloquear</Button>
+      </div>
       <Tabs defaultValue="goals">
         <TabsList>
           <TabsTrigger value="goals">Metas</TabsTrigger>
@@ -129,6 +184,7 @@ function AdminPage() {
           <TabsTrigger value="pagarme">Pagar.me</TabsTrigger>
           <TabsTrigger value="nfe">Nota Fiscal</TabsTrigger>
           <TabsTrigger value="telao">Telão</TabsTrigger>
+          <TabsTrigger value="senha">Senha</TabsTrigger>
           <TabsTrigger value="reset" className="text-destructive">Resetar</TabsTrigger>
           <TabsTrigger value="audit">Auditoria</TabsTrigger>
         </TabsList>
@@ -369,6 +425,28 @@ function AdminPage() {
 
         <TabsContent value="telao" className="mt-4 space-y-3">
           <TelaoSettingsTab />
+        </TabsContent>
+
+        <TabsContent value="senha" className="mt-4 space-y-3">
+          <Card>
+            <CardHeader><CardTitle>Alterar senha de acesso</CardTitle></CardHeader>
+            <CardContent className="space-y-3 max-w-md">
+              <div className="space-y-1">
+                <Label>Senha atual</Label>
+                <Input type="password" value={curPwd} onChange={(e) => setCurPwd(e.target.value)} />
+              </div>
+              <div className="space-y-1">
+                <Label>Nova senha</Label>
+                <Input type="password" value={newPwd} onChange={(e) => setNewPwd(e.target.value)} />
+              </div>
+              <div className="space-y-1">
+                <Label>Confirmar nova senha</Label>
+                <Input type="password" value={newPwd2} onChange={(e) => setNewPwd2(e.target.value)} />
+              </div>
+              <Button onClick={changePwd}>Salvar nova senha</Button>
+              <p className="text-xs text-muted-foreground">A senha é armazenada localmente neste navegador. Senha padrão inicial: <code>admin</code>.</p>
+            </CardContent>
+          </Card>
         </TabsContent>
 
         <TabsContent value="reset" className="mt-4 space-y-3">
