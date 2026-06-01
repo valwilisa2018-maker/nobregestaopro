@@ -6,6 +6,7 @@ import { formatCurrency } from "@/lib/auth";
 import { fmtDate, fmtTime } from "@/lib/format";
 import { Maximize2, Minimize2, Volume2, VolumeX, ArrowUpRight, Megaphone, Bell, Coins, Pencil, X } from "lucide-react";
 import confetti from "canvas-confetti";
+import { useCelebrationSettings } from "@/hooks/use-celebration-settings";
 
 export const Route = createFileRoute("/_authenticated/telao")({
   component: Telao,
