@@ -427,6 +427,28 @@ function AdminPage() {
           <TelaoSettingsTab />
         </TabsContent>
 
+        <TabsContent value="senha" className="mt-4 space-y-3">
+          <Card>
+            <CardHeader><CardTitle>Alterar senha de acesso</CardTitle></CardHeader>
+            <CardContent className="space-y-3 max-w-md">
+              <div className="space-y-1">
+                <Label>Senha atual</Label>
+                <Input type="password" value={curPwd} onChange={(e) => setCurPwd(e.target.value)} />
+              </div>
+              <div className="space-y-1">
+                <Label>Nova senha</Label>
+                <Input type="password" value={newPwd} onChange={(e) => setNewPwd(e.target.value)} />
+              </div>
+              <div className="space-y-1">
+                <Label>Confirmar nova senha</Label>
+                <Input type="password" value={newPwd2} onChange={(e) => setNewPwd2(e.target.value)} />
+              </div>
+              <Button onClick={changePwd}>Salvar nova senha</Button>
+              <p className="text-xs text-muted-foreground">A senha é armazenada localmente neste navegador. Senha padrão inicial: <code>admin</code>.</p>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
         <TabsContent value="reset" className="mt-4 space-y-3">
           <ResetPlatformTab />
         </TabsContent>
