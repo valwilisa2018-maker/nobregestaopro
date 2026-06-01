@@ -86,7 +86,6 @@ function SalesPage() {
       ["company", "Empresa"],
       ["document", "CPF/CNPJ"],
       ["phone", "Telefone"],
-      ["email", "E-mail"],
       ["total_amount", "Valor total"],
       ["paid_amount", "Valor pago"],
       ["payment_status", "Status pagamento"],
@@ -246,7 +245,7 @@ function SalesPage() {
               </div>
               <div><Label>CPF/CNPJ *</Label><Input value={form.document} onChange={(e) => set("document", e.target.value)} /></div>
               <div><Label>Telefone *</Label><Input value={form.phone} onChange={(e) => set("phone", e.target.value)} /></div>
-              <div><Label>E-mail *</Label><Input value={form.email} onChange={(e) => set("email", e.target.value)} /></div>
+              <div><Label>E-mail (opcional)</Label><Input value={form.email} onChange={(e) => set("email", e.target.value)} /></div>
               <div><Label>Valor total *</Label><Input type="number" step="0.01" value={form.total_amount} onChange={(e) => set("total_amount", e.target.value)} /></div>
               <div><Label>Valor pago *</Label><Input type="number" step="0.01" value={form.paid_amount} onChange={(e) => set("paid_amount", e.target.value)} /></div>
               <div><Label>Status pagamento *</Label>
