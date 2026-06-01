@@ -17,6 +17,10 @@ import {
   TELAO_THRESHOLD_DEFAULT,
   TELAO_THRESHOLD_MIN,
   TELAO_THRESHOLD_MAX,
+  useBigSellerOverlaySeconds,
+  TELAO_OVERLAY_DEFAULT,
+  TELAO_OVERLAY_MIN,
+  TELAO_OVERLAY_MAX,
 } from "@/hooks/use-telao-settings";
 import { useCelebrationSettings } from "@/hooks/use-celebration-settings";
 import { Switch } from "@/components/ui/switch";
@@ -443,6 +447,7 @@ function AdminPage() {
 
         <TabsContent value="telao" className="mt-4 space-y-3">
           <TelaoSettingsTab />
+          <TelaoOverlayDurationCard />
           <CelebrationSettingsCard />
         </TabsContent>
 
@@ -741,6 +746,7 @@ function TelaoSettingsTab() {
 }
 
 function CelebrationSettingsCard() {
+  // see below
   const [settings, update] = useCelebrationSettings();
 
   const preview = () => {
