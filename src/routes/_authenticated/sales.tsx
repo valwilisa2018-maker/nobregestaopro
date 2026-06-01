@@ -308,7 +308,15 @@ function SalesPage() {
               </div>
               <div><Label>Qtd. serviços *</Label><Input type="number" min="1" value={form.service_quantity} onChange={(e) => set("service_quantity", e.target.value)} /></div>
               <div><Label>Data da venda *</Label><Input type="date" value={form.sale_date} onChange={(e) => set("sale_date", e.target.value)} /></div>
-              <div className="col-span-2"><Label>Link Trello / card externo *</Label><Input value={form.trello_link} onChange={(e) => set("trello_link", e.target.value)} /></div>
+              <div className="col-span-2">
+                <Label>Link Trello / card externo *</Label>
+                <div className="flex gap-2">
+                  <Input value={form.trello_link} onChange={(e) => set("trello_link", e.target.value)} />
+                  <Button type="button" variant="outline" onClick={() => window.open("https://drive.google.com/drive/u/0/home", "_blank", "noopener,noreferrer")}>
+                    Abrir Google Drive
+                  </Button>
+                </div>
+              </div>
               <div className="col-span-2">
                 <Label>Comprovante (imagem ou PDF) *</Label>
                 <Input
@@ -434,7 +442,15 @@ function SalesPage() {
                 </Select>
               </div>
               <div><Label>Qtd. serviços</Label><Input type="number" min="1" value={editing.service_quantity ?? 1} onChange={(e) => editSet("service_quantity", e.target.value)} /></div>
-              <div className="col-span-2"><Label>Link Trello</Label><Input value={editing.trello_link ?? ""} onChange={(e) => editSet("trello_link", e.target.value)} /></div>
+              <div className="col-span-2">
+                <Label>Link Trello</Label>
+                <div className="flex gap-2">
+                  <Input value={editing.trello_link ?? ""} onChange={(e) => editSet("trello_link", e.target.value)} />
+                  <Button type="button" variant="outline" onClick={() => window.open("https://drive.google.com/drive/u/0/home", "_blank", "noopener,noreferrer")}>
+                    Abrir Google Drive
+                  </Button>
+                </div>
+              </div>
               <div className="col-span-2"><Label>Observações (opcional)</Label><Textarea value={editing.notes ?? ""} onChange={(e) => editSet("notes", e.target.value)} /></div>
             </div>
           )}
