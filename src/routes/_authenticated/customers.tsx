@@ -256,11 +256,20 @@ function CustomersPage() {
                 )}
               </div>
 
-              <div className="grid grid-cols-3 gap-3">
-                <Card><CardContent className="p-3"><div className="text-xs text-muted-foreground">Vendas</div><div className="text-xl font-bold">{selected._sales.length}</div></CardContent></Card>
-                <Card><CardContent className="p-3"><div className="text-xs text-muted-foreground">Total contratado</div><div className="text-xl font-bold">{formatCurrency(selected._total)}</div></CardContent></Card>
-                <Card><CardContent className="p-3"><div className="text-xs text-muted-foreground">Pago</div><div className="text-xl font-bold">{formatCurrency(selected._paid)}</div></CardContent></Card>
-              </div>
+              {(() => {
+                const fullyPaid = selected._paid >= selected._total && selected._total > 0;
+                const toneClass = fullyPaid
+                  ? "border-emerald-500/60 bg-emerald-500/10"
+                  : "border-red-500/60 bg-red-500/10";
+                const textTone = fullyPaid ? "text-emerald-600 dark:text-emerald-400" : "text-red-600 dark:text-red-400";
+                return (
+                  <div className="grid grid-cols-3 gap-3">
+                    <Card><CardContent className="p-3"><div className="text-xs text-muted-foreground">Vendas</div><div className="text-xl font-bold">{selected._sales.length}</div></CardContent></Card>
+                    <Card className={toneClass}><CardContent className="p-3"><div className="text-xs text-muted-foreground">Total contratado</div><div className={`text-xl font-bold ${textTone}`}>{formatCurrency(selected._total)}</div></CardContent></Card>
+                    <Card className={toneClass}><CardContent className="p-3"><div className="text-xs text-muted-foreground">Pago</div><div className={`text-xl font-bold ${textTone}`}>{formatCurrency(selected._paid)}</div></CardContent></Card>
+                  </div>
+                );
+              })()}
 
               <div>
                 <h3 className="font-semibold mb-2">Histórico de compras</h3>
