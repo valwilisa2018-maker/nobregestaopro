@@ -265,6 +265,32 @@ function AdminPage() {
 
         <TabsContent value="pagarme" className="mt-4 space-y-3">
           <PagarmeCredentialCard />
+        </TabsContent>
+
+        <TabsContent value="packages" className="mt-4 space-y-3">
+          <Card className="border-border/50"><CardHeader><CardTitle className="text-base">Adicionar pacote</CardTitle></CardHeader>
+            <CardContent className="grid gap-2 md:grid-cols-4">
+              <Input className="md:col-span-2" placeholder="Nome do pacote" value={newPkg.name} onChange={(e) => setNewPkg({ ...newPkg, name: e.target.value })} />
+              <Input type="number" min="1" placeholder="Qtd. serviços" value={newPkg.quantity} onChange={(e) => setNewPkg({ ...newPkg, quantity: e.target.value })} />
+              <Input type="number" step="0.01" placeholder="Preço sugerido (R$)" value={newPkg.default_price} onChange={(e) => setNewPkg({ ...newPkg, default_price: e.target.value })} />
+              <Button className="md:col-span-4" onClick={addPackage}>Adicionar pacote</Button>
+            </CardContent>
+          </Card>
+          <div className="grid gap-2">
+            {(packages.data ?? []).map((p: any) => (
+              <div key={p.id} className="p-3 rounded-lg border border-border/50 bg-card flex items-center gap-3">
+                <span className="flex-1 font-medium">{p.name}</span>
+                <span className="text-xs text-muted-foreground">{p.quantity} serviço(s)</span>
+                <span className="text-xs text-muted-foreground">R$ {Number(p.default_price ?? 0).toFixed(2)}</span>
+                <Button size="sm" variant={p.active ? "outline" : "secondary"} onClick={() => togglePackage(p.id, p.active)}>
+                  {p.active ? "Desativar" : "Ativar"}
+                </Button>
+              </div>
+            ))}
+            {(packages.data ?? []).length === 0 && (
+              <div className="text-sm text-muted-foreground p-4 text-center">Nenhum pacote cadastrado.</div>
+            )}
+          </div>
 
           <Card
             className="border-2"
