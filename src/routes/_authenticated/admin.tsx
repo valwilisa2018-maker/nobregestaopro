@@ -87,18 +87,18 @@ function AdminPage() {
   const [newCol, setNewCol] = useState("");
   const [newSeller, setNewSeller] = useState({ name: "", email: "", phone: "", commission_rate: "", monthly_goal: "" });
   const packages = useQuery({ queryKey: ["admin-packages"], queryFn: async () => (await supabase.from("packages").select("*").order("name")).data ?? [] });
-  const [newPkg, setNewPkg] = useState({ name: "", quantity: "1", default_price: "" });
+  const [newPkg, setNewPkg] = useState({ name: "", default_price: "" });
   const addPackage = async () => {
     const nameTrim = newPkg.name.trim() || `Pacote ${new Date().toLocaleDateString("pt-BR")}`;
     const { error } = await supabase.from("packages").insert({
       name: nameTrim,
-      quantity: Number(newPkg.quantity || 1),
+      quantity: 1,
       default_price: Number(newPkg.default_price || 0),
       active: true,
     });
     if (error) { toast.error(error.message); return; }
     toast.success("Pacote cadastrado");
-    setNewPkg({ name: "", quantity: "1", default_price: "" });
+    setNewPkg({ name: "", default_price: "" });
     qc.invalidateQueries({ queryKey: ["admin-packages"] });
     qc.invalidateQueries({ queryKey: ["pkg-all"] });
   };
