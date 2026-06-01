@@ -461,6 +461,7 @@ export type Database = {
           created_by: string | null
           customer_id: string
           id: string
+          lead_source: string | null
           notes: string | null
           package_id: string | null
           package_name: string | null
@@ -482,6 +483,7 @@ export type Database = {
           created_by?: string | null
           customer_id: string
           id?: string
+          lead_source?: string | null
           notes?: string | null
           package_id?: string | null
           package_name?: string | null
@@ -503,6 +505,7 @@ export type Database = {
           created_by?: string | null
           customer_id?: string
           id?: string
+          lead_source?: string | null
           notes?: string | null
           package_id?: string | null
           package_name?: string | null
