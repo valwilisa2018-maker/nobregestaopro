@@ -97,7 +97,7 @@ function Dashboard() {
     queryFn: async () => {
       const { data } = await supabase
         .from("service_orders")
-        .select("id,column_id,delivered_at,sale_id,kanban_columns(name,is_done,sort_order)");
+        .select("id,column_id,delivered_at,sale_id,producer_id,created_at,kanban_columns(name,is_done,sort_order)");
       return data ?? [];
     },
   });
@@ -207,16 +207,19 @@ function Dashboard() {
     };
   }).filter((s) => s.qtd > 0).sort((a, b) => b.total - a.total).slice(0, 5);
 
-  // Ranking produtores (no escopo)
+  // Ranking produtores (no escopo) — por PRODUÇÃO de vídeos (service_orders), não vendas
   const producerRanking = (producers.data ?? []).map((p: any) => {
-    const list = all.filter((x) => x.producer_id === p.id && x.created_at >= scopeSince);
+    const list = ordersList.filter((o) => o.producer_id === p.id && o.created_at >= scopeSince);
+    const entregues = list.filter((o) => !!o.delivered_at || o.kanban_columns?.is_done).length;
+    const emProducao = list.length - entregues;
     return {
       id: p.id,
       name: p.name,
-      total: list.reduce((a, x) => a + Number(x.total_amount), 0),
+      entregues,
+      emProducao,
       qtd: list.length,
     };
-  }).filter((p) => p.qtd > 0).sort((a, b) => b.total - a.total).slice(0, 5);
+  }).filter((p) => p.qtd > 0).sort((a, b) => b.entregues - a.entregues || b.qtd - a.qtd).slice(0, 5);
 
   // Produtos / serviços mais vendidos (no escopo) — combina service_types + packages
   const productRanking = useMemo(() => {
@@ -586,10 +589,13 @@ function Dashboard() {
                   )}
                   <div>
                     <div className="font-medium leading-tight">{p.name}</div>
-                    <div className="text-[11px] text-muted-foreground">{p.qtd} vendas</div>
+                    <div className="text-[11px] text-muted-foreground">
+                      {p.entregues} entregue{p.entregues === 1 ? "" : "s"}
+                      {p.emProducao > 0 && ` · ${p.emProducao} em produção`}
+                    </div>
                   </div>
                 </div>
-                <span className="font-semibold">{formatCurrency(p.total)}</span>
+                <span className="font-semibold">{p.qtd} vídeo{p.qtd === 1 ? "" : "s"}</span>
               </button>
             ))}
           </CardContent>
