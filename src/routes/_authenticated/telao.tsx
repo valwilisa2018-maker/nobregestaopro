@@ -46,10 +46,10 @@ function getCtx(): AudioContext | null {
 }
 
 // Buzina de caminhão / air horn — dois osciladores sawtooth detuned + ataque agressivo
-function playBuzina(ctx: AudioContext) {
+function playBuzina(ctx: AudioContext, vol = 1) {
   const now = ctx.currentTime;
   const master = ctx.createGain();
-  master.gain.value = 0.5;
+  master.gain.value = 0.5 * vol;
   master.connect(ctx.destination);
 
   const blast = (t: number, dur: number, base: number) => {
@@ -76,10 +76,10 @@ function playBuzina(ctx: AudioContext) {
 }
 
 // Caixa registradora — "cha-ching" com bell + click
-function playCaixa(ctx: AudioContext) {
+function playCaixa(ctx: AudioContext, vol = 1) {
   const now = ctx.currentTime;
   const master = ctx.createGain();
-  master.gain.value = 0.55;
+  master.gain.value = 0.55 * vol;
   master.connect(ctx.destination);
 
   // click (ding inicial)
@@ -113,10 +113,10 @@ function playCaixa(ctx: AudioContext) {
 }
 
 // Sino de vitória — arpejo C-E-G-C ascendente
-function playSino(ctx: AudioContext) {
+function playSino(ctx: AudioContext, vol = 1) {
   const now = ctx.currentTime;
   const master = ctx.createGain();
-  master.gain.value = 0.5;
+  master.gain.value = 0.5 * vol;
   master.connect(ctx.destination);
   const notes = [523.25, 659.25, 783.99, 1046.5]; // C5 E5 G5 C6
   notes.forEach((f, i) => {
@@ -136,12 +136,12 @@ function playSino(ctx: AudioContext) {
   setTimeout(() => ctx.close(), 1800);
 }
 
-function playSound(id: SoundId) {
+function playSound(id: SoundId, vol = 1) {
   const ctx = getCtx();
   if (!ctx) return;
-  if (id === "buzina") playBuzina(ctx);
-  else if (id === "caixa") playCaixa(ctx);
-  else playSino(ctx);
+  if (id === "buzina") playBuzina(ctx, vol);
+  else if (id === "caixa") playCaixa(ctx, vol);
+  else playSino(ctx, vol);
 }
 
 // Confetti dourado, mais intenso
