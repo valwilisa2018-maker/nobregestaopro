@@ -184,6 +184,7 @@ function useCountUp(target: number, duration = 900, replayKey: number = 0) {
 
 function Telao() {
   const qc = useQueryClient();
+  const [celebration] = useCelebrationSettings();
   const [soundEnabled, setSoundEnabled] = useState(false);
   const [soundId, setSoundId] = useState<SoundId>("buzina");
   const [lastCount, setLastCount] = useState<number | null>(null);
