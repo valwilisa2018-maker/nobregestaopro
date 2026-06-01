@@ -345,6 +345,7 @@ export type Database = {
       producers: {
         Row: {
           active: boolean
+          avatar_url: string | null
           average_delivery_days: number | null
           created_at: string
           email: string | null
@@ -358,6 +359,7 @@ export type Database = {
         }
         Insert: {
           active?: boolean
+          avatar_url?: string | null
           average_delivery_days?: number | null
           created_at?: string
           email?: string | null
@@ -371,6 +373,7 @@ export type Database = {
         }
         Update: {
           active?: boolean
+          avatar_url?: string | null
           average_delivery_days?: number | null
           created_at?: string
           email?: string | null
