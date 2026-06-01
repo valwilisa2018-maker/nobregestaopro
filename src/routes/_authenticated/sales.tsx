@@ -306,7 +306,6 @@ function SalesPage() {
                   </SelectContent>
                 </Select>
               </div>
-              <div><Label>Nome do pacote</Label><Input value={form.package_name} onChange={(e) => set("package_name", e.target.value)} placeholder="Ex: Pacote Casamento João" /></div>
               <div><Label>Qtd. serviços *</Label><Input type="number" min="1" value={form.service_quantity} onChange={(e) => set("service_quantity", e.target.value)} /></div>
               <div><Label>Data da venda *</Label><Input type="date" value={form.sale_date} onChange={(e) => set("sale_date", e.target.value)} /></div>
               <div className="col-span-2"><Label>Link Trello / card externo *</Label><Input value={form.trello_link} onChange={(e) => set("trello_link", e.target.value)} /></div>
