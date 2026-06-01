@@ -189,6 +189,13 @@ function Telao() {
   const [flash, setFlash] = useState(false);
   const [kiosk, setKiosk] = useState(false);
   const [pulseHero, setPulseHero] = useState(false);
+  const [bigSeller, setBigSeller] = useState<string | null>(null);
+  const bigSellerTimer = useRef<number | null>(null);
+  const showBigSeller = (name: string) => {
+    setBigSeller(name || "Vendedor");
+    if (bigSellerTimer.current) window.clearTimeout(bigSellerTimer.current);
+    bigSellerTimer.current = window.setTimeout(() => setBigSeller(null), 4500);
+  };
   const rootRef = useRef<HTMLDivElement>(null);
   const [clock, setClock] = useState<string>(() => new Date().toLocaleTimeString("pt-BR"));
   useEffect(() => {
