@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Plus } from "lucide-react";
+import { Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { formatCurrency } from "@/lib/auth";
 
@@ -34,6 +34,23 @@ function SellersPage() {
     if (error) toast.error(error.message);
     else { toast.success("Vendedor cadastrado"); setOpen(false); setForm({ name: "", phone: "", email: "", monthly_goal: "0", commission_rate: "0" }); qc.invalidateQueries(); }
   };
+  const toggleActive = async (id: string, active: boolean) => {
+    const { error } = await supabase.from("sellers").update({ active }).eq("id", id);
+    if (error) toast.error(error.message);
+    else { toast.success(active ? "Vendedor ativado" : "Vendedor desativado"); qc.invalidateQueries(); }
+  };
+  const remove = async (id: string, name: string) => {
+    if (!window.confirm(`Excluir o vendedor "${name}"? Esta ação não pode ser desfeita.`)) return;
+    const { count: salesCount } = await supabase.from("sales").select("id", { count: "exact", head: true }).eq("seller_id", id);
+    const linked = salesCount ?? 0;
+    if (linked > 0) {
+      toast.error(`Não é possível excluir: ${linked} venda(s) vinculada(s). Desative-o em vez disso.`);
+      return;
+    }
+    const { error } = await supabase.from("sellers").delete().eq("id", id);
+    if (error) toast.error(error.message);
+    else { toast.success("Vendedor excluído"); qc.invalidateQueries(); }
+  };
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -54,7 +71,7 @@ function SellersPage() {
       </div>
       <Card className="border-border/50" style={{ boxShadow: "var(--shadow-card)" }}><CardContent className="p-0">
         <Table>
-          <TableHeader><TableRow><TableHead>Nome</TableHead><TableHead>Contato</TableHead><TableHead className="text-right">Meta</TableHead><TableHead>Comissão</TableHead><TableHead>Status</TableHead></TableRow></TableHeader>
+          <TableHeader><TableRow><TableHead>Nome</TableHead><TableHead>Contato</TableHead><TableHead className="text-right">Meta</TableHead><TableHead>Comissão</TableHead><TableHead>Status</TableHead><TableHead className="text-right">Ações</TableHead></TableRow></TableHeader>
           <TableBody>
             {(q.data ?? []).map((s: any) => (
               <TableRow key={s.id}>
@@ -63,9 +80,19 @@ function SellersPage() {
                 <TableCell className="text-right">{formatCurrency(s.monthly_goal)}</TableCell>
                 <TableCell>{s.commission_rate}%</TableCell>
                 <TableCell><Badge variant={s.active ? "default" : "secondary"}>{s.active ? "Ativo" : "Inativo"}</Badge></TableCell>
+                <TableCell className="text-right">
+                  <div className="flex gap-1 justify-end">
+                    <Button variant="outline" size="sm" onClick={() => toggleActive(s.id, !s.active)}>
+                      {s.active ? "Desativar" : "Ativar"}
+                    </Button>
+                    <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive" onClick={() => remove(s.id, s.name)}>
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  </div>
+                </TableCell>
               </TableRow>
             ))}
-            {(q.data ?? []).length === 0 && <TableRow><TableCell colSpan={5} className="text-center text-muted-foreground py-8">Sem vendedores</TableCell></TableRow>}
+            {(q.data ?? []).length === 0 && <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground py-8">Sem vendedores</TableCell></TableRow>}
           </TableBody>
         </Table>
       </CardContent></Card>
