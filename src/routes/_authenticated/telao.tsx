@@ -189,6 +189,13 @@ function Telao() {
   const [flash, setFlash] = useState(false);
   const [kiosk, setKiosk] = useState(false);
   const [pulseHero, setPulseHero] = useState(false);
+  const [bigSeller, setBigSeller] = useState<string | null>(null);
+  const bigSellerTimer = useRef<number | null>(null);
+  const showBigSeller = (name: string) => {
+    setBigSeller(name || "Vendedor");
+    if (bigSellerTimer.current) window.clearTimeout(bigSellerTimer.current);
+    bigSellerTimer.current = window.setTimeout(() => setBigSeller(null), 4500);
+  };
   const rootRef = useRef<HTMLDivElement>(null);
   const [clock, setClock] = useState<string>(() => new Date().toLocaleTimeString("pt-BR"));
   useEffect(() => {
@@ -503,7 +510,7 @@ function Telao() {
   useEffect(() => {
     const channel = supabase
       .channel("telao-sales")
-      .on("postgres_changes", { event: "INSERT", schema: "public", table: "sales" }, () => {
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "sales" }, (payload: any) => {
         qc.invalidateQueries({ queryKey: ["telao-sales"] });
         fireConfetti();
         if (soundEnabled) playSound(soundId);
@@ -511,6 +518,8 @@ function Telao() {
         setPulseHero(true);
         setTimeout(() => setFlash(false), 1800);
         setTimeout(() => setPulseHero(false), 2000);
+        const row = payload?.new as SaleRow | undefined;
+        if (row) showBigSeller(sellerNameOf(row));
       })
       .on("postgres_changes", { event: "UPDATE", schema: "public", table: "sales" }, () => {
         qc.invalidateQueries({ queryKey: ["telao-sales"] });
@@ -531,6 +540,8 @@ function Telao() {
       setPulseHero(true);
       setTimeout(() => setFlash(false), 1800);
       setTimeout(() => setPulseHero(false), 2000);
+      const newest = todaySales[0];
+      if (newest) showBigSeller(sellerNameOf(newest));
     }
     setLastCount(todaySales.length);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -587,6 +598,9 @@ function Telao() {
         @keyframes telao-shine { 0% { background-position: -200% 0; } 100% { background-position: 200% 0; } }
         @keyframes telao-pop { 0% { transform: scale(0.85); opacity: 0; } 60% { transform: scale(1.05); opacity: 1; } 100% { transform: scale(1); } }
         @keyframes telao-rotate-in { 0% { opacity: 0; transform: translateY(14px); filter: blur(4px); } 100% { opacity: 1; transform: translateY(0); filter: blur(0); } }
+        @keyframes telao-big-in { 0% { opacity: 0; transform: scale(0.4) rotate(-6deg); filter: blur(12px); } 60% { opacity: 1; transform: scale(1.08) rotate(2deg); filter: blur(0); } 100% { opacity: 1; transform: scale(1) rotate(0); } }
+        @keyframes telao-big-glow { 0%,100% { text-shadow: 0 0 30px rgba(240,215,140,0.6), 0 0 80px rgba(201,168,76,0.4); } 50% { text-shadow: 0 0 60px rgba(240,215,140,1), 0 0 140px rgba(201,168,76,0.9); } }
+        @keyframes telao-sub-bounce { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }
         .telao-pulse { animation: telao-pulse-gold 1.8s ease-out 1; }
         .telao-marquee { display: flex; flex-wrap: nowrap; gap: 0; width: max-content; min-width: max-content; white-space: nowrap; animation: telao-scroll-x 25s linear infinite; will-change: transform; backface-visibility: hidden; transform: translate3d(0,0,0); }
         .telao-marquee:hover { animation-play-state: paused; }
@@ -717,6 +731,42 @@ function Telao() {
         }
         .telao-kpi-pair { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
       `}</style>
+
+      {/* OVERLAY: nova venda - nome do vendedor gigante */}
+      {bigSeller && (
+        <div
+          className="fixed inset-0 z-[9999] flex flex-col items-center justify-center pointer-events-none"
+          style={{ background: "radial-gradient(circle at center, rgba(13,13,13,0.85) 0%, rgba(13,13,13,0.95) 70%)", backdropFilter: "blur(6px)" }}
+        >
+          <div
+            className="text-center px-8"
+            style={{ animation: "telao-big-in 0.7s cubic-bezier(.34,1.56,.64,1) 1" }}
+          >
+            <div
+              className="uppercase tracking-[0.5em] text-[#c9a84c] mb-4"
+              style={{ fontSize: "clamp(1rem, 2.5vw, 2rem)", animation: "telao-sub-bounce 0.6s ease-in-out infinite" }}
+            >
+              + Mais uma venda!
+            </div>
+            <div
+              className="font-black telao-shine leading-none"
+              style={{
+                fontSize: "clamp(4rem, 14vw, 18rem)",
+                letterSpacing: "-0.04em",
+                animation: "telao-big-glow 1.2s ease-in-out infinite",
+              }}
+            >
+              {bigSeller}
+            </div>
+            <div
+              className="mt-6 uppercase tracking-[0.4em] text-[#f0d78c]/80"
+              style={{ fontSize: "clamp(1rem, 2vw, 1.75rem)" }}
+            >
+              Parabéns!
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* DASHBOARD GRID */}
       <div className="telao-dash-grid">
