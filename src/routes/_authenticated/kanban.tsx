@@ -106,7 +106,7 @@ function KanbanPage() {
 
   const producers = useQuery({
     queryKey: ["producers-select"],
-    queryFn: async () => (await supabase.from("producers").select("id,name").eq("active", true).order("name")).data ?? [],
+    queryFn: async () => (await supabase.from("producers").select("id,name,avatar_url").eq("active", true).order("name")).data ?? [],
   });
 
   useEffect(() => {
@@ -242,8 +242,11 @@ function KanbanPage() {
               size="sm"
               variant={producerFilter === p.id ? "default" : "outline"}
               onClick={() => setProducerFilter(p.id)}
-              className="whitespace-nowrap"
+              className="whitespace-nowrap gap-2"
             >
+              <span className="w-5 h-5 rounded-full bg-muted overflow-hidden border flex items-center justify-center text-[10px] font-bold">
+                {p.avatar_url ? <img src={p.avatar_url} alt={p.name} className="w-full h-full object-cover" /> : (p.name?.charAt(0)?.toUpperCase() ?? "?")}
+              </span>
               {p.name}
             </Button>
           ))}
