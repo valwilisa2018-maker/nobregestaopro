@@ -97,7 +97,7 @@ function Dashboard() {
     queryFn: async () => {
       const { data } = await supabase
         .from("service_orders")
-        .select("id,column_id,delivered_at,sale_id,kanban_columns(name,is_done,sort_order)");
+        .select("id,column_id,delivered_at,sale_id,producer_id,created_at,kanban_columns(name,is_done,sort_order)");
       return data ?? [];
     },
   });
