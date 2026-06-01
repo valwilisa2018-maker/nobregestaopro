@@ -51,10 +51,20 @@ function AdminPage() {
       toast.error("Senha incorreta");
     }
   };
+  const pwdChecks = {
+    length: newPwd.length >= 8,
+    upper: /[A-Z]/.test(newPwd),
+    lower: /[a-z]/.test(newPwd),
+    number: /[0-9]/.test(newPwd),
+    symbol: /[^A-Za-z0-9]/.test(newPwd),
+  };
+  const pwdValid = Object.values(pwdChecks).every(Boolean);
+  const pwdMatch = newPwd.length > 0 && newPwd === newPwd2;
   const changePwd = () => {
     if (curPwd !== getStoredPwd()) { toast.error("Senha atual incorreta"); return; }
-    if (!newPwd || newPwd.length < 4) { toast.error("Nova senha deve ter ao menos 4 caracteres"); return; }
-    if (newPwd !== newPwd2) { toast.error("As senhas não coincidem"); return; }
+    if (!pwdValid) { toast.error("A nova senha não atende aos requisitos de complexidade"); return; }
+    if (newPwd === curPwd) { toast.error("A nova senha deve ser diferente da atual"); return; }
+    if (!pwdMatch) { toast.error("A confirmação não coincide com a nova senha"); return; }
     localStorage.setItem(PASS_KEY, newPwd);
     setCurPwd(""); setNewPwd(""); setNewPwd2("");
     toast.success("Senha alterada com sucesso");
@@ -439,11 +449,23 @@ function AdminPage() {
                 <Label>Nova senha</Label>
                 <Input type="password" value={newPwd} onChange={(e) => setNewPwd(e.target.value)} />
               </div>
+              <ul className="text-xs space-y-1 rounded-md border p-3 bg-muted/30">
+                <li className={pwdChecks.length ? "text-green-600" : "text-muted-foreground"}>• Mínimo de 8 caracteres</li>
+                <li className={pwdChecks.upper ? "text-green-600" : "text-muted-foreground"}>• Pelo menos 1 letra maiúscula (A-Z)</li>
+                <li className={pwdChecks.lower ? "text-green-600" : "text-muted-foreground"}>• Pelo menos 1 letra minúscula (a-z)</li>
+                <li className={pwdChecks.number ? "text-green-600" : "text-muted-foreground"}>• Pelo menos 1 número (0-9)</li>
+                <li className={pwdChecks.symbol ? "text-green-600" : "text-muted-foreground"}>• Pelo menos 1 símbolo (ex: !@#$%)</li>
+              </ul>
               <div className="space-y-1">
                 <Label>Confirmar nova senha</Label>
                 <Input type="password" value={newPwd2} onChange={(e) => setNewPwd2(e.target.value)} />
+                {newPwd2.length > 0 && (
+                  <p className={`text-xs ${pwdMatch ? "text-green-600" : "text-destructive"}`}>
+                    {pwdMatch ? "As senhas coincidem" : "As senhas não coincidem"}
+                  </p>
+                )}
               </div>
-              <Button onClick={changePwd}>Salvar nova senha</Button>
+              <Button onClick={changePwd} disabled={!pwdValid || !pwdMatch || !curPwd}>Salvar nova senha</Button>
               <p className="text-xs text-muted-foreground">A senha é armazenada localmente neste navegador. Senha padrão inicial: <code>admin</code>.</p>
             </CardContent>
           </Card>
