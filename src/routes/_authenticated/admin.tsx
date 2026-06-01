@@ -38,6 +38,27 @@ function AdminPage() {
   const [newService, setNewService] = useState("");
   const [newCol, setNewCol] = useState("");
   const [newSeller, setNewSeller] = useState({ name: "", email: "", phone: "", commission_rate: "", monthly_goal: "" });
+  const packages = useQuery({ queryKey: ["admin-packages"], queryFn: async () => (await supabase.from("packages").select("*").order("name")).data ?? [] });
+  const [newPkg, setNewPkg] = useState({ name: "", quantity: "1", default_price: "" });
+  const addPackage = async () => {
+    if (!newPkg.name.trim()) { toast.error("Informe o nome do pacote"); return; }
+    const { error } = await supabase.from("packages").insert({
+      name: newPkg.name.trim(),
+      quantity: Number(newPkg.quantity || 1),
+      default_price: Number(newPkg.default_price || 0),
+      active: true,
+    });
+    if (error) { toast.error(error.message); return; }
+    toast.success("Pacote cadastrado");
+    setNewPkg({ name: "", quantity: "1", default_price: "" });
+    qc.invalidateQueries({ queryKey: ["admin-packages"] });
+    qc.invalidateQueries({ queryKey: ["pkg-all"] });
+  };
+  const togglePackage = async (id: string, active: boolean) => {
+    const { error } = await supabase.from("packages").update({ active: !active }).eq("id", id);
+    if (error) toast.error(error.message);
+    else { qc.invalidateQueries({ queryKey: ["admin-packages"] }); qc.invalidateQueries({ queryKey: ["pkg-all"] }); }
+  };
 
   const updateGoal = async (id: string, amount: string) => {
     const { error } = await supabase.from("goals").update({ target_amount: Number(amount) }).eq("id", id);
