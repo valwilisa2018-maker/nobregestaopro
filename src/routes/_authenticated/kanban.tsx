@@ -79,6 +79,9 @@ function KanbanPage() {
   const [dragging, setDragging] = useState<string | null>(null);
   const [draggingGroup, setDraggingGroup] = useState<string[] | null>(null);
   const boardRef = useRef<HTMLDivElement | null>(null);
+  const topScrollRef = useRef<HTMLDivElement | null>(null);
+  const [boardScrollWidth, setBoardScrollWidth] = useState(0);
+  const syncingScroll = useRef<"top" | "board" | null>(null);
   const autoScrollSpeed = useRef(0);
   const autoScrollRaf = useRef<number | null>(null);
   const [dragMoved, setDragMoved] = useState(false);
@@ -128,6 +131,17 @@ function KanbanPage() {
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [cardParam, cards.data]);
+
+  useEffect(() => {
+    const el = boardRef.current;
+    if (!el) return;
+    const update = () => setBoardScrollWidth(el.scrollWidth);
+    update();
+    const ro = new ResizeObserver(update);
+    ro.observe(el);
+    Array.from(el.children).forEach((c) => ro.observe(c as Element));
+    return () => ro.disconnect();
+  }, [cols.data, cards.data]);
 
   const move = async (cardId: string, columnId: string) => {
     const { error } = await supabase
@@ -257,8 +271,25 @@ function KanbanPage() {
       </div>
 
       <div
+        ref={topScrollRef}
+        className="overflow-x-auto overflow-y-hidden h-3 sticky top-0 z-10 bg-background"
+        onScroll={(e) => {
+          if (syncingScroll.current === "board") { syncingScroll.current = null; return; }
+          syncingScroll.current = "top";
+          if (boardRef.current) boardRef.current.scrollLeft = e.currentTarget.scrollLeft;
+        }}
+      >
+        <div style={{ width: boardScrollWidth, height: 1 }} />
+      </div>
+
+      <div
         ref={boardRef}
         className="flex gap-4 overflow-x-auto pb-4"
+        onScroll={(e) => {
+          if (syncingScroll.current === "top") { syncingScroll.current = null; return; }
+          syncingScroll.current = "board";
+          if (topScrollRef.current) topScrollRef.current.scrollLeft = e.currentTarget.scrollLeft;
+        }}
         onDragOver={(e) => {
           const el = boardRef.current;
           if (!el) return;
