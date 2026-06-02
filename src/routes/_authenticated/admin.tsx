@@ -381,8 +381,8 @@ function AdminPage() {
           <div className="grid gap-2">
             {(cols.data ?? []).map((c: any) => (
               <div key={c.id} className="p-3 rounded-lg border border-border/50 bg-card flex items-center gap-3">
-                {editCol?.id === c.id ? (() => {
-                  const ec = editCol;
+                {editCol && editCol.id === c.id ? (() => {
+                  const ec = editCol!;
                   return (
                   <>
                     <input
