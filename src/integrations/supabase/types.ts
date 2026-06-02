@@ -566,6 +566,7 @@ export type Database = {
       sellers: {
         Row: {
           active: boolean
+          avatar_url: string | null
           commission_rate: number | null
           created_at: string
           email: string | null
@@ -578,6 +579,7 @@ export type Database = {
         }
         Insert: {
           active?: boolean
+          avatar_url?: string | null
           commission_rate?: number | null
           created_at?: string
           email?: string | null
@@ -590,6 +592,7 @@ export type Database = {
         }
         Update: {
           active?: boolean
+          avatar_url?: string | null
           commission_rate?: number | null
           created_at?: string
           email?: string | null
