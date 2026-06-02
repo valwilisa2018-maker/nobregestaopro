@@ -153,7 +153,7 @@ function AdminPage() {
     else qc.invalidateQueries({ queryKey: ["admin-services"] });
   };
   const deleteService = async (id: string, name: string) => {
-    const { count } = await supabase.from("service_orders").select("id", { count: "exact", head: true }).eq("service_type_id", id);
+    const { count } = await supabase.from("sales").select("id", { count: "exact", head: true }).eq("service_type_id", id);
     if ((count ?? 0) > 0) {
       toast.error(`Não é possível excluir: ${count} ordem(ns) usam este tipo. Considere desativar.`);
       return;
