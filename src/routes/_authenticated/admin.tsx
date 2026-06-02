@@ -144,6 +144,33 @@ function AdminPage() {
     const { error } = await supabase.from("kanban_columns").insert({ name: newCol, sort_order: max + 10 });
     if (error) toast.error(error.message); else { toast.success("Coluna criada"); setNewCol(""); qc.invalidateQueries(); }
   };
+  const [editCol, setEditCol] = useState<{ id: string; name: string; color: string; sort_order: number } | null>(null);
+  const saveEditCol = async () => {
+    if (!editCol) return;
+    const { error } = await supabase.from("kanban_columns").update({
+      name: editCol.name.trim() || "Coluna",
+      color: editCol.color,
+      sort_order: Number(editCol.sort_order) || 0,
+    }).eq("id", editCol.id);
+    if (error) { toast.error(error.message); return; }
+    toast.success("Coluna atualizada");
+    setEditCol(null);
+    qc.invalidateQueries({ queryKey: ["admin-cols"] });
+    qc.invalidateQueries({ queryKey: ["kanban-cols"] });
+  };
+  const deleteCol = async (id: string, name: string) => {
+    const { count } = await supabase.from("service_orders").select("id", { count: "exact", head: true }).eq("column_id", id);
+    if ((count ?? 0) > 0) {
+      toast.error(`Não é possível excluir: ${count} card(s) nesta coluna. Mova-os antes.`);
+      return;
+    }
+    if (!window.confirm(`Excluir a coluna "${name}"?`)) return;
+    const { error } = await supabase.from("kanban_columns").delete().eq("id", id);
+    if (error) { toast.error(error.message); return; }
+    toast.success("Coluna excluída");
+    qc.invalidateQueries({ queryKey: ["admin-cols"] });
+    qc.invalidateQueries({ queryKey: ["kanban-cols"] });
+  };
   const updateCommission = async (id: string, rate: string) => {
     const value = Number(rate);
     if (isNaN(value) || value < 0 || value > 100) { toast.error("Informe um percentual entre 0 e 100"); return; }
