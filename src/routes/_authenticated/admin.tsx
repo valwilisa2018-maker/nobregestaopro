@@ -138,6 +138,32 @@ function AdminPage() {
     const { error } = await supabase.from("service_types").insert({ name: newService, sort_order: 999 });
     if (error) toast.error(error.message); else { toast.success("Tipo de serviço criado"); setNewService(""); qc.invalidateQueries(); }
   };
+  const [editService, setEditService] = useState<{ id: string; name: string } | null>(null);
+  const saveEditService = async () => {
+    if (!editService) return;
+    const { error } = await supabase.from("service_types").update({ name: editService.name.trim() || "Tipo" }).eq("id", editService.id);
+    if (error) { toast.error(error.message); return; }
+    toast.success("Tipo atualizado");
+    setEditService(null);
+    qc.invalidateQueries({ queryKey: ["admin-services"] });
+  };
+  const toggleServiceActive = async (id: string, active: boolean) => {
+    const { error } = await supabase.from("service_types").update({ active: !active }).eq("id", id);
+    if (error) toast.error(error.message);
+    else qc.invalidateQueries({ queryKey: ["admin-services"] });
+  };
+  const deleteService = async (id: string, name: string) => {
+    const { count } = await supabase.from("service_orders").select("id", { count: "exact", head: true }).eq("service_type_id", id);
+    if ((count ?? 0) > 0) {
+      toast.error(`Não é possível excluir: ${count} ordem(ns) usam este tipo. Considere desativar.`);
+      return;
+    }
+    if (!window.confirm(`Excluir o tipo "${name}"?`)) return;
+    const { error } = await supabase.from("service_types").delete().eq("id", id);
+    if (error) { toast.error(error.message); return; }
+    toast.success("Tipo excluído");
+    qc.invalidateQueries({ queryKey: ["admin-services"] });
+  };
   const addCol = async () => {
     if (!newCol) return;
     const max = Math.max(...(cols.data ?? []).map((c: any) => c.sort_order ?? 0), 0);
