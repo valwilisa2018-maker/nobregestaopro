@@ -78,6 +78,9 @@ function KanbanPage() {
   const { card: cardParam } = Route.useSearch();
   const [dragging, setDragging] = useState<string | null>(null);
   const [draggingGroup, setDraggingGroup] = useState<string[] | null>(null);
+  const boardRef = useRef<HTMLDivElement | null>(null);
+  const autoScrollSpeed = useRef(0);
+  const autoScrollRaf = useRef<number | null>(null);
   const [dragMoved, setDragMoved] = useState(false);
   const [editing, setEditing] = useState<CardForm | null>(null);
   const [newLabel, setNewLabel] = useState("");
