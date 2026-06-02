@@ -132,6 +132,17 @@ function KanbanPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [cardParam, cards.data]);
 
+  useEffect(() => {
+    const el = boardRef.current;
+    if (!el) return;
+    const update = () => setBoardScrollWidth(el.scrollWidth);
+    update();
+    const ro = new ResizeObserver(update);
+    ro.observe(el);
+    Array.from(el.children).forEach((c) => ro.observe(c as Element));
+    return () => ro.disconnect();
+  }, [cols.data, cards.data]);
+
   const move = async (cardId: string, columnId: string) => {
     const { error } = await supabase
       .from("service_orders")
