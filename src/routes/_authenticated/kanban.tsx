@@ -271,8 +271,25 @@ function KanbanPage() {
       </div>
 
       <div
+        ref={topScrollRef}
+        className="overflow-x-auto overflow-y-hidden h-3 sticky top-0 z-10 bg-background"
+        onScroll={(e) => {
+          if (syncingScroll.current === "board") { syncingScroll.current = null; return; }
+          syncingScroll.current = "top";
+          if (boardRef.current) boardRef.current.scrollLeft = e.currentTarget.scrollLeft;
+        }}
+      >
+        <div style={{ width: boardScrollWidth, height: 1 }} />
+      </div>
+
+      <div
         ref={boardRef}
         className="flex gap-4 overflow-x-auto pb-4"
+        onScroll={(e) => {
+          if (syncingScroll.current === "top") { syncingScroll.current = null; return; }
+          syncingScroll.current = "board";
+          if (topScrollRef.current) topScrollRef.current.scrollLeft = e.currentTarget.scrollLeft;
+        }}
         onDragOver={(e) => {
           const el = boardRef.current;
           if (!el) return;
