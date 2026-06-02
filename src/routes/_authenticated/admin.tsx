@@ -138,6 +138,32 @@ function AdminPage() {
     const { error } = await supabase.from("service_types").insert({ name: newService, sort_order: 999 });
     if (error) toast.error(error.message); else { toast.success("Tipo de serviço criado"); setNewService(""); qc.invalidateQueries(); }
   };
+  const [editService, setEditService] = useState<{ id: string; name: string } | null>(null);
+  const saveEditService = async () => {
+    if (!editService) return;
+    const { error } = await supabase.from("service_types").update({ name: editService.name.trim() || "Tipo" }).eq("id", editService.id);
+    if (error) { toast.error(error.message); return; }
+    toast.success("Tipo atualizado");
+    setEditService(null);
+    qc.invalidateQueries({ queryKey: ["admin-services"] });
+  };
+  const toggleServiceActive = async (id: string, active: boolean) => {
+    const { error } = await supabase.from("service_types").update({ active: !active }).eq("id", id);
+    if (error) toast.error(error.message);
+    else qc.invalidateQueries({ queryKey: ["admin-services"] });
+  };
+  const deleteService = async (id: string, name: string) => {
+    const { count } = await supabase.from("sales").select("id", { count: "exact", head: true }).eq("service_type_id", id);
+    if ((count ?? 0) > 0) {
+      toast.error(`Não é possível excluir: ${count} ordem(ns) usam este tipo. Considere desativar.`);
+      return;
+    }
+    if (!window.confirm(`Excluir o tipo "${name}"?`)) return;
+    const { error } = await supabase.from("service_types").delete().eq("id", id);
+    if (error) { toast.error(error.message); return; }
+    toast.success("Tipo excluído");
+    qc.invalidateQueries({ queryKey: ["admin-services"] });
+  };
   const addCol = async () => {
     if (!newCol) return;
     const max = Math.max(...(cols.data ?? []).map((c: any) => c.sort_order ?? 0), 0);
@@ -363,9 +389,37 @@ function AdminPage() {
           </Card>
           <div className="grid gap-2 md:grid-cols-2 lg:grid-cols-3">
             {(services.data ?? []).map((s: any) => (
-              <div key={s.id} className="p-3 rounded-lg border border-border/50 bg-card flex items-center justify-between">
-                <span>{s.name}</span>
-                <span className="text-xs text-muted-foreground">{s.active ? "Ativo" : "Inativo"}</span>
+              <div key={s.id} className="p-3 rounded-lg border border-border/50 bg-card flex items-center gap-2">
+                {editService && editService.id === s.id ? (
+                  <>
+                    <Input
+                      value={editService.name}
+                      onChange={(e) => setEditService({ ...editService, name: e.target.value })}
+                      onKeyDown={(e) => { if (e.key === "Enter") saveEditService(); if (e.key === "Escape") setEditService(null); }}
+                      autoFocus
+                      className="h-8"
+                    />
+                    <Button size="sm" onClick={saveEditService}>Salvar</Button>
+                    <Button size="sm" variant="ghost" onClick={() => setEditService(null)}>Cancelar</Button>
+                  </>
+                ) : (
+                  <>
+                    <span className="flex-1 truncate">{s.name}</span>
+                    <button
+                      onClick={() => toggleServiceActive(s.id, s.active)}
+                      className={`text-xs px-2 py-0.5 rounded ${s.active ? "text-emerald-600" : "text-muted-foreground"}`}
+                      title="Alternar ativo/inativo"
+                    >
+                      {s.active ? "Ativo" : "Inativo"}
+                    </button>
+                    <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => setEditService({ id: s.id, name: s.name })}>
+                      <Pencil className="h-4 w-4" />
+                    </Button>
+                    <Button size="icon" variant="ghost" className="h-8 w-8 text-destructive" onClick={() => deleteService(s.id, s.name)}>
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </>
+                )}
               </div>
             ))}
           </div>
