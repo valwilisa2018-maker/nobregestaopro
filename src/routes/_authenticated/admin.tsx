@@ -381,9 +381,41 @@ function AdminPage() {
           <div className="grid gap-2">
             {(cols.data ?? []).map((c: any) => (
               <div key={c.id} className="p-3 rounded-lg border border-border/50 bg-card flex items-center gap-3">
-                <span className="w-3 h-3 rounded-full" style={{ background: c.color }} />
-                <span className="flex-1">{c.name}</span>
-                <span className="text-xs text-muted-foreground">Ordem {c.sort_order}</span>
+                {editCol?.id === c.id ? (
+                  <>
+                    <input
+                      type="color"
+                      value={editCol.color || "#ef4444"}
+                      onChange={(e) => setEditCol({ ...editCol, color: e.target.value })}
+                      className="h-8 w-10 rounded border border-border/50 bg-transparent"
+                    />
+                    <Input
+                      value={editCol.name}
+                      onChange={(e) => setEditCol({ ...editCol, name: e.target.value })}
+                      className="flex-1"
+                    />
+                    <Input
+                      type="number"
+                      value={editCol.sort_order}
+                      onChange={(e) => setEditCol({ ...editCol, sort_order: Number(e.target.value) })}
+                      className="w-24"
+                    />
+                    <Button size="sm" onClick={saveEditCol}>Salvar</Button>
+                    <Button size="sm" variant="outline" onClick={() => setEditCol(null)}>Cancelar</Button>
+                  </>
+                ) : (
+                  <>
+                    <span className="w-3 h-3 rounded-full" style={{ background: c.color }} />
+                    <span className="flex-1">{c.name}</span>
+                    <span className="text-xs text-muted-foreground">Ordem {c.sort_order}</span>
+                    <Button size="icon" variant="ghost" onClick={() => setEditCol({ id: c.id, name: c.name, color: c.color || "#ef4444", sort_order: c.sort_order ?? 0 })}>
+                      <Pencil className="w-4 h-4" />
+                    </Button>
+                    <Button size="icon" variant="ghost" className="text-destructive" onClick={() => deleteCol(c.id, c.name)}>
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  </>
+                )}
               </div>
             ))}
           </div>
