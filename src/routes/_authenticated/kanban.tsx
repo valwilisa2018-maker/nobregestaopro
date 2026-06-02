@@ -3,7 +3,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -78,6 +78,9 @@ function KanbanPage() {
   const { card: cardParam } = Route.useSearch();
   const [dragging, setDragging] = useState<string | null>(null);
   const [draggingGroup, setDraggingGroup] = useState<string[] | null>(null);
+  const boardRef = useRef<HTMLDivElement | null>(null);
+  const autoScrollSpeed = useRef(0);
+  const autoScrollRaf = useRef<number | null>(null);
   const [dragMoved, setDragMoved] = useState(false);
   const [editing, setEditing] = useState<CardForm | null>(null);
   const [newLabel, setNewLabel] = useState("");
@@ -253,7 +256,39 @@ function KanbanPage() {
         </div>
       </div>
 
-      <div className="flex gap-4 overflow-x-auto pb-4">
+      <div
+        ref={boardRef}
+        className="flex gap-4 overflow-x-auto pb-4"
+        onDragOver={(e) => {
+          const el = boardRef.current;
+          if (!el) return;
+          const r = el.getBoundingClientRect();
+          const edge = 80;
+          const max = 24;
+          let speed = 0;
+          if (e.clientX > r.right - edge) {
+            speed = Math.min(max, ((e.clientX - (r.right - edge)) / edge) * max);
+          } else if (e.clientX < r.left + edge) {
+            speed = -Math.min(max, (((r.left + edge) - e.clientX) / edge) * max);
+          }
+          autoScrollSpeed.current = speed;
+          if (speed !== 0 && autoScrollRaf.current == null) {
+            const tick = () => {
+              const node = boardRef.current;
+              if (node && autoScrollSpeed.current !== 0) {
+                node.scrollLeft += autoScrollSpeed.current;
+                autoScrollRaf.current = requestAnimationFrame(tick);
+              } else {
+                if (autoScrollRaf.current != null) cancelAnimationFrame(autoScrollRaf.current);
+                autoScrollRaf.current = null;
+              }
+            };
+            autoScrollRaf.current = requestAnimationFrame(tick);
+          }
+        }}
+        onDragLeave={() => { autoScrollSpeed.current = 0; }}
+        onDrop={() => { autoScrollSpeed.current = 0; }}
+      >
         {(cols.data ?? []).map((col: any) => {
           const q = search.trim().toLowerCase();
           const colCards = (cards.data ?? []).filter((c: any) => {
