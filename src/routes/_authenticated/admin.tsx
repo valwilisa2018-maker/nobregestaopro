@@ -144,6 +144,33 @@ function AdminPage() {
     const { error } = await supabase.from("kanban_columns").insert({ name: newCol, sort_order: max + 10 });
     if (error) toast.error(error.message); else { toast.success("Coluna criada"); setNewCol(""); qc.invalidateQueries(); }
   };
+  const [editCol, setEditCol] = useState<{ id: string; name: string; color: string; sort_order: number } | null>(null);
+  const saveEditCol = async () => {
+    if (!editCol) return;
+    const { error } = await supabase.from("kanban_columns").update({
+      name: editCol.name.trim() || "Coluna",
+      color: editCol.color,
+      sort_order: Number(editCol.sort_order) || 0,
+    }).eq("id", editCol.id);
+    if (error) { toast.error(error.message); return; }
+    toast.success("Coluna atualizada");
+    setEditCol(null);
+    qc.invalidateQueries({ queryKey: ["admin-cols"] });
+    qc.invalidateQueries({ queryKey: ["kanban-cols"] });
+  };
+  const deleteCol = async (id: string, name: string) => {
+    const { count } = await supabase.from("service_orders").select("id", { count: "exact", head: true }).eq("column_id", id);
+    if ((count ?? 0) > 0) {
+      toast.error(`Não é possível excluir: ${count} card(s) nesta coluna. Mova-os antes.`);
+      return;
+    }
+    if (!window.confirm(`Excluir a coluna "${name}"?`)) return;
+    const { error } = await supabase.from("kanban_columns").delete().eq("id", id);
+    if (error) { toast.error(error.message); return; }
+    toast.success("Coluna excluída");
+    qc.invalidateQueries({ queryKey: ["admin-cols"] });
+    qc.invalidateQueries({ queryKey: ["kanban-cols"] });
+  };
   const updateCommission = async (id: string, rate: string) => {
     const value = Number(rate);
     if (isNaN(value) || value < 0 || value > 100) { toast.error("Informe um percentual entre 0 e 100"); return; }
@@ -354,9 +381,44 @@ function AdminPage() {
           <div className="grid gap-2">
             {(cols.data ?? []).map((c: any) => (
               <div key={c.id} className="p-3 rounded-lg border border-border/50 bg-card flex items-center gap-3">
-                <span className="w-3 h-3 rounded-full" style={{ background: c.color }} />
-                <span className="flex-1">{c.name}</span>
-                <span className="text-xs text-muted-foreground">Ordem {c.sort_order}</span>
+                {editCol && editCol.id === c.id ? (() => {
+                  const ec = editCol!;
+                  return (
+                  <>
+                    <input
+                      type="color"
+                      value={ec.color || "#ef4444"}
+                      onChange={(e) => setEditCol({ ...ec, color: e.target.value })}
+                      className="h-8 w-10 rounded border border-border/50 bg-transparent"
+                    />
+                    <Input
+                      value={ec.name}
+                      onChange={(e) => setEditCol({ ...ec, name: e.target.value })}
+                      className="flex-1"
+                    />
+                    <Input
+                      type="number"
+                      value={ec.sort_order}
+                      onChange={(e) => setEditCol({ ...ec, sort_order: Number(e.target.value) })}
+                      className="w-24"
+                    />
+                    <Button size="sm" onClick={saveEditCol}>Salvar</Button>
+                    <Button size="sm" variant="outline" onClick={() => setEditCol(null)}>Cancelar</Button>
+                  </>
+                  );
+                })() : (
+                  <>
+                    <span className="w-3 h-3 rounded-full" style={{ background: c.color }} />
+                    <span className="flex-1">{c.name}</span>
+                    <span className="text-xs text-muted-foreground">Ordem {c.sort_order}</span>
+                    <Button size="icon" variant="ghost" onClick={() => setEditCol({ id: c.id, name: c.name, color: c.color || "#ef4444", sort_order: c.sort_order ?? 0 })}>
+                      <Pencil className="w-4 h-4" />
+                    </Button>
+                    <Button size="icon" variant="ghost" className="text-destructive" onClick={() => deleteCol(c.id, c.name)}>
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  </>
+                )}
               </div>
             ))}
           </div>
