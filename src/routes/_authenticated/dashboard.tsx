@@ -471,7 +471,7 @@ function Dashboard() {
         >
           <StatCard tone="success" label="Entregues" value={String(ordersDelivered)} icon={Truck} />
         </button>
-        <StatCard tone="primary" label="Vídeos Gravados" value={String(totalRecordingVideos)} icon={Factory} hint="Total de vídeos" />
+        <StatCard tone="primary" label="Qtd. Vídeos Gravados" value={String(totalRecordingVideos)} icon={Factory} hint="Baseado no tipo 'Gravação'" />
         <StatCard tone="violet" label="Notas emitidas" value={`${invIssued} / ${invList.length}`} icon={FileCheck2} hint={`${invPending} aguardando`} />
       </div>
 
