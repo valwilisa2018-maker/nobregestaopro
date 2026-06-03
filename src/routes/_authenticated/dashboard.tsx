@@ -189,6 +189,16 @@ function Dashboard() {
   const ordersInProd = ordersList.filter((o) => !o.kanban_columns?.is_done).length;
   const ordersDelivered = ordersList.filter((o) => !!o.delivered_at || o.kanban_columns?.is_done).length;
 
+  const totalRecordingVideos = useMemo(() => {
+    return all.reduce((acc, sale) => {
+      const st = (serviceTypes.data ?? []).find(x => x.id === sale.service_type_id);
+      if (st && st.name.toLowerCase().includes("gravação")) {
+        return acc + Number(sale.service_quantity || 1);
+      }
+      return acc;
+    }, 0);
+  }, [all, serviceTypes.data]);
+
   // Invoices: emitidas vs aguardando
   const invList = (invoices.data ?? []) as any[];
   const invIssued = invList.filter((i) => i.status === "emitida" || !!i.issued_at).length;
