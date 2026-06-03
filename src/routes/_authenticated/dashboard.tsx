@@ -189,15 +189,23 @@ function Dashboard() {
   const ordersInProd = ordersList.filter((o) => !o.kanban_columns?.is_done).length;
   const ordersDelivered = ordersList.filter((o) => !!o.delivered_at || o.kanban_columns?.is_done).length;
 
-  const totalRecordingVideos = useMemo(() => {
-    return all.reduce((acc, sale) => {
+  const totalRecordingStats = useMemo(() => {
+    const influencers = all.filter(sale => {
       const st = (serviceTypes.data ?? []).find(x => x.id === sale.service_type_id);
-      if (st && st.name.toLowerCase().includes("gravação")) {
-        return acc + Number(sale.service_quantity || 1);
-      }
-      return acc;
-    }, 0);
-  }, [all, serviceTypes.data]);
+      if (!st) return false;
+      const name = st.name.toLowerCase();
+      return name.includes("pamela") || name.includes("ester") || name.includes("influencer");
+    });
+
+    const total = influencers.reduce((acc, s) => acc + Number(s.service_quantity || 1), 0);
+    
+    // Contar quantos desses serviços (service_orders) já foram entregues
+    const saleIds = new Set(influencers.map(s => s.id));
+    const influencerOrders = ordersList.filter(o => saleIds.has(o.sale_id));
+    const delivered = influencerOrders.filter(o => !!o.delivered_at || o.kanban_columns?.is_done).length;
+
+    return { total, delivered };
+  }, [all, serviceTypes.data, ordersList]);
 
   // Invoices: emitidas vs aguardando
   const invList = (invoices.data ?? []) as any[];
@@ -471,7 +479,13 @@ function Dashboard() {
         >
           <StatCard tone="success" label="Entregues" value={String(ordersDelivered)} icon={Truck} />
         </button>
-        <StatCard tone="primary" label="Qtd. Vídeos Gravados" value={String(totalRecordingVideos)} icon={Factory} hint="Baseado no tipo 'Gravação'" />
+        <StatCard 
+          tone="primary" 
+          label="Gravação Influencer" 
+          value={`${totalRecordingStats.delivered} / ${totalRecordingStats.total}`} 
+          icon={Factory} 
+          hint={`${totalRecordingStats.total - totalRecordingStats.delivered} aguardando`} 
+        />
         <StatCard tone="violet" label="Notas emitidas" value={`${invIssued} / ${invList.length}`} icon={FileCheck2} hint={`${invPending} aguardando`} />
       </div>
 
