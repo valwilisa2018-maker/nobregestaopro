@@ -324,11 +324,20 @@ function KanbanPage() {
           const q = search.trim().toLowerCase();
           const colCards = (cards.data ?? []).filter((c: any) => {
             if (c.column_id !== col.id) return false;
+            
             if (producerFilter !== "all") {
-              const pid = c.producer_id ?? c.sales?.producers?.id ?? null;
-              const salePid = (c as any).sales?.producer_id ?? null;
-              if (pid !== producerFilter && salePid !== producerFilter) return false;
+              const cardProducerId = c.producer_id;
+              const saleProducerId = c.sales?.producer_id;
+              
+              if (cardProducerId) {
+                if (cardProducerId !== producerFilter) return false;
+              } else if (saleProducerId) {
+                if (saleProducerId !== producerFilter) return false;
+              } else {
+                return false;
+              }
             }
+
             if (q) {
               const hay = [
                 c.title, c.description,
