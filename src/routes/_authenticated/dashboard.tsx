@@ -434,9 +434,27 @@ function Dashboard() {
 
       {/* Produção */}
       <div className="grid gap-4 grid-cols-2 lg:grid-cols-4">
-        <StatCard tone="warning" label="Serviços a fazer" value={String(ordersTodo)} icon={ListTodo} />
-        <StatCard tone="info" label="Em produção" value={String(ordersInProd)} icon={Package} />
-        <StatCard tone="success" label="Entregues" value={String(ordersDelivered)} icon={Truck} />
+        <button
+          type="button"
+          onClick={() => (window.location.href = "/kanban")}
+          className="text-left transition-transform hover:scale-[1.02] active:scale-[0.98]"
+        >
+          <StatCard tone="warning" label="Serviços a fazer" value={String(ordersTodo)} icon={ListTodo} />
+        </button>
+        <button
+          type="button"
+          onClick={() => (window.location.href = "/kanban")}
+          className="text-left transition-transform hover:scale-[1.02] active:scale-[0.98]"
+        >
+          <StatCard tone="info" label="Em produção" value={String(ordersInProd)} icon={Package} />
+        </button>
+        <button
+          type="button"
+          onClick={() => (window.location.href = "/kanban")}
+          className="text-left transition-transform hover:scale-[1.02] active:scale-[0.98]"
+        >
+          <StatCard tone="success" label="Entregues" value={String(ordersDelivered)} icon={Truck} />
+        </button>
         <StatCard tone="violet" label="Notas emitidas" value={`${invIssued} / ${invList.length}`} icon={FileCheck2} hint={`${invPending} aguardando`} />
       </div>
 
