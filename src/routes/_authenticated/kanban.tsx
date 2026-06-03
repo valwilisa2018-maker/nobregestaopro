@@ -525,7 +525,25 @@ function KanbanPage() {
                             {company && <div className="text-xs text-muted-foreground pl-6">{company}</div>}
                             <div className="flex flex-col gap-0.5 text-[11px] text-muted-foreground pl-6">
                               <span>Vendedor: <span className="font-semibold text-success" style={{}}>{first.sales?.sellers?.name ?? "—"}</span></span>
-                              <span>Produtor: <span className="font-semibold text-success" style={{}}>{first.producer?.name ?? first.sales?.producers?.name ?? "—"}</span></span>
+                              <div className="flex items-center gap-1">
+                                <span>Produtor: <span className="font-semibold text-success" style={{}}>{first.producer?.name ?? first.sales?.producers?.name ?? "—"}</span></span>
+                                <DropdownMenu>
+                                  <DropdownMenuTrigger asChild>
+                                    <button className="text-primary hover:underline ml-1" onClick={(e) => e.stopPropagation()}>
+                                      <UserPlus className="w-3 h-3" />
+                                    </button>
+                                  </DropdownMenuTrigger>
+                                  <DropdownMenuContent align="start" className="w-48">
+                                    <DropdownMenuLabel>Transferir Pacote</DropdownMenuLabel>
+                                    <DropdownMenuSeparator />
+                                    {(producers.data ?? []).map((p: any) => (
+                                      <DropdownMenuItem key={p.id} onClick={(e: any) => { e.stopPropagation(); transferMany(it.cards.map((x: any) => x.id), p.id); }}>
+                                        {p.name}
+                                      </DropdownMenuItem>
+                                    ))}
+                                  </DropdownMenuContent>
+                                </DropdownMenu>
+                              </div>
                             </div>
                             {first.sales?.payment_status && (
                               <div className="pl-6 pt-1">
@@ -666,7 +684,7 @@ function KanbanPage() {
                                   <DropdownMenuLabel>Transferir Serviço</DropdownMenuLabel>
                                   <DropdownMenuSeparator />
                                   {(producers.data ?? []).map((p: any) => (
-                                    <DropdownMenuItem key={p.id} onClick={(e) => { e.stopPropagation(); transferCard(c.id, p.id); }}>
+                                    <DropdownMenuItem key={p.id} onClick={(e: any) => { e.stopPropagation(); transferCard(c.id, p.id); }}>
                                       {p.name}
                                     </DropdownMenuItem>
                                   ))}
