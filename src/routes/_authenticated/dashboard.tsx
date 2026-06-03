@@ -78,7 +78,7 @@ function Dashboard() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("sales")
-        .select("id,total_amount,paid_amount,payment_status,created_at,seller_id,producer_id,customer_id,service_type_id,package_id");
+        .select("id,total_amount,paid_amount,payment_status,created_at,seller_id,producer_id,customer_id,service_type_id,package_id,service_quantity");
       if (error) throw error;
       return data ?? [];
     },
@@ -188,6 +188,16 @@ function Dashboard() {
   }).length;
   const ordersInProd = ordersList.filter((o) => !o.kanban_columns?.is_done).length;
   const ordersDelivered = ordersList.filter((o) => !!o.delivered_at || o.kanban_columns?.is_done).length;
+
+  const totalRecordingVideos = useMemo(() => {
+    return all.reduce((acc, sale) => {
+      const st = (serviceTypes.data ?? []).find(x => x.id === sale.service_type_id);
+      if (st && st.name.toLowerCase().includes("gravação")) {
+        return acc + Number(sale.service_quantity || 1);
+      }
+      return acc;
+    }, 0);
+  }, [all, serviceTypes.data]);
 
   // Invoices: emitidas vs aguardando
   const invList = (invoices.data ?? []) as any[];
@@ -439,7 +449,7 @@ function Dashboard() {
       </div>
 
       {/* Produção */}
-      <div className="grid gap-4 grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-4 grid-cols-2 lg:grid-cols-5">
         <button
           type="button"
           onClick={() => (window.location.href = "/kanban")}
@@ -461,6 +471,7 @@ function Dashboard() {
         >
           <StatCard tone="success" label="Entregues" value={String(ordersDelivered)} icon={Truck} />
         </button>
+        <StatCard tone="primary" label="Qtd. Vídeos Gravados" value={String(totalRecordingVideos)} icon={Factory} hint="Baseado no tipo 'Gravação'" />
         <StatCard tone="violet" label="Notas emitidas" value={`${invIssued} / ${invList.length}`} icon={FileCheck2} hint={`${invPending} aguardando`} />
       </div>
 
