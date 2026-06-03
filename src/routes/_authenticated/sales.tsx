@@ -56,7 +56,28 @@ function SalesPage() {
     package_id: "", package_name: "", service_quantity: "1", notes: "", trello_link: "",
     sale_date: new Date().toISOString().slice(0, 10), lead_source: "",
   });
-  const set = (k: string, v: string) => setForm((f) => ({ ...f, [k]: v }));
+
+  const set = (k: string, v: string) => {
+    setForm((f) => {
+      const updatedForm = { ...f, [k]: v };
+      
+      // Automatic producer selection for Influencer Pamela or Ester
+      if (k === "service_type_id" && v) {
+        const selectedServiceType = serviceTypes.data?.find(st => st.id === v);
+        if (selectedServiceType) {
+          const serviceName = selectedServiceType.name.toLowerCase();
+          if (serviceName.includes("pamela") || serviceName.includes("ester")) {
+            const influencerProducer = producers.data?.find(p => p.name === "GRAVAÇÃO INFLUENCER");
+            if (influencerProducer) {
+              updatedForm.producer_id = influencerProducer.id;
+            }
+          }
+        }
+      }
+      
+      return updatedForm;
+    });
+  };
 
   const autofillFromCustomer = (field: "customer_name" | "company", value: string) => {
     setForm((f) => ({ ...f, [field]: value }));
