@@ -11,7 +11,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Loader2, Trash2, X, Calendar, Clock, ExternalLink, MessageCircle, ChevronDown, ChevronRight, Layers } from "lucide-react";
+import { Plus, Loader2, Trash2, X, Calendar, Clock, ExternalLink, MessageCircle, ChevronDown, ChevronRight, Layers, MoreVertical, Edit2 } from "lucide-react";
 import { Search } from "lucide-react";
 import { fmtDate } from "@/lib/format";
 
@@ -92,6 +92,8 @@ function KanbanPage() {
   const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({});
   const [producerFilter, setProducerFilter] = useState<string>("all");
   const [search, setSearch] = useState<string>("");
+  const [editingColumn, setEditingColumn] = useState<{ id?: string, name: string, color: string } | null>(null);
+  const [savingColumn, setSavingColumn] = useState(false);
 
   const cols = useQuery({
     queryKey: ["kanban-cols"],
@@ -228,11 +230,60 @@ function KanbanPage() {
     setEditing({ ...editing, labels: editing.labels.filter((_, idx) => idx !== i) });
   };
 
+  const saveColumn = async () => {
+    if (!editingColumn) return;
+    if (!editingColumn.name.trim()) { toast.error("Nome é obrigatório"); return; }
+    setSavingColumn(true);
+    try {
+      if (editingColumn.id) {
+        const { error } = await supabase.from("kanban_columns").update({
+          name: editingColumn.name.trim(),
+          color: editingColumn.color
+        }).eq("id", editingColumn.id);
+        if (error) throw error;
+        toast.success("Coluna atualizada");
+      } else {
+        const nextOrder = (cols.data?.length ?? 0) > 0 
+          ? Math.max(...cols.data!.map((c: any) => c.sort_order)) + 10 
+          : 10;
+        const { error } = await supabase.from("kanban_columns").insert({
+          name: editingColumn.name.trim(),
+          color: editingColumn.color,
+          sort_order: nextOrder,
+          is_default: false,
+          is_done: false
+        });
+        if (error) throw error;
+        toast.success("Coluna criada");
+      }
+      setEditingColumn(null);
+      qc.invalidateQueries({ queryKey: ["kanban-cols"] });
+    } catch (e: any) {
+      toast.error(e.message ?? "Erro ao salvar coluna");
+    } finally { setSavingColumn(false); }
+  };
+
+  const deleteColumn = async (id: string) => {
+    if (!confirm("Excluir esta coluna? Todos os cards nela permanecerão mas podem não aparecer se a coluna sumir. Recomendado mover os cards antes.")) return;
+    const { error } = await supabase.from("kanban_columns").delete().eq("id", id);
+    if (error) { toast.error(error.message); return; }
+    toast.success("Coluna excluída");
+    qc.invalidateQueries({ queryKey: ["kanban-cols"] });
+  };
+
   return (
     <div className="space-y-6">
       <div>
         <h1 className="text-3xl font-bold tracking-tight">Produção Trello</h1>
         <p className="text-muted-foreground">Arraste os cards entre as colunas para atualizar o status</p>
+      </div>
+
+      <div className="flex justify-between items-center">
+        <div className="flex gap-2">
+          <Button onClick={() => setEditingColumn({ name: "", color: "#64748b" })} className="gap-2">
+            <Plus className="w-4 h-4" /> Nova Coluna
+          </Button>
+        </div>
       </div>
 
       <div className="space-y-3">
@@ -382,9 +433,17 @@ function KanbanPage() {
               }}
             >
               <div className="flex items-center justify-between px-4 py-3 rounded-t-md bg-foreground text-background -m-3 mb-3">
-                <div className="flex items-center gap-2">
-                  <span className="w-2.5 h-2.5 rounded-full" style={{ background: col.color }} />
-                  <span className="font-semibold text-sm">{col.name}</span>
+                <div className="flex items-center gap-2 overflow-hidden mr-1">
+                  <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ background: col.color }} />
+                  <span className="font-semibold text-sm truncate">{col.name}</span>
+                  <Button 
+                    size="icon" 
+                    variant="ghost" 
+                    className="h-5 w-5 text-background/50 hover:text-background hover:bg-background/10"
+                    onClick={() => setEditingColumn({ id: col.id, name: col.name, color: col.color })}
+                  >
+                    <Edit2 className="w-3 h-3" />
+                  </Button>
                 </div>
                 <div className="flex items-center gap-1">
                   <Badge variant="outline" className="border-background/40 text-background">{colCards.length}</Badge>
@@ -682,6 +741,60 @@ function KanbanPage() {
             )}
             <Button variant="outline" onClick={() => setEditing(null)}>Cancelar</Button>
             <Button onClick={saveCard} disabled={saving}>{saving && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}Salvar</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={!!editingColumn} onOpenChange={(o) => !o && setEditingColumn(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{editingColumn?.id ? "Editar Coluna" : "Nova Coluna"}</DialogTitle>
+          </DialogHeader>
+          {editingColumn && (
+            <div className="space-y-4 pt-2">
+              <div className="space-y-2">
+                <Label>Nome da Coluna</Label>
+                <Input 
+                  value={editingColumn.name} 
+                  onChange={(e) => setEditingColumn({ ...editingColumn, name: e.target.value })}
+                  placeholder="Ex: Em Revisão"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Cor</Label>
+                <div className="flex flex-wrap gap-2">
+                  {["#ef4444", "#f97316", "#eab308", "#22c55e", "#10b981", "#3b82f6", "#a855f7", "#ec4899", "#64748b"].map((c) => (
+                    <button
+                      key={c}
+                      type="button"
+                      className={`w-8 h-8 rounded-full border-2 transition-all ${editingColumn.color === c ? "border-foreground scale-110" : "border-transparent"}`}
+                      style={{ background: c }}
+                      onClick={() => setEditingColumn({ ...editingColumn, color: c })}
+                    />
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+          <DialogFooter className="flex justify-between sm:justify-between w-full">
+            {editingColumn?.id && (
+              <Button 
+                variant="destructive" 
+                onClick={() => {
+                  deleteColumn(editingColumn.id!);
+                  setEditingColumn(null);
+                }}
+              >
+                <Trash2 className="w-4 h-4 mr-2" /> Excluir
+              </Button>
+            )}
+            <div className="flex gap-2 ml-auto">
+              <Button variant="outline" onClick={() => setEditingColumn(null)}>Cancelar</Button>
+              <Button onClick={saveColumn} disabled={savingColumn}>
+                {savingColumn && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+                Salvar
+              </Button>
+            </div>
           </DialogFooter>
         </DialogContent>
       </Dialog>
