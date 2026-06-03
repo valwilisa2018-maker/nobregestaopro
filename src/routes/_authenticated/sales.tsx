@@ -189,6 +189,18 @@ function SalesPage() {
     if (!editing) return;
     setEditSaving(true);
     try {
+      // First update customer if details changed
+      if (editing.customer_id) {
+        const { error: cuError } = await supabase.from("customers").update({
+          name: editing.customer_name || editing.customers?.name,
+          company: editing.company || editing.customers?.company,
+          document: editing.document || editing.customers?.document,
+          phone: editing.phone || editing.customers?.phone,
+          email: editing.email || editing.customers?.email,
+        }).eq("id", editing.customer_id);
+        if (cuError) throw cuError;
+      }
+
       const { error } = await supabase.from("sales").update({
         sale_date: editing.sale_date,
         total_amount: Number(editing.total_amount),
