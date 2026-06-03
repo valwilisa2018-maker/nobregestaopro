@@ -179,7 +179,13 @@ function Dashboard() {
 
   // Service Orders por etapa
   const ordersList = (orders.data ?? []) as any[];
-  const ordersTodo = ordersList.filter((o) => (o.kanban_columns?.sort_order ?? 0) === 0 && !o.kanban_columns?.is_done).length;
+  const ordersTodo = ordersList.filter((o) => {
+    const colOrder = o.kanban_columns?.sort_order ?? 999;
+    // Pega a menor ordem de coluna disponível nos dados
+    const allOrders = ordersList.map(x => x.kanban_columns?.sort_order).filter(Boolean) as number[];
+    const minOrder = allOrders.length > 0 ? Math.min(...allOrders) : 0;
+    return colOrder === minOrder && !o.kanban_columns?.is_done;
+  }).length;
   const ordersInProd = ordersList.filter((o) => !o.kanban_columns?.is_done).length;
   const ordersDelivered = ordersList.filter((o) => !!o.delivered_at || o.kanban_columns?.is_done).length;
 
