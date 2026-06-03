@@ -93,12 +93,26 @@ function KanbanPage() {
   const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({});
   const [producerFilter, setProducerFilter] = useState<string>("all");
   const [search, setSearch] = useState<string>("");
-  const [editingColumn, setEditingColumn] = useState<{ id?: string, name: string, color: string } | null>(null);
+  const [editingColumn, setEditingColumn] = useState<{ id?: string, name: string, color: string, producer_id?: string | null } | null>(null);
   const [savingColumn, setSavingColumn] = useState(false);
 
   const cols = useQuery({
-    queryKey: ["kanban-cols"],
-    queryFn: async () => (await supabase.from("kanban_columns").select("*").order("sort_order")).data ?? [],
+    queryKey: ["kanban-cols", producerFilter],
+    queryFn: async () => {
+      let query = supabase.from("kanban_columns").select("*");
+      
+      if (producerFilter !== "all") {
+        // Mostra colunas globais OU colunas específicas do produtor selecionado
+        query = query.or(`producer_id.is.null,producer_id.eq.${producerFilter}`);
+      } else {
+        // Se estiver em "Todos", mostra apenas as colunas globais para não virar bagunça
+        // Ou você pode optar por mostrar tudo, mas filtrar por nulo é mais limpo
+        query = query.is("producer_id", null);
+      }
+      
+      const { data } = await query.order("sort_order");
+      return data ?? [];
+    },
   });
 
   const cards = useQuery({
