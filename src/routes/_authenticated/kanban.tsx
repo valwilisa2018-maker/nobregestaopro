@@ -3,7 +3,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -11,7 +11,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Loader2, Trash2, X, Calendar, Clock, ExternalLink, MessageCircle, ChevronDown, ChevronRight, Layers, MoreVertical, Edit2 } from "lucide-react";
+import { Plus, Loader2, Trash2, X, Calendar, Clock, ExternalLink, MessageCircle, ChevronDown, ChevronRight, Layers, MoreVertical, Edit2, UserPlus } from "lucide-react";
 import { Search } from "lucide-react";
 import { fmtDate } from "@/lib/format";
 
@@ -161,6 +161,30 @@ function KanbanPage() {
       .in("id", cardIds);
     if (error) toast.error(error.message);
     else { toast.success(`${cardIds.length} cards movidos`); qc.invalidateQueries({ queryKey: ["kanban-cards"] }); }
+  };
+
+  const transferCard = async (cardId: string, producerId: string) => {
+    const { error } = await supabase
+      .from("service_orders")
+      .update({ producer_id: producerId })
+      .eq("id", cardId);
+    if (error) toast.error(error.message);
+    else { 
+      toast.success("Serviço transferido"); 
+      qc.invalidateQueries({ queryKey: ["kanban-cards"] }); 
+    }
+  };
+
+  const transferMany = async (cardIds: string[], producerId: string) => {
+    const { error } = await supabase
+      .from("service_orders")
+      .update({ producer_id: producerId })
+      .in("id", cardIds);
+    if (error) toast.error(error.message);
+    else { 
+      toast.success(`${cardIds.length} serviços transferidos`); 
+      qc.invalidateQueries({ queryKey: ["kanban-cards"] }); 
+    }
   };
 
   const openNew = (column_id: string) => { setEditing(emptyForm(column_id)); setNewLabel(""); };
@@ -477,7 +501,25 @@ function KanbanPage() {
                                 <Layers className="w-4 h-4 text-primary" />
                                 <span className="text-sm font-medium">{customerName}</span>
                               </div>
-                              <Badge variant="secondary" className="text-[10px]">{it.cards.length} serviços</Badge>
+                              <div className="flex items-center gap-1">
+                                <DropdownMenu>
+                                  <DropdownMenuTrigger asChild>
+                                    <Button size="icon" variant="ghost" className="h-6 w-6 text-muted-foreground hover:text-foreground" onClick={(e) => e.stopPropagation()}>
+                                      <UserPlus className="w-4 h-4" />
+                                    </Button>
+                                  </DropdownMenuTrigger>
+                                  <DropdownMenuContent align="end" className="w-48">
+                                    <DropdownMenuLabel>Transferir Pacote</DropdownMenuLabel>
+                                    <DropdownMenuSeparator />
+                                    {(producers.data ?? []).map((p: any) => (
+                                      <DropdownMenuItem key={p.id} onClick={(e) => { e.stopPropagation(); transferMany(it.cards.map((x: any) => x.id), p.id); }}>
+                                        {p.name}
+                                      </DropdownMenuItem>
+                                    ))}
+                                  </DropdownMenuContent>
+                                </DropdownMenu>
+                                <Badge variant="secondary" className="text-[10px]">{it.cards.length} serviços</Badge>
+                              </div>
                             </div>
                             {company && <div className="text-xs text-muted-foreground pl-6">{company}</div>}
                             <div className="flex flex-col gap-0.5 text-[11px] text-muted-foreground pl-6">
@@ -534,7 +576,25 @@ function KanbanPage() {
                               <div className="flex items-center justify-between text-xs">
                                 <div className="flex flex-col gap-0.5 text-muted-foreground">
                                   <span>Vendedor: <span className="font-semibold text-success" style={{}}>{c.sales?.sellers?.name ?? "—"}</span></span>
-                                  <span>Produtor: <span className="font-semibold text-success" style={{}}>{c.producer?.name ?? c.sales?.producers?.name ?? "—"}</span></span>
+                                  <div className="flex items-center gap-1">
+                                    <span>Produtor: <span className="font-semibold text-success" style={{}}>{c.producer?.name ?? c.sales?.producers?.name ?? "—"}</span></span>
+                                    <DropdownMenu>
+                                      <DropdownMenuTrigger asChild>
+                                        <button className="text-primary hover:underline ml-1" onClick={(e) => e.stopPropagation()}>
+                                          <UserPlus className="w-3 h-3" />
+                                        </button>
+                                      </DropdownMenuTrigger>
+                                      <DropdownMenuContent align="start" className="w-48">
+                                        <DropdownMenuLabel>Transferir Serviço</DropdownMenuLabel>
+                                        <DropdownMenuSeparator />
+                                        {(producers.data ?? []).map((p: any) => (
+                                          <DropdownMenuItem key={p.id} onClick={(e) => { e.stopPropagation(); transferCard(c.id, p.id); }}>
+                                            {p.name}
+                                          </DropdownMenuItem>
+                                        ))}
+                                      </DropdownMenuContent>
+                                    </DropdownMenu>
+                                  </div>
                                 </div>
                                 {c.sales?.payment_status && (
                                   <span
@@ -590,11 +650,29 @@ function KanbanPage() {
                           {c.due_time && (<span className="flex items-center gap-1"><Clock className="w-3 h-3" />{c.due_time.slice(0, 5)}</span>)}
                         </div>
                       )}
-                      <div className="flex items-center justify-between text-xs">
-                        <div className="flex flex-col gap-0.5 text-muted-foreground">
-                          <span>Vendedor: <span className="font-semibold text-success" style={{}}>{c.sales?.sellers?.name ?? "—"}</span></span>
-                          <span>Produtor: <span className="font-semibold text-success" style={{}}>{c.producer?.name ?? c.sales?.producers?.name ?? "—"}</span></span>
-                        </div>
+                        <div className="flex items-center justify-between text-xs">
+                          <div className="flex flex-col gap-0.5 text-muted-foreground">
+                            <span>Vendedor: <span className="font-semibold text-success" style={{}}>{c.sales?.sellers?.name ?? "—"}</span></span>
+                            <div className="flex items-center gap-1">
+                              <span>Produtor: <span className="font-semibold text-success" style={{}}>{c.producer?.name ?? c.sales?.producers?.name ?? "—"}</span></span>
+                              <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                  <button className="text-primary hover:underline ml-1" onClick={(e) => e.stopPropagation()}>
+                                    <UserPlus className="w-3 h-3" />
+                                  </button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="start" className="w-48">
+                                  <DropdownMenuLabel>Transferir Serviço</DropdownMenuLabel>
+                                  <DropdownMenuSeparator />
+                                  {(producers.data ?? []).map((p: any) => (
+                                    <DropdownMenuItem key={p.id} onClick={(e) => { e.stopPropagation(); transferCard(c.id, p.id); }}>
+                                      {p.name}
+                                    </DropdownMenuItem>
+                                  ))}
+                                </DropdownMenuContent>
+                              </DropdownMenu>
+                            </div>
+                          </div>
                         {c.sales?.payment_status && (
                           <span
                             className="text-[10px] px-2 py-0.5 rounded-full font-semibold"
