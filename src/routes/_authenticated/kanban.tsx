@@ -277,7 +277,8 @@ function KanbanPage() {
       if (editingColumn.id) {
         const { error } = await supabase.from("kanban_columns").update({
           name: editingColumn.name.trim(),
-          color: editingColumn.color
+          color: editingColumn.color,
+          producer_id: editingColumn.producer_id
         }).eq("id", editingColumn.id);
         if (error) throw error;
         toast.success("Coluna atualizada");
@@ -290,7 +291,8 @@ function KanbanPage() {
           color: editingColumn.color,
           sort_order: nextOrder,
           is_default: false,
-          is_done: false
+          is_done: false,
+          producer_id: producerFilter !== "all" ? producerFilter : null
         });
         if (error) throw error;
         toast.success("Coluna criada");
