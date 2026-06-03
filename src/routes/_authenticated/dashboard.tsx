@@ -449,7 +449,7 @@ function Dashboard() {
       </div>
 
       {/* Produção */}
-      <div className="grid gap-4 grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-4 grid-cols-2 lg:grid-cols-5">
         <button
           type="button"
           onClick={() => (window.location.href = "/kanban")}
@@ -471,6 +471,7 @@ function Dashboard() {
         >
           <StatCard tone="success" label="Entregues" value={String(ordersDelivered)} icon={Truck} />
         </button>
+        <StatCard tone="primary" label="Vídeos Gravados" value={String(totalRecordingVideos)} icon={Factory} hint="Total de vídeos" />
         <StatCard tone="violet" label="Notas emitidas" value={`${invIssued} / ${invList.length}`} icon={FileCheck2} hint={`${invPending} aguardando`} />
       </div>
 
