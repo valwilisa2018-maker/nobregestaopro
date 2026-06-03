@@ -261,6 +261,7 @@ export type Database = {
           is_default: boolean
           is_done: boolean
           name: string
+          producer_id: string | null
           sort_order: number
         }
         Insert: {
@@ -270,6 +271,7 @@ export type Database = {
           is_default?: boolean
           is_done?: boolean
           name: string
+          producer_id?: string | null
           sort_order?: number
         }
         Update: {
@@ -279,9 +281,18 @@ export type Database = {
           is_default?: boolean
           is_done?: boolean
           name?: string
+          producer_id?: string | null
           sort_order?: number
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "kanban_columns_producer_id_fkey"
+            columns: ["producer_id"]
+            isOneToOne: false
+            referencedRelation: "producers"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       packages: {
         Row: {
