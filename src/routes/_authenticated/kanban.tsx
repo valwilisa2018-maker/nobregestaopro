@@ -607,7 +607,7 @@ function KanbanPage() {
                                         <DropdownMenuLabel>Transferir Serviço</DropdownMenuLabel>
                                         <DropdownMenuSeparator />
                                         {(producers.data ?? []).map((p: any) => (
-                                          <DropdownMenuItem key={p.id} onClick={(e) => { e.stopPropagation(); transferCard(c.id, p.id); }}>
+                                          <DropdownMenuItem key={p.id} onClick={(e: any) => { e.stopPropagation(); transferCard(c.id, p.id); }}>
                                             {p.name}
                                           </DropdownMenuItem>
                                         ))}
