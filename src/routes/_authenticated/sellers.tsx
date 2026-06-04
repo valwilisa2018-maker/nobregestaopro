@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Trash2, Pencil, ImagePlus } from "lucide-react";
+import { Plus, Trash2, Pencil, ImagePlus, LayoutGrid, List } from "lucide-react";
 import { toast } from "sonner";
 import { formatCurrency } from "@/lib/auth";
 
@@ -52,6 +52,7 @@ function SellersPage() {
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState<SellerForm>(emptyForm);
   const [uploading, setUploading] = useState(false);
+  const [viewMode, setViewMode] = useState<"table" | "card">("table");
   const q = useQuery({
     queryKey: ["sellers-page"],
     queryFn: async () => (await supabase.from("sellers").select("*").order("created_at", { ascending: false })).data ?? [],
@@ -118,8 +119,13 @@ function SellersPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div><h1 className="text-3xl font-bold tracking-tight">Vendedores</h1><p className="text-muted-foreground">Equipe comercial</p></div>
-        <Dialog open={open} onOpenChange={setOpen}>
-          <DialogTrigger asChild><Button onClick={openNew}><Plus className="w-4 h-4 mr-2" />Novo vendedor</Button></DialogTrigger>
+        <div className="flex items-center gap-2">
+          <div className="flex items-center bg-muted rounded-lg p-1 mr-2">
+            <Button variant={viewMode === "table" ? "secondary" : "ghost"} size="sm" className="h-8 w-8 p-0" onClick={() => setViewMode("table")}><List className="h-4 w-4" /></Button>
+            <Button variant={viewMode === "card" ? "secondary" : "ghost"} size="sm" className="h-8 w-8 p-0" onClick={() => setViewMode("card")}><LayoutGrid className="h-4 w-4" /></Button>
+          </div>
+          <Dialog open={open} onOpenChange={setOpen}>
+            <DialogTrigger asChild><Button onClick={openNew}><Plus className="w-4 h-4 mr-2" />Novo vendedor</Button></DialogTrigger>
           <DialogContent><DialogHeader><DialogTitle>{form.id ? "Editar vendedor" : "Novo vendedor"}</DialogTitle></DialogHeader>
             <div className="space-y-3">
               <div className="flex items-center gap-3">
@@ -151,41 +157,89 @@ function SellersPage() {
           </DialogContent>
         </Dialog>
       </div>
-      <Card className="border-border/50" style={{ boxShadow: "var(--shadow-card)" }}><CardContent className="p-0">
-        <Table>
-          <TableHeader><TableRow><TableHead>Nome</TableHead><TableHead>Contato</TableHead><TableHead className="text-right">Meta</TableHead><TableHead>Comissão</TableHead><TableHead>Status</TableHead><TableHead className="text-right">Ações</TableHead></TableRow></TableHeader>
-          <TableBody>
-            {(q.data ?? []).map((s: any) => (
-              <TableRow key={s.id}>
-                <TableCell className="font-medium">
+    </div>
+      {viewMode === "table" ? (
+        <Card className="border-border/50" style={{ boxShadow: "var(--shadow-card)" }}><CardContent className="p-0">
+          <Table>
+            <TableHeader><TableRow><TableHead>Nome</TableHead><TableHead>Contato</TableHead><TableHead className="text-right">Meta</TableHead><TableHead>Comissão</TableHead><TableHead>Status</TableHead><TableHead className="text-right">Ações</TableHead></TableRow></TableHeader>
+            <TableBody>
+              {(q.data ?? []).map((s: any) => (
+                <TableRow key={s.id}>
+                  <TableCell className="font-medium">
+                    <div className="flex items-center gap-3">
+                      <SellerAvatar path={s.avatar_url} name={s.name} />
+                      <span>{s.name}</span>
+                    </div>
+                  </TableCell>
+                  <TableCell><div className="text-sm">{s.phone}</div><div className="text-xs text-muted-foreground">{s.email}</div></TableCell>
+                  <TableCell className="text-right">{formatCurrency(s.monthly_goal)}</TableCell>
+                  <TableCell>{s.commission_rate}%</TableCell>
+                  <TableCell><Badge variant={s.active ? "default" : "secondary"}>{s.active ? "Ativo" : "Inativo"}</Badge></TableCell>
+                  <TableCell className="text-right">
+                    <div className="flex gap-1 justify-end">
+                      <Button variant="outline" size="sm" onClick={() => openEdit(s)}>
+                        <Pencil className="w-4 h-4 mr-1" />Editar
+                      </Button>
+                      <Button variant="outline" size="sm" onClick={() => toggleActive(s.id, !s.active)}>
+                        {s.active ? "Desativar" : "Ativar"}
+                      </Button>
+                      <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive" onClick={() => remove(s.id, s.name)}>
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))}
+              {(q.data ?? []).length === 0 && <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground py-8">Sem vendedores</TableCell></TableRow>}
+            </TableBody>
+          </Table>
+        </CardContent></Card>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {(q.data ?? []).map((s: any) => (
+            <Card key={s.id} className="border-border/50 hover:shadow-md transition-shadow">
+              <CardContent className="p-4 space-y-4">
+                <div className="flex items-start justify-between">
                   <div className="flex items-center gap-3">
                     <SellerAvatar path={s.avatar_url} name={s.name} />
-                    <span>{s.name}</span>
+                    <div>
+                      <h3 className="font-bold leading-tight">{s.name}</h3>
+                      <p className="text-xs text-muted-foreground">{s.email ?? "Sem e-mail"}</p>
+                    </div>
                   </div>
-                </TableCell>
-                <TableCell><div className="text-sm">{s.phone}</div><div className="text-xs text-muted-foreground">{s.email}</div></TableCell>
-                <TableCell className="text-right">{formatCurrency(s.monthly_goal)}</TableCell>
-                <TableCell>{s.commission_rate}%</TableCell>
-                <TableCell><Badge variant={s.active ? "default" : "secondary"}>{s.active ? "Ativo" : "Inativo"}</Badge></TableCell>
-                <TableCell className="text-right">
-                  <div className="flex gap-1 justify-end">
-                    <Button variant="outline" size="sm" onClick={() => openEdit(s)}>
-                      <Pencil className="w-4 h-4 mr-1" />Editar
-                    </Button>
-                    <Button variant="outline" size="sm" onClick={() => toggleActive(s.id, !s.active)}>
-                      {s.active ? "Desativar" : "Ativar"}
-                    </Button>
-                    <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive" onClick={() => remove(s.id, s.name)}>
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
+                  <Badge variant={s.active ? "default" : "secondary"}>{s.active ? "Ativo" : "Inativo"}</Badge>
+                </div>
+                <div className="space-y-2 text-sm">
+                  <div className="flex justify-between border-b pb-1">
+                    <span className="text-muted-foreground">Telefone:</span>
+                    <span>{s.phone ?? "—"}</span>
                   </div>
-                </TableCell>
-              </TableRow>
-            ))}
-            {(q.data ?? []).length === 0 && <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground py-8">Sem vendedores</TableCell></TableRow>}
-          </TableBody>
-        </Table>
-      </CardContent></Card>
+                  <div className="flex justify-between border-b pb-1">
+                    <span className="text-muted-foreground">Meta Mensal:</span>
+                    <span className="font-medium text-primary">{formatCurrency(s.monthly_goal)}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Comissão:</span>
+                    <span className="font-medium">{s.commission_rate}%</span>
+                  </div>
+                </div>
+                <div className="flex gap-2 justify-end pt-1">
+                  <Button variant="outline" size="sm" className="h-8 text-xs" onClick={() => openEdit(s)}>
+                    <Pencil className="w-3.5 h-3.5 mr-1.5" /> Editar
+                  </Button>
+                  <Button variant="outline" size="sm" className="h-8 text-xs" onClick={() => toggleActive(s.id, !s.active)}>
+                    {s.active ? "Desativar" : "Ativar"}
+                  </Button>
+                  <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-destructive hover:text-destructive" onClick={() => remove(s.id, s.name)}>
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+          {(q.data ?? []).length === 0 && <div className="col-span-full py-12 text-center text-muted-foreground italic">Sem vendedores</div>}
+        </div>
+      )}
     </div>
   );
 }
