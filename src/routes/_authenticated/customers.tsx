@@ -37,14 +37,19 @@ function waLink(phone?: string | null) {
 }
 
 function CustomersPage() {
+  const { search: searchParam } = Route.useSearch();
   const [year, setYear] = useState<string>("all");
   const [month, setMonth] = useState<string>("all");
-  const [search, setSearch] = useState("");
+  const [search, setSearch] = useState(searchParam || "");
   const [selected, setSelected] = useState<any | null>(null);
   const [receiptsSale, setReceiptsSale] = useState<any | null>(null);
   const [receipts, setReceipts] = useState<any[]>([]);
   const [loadingReceipts, setLoadingReceipts] = useState(false);
   const [viewMode, setViewMode] = useState<"table" | "card">("table");
+
+  useEffect(() => {
+    if (searchParam) setSearch(searchParam);
+  }, [searchParam]);
 
   const q = useQuery({
     queryKey: ["customers-all"],
