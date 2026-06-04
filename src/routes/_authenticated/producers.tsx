@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Trash2, Pencil, Upload } from "lucide-react";
+import { Plus, Trash2, Pencil, Upload, LayoutGrid, List, User } from "lucide-react";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/producers")({
@@ -19,6 +19,7 @@ export const Route = createFileRoute("/_authenticated/producers")({
     const [form, setForm] = useState({ name: "", specialty: "", phone: "", email: "" });
     const [editing, setEditing] = useState<any | null>(null);
     const [uploading, setUploading] = useState(false);
+    const [viewMode, setViewMode] = useState<"table" | "card">("table");
     const q = useQuery({ queryKey: ["producers-page"], queryFn: async () => (await supabase.from("producers").select("*").order("created_at", { ascending: false })).data ?? [] });
     const save = async () => {
       if (!form.name) return toast.error("Nome obrigatório");
@@ -78,8 +79,13 @@ export const Route = createFileRoute("/_authenticated/producers")({
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <div><h1 className="text-3xl font-bold tracking-tight">Produtores</h1><p className="text-muted-foreground">Equipe de produção</p></div>
-          <Dialog open={open} onOpenChange={setOpen}>
-            <DialogTrigger asChild><Button><Plus className="w-4 h-4 mr-2" />Novo produtor</Button></DialogTrigger>
+          <div className="flex items-center gap-2">
+            <div className="flex items-center bg-muted rounded-lg p-1">
+              <Button variant={viewMode === "table" ? "secondary" : "ghost"} size="sm" className="h-8 w-8 p-0" onClick={() => setViewMode("table")}><List className="h-4 w-4" /></Button>
+              <Button variant={viewMode === "card" ? "secondary" : "ghost"} size="sm" className="h-8 w-8 p-0" onClick={() => setViewMode("card")}><LayoutGrid className="h-4 w-4" /></Button>
+            </div>
+            <Dialog open={open} onOpenChange={setOpen}>
+              <DialogTrigger asChild><Button><Plus className="w-4 h-4 mr-2" />Novo produtor</Button></DialogTrigger>
             <DialogContent><DialogHeader><DialogTitle>Novo produtor</DialogTitle></DialogHeader>
               <div className="space-y-3">
                 <div><Label>Nome</Label><Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} /></div>
@@ -89,7 +95,8 @@ export const Route = createFileRoute("/_authenticated/producers")({
               </div>
               <DialogFooter><Button onClick={save}>Salvar</Button></DialogFooter>
             </DialogContent>
-          </Dialog>
+            </Dialog>
+          </div>
         </div>
         <Dialog open={!!editing} onOpenChange={(o) => !o && setEditing(null)}>
           <DialogContent>
@@ -121,41 +128,86 @@ export const Route = createFileRoute("/_authenticated/producers")({
             <DialogFooter><Button onClick={saveEdit} disabled={uploading}>Salvar</Button></DialogFooter>
           </DialogContent>
         </Dialog>
-        <Card className="border-border/50" style={{ boxShadow: "var(--shadow-card)" }}><CardContent className="p-0">
-          <Table>
-            <TableHeader><TableRow><TableHead>Foto</TableHead><TableHead>Nome</TableHead><TableHead>Especialidade</TableHead><TableHead>Qualidade</TableHead><TableHead>Prazo médio</TableHead><TableHead>Status</TableHead><TableHead className="text-right">Ações</TableHead></TableRow></TableHeader>
-            <TableBody>
-              {(q.data ?? []).map((p: any) => (
-                <TableRow key={p.id}>
-                  <TableCell>
-                    <div className="w-10 h-10 rounded-full bg-muted overflow-hidden border flex items-center justify-center text-sm font-bold text-muted-foreground">
-                      {p.avatar_url ? <img src={p.avatar_url} alt={p.name} className="w-full h-full object-cover" /> : (p.name?.charAt(0)?.toUpperCase() ?? "?")}
+        {viewMode === "table" ? (
+          <Card className="border-border/50" style={{ boxShadow: "var(--shadow-card)" }}><CardContent className="p-0">
+            <Table>
+              <TableHeader><TableRow><TableHead>Foto</TableHead><TableHead>Nome</TableHead><TableHead>Especialidade</TableHead><TableHead>Qualidade</TableHead><TableHead>Prazo médio</TableHead><TableHead>Status</TableHead><TableHead className="text-right">Ações</TableHead></TableRow></TableHeader>
+              <TableBody>
+                {(q.data ?? []).map((p: any) => (
+                  <TableRow key={p.id}>
+                    <TableCell>
+                      <div className="w-10 h-10 rounded-full bg-muted overflow-hidden border flex items-center justify-center text-sm font-bold text-muted-foreground">
+                        {p.avatar_url ? <img src={p.avatar_url} alt={p.name} className="w-full h-full object-cover" /> : (p.name?.charAt(0)?.toUpperCase() ?? "?")}
+                      </div>
+                    </TableCell>
+                    <TableCell className="font-medium">{p.name}</TableCell>
+                    <TableCell>{p.specialty ?? "—"}</TableCell>
+                    <TableCell>{Number(p.quality_score ?? 0).toFixed(1)} ⭐</TableCell>
+                    <TableCell>{Number(p.average_delivery_days ?? 0).toFixed(1)} dias</TableCell>
+                    <TableCell><Badge variant={p.active ? "default" : "secondary"}>{p.active ? "Ativo" : "Inativo"}</Badge></TableCell>
+                    <TableCell className="text-right">
+                      <div className="flex gap-1 justify-end">
+                        <Button variant="outline" size="sm" onClick={() => setEditing({ ...p })}>
+                          <Pencil className="w-4 h-4" />
+                        </Button>
+                        <Button variant="outline" size="sm" onClick={() => toggleActive(p.id, !p.active)}>
+                          {p.active ? "Desativar" : "Ativar"}
+                        </Button>
+                        <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive" onClick={() => remove(p.id, p.name)}>
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+                {(q.data ?? []).length === 0 && <TableRow><TableCell colSpan={7} className="text-center text-muted-foreground py-8">Sem produtores</TableCell></TableRow>}
+              </TableBody>
+            </Table>
+          </CardContent></Card>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {(q.data ?? []).map((p: any) => (
+              <Card key={p.id} className="border-border/50 hover:shadow-md transition-shadow">
+                <CardContent className="p-4 space-y-4">
+                  <div className="flex items-start justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="w-12 h-12 rounded-full bg-muted overflow-hidden border flex items-center justify-center text-lg font-bold text-muted-foreground">
+                        {p.avatar_url ? <img src={p.avatar_url} alt={p.name} className="w-full h-full object-cover" /> : (p.name?.charAt(0)?.toUpperCase() ?? "?")}
+                      </div>
+                      <div>
+                        <h3 className="font-bold leading-tight">{p.name}</h3>
+                        <p className="text-xs text-muted-foreground">{p.specialty ?? "Sem especialidade"}</p>
+                      </div>
                     </div>
-                  </TableCell>
-                  <TableCell className="font-medium">{p.name}</TableCell>
-                  <TableCell>{p.specialty ?? "—"}</TableCell>
-                  <TableCell>{Number(p.quality_score ?? 0).toFixed(1)} ⭐</TableCell>
-                  <TableCell>{Number(p.average_delivery_days ?? 0).toFixed(1)} dias</TableCell>
-                  <TableCell><Badge variant={p.active ? "default" : "secondary"}>{p.active ? "Ativo" : "Inativo"}</Badge></TableCell>
-                  <TableCell className="text-right">
-                    <div className="flex gap-1 justify-end">
-                      <Button variant="outline" size="sm" onClick={() => setEditing({ ...p })}>
-                        <Pencil className="w-4 h-4" />
-                      </Button>
-                      <Button variant="outline" size="sm" onClick={() => toggleActive(p.id, !p.active)}>
-                        {p.active ? "Desativar" : "Ativar"}
-                      </Button>
-                      <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive" onClick={() => remove(p.id, p.name)}>
-                        <Trash2 className="w-4 h-4" />
-                      </Button>
+                    <Badge variant={p.active ? "default" : "secondary"}>{p.active ? "Ativo" : "Inativo"}</Badge>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2 py-2 border-y text-sm">
+                    <div className="space-y-0.5">
+                      <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider">Qualidade</p>
+                      <p className="font-medium">{Number(p.quality_score ?? 0).toFixed(1)} ⭐</p>
                     </div>
-                  </TableCell>
-                </TableRow>
-              ))}
-              {(q.data ?? []).length === 0 && <TableRow><TableCell colSpan={7} className="text-center text-muted-foreground py-8">Sem produtores</TableCell></TableRow>}
-            </TableBody>
-          </Table>
-        </CardContent></Card>
+                    <div className="space-y-0.5">
+                      <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider">Prazo Médio</p>
+                      <p className="font-medium">{Number(p.average_delivery_days ?? 0).toFixed(1)} dias</p>
+                    </div>
+                  </div>
+                  <div className="flex gap-2 justify-end pt-1">
+                    <Button variant="outline" size="sm" className="h-8 text-xs" onClick={() => setEditing({ ...p })}>
+                      <Pencil className="w-3.5 h-3.5 mr-1.5" /> Editar
+                    </Button>
+                    <Button variant="outline" size="sm" className="h-8 text-xs" onClick={() => toggleActive(p.id, !p.active)}>
+                      {p.active ? "Desativar" : "Ativar"}
+                    </Button>
+                    <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-destructive hover:text-destructive" onClick={() => remove(p.id, p.name)}>
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+            {(q.data ?? []).length === 0 && <div className="col-span-full py-12 text-center text-muted-foreground italic">Sem produtores</div>}
+          </div>
+        )}
       </div>
     );
   },

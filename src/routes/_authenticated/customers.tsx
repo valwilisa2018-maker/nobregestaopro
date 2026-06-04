@@ -92,7 +92,7 @@ function CustomersPage() {
       const { data, error } = await supabase.from("sale_receipts").select("*").eq("sale_id", sale.id).order("paid_at", { ascending: false });
       if (error) throw error;
       let list = data ?? [];
-      if (list.length === 0 && sale.receipt_url) list = [{ id: "legacy", file_path: sale.receipt_url, amount: sale.paid_amount ?? 0, paid_at: sale.sale_date, notes: "Comprovante inicial" }];
+      if (list.length === 0 && sale.receipt_url) list = [{ id: "legacy", file_path: sale.receipt_url, amount: sale.paid_amount ?? 0, paid_at: sale.sale_date, notes: "Comprovante inicial", created_at: new Date().toISOString(), sale_id: sale.id, uploaded_by: null } as any];
       setReceipts(list);
     } catch (e: any) { toast.error(e.message ?? "Erro ao carregar comprovantes"); } finally { setLoadingReceipts(false); }
   };
