@@ -10,7 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { FileText, Download, History } from "lucide-react";
+import { FileText, Download, History, LayoutGrid, List } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Plus, Loader2, Pencil, Eye } from "lucide-react";
@@ -28,6 +28,7 @@ function SalesPage() {
   const [saving, setSaving] = useState(false);
   const [receiptFile, setReceiptFile] = useState<File | null>(null);
   const [editing, setEditing] = useState<any | null>(null);
+  const [viewMode, setViewMode] = useState<"table" | "card">("table");
   const [editSaving, setEditSaving] = useState(false);
 
   const sales = useQuery({
@@ -277,8 +278,27 @@ function SalesPage() {
           <h1 className="text-3xl font-bold tracking-tight">Vendas</h1>
           <p className="text-muted-foreground">Cadastre e acompanhe todas as vendas</p>
         </div>
-        <Dialog open={open} onOpenChange={setOpen}>
-          <DialogTrigger asChild><Button><Plus className="w-4 h-4 mr-2" />Nova Venda</Button></DialogTrigger>
+        <div className="flex items-center gap-2">
+          <div className="flex items-center bg-muted rounded-lg p-1 mr-2">
+            <Button
+              variant={viewMode === "table" ? "secondary" : "ghost"}
+              size="sm"
+              className="h-8 w-8 p-0"
+              onClick={() => setViewMode("table")}
+            >
+              <List className="h-4 w-4" />
+            </Button>
+            <Button
+              variant={viewMode === "card" ? "secondary" : "ghost"}
+              size="sm"
+              className="h-8 w-8 p-0"
+              onClick={() => setViewMode("card")}
+            >
+              <LayoutGrid className="h-4 w-4" />
+            </Button>
+          </div>
+          <Dialog open={open} onOpenChange={setOpen}>
+            <DialogTrigger asChild><Button><Plus className="w-4 h-4 mr-2" />Nova Venda</Button></DialogTrigger>
           <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
             <DialogHeader><DialogTitle>Nova Venda</DialogTitle></DialogHeader>
             <div className="grid grid-cols-2 gap-3">
@@ -410,42 +430,192 @@ function SalesPage() {
         </Dialog>
       </div>
 
-      <Card className="border-border/50" style={{ boxShadow: "var(--shadow-card)" }}>
-        <CardContent className="p-0">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Data</TableHead>
-                <TableHead>Cliente</TableHead>
-                <TableHead>Serviço</TableHead>
-                <TableHead>Vendedor</TableHead>
-                <TableHead>Produtor</TableHead>
-                <TableHead className="text-right">Valor</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead className="w-12"></TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {(sales.data ?? []).map((s: any) => (
-                <TableRow key={s.id}>
-                  <TableCell className="whitespace-nowrap">{fmtDate(s.sale_date)}</TableCell>
-                  <TableCell>
-                    <div className="font-medium">{s.customers?.name}</div>
-                    <div className="text-xs text-muted-foreground">{s.customers?.company}</div>
-                  </TableCell>
-                  <TableCell>{s.service_types?.name ?? "—"}</TableCell>
-                  <TableCell>{s.sellers?.name ?? "—"}</TableCell>
-                  <TableCell>{s.producers?.name ?? "—"}</TableCell>
-                  <TableCell className="text-right font-semibold">{formatCurrency(s.total_amount)}</TableCell>
-                  <TableCell><Badge variant={statusVariant(s.payment_status) as any}>{s.payment_status.replace("_", " ")}</Badge></TableCell>
-                  <TableCell>
-                    <div className="flex items-center gap-1">
-                      <Button size="icon" variant="ghost" onClick={() => setEditing({ ...s })}>
+      {viewMode === "table" ? (
+        <Card className="border-border/50" style={{ boxShadow: "var(--shadow-card)" }}>
+          <CardContent className="p-0">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Data</TableHead>
+                  <TableHead>Cliente</TableHead>
+                  <TableHead>Serviço</TableHead>
+                  <TableHead>Vendedor</TableHead>
+                  <TableHead>Produtor</TableHead>
+                  <TableHead className="text-right">Valor</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead className="w-12"></TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {(sales.data ?? []).map((s: any) => (
+                  <TableRow key={s.id}>
+                    <TableCell className="whitespace-nowrap">{fmtDate(s.sale_date)}</TableCell>
+                    <TableCell>
+                      <div className="font-medium">{s.customers?.name}</div>
+                      <div className="text-xs text-muted-foreground">{s.customers?.company}</div>
+                    </TableCell>
+                    <TableCell>{s.service_types?.name ?? "—"}</TableCell>
+                    <TableCell>{s.sellers?.name ?? "—"}</TableCell>
+                    <TableCell>{s.producers?.name ?? "—"}</TableCell>
+                    <TableCell className="text-right font-semibold">{formatCurrency(s.total_amount)}</TableCell>
+                    <TableCell><Badge variant={statusVariant(s.payment_status) as any}>{s.payment_status.replace("_", " ")}</Badge></TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-1">
+                        <Button size="icon" variant="ghost" onClick={() => setEditing({ ...s })}>
+                          <Pencil className="w-4 h-4" />
+                        </Button>
+                        <Dialog>
+                          <DialogTrigger asChild>
+                            <Button size="icon" variant="ghost">
+                              <Eye className="w-4 h-4" />
+                            </Button>
+                          </DialogTrigger>
+                          <DialogContent className="max-w-xl">
+                            <DialogHeader>
+                              <DialogTitle>Histórico de Pagamentos e Comprovantes</DialogTitle>
+                            </DialogHeader>
+                            <div className="space-y-4 py-4">
+                              <div className="flex justify-between items-center pb-2 border-bottom">
+                                <div>
+                                  <h3 className="font-semibold text-lg">{s.customers?.name}</h3>
+                                  <p className="text-sm text-muted-foreground">{s.customers?.company}</p>
+                                </div>
+                                <div className="text-right">
+                                  <p className="text-xs text-muted-foreground">Valor Total</p>
+                                  <p className="font-bold text-lg">{formatCurrency(s.total_amount)}</p>
+                                </div>
+                              </div>
+
+                              <Tabs defaultValue="receipts" className="w-full">
+                                <TabsList className="grid w-full grid-cols-2">
+                                  <TabsTrigger value="receipts" className="flex gap-2">
+                                    <FileText className="w-4 h-4" /> Comprovantes
+                                  </TabsTrigger>
+                                  <TabsTrigger value="history" className="flex gap-2">
+                                    <History className="w-4 h-4" /> Resumo
+                                  </TabsTrigger>
+                                </TabsList>
+                                
+                                <TabsContent value="receipts" className="mt-4">
+                                  {s.sale_receipts && s.sale_receipts.length > 0 ? (
+                                    <div className="space-y-3">
+                                      {s.sale_receipts.map((r: any) => (
+                                        <div key={r.id} className="flex items-center justify-between p-3 border rounded-lg bg-muted/30">
+                                          <div className="flex items-center gap-3">
+                                            <div className="bg-green-100 p-2 rounded-full">
+                                              <FileText className="w-4 h-4 text-green-700" />
+                                            </div>
+                                            <div>
+                                              <p className="font-medium">{formatCurrency(r.amount)}</p>
+                                              <p className="text-xs text-muted-foreground">{fmtDate(r.paid_at)} {r.notes ? `• ${r.notes}` : ''}</p>
+                                            </div>
+                                          </div>
+                                          <Button 
+                                            variant="outline" 
+                                            size="sm" 
+                                            className="gap-2"
+                                            onClick={async () => {
+                                              const { data } = supabase.storage.from('receipts').getPublicUrl(r.file_path);
+                                              window.open(data.publicUrl, '_blank');
+                                            }}
+                                          >
+                                            <Download className="w-4 h-4" />
+                                            Ver
+                                          </Button>
+                                        </div>
+                                      ))}
+                                    </div>
+                                  ) : (
+                                    <div className="text-center py-8 text-muted-foreground italic">
+                                      Nenhum comprovante anexado.
+                                    </div>
+                                  )}
+                                </TabsContent>
+                                
+                                <TabsContent value="history" className="mt-4">
+                                  <div className="space-y-3">
+                                    <div className="grid grid-cols-2 gap-4">
+                                      <div className="p-3 border rounded-lg bg-green-50">
+                                        <p className="text-xs text-green-700 uppercase font-semibold">Total Pago</p>
+                                        <p className="text-xl font-bold text-green-800">{formatCurrency(s.paid_amount)}</p>
+                                      </div>
+                                      <div className="p-3 border rounded-lg bg-red-50">
+                                        <p className="text-xs text-red-700 uppercase font-semibold">Pendente</p>
+                                        <p className="text-xl font-bold text-red-800">{formatCurrency(Number(s.total_amount) - Number(s.paid_amount))}</p>
+                                      </div>
+                                    </div>
+                                    <div className="p-3 border rounded-lg">
+                                      <p className="text-xs text-muted-foreground uppercase font-semibold mb-1">Status</p>
+                                      <Badge variant={statusVariant(s.payment_status) as any}>{s.payment_status.replace("_", " ")}</Badge>
+                                    </div>
+                                    {s.notes && (
+                                      <div className="p-3 border rounded-lg">
+                                        <p className="text-xs text-muted-foreground uppercase font-semibold mb-1">Observações da Venda</p>
+                                        <p className="text-sm">{s.notes}</p>
+                                      </div>
+                                    )}
+                                  </div>
+                                </TabsContent>
+                              </Tabs>
+                            </div>
+                          </DialogContent>
+                        </Dialog>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+                {(sales.data ?? []).length === 0 && (
+                  <TableRow><TableCell colSpan={8} className="text-center text-muted-foreground py-8">Nenhuma venda cadastrada ainda</TableCell></TableRow>
+                )}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {(sales.data ?? []).map((s: any) => (
+            <Card key={s.id} className="border-border/50 overflow-hidden hover:shadow-md transition-shadow">
+              <CardContent className="p-0">
+                <div className="p-4 space-y-3">
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <h3 className="font-bold text-lg leading-tight">{s.customers?.name}</h3>
+                      <p className="text-sm text-muted-foreground">{s.customers?.company}</p>
+                    </div>
+                    <Badge variant={statusVariant(s.payment_status) as any}>{s.payment_status.replace("_", " ")}</Badge>
+                  </div>
+                  
+                  <div className="grid grid-cols-2 gap-2 text-sm">
+                    <div>
+                      <p className="text-xs text-muted-foreground">Serviço</p>
+                      <p className="font-medium truncate">{s.service_types?.name ?? "—"}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-muted-foreground">Data</p>
+                      <p className="font-medium">{fmtDate(s.sale_date)}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-muted-foreground">Vendedor</p>
+                      <p className="font-medium truncate">{s.sellers?.name ?? "—"}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-muted-foreground">Produtor</p>
+                      <p className="font-medium truncate">{s.producers?.name ?? "—"}</p>
+                    </div>
+                  </div>
+
+                  <div className="pt-2 border-t flex justify-between items-center">
+                    <div>
+                      <p className="text-xs text-muted-foreground">Valor Total</p>
+                      <p className="text-lg font-bold text-primary">{formatCurrency(s.total_amount)}</p>
+                    </div>
+                    <div className="flex gap-1">
+                      <Button size="icon" variant="outline" className="h-8 w-8" onClick={() => setEditing({ ...s })}>
                         <Pencil className="w-4 h-4" />
                       </Button>
                       <Dialog>
                         <DialogTrigger asChild>
-                          <Button size="icon" variant="ghost">
+                          <Button size="icon" variant="outline" className="h-8 w-8">
                             <Eye className="w-4 h-4" />
                           </Button>
                         </DialogTrigger>
@@ -540,16 +710,16 @@ function SalesPage() {
                         </DialogContent>
                       </Dialog>
                     </div>
-                  </TableCell>
-                </TableRow>
-              ))}
-              {(sales.data ?? []).length === 0 && (
-                <TableRow><TableCell colSpan={8} className="text-center text-muted-foreground py-8">Nenhuma venda cadastrada ainda</TableCell></TableRow>
-              )}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+          {(sales.data ?? []).length === 0 && (
+            <div className="col-span-full py-12 text-center text-muted-foreground italic">Nenhuma venda cadastrada ainda</div>
+          )}
+        </div>
+      )}
 
       <Dialog open={!!editing} onOpenChange={(o) => !o && setEditing(null)}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
