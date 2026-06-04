@@ -82,7 +82,9 @@ export const Route = createFileRoute("/_authenticated/services-todo")({
                       <TableCell>{multi ? `${g.items.length} serviços` : (first.sales?.service_types?.name ?? first.title)}</TableCell>
                       <TableCell>{first.sales?.producers?.name ?? "—"}</TableCell>
                       <TableCell>
-                        {!multi && (
+                        {multi ? (
+                          <span className="text-red-600 font-bold text-xs uppercase">Pacote</span>
+                        ) : (
                           <Badge variant="outline" style={{ borderColor: first.kanban_columns?.color, color: first.kanban_columns?.color }}>
                             {first.kanban_columns?.name}
                           </Badge>
