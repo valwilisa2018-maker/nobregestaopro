@@ -205,7 +205,17 @@ function PendingPaymentsPage() {
       <Dialog open={!!selected} onOpenChange={(o) => !o && setSelected(null)}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Anexar comprovante e confirmar pagamento</DialogTitle>
+            <div className="flex items-center justify-between pr-8">
+              <DialogTitle>Anexar comprovante e confirmar pagamento</DialogTitle>
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                className="text-xs"
+                onClick={() => navigate({ to: "/customers", search: { search: selected?.customer?.name } })}
+              >
+                <History className="w-3.5 h-3.5 mr-1" /> Ver Histórico
+              </Button>
+            </div>
           </DialogHeader>
           {selected && (
             <div className="space-y-4">
