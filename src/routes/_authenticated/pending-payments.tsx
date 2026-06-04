@@ -20,6 +20,7 @@ export const Route = createFileRoute("/_authenticated/pending-payments")({
 
 function PendingPaymentsPage() {
   const qc = useQueryClient();
+  const navigate = useNavigate();
   const [search, setSearch] = useState("");
   const [selected, setSelected] = useState<any | null>(null);
   const [amount, setAmount] = useState("");
