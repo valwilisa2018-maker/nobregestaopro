@@ -106,7 +106,15 @@ function PendingPaymentsPage() {
         });
       }
 
-      toast.success("Recebimento confirmado");
+      const customerName = selected.customer?.name;
+      toast.success("Recebimento confirmado", {
+        action: {
+          label: "Ver Histórico",
+          onClick: () => {
+            navigate({ to: "/customers", search: { search: customerName } });
+          },
+        },
+      });
       setSelected(null);
       setFile(null);
       setAmount("");
