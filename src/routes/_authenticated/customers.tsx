@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -14,8 +14,14 @@ import { MessageCircle, Search, Mail, Phone, Building2, FileText, Paperclip, Loa
 import { formatCurrency } from "@/lib/auth";
 import { fmtDate } from "@/lib/format";
 import { toast } from "sonner";
+import { z } from "zod";
+
+const customerSearchSchema = z.object({
+  search: z.string().optional(),
+});
 
 export const Route = createFileRoute("/_authenticated/customers")({
+  validateSearch: (search) => customerSearchSchema.parse(search),
   component: CustomersPage,
 });
 
