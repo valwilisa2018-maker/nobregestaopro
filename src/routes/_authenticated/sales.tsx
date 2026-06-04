@@ -35,7 +35,7 @@ function SalesPage() {
     queryFn: async () => {
       const { data } = await supabase
         .from("sales")
-        .select("*, customers(name,company), sellers(name), producers(name), service_types(name)")
+        .select("*, customers(name,company), sellers(name), producers(name), service_types(name), sale_receipts(*)")
         .order("sale_date", { ascending: false });
       return data ?? [];
     },
