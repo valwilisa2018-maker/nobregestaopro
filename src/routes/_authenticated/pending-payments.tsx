@@ -193,7 +193,7 @@ function PendingPaymentsPage() {
       <Dialog open={!!selected} onOpenChange={(o) => !o && setSelected(null)}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Confirmar recebimento parcial</DialogTitle>
+            <DialogTitle>Anexar comprovante e confirmar pagamento</DialogTitle>
           </DialogHeader>
           {selected && (
             <div className="space-y-4">
@@ -213,22 +213,56 @@ function PendingPaymentsPage() {
                   </div>
                 </div>
               </div>
+
               <div className="space-y-2">
-                <Label>Valor recebido (R$)</Label>
-                <Input type="number" step="0.01" min="0" value={amount} onChange={(e) => setAmount(e.target.value)} />
+                <Label>Comprovante (Imagem ou PDF)</Label>
+                <div 
+                  className={`border-2 border-dashed rounded-lg p-6 text-center cursor-pointer transition-colors ${file ? 'border-green-500 bg-green-50' : 'border-gray-200 hover:border-gray-300'}`}
+                  onClick={() => document.getElementById('receipt-upload')?.click()}
+                >
+                  <Input 
+                    id="receipt-upload"
+                    type="file" 
+                    accept="image/*,application/pdf" 
+                    className="hidden"
+                    onChange={(e) => setFile(e.target.files?.[0] ?? null)} 
+                  />
+                  {file ? (
+                    <div className="space-y-1">
+                      <p className="text-sm font-medium text-green-700">{file.name}</p>
+                      <p className="text-xs text-green-600">Clique para trocar o arquivo</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-1">
+                      <p className="text-sm text-muted-foreground">Clique para selecionar ou arraste o comprovante aqui</p>
+                      <p className="text-xs text-muted-foreground">JPG, PNG ou PDF</p>
+                    </div>
+                  )}
+                </div>
               </div>
+
               <div className="space-y-2">
-                <Label>Comprovante</Label>
-                <Input type="file" accept="image/*,application/pdf" onChange={(e) => setFile(e.target.files?.[0] ?? null)} />
-                {file && <div className="text-xs text-muted-foreground">{file.name}</div>}
+                <Label>Confirmar valor do pagamento (R$)</Label>
+                <Input 
+                  type="number" 
+                  step="0.01" 
+                  min="0" 
+                  value={amount} 
+                  onChange={(e) => setAmount(e.target.value)} 
+                  placeholder="0,00"
+                />
               </div>
             </div>
           )}
-          <DialogFooter>
+          <DialogFooter className="gap-2 sm:gap-0">
             <Button variant="outline" onClick={() => setSelected(null)} disabled={saving}>Cancelar</Button>
-            <Button className="bg-green-600 hover:bg-green-700 text-white" onClick={confirm} disabled={saving}>
+            <Button 
+              className="bg-green-600 hover:bg-green-700 text-white" 
+              onClick={confirm} 
+              disabled={saving || !file || !amount}
+            >
               {saving && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-              Confirmar recebimento
+              Confirmar Pagamento
             </Button>
           </DialogFooter>
         </DialogContent>
