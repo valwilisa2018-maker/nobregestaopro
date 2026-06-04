@@ -13,7 +13,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { FileText, Download, History } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Plus, Loader2, Pencil } from "lucide-react";
+import { Plus, Loader2, Pencil, Eye } from "lucide-react";
 import { toast } from "sonner";
 import { formatCurrency } from "@/lib/auth";
 import { fmtDate } from "@/lib/format";
