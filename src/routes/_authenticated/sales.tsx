@@ -303,6 +303,7 @@ function SalesPage() {
               <DialogHeader><DialogTitle>Nova Venda</DialogTitle></DialogHeader>
               <div className="grid grid-cols-2 gap-3">
                 <div className="col-span-2">
+                <div className="col-span-2">
                   <Label>Nome do cliente *</Label>
                   <Input list="customers-names" value={form.customer_name} onChange={(e) => autofillFromCustomer("customer_name", e.target.value)} />
                   <datalist id="customers-names">
