@@ -439,9 +439,107 @@ function SalesPage() {
                   <TableCell className="text-right font-semibold">{formatCurrency(s.total_amount)}</TableCell>
                   <TableCell><Badge variant={statusVariant(s.payment_status) as any}>{s.payment_status.replace("_", " ")}</Badge></TableCell>
                   <TableCell>
-                    <Button size="icon" variant="ghost" onClick={() => setEditing({ ...s })}>
-                      <Pencil className="w-4 h-4" />
-                    </Button>
+                    <div className="flex items-center gap-1">
+                      <Button size="icon" variant="ghost" onClick={() => setEditing({ ...s })}>
+                        <Pencil className="w-4 h-4" />
+                      </Button>
+                      <Dialog>
+                        <DialogTrigger asChild>
+                          <Button size="icon" variant="ghost">
+                            <Eye className="w-4 h-4" />
+                          </Button>
+                        </DialogTrigger>
+                        <DialogContent className="max-w-xl">
+                          <DialogHeader>
+                            <DialogTitle>Histórico de Pagamentos e Comprovantes</DialogTitle>
+                          </DialogHeader>
+                          <div className="space-y-4 py-4">
+                            <div className="flex justify-between items-center pb-2 border-bottom">
+                              <div>
+                                <h3 className="font-semibold text-lg">{s.customers?.name}</h3>
+                                <p className="text-sm text-muted-foreground">{s.customers?.company}</p>
+                              </div>
+                              <div className="text-right">
+                                <p className="text-xs text-muted-foreground">Valor Total</p>
+                                <p className="font-bold text-lg">{formatCurrency(s.total_amount)}</p>
+                              </div>
+                            </div>
+
+                            <Tabs defaultValue="receipts" className="w-full">
+                              <TabsList className="grid w-full grid-cols-2">
+                                <TabsTrigger value="receipts" className="flex gap-2">
+                                  <FileText className="w-4 h-4" /> Comprovantes
+                                </TabsTrigger>
+                                <TabsTrigger value="history" className="flex gap-2">
+                                  <History className="w-4 h-4" /> Resumo
+                                </TabsTrigger>
+                              </TabsList>
+                              
+                              <TabsContent value="receipts" className="mt-4">
+                                {s.sale_receipts && s.sale_receipts.length > 0 ? (
+                                  <div className="space-y-3">
+                                    {s.sale_receipts.map((r: any) => (
+                                      <div key={r.id} className="flex items-center justify-between p-3 border rounded-lg bg-muted/30">
+                                        <div className="flex items-center gap-3">
+                                          <div className="bg-green-100 p-2 rounded-full">
+                                            <FileText className="w-4 h-4 text-green-700" />
+                                          </div>
+                                          <div>
+                                            <p className="font-medium">{formatCurrency(r.amount)}</p>
+                                            <p className="text-xs text-muted-foreground">{fmtDate(r.paid_at)} {r.notes ? `• ${r.notes}` : ''}</p>
+                                          </div>
+                                        </div>
+                                        <Button 
+                                          variant="outline" 
+                                          size="sm" 
+                                          className="gap-2"
+                                          onClick={async () => {
+                                            const { data } = supabase.storage.from('receipts').getPublicUrl(r.file_path);
+                                            window.open(data.publicUrl, '_blank');
+                                          }}
+                                        >
+                                          <Download className="w-4 h-4" />
+                                          Ver
+                                        </Button>
+                                      </div>
+                                    ))}
+                                  </div>
+                                ) : (
+                                  <div className="text-center py-8 text-muted-foreground italic">
+                                    Nenhum comprovante anexado.
+                                  </div>
+                                )}
+                              </TabsContent>
+                              
+                              <TabsContent value="history" className="mt-4">
+                                <div className="space-y-3">
+                                  <div className="grid grid-cols-2 gap-4">
+                                    <div className="p-3 border rounded-lg bg-green-50">
+                                      <p className="text-xs text-green-700 uppercase font-semibold">Total Pago</p>
+                                      <p className="text-xl font-bold text-green-800">{formatCurrency(s.paid_amount)}</p>
+                                    </div>
+                                    <div className="p-3 border rounded-lg bg-red-50">
+                                      <p className="text-xs text-red-700 uppercase font-semibold">Pendente</p>
+                                      <p className="text-xl font-bold text-red-800">{formatCurrency(Number(s.total_amount) - Number(s.paid_amount))}</p>
+                                    </div>
+                                  </div>
+                                  <div className="p-3 border rounded-lg">
+                                    <p className="text-xs text-muted-foreground uppercase font-semibold mb-1">Status</p>
+                                    <Badge variant={statusVariant(s.payment_status) as any}>{s.payment_status.replace("_", " ")}</Badge>
+                                  </div>
+                                  {s.notes && (
+                                    <div className="p-3 border rounded-lg">
+                                      <p className="text-xs text-muted-foreground uppercase font-semibold mb-1">Observações da Venda</p>
+                                      <p className="text-sm">{s.notes}</p>
+                                    </div>
+                                  )}
+                                </div>
+                              </TabsContent>
+                            </Tabs>
+                          </div>
+                        </DialogContent>
+                      </Dialog>
+                    </div>
                   </TableCell>
                 </TableRow>
               ))}
