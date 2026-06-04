@@ -311,14 +311,15 @@ function SalesPage() {
                     ))}
                   </datalist>
                 </div>
-                <Label>Empresa *</Label>
-                <Input list="customers-companies" value={form.company} onChange={(e) => autofillFromCustomer("company", e.target.value)} />
-                <datalist id="customers-companies">
-                  {(customersAll.data ?? []).filter((c: any) => c.company).map((c: any) => (
-                    <option key={`c-${c.id}`} value={c.company} />
-                  ))}
-                </datalist>
-              </div>
+                <div>
+                  <Label>Empresa *</Label>
+                  <Input list="customers-companies" value={form.company} onChange={(e) => autofillFromCustomer("company", e.target.value)} />
+                  <datalist id="customers-companies">
+                    {(customersAll.data ?? []).filter((c: any) => c.company).map((c: any) => (
+                      <option key={`c-${c.id}`} value={c.company} />
+                    ))}
+                  </datalist>
+                </div>
               <div><Label>CPF/CNPJ *</Label><Input value={form.document} onChange={(e) => set("document", e.target.value)} /></div>
               <div><Label>Telefone *</Label><Input value={form.phone} onChange={(e) => set("phone", e.target.value)} /></div>
               <div><Label>E-mail (opcional)</Label><Input value={form.email} onChange={(e) => set("email", e.target.value)} /></div>
