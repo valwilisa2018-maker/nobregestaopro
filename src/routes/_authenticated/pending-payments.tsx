@@ -188,7 +188,10 @@ function PendingPaymentsPage() {
                         {s.payment_status === "pago_parcial" ? "parcial" : s.payment_status}
                       </Badge>
                     </TableCell>
-                    <TableCell className="text-right">
+                    <TableCell className="text-right flex items-center justify-end gap-2">
+                      <Button size="sm" variant="outline" onClick={() => navigate({ to: "/customers", search: { search: s.customer?.name } })}>
+                        <History className="w-4 h-4 mr-1" /> Histórico
+                      </Button>
                       <Button size="sm" className="bg-green-600 hover:bg-green-700 text-white" onClick={() => openDialog(s)}>Confirmar recebimento</Button>
                     </TableCell>
                   </TableRow>
