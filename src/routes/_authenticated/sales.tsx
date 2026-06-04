@@ -311,7 +311,6 @@ function SalesPage() {
                     ))}
                   </datalist>
                 </div>
-              <div>
                 <Label>Empresa *</Label>
                 <Input list="customers-companies" value={form.company} onChange={(e) => autofillFromCustomer("company", e.target.value)} />
                 <datalist id="customers-companies">
