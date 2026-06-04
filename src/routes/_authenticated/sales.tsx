@@ -302,14 +302,15 @@ function SalesPage() {
             <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
               <DialogHeader><DialogTitle>Nova Venda</DialogTitle></DialogHeader>
               <div className="grid grid-cols-2 gap-3">
-                <Label>Nome do cliente *</Label>
-                <Input list="customers-names" value={form.customer_name} onChange={(e) => autofillFromCustomer("customer_name", e.target.value)} />
-                <datalist id="customers-names">
-                  {(customersAll.data ?? []).map((c: any) => (
-                    <option key={`n-${c.id}`} value={c.name} />
-                  ))}
-                </datalist>
-              </div>
+                <div className="col-span-2">
+                  <Label>Nome do cliente *</Label>
+                  <Input list="customers-names" value={form.customer_name} onChange={(e) => autofillFromCustomer("customer_name", e.target.value)} />
+                  <datalist id="customers-names">
+                    {(customersAll.data ?? []).map((c: any) => (
+                      <option key={`n-${c.id}`} value={c.name} />
+                    ))}
+                  </datalist>
+                </div>
               <div>
                 <Label>Empresa *</Label>
                 <Input list="customers-companies" value={form.company} onChange={(e) => autofillFromCustomer("company", e.target.value)} />
