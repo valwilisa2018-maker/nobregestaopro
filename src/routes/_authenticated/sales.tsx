@@ -299,6 +299,9 @@ function SalesPage() {
           </div>
           <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild><Button><Plus className="w-4 h-4 mr-2" />Nova Venda</Button></DialogTrigger>
+            <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+              <DialogHeader><DialogTitle>Nova Venda</DialogTitle></DialogHeader>
+              <div className="grid grid-cols-2 gap-3">
           <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
             <DialogHeader><DialogTitle>Nova Venda</DialogTitle></DialogHeader>
             <div className="grid grid-cols-2 gap-3">
