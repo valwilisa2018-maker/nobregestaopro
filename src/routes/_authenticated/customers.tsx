@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -14,8 +14,14 @@ import { MessageCircle, Search, Mail, Phone, Building2, FileText, Paperclip, Loa
 import { formatCurrency } from "@/lib/auth";
 import { fmtDate } from "@/lib/format";
 import { toast } from "sonner";
+import { z } from "zod";
+
+const customerSearchSchema = z.object({
+  search: z.string().optional(),
+});
 
 export const Route = createFileRoute("/_authenticated/customers")({
+  validateSearch: (search) => customerSearchSchema.parse(search),
   component: CustomersPage,
 });
 
@@ -31,14 +37,19 @@ function waLink(phone?: string | null) {
 }
 
 function CustomersPage() {
+  const { search: searchParam } = Route.useSearch();
   const [year, setYear] = useState<string>("all");
   const [month, setMonth] = useState<string>("all");
-  const [search, setSearch] = useState("");
+  const [search, setSearch] = useState(searchParam || "");
   const [selected, setSelected] = useState<any | null>(null);
   const [receiptsSale, setReceiptsSale] = useState<any | null>(null);
   const [receipts, setReceipts] = useState<any[]>([]);
   const [loadingReceipts, setLoadingReceipts] = useState(false);
   const [viewMode, setViewMode] = useState<"table" | "card">("table");
+
+  useEffect(() => {
+    if (searchParam) setSearch(searchParam);
+  }, [searchParam]);
 
   const q = useQuery({
     queryKey: ["customers-all"],

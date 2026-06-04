@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { Search, Loader2 } from "lucide-react";
+import { Search, Loader2, History } from "lucide-react";
 import { toast } from "sonner";
 import { formatCurrency } from "@/lib/auth";
 import { fmtDate } from "@/lib/format";
@@ -20,6 +20,7 @@ export const Route = createFileRoute("/_authenticated/pending-payments")({
 
 function PendingPaymentsPage() {
   const qc = useQueryClient();
+  const navigate = useNavigate();
   const [search, setSearch] = useState("");
   const [selected, setSelected] = useState<any | null>(null);
   const [amount, setAmount] = useState("");
@@ -105,7 +106,15 @@ function PendingPaymentsPage() {
         });
       }
 
-      toast.success("Recebimento confirmado");
+      const customerName = selected.customer?.name;
+      toast.success("Recebimento confirmado", {
+        action: {
+          label: "Ver Histórico",
+          onClick: () => {
+            navigate({ to: "/customers", search: { search: customerName } });
+          },
+        },
+      });
       setSelected(null);
       setFile(null);
       setAmount("");
@@ -179,7 +188,10 @@ function PendingPaymentsPage() {
                         {s.payment_status === "pago_parcial" ? "parcial" : s.payment_status}
                       </Badge>
                     </TableCell>
-                    <TableCell className="text-right">
+                    <TableCell className="text-right flex items-center justify-end gap-2">
+                      <Button size="sm" variant="outline" onClick={() => navigate({ to: "/customers", search: { search: s.customer?.name } })}>
+                        <History className="w-4 h-4 mr-1" /> Histórico
+                      </Button>
                       <Button size="sm" className="bg-green-600 hover:bg-green-700 text-white" onClick={() => openDialog(s)}>Confirmar recebimento</Button>
                     </TableCell>
                   </TableRow>
@@ -193,7 +205,17 @@ function PendingPaymentsPage() {
       <Dialog open={!!selected} onOpenChange={(o) => !o && setSelected(null)}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Anexar comprovante e confirmar pagamento</DialogTitle>
+            <div className="flex items-center justify-between pr-8">
+              <DialogTitle>Anexar comprovante e confirmar pagamento</DialogTitle>
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                className="text-xs"
+                onClick={() => navigate({ to: "/customers", search: { search: selected?.customer?.name } })}
+              >
+                <History className="w-3.5 h-3.5 mr-1" /> Ver Histórico
+              </Button>
+            </div>
           </DialogHeader>
           {selected && (
             <div className="space-y-4">
