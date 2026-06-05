@@ -271,12 +271,15 @@ function AdminPage() {
         <Button variant="outline" size="sm" onClick={() => { sessionStorage.removeItem(SESSION_KEY); setUnlocked(false); }}>Bloquear</Button>
       </div>
       <Tabs defaultValue="goals">
-        <TabsList>
+        <TabsList className="flex-wrap h-auto gap-1">
           <TabsTrigger value="goals">Metas</TabsTrigger>
           <TabsTrigger value="commissions">Comissões</TabsTrigger>
           <TabsTrigger value="services">Tipos de Serviço</TabsTrigger>
           <TabsTrigger value="kanban">Colunas Kanban</TabsTrigger>
           <TabsTrigger value="packages">Pacotes</TabsTrigger>
+          <TabsTrigger value="announcements">
+            <Bell className="w-4 h-4 mr-2" /> Avisos
+          </TabsTrigger>
           <TabsTrigger value="pagarme">Pagar.me</TabsTrigger>
           <TabsTrigger value="nfe">Nota Fiscal</TabsTrigger>
           <TabsTrigger value="telao">Telão</TabsTrigger>
