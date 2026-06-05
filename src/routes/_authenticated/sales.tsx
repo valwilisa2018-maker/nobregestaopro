@@ -511,7 +511,17 @@ function SalesPage() {
                 <Input list="edit-customers-companies" value={editing.company ?? editing.customers?.company ?? ""} onChange={(e) => setEditing((prev: any) => ({ ...prev, company: e.target.value }))} />
                 <datalist id="edit-customers-companies">{(customersAll.data ?? []).filter((c: any) => c.company).map((c: any) => (<option key={`ec-${c.id}`} value={c.company} />))}</datalist>
               </div>
-              <div><Label>CPF/CNPJ *</Label><Input value={editing.document ?? editing.customers?.document ?? ""} onChange={(e) => setEditing((prev: any) => ({ ...prev, document: e.target.value }))} /></div>
+              <div>
+                <Label>Com Nota? *</Label>
+                <Select value={editing.with_invoice || (editing.document ? "sim" : "nao")} onValueChange={(v) => setEditing((prev: any) => ({ ...prev, with_invoice: v }))}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="sim">Sim (Com Nota)</SelectItem>
+                    <SelectItem value="nao">Não (Sem Nota)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div><Label>CPF/CNPJ {editing.with_invoice === "sim" ? "*" : "(Opcional)"}</Label><Input value={editing.document ?? editing.customers?.document ?? ""} onChange={(e) => setEditing((prev: any) => ({ ...prev, document: e.target.value }))} /></div>
               <div><Label>Telefone *</Label><Input value={editing.phone ?? editing.customers?.phone ?? ""} onChange={(e) => setEditing((prev: any) => ({ ...prev, phone: e.target.value }))} /></div>
               <div><Label>E-mail (opcional)</Label><Input value={editing.email ?? editing.customers?.email ?? ""} onChange={(e) => setEditing((prev: any) => ({ ...prev, email: e.target.value }))} /></div>
               <div><Label>Valor total *</Label><Input type="number" step="0.01" value={editing.total_amount ?? ""} onChange={(e) => editSet("total_amount", e.target.value)} /></div>
