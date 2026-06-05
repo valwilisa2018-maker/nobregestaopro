@@ -425,7 +425,7 @@ function SalesPage() {
                     <TableCell><Badge variant={statusVariant(s.payment_status) as any}>{s.payment_status.replace("_", " ")}</Badge></TableCell>
                     <TableCell>
                       <div className="flex items-center gap-1">
-                        <Button size="icon" variant="ghost" onClick={() => setEditing({ ...s })}><Pencil className="w-4 h-4" /></Button>
+                        <Button size="icon" variant="ghost" onClick={() => setEditing({ ...s, with_invoice: s.customers?.document ? "sim" : "nao", customer_name: s.customers?.name, company: s.customers?.company, document: s.customers?.document, phone: s.customers?.phone, email: s.customers?.email })}><Pencil className="w-4 h-4" /></Button>
                         <Dialog>
                           <DialogTrigger asChild><Button size="icon" variant="ghost"><Eye className="w-4 h-4" /></Button></DialogTrigger>
                           <DialogContent className="max-w-xl">
