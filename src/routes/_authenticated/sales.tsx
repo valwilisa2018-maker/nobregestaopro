@@ -114,13 +114,20 @@ function SalesPage() {
   const submit = async () => {
     if (saving) return; // Prevent double clicks
     const required: [string, string][] = [
-      ["customer_name", "Nome do cliente"], ["company", "Empresa"],
+      ["customer_name", "Nome do cliente"],
       ["phone", "Telefone"], ["total_amount", "Valor total"], ["paid_amount", "Valor pago"],
       ["payment_status", "Status pagamento"], ["payment_method", "Forma de pagamento"],
       ["seller_id", "Vendedor"], ["producer_id", "Produtor"], ["service_type_id", "Tipo de serviço"],
       ["service_quantity", "Qtd. serviços"], ["sale_date", "Data da venda"], ["trello_link", "Link Trello"],
       ["lead_source", "Origem da venda"],
     ];
+
+    if (form.with_invoice === "sim") {
+      if (!form.company.trim()) {
+        toast.error("Preencha o campo: Empresa (obrigatório para vendas com nota)");
+        return;
+      }
+    }
 
     if (form.with_invoice === "sim" && !form.document.trim()) {
       toast.error("Preencha o campo: CPF/CNPJ (obrigatório para vendas com nota)");
@@ -245,10 +252,17 @@ function SalesPage() {
     if (!editing || editSaving) return;
     setEditSaving(true);
     try {
-      if (editing.with_invoice === "sim" && !String(editing.document || "").trim()) {
-        toast.error("Preencha o campo: CPF/CNPJ (obrigatório para vendas com nota)");
-        setEditSaving(false);
-        return;
+      if (editing.with_invoice === "sim") {
+        if (!String(editing.company || "").trim()) {
+          toast.error("Preencha o campo: Empresa (obrigatório para vendas com nota)");
+          setEditSaving(false);
+          return;
+        }
+        if (!String(editing.document || "").trim()) {
+          toast.error("Preencha o campo: CPF/CNPJ (obrigatório para vendas com nota)");
+          setEditSaving(false);
+          return;
+        }
       }
       if (editing.customer_id) {
         const { error: cuError } = await supabase.from("customers").update({
@@ -308,7 +322,7 @@ function SalesPage() {
                   <datalist id="customers-names">{(customersAll.data ?? []).map((c: any) => (<option key={`n-${c.id}`} value={c.name} />))}</datalist>
                 </div>
                 <div>
-                  <Label>Empresa *</Label>
+                  <Label>Empresa {form.with_invoice === "sim" ? "*" : "(Opcional)"}</Label>
                   <Input list="customers-companies" value={form.company} onChange={(e) => autofillFromCustomer("company", e.target.value)} />
                   <datalist id="customers-companies">{(customersAll.data ?? []).filter((c: any) => c.company).map((c: any) => (<option key={`c-${c.id}`} value={c.company} />))}</datalist>
                 </div>
@@ -512,7 +526,7 @@ function SalesPage() {
                 <datalist id="edit-customers-names">{(customersAll.data ?? []).map((c: any) => (<option key={`en-${c.id}`} value={c.name} />))}</datalist>
               </div>
               <div>
-                <Label>Empresa *</Label>
+                <Label>Empresa {editing.with_invoice === "sim" ? "*" : "(Opcional)"}</Label>
                 <Input list="edit-customers-companies" value={editing.company ?? editing.customers?.company ?? ""} onChange={(e) => setEditing((prev: any) => ({ ...prev, company: e.target.value }))} />
                 <datalist id="edit-customers-companies">{(customersAll.data ?? []).filter((c: any) => c.company).map((c: any) => (<option key={`ec-${c.id}`} value={c.company} />))}</datalist>
               </div>
