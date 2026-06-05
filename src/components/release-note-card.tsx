@@ -2,10 +2,11 @@ import { useState, useEffect } from "react";
 import { X, Sparkles, Megaphone, CheckCircle2, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import confetti from "canvas-confetti";
 import { cn } from "@/lib/utils";
 
 // Define the latest update ID. Increment this when a new important update is released.
-const LATEST_UPDATE_ID = "update-influencer-auto-producer-v1";
+const LATEST_UPDATE_ID = "update-influencer-auto-producer-v2";
 
 export function ReleaseNoteCard() {
   const [open, setOpen] = useState(false);
@@ -13,8 +14,27 @@ export function ReleaseNoteCard() {
   useEffect(() => {
     const dismissed = localStorage.getItem("dismissed-" + LATEST_UPDATE_ID);
     if (!dismissed) {
-      // Small delay to ensure smooth entry after page load
-      const timer = setTimeout(() => setOpen(true), 1500);
+      const timer = setTimeout(() => {
+        setOpen(true);
+        // Explosion of confetti when card appears
+        const duration = 3 * 1000;
+        const animationEnd = Date.now() + duration;
+        const defaults = { startVelocity: 30, spread: 360, ticks: 60, zIndex: 200 };
+
+        const randomInRange = (min: number, max: number) => Math.random() * (max - min) + min;
+
+        const interval: any = setInterval(function() {
+          const timeLeft = animationEnd - Date.now();
+
+          if (timeLeft <= 0) {
+            return clearInterval(interval);
+          }
+
+          const particleCount = 50 * (timeLeft / duration);
+          confetti({ ...defaults, particleCount, origin: { x: randomInRange(0.1, 0.3), y: Math.random() - 0.2 } });
+          confetti({ ...defaults, particleCount, origin: { x: randomInRange(0.7, 0.9), y: Math.random() - 0.2 } });
+        }, 250);
+      }, 1000);
       return () => clearTimeout(timer);
     }
   }, []);
@@ -27,8 +47,9 @@ export function ReleaseNoteCard() {
   if (!open) return null;
 
   return (
-    <div className="fixed bottom-6 right-6 z-[100] w-[380px] animate-in fade-in slide-in-from-bottom-8 duration-500">
-      <div className="relative group">
+    <div className="fixed inset-0 z-[150] flex items-center justify-center p-4 bg-background/40 backdrop-blur-sm animate-in fade-in duration-500">
+      <div className="relative w-full max-w-[420px] animate-in zoom-in-95 slide-in-from-bottom-10 duration-500">
+        <div className="relative group">
         {/* Premium Glow Effect */}
         <div className="absolute -inset-0.5 bg-gradient-to-r from-primary/50 via-purple-500/30 to-primary/50 rounded-2xl blur opacity-30 group-hover:opacity-60 transition duration-1000 group-hover:duration-200" />
         
