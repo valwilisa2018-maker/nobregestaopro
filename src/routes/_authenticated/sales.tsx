@@ -245,6 +245,11 @@ function SalesPage() {
     if (!editing || editSaving) return;
     setEditSaving(true);
     try {
+      if (editing.with_invoice === "sim" && !String(editing.document || "").trim()) {
+        toast.error("Preencha o campo: CPF/CNPJ (obrigatório para vendas com nota)");
+        setEditSaving(false);
+        return;
+      }
       if (editing.customer_id) {
         const { error: cuError } = await supabase.from("customers").update({
           name: editing.customer_name || editing.customers?.name,
