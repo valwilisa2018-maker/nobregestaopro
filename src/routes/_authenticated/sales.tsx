@@ -110,6 +110,7 @@ function SalesPage() {
   };
 
   const submit = async () => {
+    if (saving) return; // Prevent double clicks
     const required: [string, string][] = [
       ["customer_name", "Nome do cliente"], ["company", "Empresa"], ["document", "CPF/CNPJ"],
       ["phone", "Telefone"], ["total_amount", "Valor total"], ["paid_amount", "Valor pago"],
@@ -178,6 +179,7 @@ function SalesPage() {
         created_by: user?.id,
       }).select("id").single().then(async (res) => {
         if (res.error) return { error: res.error };
+        // The service_orders and invoices are generated via DB triggers
         if (receipt_url && res.data?.id) {
           await supabase.from("sale_receipts").insert({
             sale_id: res.data.id,
