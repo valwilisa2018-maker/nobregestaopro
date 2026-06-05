@@ -63,16 +63,26 @@ function SalesPage() {
   const set = (k: string, v: string) => {
     setForm((f) => {
       const updatedForm = { ...f, [k]: v };
-      if (k === "service_type_id" && v) {
-        const selectedServiceType = serviceTypes.data?.find(st => st.id === v);
-        if (selectedServiceType) {
-          const serviceName = selectedServiceType.name.toLowerCase();
-          if (serviceName.includes("pamela") || serviceName.includes("ester")) {
-            const influencerProducer = producers.data?.find(p => p.name === "GRAVAÇÃO INFLUENCER");
-            if (influencerProducer) updatedForm.producer_id = influencerProducer.id;
-          }
+      
+      // Auto-set producer for Pamela/Ester
+      const checkInfluencer = () => {
+        const selectedServiceType = serviceTypes.data?.find(st => st.id === (k === "service_type_id" ? v : f.service_type_id));
+        const selectedSeller = sellers.data?.find(s => s.id === (k === "seller_id" ? v : f.seller_id));
+        
+        const serviceName = selectedServiceType?.name.toLowerCase() || "";
+        const sellerName = selectedSeller?.name.toLowerCase() || "";
+        
+        if (serviceName.includes("pamela") || serviceName.includes("ester") || 
+            sellerName.includes("pamela") || sellerName.includes("ester")) {
+          const influencerProducer = producers.data?.find(p => p.name === "GRAVAÇÃO INFLUENCER");
+          if (influencerProducer) updatedForm.producer_id = influencerProducer.id;
         }
+      };
+
+      if (k === "service_type_id" || k === "seller_id") {
+        checkInfluencer();
       }
+      
       return updatedForm;
     });
   };
@@ -197,16 +207,26 @@ function SalesPage() {
     setEditing((e: any) => {
       if (!e) return e;
       const updatedEditing = { ...e, [k]: v };
-      if (k === "service_type_id" && v) {
-        const selectedServiceType = serviceTypes.data?.find(st => st.id === v);
-        if (selectedServiceType) {
-          const serviceName = selectedServiceType.name.toLowerCase();
-          if (serviceName.includes("pamela") || serviceName.includes("ester")) {
-            const influencerProducer = producers.data?.find(p => p.name === "GRAVAÇÃO INFLUENCER");
-            if (influencerProducer) updatedEditing.producer_id = influencerProducer.id;
-          }
+      
+      // Auto-set producer for Pamela/Ester
+      const checkInfluencer = () => {
+        const selectedServiceType = serviceTypes.data?.find(st => st.id === (k === "service_type_id" ? v : e.service_type_id));
+        const selectedSeller = sellers.data?.find(s => s.id === (k === "seller_id" ? v : e.seller_id));
+        
+        const serviceName = selectedServiceType?.name.toLowerCase() || "";
+        const sellerName = selectedSeller?.name.toLowerCase() || "";
+        
+        if (serviceName.includes("pamela") || serviceName.includes("ester") || 
+            sellerName.includes("pamela") || sellerName.includes("ester")) {
+          const influencerProducer = producers.data?.find(p => p.name === "GRAVAÇÃO INFLUENCER");
+          if (influencerProducer) updatedEditing.producer_id = influencerProducer.id;
         }
+      };
+
+      if (k === "service_type_id" || k === "seller_id") {
+        checkInfluencer();
       }
+      
       return updatedEditing;
     });
   };
@@ -305,7 +325,16 @@ function SalesPage() {
                 </div>
                 <div>
                   <Label>Produtor *</Label>
-                  <Select value={form.producer_id} onValueChange={(v) => set("producer_id", v)}>
+                  <Select 
+                    value={form.producer_id} 
+                    onValueChange={(v) => set("producer_id", v)}
+                    disabled={
+                      (serviceTypes.data?.find(st => st.id === form.service_type_id)?.name.toLowerCase().includes("pamela") ||
+                       serviceTypes.data?.find(st => st.id === form.service_type_id)?.name.toLowerCase().includes("ester") ||
+                       sellers.data?.find(s => s.id === form.seller_id)?.name.toLowerCase().includes("pamela") ||
+                       sellers.data?.find(s => s.id === form.seller_id)?.name.toLowerCase().includes("ester")) ?? false
+                    }
+                  >
                     <SelectTrigger><SelectValue placeholder="—" /></SelectTrigger>
                     <SelectContent>{(producers.data ?? []).map((p: any) => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}</SelectContent>
                   </Select>
@@ -489,7 +518,16 @@ function SalesPage() {
               </div>
               <div>
                 <Label>Produtor *</Label>
-                <Select value={editing.producer_id ?? ""} onValueChange={(v) => editSet("producer_id", v)}>
+                <Select 
+                  value={editing.producer_id ?? ""} 
+                  onValueChange={(v) => editSet("producer_id", v)}
+                  disabled={
+                    (serviceTypes.data?.find(st => st.id === editing.service_type_id)?.name.toLowerCase().includes("pamela") ||
+                     serviceTypes.data?.find(st => st.id === editing.service_type_id)?.name.toLowerCase().includes("ester") ||
+                     sellers.data?.find(s => s.id === editing.seller_id)?.name.toLowerCase().includes("pamela") ||
+                     sellers.data?.find(s => s.id === editing.seller_id)?.name.toLowerCase().includes("ester")) ?? false
+                  }
+                >
                   <SelectTrigger><SelectValue placeholder="—" /></SelectTrigger>
                   <SelectContent>{(producers.data ?? []).map((p: any) => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}</SelectContent>
                 </Select>
