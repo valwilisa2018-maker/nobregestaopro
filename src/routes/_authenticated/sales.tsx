@@ -245,6 +245,11 @@ function SalesPage() {
     if (!editing || editSaving) return;
     setEditSaving(true);
     try {
+      if (editing.with_invoice === "sim" && !String(editing.document || "").trim()) {
+        toast.error("Preencha o campo: CPF/CNPJ (obrigatório para vendas com nota)");
+        setEditSaving(false);
+        return;
+      }
       if (editing.customer_id) {
         const { error: cuError } = await supabase.from("customers").update({
           name: editing.customer_name || editing.customers?.name,
@@ -425,7 +430,7 @@ function SalesPage() {
                     <TableCell><Badge variant={statusVariant(s.payment_status) as any}>{s.payment_status.replace("_", " ")}</Badge></TableCell>
                     <TableCell>
                       <div className="flex items-center gap-1">
-                        <Button size="icon" variant="ghost" onClick={() => setEditing({ ...s })}><Pencil className="w-4 h-4" /></Button>
+                        <Button size="icon" variant="ghost" onClick={() => setEditing({ ...s, with_invoice: s.customers?.document ? "sim" : "nao", customer_name: s.customers?.name, company: s.customers?.company, document: s.customers?.document, phone: s.customers?.phone, email: s.customers?.email })}><Pencil className="w-4 h-4" /></Button>
                         <Dialog>
                           <DialogTrigger asChild><Button size="icon" variant="ghost"><Eye className="w-4 h-4" /></Button></DialogTrigger>
                           <DialogContent className="max-w-xl">
@@ -465,7 +470,7 @@ function SalesPage() {
                   <div className="grid grid-cols-2 gap-2 text-sm"><div><p className="text-xs text-muted-foreground">Serviço</p><p className="font-medium truncate">{s.service_types?.name ?? "—"}</p></div><div><p className="text-xs text-muted-foreground">Data</p><p className="font-medium">{fmtDate(s.sale_date)}</p></div><div><p className="text-xs text-muted-foreground">Vendedor</p><p className="font-medium truncate">{s.sellers?.name ?? "—"}</p></div><div><p className="text-xs text-muted-foreground">Produtor</p><p className="font-medium truncate">{s.producers?.name ?? "—"}</p></div></div>
                   <div className="pt-2 border-t flex justify-between items-center"><div><p className="text-xs text-muted-foreground">Valor Total</p><p className="text-lg font-bold text-primary">{formatCurrency(s.total_amount)}</p></div>
                     <div className="flex gap-1">
-                      <Button size="icon" variant="outline" className="h-8 w-8" onClick={() => setEditing({ ...s })}><Pencil className="w-4 h-4" /></Button>
+                      <Button size="icon" variant="outline" className="h-8 w-8" onClick={() => setEditing({ ...s, with_invoice: s.customers?.document ? "sim" : "nao", customer_name: s.customers?.name, company: s.customers?.company, document: s.customers?.document, phone: s.customers?.phone, email: s.customers?.email })}><Pencil className="w-4 h-4" /></Button>
                       <Dialog>
                         <DialogTrigger asChild><Button size="icon" variant="outline" className="h-8 w-8"><Eye className="w-4 h-4" /></Button></DialogTrigger>
                         <DialogContent className="max-w-xl">
@@ -511,7 +516,17 @@ function SalesPage() {
                 <Input list="edit-customers-companies" value={editing.company ?? editing.customers?.company ?? ""} onChange={(e) => setEditing((prev: any) => ({ ...prev, company: e.target.value }))} />
                 <datalist id="edit-customers-companies">{(customersAll.data ?? []).filter((c: any) => c.company).map((c: any) => (<option key={`ec-${c.id}`} value={c.company} />))}</datalist>
               </div>
-              <div><Label>CPF/CNPJ *</Label><Input value={editing.document ?? editing.customers?.document ?? ""} onChange={(e) => setEditing((prev: any) => ({ ...prev, document: e.target.value }))} /></div>
+              <div>
+                <Label>Com Nota? *</Label>
+                <Select value={editing.with_invoice || (editing.document ? "sim" : "nao")} onValueChange={(v) => setEditing((prev: any) => ({ ...prev, with_invoice: v }))}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="sim">Sim (Com Nota)</SelectItem>
+                    <SelectItem value="nao">Não (Sem Nota)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div><Label>CPF/CNPJ {editing.with_invoice === "sim" ? "*" : "(Opcional)"}</Label><Input value={editing.document ?? editing.customers?.document ?? ""} onChange={(e) => setEditing((prev: any) => ({ ...prev, document: e.target.value }))} /></div>
               <div><Label>Telefone *</Label><Input value={editing.phone ?? editing.customers?.phone ?? ""} onChange={(e) => setEditing((prev: any) => ({ ...prev, phone: e.target.value }))} /></div>
               <div><Label>E-mail (opcional)</Label><Input value={editing.email ?? editing.customers?.email ?? ""} onChange={(e) => setEditing((prev: any) => ({ ...prev, email: e.target.value }))} /></div>
               <div><Label>Valor total *</Label><Input type="number" step="0.01" value={editing.total_amount ?? ""} onChange={(e) => editSet("total_amount", e.target.value)} /></div>
