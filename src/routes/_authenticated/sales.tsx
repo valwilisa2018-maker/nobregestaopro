@@ -518,7 +518,16 @@ function SalesPage() {
               </div>
               <div>
                 <Label>Produtor *</Label>
-                <Select value={editing.producer_id ?? ""} onValueChange={(v) => editSet("producer_id", v)}>
+                <Select 
+                  value={editing.producer_id ?? ""} 
+                  onValueChange={(v) => editSet("producer_id", v)}
+                  disabled={
+                    (serviceTypes.data?.find(st => st.id === editing.service_type_id)?.name.toLowerCase().includes("pamela") ||
+                     serviceTypes.data?.find(st => st.id === editing.service_type_id)?.name.toLowerCase().includes("ester") ||
+                     sellers.data?.find(s => s.id === editing.seller_id)?.name.toLowerCase().includes("pamela") ||
+                     sellers.data?.find(s => s.id === editing.seller_id)?.name.toLowerCase().includes("ester")) ?? false
+                  }
+                >
                   <SelectTrigger><SelectValue placeholder="—" /></SelectTrigger>
                   <SelectContent>{(producers.data ?? []).map((p: any) => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}</SelectContent>
                 </Select>
