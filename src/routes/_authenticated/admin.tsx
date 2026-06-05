@@ -3,13 +3,17 @@ import { useNavigate } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
-import { CheckCircle2, AlertCircle, AlertTriangle, Loader2, Pencil, Trash2 } from "lucide-react";
+import { CheckCircle2, AlertCircle, AlertTriangle, Loader2, Pencil, Trash2, Bell, Megaphone, Plus, Info, Zap } from "lucide-react";
+import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
 import { PagarmeCredentialCard } from "@/components/pagarme-credential-card";
 import { format } from "date-fns";
 import {
@@ -812,6 +816,167 @@ function AuditLogTab() {
       </CardContent>
     </Card>
   );
+}
+
+function AnnouncementsTab() {
+  const qc = useQueryClient();
+  const [saving, setSaving] = useState(false);
+  const [form, setForm] = useState({ title: "", message: "", type: "info", expires_at: "", is_active: true });
+  
+  const announcements = useQuery({
+    queryKey: ["admin-announcements"],
+    queryFn: async () => (await supabase.from("system_announcements").select("*").order("created_at", { ascending: false })).data ?? []
+  });
+
+  const save = async () => {
+    if (!form.title || !form.message) return toast.error("Título e mensagem são obrigatórios");
+    setSaving(true);
+    try {
+      const { error } = await supabase.from("system_announcements").insert({
+        title: form.title,
+        message: form.message,
+        type: form.type as any,
+        is_active: form.is_active,
+        expires_at: form.expires_at || null,
+      });
+      if (error) throw error;
+      toast.success("Aviso criado com sucesso");
+      setForm({ title: "", message: "", type: "info", expires_at: "", is_active: true });
+      qc.invalidateQueries({ queryKey: ["admin-announcements"] });
+    } catch (e: any) {
+      toast.error(e.message);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const toggle = async (id: string, active: boolean) => {
+    const { error } = await supabase.from("system_announcements").update({ is_active: active }).eq("id", id);
+    if (error) toast.error(error.message);
+    else {
+      toast.success(active ? "Aviso ativado" : "Aviso desativado");
+      qc.invalidateQueries({ queryKey: ["admin-announcements"] });
+    }
+  };
+
+  const remove = async (id: string) => {
+    if (!confirm("Excluir este aviso?")) return;
+    const { error } = await supabase.from("system_announcements").delete().eq("id", id);
+    if (error) toast.error(error.message);
+    else {
+      toast.success("Aviso excluído");
+      qc.invalidateQueries({ queryKey: ["admin-announcements"] });
+    }
+  };
+
+  return (
+    <div className="space-y-6">
+      <Card className="border-border/50">
+        <CardHeader>
+          <CardTitle className="text-base flex items-center gap-2">
+            <Plus className="w-4 h-4 text-primary" /> Novo Aviso Manual
+          </CardTitle>
+          <CardDescription>Crie comunicados, alertas de manutenção ou atualizações manuais para todos os usuários.</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid gap-4 md:grid-cols-2">
+            <div className="space-y-2">
+              <Label>Título do Aviso</Label>
+              <Input value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} placeholder="Ex: Manutenção Programada" />
+            </div>
+            <div className="space-y-2">
+              <Label>Tipo</Label>
+              <Select value={form.type} onValueChange={(v) => setForm({ ...form, type: v })}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="info">Informação (Azul)</SelectItem>
+                  <SelectItem value="update">Atualização (Verde)</SelectItem>
+                  <SelectItem value="warning">Aviso (Laranja)</SelectItem>
+                  <SelectItem value="maintenance">Manutenção (Vermelho)</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <div className="space-y-2">
+            <Label>Mensagem</Label>
+            <Textarea value={form.message} onChange={(e) => setForm({ ...form, message: e.target.value })} placeholder="Descreva o aviso em detalhes..." />
+          </div>
+          <div className="grid gap-4 md:grid-cols-2 items-end">
+            <div className="space-y-2">
+              <Label>Data de Expiração (Opcional)</Label>
+              <Input type="datetime-local" value={form.expires_at} onChange={(e) => setForm({ ...form, expires_at: e.target.value })} />
+            </div>
+            <Button onClick={save} disabled={saving} className="w-full md:w-auto">
+              {saving && <Loader2 className="w-4 h-4 mr-2 animate-spin" />} Criar Aviso
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card className="border-border/50">
+        <CardHeader>
+          <CardTitle className="text-base flex items-center gap-2">
+            <Megaphone className="w-4 h-4 text-primary" /> Gerenciar Avisos
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Título</TableHead>
+                <TableHead>Tipo</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead>Criado em</TableHead>
+                <TableHead className="text-right">Ações</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {(announcements.data ?? []).length === 0 && (
+                <TableRow>
+                  <TableCell colSpan={5} className="text-center py-8 text-muted-foreground italic">Nenhum aviso cadastrado.</TableCell>
+                </TableRow>
+              )}
+              {(announcements.data ?? []).map((a: any) => (
+                <TableRow key={a.id}>
+                  <TableCell className="font-medium">{a.title}</TableCell>
+                  <TableCell>
+                    <Badge variant="outline" className={cn(
+                      a.type === 'maintenance' && "border-destructive text-destructive bg-destructive/5",
+                      a.type === 'warning' && "border-orange-500 text-orange-500 bg-orange-500/5",
+                      a.type === 'update' && "border-green-500 text-green-500 bg-green-500/5",
+                      a.type === 'info' && "border-blue-500 text-blue-500 bg-blue-500/5",
+                    )}>
+                      {a.type.toUpperCase()}
+                    </Badge>
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant={a.is_active ? "default" : "secondary"}>
+                      {a.is_active ? "Ativo" : "Inativo"}
+                    </Badge>
+                  </TableCell>
+                  <TableCell className="text-xs text-muted-foreground">{format(new Date(a.created_at), "dd/MM/yy HH:mm")}</TableCell>
+                  <TableCell className="text-right">
+                    <div className="flex justify-end gap-1">
+                      <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => toggle(a.id, !a.is_active)}>
+                        {a.is_active ? <Zap className="w-4 h-4 text-muted-foreground" title="Desativar" /> : <Zap className="w-4 h-4 text-primary" title="Ativar" />}
+                      </Button>
+                      <Button size="icon" variant="ghost" className="h-8 w-8 text-destructive" onClick={() => remove(a.id)}>
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
+function cn(...inputs: any[]) {
+  return inputs.filter(Boolean).join(" ");
 }
 
 function TelaoSettingsTab() {
