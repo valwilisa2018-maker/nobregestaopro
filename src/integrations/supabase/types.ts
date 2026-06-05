@@ -728,6 +728,42 @@ export type Database = {
         }
         Relationships: []
       }
+      system_announcements: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          expires_at: string | null
+          id: string
+          is_active: boolean
+          message: string
+          title: string
+          type: Database["public"]["Enums"]["announcement_type"]
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          expires_at?: string | null
+          id?: string
+          is_active?: boolean
+          message: string
+          title: string
+          type?: Database["public"]["Enums"]["announcement_type"]
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          expires_at?: string | null
+          id?: string
+          is_active?: boolean
+          message?: string
+          title?: string
+          type?: Database["public"]["Enums"]["announcement_type"]
+          updated_at?: string
+        }
+        Relationships: []
+      }
       telao_settings: {
         Row: {
           big_seller_overlay_seconds: number
@@ -797,6 +833,7 @@ export type Database = {
       }
     }
     Enums: {
+      announcement_type: "info" | "warning" | "maintenance" | "update"
       app_role: "admin" | "vendedor" | "produtor" | "financeiro"
       cash_movement_type: "entrada" | "saida"
       expense_category:
@@ -950,6 +987,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      announcement_type: ["info", "warning", "maintenance", "update"],
       app_role: ["admin", "vendedor", "produtor", "financeiro"],
       cash_movement_type: ["entrada", "saida"],
       expense_category: [
