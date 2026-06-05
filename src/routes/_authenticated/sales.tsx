@@ -114,13 +114,20 @@ function SalesPage() {
   const submit = async () => {
     if (saving) return; // Prevent double clicks
     const required: [string, string][] = [
-      ["customer_name", "Nome do cliente"], ["company", "Empresa"],
+      ["customer_name", "Nome do cliente"],
       ["phone", "Telefone"], ["total_amount", "Valor total"], ["paid_amount", "Valor pago"],
       ["payment_status", "Status pagamento"], ["payment_method", "Forma de pagamento"],
       ["seller_id", "Vendedor"], ["producer_id", "Produtor"], ["service_type_id", "Tipo de serviço"],
       ["service_quantity", "Qtd. serviços"], ["sale_date", "Data da venda"], ["trello_link", "Link Trello"],
       ["lead_source", "Origem da venda"],
     ];
+
+    if (form.with_invoice === "sim") {
+      if (!form.company.trim()) {
+        toast.error("Preencha o campo: Empresa (obrigatório para vendas com nota)");
+        return;
+      }
+    }
 
     if (form.with_invoice === "sim" && !form.document.trim()) {
       toast.error("Preencha o campo: CPF/CNPJ (obrigatório para vendas com nota)");
