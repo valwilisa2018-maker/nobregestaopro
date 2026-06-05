@@ -58,6 +58,8 @@ function SalesPage() {
     payment_method: "pix", seller_id: "", producer_id: "", service_type_id: "",
     package_id: "", package_name: "", service_quantity: "1", notes: "", trello_link: "",
     sale_date: new Date().toISOString().slice(0, 10), lead_source: "",
+    with_invoice: "sim",
+
   });
 
   const set = (k: string, v: string) => {
@@ -112,13 +114,19 @@ function SalesPage() {
   const submit = async () => {
     if (saving) return; // Prevent double clicks
     const required: [string, string][] = [
-      ["customer_name", "Nome do cliente"], ["company", "Empresa"], ["document", "CPF/CNPJ"],
+      ["customer_name", "Nome do cliente"], ["company", "Empresa"],
       ["phone", "Telefone"], ["total_amount", "Valor total"], ["paid_amount", "Valor pago"],
       ["payment_status", "Status pagamento"], ["payment_method", "Forma de pagamento"],
       ["seller_id", "Vendedor"], ["producer_id", "Produtor"], ["service_type_id", "Tipo de serviço"],
       ["service_quantity", "Qtd. serviços"], ["sale_date", "Data da venda"], ["trello_link", "Link Trello"],
       ["lead_source", "Origem da venda"],
     ];
+
+    if (form.with_invoice === "sim" && !form.document.trim()) {
+      toast.error("Preencha o campo: CPF/CNPJ (obrigatório para vendas com nota)");
+      return;
+    }
+
     for (const [k, label] of required) {
       if (!String((form as any)[k] ?? "").trim()) {
         toast.error(`Preencha o campo: ${label}`);
@@ -299,9 +307,20 @@ function SalesPage() {
                   <Input list="customers-companies" value={form.company} onChange={(e) => autofillFromCustomer("company", e.target.value)} />
                   <datalist id="customers-companies">{(customersAll.data ?? []).filter((c: any) => c.company).map((c: any) => (<option key={`c-${c.id}`} value={c.company} />))}</datalist>
                 </div>
-                <div><Label>CPF/CNPJ *</Label><Input value={form.document} onChange={(e) => set("document", e.target.value)} /></div>
+                <div>
+                  <Label>Com Nota? *</Label>
+                  <Select value={form.with_invoice} onValueChange={(v) => set("with_invoice", v)}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="sim">Sim (Com Nota)</SelectItem>
+                      <SelectItem value="nao">Não (Sem Nota)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div><Label>CPF/CNPJ {form.with_invoice === "sim" ? "*" : "(Opcional)"}</Label><Input value={form.document} onChange={(e) => set("document", e.target.value)} /></div>
                 <div><Label>Telefone *</Label><Input value={form.phone} onChange={(e) => set("phone", e.target.value)} /></div>
                 <div><Label>E-mail (opcional)</Label><Input value={form.email} onChange={(e) => set("email", e.target.value)} /></div>
+
                 <div><Label>Valor total *</Label><Input type="number" step="0.01" value={form.total_amount} onChange={(e) => set("total_amount", e.target.value)} /></div>
                 <div><Label>Valor pago *</Label><Input type="number" step="0.01" value={form.paid_amount} onChange={(e) => set("paid_amount", e.target.value)} /></div>
                 <div>
