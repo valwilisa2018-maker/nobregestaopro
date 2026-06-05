@@ -315,7 +315,7 @@ function SalesPage() {
                   <datalist id="customers-names">{(customersAll.data ?? []).map((c: any) => (<option key={`n-${c.id}`} value={c.name} />))}</datalist>
                 </div>
                 <div>
-                  <Label>Empresa *</Label>
+                  <Label>Empresa {form.with_invoice === "sim" ? "*" : "(Opcional)"}</Label>
                   <Input list="customers-companies" value={form.company} onChange={(e) => autofillFromCustomer("company", e.target.value)} />
                   <datalist id="customers-companies">{(customersAll.data ?? []).filter((c: any) => c.company).map((c: any) => (<option key={`c-${c.id}`} value={c.company} />))}</datalist>
                 </div>
