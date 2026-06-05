@@ -234,7 +234,7 @@ function SalesPage() {
   };
 
   const submitEdit = async () => {
-    if (!editing) return;
+    if (!editing || editSaving) return;
     setEditSaving(true);
     try {
       if (editing.customer_id) {
