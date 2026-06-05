@@ -635,13 +635,14 @@ function KanbanPage() {
                                   })}
                                 </div>
                               )}
-                              {c.title}
-                              {isOverdue(c.due_date, c.due_time) && (
-                                <div className="flex items-center gap-1 text-[10px] font-bold text-destructive uppercase animate-pulse">
-                                  <AlertCircle className="w-3 h-3" /> Atrasado
-                                </div>
-                              )}
-                            </div>
+                              <div className="text-sm font-medium leading-tight">
+                                {c.title}
+                                {isOverdue(c.due_date, c.due_time) && (
+                                  <div className="flex items-center gap-1 text-[10px] font-bold text-destructive uppercase animate-pulse">
+                                    <AlertCircle className="w-3 h-3" /> Atrasado
+                                  </div>
+                                )}
+                              </div>
                               {(c.due_date || c.due_time) && (
                                 <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
                                   {c.due_date && (<span className="flex items-center gap-1"><Calendar className="w-3 h-3" />{fmtDate(c.due_date)}</span>)}
