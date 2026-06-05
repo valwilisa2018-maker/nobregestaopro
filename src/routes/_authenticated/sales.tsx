@@ -526,7 +526,7 @@ function SalesPage() {
                 <datalist id="edit-customers-names">{(customersAll.data ?? []).map((c: any) => (<option key={`en-${c.id}`} value={c.name} />))}</datalist>
               </div>
               <div>
-                <Label>Empresa *</Label>
+                <Label>Empresa {editing.with_invoice === "sim" ? "*" : "(Opcional)"}</Label>
                 <Input list="edit-customers-companies" value={editing.company ?? editing.customers?.company ?? ""} onChange={(e) => setEditing((prev: any) => ({ ...prev, company: e.target.value }))} />
                 <datalist id="edit-customers-companies">{(customersAll.data ?? []).filter((c: any) => c.company).map((c: any) => (<option key={`ec-${c.id}`} value={c.company} />))}</datalist>
               </div>
