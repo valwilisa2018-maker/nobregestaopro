@@ -292,6 +292,10 @@ function AdminPage() {
           <TabsTrigger value="audit">Auditoria</TabsTrigger>
         </TabsList>
 
+        <TabsContent value="announcements" className="mt-4">
+          <AnnouncementsTab />
+        </TabsContent>
+
         <TabsContent value="goals" className="space-y-3 mt-4">
           {(goals.data ?? []).map((g: any) => (
             <Card key={g.id} className="border-border/50"><CardContent className="p-4 flex items-center gap-3">
@@ -958,7 +962,7 @@ function AnnouncementsTab() {
                   <TableCell className="text-right">
                     <div className="flex justify-end gap-1">
                       <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => toggle(a.id, !a.is_active)}>
-                        {a.is_active ? <Zap className="w-4 h-4 text-muted-foreground" title="Desativar" /> : <Zap className="w-4 h-4 text-primary" title="Ativar" />}
+                        {a.is_active ? <Zap className="w-4 h-4 text-muted-foreground" /> : <Zap className="w-4 h-4 text-primary" />}
                       </Button>
                       <Button size="icon" variant="ghost" className="h-8 w-8 text-destructive" onClick={() => remove(a.id)}>
                         <Trash2 className="w-4 h-4" />
