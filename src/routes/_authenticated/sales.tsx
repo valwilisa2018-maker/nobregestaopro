@@ -465,7 +465,7 @@ function SalesPage() {
                   <div className="grid grid-cols-2 gap-2 text-sm"><div><p className="text-xs text-muted-foreground">Serviço</p><p className="font-medium truncate">{s.service_types?.name ?? "—"}</p></div><div><p className="text-xs text-muted-foreground">Data</p><p className="font-medium">{fmtDate(s.sale_date)}</p></div><div><p className="text-xs text-muted-foreground">Vendedor</p><p className="font-medium truncate">{s.sellers?.name ?? "—"}</p></div><div><p className="text-xs text-muted-foreground">Produtor</p><p className="font-medium truncate">{s.producers?.name ?? "—"}</p></div></div>
                   <div className="pt-2 border-t flex justify-between items-center"><div><p className="text-xs text-muted-foreground">Valor Total</p><p className="text-lg font-bold text-primary">{formatCurrency(s.total_amount)}</p></div>
                     <div className="flex gap-1">
-                      <Button size="icon" variant="outline" className="h-8 w-8" onClick={() => setEditing({ ...s })}><Pencil className="w-4 h-4" /></Button>
+                      <Button size="icon" variant="outline" className="h-8 w-8" onClick={() => setEditing({ ...s, with_invoice: s.customers?.document ? "sim" : "nao", customer_name: s.customers?.name, company: s.customers?.company, document: s.customers?.document, phone: s.customers?.phone, email: s.customers?.email })}><Pencil className="w-4 h-4" /></Button>
                       <Dialog>
                         <DialogTrigger asChild><Button size="icon" variant="outline" className="h-8 w-8"><Eye className="w-4 h-4" /></Button></DialogTrigger>
                         <DialogContent className="max-w-xl">
