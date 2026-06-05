@@ -5,6 +5,7 @@ import { SidebarProvider, SidebarTrigger, SidebarInset } from "@/components/ui/s
 import { AppSidebar } from "@/components/app-sidebar";
 import { Loader2 } from "lucide-react";
 import { useTelaoSettingsSync } from "@/hooks/use-telao-settings-sync";
+import { ReleaseNoteCard } from "@/components/release-note-card";
 
 export const Route = createFileRoute("/_authenticated")({
   component: AuthLayout,
@@ -48,6 +49,7 @@ function AuthLayout() {
           </header>
           <main className="flex-1 min-w-0 p-4 md:p-6 overflow-x-hidden">
             <Outlet />
+            <ReleaseNoteCard />
           </main>
         </SidebarInset>
       </div>
