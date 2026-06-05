@@ -359,6 +359,7 @@ export type Database = {
           avatar_url: string | null
           average_delivery_days: number | null
           created_at: string
+          custom_kanban_columns: Json | null
           email: string | null
           id: string
           name: string
@@ -373,6 +374,7 @@ export type Database = {
           avatar_url?: string | null
           average_delivery_days?: number | null
           created_at?: string
+          custom_kanban_columns?: Json | null
           email?: string | null
           id?: string
           name: string
@@ -387,6 +389,7 @@ export type Database = {
           avatar_url?: string | null
           average_delivery_days?: number | null
           created_at?: string
+          custom_kanban_columns?: Json | null
           email?: string | null
           id?: string
           name?: string
