@@ -12,7 +12,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { Plus, Loader2, Trash2, X, Calendar, Clock, ExternalLink, MessageCircle, ChevronDown, ChevronRight, Layers, MoreVertical, Edit2, UserPlus } from "lucide-react";
+import { Plus, Loader2, Trash2, X, Calendar, Clock, ExternalLink, MessageCircle, ChevronDown, ChevronRight, Layers, MoreVertical, Edit2, UserPlus, AlertCircle } from "lucide-react";
 import { Search } from "lucide-react";
 import { fmtDate } from "@/lib/format";
 
@@ -45,6 +45,13 @@ const parseLabel = (s: string): { name: string; color: string } => {
   return { name: s, color: "" };
 };
 const formatLabel = (name: string, color: string) => color ? `${name}|${color}` : name;
+
+const isOverdue = (date?: string | null, time?: string | null) => {
+  if (!date) return false;
+  const now = new Date();
+  const due = new Date(`${date}T${time || "23:59:59"}`);
+  return due < now;
+};
 
 type CardForm = {
   id?: string;
@@ -628,7 +635,14 @@ function KanbanPage() {
                                   })}
                                 </div>
                               )}
-                              <div className="text-sm font-medium leading-tight">{c.title}</div>
+                              <div className="text-sm font-medium leading-tight">
+                                {c.title}
+                                {isOverdue(c.due_date, c.due_time) && (
+                                  <div className="flex items-center gap-1 text-[10px] font-bold text-destructive uppercase animate-pulse">
+                                    <AlertCircle className="w-3 h-3" /> Atrasado
+                                  </div>
+                                )}
+                              </div>
                               {(c.due_date || c.due_time) && (
                                 <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
                                   {c.due_date && (<span className="flex items-center gap-1"><Calendar className="w-3 h-3" />{fmtDate(c.due_date)}</span>)}
@@ -702,7 +716,14 @@ function KanbanPage() {
                           })}
                         </div>
                       )}
-                      <div className="text-sm font-medium leading-tight">{c.title}</div>
+                      <div className="text-sm font-medium leading-tight">
+                        {c.title}
+                        {isOverdue(c.due_date, c.due_time) && (
+                          <div className="flex items-center gap-1 text-[10px] font-bold text-destructive uppercase animate-pulse">
+                            <AlertCircle className="w-3 h-3" /> Atrasado
+                          </div>
+                        )}
+                      </div>
                       {c.sales?.customers?.company && (
                         <div className="text-xs text-muted-foreground">{c.sales.customers.company}</div>
                       )}
