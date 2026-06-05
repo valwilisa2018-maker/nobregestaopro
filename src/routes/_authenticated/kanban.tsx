@@ -508,19 +508,6 @@ function KanbanPage() {
                 <div className="flex items-center gap-1">
                   <Badge variant="outline" className="border-background/40 text-background">
                     {colCards.length}
-                    {producerFilter !== "all" && (
-                      <span className="ml-1 text-[10px] opacity-70">
-                        ({Math.max(0, (cards.data?.filter((c: any) => {
-                          const isThisProducer = c.producer_id === producerFilter || (!c.producer_id && c.sales?.producer_id === producerFilter);
-                          return isThisProducer;
-                        }).length ?? 0) - (cards.data?.filter((c: any) => {
-                          const isThisProducer = c.producer_id === producerFilter || (!c.producer_id && c.sales?.producer_id === producerFilter);
-                          const currentColIndex = cols.data?.findIndex((colX: any) => colX.id === col.id) ?? -1;
-                          const cardColIndex = cols.data?.findIndex((colX: any) => colX.id === c.column_id) ?? -1;
-                          return isThisProducer && cardColIndex > currentColIndex;
-                        }).length ?? 0))} restando)
-                      </span>
-                    )}
                   </Badge>
                   <Button size="icon" variant="ghost" className="h-6 w-6 text-background hover:bg-background/10 hover:text-background" onClick={() => openNew(col.id)}>
                     <Plus className="w-4 h-4" />
