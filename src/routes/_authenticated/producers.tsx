@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Trash2, Pencil, Upload, LayoutGrid, List, User } from "lucide-react";
+import { Plus, Trash2, Pencil, Upload, LayoutGrid, List, User, Settings2 } from "lucide-react";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/producers")({
@@ -18,6 +18,8 @@ export const Route = createFileRoute("/_authenticated/producers")({
     const [open, setOpen] = useState(false);
     const [form, setForm] = useState({ name: "", specialty: "", phone: "", email: "" });
     const [editing, setEditing] = useState<any | null>(null);
+    const [configProducer, setConfigProducer] = useState<any | null>(null);
+    const [customCols, setCustomCols] = useState<string[]>([]);
     const [uploading, setUploading] = useState(false);
     const [viewMode, setViewMode] = useState<"table" | "card">("table");
     const q = useQuery({ queryKey: ["producers-page"], queryFn: async () => (await supabase.from("producers").select("*").order("created_at", { ascending: false })).data ?? [] });
@@ -75,6 +77,16 @@ export const Route = createFileRoute("/_authenticated/producers")({
       if (error) toast.error(error.message);
       else { toast.success("Produtor excluído"); qc.invalidateQueries(); }
     };
+    const openConfig = (p: any) => {
+      setConfigProducer(p);
+      setCustomCols(p.custom_kanban_columns || ["video ao gravar", "gravação pamela", "gravação ester", "alteração de gravação", "distribuição edição"]);
+    };
+    const saveConfig = async () => {
+      if (!configProducer) return;
+      const { error } = await supabase.from("producers").update({ custom_kanban_columns: customCols }).eq("id", configProducer.id);
+      if (error) toast.error(error.message);
+      else { toast.success("Configuração salva"); setConfigProducer(null); qc.invalidateQueries(); }
+    };
     return (
       <div className="space-y-6">
         <div className="flex items-center justify-between">
@@ -128,6 +140,27 @@ export const Route = createFileRoute("/_authenticated/producers")({
             <DialogFooter><Button onClick={saveEdit} disabled={uploading}>Salvar</Button></DialogFooter>
           </DialogContent>
         </Dialog>
+
+        <Dialog open={!!configProducer} onOpenChange={(o) => !o && setConfigProducer(null)}>
+          <DialogContent>
+            <DialogHeader><DialogTitle>Configurar Kanban - {configProducer?.name}</DialogTitle></DialogHeader>
+            <div className="space-y-4 py-4">
+              <p className="text-sm text-muted-foreground">Personalize os nomes das colunas do Kanban para este produtor (máximo 5 colunas).</p>
+              <div className="space-y-2">
+                {customCols.map((col, i) => (
+                  <div key={i} className="flex gap-2">
+                    <Input value={col} onChange={(e) => {
+                      const newCols = [...customCols];
+                      newCols[i] = e.target.value;
+                      setCustomCols(newCols);
+                    }} placeholder={`Coluna ${i + 1}`} />
+                  </div>
+                ))}
+              </div>
+            </div>
+            <DialogFooter><Button onClick={saveConfig}>Salvar Configuração</Button></DialogFooter>
+          </DialogContent>
+        </Dialog>
         {viewMode === "table" ? (
           <Card className="border-border/50" style={{ boxShadow: "var(--shadow-card)" }}><CardContent className="p-0">
             <Table>
@@ -147,6 +180,9 @@ export const Route = createFileRoute("/_authenticated/producers")({
                     <TableCell><Badge variant={p.active ? "default" : "secondary"}>{p.active ? "Ativo" : "Inativo"}</Badge></TableCell>
                     <TableCell className="text-right">
                       <div className="flex gap-1 justify-end">
+                        <Button variant="outline" size="sm" onClick={() => openConfig(p)} title="Configurar Kanban">
+                          <Settings2 className="w-4 h-4" />
+                        </Button>
                         <Button variant="outline" size="sm" onClick={() => setEditing({ ...p })}>
                           <Pencil className="w-4 h-4" />
                         </Button>
@@ -192,6 +228,9 @@ export const Route = createFileRoute("/_authenticated/producers")({
                     </div>
                   </div>
                   <div className="flex gap-2 justify-end pt-1">
+                    <Button variant="outline" size="sm" className="h-8 text-xs" onClick={() => openConfig(p)}>
+                      <Settings2 className="w-3.5 h-3.5 mr-1.5" /> Configurar
+                    </Button>
                     <Button variant="outline" size="sm" className="h-8 text-xs" onClick={() => setEditing({ ...p })}>
                       <Pencil className="w-3.5 h-3.5 mr-1.5" /> Editar
                     </Button>

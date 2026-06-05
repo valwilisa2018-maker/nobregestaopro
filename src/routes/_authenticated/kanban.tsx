@@ -101,18 +101,29 @@ function KanbanPage() {
     queryFn: async () => {
       let query = supabase.from("kanban_columns").select("*");
       
-      if (producerFilter !== "all") {
-        // Mostra colunas globais OU colunas específicas do produtor selecionado
+      const isFiltered = producerFilter !== "all";
+      if (isFiltered) {
         query = query.or(`producer_id.is.null,producer_id.eq.${producerFilter}`);
       } else {
-        // Se estiver em "Todos", mostra apenas as colunas globais para não virar bagunça
-        // Ou você pode optar por mostrar tudo, mas filtrar por nulo é mais limpo
         query = query.is("producer_id", null);
       }
       
       const { data } = await query.order("sort_order");
-      return data ?? [];
+      const baseCols = data ?? [];
+
+      if (isFiltered) {
+        const prod = producers.data?.find((p: any) => p.id === producerFilter);
+        if (prod?.custom_kanban_columns?.length) {
+          return baseCols.map((col: any, idx: number) => {
+            const customName = prod.custom_kanban_columns[idx];
+            if (customName) return { ...col, name: customName };
+            return col;
+          });
+        }
+      }
+      return baseCols;
     },
+    enabled: !!producers.data,
   });
 
   const cards = useQuery({
@@ -129,7 +140,7 @@ function KanbanPage() {
 
   const producers = useQuery({
     queryKey: ["producers-select"],
-    queryFn: async () => (await supabase.from("producers").select("id,name,avatar_url").eq("active", true).order("name")).data ?? [],
+    queryFn: async () => (await supabase.from("producers").select("id,name,avatar_url,custom_kanban_columns").eq("active", true).order("name")).data ?? [],
   });
 
   useEffect(() => {
@@ -487,7 +498,22 @@ function KanbanPage() {
                   </Button>
                 </div>
                 <div className="flex items-center gap-1">
-                  <Badge variant="outline" className="border-background/40 text-background">{colCards.length}</Badge>
+                  <Badge variant="outline" className="border-background/40 text-background">
+                    {colCards.length}
+                    {producerFilter !== "all" && (
+                      <span className="ml-1 text-[10px] opacity-70">
+                        ({Math.max(0, (cards.data?.filter((c: any) => {
+                          const isThisProducer = c.producer_id === producerFilter || (!c.producer_id && c.sales?.producer_id === producerFilter);
+                          return isThisProducer;
+                        }).length ?? 0) - (cards.data?.filter((c: any) => {
+                          const isThisProducer = c.producer_id === producerFilter || (!c.producer_id && c.sales?.producer_id === producerFilter);
+                          const currentColIndex = cols.data?.findIndex((colX: any) => colX.id === col.id) ?? -1;
+                          const cardColIndex = cols.data?.findIndex((colX: any) => colX.id === c.column_id) ?? -1;
+                          return isThisProducer && cardColIndex > currentColIndex;
+                        }).length ?? 0))} restando)
+                      </span>
+                    )}
+                  </Badge>
                   <Button size="icon" variant="ghost" className="h-6 w-6 text-background hover:bg-background/10 hover:text-background" onClick={() => openNew(col.id)}>
                     <Plus className="w-4 h-4" />
                   </Button>
