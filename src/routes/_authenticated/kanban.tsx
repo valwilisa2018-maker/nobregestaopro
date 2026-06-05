@@ -96,6 +96,11 @@ function KanbanPage() {
   const [editingColumn, setEditingColumn] = useState<{ id?: string, name: string, color: string, producer_id?: string | null } | null>(null);
   const [savingColumn, setSavingColumn] = useState(false);
 
+  const producers = useQuery({
+    queryKey: ["producers-select"],
+    queryFn: async () => (await supabase.from("producers").select("id,name,avatar_url,custom_kanban_columns").eq("active", true).order("name")).data ?? [],
+  });
+
   const cols = useQuery({
     queryKey: ["kanban-cols", producerFilter],
     queryFn: async () => {
@@ -113,9 +118,10 @@ function KanbanPage() {
 
       if (isFiltered) {
         const prod = producers.data?.find((p: any) => p.id === producerFilter);
-        if (prod?.custom_kanban_columns?.length) {
+        const customNames = prod?.custom_kanban_columns as string[] | undefined;
+        if (customNames && Array.isArray(customNames) && customNames.length > 0) {
           return baseCols.map((col: any, idx: number) => {
-            const customName = prod.custom_kanban_columns[idx];
+            const customName = customNames[idx];
             if (customName) return { ...col, name: customName };
             return col;
           });
@@ -136,11 +142,6 @@ function KanbanPage() {
         .order("service_index", { ascending: true });
       return data ?? [];
     },
-  });
-
-  const producers = useQuery({
-    queryKey: ["producers-select"],
-    queryFn: async () => (await supabase.from("producers").select("id,name,avatar_url,custom_kanban_columns").eq("active", true).order("name")).data ?? [],
   });
 
   useEffect(() => {
