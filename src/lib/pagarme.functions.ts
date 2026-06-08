@@ -4,8 +4,36 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { createClient } from "@supabase/supabase-js";
 import type { Database } from "@/integrations/supabase/types";
 
-const PAGARME_PRODUCTION_URL = "https://api.pagar.me/core/v5/paymentlinks";
-const PAGARME_TEST_URL = "https://sdx-api.pagar.me/core/v5/paymentlinks";
+export const PAGARME_PRODUCTION_URL = "https://api.pagar.me/core/v5/paymentlinks";
+export const PAGARME_TEST_URL = "https://sdx-api.pagar.me/core/v5/paymentlinks";
+
+export function buildPagarmeBody(data: { name: string; amount: number; installments: number; methods: string[] }) {
+  const installmentsList = Array.from({ length: data.installments }, (_, i) => ({
+    number: i + 1,
+    total: data.amount,
+  }));
+
+  return {
+    is_building: false,
+    name: data.name.slice(0, 64),
+    type: "order",
+    payment_settings: {
+      accepted_payment_methods: data.methods,
+      credit_card_settings: data.methods.includes("credit_card")
+        ? { operation_type: "auth_and_capture", installments: installmentsList }
+        : undefined,
+    },
+    cart_settings: {
+      items: [
+        { amount: data.amount, name: data.name, default_quantity: 1, description: data.name },
+      ],
+    },
+  };
+}
+
+export function getPagarmeUrl(apiKey: string) {
+  return apiKey.startsWith("sk_test") ? PAGARME_TEST_URL : PAGARME_PRODUCTION_URL;
+}
 
 export const createPaymentLink = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
@@ -38,29 +66,14 @@ export const createPaymentLink = createServerFn({ method: "POST" })
       return { ok: false as const, error: "Credencial Pagar.me não configurada. Peça ao administrador para cadastrar a chave secreta." };
     }
 
-    const installmentsList = Array.from({ length: data.installments }, (_, i) => ({
-      number: i + 1,
-      total: data.amount,
-    }));
+    const body = buildPagarmeBody({
+      name: data.name,
+      amount: data.amount,
+      installments: data.installments,
+      methods: data.methods,
+    });
 
-    const body = {
-      is_building: false,
-      name: data.name.slice(0, 64),
-      type: "order",
-      payment_settings: {
-        accepted_payment_methods: data.methods,
-        credit_card_settings: data.methods.includes("credit_card")
-          ? { operation_type: "auth_and_capture", installments: installmentsList }
-          : undefined,
-      },
-      cart_settings: {
-        items: [
-          { amount: data.amount, name: data.name, default_quantity: 1, description: data.name },
-        ],
-      },
-    };
-
-    const pagarmeUrl = apiKey.startsWith("sk_test") ? PAGARME_TEST_URL : PAGARME_PRODUCTION_URL;
+    const pagarmeUrl = getPagarmeUrl(apiKey);
     const auth = "Basic " + Buffer.from(`${apiKey}:`).toString("base64");
     
     try {
