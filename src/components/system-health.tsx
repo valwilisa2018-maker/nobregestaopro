@@ -29,7 +29,7 @@ export function SystemHealthDashboard() {
         .order("created_at", { ascending: false })
         .limit(5);
 
-      const { data: criticalCount, error: criticalError } = await supabase
+      const { count: criticalCount, error: criticalError } = await supabase
         .from("system_logs")
         .select("id", { count: "exact", head: true })
         .eq("level", "CRITICAL")
