@@ -34,7 +34,11 @@ export function ReleaseNoteCard() {
       const dismissed = localStorage.getItem(`dismissed-manual-${first.id}`);
       if (!dismissed) {
         setActiveAnnouncement(first);
-        return;
+        // Trigger confetti for manual announcements too
+        const timer = setTimeout(() => {
+          triggerConfetti();
+        }, 500);
+        return () => clearTimeout(timer);
       }
     }
 
