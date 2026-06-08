@@ -180,18 +180,26 @@ function KanbanPage() {
   }, [cols.data, cards.data]);
 
   const move = async (cardId: string, columnId: string) => {
+    const col = cols.data?.find((c: any) => c.id === columnId);
     const { error } = await supabase
       .from("service_orders")
-      .update({ column_id: columnId, delivered_at: null })
+      .update({ 
+        column_id: columnId, 
+        delivered_at: col?.is_done ? new Date().toISOString() : null 
+      })
       .eq("id", cardId);
     if (error) toast.error(error.message);
     else { toast.success("Card movido"); qc.invalidateQueries({ queryKey: ["kanban-cards"] }); }
   };
 
   const moveMany = async (cardIds: string[], columnId: string) => {
+    const col = cols.data?.find((c: any) => c.id === columnId);
     const { error } = await supabase
       .from("service_orders")
-      .update({ column_id: columnId, delivered_at: null })
+      .update({ 
+        column_id: columnId, 
+        delivered_at: col?.is_done ? new Date().toISOString() : null 
+      })
       .in("id", cardIds);
     if (error) toast.error(error.message);
     else { toast.success(`${cardIds.length} cards movidos`); qc.invalidateQueries({ queryKey: ["kanban-cards"] }); }
@@ -624,7 +632,7 @@ function KanbanPage() {
                               )}
                               <div className="text-sm font-medium leading-tight">
                                 {c.title}
-                                {isOverdue(c.due_date, c.due_time) && (
+                                {isOverdue(c.due_date, c.due_time) && !col.is_done && (
                                   <div className="flex items-center gap-1 text-[10px] font-bold text-destructive uppercase animate-pulse">
                                     <AlertCircle className="w-3 h-3" /> Atrasado
                                   </div>
@@ -705,7 +713,7 @@ function KanbanPage() {
                       )}
                       <div className="text-sm font-medium leading-tight">
                         {c.title}
-                        {isOverdue(c.due_date, c.due_time) && (
+                        {isOverdue(c.due_date, c.due_time) && !col.is_done && (
                           <div className="flex items-center gap-1 text-[10px] font-bold text-destructive uppercase animate-pulse">
                             <AlertCircle className="w-3 h-3" /> Atrasado
                           </div>
