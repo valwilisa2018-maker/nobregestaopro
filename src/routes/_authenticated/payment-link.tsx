@@ -44,10 +44,18 @@ function PaymentLinkPage() {
       const { data: { user } } = await supabase.auth.getUser();
       const amountInCents = Math.round(v * 100);
       
+      // Precisamos de um customer_id válido para a tabela sales. 
+      // Por enquanto, vamos buscar o primeiro cliente ou um placeholder se existir.
+      const { data: customer } = await supabase.from("customers").select("id").limit(1).maybeSingle();
+      
+      if (!customer) {
+        throw new Error("Nenhum cliente encontrado para vincular a venda. Cadastre um cliente primeiro.");
+      }
+
       const { data: sale, error: saleError } = await supabase
         .from("sales")
         .insert({
-          customer_name: "Cliente Nobre",
+          customer_id: customer.id,
           total_amount: v,
           package_name: name.trim() || "Pagamento",
           payment_status: "pendente",
@@ -68,7 +76,6 @@ function PaymentLinkPage() {
       }});
 
       if (!res.ok) {
-        // Se falhou ao gerar link, podemos marcar a venda como falha ou apenas avisar
         toast.error(res.error);
       } else { 
         setLink(res.url); 
