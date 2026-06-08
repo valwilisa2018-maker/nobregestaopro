@@ -34,7 +34,6 @@ const groups = [
   {
     label: "Financeiro",
     items: [
-      { title: "Gerar Pagamento", url: "/payment-link", icon: Link2 },
       { title: "Pagamentos Cartão/PIX", url: "/pagarme-history", icon: CreditCard },
       { title: "Financeiro", url: "/finance", icon: DollarSign },
       { title: "Valores Pendentes", url: "/pending-payments", icon: AlertCircle },
