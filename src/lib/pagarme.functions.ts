@@ -15,7 +15,13 @@ export function validatePagarmeKey(key: string): { ok: true } | { ok: false; err
 }
 
 
-export function buildPagarmeBody(data: { name: string; amount: number; installments: number; methods: string[] }) {
+export function buildPagarmeBody(data: { 
+  name: string; 
+  amount: number; 
+  installments: number; 
+  methods: string[];
+  webhookUrl?: string;
+}) {
   const installmentsList = Array.from({ length: data.installments }, (_, i) => ({
     number: i + 1,
     total: data.amount,
@@ -30,6 +36,8 @@ export function buildPagarmeBody(data: { name: string; amount: number; installme
       credit_card_settings: data.methods.includes("credit_card")
         ? { operation_type: "auth_and_capture", installments: installmentsList }
         : undefined,
+      // Adiciona o webhook se fornecido
+      webhook_url: data.webhookUrl,
     },
     cart_settings: {
       items: [
