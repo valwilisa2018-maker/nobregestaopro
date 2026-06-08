@@ -423,6 +423,19 @@ function SalesPage() {
                     <SelectContent><SelectItem value="pix">Pix</SelectItem><SelectItem value="cartao">Cartão</SelectItem><SelectItem value="boleto">Boleto</SelectItem></SelectContent>
                   </Select>
                 </div>
+                {form.payment_method === "cartao" && (
+                  <div>
+                    <Label>Parcelas Máx. (Pagar.me)</Label>
+                    <Select value={form.installments} onValueChange={(v) => set("installments", v)}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map(n => (
+                          <SelectItem key={n} value={String(n)}>{n}x</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
                 <div>
                   <Label>Vendedor *</Label>
                   <Select value={form.seller_id} onValueChange={(v) => set("seller_id", v)}>
