@@ -249,7 +249,7 @@ function SalesPage() {
             data: {
               name: `Venda ${form.customer_name}`,
               amount: Math.round(Number(form.total_amount) * 100), // Pagar.me usa centavos
-              installments: 12, // Padrão
+              installments: Number(form.installments || 12),
               methods: ["credit_card"],
               saleId: saleRow.id,
             }
