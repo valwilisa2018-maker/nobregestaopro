@@ -18,6 +18,8 @@ import { toast } from "sonner";
 import { logger } from "@/lib/logger";
 import { formatCurrency } from "@/lib/auth";
 import { fmtDate } from "@/lib/format";
+import { createPaymentLink } from "@/lib/pagarme.functions";
+import { Copy, Link2, ExternalLink } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/sales")({
   component: SalesPage,
@@ -31,13 +33,15 @@ function SalesPage() {
   const [editing, setEditing] = useState<any | null>(null);
   const [viewMode, setViewMode] = useState<"table" | "card">("table");
   const [editSaving, setEditSaving] = useState(false);
+  const [paymentLinkData, setPaymentLinkData] = useState<{ url: string; id: string } | null>(null);
+  const [isGeneratingLink, setIsGeneratingLink] = useState(false);
 
   const sales = useQuery({
     queryKey: ["sales-list"],
     queryFn: async () => {
       const { data } = await supabase
         .from("sales")
-        .select("*, customers(name,company), sellers(name), producers(name), service_types(name), sale_receipts(*)")
+        .select("*, customers(name,company), sellers(name), producers(name), service_types(name), sale_receipts(*), pagarme_history:pagarme_webhooks!pagarme_id(id, event_type)")
         .order("sale_date", { ascending: false });
       return data ?? [];
     },
@@ -47,6 +51,33 @@ function SalesPage() {
   const producers = useQuery({ queryKey: ["producers-all"], queryFn: async () => (await supabase.from("producers").select("id,name").eq("active", true)).data ?? [] });
   const serviceTypes = useQuery({ queryKey: ["st-all"], queryFn: async () => (await supabase.from("service_types").select("id,name").eq("active", true).order("sort_order")).data ?? [] });
   const packages = useQuery({ queryKey: ["pkg-all"], queryFn: async () => (await supabase.from("packages").select("id,name,quantity").eq("active", true)).data ?? [] });
+
+  const handleGenerateLink = async (sale: any) => {
+    setIsGeneratingLink(true);
+    try {
+      const res = await createPaymentLink({
+        data: {
+          name: `Venda ${sale.customers?.name}`,
+          amount: Math.round(Number(sale.total_amount) * 100),
+          installments: 12,
+          methods: ["credit_card"],
+          saleId: sale.id,
+        }
+      });
+
+      if (res.ok) {
+        setPaymentLinkData({ url: res.url, id: res.id || "" });
+        toast.success("Link de pagamento gerado!");
+        qc.invalidateQueries({ queryKey: ["sales-list"] });
+      } else {
+        toast.error(`Erro no Pagar.me: ${res.error}`);
+      }
+    } catch (err: any) {
+      toast.error("Falha ao gerar link");
+    } finally {
+      setIsGeneratingLink(false);
+    }
+  };
 
   const customersAll = useQuery({
     queryKey: ["customers-all"],
@@ -60,6 +91,7 @@ function SalesPage() {
     package_id: "", package_name: "", service_quantity: "1", notes: "", trello_link: "",
     sale_date: new Date().toISOString().slice(0, 10), lead_source: "",
     with_invoice: "sim",
+    installments: "12",
 
   });
 
@@ -175,7 +207,7 @@ function SalesPage() {
         receipt_url = path;
       }
 
-      const { error: se } = await supabase.from("sales").insert({
+      const { data: saleRow, error: se } = await supabase.from("sales").insert({
         customer_id: cust.id,
         total_amount: Number(form.total_amount),
         paid_amount: Number(form.paid_amount || 0),
@@ -193,23 +225,51 @@ function SalesPage() {
         receipt_url,
         sale_date: form.sale_date || new Date().toISOString().slice(0, 10),
         created_by: user?.id,
-      }).select("id").single().then(async (res) => {
-        if (res.error) return { error: res.error };
-        // The service_orders and invoices are generated via DB triggers
-        if (receipt_url && res.data?.id) {
-          await supabase.from("sale_receipts").insert({
-            sale_id: res.data.id,
-            file_path: receipt_url,
-            amount: Number(form.paid_amount || 0),
-            paid_at: form.sale_date || new Date().toISOString().slice(0, 10),
-            uploaded_by: user?.id ?? null,
-            notes: "Comprovante inicial",
-          });
-        }
-        return { error: null };
-      });
+      }).select("id").single();
+
       if (se) throw se;
-      toast.success("Venda criada — cards de produção gerados automaticamente");
+
+      // Se houver comprovante, vincula
+      if (receipt_url && saleRow?.id) {
+        await supabase.from("sale_receipts").insert({
+          sale_id: saleRow.id,
+          file_path: receipt_url,
+          amount: Number(form.paid_amount || 0),
+          paid_at: form.sale_date || new Date().toISOString().slice(0, 10),
+          uploaded_by: user?.id ?? null,
+          notes: "Comprovante inicial",
+        });
+      }
+
+      // Se for Cartão, gera o link do Pagar.me automaticamente
+      if (form.payment_method === "cartao" && saleRow?.id) {
+        setIsGeneratingLink(true);
+        try {
+          const res = await createPaymentLink({
+            data: {
+              name: `Venda ${form.customer_name}`,
+              amount: Math.round(Number(form.total_amount) * 100), // Pagar.me usa centavos
+              installments: Number(form.installments || 12),
+              methods: ["credit_card"],
+              saleId: saleRow.id,
+            }
+          });
+
+          if (res.ok) {
+            setPaymentLinkData({ url: res.url, id: res.id || "" });
+            toast.success("Link de pagamento gerado com sucesso!");
+          } else {
+            toast.error(`Venda criada, mas erro no Pagar.me: ${res.error}`);
+          }
+        } catch (err: any) {
+          console.error("Erro ao gerar link Pagar.me:", err);
+          toast.error("Venda criada, mas falha ao conectar com Pagar.me");
+        } finally {
+          setIsGeneratingLink(false);
+        }
+      } else {
+        toast.success("Venda criada — cards de produção gerados automaticamente");
+      }
       setOpen(false);
       setReceiptFile(null);
       qc.invalidateQueries();
@@ -308,6 +368,12 @@ function SalesPage() {
           <p className="text-muted-foreground">Cadastre e acompanhe todas as vendas</p>
         </div>
         <div className="flex items-center gap-2">
+          {isGeneratingLink && (
+            <div className="flex items-center gap-2 text-sm text-muted-foreground mr-4">
+              <Loader2 className="w-4 h-4 animate-spin" />
+              Gerando link Pagar.me...
+            </div>
+          )}
           <div className="flex items-center bg-muted rounded-lg p-1 mr-2">
             <Button variant={viewMode === "table" ? "secondary" : "ghost"} size="sm" className="h-8 w-8 p-0" onClick={() => setViewMode("table")}><List className="h-4 w-4" /></Button>
             <Button variant={viewMode === "card" ? "secondary" : "ghost"} size="sm" className="h-8 w-8 p-0" onClick={() => setViewMode("card")}><LayoutGrid className="h-4 w-4" /></Button>
@@ -357,6 +423,19 @@ function SalesPage() {
                     <SelectContent><SelectItem value="pix">Pix</SelectItem><SelectItem value="cartao">Cartão</SelectItem><SelectItem value="boleto">Boleto</SelectItem></SelectContent>
                   </Select>
                 </div>
+                {form.payment_method === "cartao" && (
+                  <div>
+                    <Label>Parcelas Máx. (Pagar.me)</Label>
+                    <Select value={form.installments} onValueChange={(v) => set("installments", v)}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map(n => (
+                          <SelectItem key={n} value={String(n)}>{n}x</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
                 <div>
                   <Label>Vendedor *</Label>
                   <Select value={form.seller_id} onValueChange={(v) => set("seller_id", v)}>
@@ -445,6 +524,11 @@ function SalesPage() {
                     <TableCell><Badge variant={statusVariant(s.payment_status) as any}>{s.payment_status.replace("_", " ")}</Badge></TableCell>
                     <TableCell>
                       <div className="flex items-center gap-1">
+                        {s.payment_method === "cartao" && !s.pagarme_id && (
+                          <Button size="icon" variant="ghost" className="text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50" title="Gerar Link Pagar.me" onClick={() => handleGenerateLink(s)}>
+                            <Link2 className="w-4 h-4" />
+                          </Button>
+                        )}
                         <Button size="icon" variant="ghost" onClick={() => setEditing({ ...s, with_invoice: s.customers?.document ? "sim" : "nao", customer_name: s.customers?.name, company: s.customers?.company, document: s.customers?.document, phone: s.customers?.phone, email: s.customers?.email })}><Pencil className="w-4 h-4" /></Button>
                         <Dialog>
                           <DialogTrigger asChild><Button size="icon" variant="ghost"><Eye className="w-4 h-4" /></Button></DialogTrigger>
@@ -485,6 +569,11 @@ function SalesPage() {
                   <div className="grid grid-cols-2 gap-2 text-sm"><div><p className="text-xs text-muted-foreground">Serviço</p><p className="font-medium truncate">{s.service_types?.name ?? "—"}</p></div><div><p className="text-xs text-muted-foreground">Data</p><p className="font-medium">{fmtDate(s.sale_date)}</p></div><div><p className="text-xs text-muted-foreground">Vendedor</p><p className="font-medium truncate">{s.sellers?.name ?? "—"}</p></div><div><p className="text-xs text-muted-foreground">Produtor</p><p className="font-medium truncate">{s.producers?.name ?? "—"}</p></div></div>
                   <div className="pt-2 border-t flex justify-between items-center"><div><p className="text-xs text-muted-foreground">Valor Total</p><p className="text-lg font-bold text-primary">{formatCurrency(s.total_amount)}</p></div>
                     <div className="flex gap-1">
+                      {s.payment_method === "cartao" && !s.pagarme_id && (
+                        <Button size="icon" variant="outline" className="h-8 w-8 text-emerald-600 border-emerald-100 hover:bg-emerald-50" title="Gerar Link Pagar.me" onClick={() => handleGenerateLink(s)}>
+                          <Link2 className="w-4 h-4" />
+                        </Button>
+                      )}
                       <Button size="icon" variant="outline" className="h-8 w-8" onClick={() => setEditing({ ...s, with_invoice: s.customers?.document ? "sim" : "nao", customer_name: s.customers?.name, company: s.customers?.company, document: s.customers?.document, phone: s.customers?.phone, email: s.customers?.email })}><Pencil className="w-4 h-4" /></Button>
                       <Dialog>
                         <DialogTrigger asChild><Button size="icon" variant="outline" className="h-8 w-8"><Eye className="w-4 h-4" /></Button></DialogTrigger>
@@ -620,6 +709,55 @@ function SalesPage() {
             </div>
           )}
           <DialogFooter><Button variant="outline" onClick={() => setEditing(null)}>Cancelar</Button><Button onClick={submitEdit} disabled={editSaving}>{editSaving && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}Salvar</Button></DialogFooter>
+        </DialogContent>
+      </Dialog>
+      <Dialog open={!!paymentLinkData} onOpenChange={(open) => !open && setPaymentLinkData(null)}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Link2 className="w-5 h-5 text-emerald-600" />
+              Link de Pagamento Gerado
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="bg-emerald-50 border border-emerald-100 p-4 rounded-lg">
+              <p className="text-sm text-emerald-800 font-medium mb-1">Pagamento via Cartão</p>
+              <p className="text-xs text-emerald-600">Envie este link para o cliente realizar o pagamento.</p>
+            </div>
+            
+            <div className="flex items-center gap-2">
+              <Input
+                readOnly
+                value={paymentLinkData?.url || ""}
+                className="bg-muted font-mono text-xs"
+              />
+              <Button
+                size="icon"
+                variant="outline"
+                onClick={() => {
+                  if (paymentLinkData?.url) {
+                    navigator.clipboard.writeText(paymentLinkData.url);
+                    toast.success("Link copiado!");
+                  }
+                }}
+              >
+                <Copy className="h-4 w-4" />
+              </Button>
+            </div>
+
+            <Button
+              className="w-full bg-emerald-600 hover:bg-emerald-700"
+              asChild
+            >
+              <a href={paymentLinkData?.url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2">
+                <ExternalLink className="w-4 h-4" />
+                Abrir Link de Pagamento
+              </a>
+            </Button>
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setPaymentLinkData(null)}>Fechar</Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>

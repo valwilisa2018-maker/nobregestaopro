@@ -59,6 +59,7 @@ export const createPaymentLink = createServerFn({ method: "POST" })
       amount: z.number().int().positive().max(100000000), // em centavos
       installments: z.number().int().min(1).max(12),
       methods: z.array(z.enum(["credit_card", "pix", "boleto"])).min(1),
+      saleId: z.string().uuid().optional(),
     }).parse(input)
   )
   .handler(async ({ data, context }) => {
@@ -145,16 +146,28 @@ export const createPaymentLink = createServerFn({ method: "POST" })
 
       console.log("[Pagarme] Link de pagamento gerado com sucesso", { id: json.id });
 
-        const { data: saleData, error: saleError } = await supabaseAdmin
-          .from("sales")
-          .update({ pagarme_id: json.id })
-          .is("pagarme_id", null)
-          .order("created_at", { ascending: false })
-          .limit(1)
-          .maybeSingle();
+        if (data.saleId) {
+          const { error: saleError } = await supabaseAdmin
+            .from("sales")
+            .update({ pagarme_id: json.id })
+            .eq("id", data.saleId);
 
-        if (saleError) {
-          console.warn("[Pagarme] Falha ao vincular link à venda mais recente:", saleError);
+          if (saleError) {
+            console.warn(`[Pagarme] Falha ao vincular link à venda ${data.saleId}:`, saleError);
+          }
+        } else {
+          // Fallback para o comportamento anterior (venda mais recente sem link)
+          const { data: saleData, error: saleError } = await supabaseAdmin
+            .from("sales")
+            .update({ pagarme_id: json.id })
+            .is("pagarme_id", null)
+            .order("created_at", { ascending: false })
+            .limit(1)
+            .maybeSingle();
+
+          if (saleError) {
+            console.warn("[Pagarme] Falha ao vincular link à venda mais recente:", saleError);
+          }
         }
 
         return {
