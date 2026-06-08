@@ -35,11 +35,14 @@ serve(async (req) => {
     if (eventType === "order.paid") {
       console.log("[Webhook] Processando pagamento aprovado para:", pagarmeId);
       
-      // Atualizar a venda no banco
+      // Tenta atualizar pelo ID da ordem ou pelo ID do Link de Pagamento
+      const searchId = paymentLinkId || pagarmeId;
+      console.log("[Webhook] Buscando venda por ID:", searchId);
+
       const { data, error } = await supabaseAdmin
         .from("sales")
         .update({ payment_status: "paid" })
-        .eq("pagarme_id", pagarmeId);
+        .eq("pagarme_id", searchId);
       
       if (error) {
         console.error("[Webhook] Erro ao atualizar venda:", error);
