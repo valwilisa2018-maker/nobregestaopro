@@ -116,7 +116,7 @@ function PagarmeHistoryPage() {
 
   const totals = useMemo(() => {
     return filteredData.reduce((acc: any, curr: any) => {
-      const payload = curr.payload || {};
+      const payload = (curr.payload as any) || {};
       const data = payload.data || {};
       const amount = data.amount ? data.amount / 100 : 0;
 
