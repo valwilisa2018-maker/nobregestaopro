@@ -296,7 +296,7 @@ function SalesPage() {
       setEditing(null);
       qc.invalidateQueries();
     } catch (e: any) {
-      toast.error(e.message ?? "Erro ao atualizar");
+      await logger.error(`Erro ao atualizar venda: ${e.message}`, { context: "sales/submitEdit", details: { editing, error: e } });
     } finally { setEditSaving(false); }
   };
 
