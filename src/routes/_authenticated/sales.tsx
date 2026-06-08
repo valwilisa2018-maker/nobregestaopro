@@ -33,6 +33,8 @@ function SalesPage() {
   const [editing, setEditing] = useState<any | null>(null);
   const [viewMode, setViewMode] = useState<"table" | "card">("table");
   const [editSaving, setEditSaving] = useState(false);
+  const [paymentLinkData, setPaymentLinkData] = useState<{ url: string; id: string } | null>(null);
+  const [isGeneratingLink, setIsGeneratingLink] = useState(false);
 
   const sales = useQuery({
     queryKey: ["sales-list"],
