@@ -764,6 +764,36 @@ export type Database = {
         }
         Relationships: []
       }
+      system_logs: {
+        Row: {
+          context: string | null
+          created_at: string
+          details: Json | null
+          id: string
+          level: Database["public"]["Enums"]["log_level"]
+          message: string
+          user_id: string | null
+        }
+        Insert: {
+          context?: string | null
+          created_at?: string
+          details?: Json | null
+          id?: string
+          level?: Database["public"]["Enums"]["log_level"]
+          message: string
+          user_id?: string | null
+        }
+        Update: {
+          context?: string | null
+          created_at?: string
+          details?: Json | null
+          id?: string
+          level?: Database["public"]["Enums"]["log_level"]
+          message?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       telao_settings: {
         Row: {
           big_seller_overlay_seconds: number
@@ -858,6 +888,7 @@ export type Database = {
         | "aguardando_emissao"
         | "pronto_para_envio"
         | "a_fazer"
+      log_level: "INFO" | "WARN" | "ERROR" | "CRITICAL"
       payment_method: "pix" | "cartao" | "boleto"
       payment_status: "pago_total" | "pago_parcial" | "pendente"
     }
@@ -1014,6 +1045,7 @@ export const Constants = {
         "pronto_para_envio",
         "a_fazer",
       ],
+      log_level: ["INFO", "WARN", "ERROR", "CRITICAL"],
       payment_method: ["pix", "cartao", "boleto"],
       payment_status: ["pago_total", "pago_parcial", "pendente"],
     },

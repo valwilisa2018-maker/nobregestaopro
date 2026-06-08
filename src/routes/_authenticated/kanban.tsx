@@ -5,6 +5,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useState, useEffect, useRef, useMemo } from "react";
 import { toast } from "sonner";
+import { logger } from "@/lib/logger";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -188,8 +189,12 @@ function KanbanPage() {
         delivered_at: col?.is_done ? new Date().toISOString() : null 
       })
       .eq("id", cardId);
-    if (error) toast.error(error.message);
-    else { toast.success("Card movido"); qc.invalidateQueries({ queryKey: ["kanban-cards"] }); }
+    if (error) {
+      await logger.error(`Erro ao mover card: ${error.message}`, { context: "kanban/move", details: { cardId, columnId, error } });
+    } else {
+      toast.success("Card movido");
+      qc.invalidateQueries({ queryKey: ["kanban-cards"] });
+    }
   };
 
   const moveMany = async (cardIds: string[], columnId: string) => {
@@ -201,8 +206,12 @@ function KanbanPage() {
         delivered_at: col?.is_done ? new Date().toISOString() : null 
       })
       .in("id", cardIds);
-    if (error) toast.error(error.message);
-    else { toast.success(`${cardIds.length} cards movidos`); qc.invalidateQueries({ queryKey: ["kanban-cards"] }); }
+    if (error) {
+      await logger.error(`Erro ao mover vários cards: ${error.message}`, { context: "kanban/moveMany", details: { cardIds, columnId, error } });
+    } else {
+      toast.success(`${cardIds.length} cards movidos`);
+      qc.invalidateQueries({ queryKey: ["kanban-cards"] });
+    }
   };
 
   const transferCard = async (cardId: string, producerId: string) => {
@@ -210,8 +219,9 @@ function KanbanPage() {
       .from("service_orders")
       .update({ producer_id: producerId })
       .eq("id", cardId);
-    if (error) toast.error(error.message);
-    else { 
+    if (error) {
+      await logger.error(`Erro ao transferir card: ${error.message}`, { context: "kanban/transferCard", details: { cardId, producerId, error } });
+    } else { 
       toast.success("Serviço transferido"); 
       qc.invalidateQueries({ queryKey: ["kanban-cards"] }); 
     }
@@ -222,8 +232,9 @@ function KanbanPage() {
       .from("service_orders")
       .update({ producer_id: producerId })
       .in("id", cardIds);
-    if (error) toast.error(error.message);
-    else { 
+    if (error) {
+      await logger.error(`Erro ao transferir vários cards: ${error.message}`, { context: "kanban/transferMany", details: { cardIds, producerId, error } });
+    } else { 
       toast.success(`${cardIds.length} serviços transferidos`); 
       qc.invalidateQueries({ queryKey: ["kanban-cards"] }); 
     }
@@ -272,7 +283,7 @@ function KanbanPage() {
       setEditing(null);
       qc.invalidateQueries({ queryKey: ["kanban-cards"] });
     } catch (e: any) {
-      toast.error(e.message ?? "Erro ao salvar");
+      await logger.error(`Erro ao salvar card: ${e.message}`, { context: "kanban/saveCard", details: { editing, payload, error: e } });
     } finally { setSaving(false); }
   };
 
@@ -280,7 +291,10 @@ function KanbanPage() {
     if (!editing?.id) return;
     if (!confirm("Excluir este card?")) return;
     const { error } = await supabase.from("service_orders").delete().eq("id", editing.id);
-    if (error) { toast.error(error.message); return; }
+    if (error) {
+      await logger.error(`Erro ao excluir card: ${error.message}`, { context: "kanban/deleteCard", details: { id: editing.id, error } });
+      return;
+    }
     toast.success("Card excluído");
     setEditing(null);
     qc.invalidateQueries({ queryKey: ["kanban-cards"] });

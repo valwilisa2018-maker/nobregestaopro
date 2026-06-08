@@ -15,6 +15,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Plus, Loader2, Pencil, Eye } from "lucide-react";
 import { toast } from "sonner";
+import { logger } from "@/lib/logger";
 import { formatCurrency } from "@/lib/auth";
 import { fmtDate } from "@/lib/format";
 
@@ -213,7 +214,7 @@ function SalesPage() {
       setReceiptFile(null);
       qc.invalidateQueries();
     } catch (e: any) {
-      toast.error(e.message ?? "Erro ao criar venda");
+      await logger.error(`Erro ao criar venda: ${e.message}`, { context: "sales/submit", details: { form, error: e } });
     } finally { setSaving(false); }
   };
 
@@ -295,7 +296,7 @@ function SalesPage() {
       setEditing(null);
       qc.invalidateQueries();
     } catch (e: any) {
-      toast.error(e.message ?? "Erro ao atualizar");
+      await logger.error(`Erro ao atualizar venda: ${e.message}`, { context: "sales/submitEdit", details: { editing, error: e } });
     } finally { setEditSaving(false); }
   };
 

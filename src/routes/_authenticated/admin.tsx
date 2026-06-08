@@ -29,6 +29,7 @@ import {
 import { useCelebrationSettings } from "@/hooks/use-celebration-settings";
 import { Switch } from "@/components/ui/switch";
 import { Slider } from "@/components/ui/slider";
+import { SystemLogsTable } from "@/components/system-logs";
 
 export const Route = createFileRoute("/_authenticated/admin")({
   component: AdminPage,
@@ -289,11 +290,18 @@ function AdminPage() {
           <TabsTrigger value="telao">Telão</TabsTrigger>
           <TabsTrigger value="senha">Senha</TabsTrigger>
           <TabsTrigger value="reset" className="text-destructive">Resetar</TabsTrigger>
+          <TabsTrigger value="logs">
+            <Zap className="w-4 h-4 mr-2" /> Logs
+          </TabsTrigger>
           <TabsTrigger value="audit">Auditoria</TabsTrigger>
         </TabsList>
 
         <TabsContent value="announcements" className="mt-4">
           <AnnouncementsTab />
+        </TabsContent>
+
+        <TabsContent value="logs" className="mt-4">
+          <SystemLogsTable />
         </TabsContent>
 
         <TabsContent value="goals" className="space-y-3 mt-4">

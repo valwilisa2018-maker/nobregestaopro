@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
+import { logger } from "@/lib/logger";
 import { Loader2, Eye, EyeOff } from "lucide-react";
 import logoUrl from "@/assets/logo.png";
 
@@ -61,8 +62,11 @@ function LoginPage() {
     setLoading(true);
     const { error } = await supabase.auth.signInWithPassword({ email, password });
     setLoading(false);
-    if (error) toast.error(translateAuthError(error.message));
-    else toast.success("Bem-vindo!");
+    if (error) {
+      await logger.error(translateAuthError(error.message), { context: "auth/login", details: { email, error } });
+    } else {
+      toast.success("Bem-vindo!");
+    }
   };
 
   const handleSignup = async (e: React.FormEvent) => {
@@ -79,14 +83,20 @@ function LoginPage() {
       options: { data: { full_name: fullName }, emailRedirectTo: window.location.origin },
     });
     setLoading(false);
-    if (error) toast.error(translateAuthError(error.message));
-    else toast.success("Conta criada! Você já pode entrar.");
+    if (error) {
+      await logger.error(translateAuthError(error.message), { context: "auth/signup", details: { email, fullName, error } });
+    } else {
+      toast.success("Conta criada! Você já pode entrar.");
+    }
   };
 
   const handleGoogle = async () => {
     setLoading(true);
     const r = await lovable.auth.signInWithOAuth("google", { redirect_uri: window.location.origin });
-    if (r.error) { toast.error("Falha ao entrar com Google"); setLoading(false); }
+    if (r.error) { 
+      await logger.error("Falha ao entrar com Google", { context: "auth/google", details: r.error });
+      setLoading(false); 
+    }
   };
 
   const handleForgot = async () => {
@@ -96,8 +106,11 @@ function LoginPage() {
       redirectTo: `${window.location.origin}/reset-password`,
     });
     setLoading(false);
-    if (error) toast.error(translateAuthError(error.message));
-    else toast.success("Enviamos um link de recuperação para seu e-mail.");
+    if (error) {
+      await logger.error(translateAuthError(error.message), { context: "auth/forgot-password", details: { email, error } });
+    } else {
+      toast.success("Enviamos um link de recuperação para seu e-mail.");
+    }
   };
 
   return (
