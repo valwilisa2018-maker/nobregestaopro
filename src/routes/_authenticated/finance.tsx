@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -16,7 +16,7 @@ import { Progress } from "@/components/ui/progress";
 import {
   TrendingUp, TrendingDown, DollarSign, Wallet, AlertTriangle, CheckCircle2,
   Clock, Plus, Download, Trash2, Upload, ArrowUpRight, ArrowDownRight, Target,
-  PieChart as PieIcon, BarChart3, Activity,
+  PieChart as PieIcon, BarChart3, Activity, CreditCard,
 } from "lucide-react";
 import {
   ResponsiveContainer, LineChart, Line, AreaChart, Area, BarChart, Bar,
@@ -507,6 +507,7 @@ function FinancePage() {
           <TabsTrigger value="cash"><Wallet className="w-4 h-4 mr-2" />Caixa</TabsTrigger>
           <TabsTrigger value="sales"><BarChart3 className="w-4 h-4 mr-2" />Vendas</TabsTrigger>
           <TabsTrigger value="prod"><Target className="w-4 h-4 mr-2" />Produção</TabsTrigger>
+          <TabsTrigger value="pagarme"><CreditCard className="w-4 h-4 mr-2" />Pagar.me</TabsTrigger>
           <TabsTrigger value="reports"><Download className="w-4 h-4 mr-2" />Relatórios</TabsTrigger>
         </TabsList>
 
@@ -936,6 +937,25 @@ function FinancePage() {
               </CardContent>
             </Card>
           </div>
+        </TabsContent>
+        
+        {/* PAGAR.ME */}
+        <TabsContent value="pagarme" className="space-y-4">
+          <Card className="border-border/50" style={{ boxShadow: "var(--shadow-card)" }}>
+            <CardHeader className="flex flex-row items-center justify-between">
+              <CardTitle className="text-base flex items-center gap-2"><CreditCard className="w-4 h-4 text-emerald-600" /> Histórico de Pagamentos Cartão/PIX</CardTitle>
+              <Button variant="outline" size="sm" asChild>
+                <Link to="/pagarme-history">Ver detalhes completos</Link>
+              </Button>
+            </CardHeader>
+            <CardContent className="p-0 overflow-hidden">
+               <iframe 
+                src="/pagarme-history" 
+                className="w-full h-[800px] border-0" 
+                title="Histórico Pagarme"
+               />
+            </CardContent>
+          </Card>
         </TabsContent>
 
         {/* PRODUCTION */}
