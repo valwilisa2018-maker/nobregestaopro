@@ -294,8 +294,9 @@ function CustomersPage() {
                     <Card key={s.id} className="border-border/50 overflow-hidden">
                       <div className="bg-muted/40 px-4 py-2 border-b flex justify-between items-center text-sm">
                         <span className="font-bold flex items-center gap-2">
-                          <fmtDate date={s.sale_date} />
+                          {fmtDate(s.sale_date)}
                           {s.package_id ? (
+
                             <Badge variant="outline" className="bg-primary/5 text-primary border-primary/20 font-bold uppercase text-[10px]">
                               PACOTE: {lookup.packages.get(s.package_id) ?? "Não identificado"}
                             </Badge>
