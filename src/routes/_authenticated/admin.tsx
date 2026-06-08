@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
-import { CheckCircle2, AlertCircle, AlertTriangle, Loader2, Pencil, Trash2, Bell, Megaphone, Plus, Info, Zap } from "lucide-react";
+import { CheckCircle2, AlertCircle, AlertTriangle, Loader2, Pencil, Trash2, Bell, Megaphone, Plus, Info, Zap, Activity } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -30,6 +30,7 @@ import { useCelebrationSettings } from "@/hooks/use-celebration-settings";
 import { Switch } from "@/components/ui/switch";
 import { Slider } from "@/components/ui/slider";
 import { SystemLogsTable } from "@/components/system-logs";
+import { SystemHealthDashboard } from "@/components/system-health";
 
 export const Route = createFileRoute("/_authenticated/admin")({
   component: AdminPage,
@@ -277,6 +278,9 @@ function AdminPage() {
       </div>
       <Tabs defaultValue="goals">
         <TabsList className="flex-wrap h-auto gap-1">
+          <TabsTrigger value="health">
+            <Activity className="w-4 h-4 mr-2" /> Saúde
+          </TabsTrigger>
           <TabsTrigger value="goals">Metas</TabsTrigger>
           <TabsTrigger value="commissions">Comissões</TabsTrigger>
           <TabsTrigger value="services">Tipos de Serviço</TabsTrigger>
@@ -295,6 +299,10 @@ function AdminPage() {
           </TabsTrigger>
           <TabsTrigger value="audit">Auditoria</TabsTrigger>
         </TabsList>
+
+        <TabsContent value="health" className="mt-4">
+          <SystemHealthDashboard />
+        </TabsContent>
 
         <TabsContent value="announcements" className="mt-4">
           <AnnouncementsTab />
