@@ -108,7 +108,7 @@ export function SystemHealthDashboard() {
             <AlertCircle className="w-4 h-4 text-destructive" />
           </CardHeader>
           <CardContent>
-            <div className={`text-2xl font-bold ${health?.criticalCount && health.criticalCount > 0 ? 'text-destructive' : ''}`}>
+            <div className={`text-2xl font-bold ${typeof health?.criticalCount === 'number' && health.criticalCount > 0 ? 'text-destructive' : ''}`}>
               {health?.criticalCount ?? 0}
             </div>
             <p className="text-xs text-muted-foreground mt-1">Erros de alta prioridade</p>
