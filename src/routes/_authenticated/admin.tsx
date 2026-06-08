@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
-import { CheckCircle2, AlertCircle, AlertTriangle, Loader2, Pencil, Trash2, Bell, Megaphone, Plus, Info, Zap } from "lucide-react";
+import { CheckCircle2, AlertCircle, AlertTriangle, Loader2, Pencil, Trash2, Bell, Megaphone, Plus, Info, Zap, Activity } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
