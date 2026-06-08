@@ -83,8 +83,11 @@ function LoginPage() {
       options: { data: { full_name: fullName }, emailRedirectTo: window.location.origin },
     });
     setLoading(false);
-    if (error) toast.error(translateAuthError(error.message));
-    else toast.success("Conta criada! Você já pode entrar.");
+    if (error) {
+      await logger.error(translateAuthError(error.message), { context: "auth/signup", details: { email, fullName, error } });
+    } else {
+      toast.success("Conta criada! Você já pode entrar.");
+    }
   };
 
   const handleGoogle = async () => {
