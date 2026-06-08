@@ -52,6 +52,33 @@ function SalesPage() {
   const serviceTypes = useQuery({ queryKey: ["st-all"], queryFn: async () => (await supabase.from("service_types").select("id,name").eq("active", true).order("sort_order")).data ?? [] });
   const packages = useQuery({ queryKey: ["pkg-all"], queryFn: async () => (await supabase.from("packages").select("id,name,quantity").eq("active", true)).data ?? [] });
 
+  const handleGenerateLink = async (sale: any) => {
+    setIsGeneratingLink(true);
+    try {
+      const res = await createPaymentLink({
+        data: {
+          name: `Venda ${sale.customers?.name}`,
+          amount: Math.round(Number(sale.total_amount) * 100),
+          installments: 12,
+          methods: ["credit_card"],
+          saleId: sale.id,
+        }
+      });
+
+      if (res.ok) {
+        setPaymentLinkData({ url: res.url, id: res.id || "" });
+        toast.success("Link de pagamento gerado!");
+        qc.invalidateQueries({ queryKey: ["sales-list"] });
+      } else {
+        toast.error(`Erro no Pagar.me: ${res.error}`);
+      }
+    } catch (err: any) {
+      toast.error("Falha ao gerar link");
+    } finally {
+      setIsGeneratingLink(false);
+    }
+  };
+
   const customersAll = useQuery({
     queryKey: ["customers-all"],
     queryFn: async () => (await supabase.from("customers").select("id,name,company,document,phone,email")).data ?? [],
