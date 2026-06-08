@@ -91,6 +91,7 @@ function SalesPage() {
     package_id: "", package_name: "", service_quantity: "1", notes: "", trello_link: "",
     sale_date: new Date().toISOString().slice(0, 10), lead_source: "",
     with_invoice: "sim",
+    installments: "12",
 
   });
 
