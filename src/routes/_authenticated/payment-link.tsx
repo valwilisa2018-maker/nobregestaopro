@@ -9,6 +9,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
 import { Copy, ExternalLink, Loader2, Link2 } from "lucide-react";
 import { createPaymentLink } from "@/lib/pagarme.functions";
+import { supabase } from "@/integrations/supabase/client";
 
 export const Route = createFileRoute("/_authenticated/payment-link")({
   component: PaymentLinkPage,
@@ -36,16 +37,50 @@ function PaymentLinkPage() {
     if (!v || v <= 0) return toast.error("Informe um valor válido");
     const selected = (Object.keys(methods) as Array<keyof typeof methods>).filter((k) => methods[k]);
     if (selected.length === 0) return toast.error("Selecione ao menos um método de pagamento");
+    
     setLoading(true); setLink(null);
     try {
+      // 1. Criar registro de venda pendente no banco
+      const { data: { user } } = await supabase.auth.getUser();
+      const amountInCents = Math.round(v * 100);
+      
+      // Precisamos de um customer_id válido para a tabela sales. 
+      // Por enquanto, vamos buscar o primeiro cliente ou um placeholder se existir.
+      const { data: customer } = await supabase.from("customers").select("id").limit(1).maybeSingle();
+      
+      if (!customer) {
+        throw new Error("Nenhum cliente encontrado para vincular a venda. Cadastre um cliente primeiro.");
+      }
+
+      const { data: sale, error: saleError } = await supabase
+        .from("sales")
+        .insert({
+          customer_id: customer.id,
+          total_amount: v,
+          package_name: name.trim() || "Pagamento",
+          payment_status: "pendente",
+          created_by: user?.id,
+          sale_date: new Date().toISOString().split('T')[0]
+        })
+        .select()
+        .single();
+
+      if (saleError) throw new Error(`Erro ao registrar venda: ${saleError.message}`);
+
+      // 2. Chamar API para gerar link
       const res = await callCreate({ data: {
         name: name.trim() || "Pagamento",
-        amount: Math.round(v * 100),
+        amount: amountInCents,
         installments: Number(installments) || 1,
         methods: selected,
       }});
-      if (!res.ok) toast.error(res.error);
-      else { setLink(res.url); toast.success("Link gerado!"); }
+
+      if (!res.ok) {
+        toast.error(res.error);
+      } else { 
+        setLink(res.url); 
+        toast.success("Link gerado e vinculado à venda!"); 
+      }
     } catch (e: any) {
       toast.error(e?.message ?? "Falha ao gerar link");
     } finally { setLoading(false); }

@@ -15,7 +15,13 @@ export function validatePagarmeKey(key: string): { ok: true } | { ok: false; err
 }
 
 
-export function buildPagarmeBody(data: { name: string; amount: number; installments: number; methods: string[] }) {
+export function buildPagarmeBody(data: { 
+  name: string; 
+  amount: number; 
+  installments: number; 
+  methods: string[];
+  webhookUrl?: string;
+}) {
   const installmentsList = Array.from({ length: data.installments }, (_, i) => ({
     number: i + 1,
     total: data.amount,
@@ -30,6 +36,8 @@ export function buildPagarmeBody(data: { name: string; amount: number; installme
       credit_card_settings: data.methods.includes("credit_card")
         ? { operation_type: "auth_and_capture", installments: installmentsList }
         : undefined,
+      // Adiciona o webhook se fornecido
+      webhook_url: data.webhookUrl,
     },
     cart_settings: {
       items: [
@@ -80,11 +88,15 @@ export const createPaymentLink = createServerFn({ method: "POST" })
       return { ok: false as const, error: `Configuração inválida: ${validation.error}` };
     }
 
+    // URL do Webhook da Edge Function
+    const webhookUrl = `${process.env.SUPABASE_URL}/functions/v1/pagarme-webhook`;
+
     const body = buildPagarmeBody({
       name: data.name,
       amount: data.amount,
       installments: data.installments,
       methods: data.methods,
+      webhookUrl: webhookUrl,
     });
 
     const pagarmeUrl = getPagarmeUrl(apiKey);
@@ -133,16 +145,28 @@ export const createPaymentLink = createServerFn({ method: "POST" })
 
       console.log("[Pagarme] Link de pagamento gerado com sucesso", { id: json.id });
 
-      return {
-        ok: true as const,
-        id: json.id as string | undefined,
-        url: (json.payment_url || json.url || json.short_url) as string,
-      };
-    } catch (error: any) {
-      console.error("[Pagarme] Erro de rede ou exceção ao chamar Pagar.me", error);
-      return { ok: false as const, error: `Falha na comunicação com Pagar.me: ${error.message}` };
-    }
-  });
+        const { data: saleData, error: saleError } = await supabaseAdmin
+          .from("sales")
+          .update({ pagarme_id: json.id })
+          .is("pagarme_id", null)
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
+        if (saleError) {
+          console.warn("[Pagarme] Falha ao vincular link à venda mais recente:", saleError);
+        }
+
+        return {
+          ok: true as const,
+          id: json.id as string | undefined,
+          url: (json.payment_url || json.url || json.short_url) as string,
+        };
+      } catch (error: any) {
+        console.error("[Pagarme] Erro de rede ou exceção ao chamar Pagar.me", error);
+        return { ok: false as const, error: `Falha na comunicação com Pagar.me: ${error.message}` };
+      }
+    });
 
 export const getPagarmeKeyStatus = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
