@@ -15,6 +15,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Plus, Loader2, Pencil, Eye } from "lucide-react";
 import { toast } from "sonner";
+import { logger } from "@/lib/logger";
 import { formatCurrency } from "@/lib/auth";
 import { fmtDate } from "@/lib/format";
 
