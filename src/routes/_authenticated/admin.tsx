@@ -290,6 +290,9 @@ function AdminPage() {
           <TabsTrigger value="telao">Telão</TabsTrigger>
           <TabsTrigger value="senha">Senha</TabsTrigger>
           <TabsTrigger value="reset" className="text-destructive">Resetar</TabsTrigger>
+          <TabsTrigger value="logs">
+            <Zap className="w-4 h-4 mr-2" /> Logs
+          </TabsTrigger>
           <TabsTrigger value="audit">Auditoria</TabsTrigger>
         </TabsList>
 
