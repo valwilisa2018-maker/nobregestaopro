@@ -18,6 +18,8 @@ import { toast } from "sonner";
 import { logger } from "@/lib/logger";
 import { formatCurrency } from "@/lib/auth";
 import { fmtDate } from "@/lib/format";
+import { createPaymentLink } from "@/lib/pagarme.functions";
+import { Copy, Link2, ExternalLink } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/sales")({
   component: SalesPage,
