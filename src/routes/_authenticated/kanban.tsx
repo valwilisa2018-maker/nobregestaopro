@@ -219,8 +219,9 @@ function KanbanPage() {
       .from("service_orders")
       .update({ producer_id: producerId })
       .eq("id", cardId);
-    if (error) toast.error(error.message);
-    else { 
+    if (error) {
+      await logger.error(`Erro ao transferir card: ${error.message}`, { context: "kanban/transferCard", details: { cardId, producerId, error } });
+    } else { 
       toast.success("Serviço transferido"); 
       qc.invalidateQueries({ queryKey: ["kanban-cards"] }); 
     }
@@ -231,8 +232,9 @@ function KanbanPage() {
       .from("service_orders")
       .update({ producer_id: producerId })
       .in("id", cardIds);
-    if (error) toast.error(error.message);
-    else { 
+    if (error) {
+      await logger.error(`Erro ao transferir vários cards: ${error.message}`, { context: "kanban/transferMany", details: { cardIds, producerId, error } });
+    } else { 
       toast.success(`${cardIds.length} serviços transferidos`); 
       qc.invalidateQueries({ queryKey: ["kanban-cards"] }); 
     }
