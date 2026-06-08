@@ -214,7 +214,7 @@ function SalesPage() {
       setReceiptFile(null);
       qc.invalidateQueries();
     } catch (e: any) {
-      toast.error(e.message ?? "Erro ao criar venda");
+      await logger.error(`Erro ao criar venda: ${e.message}`, { context: "sales/submit", details: { form, error: e } });
     } finally { setSaving(false); }
   };
 
