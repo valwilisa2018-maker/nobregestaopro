@@ -189,8 +189,12 @@ function KanbanPage() {
         delivered_at: col?.is_done ? new Date().toISOString() : null 
       })
       .eq("id", cardId);
-    if (error) toast.error(error.message);
-    else { toast.success("Card movido"); qc.invalidateQueries({ queryKey: ["kanban-cards"] }); }
+    if (error) {
+      await logger.error(`Erro ao mover card: ${error.message}`, { context: "kanban/move", details: { cardId, columnId, error } });
+    } else {
+      toast.success("Card movido");
+      qc.invalidateQueries({ queryKey: ["kanban-cards"] });
+    }
   };
 
   const moveMany = async (cardIds: string[], columnId: string) => {
