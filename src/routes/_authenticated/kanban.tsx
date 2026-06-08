@@ -283,7 +283,7 @@ function KanbanPage() {
       setEditing(null);
       qc.invalidateQueries({ queryKey: ["kanban-cards"] });
     } catch (e: any) {
-      toast.error(e.message ?? "Erro ao salvar");
+      await logger.error(`Erro ao salvar card: ${e.message}`, { context: "kanban/saveCard", details: { editing, payload, error: e } });
     } finally { setSaving(false); }
   };
 
@@ -291,7 +291,10 @@ function KanbanPage() {
     if (!editing?.id) return;
     if (!confirm("Excluir este card?")) return;
     const { error } = await supabase.from("service_orders").delete().eq("id", editing.id);
-    if (error) { toast.error(error.message); return; }
+    if (error) {
+      await logger.error(`Erro ao excluir card: ${error.message}`, { context: "kanban/deleteCard", details: { id: editing.id, error } });
+      return;
+    }
     toast.success("Card excluído");
     setEditing(null);
     qc.invalidateQueries({ queryKey: ["kanban-cards"] });
