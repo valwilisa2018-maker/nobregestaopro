@@ -145,16 +145,28 @@ export const createPaymentLink = createServerFn({ method: "POST" })
 
       console.log("[Pagarme] Link de pagamento gerado com sucesso", { id: json.id });
 
-      return {
-        ok: true as const,
-        id: json.id as string | undefined,
-        url: (json.payment_url || json.url || json.short_url) as string,
-      };
-    } catch (error: any) {
-      console.error("[Pagarme] Erro de rede ou exceção ao chamar Pagar.me", error);
-      return { ok: false as const, error: `Falha na comunicação com Pagar.me: ${error.message}` };
-    }
-  });
+        const { data: saleData, error: saleError } = await supabaseAdmin
+          .from("sales")
+          .update({ pagarme_id: json.id })
+          .is("pagarme_id", null)
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
+        if (saleError) {
+          console.warn("[Pagarme] Falha ao vincular link à venda mais recente:", saleError);
+        }
+
+        return {
+          ok: true as const,
+          id: json.id as string | undefined,
+          url: (json.payment_url || json.url || json.short_url) as string,
+        };
+      } catch (error: any) {
+        console.error("[Pagarme] Erro de rede ou exceção ao chamar Pagar.me", error);
+        return { ok: false as const, error: `Falha na comunicação com Pagar.me: ${error.message}` };
+      }
+    });
 
 export const getPagarmeKeyStatus = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
