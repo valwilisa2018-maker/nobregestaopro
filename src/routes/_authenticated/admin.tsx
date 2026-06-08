@@ -278,6 +278,9 @@ function AdminPage() {
       </div>
       <Tabs defaultValue="goals">
         <TabsList className="flex-wrap h-auto gap-1">
+          <TabsTrigger value="health">
+            <Activity className="w-4 h-4 mr-2" /> Saúde
+          </TabsTrigger>
           <TabsTrigger value="goals">Metas</TabsTrigger>
           <TabsTrigger value="commissions">Comissões</TabsTrigger>
           <TabsTrigger value="services">Tipos de Serviço</TabsTrigger>
