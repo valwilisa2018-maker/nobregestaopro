@@ -12,7 +12,17 @@ interface LogOptions {
 
 class Logger {
   private async saveLog(level: LogLevel, message: string, options?: LogOptions) {
-    const { details, context, userId } = options || {};
+    let { details, context, userId } = options || {};
+    
+    // Auto-fill userId if not provided
+    if (!userId) {
+      try {
+        const { data } = await supabase.auth.getSession();
+        userId = data.session?.user?.id;
+      } catch (e) {
+        // Ignore auth errors during logging
+      }
+    }
     
     // Console output for developers
     const consoleMethod = level === "ERROR" || level === "CRITICAL" ? "error" : level === "WARN" ? "warn" : "log";
