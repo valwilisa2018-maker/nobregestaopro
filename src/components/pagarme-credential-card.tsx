@@ -35,6 +35,9 @@ export function PagarmeCredentialCard() {
 
   const saveKey = async () => {
     if (apiKey.trim().length < 10) return toast.error("Chave inválida");
+    if (!apiKey.startsWith("sk_test_") && !apiKey.startsWith("sk_")) {
+      return toast.error("A chave deve começar com 'sk_test_' ou 'sk_'");
+    }
     setSavingKey(true);
     try {
       const res = await callSave({ data: { api_key: apiKey.trim() } });
