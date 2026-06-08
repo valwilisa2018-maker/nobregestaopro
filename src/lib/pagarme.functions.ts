@@ -4,7 +4,8 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { createClient } from "@supabase/supabase-js";
 import type { Database } from "@/integrations/supabase/types";
 
-const PAGARME_URL = "https://api.pagar.me/core/v5/paymentlinks";
+const PAGARME_PRODUCTION_URL = "https://api.pagar.me/core/v5/paymentlinks";
+const PAGARME_TEST_URL = "https://sdx-api.pagar.me/core/v5/paymentlinks";
 
 export const createPaymentLink = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
@@ -44,7 +45,8 @@ export const createPaymentLink = createServerFn({ method: "POST" })
 
     const body = {
       is_building: false,
-      name: data.name,
+      name: data.name.slice(0, 64),
+      type: "order",
       payment_settings: {
         accepted_payment_methods: data.methods,
         credit_card_settings: data.methods.includes("credit_card")
@@ -58,12 +60,13 @@ export const createPaymentLink = createServerFn({ method: "POST" })
       },
     };
 
+    const pagarmeUrl = apiKey.startsWith("sk_test") ? PAGARME_TEST_URL : PAGARME_PRODUCTION_URL;
     const auth = "Basic " + Buffer.from(`${apiKey}:`).toString("base64");
     
     try {
-      console.log("[Pagarme] Enviando requisição para Pagar.me", { url: PAGARME_URL, methods: data.methods });
+      console.log("[Pagarme] Enviando requisição para Pagar.me", { url: pagarmeUrl, methods: data.methods });
       
-      const res = await fetch(PAGARME_URL, {
+      const res = await fetch(pagarmeUrl, {
         method: "POST",
         headers: { 
           "Content-Type": "application/json", 
@@ -89,9 +92,13 @@ export const createPaymentLink = createServerFn({ method: "POST" })
           body_sent: JSON.stringify(body) 
         });
         
-        let msg = json?.message || "Erro desconhecido na API do Pagar.me";
+        let msg = json?.message || json?.detail || json?.title || "Erro desconhecido na API do Pagar.me";
         if (json?.errors && Array.isArray(json.errors)) {
           msg = json.errors.map((e: any) => e.message).join(", ");
+        } else if (json?.errors && typeof json.errors === "object" && Object.keys(json.errors).length > 0) {
+          msg = Object.entries(json.errors)
+            .map(([field, value]) => `${field}: ${Array.isArray(value) ? value.join(", ") : String(value)}`)
+            .join("; ");
         }
         
         return { ok: false as const, error: msg };
