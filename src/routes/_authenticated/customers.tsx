@@ -40,6 +40,10 @@ function CustomersPage() {
   const { search: searchParam } = Route.useSearch();
   const [year, setYear] = useState<string>("all");
   const [month, setMonth] = useState<string>("all");
+  const [period, setPeriod] = useState<string>("all");
+  const [sellerFilter, setSellerFilter] = useState<string>("all");
+  const [producerFilter, setProducerFilter] = useState<string>("all");
+  const [paymentMethodFilter, setPaymentMethodFilter] = useState<string>("all");
   const [search, setSearch] = useState(searchParam || "");
   const [selected, setSelected] = useState<any | null>(null);
   const [receiptsSale, setReceiptsSale] = useState<any | null>(null);
@@ -82,20 +86,47 @@ function CustomersPage() {
 
   const rows = useMemo(() => {
     const term = search.trim().toLowerCase();
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+    const startOfWeek = new Date(now.setDate(now.getDate() - now.getDay())).getTime();
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).getTime();
+    const startOfYear = new Date(now.getFullYear(), 0, 1).getTime();
+
     return (q.data ?? [])
       .map((c: any) => {
         const filteredSales = (c.sales ?? []).filter((s: any) => {
-          if (!s.sale_date) return year === "all" && month === "all";
-          const [y, m] = s.sale_date.split("-");
-          return (year === "all" || y === year) && (month === "all" || m === month);
+          // Date/Period Filter
+          if (period !== "all") {
+            if (!s.sale_date) return false;
+            const saleTime = new Date(s.sale_date).getTime();
+            if (period === "today" && saleTime < today) return false;
+            if (period === "week" && saleTime < startOfWeek) return false;
+            if (period === "month" && saleTime < startOfMonth) return false;
+            if (period === "year" && saleTime < startOfYear) return false;
+          } else {
+            if (!s.sale_date) return year === "all" && month === "all";
+            const [y, m] = s.sale_date.split("-");
+            if ((year !== "all" && y !== year) || (month !== "all" && m !== month)) return false;
+          }
+
+          // Seller Filter
+          if (sellerFilter !== "all" && s.seller_id !== sellerFilter) return false;
+
+          // Producer Filter
+          if (producerFilter !== "all" && s.producer_id !== producerFilter) return false;
+
+          // Payment Method Filter
+          if (paymentMethodFilter !== "all" && s.payment_method !== paymentMethodFilter) return false;
+
+          return true;
         });
         const total = filteredSales.reduce((s: number, x: any) => s + Number(x.total_amount ?? 0), 0);
         const paid = filteredSales.reduce((s: number, x: any) => s + Number(x.paid_amount ?? 0), 0);
         return { ...c, _sales: filteredSales, _total: total, _paid: paid };
       })
-      .filter((c: any) => (year === "all" && month === "all") || c._sales.length > 0)
+      .filter((c: any) => (year === "all" && month === "all" && period === "all" && sellerFilter === "all" && producerFilter === "all" && paymentMethodFilter === "all") || c._sales.length > 0)
       .filter((c: any) => !term || [c.name, c.company, c.document, c.email, c.phone].some((v) => (v ?? "").toString().toLowerCase().includes(term)));
-  }, [q.data, year, month, search]);
+  }, [q.data, year, month, period, sellerFilter, producerFilter, paymentMethodFilter, search]);
 
   const openReceipts = async (sale: any) => {
     setReceiptsSale(sale); setReceipts([]); setLoadingReceipts(true);
@@ -117,12 +148,110 @@ function CustomersPage() {
           <Button variant={viewMode === "card" ? "secondary" : "ghost"} size="sm" className="h-8 w-8 p-0" onClick={() => setViewMode("card")}><LayoutGrid className="h-4 w-4" /></Button>
         </div>
       </div>
-      <Card className="border-border/50"><CardContent className="p-4 grid grid-cols-1 md:grid-cols-4 gap-3">
-        <div><Label className="text-xs">Buscar</Label><div className="relative"><Search className="w-4 h-4 absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground" /><Input className="pl-8" placeholder="Nome, empresa, doc..." value={search} onChange={(e) => setSearch(e.target.value)} /></div></div>
-        <div><Label className="text-xs">Ano</Label><Select value={year} onValueChange={setYear}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="all">Todos os anos</SelectItem>{years.map((y) => <SelectItem key={y} value={y}>{y}</SelectItem>)}</SelectContent></Select></div>
-        <div><Label className="text-xs">Mês</Label><Select value={month} onValueChange={setMonth}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="all">Todos os meses</SelectItem>{MONTHS.map((name, i) => (<SelectItem key={String(i + 1).padStart(2, "0")} value={String(i + 1).padStart(2, "0")}>{name}</SelectItem>))}</SelectContent></Select></div>
-        <div className="flex items-end"><Button variant="outline" className="w-full" onClick={() => { setYear("all"); setMonth("all"); setSearch(""); }}>Limpar filtros</Button></div>
-      </CardContent></Card>
+      <Card className="border-border/50">
+        <CardContent className="p-4 space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+            <div className="md:col-span-2">
+              <Label className="text-xs">Buscar Cliente</Label>
+              <div className="relative">
+                <Search className="w-4 h-4 absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                <Input className="pl-8" placeholder="Nome, empresa, doc, email..." value={search} onChange={(e) => setSearch(e.target.value)} />
+              </div>
+            </div>
+            <div>
+              <Label className="text-xs">Período</Label>
+              <Select value={period} onValueChange={(v) => { setPeriod(v); if (v !== "all") { setYear("all"); setMonth("all"); } }}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos os períodos</SelectItem>
+                  <SelectItem value="today">Hoje</SelectItem>
+                  <SelectItem value="week">Esta Semana</SelectItem>
+                  <SelectItem value="month">Este Mês</SelectItem>
+                  <SelectItem value="year">Este Ano</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex items-end">
+              <Button variant="outline" className="w-full" onClick={() => { 
+                setYear("all"); 
+                setMonth("all"); 
+                setPeriod("all");
+                setSearch(""); 
+                setSellerFilter("all");
+                setProducerFilter("all");
+                setPaymentMethodFilter("all");
+              }}>Limpar filtros</Button>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-5 gap-3 pt-2 border-t">
+            <div>
+              <Label className="text-xs font-semibold">Vendedor</Label>
+              <Select value={sellerFilter} onValueChange={setSellerFilter}>
+                <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Todos" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos</SelectItem>
+                  {sellers.data?.map((s: any) => (
+                    <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label className="text-xs font-semibold">Produtor</Label>
+              <Select value={producerFilter} onValueChange={setProducerFilter}>
+                <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Todos" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos</SelectItem>
+                  {producers.data?.map((p: any) => (
+                    <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label className="text-xs font-semibold">Pagamento</Label>
+              <Select value={paymentMethodFilter} onValueChange={setPaymentMethodFilter}>
+                <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Todos" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos</SelectItem>
+                  <SelectItem value="pix">PIX</SelectItem>
+                  <SelectItem value="credit_card">Cartão de Crédito</SelectItem>
+                  <SelectItem value="bank_transfer">Transferência</SelectItem>
+                  <SelectItem value="cash">Dinheiro</SelectItem>
+                  <SelectItem value="link">Link de Pagamento</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            {period === "all" && (
+              <>
+                <div>
+                  <Label className="text-xs font-semibold">Ano</Label>
+                  <Select value={year} onValueChange={setYear}>
+                    <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Todos</SelectItem>
+                      {years.map((y) => <SelectItem key={y} value={y}>{y}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label className="text-xs font-semibold">Mês</Label>
+                  <Select value={month} onValueChange={setMonth}>
+                    <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Todos</SelectItem>
+                      {MONTHS.map((name, i) => (
+                        <SelectItem key={String(i + 1).padStart(2, "0")} value={String(i + 1).padStart(2, "0")}>{name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </>
+            )}
+          </div>
+        </CardContent>
+      </Card>
       {viewMode === "table" ? (
         <Card className="border-border/50"><CardContent className="p-0">
           <Table><TableHeader><TableRow><TableHead>Cliente</TableHead><TableHead>Empresa</TableHead><TableHead>Documento</TableHead><TableHead>Contato</TableHead><TableHead className="text-right">Vendas</TableHead><TableHead className="text-right">Total</TableHead><TableHead>Status Pgto</TableHead></TableRow></TableHeader>
@@ -327,6 +456,16 @@ function CustomersPage() {
                           <div>
                             <p className="text-[10px] text-muted-foreground uppercase font-bold">Pago</p>
                             <p className="text-sm font-bold text-green-600">{formatCurrency(s.paid_amount)}</p>
+                          </div>
+                          <div>
+                            <p className="text-[10px] text-muted-foreground uppercase font-bold">Pagamento</p>
+                            <p className="text-sm font-medium">
+                              {s.payment_method === "pix" ? "PIX" : 
+                               s.payment_method === "credit_card" ? "Cartão" : 
+                               s.payment_method === "bank_transfer" ? "Transf." : 
+                               s.payment_method === "cash" ? "Dinheiro" : 
+                               s.payment_method === "link" ? "Link" : "—"}
+                            </p>
                           </div>
                         </div>
 
