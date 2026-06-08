@@ -30,6 +30,7 @@ import { useCelebrationSettings } from "@/hooks/use-celebration-settings";
 import { Switch } from "@/components/ui/switch";
 import { Slider } from "@/components/ui/slider";
 import { SystemLogsTable } from "@/components/system-logs";
+import { SystemHealthDashboard } from "@/components/system-health";
 
 export const Route = createFileRoute("/_authenticated/admin")({
   component: AdminPage,
