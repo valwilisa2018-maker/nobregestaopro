@@ -353,6 +353,36 @@ export type Database = {
         }
         Relationships: []
       }
+      pagarme_webhooks: {
+        Row: {
+          created_at: string | null
+          error_message: string | null
+          event_type: string | null
+          id: string
+          pagarme_id: string | null
+          payload: Json
+          processed: boolean | null
+        }
+        Insert: {
+          created_at?: string | null
+          error_message?: string | null
+          event_type?: string | null
+          id?: string
+          pagarme_id?: string | null
+          payload: Json
+          processed?: boolean | null
+        }
+        Update: {
+          created_at?: string | null
+          error_message?: string | null
+          event_type?: string | null
+          id?: string
+          pagarme_id?: string | null
+          payload?: Json
+          processed?: boolean | null
+        }
+        Relationships: []
+      }
       producers: {
         Row: {
           active: boolean
@@ -482,6 +512,7 @@ export type Database = {
           notes: string | null
           package_id: string | null
           package_name: string | null
+          pagarme_id: string | null
           paid_amount: number
           payment_method: Database["public"]["Enums"]["payment_method"] | null
           payment_status: Database["public"]["Enums"]["payment_status"]
@@ -504,6 +535,7 @@ export type Database = {
           notes?: string | null
           package_id?: string | null
           package_name?: string | null
+          pagarme_id?: string | null
           paid_amount?: number
           payment_method?: Database["public"]["Enums"]["payment_method"] | null
           payment_status?: Database["public"]["Enums"]["payment_status"]
@@ -526,6 +558,7 @@ export type Database = {
           notes?: string | null
           package_id?: string | null
           package_name?: string | null
+          pagarme_id?: string | null
           paid_amount?: number
           payment_method?: Database["public"]["Enums"]["payment_method"] | null
           payment_status?: Database["public"]["Enums"]["payment_status"]
