@@ -300,6 +300,10 @@ function AdminPage() {
           <TabsTrigger value="audit">Auditoria</TabsTrigger>
         </TabsList>
 
+        <TabsContent value="health" className="mt-4">
+          <SystemHealthDashboard />
+        </TabsContent>
+
         <TabsContent value="announcements" className="mt-4">
           <AnnouncementsTab />
         </TabsContent>
