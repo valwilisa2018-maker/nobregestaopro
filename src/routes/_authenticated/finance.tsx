@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -937,6 +937,25 @@ function FinancePage() {
               </CardContent>
             </Card>
           </div>
+        </TabsContent>
+        
+        {/* PAGAR.ME */}
+        <TabsContent value="pagarme" className="space-y-4">
+          <Card className="border-border/50" style={{ boxShadow: "var(--shadow-card)" }}>
+            <CardHeader className="flex flex-row items-center justify-between">
+              <CardTitle className="text-base flex items-center gap-2"><CreditCard className="w-4 h-4 text-emerald-600" /> Histórico de Pagamentos Cartão/PIX</CardTitle>
+              <Button variant="outline" size="sm" asChild>
+                <Link to="/pagarme-history">Ver detalhes completos</Link>
+              </Button>
+            </CardHeader>
+            <CardContent className="p-0 overflow-hidden">
+               <iframe 
+                src="/pagarme-history" 
+                className="w-full h-[800px] border-0" 
+                title="Histórico Pagarme"
+               />
+            </CardContent>
+          </Card>
         </TabsContent>
 
         {/* PRODUCTION */}
