@@ -114,6 +114,7 @@ function PendingPaymentsPage() {
             navigate({ to: "/customers", search: { search: customerName } });
           },
         },
+        description: `O comprovante foi salvo e o saldo do cliente atualizado.`
       });
       setSelected(null);
       setFile(null);
