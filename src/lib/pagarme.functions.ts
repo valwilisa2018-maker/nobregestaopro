@@ -7,6 +7,14 @@ import type { Database } from "@/integrations/supabase/types";
 export const PAGARME_PRODUCTION_URL = "https://api.pagar.me/core/v5/paymentlinks";
 export const PAGARME_TEST_URL = "https://sdx-api.pagar.me/core/v5/paymentlinks";
 
+export function validatePagarmeKey(key: string): { ok: true } | { ok: false; error: string } {
+  if (!key) return { ok: false, error: "Chave Pagar.me não fornecida." };
+  if (key.startsWith("sk_test_")) return { ok: true };
+  if (key.startsWith("sk_")) return { ok: true };
+  return { ok: false, error: "Formato de chave Pagar.me inválido. Deve começar com 'sk_test_' ou 'sk_'." };
+}
+
+
 export function buildPagarmeBody(data: { name: string; amount: number; installments: number; methods: string[] }) {
   const installmentsList = Array.from({ length: data.installments }, (_, i) => ({
     number: i + 1,
@@ -64,6 +72,12 @@ export const createPaymentLink = createServerFn({ method: "POST" })
     if (!apiKey) {
       console.error("[Pagarme] Chave API não encontrada no banco ou ENV");
       return { ok: false as const, error: "Credencial Pagar.me não configurada. Peça ao administrador para cadastrar a chave secreta." };
+    }
+
+    const validation = validatePagarmeKey(apiKey);
+    if (!validation.ok) {
+      console.error("[Pagarme] Chave API inválida:", validation.error);
+      return { ok: false as const, error: `Configuração inválida: ${validation.error}` };
     }
 
     const body = buildPagarmeBody({
@@ -156,7 +170,10 @@ export const savePagarmeKey = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input) =>
     z.object({
-      api_key: z.string().trim().min(10).max(200),
+      api_key: z.string().trim().min(10).max(200).refine(
+        (val) => val.startsWith("sk_test_") || val.startsWith("sk_"),
+        { message: "Chave deve começar com 'sk_test_' ou 'sk_'" }
+      ),
     }).parse(input),
   )
   .handler(async ({ data, context }) => {
