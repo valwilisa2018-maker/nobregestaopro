@@ -507,6 +507,7 @@ function FinancePage() {
           <TabsTrigger value="cash"><Wallet className="w-4 h-4 mr-2" />Caixa</TabsTrigger>
           <TabsTrigger value="sales"><BarChart3 className="w-4 h-4 mr-2" />Vendas</TabsTrigger>
           <TabsTrigger value="prod"><Target className="w-4 h-4 mr-2" />Produção</TabsTrigger>
+          <TabsTrigger value="pagarme"><CreditCard className="w-4 h-4 mr-2" />Pagar.me</TabsTrigger>
           <TabsTrigger value="reports"><Download className="w-4 h-4 mr-2" />Relatórios</TabsTrigger>
         </TabsList>
 
