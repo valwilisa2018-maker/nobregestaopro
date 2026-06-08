@@ -93,7 +93,10 @@ function LoginPage() {
   const handleGoogle = async () => {
     setLoading(true);
     const r = await lovable.auth.signInWithOAuth("google", { redirect_uri: window.location.origin });
-    if (r.error) { toast.error("Falha ao entrar com Google"); setLoading(false); }
+    if (r.error) { 
+      await logger.error("Falha ao entrar com Google", { context: "auth/google", details: r.error });
+      setLoading(false); 
+    }
   };
 
   const handleForgot = async () => {
@@ -103,8 +106,11 @@ function LoginPage() {
       redirectTo: `${window.location.origin}/reset-password`,
     });
     setLoading(false);
-    if (error) toast.error(translateAuthError(error.message));
-    else toast.success("Enviamos um link de recuperação para seu e-mail.");
+    if (error) {
+      await logger.error(translateAuthError(error.message), { context: "auth/forgot-password", details: { email, error } });
+    } else {
+      toast.success("Enviamos um link de recuperação para seu e-mail.");
+    }
   };
 
   return (
