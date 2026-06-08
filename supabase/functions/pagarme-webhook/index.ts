@@ -21,7 +21,9 @@ serve(async (req) => {
     console.log("[Webhook] Recebido:", JSON.stringify(payload, null, 2));
 
     const eventType = payload.type; // order.paid, order.canceled, etc.
-    const pagarmeId = payload.data?.id; // ID da ordem ou do objeto principal
+    const data = payload.data || {};
+    const pagarmeId = data.id; // ID da ordem ou do objeto principal
+    const paymentLinkId = data.payment_link_id; // ID do link de pagamento (se houver)
 
     // Logar o webhook
     await supabaseAdmin.from("pagarme_webhooks").insert({
@@ -33,11 +35,14 @@ serve(async (req) => {
     if (eventType === "order.paid") {
       console.log("[Webhook] Processando pagamento aprovado para:", pagarmeId);
       
-      // Atualizar a venda no banco
+      // Tenta atualizar pelo ID da ordem ou pelo ID do Link de Pagamento
+      const searchId = paymentLinkId || pagarmeId;
+      console.log("[Webhook] Buscando venda por ID:", searchId);
+
       const { data, error } = await supabaseAdmin
         .from("sales")
         .update({ payment_status: "paid" })
-        .eq("pagarme_id", pagarmeId);
+        .eq("pagarme_id", searchId);
       
       if (error) {
         console.error("[Webhook] Erro ao atualizar venda:", error);
