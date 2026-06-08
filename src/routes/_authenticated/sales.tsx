@@ -660,6 +660,55 @@ function SalesPage() {
           <DialogFooter><Button variant="outline" onClick={() => setEditing(null)}>Cancelar</Button><Button onClick={submitEdit} disabled={editSaving}>{editSaving && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}Salvar</Button></DialogFooter>
         </DialogContent>
       </Dialog>
+      <Dialog open={!!paymentLinkData} onOpenChange={(open) => !open && setPaymentLinkData(null)}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Link2 className="w-5 h-5 text-emerald-600" />
+              Link de Pagamento Gerado
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="bg-emerald-50 border border-emerald-100 p-4 rounded-lg">
+              <p className="text-sm text-emerald-800 font-medium mb-1">Pagamento via Cartão</p>
+              <p className="text-xs text-emerald-600">Envie este link para o cliente realizar o pagamento.</p>
+            </div>
+            
+            <div className="flex items-center gap-2">
+              <Input
+                readOnly
+                value={paymentLinkData?.url || ""}
+                className="bg-muted font-mono text-xs"
+              />
+              <Button
+                size="icon"
+                variant="outline"
+                onClick={() => {
+                  if (paymentLinkData?.url) {
+                    navigator.clipboard.writeText(paymentLinkData.url);
+                    toast.success("Link copiado!");
+                  }
+                }}
+              >
+                <Copy className="h-4 w-4" />
+              </Button>
+            </div>
+
+            <Button
+              className="w-full bg-emerald-600 hover:bg-emerald-700"
+              asChild
+            >
+              <a href={paymentLinkData?.url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2">
+                <ExternalLink className="w-4 h-4" />
+                Abrir Link de Pagamento
+              </a>
+            </Button>
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setPaymentLinkData(null)}>Fechar</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
