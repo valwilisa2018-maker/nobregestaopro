@@ -88,11 +88,15 @@ export const createPaymentLink = createServerFn({ method: "POST" })
       return { ok: false as const, error: `Configuração inválida: ${validation.error}` };
     }
 
+    // URL do Webhook da Edge Function
+    const webhookUrl = `${process.env.SUPABASE_URL}/functions/v1/pagarme-webhook`;
+
     const body = buildPagarmeBody({
       name: data.name,
       amount: data.amount,
       installments: data.installments,
       methods: data.methods,
+      webhookUrl: webhookUrl,
     });
 
     const pagarmeUrl = getPagarmeUrl(apiKey);
