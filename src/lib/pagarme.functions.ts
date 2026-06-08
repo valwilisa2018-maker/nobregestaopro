@@ -16,14 +16,17 @@ export const createPaymentLink = createServerFn({ method: "POST" })
   )
   .handler(async ({ data, context }) => {
     const { supabase } = context;
-    // Read from DB first (admin-only via RLS); fallback to env secret
+    
     const { data: row } = await supabase
       .from("pagarme_settings")
       .select("api_key")
       .eq("id", true)
       .maybeSingle();
+    
     const apiKey = (row?.api_key as string | undefined) || process.env.PAGARME_API_KEY;
+    
     if (!apiKey) {
+      console.error("[Pagarme] Chave API não encontrada");
       return { ok: false as const, error: "Credencial Pagar.me não configurada. Cadastre a chave secreta no painel." };
     }
 
@@ -49,22 +52,56 @@ export const createPaymentLink = createServerFn({ method: "POST" })
     };
 
     const auth = "Basic " + Buffer.from(`${apiKey}:`).toString("base64");
-    const res = await fetch(PAGARME_URL, {
-      method: "POST",
-      headers: { "Content-Type": "application/json", Authorization: auth },
-      body: JSON.stringify(body),
-    });
+    
+    try {
+      console.log("[Pagarme] Enviando requisição para Pagar.me", { url: PAGARME_URL, methods: data.methods });
+      
+      const res = await fetch(PAGARME_URL, {
+        method: "POST",
+        headers: { 
+          "Content-Type": "application/json", 
+          "Authorization": auth,
+          "Accept": "application/json"
+        },
+        body: JSON.stringify(body),
+      });
 
-    const json: any = await res.json().catch(() => ({}));
-    if (!res.ok) {
-      const msg = json?.message || json?.errors?.[0]?.message || `Erro ${res.status}`;
-      return { ok: false as const, error: msg };
+      const responseText = await res.text();
+      let json: any = {};
+      try {
+        json = JSON.parse(responseText);
+      } catch (e) {
+        console.error("[Pagarme] Falha ao parsear JSON de resposta", responseText);
+        return { ok: false as const, error: `Resposta inválida do Pagar.me (${res.status})` };
+      }
+
+      if (!res.ok) {
+        console.error("[Pagarme] Erro na API do Pagar.me", { 
+          status: res.status, 
+          error: json,
+          body_sent: JSON.stringify(body) 
+        });
+        
+        // Melhora a mensagem de erro para o usuário
+        let msg = json?.message || "Erro desconhecido na API do Pagar.me";
+        if (json?.errors && Array.isArray(json.errors)) {
+          msg = json.errors.map((e: any) => e.message).join(", ");
+        }
+        
+        return { ok: false as const, error: msg };
+      }
+
+      console.log("[Pagarme] Link de pagamento gerado com sucesso", { id: json.id });
+
+      return {
+        ok: true as const,
+        id: json.id as string | undefined,
+        url: (json.payment_url || json.url || json.short_url) as string,
+      };
+    } catch (error: any) {
+      console.error("[Pagarme] Erro de rede ou exceção ao chamar Pagar.me", error);
+      return { ok: false as const, error: `Falha na comunicação com Pagar.me: ${error.message}` };
     }
-    return {
-      ok: true as const,
-      id: json.id as string | undefined,
-      url: (json.url || json.short_url) as string,
-    };
   });
 
 export const getPagarmeKeyStatus = createServerFn({ method: "GET" })
