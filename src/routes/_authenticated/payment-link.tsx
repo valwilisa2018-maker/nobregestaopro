@@ -9,6 +9,8 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
 import { Copy, ExternalLink, Loader2, Link2 } from "lucide-react";
 import { createPaymentLink } from "@/lib/pagarme.functions";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/use-auth";
 
 export const Route = createFileRoute("/_authenticated/payment-link")({
   component: PaymentLinkPage,
