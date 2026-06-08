@@ -71,7 +71,7 @@ function PagarmeHistoryPage() {
       });
 
       return (webhooksData ?? []).map(webhook => {
-        const payload = webhook.payload || {};
+        const payload = (webhook.payload as any) || {};
         const data = payload.data || {};
         
         // Tenta encontrar a venda pelo ID da ordem ou pelo payment_link_id
