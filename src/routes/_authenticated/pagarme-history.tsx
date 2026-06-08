@@ -330,7 +330,7 @@ function PagarmeHistoryPage() {
                 </TableRow>
               )}
               {filteredData.map((webhook: any) => {
-                const payload = webhook.payload || {};
+                const payload = (webhook.payload as any) || {};
                 const data = payload.data || {};
                 const amount = data.amount ? data.amount / 100 : 0;
                 const method = data.charges?.[0]?.payment_method || "—";
