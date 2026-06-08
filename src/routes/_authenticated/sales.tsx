@@ -340,6 +340,12 @@ function SalesPage() {
           <p className="text-muted-foreground">Cadastre e acompanhe todas as vendas</p>
         </div>
         <div className="flex items-center gap-2">
+          {isGeneratingLink && (
+            <div className="flex items-center gap-2 text-sm text-muted-foreground mr-4">
+              <Loader2 className="w-4 h-4 animate-spin" />
+              Gerando link Pagar.me...
+            </div>
+          )}
           <div className="flex items-center bg-muted rounded-lg p-1 mr-2">
             <Button variant={viewMode === "table" ? "secondary" : "ghost"} size="sm" className="h-8 w-8 p-0" onClick={() => setViewMode("table")}><List className="h-4 w-4" /></Button>
             <Button variant={viewMode === "card" ? "secondary" : "ghost"} size="sm" className="h-8 w-8 p-0" onClick={() => setViewMode("card")}><LayoutGrid className="h-4 w-4" /></Button>
