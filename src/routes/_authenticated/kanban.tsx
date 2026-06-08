@@ -206,8 +206,12 @@ function KanbanPage() {
         delivered_at: col?.is_done ? new Date().toISOString() : null 
       })
       .in("id", cardIds);
-    if (error) toast.error(error.message);
-    else { toast.success(`${cardIds.length} cards movidos`); qc.invalidateQueries({ queryKey: ["kanban-cards"] }); }
+    if (error) {
+      await logger.error(`Erro ao mover vários cards: ${error.message}`, { context: "kanban/moveMany", details: { cardIds, columnId, error } });
+    } else {
+      toast.success(`${cardIds.length} cards movidos`);
+      qc.invalidateQueries({ queryKey: ["kanban-cards"] });
+    }
   };
 
   const transferCard = async (cardId: string, producerId: string) => {
