@@ -21,7 +21,9 @@ serve(async (req) => {
     console.log("[Webhook] Recebido:", JSON.stringify(payload, null, 2));
 
     const eventType = payload.type; // order.paid, order.canceled, etc.
-    const pagarmeId = payload.data?.id; // ID da ordem ou do objeto principal
+    const data = payload.data || {};
+    const pagarmeId = data.id; // ID da ordem ou do objeto principal
+    const paymentLinkId = data.payment_link_id; // ID do link de pagamento (se houver)
 
     // Logar o webhook
     await supabaseAdmin.from("pagarme_webhooks").insert({
