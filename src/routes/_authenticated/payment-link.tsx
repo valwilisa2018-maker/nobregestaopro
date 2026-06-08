@@ -50,7 +50,7 @@ function PaymentLinkPage() {
           customer_name: "Cliente Nobre",
           total_amount: v,
           package_name: name.trim() || "Pagamento",
-          payment_status: "pending",
+          payment_status: "pendente",
           created_by: user?.id,
           sale_date: new Date().toISOString().split('T')[0]
         })
