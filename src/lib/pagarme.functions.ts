@@ -59,6 +59,7 @@ export const createPaymentLink = createServerFn({ method: "POST" })
       amount: z.number().int().positive().max(100000000), // em centavos
       installments: z.number().int().min(1).max(12),
       methods: z.array(z.enum(["credit_card", "pix", "boleto"])).min(1),
+      saleId: z.string().uuid().optional(),
     }).parse(input)
   )
   .handler(async ({ data, context }) => {
