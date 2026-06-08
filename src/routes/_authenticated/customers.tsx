@@ -457,6 +457,16 @@ function CustomersPage() {
                             <p className="text-[10px] text-muted-foreground uppercase font-bold">Pago</p>
                             <p className="text-sm font-bold text-green-600">{formatCurrency(s.paid_amount)}</p>
                           </div>
+                          <div>
+                            <p className="text-[10px] text-muted-foreground uppercase font-bold">Pagamento</p>
+                            <p className="text-sm font-medium">
+                              {s.payment_method === "pix" ? "PIX" : 
+                               s.payment_method === "credit_card" ? "Cartão" : 
+                               s.payment_method === "bank_transfer" ? "Transf." : 
+                               s.payment_method === "cash" ? "Dinheiro" : 
+                               s.payment_method === "link" ? "Link" : "—"}
+                            </p>
+                          </div>
                         </div>
 
                         {s.notes && (
