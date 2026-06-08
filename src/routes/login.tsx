@@ -62,8 +62,11 @@ function LoginPage() {
     setLoading(true);
     const { error } = await supabase.auth.signInWithPassword({ email, password });
     setLoading(false);
-    if (error) toast.error(translateAuthError(error.message));
-    else toast.success("Bem-vindo!");
+    if (error) {
+      await logger.error(translateAuthError(error.message), { context: "auth/login", details: { email, error } });
+    } else {
+      toast.success("Bem-vindo!");
+    }
   };
 
   const handleSignup = async (e: React.FormEvent) => {
