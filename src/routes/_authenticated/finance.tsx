@@ -16,7 +16,7 @@ import { Progress } from "@/components/ui/progress";
 import {
   TrendingUp, TrendingDown, DollarSign, Wallet, AlertTriangle, CheckCircle2,
   Clock, Plus, Download, Trash2, Upload, ArrowUpRight, ArrowDownRight, Target,
-  PieChart as PieIcon, BarChart3, Activity,
+  PieChart as PieIcon, BarChart3, Activity, CreditCard,
 } from "lucide-react";
 import {
   ResponsiveContainer, LineChart, Line, AreaChart, Area, BarChart, Bar,
