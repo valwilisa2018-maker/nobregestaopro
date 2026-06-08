@@ -1,6 +1,8 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { createClient } from "@supabase/supabase-js";
+import type { Database } from "@/integrations/supabase/types";
 
 const PAGARME_URL = "https://api.pagar.me/core/v5/paymentlinks";
 
@@ -15,9 +17,14 @@ export const createPaymentLink = createServerFn({ method: "POST" })
     }).parse(input)
   )
   .handler(async ({ data, context }) => {
-    const { supabase } = context;
+    // Usamos o service_role para ler a chave, pois a tabela pagarme_settings 
+    // está protegida por RLS que exige role 'admin', mas vendedores também geram links.
+    const supabaseAdmin = createClient<Database>(
+      process.env.SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!
+    );
     
-    const { data: row } = await supabase
+    const { data: row } = await supabaseAdmin
       .from("pagarme_settings")
       .select("api_key")
       .eq("id", true)
@@ -26,8 +33,8 @@ export const createPaymentLink = createServerFn({ method: "POST" })
     const apiKey = (row?.api_key as string | undefined) || process.env.PAGARME_API_KEY;
     
     if (!apiKey) {
-      console.error("[Pagarme] Chave API não encontrada");
-      return { ok: false as const, error: "Credencial Pagar.me não configurada. Cadastre a chave secreta no painel." };
+      console.error("[Pagarme] Chave API não encontrada no banco ou ENV");
+      return { ok: false as const, error: "Credencial Pagar.me não configurada. Peça ao administrador para cadastrar a chave secreta." };
     }
 
     const installmentsList = Array.from({ length: data.installments }, (_, i) => ({
@@ -82,7 +89,6 @@ export const createPaymentLink = createServerFn({ method: "POST" })
           body_sent: JSON.stringify(body) 
         });
         
-        // Melhora a mensagem de erro para o usuário
         let msg = json?.message || "Erro desconhecido na API do Pagar.me";
         if (json?.errors && Array.isArray(json.errors)) {
           msg = json.errors.map((e: any) => e.message).join(", ");
@@ -108,13 +114,16 @@ export const getPagarmeKeyStatus = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     const { supabase } = context;
+    // Aqui usamos o contexto do usuário (RLS se aplica)
     const { data: row } = await supabase
       .from("pagarme_settings")
       .select("api_key, updated_at")
       .eq("id", true)
       .maybeSingle();
+    
     const key = (row?.api_key as string | undefined) || process.env.PAGARME_API_KEY || "";
     const source = row?.api_key ? ("database" as const) : (process.env.PAGARME_API_KEY ? ("env" as const) : (null as null));
+    
     return {
       configured: !!key,
       source,
