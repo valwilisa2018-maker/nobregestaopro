@@ -179,7 +179,7 @@ function SalesPage() {
         receipt_url = path;
       }
 
-      const { error: se } = await supabase.from("sales").insert({
+      const { data: saleRow, error: se } = await supabase.from("sales").insert({
         customer_id: cust.id,
         total_amount: Number(form.total_amount),
         paid_amount: Number(form.paid_amount || 0),
@@ -197,23 +197,49 @@ function SalesPage() {
         receipt_url,
         sale_date: form.sale_date || new Date().toISOString().slice(0, 10),
         created_by: user?.id,
-      }).select("id").single().then(async (res) => {
-        if (res.error) return { error: res.error };
-        // The service_orders and invoices are generated via DB triggers
-        if (receipt_url && res.data?.id) {
-          await supabase.from("sale_receipts").insert({
-            sale_id: res.data.id,
-            file_path: receipt_url,
-            amount: Number(form.paid_amount || 0),
-            paid_at: form.sale_date || new Date().toISOString().slice(0, 10),
-            uploaded_by: user?.id ?? null,
-            notes: "Comprovante inicial",
-          });
-        }
-        return { error: null };
-      });
+      }).select("id").single();
+
       if (se) throw se;
-      toast.success("Venda criada — cards de produção gerados automaticamente");
+
+      // Se houver comprovante, vincula
+      if (receipt_url && saleRow?.id) {
+        await supabase.from("sale_receipts").insert({
+          sale_id: saleRow.id,
+          file_path: receipt_url,
+          amount: Number(form.paid_amount || 0),
+          paid_at: form.sale_date || new Date().toISOString().slice(0, 10),
+          uploaded_by: user?.id ?? null,
+          notes: "Comprovante inicial",
+        });
+      }
+
+      // Se for Cartão, gera o link do Pagar.me automaticamente
+      if (form.payment_method === "cartao" && saleRow?.id) {
+        setIsGeneratingLink(true);
+        try {
+          const res = await createPaymentLink({
+            name: `Venda ${cust.name}`,
+            amount: Math.round(Number(form.total_amount) * 100), // Pagar.me usa centavos
+            installments: 12, // Padrão
+            methods: ["credit_card"],
+            saleId: saleRow.id,
+          });
+
+          if (res.ok) {
+            setPaymentLinkData({ url: res.url, id: res.id || "" });
+            toast.success("Link de pagamento gerado com sucesso!");
+          } else {
+            toast.error(`Venda criada, mas erro no Pagar.me: ${res.error}`);
+          }
+        } catch (err: any) {
+          console.error("Erro ao gerar link Pagar.me:", err);
+          toast.error("Venda criada, mas falha ao conectar com Pagar.me");
+        } finally {
+          setIsGeneratingLink(false);
+        }
+      } else {
+        toast.success("Venda criada — cards de produção gerados automaticamente");
+      }
       setOpen(false);
       setReceiptFile(null);
       qc.invalidateQueries();
