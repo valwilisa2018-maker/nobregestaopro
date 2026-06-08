@@ -41,7 +41,7 @@ function SalesPage() {
     queryFn: async () => {
       const { data } = await supabase
         .from("sales")
-        .select("*, customers(name,company), sellers(name), producers(name), service_types(name), sale_receipts(*)")
+        .select("*, customers(name,company), sellers(name), producers(name), service_types(name), sale_receipts(*), pagarme_history:pagarme_webhooks!pagarme_id(id, event_type)")
         .order("sale_date", { ascending: false });
       return data ?? [];
     },
