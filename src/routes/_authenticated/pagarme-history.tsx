@@ -98,7 +98,7 @@ function PagarmeHistoryPage() {
                 
                 return (
                   <TableRow key={webhook.id}>
-                    <TableCell className="whitespace-nowrap">{fmtDate(webhook.created_at, true)}</TableCell>
+                    <TableCell className="whitespace-nowrap">{fmtDate(webhook.created_at)}</TableCell>
                     <TableCell className="font-mono text-xs">{webhook.pagarme_id || "—"}</TableCell>
                     <TableCell className="capitalize">{webhook.event_type?.replace(/\./g, ' ')}</TableCell>
                     <TableCell>{getStatusBadge(webhook.event_type)}</TableCell>
