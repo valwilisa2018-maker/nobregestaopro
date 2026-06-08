@@ -300,6 +300,10 @@ function AdminPage() {
           <AnnouncementsTab />
         </TabsContent>
 
+        <TabsContent value="logs" className="mt-4">
+          <SystemLogsTable />
+        </TabsContent>
+
         <TabsContent value="goals" className="space-y-3 mt-4">
           {(goals.data ?? []).map((g: any) => (
             <Card key={g.id} className="border-border/50"><CardContent className="p-4 flex items-center gap-3">
