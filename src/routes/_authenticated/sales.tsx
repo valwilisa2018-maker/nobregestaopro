@@ -218,11 +218,13 @@ function SalesPage() {
         setIsGeneratingLink(true);
         try {
           const res = await createPaymentLink({
-            name: `Venda ${cust.name}`,
-            amount: Math.round(Number(form.total_amount) * 100), // Pagar.me usa centavos
-            installments: 12, // Padrão
-            methods: ["credit_card"],
-            saleId: saleRow.id,
+            data: {
+              name: `Venda ${form.customer_name}`,
+              amount: Math.round(Number(form.total_amount) * 100), // Pagar.me usa centavos
+              installments: 12, // Padrão
+              methods: ["credit_card"],
+              saleId: saleRow.id,
+            }
           });
 
           if (res.ok) {
