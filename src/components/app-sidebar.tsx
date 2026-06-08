@@ -2,6 +2,7 @@ import { Link, useRouterState, useNavigate } from "@tanstack/react-router";
 import {
   LayoutDashboard, ShoppingCart, KanbanSquare, Users, UserCheck, Briefcase,
   FileText, Settings, LogOut, ListTodo, Database, Sun, Moon, Link2, Wallet, DollarSign, Tv, AlertCircle,
+  CreditCard,
 } from "lucide-react";
 import logoUrl from "@/assets/logo.png";
 import {
