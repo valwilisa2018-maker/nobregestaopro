@@ -16,11 +16,27 @@ export const Route = createFileRoute("/_authenticated/services-todo")({
     const q = useQuery({
       queryKey: ["services-todo"],
       queryFn: async () => {
-        const { data } = await supabase
+        const { data, error } = await supabase
           .from("service_orders")
           .select("*, kanban_columns(name,is_done,color), sales(customers(name,company), producers(name), service_types(name))")
           .order("due_date", { ascending: true });
-        return (data ?? []).filter((o: any) => !o.kanban_columns?.is_done);
+        
+        if (error) {
+          console.error("Erro ao buscar serviços:", error);
+          throw error;
+        }
+
+        const orders = data ?? [];
+        console.log("Serviços encontrados:", orders.length);
+        
+        const filtered = orders.filter((o: any) => {
+          // Se não tiver coluna vinculada, assume que não está pronto
+          if (!o.kanban_columns) return true;
+          return !o.kanban_columns.is_done;
+        });
+
+        console.log("Serviços após filtro is_done:", filtered.length);
+        return filtered;
       },
     });
     const filtered = useMemo(() => {
