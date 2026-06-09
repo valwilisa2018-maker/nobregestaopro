@@ -505,9 +505,9 @@ function SalesPage() {
                   </Select>
                 </div>
                 <div className="col-span-2">
-                  <Label>Link Trello / card externo *</Label>
+                  <Label>Link Google Drive *</Label>
                   <div className="flex gap-2">
-                    <Input value={form.trello_link} onChange={(e) => set("trello_link", e.target.value)} />
+                    <Input placeholder="Cole o link do Google aqui" value={form.trello_link} onChange={(e) => set("trello_link", e.target.value)} />
                     <Button type="button" variant="outline" onClick={() => window.open("https://drive.google.com/drive/u/0/home", "_blank", "noopener,noreferrer")}>Abrir Google Drive</Button>
                   </div>
                 </div>
