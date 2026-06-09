@@ -173,8 +173,8 @@ function SalesPage() {
         toast.error(`Preencha o campo: ${label}`);
         return;
       }
-      if (k === "trello_link" && !val.toLowerCase().includes("google.com")) {
-        toast.error("O link deve ser um link válido do Google (ex: Drive ou Documentos)");
+      if (k === "trello_link" && !val.toLowerCase().match(/^https:\/\/drive\.google\.com\//)) {
+        toast.error("O link deve ser um link de compartilhamento válido do Google Drive (ex: https://drive.google.com/...)");
         return;
       }
     }
@@ -323,8 +323,8 @@ function SalesPage() {
         setEditSaving(false);
         return;
       }
-      if (!String(editing.trello_link || "").toLowerCase().includes("google.com")) {
-        toast.error("O link deve ser um link válido do Google (ex: Drive ou Documentos)");
+      if (!String(editing.trello_link || "").toLowerCase().match(/^https:\/\/drive\.google\.com\//)) {
+        toast.error("O link deve ser um link de compartilhamento válido do Google Drive (ex: https://drive.google.com/...)");
         setEditSaving(false);
         return;
       }
