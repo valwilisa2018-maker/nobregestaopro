@@ -178,7 +178,7 @@ function FinancePage() {
       const d = new Date(); d.setDate(1); d.setMonth(d.getMonth() - i);
       const key = d.toISOString().slice(0, 7);
       const label = d.toLocaleDateString("pt-BR", { month: "short", year: "2-digit" });
-      const fat = totalSale(salesAll.filter((s: any) => (s.sale_date ?? "").startsWith(key)));
+      const fat = totalSale(salesAll.filter((s: any) => (s.sale_date ?? "").startsWith(key) && s.payment_method !== "cartao"));
       const desp = expensesAll.filter((e: any) => (e.paid_date ?? e.due_date ?? "").startsWith(key)).reduce((a: number, e: any) => a + Number(e.amount), 0);
       months.push({ mes: label, Faturamento: fat, Despesas: desp, Lucro: fat - desp });
     }
