@@ -10,7 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { MessageCircle, Search, Mail, Phone, Building2, FileText, Paperclip, Loader2, LayoutGrid, List, User } from "lucide-react";
+import { MessageCircle, Search, Mail, Phone, Building2, FileText, Paperclip, Loader2, LayoutGrid, List, User, Trash2 } from "lucide-react";
 import { formatCurrency } from "@/lib/auth";
 import { fmtDate } from "@/lib/format";
 import { toast } from "sonner";
@@ -157,6 +157,40 @@ function CustomersPage() {
       if (list.length === 0 && sale.receipt_url) list = [{ id: "legacy", file_path: sale.receipt_url, amount: sale.paid_amount ?? 0, paid_at: sale.sale_date, notes: "Comprovante inicial", created_at: new Date().toISOString(), sale_id: sale.id, uploaded_by: null } as any];
       setReceipts(list);
     } catch (e: any) { toast.error(e.message ?? "Erro ao carregar comprovantes"); } finally { setLoadingReceipts(false); }
+  };
+
+  const deleteCustomer = async (id: string, name: string) => {
+    if (!window.confirm(`Excluir o cliente "${name}"? Esta ação removerá o cliente e todas as suas vendas e pedidos de serviço vinculados. Esta ação não pode ser desfeita.`)) return;
+    
+    try {
+      // Deletar dependências primeiro (embora o ideal seria ter ON DELETE CASCADE no banco, vamos ser cautelosos)
+      // Primeiro buscamos as vendas do cliente
+      const { data: customerSales } = await supabase.from("sales").select("id").eq("customer_id", id);
+      
+      if (customerSales && customerSales.length > 0) {
+        const saleIds = customerSales.map(s => s.id);
+        
+        // Deletar pedidos de serviço, faturas e comprovantes vinculados às vendas
+        await supabase.from("service_orders").delete().in("sale_id", saleIds);
+        await supabase.from("invoices").delete().in("sale_id", saleIds);
+        await supabase.from("sale_receipts").delete().in("sale_id", saleIds);
+        
+        // Deletar as vendas
+        await supabase.from("sales").delete().eq("customer_id", id);
+      }
+      
+      // Finalmente deletar o cliente
+      const { error } = await supabase.from("customers").delete().eq("id", id);
+      
+      if (error) throw error;
+      
+      toast.success("Cliente e dados vinculados excluídos com sucesso");
+      setSelected(null);
+      q.refetch();
+    } catch (e: any) {
+      console.error("Erro ao excluir cliente:", e);
+      toast.error("Erro ao excluir cliente: " + e.message);
+    }
   };
 
   return (
