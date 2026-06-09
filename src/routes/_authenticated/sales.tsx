@@ -318,18 +318,17 @@ function SalesPage() {
     if (!editing || editSaving) return;
     setEditSaving(true);
     try {
-      if (editing.with_invoice === "sim") {
-        if (!String(editing.company || "").trim()) {
-          toast.error("Preencha o campo: Empresa (obrigatório para vendas com nota)");
-          setEditSaving(false);
-          return;
-        }
-        if (!String(editing.document || "").trim()) {
-          toast.error("Preencha o campo: CPF/CNPJ (obrigatório para vendas com nota)");
-          setEditSaving(false);
-          return;
-        }
+      if (!String(editing.trello_link || "").trim()) {
+        toast.error("Preencha o campo: Link Google Drive");
+        setEditSaving(false);
+        return;
       }
+      if (!String(editing.trello_link || "").toLowerCase().includes("google.com")) {
+        toast.error("O link deve ser um link válido do Google (ex: Drive ou Documentos)");
+        setEditSaving(false);
+        return;
+      }
+      if (editing.with_invoice === "sim") {
       if (editing.customer_id) {
         const { error: cuError } = await supabase.from("customers").update({
           name: editing.customer_name || editing.customers?.name,
