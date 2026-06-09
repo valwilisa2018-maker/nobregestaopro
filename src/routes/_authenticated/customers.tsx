@@ -308,7 +308,7 @@ function CustomersPage() {
       </Card>
       {viewMode === "table" ? (
         <Card className="border-border/50"><CardContent className="p-0">
-          <Table><TableHeader><TableRow><TableHead>Cliente</TableHead><TableHead>Empresa</TableHead><TableHead>Documento</TableHead><TableHead>Contato</TableHead><TableHead className="text-right">Vendas</TableHead><TableHead className="text-right">Total</TableHead><TableHead>Status Pgto</TableHead></TableRow></TableHeader>
+          <Table><TableHeader><TableRow><TableHead>Cliente</TableHead><TableHead>Empresa</TableHead><TableHead>Documento</TableHead><TableHead>Contato</TableHead><TableHead className="text-right">Vendas</TableHead><TableHead className="text-right">Total</TableHead><TableHead>Status Pgto</TableHead><TableHead className="w-[50px]"></TableHead></TableRow></TableHeader>
             <TableBody>
               {rows.map((c: any) => {
                 const isPaid = c._paid >= c._total && c._total > 0;
@@ -344,10 +344,15 @@ function CustomersPage() {
                         <Badge variant="outline">—</Badge>
                       )}
                     </TableCell>
+                    <TableCell onClick={(e) => e.stopPropagation()}>
+                      <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-muted-foreground hover:text-destructive" onClick={() => deleteCustomer(c.id, c.name)}>
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </TableCell>
                   </TableRow>
                 );
               })}
-              {rows.length === 0 && <TableRow><TableCell colSpan={7} className="text-center text-muted-foreground py-8">Nenhum cliente encontrado</TableCell></TableRow>}
+              {rows.length === 0 && <TableRow><TableCell colSpan={8} className="text-center text-muted-foreground py-8">Nenhum cliente encontrado</TableCell></TableRow>}
             </TableBody>
           </Table>
         </CardContent></Card>
@@ -372,7 +377,12 @@ function CustomersPage() {
                       </div>
                     </div>
                     <div className="flex flex-col items-end gap-1">
-                      <Badge variant="secondary">{c._sales.length} vendas</Badge>
+                      <div className="flex gap-1">
+                        <Button variant="ghost" size="sm" className="h-7 w-7 p-0 text-muted-foreground hover:text-destructive" onClick={(e) => { e.stopPropagation(); deleteCustomer(c.id, c.name); }}>
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </Button>
+                        <Badge variant="secondary">{c._sales.length} vendas</Badge>
+                      </div>
                       {isPaid ? (
                         <Badge className="text-[10px] bg-green-100 text-green-700 border-green-200">PAGO TOTAL</Badge>
                       ) : isPartial ? (
