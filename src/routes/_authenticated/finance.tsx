@@ -153,7 +153,7 @@ function FinancePage() {
     despMes: expensesAll.filter((e: any) => (e.paid_date ?? e.due_date) >= monthStart).reduce((a: number, e: any) => a + Number(e.amount), 0),
   };
 
-  const totalRecebidoMes = totalPaid(salesAll.filter((s: any) => s.sale_date >= monthStart));
+  const totalRecebidoMes = totalPaid(salesAll.filter((s: any) => s.sale_date >= monthStart && s.payment_method !== "cartao"));
   const lucroBruto = totalRecebidoMes;
   const despesasPagasMes = expensesAll.filter((e: any) => e.status === "pago" && e.paid_date && e.paid_date >= monthStart)
     .reduce((a: number, e: any) => a + Number(e.amount), 0);
@@ -164,7 +164,7 @@ function FinancePage() {
   const entradasManuais = moves.filter((m: any) => m.movement_type === "entrada").reduce((a: number, m: any) => a + Number(m.amount), 0);
   const saidasManuais = moves.filter((m: any) => m.movement_type === "saida").reduce((a: number, m: any) => a + Number(m.amount), 0);
   const totalDespesasPagas = expensesAll.filter((e: any) => e.status === "pago").reduce((a: number, e: any) => a + Number(e.amount), 0);
-  const saldoCaixa = totalPaid(salesAll) + entradasManuais - totalDespesasPagas - saidasManuais;
+  const saldoCaixa = totalPaid(salesAll.filter((s: any) => s.payment_method !== "cartao")) + entradasManuais - totalDespesasPagas - saidasManuais;
 
   const metaMensal = Number((goals.data ?? []).find((g: any) => g.period === "monthly")?.target_amount ?? 0);
   const metaPct = metaMensal > 0 ? Math.min(100, (k.mes / metaMensal) * 100) : 0;
@@ -222,7 +222,7 @@ function FinancePage() {
     for (let i = 11; i >= 0; i--) {
       const d = new Date(); d.setDate(1); d.setMonth(d.getMonth() - i);
       const key = d.toISOString().slice(0, 7);
-      const ent = totalPaid(salesAll.filter((s: any) => (s.sale_date ?? "").startsWith(key)))
+      const ent = totalPaid(salesAll.filter((s: any) => (s.sale_date ?? "").startsWith(key) && s.payment_method !== "cartao"))
         + moves.filter((m: any) => m.movement_type === "entrada" && m.movement_date.startsWith(key)).reduce((a: number, m: any) => a + Number(m.amount), 0);
       const sai = expensesAll.filter((e: any) => e.status === "pago" && (e.paid_date ?? "").startsWith(key)).reduce((a: number, e: any) => a + Number(e.amount), 0)
         + moves.filter((m: any) => m.movement_type === "saida" && m.movement_date.startsWith(key)).reduce((a: number, m: any) => a + Number(m.amount), 0);
@@ -792,7 +792,7 @@ function FinancePage() {
         {/* CASH */}
         <TabsContent value="cash" className="space-y-4">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-            <Kpi color="green" icon={ArrowDownRight} label="Entradas (vendas pagas)" value={totalPaid(salesAll)} />
+            <Kpi color="green" icon={ArrowDownRight} label="Entradas (vendas pagas exceto cartão)" value={totalPaid(salesAll.filter((s: any) => s.payment_method !== "cartao"))} />
             <Kpi color="green" icon={ArrowDownRight} label="Entradas manuais" value={entradasManuais} />
             <Kpi color="red" icon={ArrowUpRight} label="Saídas (despesas + manuais)" value={totalDespesasPagas + saidasManuais} />
             <Kpi color={saldoCaixa >= 0 ? "green" : "red"} icon={Wallet} label="Saldo atual" value={saldoCaixa} />
