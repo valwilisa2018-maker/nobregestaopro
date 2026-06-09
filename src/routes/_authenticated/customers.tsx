@@ -58,18 +58,38 @@ function CustomersPage() {
   const q = useQuery({
     queryKey: ["customers-all"],
     queryFn: async () => {
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from("customers")
         .select("*, sales(id, sale_date, total_amount, paid_amount, payment_status, payment_method, service_quantity, notes, seller_id, service_type_id, producer_id, package_id, receipt_url, created_at)")
         .order("created_at", { ascending: false });
+      if (error) {
+        toast.error("Erro ao carregar clientes: " + error.message);
+        throw error;
+      }
       return data ?? [];
     },
   });
 
-  const sellers = useQuery({ queryKey: ["sellers-min"], queryFn: async () => (await supabase.from("sellers").select("id, name")).data ?? [] });
-  const services = useQuery({ queryKey: ["service-types-min"], queryFn: async () => (await supabase.from("service_types").select("id, name")).data ?? [] });
-  const producers = useQuery({ queryKey: ["producers-min"], queryFn: async () => (await supabase.from("producers").select("id, name")).data ?? [] });
-  const packages = useQuery({ queryKey: ["packages-min"], queryFn: async () => (await supabase.from("packages").select("id, name")).data ?? [] });
+  const sellers = useQuery({ queryKey: ["sellers-min"], queryFn: async () => {
+    const { data, error } = await supabase.from("sellers").select("id, name");
+    if (error) { toast.error("Erro ao carregar vendedores"); throw error; }
+    return data ?? [];
+  }});
+  const services = useQuery({ queryKey: ["service-types-min"], queryFn: async () => {
+    const { data, error } = await supabase.from("service_types").select("id, name");
+    if (error) { toast.error("Erro ao carregar serviços"); throw error; }
+    return data ?? [];
+  }});
+  const producers = useQuery({ queryKey: ["producers-min"], queryFn: async () => {
+    const { data, error } = await supabase.from("producers").select("id, name");
+    if (error) { toast.error("Erro ao carregar produtores"); throw error; }
+    return data ?? [];
+  }});
+  const packages = useQuery({ queryKey: ["packages-min"], queryFn: async () => {
+    const { data, error } = await supabase.from("packages").select("id, name");
+    if (error) { toast.error("Erro ao carregar pacotes"); throw error; }
+    return data ?? [];
+  }});
 
   const lookup = useMemo(() => ({
     sellers: new Map((sellers.data ?? []).map((s: any) => [s.id, s.name])),
