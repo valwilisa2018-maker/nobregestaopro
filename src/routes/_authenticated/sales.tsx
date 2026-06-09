@@ -151,7 +151,7 @@ function SalesPage() {
       ["phone", "Telefone"], ["total_amount", "Valor total"], ["paid_amount", "Valor pago"],
       ["payment_status", "Status pagamento"], ["payment_method", "Forma de pagamento"],
       ["seller_id", "Vendedor"], ["producer_id", "Produtor"], ["service_type_id", "Tipo de serviço"],
-      ["service_quantity", "Qtd. serviços"], ["sale_date", "Data da venda"], ["trello_link", "Link Trello"],
+      ["service_quantity", "Qtd. serviços"], ["sale_date", "Data da venda"], ["trello_link", "Link Google Drive"],
       ["lead_source", "Origem da venda"],
     ];
 
@@ -168,8 +168,13 @@ function SalesPage() {
     }
 
     for (const [k, label] of required) {
-      if (!String((form as any)[k] ?? "").trim()) {
+      const val = String((form as any)[k] ?? "").trim();
+      if (!val) {
         toast.error(`Preencha o campo: ${label}`);
+        return;
+      }
+      if (k === "trello_link" && !val.toLowerCase().includes("google.com")) {
+        toast.error("O link deve ser um link válido do Google (ex: Drive ou Documentos)");
         return;
       }
     }
@@ -313,6 +318,16 @@ function SalesPage() {
     if (!editing || editSaving) return;
     setEditSaving(true);
     try {
+      if (!String(editing.trello_link || "").trim()) {
+        toast.error("Preencha o campo: Link Google Drive");
+        setEditSaving(false);
+        return;
+      }
+      if (!String(editing.trello_link || "").toLowerCase().includes("google.com")) {
+        toast.error("O link deve ser um link válido do Google (ex: Drive ou Documentos)");
+        setEditSaving(false);
+        return;
+      }
       if (editing.with_invoice === "sim") {
         if (!String(editing.company || "").trim()) {
           toast.error("Preencha o campo: Empresa (obrigatório para vendas com nota)");
@@ -490,9 +505,9 @@ function SalesPage() {
                   </Select>
                 </div>
                 <div className="col-span-2">
-                  <Label>Link Trello / card externo *</Label>
+                  <Label>Link Google Drive *</Label>
                   <div className="flex gap-2">
-                    <Input value={form.trello_link} onChange={(e) => set("trello_link", e.target.value)} />
+                    <Input placeholder="Cole o link do Google aqui" value={form.trello_link} onChange={(e) => set("trello_link", e.target.value)} />
                     <Button type="button" variant="outline" onClick={() => window.open("https://drive.google.com/drive/u/0/home", "_blank", "noopener,noreferrer")}>Abrir Google Drive</Button>
                   </div>
                 </div>
@@ -699,9 +714,9 @@ function SalesPage() {
                 </Select>
               </div>
               <div className="col-span-2">
-                <Label>Link Trello / card externo *</Label>
+                <Label>Link Google Drive *</Label>
                 <div className="flex gap-2">
-                  <Input value={editing.trello_link ?? ""} onChange={(e) => editSet("trello_link", e.target.value)} />
+                  <Input placeholder="Cole o link do Google aqui" value={editing.trello_link ?? ""} onChange={(e) => editSet("trello_link", e.target.value)} />
                   <Button type="button" variant="outline" onClick={() => window.open("https://drive.google.com/drive/u/0/home", "_blank", "noopener,noreferrer")}>Abrir Google Drive</Button>
                 </div>
               </div>
