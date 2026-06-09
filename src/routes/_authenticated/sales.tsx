@@ -168,8 +168,13 @@ function SalesPage() {
     }
 
     for (const [k, label] of required) {
-      if (!String((form as any)[k] ?? "").trim()) {
+      const val = String((form as any)[k] ?? "").trim();
+      if (!val) {
         toast.error(`Preencha o campo: ${label}`);
+        return;
+      }
+      if (k === "trello_link" && !val.toLowerCase().includes("google.com")) {
+        toast.error("O link deve ser um link válido do Google (ex: Drive ou Documentos)");
         return;
       }
     }
