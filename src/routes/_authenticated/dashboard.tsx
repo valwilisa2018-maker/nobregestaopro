@@ -13,6 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { formatCurrency } from "@/lib/auth";
+import { toast } from "sonner";
 import {
   DollarSign, TrendingUp, Calendar, Trophy, AlertCircle,
   Package, FileText, FileCheck2, ListTodo, Truck, ShoppingCart, Users, Factory, Filter, X, Sparkles,
