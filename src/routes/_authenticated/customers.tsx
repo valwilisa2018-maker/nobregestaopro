@@ -10,7 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { MessageCircle, Search, Mail, Phone, Building2, FileText, Paperclip, Loader2, LayoutGrid, List, User } from "lucide-react";
+import { MessageCircle, Search, Mail, Phone, Building2, FileText, Paperclip, Loader2, LayoutGrid, List, User, Trash2 } from "lucide-react";
 import { formatCurrency } from "@/lib/auth";
 import { fmtDate } from "@/lib/format";
 import { toast } from "sonner";
@@ -159,6 +159,40 @@ function CustomersPage() {
     } catch (e: any) { toast.error(e.message ?? "Erro ao carregar comprovantes"); } finally { setLoadingReceipts(false); }
   };
 
+  const deleteCustomer = async (id: string, name: string) => {
+    if (!window.confirm(`Excluir o cliente "${name}"? Esta ação removerá o cliente e todas as suas vendas e pedidos de serviço vinculados. Esta ação não pode ser desfeita.`)) return;
+    
+    try {
+      // Deletar dependências primeiro (embora o ideal seria ter ON DELETE CASCADE no banco, vamos ser cautelosos)
+      // Primeiro buscamos as vendas do cliente
+      const { data: customerSales } = await supabase.from("sales").select("id").eq("customer_id", id);
+      
+      if (customerSales && customerSales.length > 0) {
+        const saleIds = customerSales.map(s => s.id);
+        
+        // Deletar pedidos de serviço, faturas e comprovantes vinculados às vendas
+        await supabase.from("service_orders").delete().in("sale_id", saleIds);
+        await supabase.from("invoices").delete().in("sale_id", saleIds);
+        await supabase.from("sale_receipts").delete().in("sale_id", saleIds);
+        
+        // Deletar as vendas
+        await supabase.from("sales").delete().eq("customer_id", id);
+      }
+      
+      // Finalmente deletar o cliente
+      const { error } = await supabase.from("customers").delete().eq("id", id);
+      
+      if (error) throw error;
+      
+      toast.success("Cliente e dados vinculados excluídos com sucesso");
+      setSelected(null);
+      q.refetch();
+    } catch (e: any) {
+      console.error("Erro ao excluir cliente:", e);
+      toast.error("Erro ao excluir cliente: " + e.message);
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -274,7 +308,7 @@ function CustomersPage() {
       </Card>
       {viewMode === "table" ? (
         <Card className="border-border/50"><CardContent className="p-0">
-          <Table><TableHeader><TableRow><TableHead>Cliente</TableHead><TableHead>Empresa</TableHead><TableHead>Documento</TableHead><TableHead>Contato</TableHead><TableHead className="text-right">Vendas</TableHead><TableHead className="text-right">Total</TableHead><TableHead>Status Pgto</TableHead></TableRow></TableHeader>
+          <Table><TableHeader><TableRow><TableHead>Cliente</TableHead><TableHead>Empresa</TableHead><TableHead>Documento</TableHead><TableHead>Contato</TableHead><TableHead className="text-right">Vendas</TableHead><TableHead className="text-right">Total</TableHead><TableHead>Status Pgto</TableHead><TableHead className="w-[50px]"></TableHead></TableRow></TableHeader>
             <TableBody>
               {rows.map((c: any) => {
                 const isPaid = c._paid >= c._total && c._total > 0;
@@ -310,10 +344,15 @@ function CustomersPage() {
                         <Badge variant="outline">—</Badge>
                       )}
                     </TableCell>
+                    <TableCell onClick={(e) => e.stopPropagation()}>
+                      <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-muted-foreground hover:text-destructive" onClick={() => deleteCustomer(c.id, c.name)}>
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </TableCell>
                   </TableRow>
                 );
               })}
-              {rows.length === 0 && <TableRow><TableCell colSpan={7} className="text-center text-muted-foreground py-8">Nenhum cliente encontrado</TableCell></TableRow>}
+              {rows.length === 0 && <TableRow><TableCell colSpan={8} className="text-center text-muted-foreground py-8">Nenhum cliente encontrado</TableCell></TableRow>}
             </TableBody>
           </Table>
         </CardContent></Card>
@@ -338,7 +377,12 @@ function CustomersPage() {
                       </div>
                     </div>
                     <div className="flex flex-col items-end gap-1">
-                      <Badge variant="secondary">{c._sales.length} vendas</Badge>
+                      <div className="flex gap-1">
+                        <Button variant="ghost" size="sm" className="h-7 w-7 p-0 text-muted-foreground hover:text-destructive" onClick={(e) => { e.stopPropagation(); deleteCustomer(c.id, c.name); }}>
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </Button>
+                        <Badge variant="secondary">{c._sales.length} vendas</Badge>
+                      </div>
                       {isPaid ? (
                         <Badge className="text-[10px] bg-green-100 text-green-700 border-green-200">PAGO TOTAL</Badge>
                       ) : isPartial ? (
