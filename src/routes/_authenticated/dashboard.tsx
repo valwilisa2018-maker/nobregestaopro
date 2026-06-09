@@ -13,6 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { formatCurrency } from "@/lib/auth";
+import { toast } from "sonner";
 import {
   DollarSign, TrendingUp, Calendar, Trophy, AlertCircle,
   Package, FileText, FileCheck2, ListTodo, Truck, ShoppingCart, Users, Factory, Filter, X, Sparkles,
@@ -95,36 +96,61 @@ function Dashboard() {
   const orders = useQuery({
     queryKey: ["dash-orders"],
     queryFn: async () => {
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from("service_orders")
         .select("id,column_id,delivered_at,sale_id,producer_id,created_at,kanban_columns(name,is_done,sort_order)");
+      if (error) { toast.error("Erro ao carregar pedidos"); throw error; }
       return data ?? [];
     },
   });
 
   const sellers = useQuery({
     queryKey: ["dash-sellers"],
-    queryFn: async () => (await supabase.from("sellers").select("id,name")).data ?? [],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("sellers").select("id,name");
+      if (error) { toast.error("Erro ao carregar vendedores"); throw error; }
+      return data ?? [];
+    },
   });
   const producers = useQuery({
     queryKey: ["dash-producers"],
-    queryFn: async () => (await supabase.from("producers").select("id,name,quality_score,average_delivery_days")).data ?? [],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("producers").select("id,name,quality_score,average_delivery_days");
+      if (error) { toast.error("Erro ao carregar produtores"); throw error; }
+      return data ?? [];
+    },
   });
   const invoices = useQuery({
     queryKey: ["dash-invoices"],
-    queryFn: async () => (await supabase.from("invoices").select("id,status,sale_id,amount,issued_at,created_at")).data ?? [],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("invoices").select("id,status,sale_id,amount,issued_at,created_at");
+      if (error) { toast.error("Erro ao carregar faturas"); throw error; }
+      return data ?? [];
+    },
   });
   const serviceTypes = useQuery({
     queryKey: ["dash-service-types"],
-    queryFn: async () => (await supabase.from("service_types").select("id,name")).data ?? [],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("service_types").select("id,name");
+      if (error) { toast.error("Erro ao carregar serviços"); throw error; }
+      return data ?? [];
+    },
   });
   const packages = useQuery({
     queryKey: ["dash-packages"],
-    queryFn: async () => (await supabase.from("packages").select("id,name")).data ?? [],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("packages").select("id,name");
+      if (error) { toast.error("Erro ao carregar pacotes"); throw error; }
+      return data ?? [];
+    },
   });
   const customers = useQuery({
     queryKey: ["dash-customers"],
-    queryFn: async () => (await supabase.from("customers").select("id,name")).data ?? [],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("customers").select("id,name");
+      if (error) { toast.error("Erro ao carregar clientes"); throw error; }
+      return data ?? [];
+    },
   });
 
   const allRaw = sales.data ?? [];

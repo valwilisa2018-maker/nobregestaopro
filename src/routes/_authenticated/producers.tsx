@@ -22,7 +22,17 @@ export const Route = createFileRoute("/_authenticated/producers")({
     const [customCols, setCustomCols] = useState<string[]>([]);
     const [uploading, setUploading] = useState(false);
     const [viewMode, setViewMode] = useState<"table" | "card">("table");
-    const q = useQuery({ queryKey: ["producers-page"], queryFn: async () => (await supabase.from("producers").select("*").order("created_at", { ascending: false })).data ?? [] });
+    const q = useQuery({ 
+      queryKey: ["producers-page"], 
+      queryFn: async () => {
+        const { data, error } = await supabase.from("producers").select("*").order("created_at", { ascending: false });
+        if (error) {
+          toast.error("Erro ao carregar produtores: " + error.message);
+          throw error;
+        }
+        return data ?? [];
+      }
+    });
     const save = async () => {
       if (!form.name) return toast.error("Nome obrigatório");
       const { error } = await supabase.from("producers").insert(form);

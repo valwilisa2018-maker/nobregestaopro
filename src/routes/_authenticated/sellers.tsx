@@ -55,7 +55,14 @@ function SellersPage() {
   const [viewMode, setViewMode] = useState<"table" | "card">("table");
   const q = useQuery({
     queryKey: ["sellers-page"],
-    queryFn: async () => (await supabase.from("sellers").select("*").order("created_at", { ascending: false })).data ?? [],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("sellers").select("*").order("created_at", { ascending: false });
+      if (error) {
+        toast.error("Erro ao carregar vendedores: " + error.message);
+        throw error;
+      }
+      return data ?? [];
+    },
   });
   const openNew = () => { setForm(emptyForm); setOpen(true); };
   const openEdit = (s: any) => {

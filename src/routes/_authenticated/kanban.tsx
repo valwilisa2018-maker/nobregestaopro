@@ -106,7 +106,11 @@ function KanbanPage() {
 
   const producers = useQuery({
     queryKey: ["producers-select"],
-    queryFn: async () => (await supabase.from("producers").select("id,name,avatar_url,custom_kanban_columns").eq("active", true).order("name")).data ?? [],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("producers").select("id,name,avatar_url,custom_kanban_columns").eq("active", true).order("name");
+      if (error) { toast.error("Erro ao carregar produtores"); throw error; }
+      return data ?? [];
+    },
   });
 
   const cols = useQuery({
@@ -143,11 +147,15 @@ function KanbanPage() {
   const cards = useQuery({
     queryKey: ["kanban-cards"],
     queryFn: async () => {
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from("service_orders")
         .select("*, producer:producers!service_orders_producer_id_fkey(name), sales(total_amount, payment_status, trello_link, producer_id, customers(name,company,phone), sellers(name), producers(name))")
         .order("created_at", { ascending: true })
         .order("service_index", { ascending: true });
+      if (error) {
+        toast.error("Erro ao carregar cards: " + error.message);
+        throw error;
+      }
       return data ?? [];
     },
   });
