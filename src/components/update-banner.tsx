@@ -32,15 +32,19 @@ export function UpdateBanner() {
     let cancelled = false;
 
     const check = async () => {
-      const v = await getVersion();
-      if (cancelled || !v) return;
-      if (initial === null) {
-        initial = v;
-        return;
-      }
-      if (v !== initial) {
-        setAvailable(true);
-        triggerConfetti();
+      try {
+        const v = await getVersion();
+        if (cancelled || !v) return;
+        if (initial === null) {
+          initial = v;
+          return;
+        }
+        if (v !== initial) {
+          setAvailable(true);
+          triggerConfetti();
+        }
+      } catch (e) {
+        console.warn("Update check failed:", e);
       }
     };
 
