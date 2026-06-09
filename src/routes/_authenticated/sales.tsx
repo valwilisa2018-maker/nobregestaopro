@@ -39,10 +39,11 @@ function SalesPage() {
   const sales = useQuery({
     queryKey: ["sales-list"],
     queryFn: async () => {
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from("sales")
-        .select("*, customers(name,company), sellers(name), producers(name), service_types(name), sale_receipts(*), pagarme_history:pagarme_webhooks!pagarme_id(id, event_type)")
+        .select("*, customers(name,company), sellers(name), producers(name), service_types(name), sale_receipts(*)")
         .order("sale_date", { ascending: false });
+      if (error) throw error;
       return data ?? [];
     },
   });
