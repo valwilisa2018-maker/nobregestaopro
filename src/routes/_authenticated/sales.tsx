@@ -13,7 +13,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { FileText, Download, History, LayoutGrid, List, QrCode } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Plus, Loader2, Pencil, Eye, Trash2 } from "lucide-react";
+import { Plus, Loader2, Pencil, Eye, Trash2, Check } from "lucide-react";
 import { toast } from "sonner";
 import { logger } from "@/lib/logger";
 import { formatCurrency } from "@/lib/auth";
@@ -118,6 +118,17 @@ function SalesPage() {
     setForm((f) => {
       const updatedForm = { ...f, [k]: v };
       
+      // Auto-set status and amount for Pix/Card
+      if (k === "payment_method" && (v === "pix" || v === "cartao")) {
+        updatedForm.payment_status = "pago_total";
+        if (f.total_amount) updatedForm.paid_amount = f.total_amount;
+      }
+
+      // If amount changes and it's already paid, update paid_amount
+      if (k === "total_amount" && updatedForm.payment_status === "pago_total") {
+        updatedForm.paid_amount = v;
+      }
+
       // Auto-set producer for Pamela/Ester
       const checkInfluencer = () => {
         const selectedServiceType = serviceTypes.data?.find(st => st.id === (k === "service_type_id" ? v : f.service_type_id));
@@ -290,6 +301,20 @@ function SalesPage() {
     }
   };
 
+  const handleQuickConfirm = async (sale: any) => {
+    try {
+      const { error } = await supabase.from("sales").update({
+        payment_status: "pago_total",
+        paid_amount: Number(sale.total_amount)
+      }).eq("id", sale.id);
+      if (error) throw error;
+      toast.success("Venda confirmada como paga!");
+      qc.invalidateQueries({ queryKey: ["sales-list"] });
+    } catch (e: any) {
+      toast.error(`Erro ao confirmar: ${e.message}`);
+    }
+  };
+
   const statusVariant = (s: string) =>
     s === "pago_total" ? "default" : s === "pago_parcial" ? "secondary" : "destructive";
 
@@ -298,6 +323,17 @@ function SalesPage() {
       if (!e) return e;
       const updatedEditing = { ...e, [k]: v };
       
+      // Auto-set status and amount for Pix/Card
+      if (k === "payment_method" && (v === "pix" || v === "cartao")) {
+        updatedEditing.payment_status = "pago_total";
+        if (e.total_amount) updatedEditing.paid_amount = e.total_amount;
+      }
+
+      // If amount changes and it's already paid, update paid_amount
+      if (k === "total_amount" && updatedEditing.payment_status === "pago_total") {
+        updatedEditing.paid_amount = v;
+      }
+
       // Auto-set producer for Pamela/Ester
       const checkInfluencer = () => {
         const selectedServiceType = serviceTypes.data?.find(st => st.id === (k === "service_type_id" ? v : e.service_type_id));
@@ -544,7 +580,12 @@ function SalesPage() {
                 <div className="col-span-2"><Label>Prazo de entrega *</Label><Input placeholder="Ex: 7 dias úteis" value={form.delivery_deadline} onChange={(e) => set("delivery_deadline", e.target.value)} /></div>
                 <div className="col-span-2"><Label>Observações (opcional)</Label><Textarea value={form.notes} onChange={(e) => set("notes", e.target.value)} /></div>
               </div>
-              <DialogFooter><Button onClick={submit} disabled={saving}>{saving && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}Criar venda</Button></DialogFooter>
+              <DialogFooter>
+                <Button onClick={submit} disabled={saving}>
+                  {saving && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+                  {(form.payment_method === "pix" || form.payment_method === "cartao") ? "Confirmar Venda" : "Criar venda"}
+                </Button>
+              </DialogFooter>
             </DialogContent>
           </Dialog>
         </div>
@@ -572,6 +613,11 @@ function SalesPage() {
                         )}
                         <Button size="icon" variant="ghost" onClick={() => setEditing({ ...s, with_invoice: s.customers?.document ? "sim" : "nao", customer_name: s.customers?.name, company: s.customers?.company, document: s.customers?.document, phone: s.customers?.phone, email: s.customers?.email })}><Pencil className="w-4 h-4" /></Button>
                         <Button size="icon" variant="ghost" className="text-destructive hover:text-destructive hover:bg-destructive/10" onClick={() => handleDelete(s.id)}><Trash2 className="w-4 h-4" /></Button>
+                        {s.payment_status !== "pago_total" && (
+                          <Button size="icon" variant="ghost" className="text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50" title="Confirmar Pagamento" onClick={() => handleQuickConfirm(s)}>
+                            <Check className="w-4 h-4" />
+                          </Button>
+                        )}
                         <Dialog>
                           <DialogTrigger asChild><Button size="icon" variant="ghost"><Eye className="w-4 h-4" /></Button></DialogTrigger>
                           <DialogContent className="max-w-xl">
@@ -618,6 +664,11 @@ function SalesPage() {
                       )}
                       <Button size="icon" variant="outline" className="h-8 w-8" onClick={() => setEditing({ ...s, with_invoice: s.customers?.document ? "sim" : "nao", customer_name: s.customers?.name, company: s.customers?.company, document: s.customers?.document, phone: s.customers?.phone, email: s.customers?.email })}><Pencil className="w-4 h-4" /></Button>
                       <Button size="icon" variant="outline" className="h-8 w-8 text-destructive border-destructive/10 hover:bg-destructive/5" onClick={() => handleDelete(s.id)}><Trash2 className="w-4 h-4" /></Button>
+                      {s.payment_status !== "pago_total" && (
+                        <Button size="icon" variant="outline" className="h-8 w-8 text-emerald-600 border-emerald-100 hover:bg-emerald-50" title="Confirmar Pagamento" onClick={() => handleQuickConfirm(s)}>
+                          <Check className="w-4 h-4" />
+                        </Button>
+                      )}
                       <Dialog>
                         <DialogTrigger asChild><Button size="icon" variant="outline" className="h-8 w-8"><Eye className="w-4 h-4" /></Button></DialogTrigger>
                         <DialogContent className="max-w-xl">
@@ -794,7 +845,13 @@ function SalesPage() {
               <div className="col-span-2"><Label>Observações (opcional)</Label><Textarea value={editing.notes ?? ""} onChange={(e) => editSet("notes", e.target.value)} /></div>
             </div>
           )}
-          <DialogFooter><Button variant="outline" onClick={() => setEditing(null)}>Cancelar</Button><Button onClick={submitEdit} disabled={editSaving}>{editSaving && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}Salvar</Button></DialogFooter>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditing(null)}>Cancelar</Button>
+            <Button onClick={submitEdit} disabled={editSaving}>
+              {editSaving && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+              {(editing.payment_method === "pix" || editing.payment_method === "cartao") ? "Confirmar e Salvar" : "Salvar"}
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
       <Dialog open={!!paymentLinkData} onOpenChange={(open) => !open && setPaymentLinkData(null)}>
