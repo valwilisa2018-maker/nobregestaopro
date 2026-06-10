@@ -566,7 +566,7 @@ function SalesPage() {
                 </div>
                 <div>
                   <Label>Pacote (opcional)</Label>
-                  <Select value={form.package_id} onValueChange={(v) => {
+                  <Select value={form.package_id || ""} onValueChange={(v) => {
                     const p = (packages.data ?? []).find((x: any) => x.id === v);
                     setForm((f) => ({ ...f, package_id: v, package_name: p?.name ?? f.package_name }));
                   }}>
@@ -576,9 +576,9 @@ function SalesPage() {
                     </SelectContent>
                   </Select>
                 </div>
-                <div><Label>Qtd. serviços *</Label><Input type="number" min="1" value={form.service_quantity} onChange={(e) => set("service_quantity", e.target.value)} /></div>
-                <div><Label>Data da venda *</Label><Input type="date" value={form.sale_date} onChange={(e) => set("sale_date", e.target.value)} /></div>
-                <div><Label>Data de entrega *</Label><Input type="date" value={form.expected_delivery_date} onChange={(e) => set("expected_delivery_date", e.target.value)} /></div>
+                <div><Label>Qtd. serviços *</Label><Input type="number" min="1" value={form.service_quantity || ""} onChange={(e) => set("service_quantity", e.target.value)} /></div>
+                <div><Label>Data da venda *</Label><Input type="date" value={form.sale_date || ""} onChange={(e) => set("sale_date", e.target.value)} /></div>
+                <div><Label>Data de entrega *</Label><Input type="date" value={form.expected_delivery_date || ""} onChange={(e) => set("expected_delivery_date", e.target.value)} /></div>
                 <div className="col-span-2">
                   <Label>Origem da venda *</Label>
                   <Select value={form.lead_source || ""} onValueChange={(v) => set("lead_source", v)}>
@@ -591,7 +591,7 @@ function SalesPage() {
                 <div className="col-span-2">
                   <Label>Link Google Drive *</Label>
                   <div className="flex gap-2">
-                    <Input placeholder="Cole o link do Google aqui" value={form.trello_link} onChange={(e) => set("trello_link", e.target.value)} />
+                    <Input placeholder="Cole o link do Google aqui" value={form.trello_link || ""} onChange={(e) => set("trello_link", e.target.value)} />
                     <Button type="button" variant="outline" onClick={() => window.open("https://drive.google.com/drive/u/0/home", "_blank", "noopener,noreferrer")}>Abrir Google Drive</Button>
                   </div>
                 </div>
@@ -600,8 +600,8 @@ function SalesPage() {
                   <Input type="file" accept="image/*,application/pdf" onChange={(e) => setReceiptFile(e.target.files?.[0] ?? null)} />
                   {receiptFile && <p className="text-xs text-muted-foreground mt-1">{receiptFile.name}</p>}
                 </div>
-                <div className="col-span-2"><Label>Prazo de entrega *</Label><Input placeholder="Ex: 7 dias úteis" value={form.delivery_deadline} onChange={(e) => set("delivery_deadline", e.target.value)} /></div>
-                <div className="col-span-2"><Label>Observações (opcional)</Label><Textarea value={form.notes} onChange={(e) => set("notes", e.target.value)} /></div>
+                <div className="col-span-2"><Label>Prazo de entrega *</Label><Input placeholder="Ex: 7 dias úteis" value={form.delivery_deadline || ""} onChange={(e) => set("delivery_deadline", e.target.value)} /></div>
+                <div className="col-span-2"><Label>Observações (opcional)</Label><Textarea value={form.notes || ""} onChange={(e) => set("notes", e.target.value)} /></div>
               </div>
               <DialogFooter>
                 <Button onClick={submit} disabled={saving}>
