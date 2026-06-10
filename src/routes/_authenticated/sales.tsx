@@ -110,10 +110,6 @@ function SalesPage() {
     sale_date: new Date().toISOString().slice(0, 10), lead_source: "",
     with_invoice: "sim",
     installments: "12",
-    seller_id: "",
-    producer_id: "",
-    service_type_id: "",
-    lead_source: "",
     delivery_deadline: "",
     expected_delivery_date: new Date().toISOString().slice(0, 10),
   });
