@@ -37,12 +37,12 @@ function SalesPage() {
   const [paymentLinkData, setPaymentLinkData] = useState<{ url: string; id: string } | null>(null);
   const [isGeneratingLink, setIsGeneratingLink] = useState(false);
 
-  const sales = useQuery({
+  const { data: salesList, isLoading: loadingSales, error: salesError } = useQuery({
     queryKey: ["sales-list"],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("sales")
-        .select("*, customers(name,company), sellers(name), producers(name), service_types(name), sale_receipts(*)")
+        .select("*, customers(name,company,phone,email,document), sellers(name), producers(name), service_types(name), sale_receipts(*)")
         .order("sale_date", { ascending: false });
       if (error) throw error;
       return data ?? [];
@@ -609,7 +609,13 @@ function SalesPage() {
             <Table>
               <TableHeader><TableRow><TableHead>Data</TableHead><TableHead>Cliente</TableHead><TableHead>Serviço</TableHead><TableHead>Vendedor</TableHead><TableHead>Produtor</TableHead><TableHead className="text-right">Valor</TableHead><TableHead>Status</TableHead><TableHead className="w-12"></TableHead></TableRow></TableHeader>
               <TableBody>
-                {(sales.data ?? []).map((s: any) => (
+                {loadingSales && (
+                  <TableRow><TableCell colSpan={8} className="text-center py-12"><Loader2 className="w-8 h-8 animate-spin mx-auto text-primary" /><p className="mt-2 text-sm text-muted-foreground">Carregando vendas...</p></TableCell></TableRow>
+                )}
+                {salesError && (
+                  <TableRow><TableCell colSpan={8} className="text-center py-12 text-destructive"><p>Ocorreu um erro ao carregar as vendas.</p><Button variant="outline" size="sm" className="mt-2" onClick={() => qc.invalidateQueries({ queryKey: ["sales-list"] })}>Tentar novamente</Button></TableCell></TableRow>
+                )}
+                {!loadingSales && !salesError && (salesList ?? []).map((s: any) => (
                   <TableRow key={s.id}>
                     <TableCell className="whitespace-nowrap">{fmtDate(s.sale_date)}</TableCell>
                     <TableCell><div className="font-medium">{s.customers?.name}</div><div className="text-xs text-muted-foreground">{s.customers?.company}</div></TableCell>
@@ -654,14 +660,16 @@ function SalesPage() {
                     </TableCell>
                   </TableRow>
                 ))}
-                {(sales.data ?? []).length === 0 && (<TableRow><TableCell colSpan={8} className="text-center text-muted-foreground py-8">Nenhuma venda cadastrada ainda</TableCell></TableRow>)}
+                {!loadingSales && !salesError && (salesList ?? []).length === 0 && (<TableRow><TableCell colSpan={8} className="text-center text-muted-foreground py-8">Nenhuma venda cadastrada ainda</TableCell></TableRow>)}
               </TableBody>
             </Table>
           </CardContent>
         </Card>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {(sales.data ?? []).map((s: any) => (
+          {loadingSales && <div className="col-span-full py-20 text-center"><Loader2 className="w-10 h-10 animate-spin mx-auto text-primary" /><p className="mt-4 text-muted-foreground">Carregando...</p></div>}
+          {salesError && <div className="col-span-full py-20 text-center text-destructive"><p>Erro ao carregar vendas.</p><Button variant="outline" className="mt-4" onClick={() => qc.invalidateQueries({ queryKey: ["sales-list"] })}>Tentar novamente</Button></div>}
+          {!loadingSales && !salesError && (salesList ?? []).map((s: any) => (
             <Card key={s.id} className="border-border/50 overflow-hidden hover:shadow-md transition-shadow">
               <CardContent className="p-0">
                 <div className="p-4 space-y-3">
@@ -707,7 +715,7 @@ function SalesPage() {
               </CardContent>
             </Card>
           ))}
-          {(sales.data ?? []).length === 0 && (<div className="col-span-full py-12 text-center text-muted-foreground italic">Nenhuma venda cadastrada ainda</div>)}
+                {(salesList ?? []).length === 0 && (<div className="col-span-full py-12 text-center text-muted-foreground italic">Nenhuma venda cadastrada ainda</div>)}
         </div>
       )}
 
