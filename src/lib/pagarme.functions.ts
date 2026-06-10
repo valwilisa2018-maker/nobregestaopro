@@ -36,6 +36,9 @@ export function buildPagarmeBody(data: {
       credit_card_settings: data.methods.includes("credit_card")
         ? { operation_type: "auth_and_capture", installments: installmentsList }
         : undefined,
+      pix_settings: data.methods.includes("pix")
+        ? { expires_in: 3600 } // Expira em 1 hora
+        : undefined,
       // Adiciona o webhook se fornecido
       webhook_url: data.webhookUrl,
     },
