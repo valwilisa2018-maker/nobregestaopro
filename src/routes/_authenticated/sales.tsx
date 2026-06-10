@@ -118,6 +118,17 @@ function SalesPage() {
     setForm((f) => {
       const updatedForm = { ...f, [k]: v };
       
+      // Auto-set status and amount for Pix/Card
+      if (k === "payment_method" && (v === "pix" || v === "cartao")) {
+        updatedForm.payment_status = "pago_total";
+        if (f.total_amount) updatedForm.paid_amount = f.total_amount;
+      }
+
+      // If amount changes and it's already paid, update paid_amount
+      if (k === "total_amount" && updatedForm.payment_status === "pago_total") {
+        updatedForm.paid_amount = v;
+      }
+
       // Auto-set producer for Pamela/Ester
       const checkInfluencer = () => {
         const selectedServiceType = serviceTypes.data?.find(st => st.id === (k === "service_type_id" ? v : f.service_type_id));
@@ -298,6 +309,17 @@ function SalesPage() {
       if (!e) return e;
       const updatedEditing = { ...e, [k]: v };
       
+      // Auto-set status and amount for Pix/Card
+      if (k === "payment_method" && (v === "pix" || v === "cartao")) {
+        updatedEditing.payment_status = "pago_total";
+        if (e.total_amount) updatedEditing.paid_amount = e.total_amount;
+      }
+
+      // If amount changes and it's already paid, update paid_amount
+      if (k === "total_amount" && updatedEditing.payment_status === "pago_total") {
+        updatedEditing.paid_amount = v;
+      }
+
       // Auto-set producer for Pamela/Ester
       const checkInfluencer = () => {
         const selectedServiceType = serviceTypes.data?.find(st => st.id === (k === "service_type_id" ? v : e.service_type_id));
