@@ -79,7 +79,7 @@ function Dashboard() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("sales")
-        .select("id,total_amount,paid_amount,payment_status,created_at,seller_id,producer_id,customer_id,service_type_id,package_id,service_quantity");
+        .select("id,total_amount,paid_amount,payment_status,created_at,seller_id,producer_id,customer_id,service_type_id,package_id,service_quantity,is_payment_link");
       if (error) throw error;
       return data ?? [];
     },
@@ -158,6 +158,7 @@ function Dashboard() {
   // Aplica filtros de vendedor + tipo de serviço a TODAS as métricas
   const all = useMemo(() => {
     return allRaw.filter((s) => {
+      if (s.is_payment_link) return false;
       if (sellerFilter !== "all" && s.seller_id !== sellerFilter) return false;
       if (serviceFilter !== "all" && s.service_type_id !== serviceFilter) return false;
       return true;

@@ -51,7 +51,7 @@ function CommissionsPage() {
   const sales = useQuery({
     queryKey: ["commissions-sales", range?.from, range?.to],
     queryFn: async () => {
-      let q = supabase.from("sales").select("id,seller_id,total_amount,paid_amount,payment_status,sale_date");
+      let q = supabase.from("sales").select("id,seller_id,total_amount,paid_amount,payment_status,sale_date,is_payment_link");
       if (range) q = q.gte("sale_date", range.from).lte("sale_date", range.to);
       return (await q).data ?? [];
     },
@@ -59,7 +59,7 @@ function CommissionsPage() {
 
   const rows = useMemo(() => {
     const list = (sellers.data ?? []).map((s: any) => {
-      const sellerSales = (sales.data ?? []).filter((v: any) => v.seller_id === s.id);
+      const sellerSales = (sales.data ?? []).filter((v: any) => v.seller_id === s.id && !v.is_payment_link);
       const totalSold = sellerSales.reduce((t: number, v: any) => t + Number(v.total_amount ?? 0), 0);
       const totalPaid = sellerSales.reduce((t: number, v: any) => t + Number(v.paid_amount ?? 0), 0);
       const pending = totalSold - totalPaid;
