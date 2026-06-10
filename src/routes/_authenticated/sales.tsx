@@ -122,8 +122,8 @@ function SalesPage() {
       
       // Auto-set amount for Pix/Card if status is total
       if (k === "payment_method" && (v === "pix" || v === "cartao")) {
-        if (f.total_amount && f.payment_status === "pago_total") {
-          updatedForm.paid_amount = f.total_amount;
+        if (updatedForm.total_amount && updatedForm.payment_status === "pago_total") {
+          updatedForm.paid_amount = updatedForm.total_amount;
         }
       }
 
@@ -134,7 +134,7 @@ function SalesPage() {
 
       // If status changes to total, match amounts
       if (k === "payment_status" && v === "pago_total") {
-        updatedForm.paid_amount = f.total_amount;
+        updatedForm.paid_amount = updatedForm.total_amount;
       }
 
       // Auto-set producer for Pamela/Ester
@@ -346,7 +346,7 @@ function SalesPage() {
 
       // If status changes to total, match amounts
       if (k === "payment_status" && v === "pago_total") {
-        updatedEditing.paid_amount = e.total_amount;
+        updatedEditing.paid_amount = updatedEditing.total_amount;
       }
 
       // Auto-set producer for Pamela/Ester
