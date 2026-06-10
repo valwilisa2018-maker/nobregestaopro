@@ -104,7 +104,7 @@ function SalesPage() {
   const [form, setForm] = useState({
     customer_name: "", company: "", document: "", phone: "", email: "",
     total_amount: "", paid_amount: "0", payment_status: "pendente",
-    payment_method: "pix", seller_id: "", producer_id: "", service_type_id: "",
+    payment_method: "cartao", seller_id: "", producer_id: "", service_type_id: "",
     package_id: "", package_name: "", service_quantity: "1", notes: "", trello_link: "",
     sale_date: new Date().toISOString().slice(0, 10), lead_source: "",
     with_invoice: "sim",
@@ -267,8 +267,8 @@ function SalesPage() {
         });
       }
 
-      // Se for Cartão, gera o link do Pagar.me automaticamente
-      if (form.payment_method === "cartao" && saleRow?.id) {
+      // Se for Cartão ou PIX, gera o link do Pagar.me automaticamente
+      if ((form.payment_method === "cartao" || form.payment_method === "pix") && saleRow?.id) {
         setIsGeneratingLink(true);
         try {
           const res = await createPaymentLink({
@@ -404,6 +404,30 @@ function SalesPage() {
         expected_delivery_date: editing.expected_delivery_date || null,
       }).eq("id", editing.id);
       if (error) throw error;
+
+      // Se alterou para Cartão ou PIX e não tinha link, gera agora
+      if ((editing.payment_method === "cartao" || editing.payment_method === "pix") && !editing.pagarme_id) {
+        setIsGeneratingLink(true);
+        try {
+          const res = await createPaymentLink({
+            data: {
+              name: `Venda ${editing.customer_name || editing.customers?.name}`,
+              amount: Math.round(Number(editing.total_amount) * 100),
+              installments: Number(editing.installments || 12),
+              methods: ["credit_card", "pix"],
+              saleId: editing.id,
+            }
+          });
+          if (res.ok) {
+            setPaymentLinkData({ url: res.url, id: res.id || "" });
+            toast.success("Link de pagamento gerado!");
+          }
+        } catch (err) {
+          console.error("Erro ao gerar link na edição:", err);
+        } finally {
+          setIsGeneratingLink(false);
+        }
+      }
       toast.success("Venda atualizada");
       setEditing(null);
       await qc.invalidateQueries({ queryKey: ["sales-list"] });
@@ -475,7 +499,7 @@ function SalesPage() {
                     <SelectContent><SelectItem value="pix">Pix</SelectItem><SelectItem value="cartao">Cartão</SelectItem><SelectItem value="boleto">Boleto</SelectItem></SelectContent>
                   </Select>
                 </div>
-                {form.payment_method === "cartao" && (
+                {(form.payment_method === "cartao" || form.payment_method === "pix") && (
                   <div>
                     <Label>Parcelas Máx. (Pagar.me)</Label>
                     <Select value={form.installments} onValueChange={(v) => set("installments", v)}>
