@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -102,7 +102,7 @@ function SalesPage() {
     queryFn: async () => (await supabase.from("customers").select("id,name,company,document,phone,email")).data ?? [],
   });
 
-  const initialForm = {
+  const [form, setForm] = useState({
     customer_name: "", company: "", document: "", phone: "", email: "",
     total_amount: "", paid_amount: "0", payment_status: "pago_total",
     payment_method: "pix", seller_id: "", producer_id: "", service_type_id: "",
@@ -112,11 +112,9 @@ function SalesPage() {
     installments: "12",
     delivery_deadline: "",
     expected_delivery_date: new Date().toISOString().slice(0, 10),
-  };
+  });
 
-  const [form, setForm] = useState(initialForm);
-
-  const set = (k: string, v: string) => {
+  const set = useCallback((k: string, v: string) => {
     setForm((f) => {
       const updatedForm = { ...f, [k]: v };
       
@@ -158,7 +156,7 @@ function SalesPage() {
       
       return updatedForm;
     });
-  };
+  }, [serviceTypes.data, sellers.data, producers.data]);
 
   const autofillFromCustomer = (field: "customer_name" | "company", value: string) => {
     setForm((f) => ({ ...f, [field]: value }));
@@ -289,7 +287,17 @@ function SalesPage() {
 
       toast.success("Venda criada — cards de produção gerados automaticamente");
       setOpen(false);
-      setForm(initialForm);
+      setForm({
+        customer_name: "", company: "", document: "", phone: "", email: "",
+        total_amount: "", paid_amount: "0", payment_status: "pago_total",
+        payment_method: "pix", seller_id: "", producer_id: "", service_type_id: "",
+        package_id: "", package_name: "", service_quantity: "1", notes: "", trello_link: "",
+        sale_date: new Date().toISOString().slice(0, 10), lead_source: "",
+        with_invoice: "sim",
+        installments: "12",
+        delivery_deadline: "",
+        expected_delivery_date: new Date().toISOString().slice(0, 10),
+      });
       setReceiptFile(null);
       await qc.invalidateQueries({ queryKey: ["sales-list"] });
     } catch (e: any) {
@@ -327,15 +335,15 @@ function SalesPage() {
   const statusVariant = (s: string) =>
     s === "pago_total" ? "default" : s === "pago_parcial" ? "secondary" : "destructive";
 
-  const editSet = (k: string, v: any) => {
+  const editSet = useCallback((k: string, v: any) => {
     setEditing((e: any) => {
       if (!e) return e;
       const updatedEditing = { ...e, [k]: v };
       
       // Auto-set amount for Pix/Card if status is total
       if (k === "payment_method" && (v === "pix" || v === "cartao")) {
-        if (e.total_amount && e.payment_status === "pago_total") {
-          updatedEditing.paid_amount = e.total_amount;
+        if (updatedEditing.total_amount && updatedEditing.payment_status === "pago_total") {
+          updatedEditing.paid_amount = updatedEditing.total_amount;
         }
       }
 
@@ -370,7 +378,7 @@ function SalesPage() {
       
       return updatedEditing;
     });
-  };
+  }, [serviceTypes.data, sellers.data, producers.data]);
 
   const submitEdit = async () => {
     if (!editing || editSaving) return;
@@ -475,17 +483,17 @@ function SalesPage() {
               <div className="grid grid-cols-2 gap-3">
                 <div className="col-span-2">
                   <Label>Nome do cliente *</Label>
-                  <Input list="customers-names" value={form.customer_name} onChange={(e) => autofillFromCustomer("customer_name", e.target.value)} />
+                  <Input list="customers-names" value={form.customer_name || ""} onChange={(e) => autofillFromCustomer("customer_name", e.target.value)} />
                   <datalist id="customers-names">{(customersAll.data ?? []).map((c: any) => (<option key={`n-${c.id}`} value={c.name} />))}</datalist>
                 </div>
                 <div>
                   <Label>Empresa {form.with_invoice === "sim" ? "*" : "(Opcional)"}</Label>
-                  <Input list="customers-companies" value={form.company} onChange={(e) => autofillFromCustomer("company", e.target.value)} />
+                  <Input list="customers-companies" value={form.company || ""} onChange={(e) => autofillFromCustomer("company", e.target.value)} />
                   <datalist id="customers-companies">{(customersAll.data ?? []).filter((c: any) => c.company).map((c: any) => (<option key={`c-${c.id}`} value={c.company} />))}</datalist>
                 </div>
                 <div>
                   <Label>Com Nota? *</Label>
-                  <Select value={form.with_invoice} onValueChange={(v) => set("with_invoice", v)}>
+                  <Select value={form.with_invoice || ""} onValueChange={(v) => set("with_invoice", v)}>
                     <SelectTrigger><SelectValue /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="sim">Sim (Com Nota)</SelectItem>
@@ -493,12 +501,12 @@ function SalesPage() {
                     </SelectContent>
                   </Select>
                 </div>
-                <div><Label>CPF/CNPJ {form.with_invoice === "sim" ? "*" : "(Opcional)"}</Label><Input value={form.document} onChange={(e) => set("document", e.target.value)} /></div>
-                <div><Label>Telefone *</Label><Input value={form.phone} onChange={(e) => set("phone", e.target.value)} /></div>
-                <div><Label>E-mail (opcional)</Label><Input value={form.email} onChange={(e) => set("email", e.target.value)} /></div>
+                <div><Label>CPF/CNPJ {form.with_invoice === "sim" ? "*" : "(Opcional)"}</Label><Input value={form.document || ""} onChange={(e) => set("document", e.target.value)} /></div>
+                <div><Label>Telefone *</Label><Input value={form.phone || ""} onChange={(e) => set("phone", e.target.value)} /></div>
+                <div><Label>E-mail (opcional)</Label><Input value={form.email || ""} onChange={(e) => set("email", e.target.value)} /></div>
 
-                <div><Label>Valor total *</Label><Input type="number" step="0.01" value={form.total_amount} onChange={(e) => set("total_amount", e.target.value)} /></div>
-                <div><Label>Valor pago *</Label><Input type="number" step="0.01" value={form.paid_amount} onChange={(e) => set("paid_amount", e.target.value)} /></div>
+                <div><Label>Valor total *</Label><Input type="number" step="0.01" value={form.total_amount || ""} onChange={(e) => set("total_amount", e.target.value)} /></div>
+                <div><Label>Valor pago *</Label><Input type="number" step="0.01" value={form.paid_amount || ""} onChange={(e) => set("paid_amount", e.target.value)} /></div>
                 <div>
                   <Label>Status pagamento *</Label>
                   <Select value={form.payment_status || ""} onValueChange={(v) => set("payment_status", v)}>
@@ -558,7 +566,7 @@ function SalesPage() {
                 </div>
                 <div>
                   <Label>Pacote (opcional)</Label>
-                  <Select value={form.package_id} onValueChange={(v) => {
+                  <Select value={form.package_id || ""} onValueChange={(v) => {
                     const p = (packages.data ?? []).find((x: any) => x.id === v);
                     setForm((f) => ({ ...f, package_id: v, package_name: p?.name ?? f.package_name }));
                   }}>
@@ -568,9 +576,9 @@ function SalesPage() {
                     </SelectContent>
                   </Select>
                 </div>
-                <div><Label>Qtd. serviços *</Label><Input type="number" min="1" value={form.service_quantity} onChange={(e) => set("service_quantity", e.target.value)} /></div>
-                <div><Label>Data da venda *</Label><Input type="date" value={form.sale_date} onChange={(e) => set("sale_date", e.target.value)} /></div>
-                <div><Label>Data de entrega *</Label><Input type="date" value={form.expected_delivery_date} onChange={(e) => set("expected_delivery_date", e.target.value)} /></div>
+                <div><Label>Qtd. serviços *</Label><Input type="number" min="1" value={form.service_quantity || ""} onChange={(e) => set("service_quantity", e.target.value)} /></div>
+                <div><Label>Data da venda *</Label><Input type="date" value={form.sale_date || ""} onChange={(e) => set("sale_date", e.target.value)} /></div>
+                <div><Label>Data de entrega *</Label><Input type="date" value={form.expected_delivery_date || ""} onChange={(e) => set("expected_delivery_date", e.target.value)} /></div>
                 <div className="col-span-2">
                   <Label>Origem da venda *</Label>
                   <Select value={form.lead_source || ""} onValueChange={(v) => set("lead_source", v)}>
@@ -583,7 +591,7 @@ function SalesPage() {
                 <div className="col-span-2">
                   <Label>Link Google Drive *</Label>
                   <div className="flex gap-2">
-                    <Input placeholder="Cole o link do Google aqui" value={form.trello_link} onChange={(e) => set("trello_link", e.target.value)} />
+                    <Input placeholder="Cole o link do Google aqui" value={form.trello_link || ""} onChange={(e) => set("trello_link", e.target.value)} />
                     <Button type="button" variant="outline" onClick={() => window.open("https://drive.google.com/drive/u/0/home", "_blank", "noopener,noreferrer")}>Abrir Google Drive</Button>
                   </div>
                 </div>
@@ -592,8 +600,8 @@ function SalesPage() {
                   <Input type="file" accept="image/*,application/pdf" onChange={(e) => setReceiptFile(e.target.files?.[0] ?? null)} />
                   {receiptFile && <p className="text-xs text-muted-foreground mt-1">{receiptFile.name}</p>}
                 </div>
-                <div className="col-span-2"><Label>Prazo de entrega *</Label><Input placeholder="Ex: 7 dias úteis" value={form.delivery_deadline} onChange={(e) => set("delivery_deadline", e.target.value)} /></div>
-                <div className="col-span-2"><Label>Observações (opcional)</Label><Textarea value={form.notes} onChange={(e) => set("notes", e.target.value)} /></div>
+                <div className="col-span-2"><Label>Prazo de entrega *</Label><Input placeholder="Ex: 7 dias úteis" value={form.delivery_deadline || ""} onChange={(e) => set("delivery_deadline", e.target.value)} /></div>
+                <div className="col-span-2"><Label>Observações (opcional)</Label><Textarea value={form.notes || ""} onChange={(e) => set("notes", e.target.value)} /></div>
               </div>
               <DialogFooter>
                 <Button onClick={submit} disabled={saving}>
