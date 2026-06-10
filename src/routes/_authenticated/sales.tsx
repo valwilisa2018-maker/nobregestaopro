@@ -391,29 +391,6 @@ function SalesPage() {
       }).eq("id", editing.id);
       if (error) throw error;
 
-      // Se alterou para Cartão ou PIX e não tinha link, gera agora
-      if ((editing.payment_method === "cartao" || editing.payment_method === "pix") && !editing.pagarme_id) {
-        setIsGeneratingLink(true);
-        try {
-          const res = await createPaymentLink({
-            data: {
-              name: `Venda ${editing.customer_name || editing.customers?.name}`,
-              amount: Math.round(Number(editing.total_amount) * 100),
-              installments: Number(editing.installments || 12),
-              methods: ["credit_card", "pix"],
-              saleId: editing.id,
-            }
-          });
-          if (res.ok) {
-            setPaymentLinkData({ url: res.url, id: res.id || "" });
-            toast.success("Link de pagamento gerado!");
-          }
-        } catch (err) {
-          console.error("Erro ao gerar link na edição:", err);
-        } finally {
-          setIsGeneratingLink(false);
-        }
-      }
       toast.success("Venda atualizada");
       setEditing(null);
       await qc.invalidateQueries({ queryKey: ["sales-list"] });
