@@ -110,6 +110,7 @@ function SalesPage() {
     with_invoice: "sim",
     installments: "12",
     delivery_deadline: "",
+    expected_delivery_date: new Date().toISOString().slice(0, 10),
   });
 
   const set = (k: string, v: string) => {
@@ -170,6 +171,7 @@ function SalesPage() {
       ["seller_id", "Vendedor"], ["producer_id", "Produtor"], ["service_type_id", "Tipo de serviço"],
       ["service_quantity", "Qtd. serviços"], ["sale_date", "Data da venda"], ["trello_link", "Link Google Drive"],
       ["lead_source", "Origem da venda"], ["delivery_deadline", "Prazo de entrega"],
+      ["expected_delivery_date", "Data de entrega"],
     ];
 
     if (form.with_invoice === "sim") {
@@ -247,6 +249,7 @@ function SalesPage() {
         receipt_url,
         sale_date: form.sale_date || new Date().toISOString().slice(0, 10),
         delivery_deadline: form.delivery_deadline,
+        expected_delivery_date: form.expected_delivery_date,
         created_by: user?.id,
       }).select("id").single();
 
@@ -343,6 +346,7 @@ function SalesPage() {
       ["seller_id", "Vendedor"], ["producer_id", "Produtor"], ["service_type_id", "Tipo de serviço"],
       ["service_quantity", "Qtd. serviços"], ["sale_date", "Data da venda"], ["trello_link", "Link Google Drive"],
       ["lead_source", "Origem da venda"], ["delivery_deadline", "Prazo de entrega"],
+      ["expected_delivery_date", "Data de entrega"],
     ];
 
     for (const [k, label] of required) {
@@ -397,6 +401,7 @@ function SalesPage() {
         trello_link: editing.trello_link || null,
         lead_source: editing.lead_source || null,
         delivery_deadline: editing.delivery_deadline || null,
+        expected_delivery_date: editing.expected_delivery_date || null,
       }).eq("id", editing.id);
       if (error) throw error;
       toast.success("Venda atualizada");
@@ -527,6 +532,7 @@ function SalesPage() {
                 </div>
                 <div><Label>Qtd. serviços *</Label><Input type="number" min="1" value={form.service_quantity} onChange={(e) => set("service_quantity", e.target.value)} /></div>
                 <div><Label>Data da venda *</Label><Input type="date" value={form.sale_date} onChange={(e) => set("sale_date", e.target.value)} /></div>
+                <div><Label>Data de entrega *</Label><Input type="date" value={form.expected_delivery_date} onChange={(e) => set("expected_delivery_date", e.target.value)} /></div>
                 <div className="col-span-2">
                   <Label>Origem da venda *</Label>
                   <Select value={form.lead_source} onValueChange={(v) => set("lead_source", v)}>
@@ -592,7 +598,7 @@ function SalesPage() {
                                   ) : (<div className="text-center py-8 text-muted-foreground italic">Nenhum comprovante anexado.</div>)}
                                 </TabsContent>
                                 <TabsContent value="history" className="mt-4">
-                                  <div className="space-y-3"><div className="grid grid-cols-2 gap-4"><div className="p-3 border rounded-lg bg-green-50"><p className="text-xs text-green-700 uppercase font-semibold">Total Pago</p><p className="text-xl font-bold text-green-800">{formatCurrency(s.paid_amount)}</p></div><div className="p-3 border rounded-lg bg-red-50"><p className="text-xs text-red-700 uppercase font-semibold">Pendente</p><p className="text-xl font-bold text-red-800">{formatCurrency(Number(s.total_amount) - Number(s.paid_amount))}</p></div></div><div className="p-3 border rounded-lg"><p className="text-xs text-muted-foreground uppercase font-semibold mb-1">Status</p><Badge variant={statusVariant(s.payment_status) as any}>{s.payment_status.replace("_", " ")}</Badge></div>{s.delivery_deadline && (<div className="p-3 border rounded-lg"><p className="text-xs text-muted-foreground uppercase font-semibold mb-1">Prazo de Entrega</p><p className="text-sm">{s.delivery_deadline}</p></div>)}{s.notes && (<div className="p-3 border rounded-lg"><p className="text-xs text-muted-foreground uppercase font-semibold mb-1">Observações da Venda</p><p className="text-sm">{s.notes}</p></div>)}</div>
+                                  <div className="space-y-3"><div className="grid grid-cols-2 gap-4"><div className="p-3 border rounded-lg bg-green-50"><p className="text-xs text-green-700 uppercase font-semibold">Total Pago</p><p className="text-xl font-bold text-green-800">{formatCurrency(s.paid_amount)}</p></div><div className="p-3 border rounded-lg bg-red-50"><p className="text-xs text-red-700 uppercase font-semibold">Pendente</p><p className="text-xl font-bold text-red-800">{formatCurrency(Number(s.total_amount) - Number(s.paid_amount))}</p></div></div><div className="p-3 border rounded-lg"><p className="text-xs text-muted-foreground uppercase font-semibold mb-1">Status</p><Badge variant={statusVariant(s.payment_status) as any}>{s.payment_status.replace("_", " ")}</Badge></div><div className="grid grid-cols-2 gap-2">{s.delivery_deadline && (<div className="p-3 border rounded-lg"><p className="text-xs text-muted-foreground uppercase font-semibold mb-1">Prazo de Entrega</p><p className="text-sm">{s.delivery_deadline}</p></div>)}{s.expected_delivery_date && (<div className="p-3 border rounded-lg"><p className="text-xs text-muted-foreground uppercase font-semibold mb-1">Data de Entrega</p><p className="text-sm">{fmtDate(s.expected_delivery_date)}</p></div>)}</div>{s.notes && (<div className="p-3 border rounded-lg"><p className="text-xs text-muted-foreground uppercase font-semibold mb-1">Observações da Venda</p><p className="text-sm">{s.notes}</p></div>)}</div>
                                 </TabsContent>
                               </Tabs>
                             </div>
@@ -767,6 +773,7 @@ function SalesPage() {
               </div>
               <div><Label>Qtd. serviços *</Label><Input type="number" min="1" value={editing.service_quantity ?? 1} onChange={(e) => editSet("service_quantity", e.target.value)} /></div>
               <div><Label>Data da venda *</Label><Input type="date" value={editing.sale_date ?? ""} onChange={(e) => editSet("sale_date", e.target.value)} /></div>
+              <div><Label>Data de entrega *</Label><Input type="date" value={editing.expected_delivery_date ?? ""} onChange={(e) => editSet("expected_delivery_date", e.target.value)} /></div>
               <div className="col-span-2">
                 <Label>Origem da venda *</Label>
                 <Select value={editing.lead_source ?? ""} onValueChange={(v) => editSet("lead_source", v)}>
