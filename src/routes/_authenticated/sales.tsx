@@ -880,7 +880,7 @@ function SalesPage() {
             <Button variant="outline" onClick={() => setEditing(null)}>Cancelar</Button>
             <Button onClick={submitEdit} disabled={editSaving}>
               {editSaving && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-              {(editing.payment_method === "pix" || editing.payment_method === "cartao") ? "Confirmar e Salvar" : "Salvar"}
+              {(editing?.payment_method === "pix" || editing?.payment_method === "cartao") ? "Confirmar e Salvar" : "Salvar"}
             </Button>
           </DialogFooter>
         </DialogContent>
