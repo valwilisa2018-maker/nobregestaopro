@@ -268,35 +268,7 @@ function SalesPage() {
         });
       }
 
-      // Se for Cartão ou PIX, gera o link do Pagar.me automaticamente
-      if ((form.payment_method === "cartao" || form.payment_method === "pix") && saleRow?.id) {
-        setIsGeneratingLink(true);
-        try {
-          const res = await createPaymentLink({
-            data: {
-              name: `Venda ${form.customer_name}`,
-              amount: Math.round(Number(form.total_amount) * 100), // Pagar.me usa centavos
-              installments: Number(form.installments || 12),
-              methods: ["credit_card", "pix"],
-              saleId: saleRow.id,
-            }
-          });
-
-          if (res.ok) {
-            setPaymentLinkData({ url: res.url, id: res.id || "" });
-            toast.success("Link de pagamento gerado com sucesso!");
-          } else {
-            toast.error(`Venda criada, mas erro no Pagar.me: ${res.error}`);
-          }
-        } catch (err: any) {
-          console.error("Erro ao gerar link Pagar.me:", err);
-          toast.error("Venda criada, mas falha ao conectar com Pagar.me");
-        } finally {
-          setIsGeneratingLink(false);
-        }
-      } else {
-        toast.success("Venda criada — cards de produção gerados automaticamente");
-      }
+      toast.success("Venda criada — cards de produção gerados automaticamente");
       setOpen(false);
       setReceiptFile(null);
       await qc.invalidateQueries({ queryKey: ["sales-list"] });
@@ -419,29 +391,6 @@ function SalesPage() {
       }).eq("id", editing.id);
       if (error) throw error;
 
-      // Se alterou para Cartão ou PIX e não tinha link, gera agora
-      if ((editing.payment_method === "cartao" || editing.payment_method === "pix") && !editing.pagarme_id) {
-        setIsGeneratingLink(true);
-        try {
-          const res = await createPaymentLink({
-            data: {
-              name: `Venda ${editing.customer_name || editing.customers?.name}`,
-              amount: Math.round(Number(editing.total_amount) * 100),
-              installments: Number(editing.installments || 12),
-              methods: ["credit_card", "pix"],
-              saleId: editing.id,
-            }
-          });
-          if (res.ok) {
-            setPaymentLinkData({ url: res.url, id: res.id || "" });
-            toast.success("Link de pagamento gerado!");
-          }
-        } catch (err) {
-          console.error("Erro ao gerar link na edição:", err);
-        } finally {
-          setIsGeneratingLink(false);
-        }
-      }
       toast.success("Venda atualizada");
       setEditing(null);
       await qc.invalidateQueries({ queryKey: ["sales-list"] });
