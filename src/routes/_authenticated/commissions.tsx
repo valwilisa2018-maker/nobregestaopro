@@ -51,7 +51,7 @@ function CommissionsPage() {
   const sales = useQuery({
     queryKey: ["commissions-sales", range?.from, range?.to],
     queryFn: async () => {
-      let q = supabase.from("sales").select("id,seller_id,total_amount,paid_amount,payment_status,sale_date");
+      let q = supabase.from("sales").select("id,seller_id,total_amount,paid_amount,payment_status,sale_date,is_payment_link");
       if (range) q = q.gte("sale_date", range.from).lte("sale_date", range.to);
       return (await q).data ?? [];
     },

@@ -59,6 +59,7 @@ function PaymentLinkPage() {
           total_amount: v,
           package_name: name.trim() || "Pagamento",
           payment_status: "pendente",
+          is_payment_link: true,
           created_by: user?.id,
           sale_date: new Date().toISOString().split('T')[0]
         })
