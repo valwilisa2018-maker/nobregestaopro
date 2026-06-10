@@ -483,17 +483,17 @@ function SalesPage() {
               <div className="grid grid-cols-2 gap-3">
                 <div className="col-span-2">
                   <Label>Nome do cliente *</Label>
-                  <Input list="customers-names" value={form.customer_name} onChange={(e) => autofillFromCustomer("customer_name", e.target.value)} />
+                  <Input list="customers-names" value={form.customer_name || ""} onChange={(e) => autofillFromCustomer("customer_name", e.target.value)} />
                   <datalist id="customers-names">{(customersAll.data ?? []).map((c: any) => (<option key={`n-${c.id}`} value={c.name} />))}</datalist>
                 </div>
                 <div>
                   <Label>Empresa {form.with_invoice === "sim" ? "*" : "(Opcional)"}</Label>
-                  <Input list="customers-companies" value={form.company} onChange={(e) => autofillFromCustomer("company", e.target.value)} />
+                  <Input list="customers-companies" value={form.company || ""} onChange={(e) => autofillFromCustomer("company", e.target.value)} />
                   <datalist id="customers-companies">{(customersAll.data ?? []).filter((c: any) => c.company).map((c: any) => (<option key={`c-${c.id}`} value={c.company} />))}</datalist>
                 </div>
                 <div>
                   <Label>Com Nota? *</Label>
-                  <Select value={form.with_invoice} onValueChange={(v) => set("with_invoice", v)}>
+                  <Select value={form.with_invoice || ""} onValueChange={(v) => set("with_invoice", v)}>
                     <SelectTrigger><SelectValue /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="sim">Sim (Com Nota)</SelectItem>
@@ -501,9 +501,9 @@ function SalesPage() {
                     </SelectContent>
                   </Select>
                 </div>
-                <div><Label>CPF/CNPJ {form.with_invoice === "sim" ? "*" : "(Opcional)"}</Label><Input value={form.document} onChange={(e) => set("document", e.target.value)} /></div>
-                <div><Label>Telefone *</Label><Input value={form.phone} onChange={(e) => set("phone", e.target.value)} /></div>
-                <div><Label>E-mail (opcional)</Label><Input value={form.email} onChange={(e) => set("email", e.target.value)} /></div>
+                <div><Label>CPF/CNPJ {form.with_invoice === "sim" ? "*" : "(Opcional)"}</Label><Input value={form.document || ""} onChange={(e) => set("document", e.target.value)} /></div>
+                <div><Label>Telefone *</Label><Input value={form.phone || ""} onChange={(e) => set("phone", e.target.value)} /></div>
+                <div><Label>E-mail (opcional)</Label><Input value={form.email || ""} onChange={(e) => set("email", e.target.value)} /></div>
 
                 <div><Label>Valor total *</Label><Input type="number" step="0.01" value={form.total_amount || ""} onChange={(e) => set("total_amount", e.target.value)} /></div>
                 <div><Label>Valor pago *</Label><Input type="number" step="0.01" value={form.paid_amount || ""} onChange={(e) => set("paid_amount", e.target.value)} /></div>
