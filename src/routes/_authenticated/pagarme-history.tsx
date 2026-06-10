@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useQuery } from "@tanstack/react-query";
-import { useState, useMemo } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useState, useMemo, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -22,6 +22,7 @@ export const Route = createFileRoute("/_authenticated/pagarme-history")({
 });
 
 function PagarmeHistoryPage() {
+  const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [sellerFilter, setSellerFilter] = useState("all");
@@ -29,6 +30,24 @@ function PagarmeHistoryPage() {
     from: addDays(new Date(), -30),
     to: new Date(),
   });
+
+  // Escutar atualizações de webhooks em tempo real
+  useEffect(() => {
+    const channel = supabase
+      .channel("pagarme_webhooks_changes")
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "pagarme_webhooks" },
+        () => {
+          queryClient.invalidateQueries({ queryKey: ["pagarme-webhooks-history"] });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [queryClient]);
 
   const { data: sellers } = useQuery({
     queryKey: ["sellers-list"],
