@@ -13,7 +13,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { FileText, Download, History, LayoutGrid, List, QrCode } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Plus, Loader2, Pencil, Eye, Trash2 } from "lucide-react";
+import { Plus, Loader2, Pencil, Eye, Trash2, Check } from "lucide-react";
 import { toast } from "sonner";
 import { logger } from "@/lib/logger";
 import { formatCurrency } from "@/lib/auth";
@@ -298,6 +298,20 @@ function SalesPage() {
       qc.invalidateQueries({ queryKey: ["sales-list"] });
     } catch (e: any) {
       toast.error(`Erro ao excluir: ${e.message}`);
+    }
+  };
+
+  const handleQuickConfirm = async (sale: any) => {
+    try {
+      const { error } = await supabase.from("sales").update({
+        payment_status: "pago_total",
+        paid_amount: Number(sale.total_amount)
+      }).eq("id", sale.id);
+      if (error) throw error;
+      toast.success("Venda confirmada como paga!");
+      qc.invalidateQueries({ queryKey: ["sales-list"] });
+    } catch (e: any) {
+      toast.error(`Erro ao confirmar: ${e.message}`);
     }
   };
 
@@ -599,6 +613,11 @@ function SalesPage() {
                         )}
                         <Button size="icon" variant="ghost" onClick={() => setEditing({ ...s, with_invoice: s.customers?.document ? "sim" : "nao", customer_name: s.customers?.name, company: s.customers?.company, document: s.customers?.document, phone: s.customers?.phone, email: s.customers?.email })}><Pencil className="w-4 h-4" /></Button>
                         <Button size="icon" variant="ghost" className="text-destructive hover:text-destructive hover:bg-destructive/10" onClick={() => handleDelete(s.id)}><Trash2 className="w-4 h-4" /></Button>
+                        {s.payment_status !== "pago_total" && (
+                          <Button size="icon" variant="ghost" className="text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50" title="Confirmar Pagamento" onClick={() => handleQuickConfirm(s)}>
+                            <Check className="w-4 h-4" />
+                          </Button>
+                        )}
                         <Dialog>
                           <DialogTrigger asChild><Button size="icon" variant="ghost"><Eye className="w-4 h-4" /></Button></DialogTrigger>
                           <DialogContent className="max-w-xl">
@@ -645,6 +664,11 @@ function SalesPage() {
                       )}
                       <Button size="icon" variant="outline" className="h-8 w-8" onClick={() => setEditing({ ...s, with_invoice: s.customers?.document ? "sim" : "nao", customer_name: s.customers?.name, company: s.customers?.company, document: s.customers?.document, phone: s.customers?.phone, email: s.customers?.email })}><Pencil className="w-4 h-4" /></Button>
                       <Button size="icon" variant="outline" className="h-8 w-8 text-destructive border-destructive/10 hover:bg-destructive/5" onClick={() => handleDelete(s.id)}><Trash2 className="w-4 h-4" /></Button>
+                      {s.payment_status !== "pago_total" && (
+                        <Button size="icon" variant="outline" className="h-8 w-8 text-emerald-600 border-emerald-100 hover:bg-emerald-50" title="Confirmar Pagamento" onClick={() => handleQuickConfirm(s)}>
+                          <Check className="w-4 h-4" />
+                        </Button>
+                      )}
                       <Dialog>
                         <DialogTrigger asChild><Button size="icon" variant="outline" className="h-8 w-8"><Eye className="w-4 h-4" /></Button></DialogTrigger>
                         <DialogContent className="max-w-xl">
