@@ -118,15 +118,21 @@ function SalesPage() {
     setForm((f) => {
       const updatedForm = { ...f, [k]: v };
       
-      // Auto-set status and amount for Pix/Card
+      // Auto-set amount for Pix/Card if status is total
       if (k === "payment_method" && (v === "pix" || v === "cartao")) {
-        updatedForm.payment_status = "pago_total";
-        if (f.total_amount) updatedForm.paid_amount = f.total_amount;
+        if (f.total_amount && f.payment_status === "pago_total") {
+          updatedForm.paid_amount = f.total_amount;
+        }
       }
 
-      // If amount changes and it's already paid, update paid_amount
+      // If amount changes and it's already paid total, update paid_amount
       if (k === "total_amount" && updatedForm.payment_status === "pago_total") {
         updatedForm.paid_amount = v;
+      }
+
+      // If status changes to total, match amounts
+      if (k === "payment_status" && v === "pago_total") {
+        updatedForm.paid_amount = f.total_amount;
       }
 
       // Auto-set producer for Pamela/Ester
@@ -323,15 +329,21 @@ function SalesPage() {
       if (!e) return e;
       const updatedEditing = { ...e, [k]: v };
       
-      // Auto-set status and amount for Pix/Card
+      // Auto-set amount for Pix/Card if status is total
       if (k === "payment_method" && (v === "pix" || v === "cartao")) {
-        updatedEditing.payment_status = "pago_total";
-        if (e.total_amount) updatedEditing.paid_amount = e.total_amount;
+        if (e.total_amount && e.payment_status === "pago_total") {
+          updatedEditing.paid_amount = e.total_amount;
+        }
       }
 
-      // If amount changes and it's already paid, update paid_amount
+      // If amount changes and it's already paid total, update paid_amount
       if (k === "total_amount" && updatedEditing.payment_status === "pago_total") {
         updatedEditing.paid_amount = v;
+      }
+
+      // If status changes to total, match amounts
+      if (k === "payment_status" && v === "pago_total") {
+        updatedEditing.paid_amount = e.total_amount;
       }
 
       // Auto-set producer for Pamela/Ester
