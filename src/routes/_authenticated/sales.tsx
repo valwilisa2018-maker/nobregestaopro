@@ -295,7 +295,7 @@ function SalesPage() {
       }
       setOpen(false);
       setReceiptFile(null);
-      qc.invalidateQueries();
+      await qc.invalidateQueries({ queryKey: ["sales-list"] });
     } catch (e: any) {
       await logger.error(`Erro ao criar venda: ${e.message}`, { context: "sales/submit", details: { form, error: e } });
     } finally { setSaving(false); }
@@ -388,7 +388,7 @@ function SalesPage() {
       if (error) throw error;
       toast.success("Venda atualizada");
       setEditing(null);
-      qc.invalidateQueries();
+      await qc.invalidateQueries({ queryKey: ["sales-list"] });
     } catch (e: any) {
       await logger.error(`Erro ao atualizar venda: ${e.message}`, { context: "sales/submitEdit", details: { editing, error: e } });
     } finally { setEditSaving(false); }
