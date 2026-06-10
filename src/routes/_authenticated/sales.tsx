@@ -823,50 +823,39 @@ function SalesPage() {
       <Dialog open={!!paymentLinkData} onOpenChange={(open) => !open && setPaymentLinkData(null)}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Link2 className="w-5 h-5 text-emerald-600" />
-              Link de Pagamento Gerado
+            <DialogTitle className="flex items-center gap-2 text-emerald-600">
+              <QrCode className="w-5 h-5" />
+              Pagamento Gerado
             </DialogTitle>
           </DialogHeader>
-          <div className="space-y-4 py-4">
-            <div className="bg-emerald-50 border border-emerald-100 p-4 rounded-lg">
-              <p className="text-sm text-emerald-800 font-medium mb-1">Pagamento via Cartão</p>
-              <p className="text-xs text-emerald-600">Envie este link para o cliente realizar o pagamento.</p>
+          <div className="flex flex-col items-center justify-center space-y-6 py-4">
+            <div className="p-4 bg-white rounded-2xl border-2 border-emerald-100 shadow-sm">
+              <QRCodeSVG value={paymentLinkData?.url || ""} size={200} />
             </div>
             
-            <div className="flex items-center gap-2">
-              <Input
-                readOnly
-                value={paymentLinkData?.url || ""}
-                className="bg-muted font-mono text-xs"
-              />
-              <Button
-                size="icon"
-                variant="outline"
-                onClick={() => {
-                  if (paymentLinkData?.url) {
-                    navigator.clipboard.writeText(paymentLinkData.url);
+            <div className="w-full space-y-2">
+              <Label className="text-xs text-muted-foreground uppercase font-bold tracking-wider">Link de Pagamento</Label>
+              <div className="flex items-center gap-2 p-3 bg-muted rounded-lg border group relative">
+                <span className="text-sm truncate flex-1 font-medium">{paymentLinkData?.url}</span>
+                <Button 
+                  size="icon" 
+                  variant="ghost" 
+                  className="h-8 w-8 hover:bg-emerald-50 hover:text-emerald-600 transition-colors"
+                  onClick={() => {
+                    navigator.clipboard.writeText(paymentLinkData?.url || "");
                     toast.success("Link copiado!");
-                  }
-                }}
-              >
-                <Copy className="h-4 w-4" />
-              </Button>
+                  }}
+                >
+                  <Copy className="h-4 w-4" />
+                </Button>
+              </div>
             </div>
 
-            <Button
-              className="w-full bg-emerald-600 hover:bg-emerald-700"
-              asChild
-            >
-              <a href={paymentLinkData?.url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2">
-                <ExternalLink className="w-4 h-4" />
-                Abrir Link de Pagamento
-              </a>
+            <Button className="w-full bg-emerald-600 hover:bg-emerald-700 h-11 text-base font-bold shadow-lg shadow-emerald-200" onClick={() => window.open(paymentLinkData?.url, "_blank")}>
+              <ExternalLink className="w-4 h-4 mr-2" />
+              Abrir Página de Pagamento
             </Button>
           </div>
-          <DialogFooter>
-            <Button variant="ghost" onClick={() => setPaymentLinkData(null)}>Fechar</Button>
-          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>
