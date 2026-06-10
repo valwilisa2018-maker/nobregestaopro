@@ -13,7 +13,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { FileText, Download, History, LayoutGrid, List, QrCode } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Plus, Loader2, Pencil, Eye } from "lucide-react";
+import { Plus, Loader2, Pencil, Eye, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { logger } from "@/lib/logger";
 import { formatCurrency } from "@/lib/auth";
@@ -303,6 +303,19 @@ function SalesPage() {
     } catch (e: any) {
       await logger.error(`Erro ao criar venda: ${e.message}`, { context: "sales/submit", details: { form, error: e } });
     } finally { setSaving(false); }
+  };
+
+  const handleDelete = async (id: string) => {
+    if (!confirm("Tem certeza que deseja excluir esta venda? Esta ação não pode ser desfeita.")) return;
+    
+    try {
+      const { error } = await supabase.from("sales").delete().eq("id", id);
+      if (error) throw error;
+      toast.success("Venda excluída com sucesso");
+      qc.invalidateQueries({ queryKey: ["sales-list"] });
+    } catch (e: any) {
+      toast.error(`Erro ao excluir: ${e.message}`);
+    }
   };
 
   const statusVariant = (s: string) =>
@@ -609,6 +622,7 @@ function SalesPage() {
                           </Button>
                         )}
                         <Button size="icon" variant="ghost" onClick={() => setEditing({ ...s, with_invoice: s.customers?.document ? "sim" : "nao", customer_name: s.customers?.name, company: s.customers?.company, document: s.customers?.document, phone: s.customers?.phone, email: s.customers?.email })}><Pencil className="w-4 h-4" /></Button>
+                        <Button size="icon" variant="ghost" className="text-destructive hover:text-destructive hover:bg-destructive/10" onClick={() => handleDelete(s.id)}><Trash2 className="w-4 h-4" /></Button>
                         <Dialog>
                           <DialogTrigger asChild><Button size="icon" variant="ghost"><Eye className="w-4 h-4" /></Button></DialogTrigger>
                           <DialogContent className="max-w-xl">
@@ -654,6 +668,7 @@ function SalesPage() {
                         </Button>
                       )}
                       <Button size="icon" variant="outline" className="h-8 w-8" onClick={() => setEditing({ ...s, with_invoice: s.customers?.document ? "sim" : "nao", customer_name: s.customers?.name, company: s.customers?.company, document: s.customers?.document, phone: s.customers?.phone, email: s.customers?.email })}><Pencil className="w-4 h-4" /></Button>
+                      <Button size="icon" variant="outline" className="h-8 w-8 text-destructive border-destructive/10 hover:bg-destructive/5" onClick={() => handleDelete(s.id)}><Trash2 className="w-4 h-4" /></Button>
                       <Dialog>
                         <DialogTrigger asChild><Button size="icon" variant="outline" className="h-8 w-8"><Eye className="w-4 h-4" /></Button></DialogTrigger>
                         <DialogContent className="max-w-xl">
