@@ -342,8 +342,8 @@ function SalesPage() {
       
       // Auto-set amount for Pix/Card if status is total
       if (k === "payment_method" && (v === "pix" || v === "cartao")) {
-        if (e.total_amount && e.payment_status === "pago_total") {
-          updatedEditing.paid_amount = e.total_amount;
+        if (updatedEditing.total_amount && updatedEditing.payment_status === "pago_total") {
+          updatedEditing.paid_amount = updatedEditing.total_amount;
         }
       }
 
