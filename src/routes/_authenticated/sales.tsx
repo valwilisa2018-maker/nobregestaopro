@@ -295,7 +295,7 @@ function SalesPage() {
       }
       setOpen(false);
       setReceiptFile(null);
-      qc.invalidateQueries();
+      await qc.invalidateQueries({ queryKey: ["sales-list"] });
     } catch (e: any) {
       await logger.error(`Erro ao criar venda: ${e.message}`, { context: "sales/submit", details: { form, error: e } });
     } finally { setSaving(false); }
@@ -334,18 +334,31 @@ function SalesPage() {
 
   const submitEdit = async () => {
     if (!editing || editSaving) return;
+
+    // Validate required fields
+    const required: [string, string][] = [
+      ["customer_name", "Nome do cliente"],
+      ["phone", "Telefone"], ["total_amount", "Valor total"], ["paid_amount", "Valor pago"],
+      ["payment_status", "Status pagamento"], ["payment_method", "Forma de pagamento"],
+      ["seller_id", "Vendedor"], ["producer_id", "Produtor"], ["service_type_id", "Tipo de serviço"],
+      ["service_quantity", "Qtd. serviços"], ["sale_date", "Data da venda"], ["trello_link", "Link Google Drive"],
+      ["lead_source", "Origem da venda"], ["delivery_deadline", "Prazo de entrega"],
+    ];
+
+    for (const [k, label] of required) {
+      const val = String(editing[k] ?? "").trim();
+      if (!val) {
+        toast.error(`Preencha o campo: ${label}`);
+        return;
+      }
+      if (k === "trello_link" && !val.toLowerCase().match(/^https:\/\/drive\.google\.com\//)) {
+        toast.error("O link deve ser um link de compartilhamento válido do Google Drive (ex: https://drive.google.com/...)");
+        return;
+      }
+    }
+
     setEditSaving(true);
     try {
-      if (!String(editing.trello_link || "").trim()) {
-        toast.error("Preencha o campo: Link Google Drive");
-        setEditSaving(false);
-        return;
-      }
-      if (!String(editing.trello_link || "").toLowerCase().match(/^https:\/\/drive\.google\.com\//)) {
-        toast.error("O link deve ser um link de compartilhamento válido do Google Drive (ex: https://drive.google.com/...)");
-        setEditSaving(false);
-        return;
-      }
       if (editing.with_invoice === "sim") {
         if (!String(editing.company || "").trim()) {
           toast.error("Preencha o campo: Empresa (obrigatório para vendas com nota)");
@@ -388,7 +401,7 @@ function SalesPage() {
       if (error) throw error;
       toast.success("Venda atualizada");
       setEditing(null);
-      qc.invalidateQueries();
+      await qc.invalidateQueries({ queryKey: ["sales-list"] });
     } catch (e: any) {
       await logger.error(`Erro ao atualizar venda: ${e.message}`, { context: "sales/submitEdit", details: { editing, error: e } });
     } finally { setEditSaving(false); }
