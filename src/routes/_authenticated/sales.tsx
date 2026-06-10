@@ -109,7 +109,7 @@ function SalesPage() {
     sale_date: new Date().toISOString().slice(0, 10), lead_source: "",
     with_invoice: "sim",
     installments: "12",
-
+    delivery_deadline: "",
   });
 
   const set = (k: string, v: string) => {
@@ -169,7 +169,7 @@ function SalesPage() {
       ["payment_status", "Status pagamento"], ["payment_method", "Forma de pagamento"],
       ["seller_id", "Vendedor"], ["producer_id", "Produtor"], ["service_type_id", "Tipo de serviço"],
       ["service_quantity", "Qtd. serviços"], ["sale_date", "Data da venda"], ["trello_link", "Link Google Drive"],
-      ["lead_source", "Origem da venda"],
+      ["lead_source", "Origem da venda"], ["delivery_deadline", "Prazo de entrega"],
     ];
 
     if (form.with_invoice === "sim") {
@@ -246,6 +246,7 @@ function SalesPage() {
         lead_source: form.lead_source || null,
         receipt_url,
         sale_date: form.sale_date || new Date().toISOString().slice(0, 10),
+        delivery_deadline: form.delivery_deadline,
         created_by: user?.id,
       }).select("id").single();
 
@@ -382,6 +383,7 @@ function SalesPage() {
         notes: editing.notes || null,
         trello_link: editing.trello_link || null,
         lead_source: editing.lead_source || null,
+        delivery_deadline: editing.delivery_deadline || null,
       }).eq("id", editing.id);
       if (error) throw error;
       toast.success("Venda atualizada");
@@ -533,6 +535,7 @@ function SalesPage() {
                   <Input type="file" accept="image/*,application/pdf" onChange={(e) => setReceiptFile(e.target.files?.[0] ?? null)} />
                   {receiptFile && <p className="text-xs text-muted-foreground mt-1">{receiptFile.name}</p>}
                 </div>
+                <div className="col-span-2"><Label>Prazo de entrega *</Label><Input placeholder="Ex: 7 dias úteis" value={form.delivery_deadline} onChange={(e) => set("delivery_deadline", e.target.value)} /></div>
                 <div className="col-span-2"><Label>Observações (opcional)</Label><Textarea value={form.notes} onChange={(e) => set("notes", e.target.value)} /></div>
               </div>
               <DialogFooter><Button onClick={submit} disabled={saving}>{saving && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}Criar venda</Button></DialogFooter>
@@ -576,7 +579,7 @@ function SalesPage() {
                                   ) : (<div className="text-center py-8 text-muted-foreground italic">Nenhum comprovante anexado.</div>)}
                                 </TabsContent>
                                 <TabsContent value="history" className="mt-4">
-                                  <div className="space-y-3"><div className="grid grid-cols-2 gap-4"><div className="p-3 border rounded-lg bg-green-50"><p className="text-xs text-green-700 uppercase font-semibold">Total Pago</p><p className="text-xl font-bold text-green-800">{formatCurrency(s.paid_amount)}</p></div><div className="p-3 border rounded-lg bg-red-50"><p className="text-xs text-red-700 uppercase font-semibold">Pendente</p><p className="text-xl font-bold text-red-800">{formatCurrency(Number(s.total_amount) - Number(s.paid_amount))}</p></div></div><div className="p-3 border rounded-lg"><p className="text-xs text-muted-foreground uppercase font-semibold mb-1">Status</p><Badge variant={statusVariant(s.payment_status) as any}>{s.payment_status.replace("_", " ")}</Badge></div>{s.notes && (<div className="p-3 border rounded-lg"><p className="text-xs text-muted-foreground uppercase font-semibold mb-1">Observações da Venda</p><p className="text-sm">{s.notes}</p></div>)}</div>
+                                  <div className="space-y-3"><div className="grid grid-cols-2 gap-4"><div className="p-3 border rounded-lg bg-green-50"><p className="text-xs text-green-700 uppercase font-semibold">Total Pago</p><p className="text-xl font-bold text-green-800">{formatCurrency(s.paid_amount)}</p></div><div className="p-3 border rounded-lg bg-red-50"><p className="text-xs text-red-700 uppercase font-semibold">Pendente</p><p className="text-xl font-bold text-red-800">{formatCurrency(Number(s.total_amount) - Number(s.paid_amount))}</p></div></div><div className="p-3 border rounded-lg"><p className="text-xs text-muted-foreground uppercase font-semibold mb-1">Status</p><Badge variant={statusVariant(s.payment_status) as any}>{s.payment_status.replace("_", " ")}</Badge></div>{s.delivery_deadline && (<div className="p-3 border rounded-lg"><p className="text-xs text-muted-foreground uppercase font-semibold mb-1">Prazo de Entrega</p><p className="text-sm">{s.delivery_deadline}</p></div>)}{s.notes && (<div className="p-3 border rounded-lg"><p className="text-xs text-muted-foreground uppercase font-semibold mb-1">Observações da Venda</p><p className="text-sm">{s.notes}</p></div>)}</div>
                                 </TabsContent>
                               </Tabs>
                             </div>
@@ -737,6 +740,7 @@ function SalesPage() {
                   <Button type="button" variant="outline" onClick={() => window.open("https://drive.google.com/drive/u/0/home", "_blank", "noopener,noreferrer")}>Abrir Google Drive</Button>
                 </div>
               </div>
+              <div className="col-span-2"><Label>Prazo de entrega *</Label><Input placeholder="Ex: 7 dias úteis" value={editing.delivery_deadline ?? ""} onChange={(e) => editSet("delivery_deadline", e.target.value)} /></div>
               <div className="col-span-2"><Label>Observações (opcional)</Label><Textarea value={editing.notes ?? ""} onChange={(e) => editSet("notes", e.target.value)} /></div>
             </div>
           )}

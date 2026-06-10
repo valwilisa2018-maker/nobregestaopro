@@ -507,6 +507,7 @@ export type Database = {
           created_at: string
           created_by: string | null
           customer_id: string
+          delivery_deadline: string | null
           id: string
           lead_source: string | null
           notes: string | null
@@ -530,6 +531,7 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           customer_id: string
+          delivery_deadline?: string | null
           id?: string
           lead_source?: string | null
           notes?: string | null
@@ -553,6 +555,7 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           customer_id?: string
+          delivery_deadline?: string | null
           id?: string
           lead_source?: string | null
           notes?: string | null
