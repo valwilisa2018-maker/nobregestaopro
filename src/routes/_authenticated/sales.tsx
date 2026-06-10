@@ -335,7 +335,7 @@ function SalesPage() {
   const statusVariant = (s: string) =>
     s === "pago_total" ? "default" : s === "pago_parcial" ? "secondary" : "destructive";
 
-  const editSet = (k: string, v: any) => {
+  const editSet = useCallback((k: string, v: any) => {
     setEditing((e: any) => {
       if (!e) return e;
       const updatedEditing = { ...e, [k]: v };
@@ -378,7 +378,7 @@ function SalesPage() {
       
       return updatedEditing;
     });
-  };
+  }, [serviceTypes.data, sellers.data, producers.data]);
 
   const submitEdit = async () => {
     if (!editing || editSaving) return;
