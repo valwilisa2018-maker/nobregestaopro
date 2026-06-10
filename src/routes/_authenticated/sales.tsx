@@ -77,7 +77,7 @@ function SalesPage() {
           name: `Venda ${sale.customers?.name}`,
           amount: Math.round(Number(sale.total_amount) * 100),
           installments: 12,
-          methods: ["credit_card"],
+          methods: ["credit_card", "pix"],
           saleId: sale.id,
         }
       });
@@ -276,7 +276,7 @@ function SalesPage() {
               name: `Venda ${form.customer_name}`,
               amount: Math.round(Number(form.total_amount) * 100), // Pagar.me usa centavos
               installments: Number(form.installments || 12),
-              methods: ["credit_card"],
+              methods: ["credit_card", "pix"],
               saleId: saleRow.id,
             }
           });
