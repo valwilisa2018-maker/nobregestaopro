@@ -22,33 +22,72 @@ serve(async (req) => {
 
     const eventType = payload.type; // order.paid, order.canceled, etc.
     const data = payload.data || {};
-    const pagarmeId = data.id; // ID da ordem ou do objeto principal
-    const paymentLinkId = data.payment_link_id; // ID do link de pagamento (se houver)
-
-    // Logar o webhook
+    const pagarmeId = data.id; // ID da ordem
+    const paymentLinkId = data.payment_link_id; // ID do link de pagamento
+    
+    // Logar o webhook para histórico
     await supabaseAdmin.from("pagarme_webhooks").insert({
       pagarme_id: pagarmeId,
       event_type: eventType,
       payload: payload,
     });
 
+    // Processar apenas eventos de pagamento bem-sucedido
     if (eventType === "order.paid") {
-      console.log("[Webhook] Processando pagamento aprovado para:", pagarmeId);
+      console.log("[Webhook] Processando pagamento aprovado para Order:", pagarmeId, "Link:", paymentLinkId);
       
-      // Tenta atualizar pelo ID da ordem ou pelo ID do Link de Pagamento
       const searchId = paymentLinkId || pagarmeId;
-      console.log("[Webhook] Buscando venda por ID:", searchId);
-
-      const { data, error } = await supabaseAdmin
-        .from("sales")
-        .update({ payment_status: "paid" })
-        .eq("pagarme_id", searchId);
       
-      if (error) {
-        console.error("[Webhook] Erro ao atualizar venda:", error);
-      } else {
-        console.log("[Webhook] Venda atualizada com sucesso.");
+      // Buscar a venda associada
+      const { data: sale, error: saleError } = await supabaseAdmin
+        .from("sales")
+        .select("id, total_amount, paid_amount")
+        .eq("pagarme_id", searchId)
+        .maybeSingle();
+
+      if (saleError || !sale) {
+        console.error("[Webhook] Venda não encontrada para ID:", searchId, saleError);
+        return new Response(JSON.stringify({ ok: false, error: "Sale not found" }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          status: 404,
+        });
       }
+
+      // No Pagar.me v5, o valor da ordem está em data.amount (centavos)
+      const amountPaidCents = data.amount || 0;
+      const amountPaidBrl = amountPaidCents / 100;
+      
+      const newPaidAmount = Number(sale.paid_amount || 0) + amountPaidBrl;
+      const totalAmount = Number(sale.total_amount || 0);
+      
+      // Definir status baseado no valor pago
+      let status = "pago_parcial";
+      if (newPaidAmount >= totalAmount * 0.99) { // Tolerância de 1% para arredondamentos
+        status = "pago_total";
+      }
+
+      console.log(`[Webhook] Atualizando Venda ${sale.id}: Pago R$${amountPaidBrl}. Total acumulado R$${newPaidAmount}/${totalAmount}. Status: ${status}`);
+
+      // Atualizar a venda
+      const { error: updateError } = await supabaseAdmin
+        .from("sales")
+        .update({ 
+          payment_status: status,
+          paid_amount: newPaidAmount
+        })
+        .eq("id", sale.id);
+      
+      if (updateError) {
+        console.error("[Webhook] Erro ao atualizar venda:", updateError);
+      }
+
+      // Registrar o recebimento na tabela sale_receipts (sem arquivo, pois é via API)
+      await supabaseAdmin.from("sale_receipts").insert({
+        sale_id: sale.id,
+        amount: amountPaidBrl,
+        paid_at: new Date().toISOString().split('T')[0],
+        notes: `Pagamento automático via Pagar.me (ID: ${pagarmeId})`,
+      });
     }
 
     return new Response(JSON.stringify({ ok: true }), {
@@ -56,7 +95,7 @@ serve(async (req) => {
       status: 200,
     });
   } catch (error) {
-    console.error("[Webhook] Erro processando requisição:", error);
+    console.error("[Webhook] Erro crítico processando requisição:", error);
     return new Response(JSON.stringify({ error: error.message }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
       status: 400,
