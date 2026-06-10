@@ -59,7 +59,7 @@ function CommissionsPage() {
 
   const rows = useMemo(() => {
     const list = (sellers.data ?? []).map((s: any) => {
-      const sellerSales = (sales.data ?? []).filter((v: any) => v.seller_id === s.id);
+      const sellerSales = (sales.data ?? []).filter((v: any) => v.seller_id === s.id && !v.is_payment_link);
       const totalSold = sellerSales.reduce((t: number, v: any) => t + Number(v.total_amount ?? 0), 0);
       const totalPaid = sellerSales.reduce((t: number, v: any) => t + Number(v.paid_amount ?? 0), 0);
       const pending = totalSold - totalPaid;
