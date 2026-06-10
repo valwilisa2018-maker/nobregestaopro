@@ -510,6 +510,7 @@ export type Database = {
           delivery_deadline: string | null
           expected_delivery_date: string | null
           id: string
+          is_payment_link: boolean | null
           lead_source: string | null
           notes: string | null
           package_id: string | null
@@ -535,6 +536,7 @@ export type Database = {
           delivery_deadline?: string | null
           expected_delivery_date?: string | null
           id?: string
+          is_payment_link?: boolean | null
           lead_source?: string | null
           notes?: string | null
           package_id?: string | null
@@ -560,6 +562,7 @@ export type Database = {
           delivery_deadline?: string | null
           expected_delivery_date?: string | null
           id?: string
+          is_payment_link?: boolean | null
           lead_source?: string | null
           notes?: string | null
           package_id?: string | null
