@@ -114,7 +114,7 @@ function SalesPage() {
     expected_delivery_date: new Date().toISOString().slice(0, 10),
   });
 
-  const set = (k: string, v: string) => {
+  const set = useCallback((k: string, v: string) => {
     setForm((f) => {
       const updatedForm = { ...f, [k]: v };
       
@@ -156,7 +156,7 @@ function SalesPage() {
       
       return updatedForm;
     });
-  };
+  }, [serviceTypes.data, sellers.data, producers.data]);
 
   const autofillFromCustomer = (field: "customer_name" | "company", value: string) => {
     setForm((f) => ({ ...f, [field]: value }));
