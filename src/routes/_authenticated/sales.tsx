@@ -110,6 +110,10 @@ function SalesPage() {
     sale_date: new Date().toISOString().slice(0, 10), lead_source: "",
     with_invoice: "sim",
     installments: "12",
+    seller_id: "",
+    producer_id: "",
+    service_type_id: "",
+    lead_source: "",
     delivery_deadline: "",
     expected_delivery_date: new Date().toISOString().slice(0, 10),
   });
@@ -498,14 +502,14 @@ function SalesPage() {
                 <div><Label>Valor pago *</Label><Input type="number" step="0.01" value={form.paid_amount} onChange={(e) => set("paid_amount", e.target.value)} /></div>
                 <div>
                   <Label>Status pagamento *</Label>
-                  <Select value={form.payment_status} onValueChange={(v) => set("payment_status", v)}>
+                  <Select value={form.payment_status || ""} onValueChange={(v) => set("payment_status", v)}>
                     <SelectTrigger><SelectValue /></SelectTrigger>
                     <SelectContent><SelectItem value="pago_total">Pago total</SelectItem><SelectItem value="pago_parcial">Pago parcial</SelectItem><SelectItem value="pendente">Pendente</SelectItem></SelectContent>
                   </Select>
                 </div>
                 <div>
                   <Label>Forma de pagamento *</Label>
-                  <Select value={form.payment_method} onValueChange={(v) => set("payment_method", v)}>
+                  <Select value={form.payment_method || ""} onValueChange={(v) => set("payment_method", v)}>
                     <SelectTrigger><SelectValue /></SelectTrigger>
                     <SelectContent><SelectItem value="pix">Pix</SelectItem><SelectItem value="cartao">Cartão</SelectItem><SelectItem value="boleto">Boleto</SelectItem></SelectContent>
                   </Select>
@@ -513,7 +517,7 @@ function SalesPage() {
                 {form.payment_method === "cartao" && (
                   <div>
                     <Label>Parcelas Máx. (Pagar.me)</Label>
-                    <Select value={form.installments} onValueChange={(v) => set("installments", v)}>
+                    <Select value={form.installments || ""} onValueChange={(v) => set("installments", v)}>
                       <SelectTrigger><SelectValue /></SelectTrigger>
                       <SelectContent>
                         {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map(n => (
@@ -525,7 +529,7 @@ function SalesPage() {
                 )}
                 <div>
                   <Label>Vendedor *</Label>
-                  <Select value={form.seller_id} onValueChange={(v) => set("seller_id", v)}>
+                  <Select value={form.seller_id || ""} onValueChange={(v) => set("seller_id", v)}>
                     <SelectTrigger><SelectValue placeholder="—" /></SelectTrigger>
                     <SelectContent>{(sellers.data ?? []).map((s: any) => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}</SelectContent>
                   </Select>
@@ -533,7 +537,7 @@ function SalesPage() {
                 <div>
                   <Label>Produtor *</Label>
                   <Select 
-                    value={form.producer_id} 
+                    value={form.producer_id || ""} 
                     onValueChange={(v) => set("producer_id", v)}
                     disabled={
                       (serviceTypes.data?.find(st => st.id === form.service_type_id)?.name.toLowerCase().includes("pamela") ||
@@ -548,7 +552,7 @@ function SalesPage() {
                 </div>
                 <div>
                   <Label>Tipo de serviço *</Label>
-                  <Select value={form.service_type_id} onValueChange={(v) => set("service_type_id", v)}>
+                  <Select value={form.service_type_id || ""} onValueChange={(v) => set("service_type_id", v)}>
                     <SelectTrigger><SelectValue placeholder="—" /></SelectTrigger>
                     <SelectContent>{(serviceTypes.data ?? []).map((s: any) => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}</SelectContent>
                   </Select>
@@ -570,7 +574,7 @@ function SalesPage() {
                 <div><Label>Data de entrega *</Label><Input type="date" value={form.expected_delivery_date} onChange={(e) => set("expected_delivery_date", e.target.value)} /></div>
                 <div className="col-span-2">
                   <Label>Origem da venda *</Label>
-                  <Select value={form.lead_source} onValueChange={(v) => set("lead_source", v)}>
+                  <Select value={form.lead_source || ""} onValueChange={(v) => set("lead_source", v)}>
                     <SelectTrigger><SelectValue placeholder="Selecione a origem" /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="cliente_recuperacao">Cliente Recuperação</SelectItem><SelectItem value="trafego_pago">Tráfego Pago</SelectItem><SelectItem value="indicacao">Indicação</SelectItem><SelectItem value="organico">Orgânico / Redes Sociais</SelectItem><SelectItem value="cliente_antigo">Cliente Antigo</SelectItem><SelectItem value="prospeccao">Prospecção Ativa</SelectItem><SelectItem value="outros">Outros</SelectItem>
