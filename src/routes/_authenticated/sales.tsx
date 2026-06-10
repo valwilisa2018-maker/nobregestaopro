@@ -102,7 +102,7 @@ function SalesPage() {
     queryFn: async () => (await supabase.from("customers").select("id,name,company,document,phone,email")).data ?? [],
   });
 
-  const initialForm = {
+  const [form, setForm] = useState({
     customer_name: "", company: "", document: "", phone: "", email: "",
     total_amount: "", paid_amount: "0", payment_status: "pago_total",
     payment_method: "pix", seller_id: "", producer_id: "", service_type_id: "",
@@ -112,9 +112,7 @@ function SalesPage() {
     installments: "12",
     delivery_deadline: "",
     expected_delivery_date: new Date().toISOString().slice(0, 10),
-  };
-
-  const [form, setForm] = useState(initialForm);
+  });
 
   const set = (k: string, v: string) => {
     setForm((f) => {
