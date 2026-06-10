@@ -505,8 +505,8 @@ function SalesPage() {
                 <div><Label>Telefone *</Label><Input value={form.phone} onChange={(e) => set("phone", e.target.value)} /></div>
                 <div><Label>E-mail (opcional)</Label><Input value={form.email} onChange={(e) => set("email", e.target.value)} /></div>
 
-                <div><Label>Valor total *</Label><Input type="number" step="0.01" value={form.total_amount} onChange={(e) => set("total_amount", e.target.value)} /></div>
-                <div><Label>Valor pago *</Label><Input type="number" step="0.01" value={form.paid_amount} onChange={(e) => set("paid_amount", e.target.value)} /></div>
+                <div><Label>Valor total *</Label><Input type="number" step="0.01" value={form.total_amount || ""} onChange={(e) => set("total_amount", e.target.value)} /></div>
+                <div><Label>Valor pago *</Label><Input type="number" step="0.01" value={form.paid_amount || ""} onChange={(e) => set("paid_amount", e.target.value)} /></div>
                 <div>
                   <Label>Status pagamento *</Label>
                   <Select value={form.payment_status || ""} onValueChange={(v) => set("payment_status", v)}>
