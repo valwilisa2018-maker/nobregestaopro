@@ -104,7 +104,7 @@ function SalesPage() {
   const [form, setForm] = useState({
     customer_name: "", company: "", document: "", phone: "", email: "",
     total_amount: "", paid_amount: "0", payment_status: "pendente",
-    payment_method: "pix", seller_id: "", producer_id: "", service_type_id: "",
+    payment_method: "cartao", seller_id: "", producer_id: "", service_type_id: "",
     package_id: "", package_name: "", service_quantity: "1", notes: "", trello_link: "",
     sale_date: new Date().toISOString().slice(0, 10), lead_source: "",
     with_invoice: "sim",
@@ -267,8 +267,8 @@ function SalesPage() {
         });
       }
 
-      // Se for Cartão, gera o link do Pagar.me automaticamente
-      if (form.payment_method === "cartao" && saleRow?.id) {
+      // Se for Cartão ou PIX, gera o link do Pagar.me automaticamente
+      if ((form.payment_method === "cartao" || form.payment_method === "pix") && saleRow?.id) {
         setIsGeneratingLink(true);
         try {
           const res = await createPaymentLink({
