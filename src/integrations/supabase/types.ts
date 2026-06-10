@@ -667,6 +667,7 @@ export type Database = {
           description: string | null
           due_date: string | null
           due_time: string | null
+          expected_delivery_date: string | null
           id: string
           labels: string[]
           priority: number
@@ -686,6 +687,7 @@ export type Database = {
           description?: string | null
           due_date?: string | null
           due_time?: string | null
+          expected_delivery_date?: string | null
           id?: string
           labels?: string[]
           priority?: number
@@ -705,6 +707,7 @@ export type Database = {
           description?: string | null
           due_date?: string | null
           due_time?: string | null
+          expected_delivery_date?: string | null
           id?: string
           labels?: string[]
           priority?: number
