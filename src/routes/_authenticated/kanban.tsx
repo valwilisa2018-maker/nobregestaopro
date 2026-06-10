@@ -67,6 +67,7 @@ type CardForm = {
   customer_phone?: string | null;
   customer_name?: string | null;
   producer_id?: string | null;
+  expected_delivery_date?: string | null;
 };
 
 const emptyForm = (column_id = ""): CardForm => ({
@@ -149,7 +150,7 @@ function KanbanPage() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("service_orders")
-        .select("*, producer:producers!service_orders_producer_id_fkey(name), sales(total_amount, payment_status, trello_link, producer_id, customers(name,company,phone), sellers(name), producers(name))")
+        .select("*, producer:producers!service_orders_producer_id_fkey(name), sales(total_amount, payment_status, trello_link, producer_id, expected_delivery_date, customers(name,company,phone), sellers(name), producers(name))")
         .order("created_at", { ascending: true })
         .order("service_index", { ascending: true });
       if (error) {
@@ -173,6 +174,7 @@ function KanbanPage() {
       customer_phone: found.sales?.customers?.phone ?? null,
       customer_name: found.sales?.customers?.name ?? null,
       producer_id: found.producer_id ?? null,
+      expected_delivery_date: found.expected_delivery_date ?? found.sales?.expected_delivery_date ?? null,
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [cardParam, cards.data]);
@@ -259,6 +261,7 @@ function KanbanPage() {
       customer_phone: c.sales?.customers?.phone ?? null,
       customer_name: c.sales?.customers?.name ?? null,
       producer_id: c.producer_id ?? null,
+      expected_delivery_date: c.expected_delivery_date ?? c.sales?.expected_delivery_date ?? null,
     });
     setNewLabel("");
   };
@@ -277,6 +280,7 @@ function KanbanPage() {
       labels: editing.labels,
       trello_link: editing.trello_link?.trim() || null,
       producer_id: editing.producer_id || null,
+      expected_delivery_date: editing.expected_delivery_date || null,
     };
     try {
       if (editing.id) {
@@ -660,9 +664,14 @@ function KanbanPage() {
                                   </div>
                                 )}
                               </div>
-                              {(c.due_date || c.due_time) && (
-                                <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
-                                  {c.due_date && (<span className="flex items-center gap-1"><Calendar className="w-3 h-3" />{fmtDate(c.due_date)}</span>)}
+                              {(c.due_date || c.due_time || c.expected_delivery_date || c.sales?.expected_delivery_date) && (
+                                <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-muted-foreground">
+                                  {c.due_date && (<span className="flex items-center gap-1"><Calendar className="w-3 h-3" />Prazo: {fmtDate(c.due_date)}</span>)}
+                                  {(c.expected_delivery_date || c.sales?.expected_delivery_date) && (
+                                    <span className="flex items-center gap-1 text-primary font-medium">
+                                      <Calendar className="w-3 h-3" /> Entrega: {fmtDate(c.expected_delivery_date || c.sales?.expected_delivery_date)}
+                                    </span>
+                                  )}
                                   {c.due_time && (<span className="flex items-center gap-1"><Clock className="w-3 h-3" />{c.due_time.slice(0, 5)}</span>)}
                                 </div>
                               )}
@@ -744,9 +753,14 @@ function KanbanPage() {
                       {c.sales?.customers?.company && (
                         <div className="text-xs text-muted-foreground">{c.sales.customers.company}</div>
                       )}
-                      {(c.due_date || c.due_time) && (
-                        <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
-                          {c.due_date && (<span className="flex items-center gap-1"><Calendar className="w-3 h-3" />{fmtDate(c.due_date)}</span>)}
+                      {(c.due_date || c.due_time || c.expected_delivery_date || c.sales?.expected_delivery_date) && (
+                        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-muted-foreground">
+                          {c.due_date && (<span className="flex items-center gap-1"><Calendar className="w-3 h-3" />Prazo: {fmtDate(c.due_date)}</span>)}
+                          {(c.expected_delivery_date || c.sales?.expected_delivery_date) && (
+                            <span className="flex items-center gap-1 text-primary font-medium">
+                              <Calendar className="w-3 h-3" /> Entrega: {fmtDate(c.expected_delivery_date || c.sales?.expected_delivery_date)}
+                            </span>
+                          )}
                           {c.due_time && (<span className="flex items-center gap-1"><Clock className="w-3 h-3" />{c.due_time.slice(0, 5)}</span>)}
                         </div>
                       )}
@@ -829,8 +843,9 @@ function KanbanPage() {
                     </SelectContent>
                   </Select>
                 </div>
-                <div><Label>Data de entrega</Label><Input type="date" value={editing.due_date} onChange={(e) => setEditing({ ...editing, due_date: e.target.value })} /></div>
+                <div><Label>Prazo Interno</Label><Input type="date" value={editing.due_date} onChange={(e) => setEditing({ ...editing, due_date: e.target.value })} /></div>
                 <div><Label>Horário</Label><Input type="time" value={editing.due_time} onChange={(e) => setEditing({ ...editing, due_time: e.target.value })} /></div>
+                <div className="col-span-2"><Label className="text-primary">Data de Entrega (Sincronizada da Venda)</Label><Input type="date" value={editing.expected_delivery_date || ""} onChange={(e) => setEditing({ ...editing, expected_delivery_date: e.target.value })} /></div>
               </div>
               <div>
                 <Label>Produtor</Label>
