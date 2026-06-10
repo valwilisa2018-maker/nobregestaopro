@@ -109,7 +109,7 @@ function SalesPage() {
     sale_date: new Date().toISOString().slice(0, 10), lead_source: "",
     with_invoice: "sim",
     installments: "12",
-
+    delivery_deadline: "",
   });
 
   const set = (k: string, v: string) => {
@@ -169,7 +169,7 @@ function SalesPage() {
       ["payment_status", "Status pagamento"], ["payment_method", "Forma de pagamento"],
       ["seller_id", "Vendedor"], ["producer_id", "Produtor"], ["service_type_id", "Tipo de serviço"],
       ["service_quantity", "Qtd. serviços"], ["sale_date", "Data da venda"], ["trello_link", "Link Google Drive"],
-      ["lead_source", "Origem da venda"],
+      ["lead_source", "Origem da venda"], ["delivery_deadline", "Prazo de entrega"],
     ];
 
     if (form.with_invoice === "sim") {
@@ -246,6 +246,7 @@ function SalesPage() {
         lead_source: form.lead_source || null,
         receipt_url,
         sale_date: form.sale_date || new Date().toISOString().slice(0, 10),
+        delivery_deadline: form.delivery_deadline,
         created_by: user?.id,
       }).select("id").single();
 
@@ -382,6 +383,7 @@ function SalesPage() {
         notes: editing.notes || null,
         trello_link: editing.trello_link || null,
         lead_source: editing.lead_source || null,
+        delivery_deadline: editing.delivery_deadline || null,
       }).eq("id", editing.id);
       if (error) throw error;
       toast.success("Venda atualizada");
@@ -533,6 +535,7 @@ function SalesPage() {
                   <Input type="file" accept="image/*,application/pdf" onChange={(e) => setReceiptFile(e.target.files?.[0] ?? null)} />
                   {receiptFile && <p className="text-xs text-muted-foreground mt-1">{receiptFile.name}</p>}
                 </div>
+                <div className="col-span-2"><Label>Prazo de entrega *</Label><Input placeholder="Ex: 7 dias úteis" value={form.delivery_deadline} onChange={(e) => set("delivery_deadline", e.target.value)} /></div>
                 <div className="col-span-2"><Label>Observações (opcional)</Label><Textarea value={form.notes} onChange={(e) => set("notes", e.target.value)} /></div>
               </div>
               <DialogFooter><Button onClick={submit} disabled={saving}>{saving && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}Criar venda</Button></DialogFooter>
