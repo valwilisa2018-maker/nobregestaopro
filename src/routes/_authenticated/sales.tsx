@@ -40,7 +40,7 @@ function SalesPage() {
   const { data: salesList, isLoading: loadingSales, error: salesError, refetch } = useQuery({
     queryKey: ["sales-list"],
     queryFn: async () => {
-      // Usamos inner join com customers para garantir integridade, mas tratamos erros silenciosamente se houver
+      // Tentamos o select completo
       const { data, error } = await supabase
         .from("sales")
         .select("*, customers!inner(name,company,phone,email,document), sellers(name), producers(name), service_types(name), sale_receipts(*)")
@@ -48,18 +48,22 @@ function SalesPage() {
       
       if (error) {
         console.error("Supabase error fetching sales:", error);
-        // Fallback: se o join falhar por algum motivo de dados órfãos, tentamos sem join restritivo
-        const { data: fallbackData, error: fallbackError } = await supabase
+        // Fallback: tenta sem o join restritivo (pode ser problema de dado órfão)
+        const { data: fb, error: fbe } = await supabase
           .from("sales")
           .select("*, customers(name,company,phone,email,document), sellers(name), producers(name), service_types(name), sale_receipts(*)")
           .order("sale_date", { ascending: false });
         
-        if (fallbackError) throw fallbackError;
-        return fallbackData ?? [];
+        if (fbe) {
+           console.error("Fallback error:", fbe);
+           throw fbe;
+        }
+        return fb ?? [];
       }
       return data ?? [];
     },
-    retry: 2,
+    retry: 3,
+    retryDelay: (attempt) => Math.min(1000 * 2 ** attempt, 10000),
   });
 
   const sellers = useQuery({ queryKey: ["sellers-all"], queryFn: async () => {
