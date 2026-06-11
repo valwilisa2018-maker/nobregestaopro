@@ -40,20 +40,15 @@ function SalesPage() {
   const { data: salesList, isLoading: loadingSales, error: salesError, refetch } = useQuery({
     queryKey: ["sales-list"],
     queryFn: async () => {
-      try {
-        const { data, error } = await supabase
-          .from("sales")
-          .select("*, customers!inner(name,company,phone,email,document), sellers(name), producers(name), service_types(name), sale_receipts(*)")
-          .order("sale_date", { ascending: false });
-        if (error) {
-          console.error("Supabase error fetching sales:", error);
-          throw error;
-        }
-        return data ?? [];
-      } catch (err: any) {
-        console.error("Caught error in sales queryFn:", err);
-        throw err;
+      const { data, error } = await supabase
+        .from("sales")
+        .select("*, customers(name,company,phone,email,document), sellers(name), producers(name), service_types(name), sale_receipts(*)")
+        .order("sale_date", { ascending: false });
+      if (error) {
+        console.error("Supabase error fetching sales:", error);
+        throw error;
       }
+      return data ?? [];
     },
     retry: 3,
     retryDelay: (attempt) => Math.min(1000 * 2 ** attempt, 10000),
