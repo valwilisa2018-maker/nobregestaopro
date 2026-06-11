@@ -42,7 +42,7 @@ function SalesPage() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("sales")
-        .select("*, customers(name,company,phone,email,document), sellers(name), producers(name), service_types(name), sale_receipts(*)")
+        .select("*, customers!inner(name,company,phone,email,document), sellers(name), producers(name), service_types(name), sale_receipts(*)")
         .order("sale_date", { ascending: false });
       if (error) {
         console.error("Supabase error fetching sales:", error);
