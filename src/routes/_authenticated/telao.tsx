@@ -456,9 +456,18 @@ function Telao() {
     return out;
   }, [sales]);
 
-  const todaySales = uniqueSales.filter((s) => new Date(s.created_at) >= today0);
-  const weekSales = uniqueSales.filter((s) => new Date(s.created_at) >= week0);
-  const monthSales = uniqueSales.filter((s) => new Date(s.created_at) >= month0);
+  const todaySales = uniqueSales.filter((s) => {
+    const date = s.sale_date ? new Date(s.sale_date + 'T12:00:00') : new Date(s.created_at);
+    return date >= today0;
+  });
+  const weekSales = uniqueSales.filter((s) => {
+    const date = s.sale_date ? new Date(s.sale_date + 'T12:00:00') : new Date(s.created_at);
+    return date >= week0;
+  });
+  const monthSales = uniqueSales.filter((s) => {
+    const date = s.sale_date ? new Date(s.sale_date + 'T12:00:00') : new Date(s.created_at);
+    return date >= month0;
+  });
 
   const sum = (arr: SaleRow[]) => arr.reduce((a, s) => a + Number(s.total_amount || 0), 0);
 
