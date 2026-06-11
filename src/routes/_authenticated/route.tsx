@@ -18,16 +18,44 @@ function AuthLayout() {
   useTelaoSettingsSync();
 
   useEffect(() => {
+    let mounted = true;
+
+    const checkSession = async () => {
+      try {
+        const { data, error } = await supabase.auth.getSession();
+        if (error) throw error;
+        
+        if (!mounted) return;
+
+        if (!data.session) {
+          console.warn("No session found, redirecting to login");
+          navigate({ to: "/login" });
+        } else {
+          setAuthed(true);
+        }
+      } catch (err) {
+        console.error("Session check error:", err);
+        if (mounted) navigate({ to: "/login" });
+      } finally {
+        if (mounted) setReady(true);
+      }
+    };
+
+    checkSession();
+
     const { data: sub } = supabase.auth.onAuthStateChange((_e, s) => {
+      if (!mounted) return;
       setAuthed(!!s);
-      if (!s) navigate({ to: "/login" });
+      if (!s) {
+        console.warn("Auth state changed to unauthenticated, redirecting");
+        navigate({ to: "/login" });
+      }
     });
-    supabase.auth.getSession().then(({ data }) => {
-      if (!data.session) navigate({ to: "/login" });
-      else setAuthed(true);
-      setReady(true);
-    });
-    return () => sub.subscription.unsubscribe();
+
+    return () => {
+      mounted = false;
+      sub.subscription.unsubscribe();
+    };
   }, [navigate]);
 
   if (!ready || !authed) {

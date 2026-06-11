@@ -48,13 +48,28 @@ function LoginPage() {
   const [showSignupPassword, setShowSignupPassword] = useState(false);
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => {
-      if (data.session) navigate({ to: "/dashboard" });
+    let mounted = true;
+    
+    supabase.auth.getSession().then(({ data, error }) => {
+      if (error) {
+        console.error("Login session check error:", error);
+        return;
+      }
+      if (mounted && data.session) {
+        navigate({ to: "/dashboard" });
+      }
     });
+
     const { data: sub } = supabase.auth.onAuthStateChange((_e, s) => {
-      if (s) navigate({ to: "/dashboard" });
+      if (mounted && s) {
+        navigate({ to: "/dashboard" });
+      }
     });
-    return () => sub.subscription.unsubscribe();
+
+    return () => {
+      mounted = false;
+      sub.subscription.unsubscribe();
+    };
   }, [navigate]);
 
   const handleLogin = async (e: React.FormEvent) => {
