@@ -138,11 +138,14 @@ function AdminPage() {
   const updateGoal = async (id: string, amount: string, period: string) => {
     const numericAmount = Math.max(0, Number(amount));
     
+    console.log(`Updating goal ${id} for period ${period} to ${numericAmount}`);
+
     const { error } = await supabase.from("goals").update({ 
       target_amount: Number(numericAmount.toFixed(2)) 
     }).eq("id", id);
 
     if (error) {
+      console.error("Supabase update error:", error);
       toast.error(error.message);
     } else {
       // Synchronize other goals based on the updated one with rounding
