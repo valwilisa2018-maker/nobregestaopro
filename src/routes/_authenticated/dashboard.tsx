@@ -79,7 +79,7 @@ function Dashboard() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("sales")
-        .select("id,total_amount,paid_amount,payment_status,created_at,seller_id,producer_id,customer_id,service_type_id,package_id,service_quantity,is_payment_link");
+        .select("id,total_amount,paid_amount,payment_status,created_at,sale_date,seller_id,producer_id,customer_id,service_type_id,package_id,service_quantity,is_payment_link");
       if (error) throw error;
       return data ?? [];
     },
@@ -165,17 +165,19 @@ function Dashboard() {
     });
   }, [allRaw, sellerFilter, serviceFilter]);
 
-  const sumIn = (since: string) =>
-    all.filter((s) => s.created_at >= since).reduce((a, s) => a + Number(s.total_amount), 0);
+  const sumIn = (since: string) => {
+    const sinceDate = since.slice(0, 10);
+    return all.filter((s) => (s.sale_date || s.created_at.slice(0, 10)) >= sinceDate).reduce((a, s) => a + Number(s.total_amount), 0);
+  };
 
   const dayTotal = sumIn(startOf("day"));
   const weekTotal = sumIn(startOf("week"));
   const monthTotal = sumIn(startOf("month"));
   const yearTotal = sumIn(startOf("year"));
 
-  const dayCount = all.filter((s) => s.created_at >= startOf("day")).length;
-  const weekCount = all.filter((s) => s.created_at >= startOf("week")).length;
-  const monthCount = all.filter((s) => s.created_at >= startOf("month")).length;
+  const dayCount = all.filter((s) => (s.sale_date || s.created_at.slice(0, 10)) >= startOf("day").slice(0, 10)).length;
+  const weekCount = all.filter((s) => (s.sale_date || s.created_at.slice(0, 10)) >= startOf("week").slice(0, 10)).length;
+  const monthCount = all.filter((s) => (s.sale_date || s.created_at.slice(0, 10)) >= startOf("month").slice(0, 10)).length;
   const ticketMedio = monthCount ? monthTotal / monthCount : 0;
 
   // Valores pendentes a receber (parcial + pendente)
@@ -193,15 +195,15 @@ function Dashboard() {
     month: { total: monthTotal, count: monthCount, goal: goalFor("monthly"), label: "Mês", icon: TrendingUp, since: startOf("month") },
   } as const;
   const current = scopeMap[scope];
-  const scopeSince = current.since;
+  const scopeSince = current.since.slice(0, 10);
   const dayGoal = goalFor("daily");
   const dayPct = dayGoal ? Math.min(100, Math.round((dayTotal / dayGoal) * 100)) : 0;
   const scopePct = current.goal ? Math.min(100, Math.round((current.total / current.goal) * 100)) : 0;
 
   const counts = {
-    pago_total: all.filter((s) => s.payment_status === "pago_total" && s.created_at >= scopeSince).length,
-    pago_parcial: all.filter((s) => s.payment_status === "pago_parcial" && s.created_at >= scopeSince).length,
-    pendente: all.filter((s) => s.payment_status === "pendente" && s.created_at >= scopeSince).length,
+    pago_total: all.filter((s) => s.payment_status === "pago_total" && (s.sale_date || s.created_at.slice(0, 10)) >= scopeSince).length,
+    pago_parcial: all.filter((s) => s.payment_status === "pago_parcial" && (s.sale_date || s.created_at.slice(0, 10)) >= scopeSince).length,
+    pendente: all.filter((s) => s.payment_status === "pendente" && (s.sale_date || s.created_at.slice(0, 10)) >= scopeSince).length,
   };
 
   // Service Orders por etapa
@@ -241,7 +243,7 @@ function Dashboard() {
 
   // Vendas sem nota / com nota (no escopo selecionado)
   const scopeSaleIds = new Set(
-    all.filter((s) => s.created_at >= scopeSince).map((s) => s.id),
+    all.filter((s) => (s.sale_date || s.created_at.slice(0, 10)) >= scopeSince).map((s) => s.id),
   );
   const salesWithInvoice = new Set(invList.filter((i) => i.sale_id && scopeSaleIds.has(i.sale_id)).map((i) => i.sale_id));
   const scopeSalesWithInvoice = salesWithInvoice.size;
@@ -249,7 +251,7 @@ function Dashboard() {
 
   // Ranking vendedores (no escopo)
   const sellerRanking = (sellers.data ?? []).map((s) => {
-    const list = all.filter((x) => x.seller_id === s.id && x.created_at >= scopeSince);
+    const list = all.filter((x) => x.seller_id === s.id && (x.sale_date || x.created_at.slice(0, 10)) >= scopeSince);
     return {
       id: s.id,
       name: s.name,
@@ -278,7 +280,7 @@ function Dashboard() {
     const stById = new Map((serviceTypes.data ?? []).map((s: any) => [s.id, s.name]));
     const pkById = new Map((packages.data ?? []).map((p: any) => [p.id, p.name]));
     for (const s of all) {
-      if (s.created_at < scopeSince) continue;
+      if ((s.sale_date || s.created_at.slice(0, 10)) < scopeSince) continue;
       const name = s.package_id
         ? (pkById.get(s.package_id) ?? "Pacote")
         : (stById.get(s.service_type_id ?? "") ?? "Outro");
@@ -296,7 +298,7 @@ function Dashboard() {
     const year = new Date().getFullYear() - (m - 11 + i < 0 ? 1 : 0);
     const total = all
       .filter((s) => {
-        const d = new Date(s.created_at);
+        const d = new Date(s.sale_date || s.created_at);
         return d.getMonth() === month && d.getFullYear() === year;
       })
       .reduce((a, s) => a + Number(s.total_amount), 0);
@@ -310,7 +312,7 @@ function Dashboard() {
       const d = new Date(); d.setHours(0, 0, 0, 0); d.setDate(d.getDate() - i);
       const next = new Date(d); next.setDate(next.getDate() + 1);
       const total = all
-        .filter((s) => new Date(s.created_at) >= d && new Date(s.created_at) < next)
+        .filter((s) => new Date(s.sale_date || s.created_at) >= d && new Date(s.sale_date || s.created_at) < next)
         .reduce((a, s) => a + Number(s.total_amount), 0);
       days.push({ dia: `${d.getDate().toString().padStart(2, "0")}/${(d.getMonth() + 1).toString().padStart(2, "0")}`, total });
     }
