@@ -375,6 +375,11 @@ function AdminPage() {
                     type="number" 
                     defaultValue={g.target_amount} 
                     key={`${g.id}-${g.target_amount}`}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        (e.target as HTMLInputElement).blur();
+                      }
+                    }}
                     onBlur={(e) => updateGoal(g.id, e.target.value, g.period)} 
                     className="max-w-xs" 
                   />
