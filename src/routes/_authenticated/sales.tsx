@@ -37,16 +37,25 @@ function SalesPage() {
   const [paymentLinkData, setPaymentLinkData] = useState<{ url: string; id: string } | null>(null);
   const [isGeneratingLink, setIsGeneratingLink] = useState(false);
 
-  const { data: salesList, isLoading: loadingSales, error: salesError } = useQuery({
+  const { data: salesList, isLoading: loadingSales, error: salesError, refetch } = useQuery({
     queryKey: ["sales-list"],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("sales")
-        .select("*, customers(name,company,phone,email,document), sellers(name), producers(name), service_types(name), sale_receipts(*)")
-        .order("sale_date", { ascending: false });
-      if (error) throw error;
-      return data ?? [];
+      try {
+        const { data, error } = await supabase
+          .from("sales")
+          .select("*, customers!inner(name,company,phone,email,document), sellers(name), producers(name), service_types(name), sale_receipts(*)")
+          .order("sale_date", { ascending: false });
+        if (error) {
+          console.error("Supabase error fetching sales:", error);
+          throw error;
+        }
+        return data ?? [];
+      } catch (err: any) {
+        console.error("Caught error in sales queryFn:", err);
+        throw err;
+      }
     },
+    retry: 1,
   });
 
   const sellers = useQuery({ queryKey: ["sellers-all"], queryFn: async () => {
@@ -624,7 +633,7 @@ function SalesPage() {
                   <TableRow><TableCell colSpan={8} className="text-center py-12"><Loader2 className="w-8 h-8 animate-spin mx-auto text-primary" /><p className="mt-2 text-sm text-muted-foreground">Carregando vendas...</p></TableCell></TableRow>
                 )}
                 {salesError && (
-                  <TableRow><TableCell colSpan={8} className="text-center py-12 text-destructive"><p>Ocorreu um erro ao carregar as vendas.</p><Button variant="outline" size="sm" className="mt-2" onClick={() => qc.invalidateQueries({ queryKey: ["sales-list"] })}>Tentar novamente</Button></TableCell></TableRow>
+                  <TableRow><TableCell colSpan={8} className="text-center py-12 text-destructive"><p>Ocorreu um erro ao carregar as vendas.</p><p className="text-xs mt-1 mb-2">{(salesError as any)?.message || "Erro desconhecido"}</p><Button variant="outline" size="sm" className="mt-2" onClick={() => refetch()}>Tentar novamente</Button></TableCell></TableRow>
                 )}
                 {!loadingSales && !salesError && (salesList ?? []).map((s: any) => (
                   <TableRow key={s.id}>
