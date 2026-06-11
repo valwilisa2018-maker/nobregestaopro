@@ -33,7 +33,10 @@ function AuthLayout() {
   if (!ready || !authed) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
-        <Loader2 className="w-6 h-6 animate-spin text-primary" />
+        <div className="flex flex-col items-center gap-2">
+          <Loader2 className="w-6 h-6 animate-spin text-primary" />
+          <p className="text-xs text-muted-foreground animate-pulse">Autenticando...</p>
+        </div>
       </div>
     );
   }
