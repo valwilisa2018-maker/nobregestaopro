@@ -138,11 +138,14 @@ function AdminPage() {
   const updateGoal = async (id: string, amount: string, period: string) => {
     const numericAmount = Math.max(0, Number(amount));
     
+    console.log(`Updating goal ${id} for period ${period} to ${numericAmount}`);
+
     const { error } = await supabase.from("goals").update({ 
       target_amount: Number(numericAmount.toFixed(2)) 
     }).eq("id", id);
 
     if (error) {
+      console.error("Supabase update error:", error);
       toast.error(error.message);
     } else {
       // Synchronize other goals based on the updated one with rounding
@@ -375,7 +378,18 @@ function AdminPage() {
                     type="number" 
                     defaultValue={g.target_amount} 
                     key={`${g.id}-${g.target_amount}`}
-                    onBlur={(e) => updateGoal(g.id, e.target.value, g.period)} 
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        (e.target as HTMLInputElement).blur();
+                      }
+                    }}
+                    onChange={(e) => {
+                      // Optional: handle immediate state if needed, but onBlur is standard for "save on leave"
+                    }}
+                    onBlur={(e) => {
+                      console.log("Input blurred, triggering save...");
+                      updateGoal(g.id, e.target.value, g.period);
+                    }}
                     className="max-w-xs" 
                   />
                   <span className="text-xs text-muted-foreground">Salva automaticamente ao sair do campo</span>
