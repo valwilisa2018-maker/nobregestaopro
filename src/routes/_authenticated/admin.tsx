@@ -383,7 +383,13 @@ function AdminPage() {
                         (e.target as HTMLInputElement).blur();
                       }
                     }}
-                    onBlur={(e) => updateGoal(g.id, e.target.value, g.period)} 
+                    onChange={(e) => {
+                      // Optional: handle immediate state if needed, but onBlur is standard for "save on leave"
+                    }}
+                    onBlur={(e) => {
+                      console.log("Input blurred, triggering save...");
+                      updateGoal(g.id, e.target.value, g.period);
+                    }}
                     className="max-w-xs" 
                   />
                   <span className="text-xs text-muted-foreground">Salva automaticamente ao sair do campo</span>
