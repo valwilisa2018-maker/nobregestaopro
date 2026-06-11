@@ -136,12 +136,16 @@ function AdminPage() {
   };
 
   const updateGoal = async (id: string, amount: string, period: string) => {
-    const numericAmount = Number(amount);
-    const { error } = await supabase.from("goals").update({ target_amount: numericAmount }).eq("id", id);
+    const numericAmount = Math.max(0, Number(amount));
+    
+    const { error } = await supabase.from("goals").update({ 
+      target_amount: Number(numericAmount.toFixed(2)) 
+    }).eq("id", id);
+
     if (error) {
       toast.error(error.message);
     } else {
-      // Synchronize other goals based on the updated one
+      // Synchronize other goals based on the updated one with rounding
       let daily = 0;
       if (period === "daily") daily = numericAmount;
       else if (period === "weekly") daily = numericAmount / 7;
@@ -149,22 +153,38 @@ function AdminPage() {
       else if (period === "yearly") daily = numericAmount / 365;
 
       const updates = [
-        { p: "daily", val: daily },
-        { p: "weekly", val: daily * 7 },
-        { p: "monthly", val: daily * 30 },
-        { p: "yearly", val: daily * 365 },
+        { p: "daily", val: Number(daily.toFixed(2)) },
+        { p: "weekly", val: Number((daily * 7).toFixed(2)) },
+        { p: "monthly", val: Number((daily * 30).toFixed(2)) },
+        { p: "yearly", val: Number((daily * 365).toFixed(2)) },
       ];
 
-      for (const update of updates) {
-        if (update.p !== period) {
-          const targetGoal = goals.data?.find((g: any) => g.period === update.p);
-          if (targetGoal) {
-            await supabase.from("goals").update({ target_amount: update.val }).eq("id", targetGoal.id);
-          }
+      try {
+        const syncPromises = updates
+          .filter(u => u.p !== period)
+          .map(update => {
+            const targetGoal = goals.data?.find((g: any) => g.period === update.p);
+            if (targetGoal) {
+              return supabase.from("goals")
+                .update({ target_amount: update.val })
+                .eq("id", targetGoal.id);
+            }
+            return Promise.resolve({ error: null });
+          });
+
+        const results = await Promise.all(syncPromises);
+        const firstError = results.find(r => r.error)?.error;
+        
+        if (firstError) {
+          toast.error("Erro ao sincronizar algumas metas: " + firstError.message);
+        } else {
+          toast.success("Metas sincronizadas com precisão");
         }
+      } catch (err) {
+        console.error("Sync error:", err);
+        toast.error("Erro inesperado na sincronização");
       }
 
-      toast.success("Metas sincronizadas");
       qc.invalidateQueries({ queryKey: ["admin-goals"] });
     }
   };
