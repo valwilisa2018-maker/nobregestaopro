@@ -898,7 +898,7 @@ function Telao() {
                               <span className="text-[#c9a84c]/70">Prod:</span> {producerNameOf(s)}
                             </span>
                             <span className="text-[10px] uppercase tracking-wider text-[#c9a84c]/60">
-                              {serviceName(s)} · {fmtTime(s.created_at)}
+                              {serviceName(s)} · {s.sale_date ? fmtDate(s.sale_date) : fmtTime(s.created_at)}
                             </span>
                           </div>
                         </div>
