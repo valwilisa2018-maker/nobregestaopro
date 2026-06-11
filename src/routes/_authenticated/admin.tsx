@@ -135,9 +135,38 @@ function AdminPage() {
     qc.invalidateQueries({ queryKey: ["pkg-all"] });
   };
 
-  const updateGoal = async (id: string, amount: string) => {
-    const { error } = await supabase.from("goals").update({ target_amount: Number(amount) }).eq("id", id);
-    if (error) toast.error(error.message); else { toast.success("Meta atualizada"); qc.invalidateQueries(); }
+  const updateGoal = async (id: string, amount: string, period: string) => {
+    const numericAmount = Number(amount);
+    const { error } = await supabase.from("goals").update({ target_amount: numericAmount }).eq("id", id);
+    if (error) {
+      toast.error(error.message);
+    } else {
+      // Synchronize other goals based on the updated one
+      let daily = 0;
+      if (period === "daily") daily = numericAmount;
+      else if (period === "weekly") daily = numericAmount / 7;
+      else if (period === "monthly") daily = numericAmount / 30;
+      else if (period === "yearly") daily = numericAmount / 365;
+
+      const updates = [
+        { p: "daily", val: daily },
+        { p: "weekly", val: daily * 7 },
+        { p: "monthly", val: daily * 30 },
+        { p: "yearly", val: daily * 365 },
+      ];
+
+      for (const update of updates) {
+        if (update.p !== period) {
+          const targetGoal = goals.data?.find((g: any) => g.period === update.p);
+          if (targetGoal) {
+            await supabase.from("goals").update({ target_amount: update.val }).eq("id", targetGoal.id);
+          }
+        }
+      }
+
+      toast.success("Metas sincronizadas");
+      qc.invalidateQueries({ queryKey: ["admin-goals"] });
+    }
   };
   const addService = async () => {
     if (!newService) return;
@@ -313,13 +342,26 @@ function AdminPage() {
         </TabsContent>
 
         <TabsContent value="goals" className="space-y-3 mt-4">
-          {(goals.data ?? []).map((g: any) => (
-            <Card key={g.id} className="border-border/50"><CardContent className="p-4 flex items-center gap-3">
-              <div className="w-32 font-medium">{PERIOD_LABEL[g.period] ?? g.period}</div>
-              <Input type="number" defaultValue={g.target_amount} onBlur={(e) => updateGoal(g.id, e.target.value)} className="max-w-xs" />
-              <span className="text-xs text-muted-foreground">Salva automaticamente ao sair do campo</span>
-            </CardContent></Card>
-          ))}
+          {(goals.data ?? [])
+            .sort((a: any, b: any) => {
+              const order = ["daily", "weekly", "monthly", "yearly"];
+              return order.indexOf(a.period) - order.indexOf(b.period);
+            })
+            .map((g: any) => (
+              <Card key={g.id} className="border-border/50">
+                <CardContent className="p-4 flex items-center gap-3">
+                  <div className="w-32 font-medium">{PERIOD_LABEL[g.period] ?? g.period}</div>
+                  <Input 
+                    type="number" 
+                    defaultValue={g.target_amount} 
+                    key={`${g.id}-${g.target_amount}`}
+                    onBlur={(e) => updateGoal(g.id, e.target.value, g.period)} 
+                    className="max-w-xs" 
+                  />
+                  <span className="text-xs text-muted-foreground">Salva automaticamente ao sair do campo</span>
+                </CardContent>
+              </Card>
+            ))}
         </TabsContent>
 
         <TabsContent value="commissions" className="space-y-3 mt-4">
