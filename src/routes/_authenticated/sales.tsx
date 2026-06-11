@@ -55,7 +55,8 @@ function SalesPage() {
         throw err;
       }
     },
-    retry: 1,
+    retry: 3,
+    retryDelay: (attempt) => Math.min(1000 * 2 ** attempt, 10000),
   });
 
   const sellers = useQuery({ queryKey: ["sellers-all"], queryFn: async () => {
