@@ -37,7 +37,7 @@ const SALE_ROW_HEIGHT = 72;
 const SALE_SCROLL_DURATION_PER_ROW = 3.2;
 
 // ============ SOM ============
-type SoundId = "buzina" | "caixa" | "sino" | "custom" | "run-vine";
+type SoundId = "buzina" | "caixa" | "sino" | "custom" | "run-vine" | "danger-alarm";
 
 function getCtx(): AudioContext | null {
   try {
@@ -146,6 +146,8 @@ async function playSound(id: SoundId, vol = 1, customUrl?: string) {
     audioUrl = customUrl;
   } else if (id === "run-vine") {
     audioUrl = "/run-vine-sound-effect.mp3";
+  } else if (id === "danger-alarm") {
+    audioUrl = "/danger-alarm.mp3";
   }
 
   if (audioUrl) {
@@ -715,6 +717,7 @@ function Telao() {
               <option value="caixa" className="bg-[#1a1a1a]">Caixa</option>
               <option value="sino" className="bg-[#1a1a1a]">Sino</option>
               <option value="run-vine" className="bg-[#1a1a1a]">Run (Vine)</option>
+              <option value="danger-alarm" className="bg-[#1a1a1a]">Danger Alarm</option>
               <option value="custom" className="bg-[#1a1a1a]">Customizado</option>
             </select>
           </div>
