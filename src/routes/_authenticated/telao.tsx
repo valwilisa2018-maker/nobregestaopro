@@ -4,9 +4,9 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { formatCurrency } from "@/lib/auth";
 import { fmtDate, fmtTime } from "@/lib/format";
-import { Maximize2, Minimize2, Volume2, VolumeX, ArrowUpRight, Megaphone, Bell, Coins, Pencil, X } from "lucide-react";
+import { Maximize2, Minimize2, Volume2, VolumeX, ArrowUpRight, Megaphone, Bell, Coins, Pencil, X, Music } from "lucide-react";
 import confetti from "canvas-confetti";
-import { useCelebrationSettings } from "@/hooks/use-celebration-settings";
+import { useCelebrationSettings, SoundId as SoundType } from "@/hooks/use-celebration-settings";
 import { useBigSellerOverlaySeconds } from "@/hooks/use-telao-settings";
 
 export const Route = createFileRoute("/_authenticated/telao")({
@@ -37,7 +37,7 @@ const SALE_ROW_HEIGHT = 72;
 const SALE_SCROLL_DURATION_PER_ROW = 3.2;
 
 // ============ SOM ============
-type SoundId = "buzina" | "caixa" | "sino";
+type SoundId = "buzina" | "caixa" | "sino" | "custom";
 
 function getCtx(): AudioContext | null {
   try {
@@ -137,9 +137,29 @@ function playSino(ctx: AudioContext, vol = 1) {
   setTimeout(() => ctx.close(), 1800);
 }
 
-function playSound(id: SoundId, vol = 1) {
+async function playSound(id: SoundId, vol = 1, customUrl?: string) {
   const ctx = getCtx();
   if (!ctx) return;
+  
+  if (id === "custom" && customUrl) {
+    try {
+      const response = await fetch(customUrl);
+      const arrayBuffer = await response.arrayBuffer();
+      const audioBuffer = await ctx.decodeAudioData(arrayBuffer);
+      const source = ctx.createBufferSource();
+      source.buffer = audioBuffer;
+      const gainNode = ctx.createGain();
+      gainNode.gain.value = vol;
+      source.connect(gainNode);
+      gainNode.connect(ctx.destination);
+      source.start(0);
+      setTimeout(() => ctx.close(), (audioBuffer.duration * 1000) + 500);
+      return;
+    } catch (err) {
+      console.error("Erro ao tocar som customizado:", err);
+    }
+  }
+
   if (id === "buzina") playBuzina(ctx, vol);
   else if (id === "caixa") playCaixa(ctx, vol);
   else playSino(ctx, vol);
@@ -185,10 +205,11 @@ function useCountUp(target: number, duration = 900, replayKey: number = 0) {
 
 function Telao() {
   const qc = useQueryClient();
-  const [celebration] = useCelebrationSettings();
+  const [celebration, setCelebration] = useCelebrationSettings();
   const [overlaySeconds] = useBigSellerOverlaySeconds();
   const [soundEnabled, setSoundEnabled] = useState(false);
-  const [soundId, setSoundId] = useState<SoundId>("buzina");
+  const [soundId, setSoundId] = useState<SoundId>(celebration.soundId as SoundId);
+  const [customSoundUrl, setCustomSoundUrl] = useState(celebration.customSoundUrl || "");
   const [lastCount, setLastCount] = useState<number | null>(null);
   const [flash, setFlash] = useState(false);
   const [kiosk, setKiosk] = useState(false);
