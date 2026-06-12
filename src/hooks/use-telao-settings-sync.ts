@@ -29,8 +29,8 @@ function applyRow(row: Row) {
 export async function persistTelaoSettings(patch: Partial<Row>): Promise<void> {
   const { error } = await supabase
     .from("telao_settings")
-    .update({ ...patch })
-    .eq("id", true);
+    .update(patch as any)
+    .eq("id" as any, true);
   if (error) throw error;
 }
 
@@ -41,7 +41,7 @@ export function useTelaoSettingsSync() {
       const { data, error } = await supabase
         .from("telao_settings")
         .select("*")
-        .eq("id", true)
+        .eq("id" as any, true)
         .maybeSingle();
       if (cancelled || error || !data) return;
       applyRow(data as Row);
