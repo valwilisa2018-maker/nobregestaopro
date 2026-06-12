@@ -490,21 +490,21 @@ function Dashboard() {
       <div className="grid gap-4 grid-cols-2 lg:grid-cols-5">
         <button
           type="button"
-          onClick={() => navigate({ to: "/kanban", search: {} })}
+          onClick={() => navigate({ to: "/kanban", search: { card: undefined } })}
           className="text-left transition-transform hover:scale-[1.02] active:scale-[0.98]"
         >
           <StatCard tone="warning" label="Serviços a fazer" value={String(ordersTodo)} icon={ListTodo} />
         </button>
         <button
           type="button"
-          onClick={() => navigate({ to: "/kanban", search: {} })}
+          onClick={() => navigate({ to: "/kanban", search: { card: undefined } })}
           className="text-left transition-transform hover:scale-[1.02] active:scale-[0.98]"
         >
           <StatCard tone="info" label="Em produção" value={String(ordersInProd)} icon={Package} />
         </button>
         <button
           type="button"
-          onClick={() => navigate({ to: "/kanban", search: {} })}
+          onClick={() => navigate({ to: "/kanban", search: { card: undefined } })}
           className="text-left transition-transform hover:scale-[1.02] active:scale-[0.98]"
         >
           <StatCard tone="success" label="Entregues" value={String(ordersDelivered)} icon={Truck} />
