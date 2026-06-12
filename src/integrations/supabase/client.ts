@@ -23,6 +23,12 @@ function createSupabaseClient() {
       storage: typeof window !== 'undefined' ? localStorage : undefined,
       persistSession: true,
       autoRefreshToken: true,
+    },
+    global: {
+      headers: { 'x-application-name': 'gestao-nobre' },
+    },
+    db: {
+      retries: 3,
     }
   });
 }
