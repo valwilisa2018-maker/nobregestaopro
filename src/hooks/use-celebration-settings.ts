@@ -1,15 +1,20 @@
-import { useEffect, useState } from "react";
+import { useState, useEffect } from "react";
 import { persistTelaoSettings } from "./use-telao-settings-sync";
 
 const SOUND_KEY = "telao.celebration.soundEnabled";
 const CONFETTI_KEY = "telao.celebration.confettiEnabled";
 const VOLUME_KEY = "telao.celebration.volume";
+const SOUND_ID_KEY = "telao.celebration.soundId";
 const EVENT = "telao-celebration-changed";
+
+export type SoundId = "buzina" | "caixa" | "sino" | "custom";
 
 export type CelebrationSettings = {
   soundEnabled: boolean;
   confettiEnabled: boolean;
   volume: number; // 0..100
+  soundId: SoundId;
+  customSoundUrl?: string;
 };
 
 function readBool(key: string, fallback: boolean): boolean {
@@ -27,11 +32,19 @@ function readVolume(): number {
   return Math.min(100, Math.max(0, Math.round(n)));
 }
 
+function readSoundId(): SoundId {
+  if (typeof window === "undefined") return "buzina";
+  const v = window.localStorage.getItem(SOUND_ID_KEY) as SoundId;
+  return v || "buzina";
+}
+
 function readAll(): CelebrationSettings {
   return {
     soundEnabled: readBool(SOUND_KEY, true),
     confettiEnabled: readBool(CONFETTI_KEY, true),
     volume: readVolume(),
+    soundId: readSoundId(),
+    customSoundUrl: typeof window !== "undefined" ? window.localStorage.getItem("telao.celebration.customSoundUrl") || undefined : undefined,
   };
 }
 
@@ -44,7 +57,7 @@ export function useCelebrationSettings(): [
   useEffect(() => {
     const refresh = () => setVal(readAll());
     const onStorage = (e: StorageEvent) => {
-      if (e.key === SOUND_KEY || e.key === CONFETTI_KEY || e.key === VOLUME_KEY) refresh();
+      if (e.key === SOUND_KEY || e.key === CONFETTI_KEY || e.key === VOLUME_KEY || e.key === SOUND_ID_KEY) refresh();
     };
     window.addEventListener("storage", onStorage);
     window.addEventListener(EVENT, refresh);
@@ -63,15 +76,24 @@ export function useCelebrationSettings(): [
       const v = Math.min(100, Math.max(0, Math.round(patch.volume)));
       window.localStorage.setItem(VOLUME_KEY, String(v));
     }
+    if (patch.soundId !== undefined) {
+      window.localStorage.setItem(SOUND_ID_KEY, patch.soundId);
+    }
+    if (patch.customSoundUrl !== undefined) {
+      if (patch.customSoundUrl) window.localStorage.setItem("telao.celebration.customSoundUrl", patch.customSoundUrl);
+      else window.localStorage.removeItem("telao.celebration.customSoundUrl");
+    }
+
     window.dispatchEvent(new Event(EVENT));
     setVal(readAll());
-    const dbPatch: Record<string, unknown> = {};
+    
+    const dbPatch: any = {};
     if (patch.soundEnabled !== undefined) dbPatch.celebration_sound_enabled = patch.soundEnabled;
     if (patch.confettiEnabled !== undefined) dbPatch.celebration_confetti_enabled = patch.confettiEnabled;
-    if (patch.volume !== undefined)
-      dbPatch.celebration_volume = Math.min(100, Math.max(0, Math.round(patch.volume)));
+    if (patch.volume !== undefined) dbPatch.celebration_volume = Math.min(100, Math.max(0, Math.round(patch.volume)));
+    
     if (Object.keys(dbPatch).length > 0) {
-      void persistTelaoSettings(dbPatch as never).catch(() => {});
+      void persistTelaoSettings(dbPatch).catch(() => {});
     }
   };
 
