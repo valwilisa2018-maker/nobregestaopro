@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -37,6 +37,7 @@ function startOf(period: "day" | "week" | "month" | "year") {
 }
 
 function Dashboard() {
+  const navigate = useNavigate();
   // Filtros principais
   const [scope, setScope] = useState<"day" | "week" | "month">("day");
   const { user } = useAuth();
@@ -489,21 +490,21 @@ function Dashboard() {
       <div className="grid gap-4 grid-cols-2 lg:grid-cols-5">
         <button
           type="button"
-          onClick={() => (window.location.href = "/kanban")}
+          onClick={() => navigate({ to: "/kanban", search: { card: undefined } })}
           className="text-left transition-transform hover:scale-[1.02] active:scale-[0.98]"
         >
           <StatCard tone="warning" label="Serviços a fazer" value={String(ordersTodo)} icon={ListTodo} />
         </button>
         <button
           type="button"
-          onClick={() => (window.location.href = "/kanban")}
+          onClick={() => navigate({ to: "/kanban", search: { card: undefined } })}
           className="text-left transition-transform hover:scale-[1.02] active:scale-[0.98]"
         >
           <StatCard tone="info" label="Em produção" value={String(ordersInProd)} icon={Package} />
         </button>
         <button
           type="button"
-          onClick={() => (window.location.href = "/kanban")}
+          onClick={() => navigate({ to: "/kanban", search: { card: undefined } })}
           className="text-left transition-transform hover:scale-[1.02] active:scale-[0.98]"
         >
           <StatCard tone="success" label="Entregues" value={String(ordersDelivered)} icon={Truck} />
