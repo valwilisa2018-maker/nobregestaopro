@@ -751,6 +751,7 @@ function Telao() {
               { id: "caixa", icon: Coins, label: "Caixa" },
               { id: "sino", icon: Bell, label: "Sino" },
               { id: "run-vine", icon: Music, label: "Run" },
+              { id: "danger-alarm", icon: Megaphone, label: "Danger" },
             ] as { id: SoundId; icon: any; label: string }[]).map(({ id, icon: Icon, label }) => (
               <button
                 key={id}
