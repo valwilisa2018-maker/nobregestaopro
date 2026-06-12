@@ -16,6 +16,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel,
 import { Plus, Loader2, Trash2, X, Calendar, Clock, ExternalLink, MessageCircle, ChevronDown, ChevronRight, Layers, MoreVertical, Edit2, UserPlus, AlertCircle } from "lucide-react";
 import { Search } from "lucide-react";
 import { fmtDate } from "@/lib/format";
+import { formatCurrency } from "@/lib/auth";
 
 export const Route = createFileRoute("/_authenticated/kanban")({
   component: KanbanPage,
@@ -150,7 +151,7 @@ function KanbanPage() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("service_orders")
-        .select("*, producer:producers!service_orders_producer_id_fkey(name), sales(total_amount, payment_status, trello_link, producer_id, expected_delivery_date, customers(name,company,phone), sellers(name), producers(name))")
+        .select("*, producer:producers!service_orders_producer_id_fkey(name), sales(total_amount, paid_amount, payment_status, trello_link, producer_id, expected_delivery_date, customers(name,company,phone), sellers(name), producers(name))")
         .order("created_at", { ascending: true })
         .order("service_index", { ascending: true });
       if (error) {
@@ -558,6 +559,13 @@ function KanbanPage() {
                     const company = first.sales?.customers?.company;
                     return (
                       <div key={groupKey} className="space-y-2">
+                        {first.sales?.payment_status === "pago_parcial" && (
+                          <div className="flex justify-end">
+                            <span className="text-[10px] font-bold px-2 py-0.5 rounded-md shadow-sm" style={{ background: "#f59e0b", color: "#1a1a1a" }}>
+                              A receber: {formatCurrency(Number(first.sales.total_amount ?? 0) - Number(first.sales.paid_amount ?? 0))}
+                            </span>
+                          </div>
+                        )}
                         <Card
                           draggable
                           onDragStart={() => { setDraggingGroup(it.cards.map((x: any) => x.id)); setDragMoved(false); }}
@@ -718,7 +726,15 @@ function KanbanPage() {
                   }
                   const c = it.card;
                   return (
-                    <Card key={c.id} draggable
+                    <div key={c.id} className="space-y-1">
+                    {c.sales?.payment_status === "pago_parcial" && (
+                      <div className="flex justify-end">
+                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-md shadow-sm" style={{ background: "#f59e0b", color: "#1a1a1a" }}>
+                          A receber: {formatCurrency(Number(c.sales.total_amount ?? 0) - Number(c.sales.paid_amount ?? 0))}
+                        </span>
+                      </div>
+                    )}
+                    <Card draggable
                     onDragStart={() => { setDragging(c.id); setDragMoved(false); }}
                     onDrag={() => setDragMoved(true)}
                     onDragEnd={() => { setDragging(null); setTimeout(() => setDragMoved(false), 0); }}
@@ -801,6 +817,7 @@ function KanbanPage() {
                       </div>
                     </CardContent>
                   </Card>
+                    </div>
                   );
                 })}
               </div>
