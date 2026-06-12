@@ -210,8 +210,6 @@ function Telao() {
   const [soundEnabled, setSoundEnabled] = useState(false);
   const [soundId, setSoundId] = useState<SoundId>(celebration.soundId as SoundId);
   const [customSoundUrl, setCustomSoundUrl] = useState(celebration.customSoundUrl || "");
-  const [soundId, setSoundId] = useState<SoundId>(celebration.soundId as SoundId);
-  const [customSoundUrl, setCustomSoundUrl] = useState(celebration.customSoundUrl || "");
   const [lastCount, setLastCount] = useState<number | null>(null);
   const [flash, setFlash] = useState(false);
   const [kiosk, setKiosk] = useState(false);
