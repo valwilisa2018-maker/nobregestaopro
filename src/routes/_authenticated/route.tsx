@@ -30,7 +30,10 @@ function AuthLayout() {
 
         if (!data.session) {
           console.warn("No session found, redirecting to login");
-          navigate({ to: "/login" });
+          // Pequena espera antes de redirecionar para evitar loops rápidos
+          setTimeout(() => {
+            if (mounted) navigate({ to: "/login" });
+          }, 500);
         } else {
           setAuthed(true);
         }

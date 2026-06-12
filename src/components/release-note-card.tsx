@@ -20,7 +20,7 @@ export function ReleaseNoteCard() {
       const { data } = await supabase
         .from("system_announcements")
         .select("*")
-        .eq("is_active", true)
+        .eq("is_active" as any, true)
         .or(`expires_at.is.null,expires_at.gt.${new Date().toISOString()}`)
         .order("created_at", { ascending: false });
       return data ?? [];
@@ -31,7 +31,7 @@ export function ReleaseNoteCard() {
     // Check for manual announcements first
     if (manualAnnouncements.data && manualAnnouncements.data.length > 0) {
       const first = manualAnnouncements.data[0];
-      const dismissed = localStorage.getItem(`dismissed-manual-${first.id}`);
+      const dismissed = localStorage.getItem(`dismissed-manual-${(first as any).id}`);
       if (!dismissed) {
         setActiveAnnouncement(first);
         // Trigger confetti for manual announcements too

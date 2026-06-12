@@ -31,12 +31,12 @@ class Logger {
     try {
       // Save to Supabase for auditing/alerts
       const { error } = await supabase.from("system_logs").insert({
-        level,
+        level: level as any,
         message,
         details,
         context,
         user_id: userId,
-      });
+      } as any);
 
       if (error) {
         console.error("Failed to save system log:", error);

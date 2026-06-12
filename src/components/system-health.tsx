@@ -32,7 +32,7 @@ export function SystemHealthDashboard() {
       const { count: criticalCount, error: criticalError } = await supabase
         .from("system_logs")
         .select("id", { count: "exact", head: true })
-        .eq("level", "CRITICAL")
+        .eq("level" as any, "CRITICAL")
         .gt("created_at", new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString());
 
       const end = performance.now();

@@ -101,7 +101,7 @@ function AdminPage() {
       quantity: 1,
       default_price: Number(newPkg.default_price || 0),
       active: true,
-    });
+    } as any);
     if (error) { toast.error(error.message); return; }
     toast.success("Pacote cadastrado");
     setNewPkg({ name: "", default_price: "" });
@@ -109,7 +109,7 @@ function AdminPage() {
     qc.invalidateQueries({ queryKey: ["pkg-all"] });
   };
   const togglePackage = async (id: string, active: boolean) => {
-    const { error } = await supabase.from("packages").update({ active: !active }).eq("id", id);
+    const { error } = await supabase.from("packages").update({ active: !active } as any).eq("id" as any, id);
     if (error) toast.error(error.message);
     else { qc.invalidateQueries({ queryKey: ["admin-packages"] }); qc.invalidateQueries({ queryKey: ["pkg-all"] }); }
   };
@@ -119,7 +119,7 @@ function AdminPage() {
     const { error } = await supabase.from("packages").update({
       name: editPkg.name.trim() || "Pacote",
       default_price: Number(editPkg.default_price || 0),
-    }).eq("id", editPkg.id);
+    } as any).eq("id" as any, editPkg.id);
     if (error) { toast.error(error.message); return; }
     toast.success("Pacote atualizado");
     setEditPkg(null);

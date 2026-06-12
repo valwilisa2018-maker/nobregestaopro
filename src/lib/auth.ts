@@ -24,7 +24,7 @@ export function useAuth(): AuthState {
           const { data } = await supabase
             .from("user_roles")
             .select("role")
-            .eq("user_id", s.user.id);
+            .eq("user_id" as any, s.user.id);
           setRoles((data ?? []).map((r) => r.role as AppRole));
         }, 0);
       } else {
@@ -39,7 +39,7 @@ export function useAuth(): AuthState {
         supabase
           .from("user_roles")
           .select("role")
-          .eq("user_id", data.session.user.id)
+          .eq("user_id" as any, data.session.user.id)
           .then(({ data: r }) => setRoles((r ?? []).map((x) => x.role as AppRole)));
       }
     });
