@@ -210,6 +210,8 @@ function Telao() {
   const [soundEnabled, setSoundEnabled] = useState(false);
   const [soundId, setSoundId] = useState<SoundId>(celebration.soundId as SoundId);
   const [customSoundUrl, setCustomSoundUrl] = useState(celebration.customSoundUrl || "");
+  const [soundId, setSoundId] = useState<SoundId>(celebration.soundId as SoundId);
+  const [customSoundUrl, setCustomSoundUrl] = useState(celebration.customSoundUrl || "");
   const [lastCount, setLastCount] = useState<number | null>(null);
   const [flash, setFlash] = useState(false);
   const [kiosk, setKiosk] = useState(false);
@@ -569,7 +571,13 @@ function Telao() {
   useEffect(() => {
     if (lastCount !== null && todaySales.length > lastCount) {
       if (celebration.confettiEnabled) fireConfetti();
-      if (soundEnabled && celebration.soundEnabled) playSound(soundId, celebration.volume / 100);
+      if (soundEnabled || celebration.soundEnabled) {
+        playSound(
+          (celebration.soundId as SoundId) || soundId, 
+          (celebration.volume / 100) || 0.7,
+          celebration.customSoundUrl || customSoundUrl
+        );
+      }
       setFlash(true);
       setPulseHero(true);
       setTimeout(() => setFlash(false), 1800);
@@ -579,7 +587,7 @@ function Telao() {
     }
     setLastCount(todaySales.length);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [todaySales.length]);
+  }, [todaySales.length, soundEnabled, soundId, celebration, customSoundUrl]);
 
   const now = new Date();
 
@@ -673,7 +681,61 @@ function Telao() {
           >
             {clock}
           </div>
-          {/* Picker de som */}
+          <div className="flex items-center gap-1 rounded border border-[#c9a84c]/30 bg-[#1a1a1a] overflow-hidden p-1 mr-2">
+            <button
+              onClick={() => {
+                const newState = !soundEnabled;
+                setSoundEnabled(newState);
+                setCelebration({ soundEnabled: newState });
+              }}
+              title={soundEnabled ? "Som Ativado" : "Som Desativado"}
+              className={`h-8 w-8 grid place-items-center rounded transition ${
+                soundEnabled ? "bg-[#c9a84c] text-black" : "text-[#c9a84c] hover:bg-[#c9a84c]/10"
+              }`}
+            >
+              {soundEnabled ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4" />}
+            </button>
+
+            <select
+              value={celebration.soundId}
+              onChange={(e) => {
+                const sid = e.target.value as SoundId;
+                setSoundId(sid);
+                setCelebration({ soundId: sid as any });
+                playSound(sid, celebration.volume / 100, celebration.customSoundUrl);
+              }}
+              className="bg-transparent text-[10px] uppercase tracking-widest text-[#f0d78c] outline-none px-2 cursor-pointer border-l border-[#c9a84c]/15 h-8"
+            >
+              <option value="buzina" className="bg-[#1a1a1a]">Buzina</option>
+              <option value="caixa" className="bg-[#1a1a1a]">Caixa</option>
+              <option value="sino" className="bg-[#1a1a1a]">Sino</option>
+              <option value="custom" className="bg-[#1a1a1a]">Customizado</option>
+            </select>
+          </div>
+
+          {celebration.soundId === "custom" && (
+            <div className="flex items-center gap-2 bg-[#1a1a1a] rounded-lg border border-[#c9a84c]/20 p-1 h-10 animate-in fade-in slide-in-from-left-2 mr-2">
+              <Music className="w-3.5 h-3.5 text-[#c9a84c] ml-2" />
+              <input 
+                type="text"
+                placeholder="URL do som (mp3/wav)"
+                value={customSoundUrl}
+                onChange={(e) => {
+                  setCustomSoundUrl(e.target.value);
+                  setCelebration({ customSoundUrl: e.target.value });
+                }}
+                className="bg-transparent border-none text-[10px] text-white w-40 outline-none placeholder:text-[#c9a84c]/30 px-2"
+              />
+              <button 
+                onClick={() => playSound("custom", celebration.volume / 100, customSoundUrl)}
+                className="h-8 w-8 grid place-items-center rounded text-[#c9a84c] hover:bg-[#c9a84c]/10"
+              >
+                <ArrowUpRight className="w-4 h-4" />
+              </button>
+            </div>
+          )}
+
+          {/* Picker visual original */}
           <div className="flex items-center rounded border border-[#c9a84c]/30 bg-[#1a1a1a] overflow-hidden">
             {([
               { id: "buzina", icon: Megaphone, label: "Buzina" },
@@ -682,7 +744,11 @@ function Telao() {
             ] as { id: SoundId; icon: any; label: string }[]).map(({ id, icon: Icon, label }) => (
               <button
                 key={id}
-                onClick={() => { setSoundId(id); if (soundEnabled && celebration.soundEnabled) playSound(id, celebration.volume / 100); }}
+                onClick={() => { 
+                  setSoundId(id); 
+                  setCelebration({ soundId: id as any });
+                  if (soundEnabled || celebration.soundEnabled) playSound(id, celebration.volume / 100); 
+                }}
                 title={label}
                 className={`h-10 w-10 grid place-items-center transition ${soundId === id ? "bg-[#c9a84c] text-black" : "text-[#c9a84c] hover:bg-[#c9a84c]/10"}`}
               >
