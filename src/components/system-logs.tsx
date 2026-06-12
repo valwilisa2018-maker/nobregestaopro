@@ -16,7 +16,7 @@ export function SystemLogsTable() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("system_logs")
-        .select("*, profiles:user_id(full_name)")
+        .select("*, profiles:user_id(full_name)" as any)
         .order("created_at", { ascending: false })
         .limit(limit);
       
@@ -60,7 +60,7 @@ export function SystemLogsTable() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {logs?.map((log) => (
+            {logs?.map((log: any) => (
               <TableRow key={log.id} className={log.level === "CRITICAL" ? "bg-red-500/5" : ""}>
                 <TableCell className="text-xs font-mono">
                   {format(new Date(log.created_at), "dd/MM/yy HH:mm:ss", { locale: ptBR })}
@@ -80,7 +80,7 @@ export function SystemLogsTable() {
                   )}
                 </TableCell>
                 <TableCell className="text-xs">
-                  {(log.profiles as any)?.full_name || "Sistema"}
+                  {log.profiles?.full_name || "Sistema"}
                 </TableCell>
               </TableRow>
             ))}
