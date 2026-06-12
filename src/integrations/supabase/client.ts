@@ -15,7 +15,7 @@ function createSupabaseClient() {
     throw new Error(message);
   }
 
-  return createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
+  const options: any = {
     auth: {
       storage: typeof window !== 'undefined' ? localStorage : undefined,
       persistSession: true,
@@ -27,7 +27,9 @@ function createSupabaseClient() {
     db: {
       retries: 3,
     }
-  });
+  };
+
+  return createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, options);
 }
 
 export const supabase = createSupabaseClient();
