@@ -16,6 +16,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel,
 import { Plus, Loader2, Trash2, X, Calendar, Clock, ExternalLink, MessageCircle, ChevronDown, ChevronRight, Layers, MoreVertical, Edit2, UserPlus, AlertCircle } from "lucide-react";
 import { Search } from "lucide-react";
 import { fmtDate } from "@/lib/format";
+import { formatCurrency } from "@/lib/auth";
 
 export const Route = createFileRoute("/_authenticated/kanban")({
   component: KanbanPage,
