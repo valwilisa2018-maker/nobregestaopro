@@ -49,26 +49,35 @@ function LoginPage() {
 
   useEffect(() => {
     let mounted = true;
+    let authSubscription: { unsubscribe: () => void } | null = null;
     
-    supabase.auth.getSession().then(({ data, error }) => {
-      if (error) {
-        console.error("Login session check error:", error);
-        return;
+    const checkSession = async (retryCount = 0) => {
+      try {
+        const { data, error } = await supabase.auth.getSession();
+        if (error) throw error;
+        if (mounted && data.session) {
+          navigate({ to: "/dashboard" });
+        }
+      } catch (err) {
+        console.error(`Login session check error (attempt ${retryCount + 1}):`, err);
+        if (retryCount < 2 && mounted) {
+          setTimeout(() => checkSession(retryCount + 1), 1000 * (retryCount + 1));
+        }
       }
-      if (mounted && data.session) {
-        navigate({ to: "/dashboard" });
-      }
-    });
+    };
+
+    checkSession();
 
     const { data: sub } = supabase.auth.onAuthStateChange((_e, s) => {
       if (mounted && s) {
         navigate({ to: "/dashboard" });
       }
     });
+    authSubscription = sub.subscription;
 
     return () => {
       mounted = false;
-      sub.subscription.unsubscribe();
+      if (authSubscription) authSubscription.unsubscribe();
     };
   }, [navigate]);
 

@@ -19,8 +19,9 @@ function AuthLayout() {
 
   useEffect(() => {
     let mounted = true;
+    let authSubscription: { unsubscribe: () => void } | null = null;
 
-    const checkSession = async () => {
+    const checkSession = async (retryCount = 0) => {
       try {
         const { data, error } = await supabase.auth.getSession();
         if (error) throw error;
@@ -34,10 +35,19 @@ function AuthLayout() {
           setAuthed(true);
         }
       } catch (err) {
-        console.error("Session check error:", err);
-        if (mounted) navigate({ to: "/login" });
+        console.error(`Session check error (attempt ${retryCount + 1}):`, err);
+        if (retryCount < 2 && mounted) {
+          // Exponential backoff retry for network issues
+          setTimeout(() => checkSession(retryCount + 1), 1000 * (retryCount + 1));
+        } else if (mounted) {
+          navigate({ to: "/login" });
+        }
       } finally {
-        if (mounted) setReady(true);
+        if (mounted && retryCount >= 2) setReady(true);
+        else if (mounted && !ready && setReady) {
+          // If we got a result (even negative) or error out after retries
+          setReady(true);
+        }
       }
     };
 
@@ -51,12 +61,13 @@ function AuthLayout() {
         navigate({ to: "/login" });
       }
     });
+    authSubscription = sub.subscription;
 
     return () => {
       mounted = false;
-      sub.subscription.unsubscribe();
+      if (authSubscription) authSubscription.unsubscribe();
     };
-  }, [navigate]);
+  }, [navigate, ready]);
 
   if (!ready || !authed) {
     return (
