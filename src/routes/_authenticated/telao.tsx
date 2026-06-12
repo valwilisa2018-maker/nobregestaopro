@@ -37,7 +37,7 @@ const SALE_ROW_HEIGHT = 72;
 const SALE_SCROLL_DURATION_PER_ROW = 3.2;
 
 // ============ SOM ============
-type SoundId = "buzina" | "caixa" | "sino" | "custom";
+type SoundId = "buzina" | "caixa" | "sino" | "custom" | "run-vine";
 
 function getCtx(): AudioContext | null {
   try {
@@ -141,9 +141,16 @@ async function playSound(id: SoundId, vol = 1, customUrl?: string) {
   const ctx = getCtx();
   if (!ctx) return;
   
+  let audioUrl = "";
   if (id === "custom" && customUrl) {
+    audioUrl = customUrl;
+  } else if (id === "run-vine") {
+    audioUrl = "/run-vine-sound-effect.mp3";
+  }
+
+  if (audioUrl) {
     try {
-      const response = await fetch(customUrl);
+      const response = await fetch(audioUrl);
       const arrayBuffer = await response.arrayBuffer();
       const audioBuffer = await ctx.decodeAudioData(arrayBuffer);
       const source = ctx.createBufferSource();
@@ -162,7 +169,7 @@ async function playSound(id: SoundId, vol = 1, customUrl?: string) {
 
   if (id === "buzina") playBuzina(ctx, vol);
   else if (id === "caixa") playCaixa(ctx, vol);
-  else playSino(ctx, vol);
+  else if (id === "sino") playSino(ctx, vol);
 }
 
 // Confetti dourado, mais intenso
