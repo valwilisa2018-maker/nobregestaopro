@@ -714,6 +714,7 @@ function Telao() {
               <option value="buzina" className="bg-[#1a1a1a]">Buzina</option>
               <option value="caixa" className="bg-[#1a1a1a]">Caixa</option>
               <option value="sino" className="bg-[#1a1a1a]">Sino</option>
+              <option value="run-vine" className="bg-[#1a1a1a]">Run (Vine)</option>
               <option value="custom" className="bg-[#1a1a1a]">Customizado</option>
             </select>
           </div>
@@ -746,6 +747,7 @@ function Telao() {
               { id: "buzina", icon: Megaphone, label: "Buzina" },
               { id: "caixa", icon: Coins, label: "Caixa" },
               { id: "sino", icon: Bell, label: "Sino" },
+              { id: "run-vine", icon: Music, label: "Run" },
             ] as { id: SoundId; icon: any; label: string }[]).map(({ id, icon: Icon, label }) => (
               <button
                 key={id}
