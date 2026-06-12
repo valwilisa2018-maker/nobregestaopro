@@ -151,7 +151,7 @@ function KanbanPage() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("service_orders")
-        .select("*, producer:producers!service_orders_producer_id_fkey(name), sales(total_amount, payment_status, trello_link, producer_id, expected_delivery_date, customers(name,company,phone), sellers(name), producers(name))")
+        .select("*, producer:producers!service_orders_producer_id_fkey(name), sales(total_amount, paid_amount, payment_status, trello_link, producer_id, expected_delivery_date, customers(name,company,phone), sellers(name), producers(name))")
         .order("created_at", { ascending: true })
         .order("service_index", { ascending: true });
       if (error) {
