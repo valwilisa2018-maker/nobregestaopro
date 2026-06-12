@@ -37,7 +37,7 @@ const SALE_ROW_HEIGHT = 72;
 const SALE_SCROLL_DURATION_PER_ROW = 3.2;
 
 // ============ SOM ============
-type SoundId = "buzina" | "caixa" | "sino" | "custom";
+type SoundId = "buzina" | "caixa" | "sino" | "custom" | "run-vine";
 
 function getCtx(): AudioContext | null {
   try {
@@ -141,9 +141,16 @@ async function playSound(id: SoundId, vol = 1, customUrl?: string) {
   const ctx = getCtx();
   if (!ctx) return;
   
+  let audioUrl = "";
   if (id === "custom" && customUrl) {
+    audioUrl = customUrl;
+  } else if (id === "run-vine") {
+    audioUrl = "/run-vine-sound-effect.mp3";
+  }
+
+  if (audioUrl) {
     try {
-      const response = await fetch(customUrl);
+      const response = await fetch(audioUrl);
       const arrayBuffer = await response.arrayBuffer();
       const audioBuffer = await ctx.decodeAudioData(arrayBuffer);
       const source = ctx.createBufferSource();
@@ -162,7 +169,7 @@ async function playSound(id: SoundId, vol = 1, customUrl?: string) {
 
   if (id === "buzina") playBuzina(ctx, vol);
   else if (id === "caixa") playCaixa(ctx, vol);
-  else playSino(ctx, vol);
+  else if (id === "sino") playSino(ctx, vol);
 }
 
 // Confetti dourado, mais intenso
@@ -707,6 +714,7 @@ function Telao() {
               <option value="buzina" className="bg-[#1a1a1a]">Buzina</option>
               <option value="caixa" className="bg-[#1a1a1a]">Caixa</option>
               <option value="sino" className="bg-[#1a1a1a]">Sino</option>
+              <option value="run-vine" className="bg-[#1a1a1a]">Run (Vine)</option>
               <option value="custom" className="bg-[#1a1a1a]">Customizado</option>
             </select>
           </div>
@@ -739,6 +747,7 @@ function Telao() {
               { id: "buzina", icon: Megaphone, label: "Buzina" },
               { id: "caixa", icon: Coins, label: "Caixa" },
               { id: "sino", icon: Bell, label: "Sino" },
+              { id: "run-vine", icon: Music, label: "Run" },
             ] as { id: SoundId; icon: any; label: string }[]).map(({ id, icon: Icon, label }) => (
               <button
                 key={id}
