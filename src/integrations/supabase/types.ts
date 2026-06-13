@@ -294,6 +294,33 @@ export type Database = {
           },
         ]
       }
+      om_settings: {
+        Row: {
+          base_daily_goal: number
+          created_at: string
+          holidays: string[]
+          id: boolean
+          updated_at: string
+          workdays: number[]
+        }
+        Insert: {
+          base_daily_goal?: number
+          created_at?: string
+          holidays?: string[]
+          id?: boolean
+          updated_at?: string
+          workdays?: number[]
+        }
+        Update: {
+          base_daily_goal?: number
+          created_at?: string
+          holidays?: string[]
+          id?: boolean
+          updated_at?: string
+          workdays?: number[]
+        }
+        Relationships: []
+      }
       packages: {
         Row: {
           active: boolean
