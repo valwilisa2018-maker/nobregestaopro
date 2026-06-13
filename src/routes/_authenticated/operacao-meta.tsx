@@ -71,7 +71,7 @@ function OperacaoMetaPage() {
     }
     for (const o of delivered) {
       const pid = o.producer_id; if (!pid || !map.has(pid)) continue;
-      const sale = o.sales || {};
+      const sale: any = o.sales || {};
       const pkg = sale.packages;
       const st = sale.service_types;
       const points = Number((pkg?.points_value ?? st?.points_value) ?? 0);
