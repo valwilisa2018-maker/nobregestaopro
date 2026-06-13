@@ -268,8 +268,8 @@ export function MensalView({ delivered, producers, computePts, catName, sumPts, 
 
   const curPts = sumPts(cur), prevPts = sumPts(prev);
   const curProjetos = cur.length, prevProjetos = prev.length;
-  const curAlt = cur.filter((o: any) => o.updated_at && o.updated_at !== o.delivered_at).length;
-  const prevAlt = prev.filter((o: any) => o.updated_at && o.updated_at !== o.delivered_at).length;
+  const curAlt = cur.reduce((a: number, o: any) => a + Number(o.redo_count ?? 0), 0);
+  const prevAlt = prev.reduce((a: number, o: any) => a + Number(o.redo_count ?? 0), 0);
   const curProds = new Set(cur.map((o: any) => o.producer_id).filter(Boolean)).size;
   const prevProds = new Set(prev.map((o: any) => o.producer_id).filter(Boolean)).size;
   const curApprov = curProjetos > 0 ? Math.round(((curProjetos - curAlt) / curProjetos) * 100) : 0;
@@ -294,9 +294,8 @@ export function MensalView({ delivered, producers, computePts, catName, sumPts, 
     const m = new Map<string, number>();
     for (const o of cur) {
       if (!o.producer_id) continue;
-      if (o.updated_at && o.updated_at !== o.delivered_at) {
-        m.set(o.producer_id, (m.get(o.producer_id) ?? 0) + 1);
-      }
+      const r = Number(o.redo_count ?? 0);
+      if (r > 0) m.set(o.producer_id, (m.get(o.producer_id) ?? 0) + r);
     }
     return Array.from(m.entries()).map(([pid, c]) => ({ name: (prodOf(pid)?.name ?? "—").toUpperCase(), avatar_url: prodOf(pid)?.avatar_url, value: c }))
       .sort((a, b) => b.value - a.value).slice(0, 6);
