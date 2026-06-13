@@ -462,7 +462,7 @@ export function DinamicaView({ delivered, producers, computePts, sumPts, prodOf,
     for (const o of todayOrders) { if (!o.producer_id) continue; m.set(o.producer_id, (m.get(o.producer_id) ?? 0) + computePts(o)); }
     return producers.filter((p: any) => p.active !== false).map((p: any) => {
       const pts = m.get(p.id) ?? 0;
-      const goal = Number(p.daily_points_goal ?? 7);
+      const goal = Number(p.daily_points_goal ?? baseGoal);
       return { name: p.name, avatar_url: p.avatar_url, pts: Math.round(pts), goal, ok: pts >= goal };
     }).filter((x: any) => x.ok);
   }, [todayOrders, producers]);
