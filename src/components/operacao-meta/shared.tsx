@@ -111,7 +111,7 @@ export function useOmData() {
 }
 
 /* ============================ ANÁLISE DIÁRIA ============================ */
-export function DiariaView({ delivered, producers, computePts, catName, sumPts }: any) {
+export function DiariaView({ delivered, producers, computePts, catName, sumPts, baseGoal = 6, workdays = [1,2,3,4,5], holidays = [] }: any) {
   const t = today(), y = yesterday(), ms = monthStart();
   const onDate = (iso: string) => delivered.filter((o: any) => String(o.delivered_at).slice(0, 10) === iso);
   const todayOrders = onDate(t);
@@ -122,7 +122,10 @@ export function DiariaView({ delivered, producers, computePts, catName, sumPts }
   const yPts = sumPts(yOrders);
   const monthPts = sumPts(monthOrders);
 
-  const totalGoalToday = producers.filter((p: any) => p.active !== false).reduce((a: number, p: any) => a + Number(p.daily_points_goal ?? 7), 0);
+  const todayIsWorking = isWorkingDay(t, workdays, holidays);
+  const totalGoalToday = todayIsWorking
+    ? producers.filter((p: any) => p.active !== false).reduce((a: number, p: any) => a + Number(p.daily_points_goal ?? baseGoal), 0)
+    : 0;
   const pct = totalGoalToday > 0 ? Math.min(100, Math.round((todayPts / totalGoalToday) * 100)) : 0;
   const diffYesterday = todayPts - yPts;
 
