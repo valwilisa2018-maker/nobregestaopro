@@ -193,13 +193,21 @@ function KanbanPage() {
 
   const move = async (cardId: string, columnId: string) => {
     const col = cols.data?.find((c: any) => c.id === columnId);
+    // Atualiza apenas a coluna. delivered_at é "first-time only":
+    // marca na primeira vez que o card chega numa coluna concluída e
+    // NUNCA é apagado/sobrescrito (evita burlar o ranking movendo o
+    // mesmo card de volta para concluído).
     const { error } = await supabase
       .from("service_orders")
-      .update({ 
-        column_id: columnId, 
-        delivered_at: col?.is_done ? new Date().toISOString() : null 
-      })
+      .update({ column_id: columnId })
       .eq("id", cardId);
+    if (!error && col?.is_done) {
+      await supabase
+        .from("service_orders")
+        .update({ delivered_at: new Date().toISOString() })
+        .eq("id", cardId)
+        .is("delivered_at", null);
+    }
     if (error) {
       await logger.error(`Erro ao mover card: ${error.message}`, { context: "kanban/move", details: { cardId, columnId, error } });
     } else {
@@ -212,11 +220,15 @@ function KanbanPage() {
     const col = cols.data?.find((c: any) => c.id === columnId);
     const { error } = await supabase
       .from("service_orders")
-      .update({ 
-        column_id: columnId, 
-        delivered_at: col?.is_done ? new Date().toISOString() : null 
-      })
+      .update({ column_id: columnId })
       .in("id", cardIds);
+    if (!error && col?.is_done) {
+      await supabase
+        .from("service_orders")
+        .update({ delivered_at: new Date().toISOString() })
+        .in("id", cardIds)
+        .is("delivered_at", null);
+    }
     if (error) {
       await logger.error(`Erro ao mover vários cards: ${error.message}`, { context: "kanban/moveMany", details: { cardIds, columnId, error } });
     } else {
