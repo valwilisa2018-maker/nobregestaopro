@@ -2,7 +2,7 @@ import { Link, useRouterState, useNavigate } from "@tanstack/react-router";
 import {
   LayoutDashboard, ShoppingCart, KanbanSquare, Users, UserCheck, Briefcase,
   FileText, Settings, LogOut, ListTodo, Database, Sun, Moon, Link2, Wallet, DollarSign, Tv, AlertCircle,
-  CreditCard,
+  CreditCard, Sparkles,
 } from "lucide-react";
 import logoUrl from "@/assets/logo.png";
 import {
@@ -21,6 +21,7 @@ const groups = [
       { title: "Telão", url: "/telao", icon: Tv },
       { title: "Produção (Kanban)", url: "/kanban", icon: KanbanSquare },
       { title: "Serviços a Fazer", url: "/services-todo", icon: ListTodo },
+      { title: "Operação Meta", url: "/operacao-meta", icon: Sparkles },
     ],
   },
   {
