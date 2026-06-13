@@ -31,6 +31,7 @@ import { Switch } from "@/components/ui/switch";
 import { Slider } from "@/components/ui/slider";
 import { SystemLogsTable } from "@/components/system-logs";
 import { SystemHealthDashboard } from "@/components/system-health";
+import { OmConfiguracoesSection } from "@/components/operacao-meta/configuracoes-section";
 
 export const Route = createFileRoute("/_authenticated/admin")({
   component: AdminPage,
@@ -362,6 +363,7 @@ function AdminPage() {
           <TabsTrigger value="pagarme">Pagar.me</TabsTrigger>
           <TabsTrigger value="nfe">Nota Fiscal</TabsTrigger>
           <TabsTrigger value="telao">Telão</TabsTrigger>
+          <TabsTrigger value="operacao-metas">Operação Metas</TabsTrigger>
           <TabsTrigger value="senha">Senha</TabsTrigger>
           <TabsTrigger value="reset" className="text-destructive">Resetar</TabsTrigger>
           <TabsTrigger value="logs">
