@@ -231,11 +231,11 @@ export function MensalView({ delivered, producers, computePts, catName, sumPts, 
   const prevApprov = prevProjetos > 0 ? Math.round(((prevProjetos - prevAlt) / prevProjetos) * 100) : 0;
 
   const ranking = (arr: any[]) => {
-    const m = new Map<string, { name: string; points: number; projetos: number }>();
+    const m = new Map<string, { name: string; points: number; projetos: number; avatar_url?: string }>();
     for (const o of arr) {
       if (!o.producer_id) continue;
       const prod = prodOf(o.producer_id);
-      const cur = m.get(o.producer_id) ?? { name: prod?.name ?? "—", points: 0, projetos: 0 };
+      const cur = m.get(o.producer_id) ?? { name: prod?.name ?? "—", points: 0, projetos: 0, avatar_url: prod?.avatar_url };
       cur.points += computePts(o);
       cur.projetos += 1;
       m.set(o.producer_id, cur);
@@ -253,7 +253,7 @@ export function MensalView({ delivered, producers, computePts, catName, sumPts, 
         m.set(o.producer_id, (m.get(o.producer_id) ?? 0) + 1);
       }
     }
-    return Array.from(m.entries()).map(([pid, c]) => ({ name: (prodOf(pid)?.name ?? "—").toUpperCase(), value: c }))
+    return Array.from(m.entries()).map(([pid, c]) => ({ name: (prodOf(pid)?.name ?? "—").toUpperCase(), avatar_url: prodOf(pid)?.avatar_url, value: c }))
       .sort((a, b) => b.value - a.value).slice(0, 6);
   }, [cur]);
 
@@ -283,7 +283,7 @@ export function MensalView({ delivered, producers, computePts, catName, sumPts, 
     let best: any = null;
     for (const [pid, c] of m.entries()) if (!best || c > best.count) best = { pid, count: c };
     if (!best) return null;
-    return { name: prodOf(best.pid)?.name ?? "—", count: best.count, day: lastDay };
+    return { name: prodOf(best.pid)?.name ?? "—", avatar_url: prodOf(best.pid)?.avatar_url, count: best.count, day: lastDay };
   }, [cur]);
 
   const dif = (a: number, b: number) => b === 0 ? "—" : `${a >= b ? "+" : ""}${Math.round(((a - b) / b) * 100)}%`;
@@ -302,8 +302,8 @@ export function MensalView({ delivered, producers, computePts, catName, sumPts, 
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-3">
             <HighlightCard title="Rei do Mês" icon={Crown} producer={rei} valueLabel={rei ? `${Math.round(rei.points)} pts` : "—"} />
             <HighlightCard title="Mais Projetos" icon={Folder} producer={maisProj} valueLabel={maisProj ? `${maisProj.projetos} proj` : "—"} />
-            <HighlightCard title="Refeitor" icon={RefreshCw} producer={reBest ? { name: reBest.name } : null} valueLabel={reBest ? `${reBest.value} alterações` : "—"} />
-            <HighlightCard title="Finalizador" icon={Flame} producer={finalizador ? { name: finalizador.name } : null} valueLabel={finalizador ? `${finalizador.count} proj em 1 dia` : "—"} />
+            <HighlightCard title="Refeitor" icon={RefreshCw} producer={reBest ? { name: reBest.name, avatar_url: reBest.avatar_url } : null} valueLabel={reBest ? `${reBest.value} alterações` : "—"} />
+            <HighlightCard title="Finalizador" icon={Flame} producer={finalizador ? { name: finalizador.name, avatar_url: finalizador.avatar_url } : null} valueLabel={finalizador ? `${finalizador.count} proj em 1 dia` : "—"} />
           </div>
         </CardContent>
       </Card>
@@ -404,7 +404,7 @@ export function DinamicaView({ delivered, producers, computePts, sumPts, prodOf 
   const weekRanking = useMemo(() => {
     const m = new Map<string, number>();
     for (const o of weekOrders) { if (!o.producer_id) continue; m.set(o.producer_id, (m.get(o.producer_id) ?? 0) + computePts(o)); }
-    return Array.from(m.entries()).map(([pid, p]) => ({ name: prodOf(pid)?.name ?? "—", points: Math.round(p) }))
+    return Array.from(m.entries()).map(([pid, p]) => ({ name: prodOf(pid)?.name ?? "—", avatar_url: prodOf(pid)?.avatar_url, points: Math.round(p) }))
       .sort((a, b) => b.points - a.points).slice(0, 3);
   }, [weekOrders, producers]);
 
@@ -412,7 +412,7 @@ export function DinamicaView({ delivered, producers, computePts, sumPts, prodOf 
   const topToday = useMemo(() => {
     const m = new Map<string, number>();
     for (const o of todayOrders) { if (!o.producer_id) continue; m.set(o.producer_id, (m.get(o.producer_id) ?? 0) + computePts(o)); }
-    return Array.from(m.entries()).map(([pid, p]) => ({ name: prodOf(pid)?.name ?? "—", points: Math.round(p) }))
+    return Array.from(m.entries()).map(([pid, p]) => ({ name: prodOf(pid)?.name ?? "—", avatar_url: prodOf(pid)?.avatar_url, points: Math.round(p) }))
       .sort((a, b) => b.points - a.points).slice(0, 2);
   }, [todayOrders, producers]);
 
@@ -422,7 +422,7 @@ export function DinamicaView({ delivered, producers, computePts, sumPts, prodOf 
     return producers.filter((p: any) => p.active !== false).map((p: any) => {
       const pts = m.get(p.id) ?? 0;
       const goal = Number(p.daily_points_goal ?? 7);
-      return { name: p.name, pts: Math.round(pts), goal, ok: pts >= goal };
+      return { name: p.name, avatar_url: p.avatar_url, pts: Math.round(pts), goal, ok: pts >= goal };
     }).filter((x: any) => x.ok);
   }, [todayOrders, producers]);
 
@@ -485,7 +485,7 @@ export function DinamicaView({ delivered, producers, computePts, sumPts, prodOf 
               <div className="space-y-2">
                 {weekRanking.map((p, i) => (
                   <div key={i} className="flex items-center justify-between p-3 rounded-lg bg-muted/30">
-                    <div className="flex items-center gap-2"><span className="text-xs font-bold text-muted-foreground">#{i + 1}</span><span className="font-bold text-sm">{p.name}</span></div>
+                    <div className="flex items-center gap-2"><span className="text-xs font-bold text-muted-foreground">#{i + 1}</span><Avatar className="w-7 h-7"><AvatarImage src={p.avatar_url} /><AvatarFallback className="text-[10px]">{initials(p.name)}</AvatarFallback></Avatar><span className="font-bold text-sm">{p.name}</span></div>
                     <span className="font-bold text-sm">{p.points} <span className="text-[10px] text-muted-foreground">pts</span></span>
                   </div>
                 ))}
@@ -504,7 +504,7 @@ export function DinamicaView({ delivered, producers, computePts, sumPts, prodOf 
               <div className="space-y-2">
                 {topToday.map((p, i) => (
                   <div key={i} className="flex items-center justify-between p-3 rounded-lg bg-muted/30">
-                    <div className="flex items-center gap-2"><span className="text-lg">{i === 0 ? "🥇" : "🥈"}</span><span className="font-bold text-sm">{p.name}</span></div>
+                    <div className="flex items-center gap-2"><span className="text-lg">{i === 0 ? "🥇" : "🥈"}</span><Avatar className="w-7 h-7"><AvatarImage src={p.avatar_url} /><AvatarFallback className="text-[10px]">{initials(p.name)}</AvatarFallback></Avatar><span className="font-bold text-sm">{p.name}</span></div>
                     <span className="font-bold text-sm">{p.points} <span className="text-[10px] text-muted-foreground">pts</span></span>
                   </div>
                 ))}
@@ -524,7 +524,7 @@ export function DinamicaView({ delivered, producers, computePts, sumPts, prodOf 
             <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-2">
               {todayByProducer.map((p: any) => (
                 <div key={p.name} className="flex items-center justify-between p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/30">
-                  <span className="font-bold text-sm">{p.name}</span>
+                  <div className="flex items-center gap-2"><Avatar className="w-7 h-7"><AvatarImage src={p.avatar_url} /><AvatarFallback className="text-[10px]">{initials(p.name)}</AvatarFallback></Avatar><span className="font-bold text-sm">{p.name}</span></div>
                   <span className="text-emerald-500 font-bold">{p.pts}/{p.goal}</span>
                 </div>
               ))}
