@@ -25,6 +25,12 @@ const EVENTOS = [
   { value: "distribuicao_edicao", label: "Distribuição p/ Edição (gravação)" },
 ] as const;
 
+// Apenas estes eventos geram pontuação. Os demais (Alteração, Entregue)
+// são apenas registrados para contagem.
+const SCORING_EVENTOS = EVENTOS.filter(
+  (e) => e.value === "pronto" || e.value === "distribuicao_edicao",
+);
+
 export function OmConfiguracoesSection() {
   const qc = useQueryClient();
   const scoring = useQuery({
@@ -85,10 +91,11 @@ export function OmConfiguracoesSection() {
         <CardContent className="p-5 space-y-3">
           <div className="text-sm font-semibold">Multiplicador por Evento</div>
           <p className="text-xs text-muted-foreground">
-            Pontos finais do card = pontos do serviço × multiplicador do evento.
+            Apenas <b>Serviço Pronto</b> e <b>Distribuição p/ Edição (gravação)</b> geram pontuação.
+            <br />Alteração e Entregue são registrados apenas para contagem (0 pontos).
           </p>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            {EVENTOS.map((e) => {
+            {SCORING_EVENTOS.map((e) => {
               const row = (scoring.data as any[])?.find((r) => r.evento === e.value);
               return (
                 <ScoringRow
