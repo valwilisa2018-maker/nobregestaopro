@@ -552,7 +552,7 @@ export function DinamicaView({ delivered, producers, computePts, sumPts, prodOf,
               <div className="space-y-2">
                 {weekRanking.map((p, i) => (
                   <div key={i} className="flex items-center justify-between p-3 rounded-lg bg-muted/30">
-                    <div className="flex items-center gap-2"><span className="text-xs font-bold text-muted-foreground">#{i + 1}</span><Avatar className="w-7 h-7"><AvatarImage src={p.avatar_url} /><AvatarFallback className="text-[10px]">{initials(p.name)}</AvatarFallback></Avatar><span className="font-bold text-sm">{p.name}</span></div>
+                    <div className="flex items-center gap-2"><span className="text-xs font-bold text-muted-foreground">#{i + 1}</span><Avatar className="w-11 h-11 ring-2 ring-primary/30"><AvatarImage src={p.avatar_url} /><AvatarFallback className="text-xs">{initials(p.name)}</AvatarFallback></Avatar><span className="font-bold text-sm">{p.name}</span></div>
                     <span className="font-bold text-sm">{p.points} <span className="text-[10px] text-muted-foreground">pts</span></span>
                   </div>
                 ))}
@@ -571,7 +571,7 @@ export function DinamicaView({ delivered, producers, computePts, sumPts, prodOf,
               <div className="space-y-2">
                 {topToday.map((p, i) => (
                   <div key={i} className="flex items-center justify-between p-3 rounded-lg bg-muted/30">
-                    <div className="flex items-center gap-2"><span className="text-lg">{i === 0 ? "🥇" : "🥈"}</span><Avatar className="w-7 h-7"><AvatarImage src={p.avatar_url} /><AvatarFallback className="text-[10px]">{initials(p.name)}</AvatarFallback></Avatar><span className="font-bold text-sm">{p.name}</span></div>
+                    <div className="flex items-center gap-2"><span className="text-lg">{i === 0 ? "🥇" : "🥈"}</span><Avatar className="w-11 h-11 ring-2 ring-primary/30"><AvatarImage src={p.avatar_url} /><AvatarFallback className="text-xs">{initials(p.name)}</AvatarFallback></Avatar><span className="font-bold text-sm">{p.name}</span></div>
                     <span className="font-bold text-sm">{p.points} <span className="text-[10px] text-muted-foreground">pts</span></span>
                   </div>
                 ))}
@@ -591,7 +591,7 @@ export function DinamicaView({ delivered, producers, computePts, sumPts, prodOf,
             <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-2">
               {todayByProducer.map((p: any) => (
                 <div key={p.name} className="flex items-center justify-between p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/30">
-                  <div className="flex items-center gap-2"><Avatar className="w-7 h-7"><AvatarImage src={p.avatar_url} /><AvatarFallback className="text-[10px]">{initials(p.name)}</AvatarFallback></Avatar><span className="font-bold text-sm">{p.name}</span></div>
+                  <div className="flex items-center gap-2"><Avatar className="w-11 h-11 ring-2 ring-primary/30"><AvatarImage src={p.avatar_url} /><AvatarFallback className="text-xs">{initials(p.name)}</AvatarFallback></Avatar><span className="font-bold text-sm">{p.name}</span></div>
                   <span className="text-emerald-500 font-bold">{p.pts}/{p.goal}</span>
                 </div>
               ))}
@@ -763,7 +763,7 @@ export function ProdutoresView({ delivered, producers, computePts }: any) {
           <Card key={p.id} className="border-border/50 hover:border-rose-500/50 transition" style={{ boxShadow: "var(--shadow-card)" }}>
             <CardContent className="p-4">
               <div className="flex items-center gap-2">
-                <Avatar className="w-10 h-10"><AvatarImage src={p.avatar_url} /><AvatarFallback>{initials(p.name)}</AvatarFallback></Avatar>
+                <Avatar className="w-14 h-14 ring-2 ring-primary/30"><AvatarImage src={p.avatar_url} /><AvatarFallback>{initials(p.name)}</AvatarFallback></Avatar>
                 <div className="min-w-0">
                   <div className="font-bold uppercase text-sm truncate">{p.name}</div>
                   <div className="text-[10px] text-muted-foreground">Produtor</div>
@@ -843,7 +843,7 @@ export function ConquistasView({ delivered, producers, catName, prodOf }: any) {
               return (
                 <button key={p.id} onClick={() => setSelectedId(p.id)} className={`w-full flex items-center gap-2 p-2 rounded-lg text-left transition ${isSel ? "bg-rose-500/10 border border-rose-500/50" : "hover:bg-muted"}`}>
                   <span className="text-xs font-bold text-muted-foreground w-4">{i + 1}</span>
-                  <Avatar className="w-6 h-6"><AvatarImage src={p.avatar} /><AvatarFallback className="text-[9px]">{initials(p.name)}</AvatarFallback></Avatar>
+                  <Avatar className="w-9 h-9 ring-2 ring-primary/30"><AvatarImage src={p.avatar} /><AvatarFallback className="text-[9px]">{initials(p.name)}</AvatarFallback></Avatar>
                   <span className="text-xs font-bold uppercase flex-1 truncate">{p.name}</span>
                   <span className="text-xs font-bold text-rose-500">{p.count}</span>
                 </button>
@@ -860,7 +860,7 @@ export function ConquistasView({ delivered, producers, catName, prodOf }: any) {
           ) : (
             <>
               <div className="flex items-center gap-3 mb-4">
-                <Avatar className="w-14 h-14"><AvatarImage src={selected.avatar} /><AvatarFallback>{initials(selected.name)}</AvatarFallback></Avatar>
+                <Avatar className="w-20 h-20 ring-2 ring-primary/40"><AvatarImage src={selected.avatar} /><AvatarFallback>{initials(selected.name)}</AvatarFallback></Avatar>
                 <div>
                   <div className="text-xl font-bold uppercase">{selected.name}</div>
                   <div className="flex items-center gap-2 mt-1">
@@ -1025,7 +1025,7 @@ function HighlightCard({ title, icon: Icon, producer, valueLabel }: any) {
       <div className="text-[10px] uppercase text-muted-foreground flex items-center justify-center gap-1 font-semibold mb-2"><Icon className="w-3 h-3" /> {title}</div>
       {producer ? (
         <>
-          <Avatar className="w-10 h-10 mx-auto mb-2"><AvatarImage src={producer.avatar_url} /><AvatarFallback>{initials(producer.name)}</AvatarFallback></Avatar>
+          <Avatar className="w-16 h-16 mx-auto mb-2 ring-2 ring-primary/30"><AvatarImage src={producer.avatar_url} /><AvatarFallback>{initials(producer.name)}</AvatarFallback></Avatar>
           <div className="font-bold text-sm uppercase truncate">{producer.name}</div>
           <div className="text-xs text-rose-500 font-bold mt-1">{valueLabel}</div>
         </>
