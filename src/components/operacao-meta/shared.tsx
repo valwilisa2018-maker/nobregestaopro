@@ -1117,5 +1117,4 @@ export const OM_MENU = [
   { key: "produtores", label: "Produtores", path: "/operacao-meta/produtores", icon: Users },
   { key: "conquistas", label: "Conquistas", path: "/operacao-meta/conquistas", icon: Trophy },
   { key: "relatorios", label: "Relatórios", path: "/operacao-meta/relatorios", icon: FileText },
-  { key: "configuracoes", label: "Configurações", path: "/operacao-meta/configuracoes", icon: Settings },
 ] as const;
