@@ -129,6 +129,7 @@ function SalesPage() {
     installments: "12",
     delivery_deadline: "",
     expected_delivery_date: new Date().toISOString().slice(0, 10),
+    video_duration_seconds: "",
   });
 
   const set = useCallback((k: string, v: string) => {
