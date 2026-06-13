@@ -79,7 +79,7 @@ export function useOmData() {
         await supabase
           .from("service_orders")
           .select(
-            "id,producer_id,sale_id,delivered_at,updated_at,sales(service_type_id,package_id,video_duration_seconds,service_types(name,points_value),packages(name,points_value))",
+            "id,producer_id,sale_id,delivered_at,updated_at,redo_count,last_redo_at,sales(service_type_id,package_id,video_duration_seconds,service_types(name,points_value),packages(name,points_value))",
           )
       ).data ?? [],
   });
