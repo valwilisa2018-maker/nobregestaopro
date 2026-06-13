@@ -138,7 +138,7 @@ export function useOmData() {
 export function DiariaView({ delivered, producers, computePts, catName, sumPts, baseGoal = 6, workdays = [1,2,3,4,5], holidays = [] }: any) {
   const { theme } = useTheme();
   const isDark = theme === "dark";
-  const ringBg = (pctReached: boolean) => pctReached ? (isDark ? "rgba(16,185,129,0.3)" : "rgba(16,185,129,0.2)") : (isDark ? "rgba(239,68,68,0.65)" : "#0a0a0a");
+  const ringBg = (pctReached: boolean) => pctReached ? (isDark ? "rgba(16,185,129,0.3)" : "rgba(16,185,129,0.2)") : (isDark ? "rgba(255,255,255,0.12)" : "#0a0a0a");
   const t = today(), y = yesterday(), ms = monthStart();
   const onDate = (iso: string) => delivered.filter((o: any) => String(o.delivered_at).slice(0, 10) === iso);
   const todayOrders = onDate(t);
@@ -191,13 +191,13 @@ export function DiariaView({ delivered, producers, computePts, catName, sumPts, 
             </div>
             <div className="relative h-[340px] md:h-[400px] w-full md:w-[400px] flex items-center justify-center col-span-2 md:col-span-1 order-first md:order-none mx-auto">
               <ResponsiveContainer width="100%" height="100%">
-                <RadialBarChart innerRadius="76%" outerRadius="100%" data={[{ name: "pct", value: pct, fill: pct >= 100 ? "#10b981" : status.color }]} startAngle={90} endAngle={-270}>
+                <RadialBarChart innerRadius="76%" outerRadius="100%" data={[{ name: "pct", value: pct, fill: "#10b981" }]} startAngle={90} endAngle={-270}>
                   <PolarAngleAxis type="number" domain={[0, 100]} tick={false} />
                   <RadialBar dataKey="value" cornerRadius={30} background={{ fill: ringBg(pct >= 100) }} />
                 </RadialBarChart>
               </ResponsiveContainer>
               <div className="absolute inset-0 flex flex-col items-center justify-center">
-                <div className="text-7xl md:text-8xl font-extrabold tracking-tight" style={{ color: pct >= 100 ? "#10b981" : status.color }}>{pct}%</div>
+                <div className="text-7xl md:text-8xl font-extrabold tracking-tight" style={{ color: "#10b981" }}>{pct}%</div>
                 <div className="text-sm md:text-base text-muted-foreground mt-2 font-medium">{todayPts.toFixed(0)} / {totalGoalToday} pts</div>
               </div>
             </div>
