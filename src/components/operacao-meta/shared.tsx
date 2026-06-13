@@ -471,7 +471,7 @@ export function DinamicaView({ delivered, producers, computePts, sumPts, prodOf,
   }, [todayOrders, producers]);
 
   const projetos = monthOrders.length;
-  const alteracoes = monthOrders.filter((o: any) => o.updated_at && o.updated_at !== o.delivered_at).length;
+  const alteracoes = monthOrders.reduce((a: number, o: any) => a + Number(o.redo_count ?? 0), 0);
   const produtores = new Set(monthOrders.map((o: any) => o.producer_id).filter(Boolean)).size;
 
   return (
@@ -592,7 +592,7 @@ export function TendenciasView({ delivered, sumPts }: any) {
   const ptsSeries = days.map(d => ({ name: d.label, value: Math.round(sumPts(byDay(d.iso))) }));
   const projAltSeries = days.map(d => {
     const list = byDay(d.iso);
-    return { name: d.label, projetos: list.length, alteracoes: list.filter((o: any) => o.updated_at && o.updated_at !== o.delivered_at).length };
+    return { name: d.label, projetos: list.length, alteracoes: list.reduce((a: number, o: any) => a + Number(o.redo_count ?? 0), 0) };
   });
   const activeProdsSeries = days.map(d => ({ name: d.label, value: new Set(byDay(d.iso).map((o: any) => o.producer_id).filter(Boolean)).size }));
   const avgPerProducer = days.map(d => {
