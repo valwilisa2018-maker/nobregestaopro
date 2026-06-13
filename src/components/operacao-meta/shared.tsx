@@ -45,6 +45,12 @@ export function useOmData() {
     queryFn: async () =>
       (await supabase.from("producers").select("id,name,daily_points_goal,active,avatar_url")).data ?? [],
   });
+  const settings = useQuery({
+    queryKey: ["om-settings"],
+    queryFn: async () =>
+      (await (supabase as any).from("om_settings").select("*").eq("id", true).maybeSingle()).data
+        ?? { base_daily_goal: 6, workdays: [1,2,3,4,5], holidays: [] },
+  });
   const orders = useQuery({
     queryKey: ["om-orders"],
     queryFn: async () =>
@@ -69,7 +75,19 @@ export function useOmData() {
   const delivered = (orders.data ?? []).filter((o: any) => !!o.delivered_at);
   const sumPts = (arr: any[]) => arr.reduce((a, o) => a + computePts(o), 0);
   const prodOf = (id: string) => (producers.data ?? []).find((p: any) => p.id === id) as any;
-  return { qc, producers: producers.data ?? [], delivered, computePts, catName, sumPts, prodOf };
+  const s = settings.data ?? { base_daily_goal: 6, workdays: [1,2,3,4,5], holidays: [] };
+  return {
+    qc,
+    producers: producers.data ?? [],
+    delivered,
+    computePts,
+    catName,
+    sumPts,
+    prodOf,
+    baseGoal: Number(s.base_daily_goal ?? 6),
+    workdays: (s.workdays ?? [1,2,3,4,5]) as number[],
+    holidays: (s.holidays ?? []) as string[],
+  };
 }
 
 /* ============================ ANÁLISE DIÁRIA ============================ */
