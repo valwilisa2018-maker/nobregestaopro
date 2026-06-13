@@ -30,6 +30,7 @@ import { Route as AuthenticatedCustomersRouteImport } from './routes/_authentica
 import { Route as AuthenticatedCommissionsRouteImport } from './routes/_authenticated/commissions'
 import { Route as AuthenticatedBackupRouteImport } from './routes/_authenticated/backup'
 import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/admin'
+import { Route as AuthenticatedOperacaoMetaIndexRouteImport } from './routes/_authenticated/operacao-meta.index'
 
 const ResetPasswordRoute = ResetPasswordRouteImport.update({
   id: '/reset-password',
@@ -141,6 +142,12 @@ const AuthenticatedAdminRoute = AuthenticatedAdminRouteImport.update({
   path: '/admin',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedOperacaoMetaIndexRoute =
+  AuthenticatedOperacaoMetaIndexRouteImport.update({
+    id: '/',
+    path: '/',
+    getParentRoute: () => AuthenticatedOperacaoMetaRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -154,7 +161,7 @@ export interface FileRoutesByFullPath {
   '/finance': typeof AuthenticatedFinanceRoute
   '/invoices': typeof AuthenticatedInvoicesRoute
   '/kanban': typeof AuthenticatedKanbanRoute
-  '/operacao-meta': typeof AuthenticatedOperacaoMetaRoute
+  '/operacao-meta': typeof AuthenticatedOperacaoMetaRouteWithChildren
   '/pagarme-history': typeof AuthenticatedPagarmeHistoryRoute
   '/payment-link': typeof AuthenticatedPaymentLinkRoute
   '/pending-payments': typeof AuthenticatedPendingPaymentsRoute
@@ -163,6 +170,7 @@ export interface FileRoutesByFullPath {
   '/sellers': typeof AuthenticatedSellersRoute
   '/services-todo': typeof AuthenticatedServicesTodoRoute
   '/telao': typeof AuthenticatedTelaoRoute
+  '/operacao-meta/': typeof AuthenticatedOperacaoMetaIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -176,7 +184,6 @@ export interface FileRoutesByTo {
   '/finance': typeof AuthenticatedFinanceRoute
   '/invoices': typeof AuthenticatedInvoicesRoute
   '/kanban': typeof AuthenticatedKanbanRoute
-  '/operacao-meta': typeof AuthenticatedOperacaoMetaRoute
   '/pagarme-history': typeof AuthenticatedPagarmeHistoryRoute
   '/payment-link': typeof AuthenticatedPaymentLinkRoute
   '/pending-payments': typeof AuthenticatedPendingPaymentsRoute
@@ -185,6 +192,7 @@ export interface FileRoutesByTo {
   '/sellers': typeof AuthenticatedSellersRoute
   '/services-todo': typeof AuthenticatedServicesTodoRoute
   '/telao': typeof AuthenticatedTelaoRoute
+  '/operacao-meta': typeof AuthenticatedOperacaoMetaIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -200,7 +208,7 @@ export interface FileRoutesById {
   '/_authenticated/finance': typeof AuthenticatedFinanceRoute
   '/_authenticated/invoices': typeof AuthenticatedInvoicesRoute
   '/_authenticated/kanban': typeof AuthenticatedKanbanRoute
-  '/_authenticated/operacao-meta': typeof AuthenticatedOperacaoMetaRoute
+  '/_authenticated/operacao-meta': typeof AuthenticatedOperacaoMetaRouteWithChildren
   '/_authenticated/pagarme-history': typeof AuthenticatedPagarmeHistoryRoute
   '/_authenticated/payment-link': typeof AuthenticatedPaymentLinkRoute
   '/_authenticated/pending-payments': typeof AuthenticatedPendingPaymentsRoute
@@ -209,6 +217,7 @@ export interface FileRoutesById {
   '/_authenticated/sellers': typeof AuthenticatedSellersRoute
   '/_authenticated/services-todo': typeof AuthenticatedServicesTodoRoute
   '/_authenticated/telao': typeof AuthenticatedTelaoRoute
+  '/_authenticated/operacao-meta/': typeof AuthenticatedOperacaoMetaIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -233,6 +242,7 @@ export interface FileRouteTypes {
     | '/sellers'
     | '/services-todo'
     | '/telao'
+    | '/operacao-meta/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -246,7 +256,6 @@ export interface FileRouteTypes {
     | '/finance'
     | '/invoices'
     | '/kanban'
-    | '/operacao-meta'
     | '/pagarme-history'
     | '/payment-link'
     | '/pending-payments'
@@ -255,6 +264,7 @@ export interface FileRouteTypes {
     | '/sellers'
     | '/services-todo'
     | '/telao'
+    | '/operacao-meta'
   id:
     | '__root__'
     | '/'
@@ -278,6 +288,7 @@ export interface FileRouteTypes {
     | '/_authenticated/sellers'
     | '/_authenticated/services-todo'
     | '/_authenticated/telao'
+    | '/_authenticated/operacao-meta/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -436,8 +447,29 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/operacao-meta/': {
+      id: '/_authenticated/operacao-meta/'
+      path: '/'
+      fullPath: '/operacao-meta/'
+      preLoaderRoute: typeof AuthenticatedOperacaoMetaIndexRouteImport
+      parentRoute: typeof AuthenticatedOperacaoMetaRoute
+    }
   }
 }
+
+interface AuthenticatedOperacaoMetaRouteChildren {
+  AuthenticatedOperacaoMetaIndexRoute: typeof AuthenticatedOperacaoMetaIndexRoute
+}
+
+const AuthenticatedOperacaoMetaRouteChildren: AuthenticatedOperacaoMetaRouteChildren =
+  {
+    AuthenticatedOperacaoMetaIndexRoute: AuthenticatedOperacaoMetaIndexRoute,
+  }
+
+const AuthenticatedOperacaoMetaRouteWithChildren =
+  AuthenticatedOperacaoMetaRoute._addFileChildren(
+    AuthenticatedOperacaoMetaRouteChildren,
+  )
 
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedAdminRoute: typeof AuthenticatedAdminRoute
@@ -448,7 +480,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedFinanceRoute: typeof AuthenticatedFinanceRoute
   AuthenticatedInvoicesRoute: typeof AuthenticatedInvoicesRoute
   AuthenticatedKanbanRoute: typeof AuthenticatedKanbanRoute
-  AuthenticatedOperacaoMetaRoute: typeof AuthenticatedOperacaoMetaRoute
+  AuthenticatedOperacaoMetaRoute: typeof AuthenticatedOperacaoMetaRouteWithChildren
   AuthenticatedPagarmeHistoryRoute: typeof AuthenticatedPagarmeHistoryRoute
   AuthenticatedPaymentLinkRoute: typeof AuthenticatedPaymentLinkRoute
   AuthenticatedPendingPaymentsRoute: typeof AuthenticatedPendingPaymentsRoute
@@ -468,7 +500,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedFinanceRoute: AuthenticatedFinanceRoute,
   AuthenticatedInvoicesRoute: AuthenticatedInvoicesRoute,
   AuthenticatedKanbanRoute: AuthenticatedKanbanRoute,
-  AuthenticatedOperacaoMetaRoute: AuthenticatedOperacaoMetaRoute,
+  AuthenticatedOperacaoMetaRoute: AuthenticatedOperacaoMetaRouteWithChildren,
   AuthenticatedPagarmeHistoryRoute: AuthenticatedPagarmeHistoryRoute,
   AuthenticatedPaymentLinkRoute: AuthenticatedPaymentLinkRoute,
   AuthenticatedPendingPaymentsRoute: AuthenticatedPendingPaymentsRoute,
