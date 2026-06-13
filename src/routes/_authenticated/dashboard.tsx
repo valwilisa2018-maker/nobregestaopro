@@ -39,7 +39,10 @@ function startOf(period: "day" | "week" | "month" | "year") {
 function Dashboard() {
   const navigate = useNavigate();
   // Filtros principais
-  const [scope, setScope] = useState<"day" | "week" | "month" | "year">("day");
+  const [scope, setScope] = useState<"day" | "week" | "month" | "year" | "custom">("day");
+  const todayStr = new Date().toISOString().slice(0, 10);
+  const [customFrom, setCustomFrom] = useState<string>(todayStr);
+  const [customTo, setCustomTo] = useState<string>(todayStr);
   const { user } = useAuth();
   const [sellerFilter, setSellerFilter] = useState<string>("all");
   const [serviceFilter, setServiceFilter] = useState<string>("all");
@@ -196,16 +199,23 @@ function Dashboard() {
     month: { total: monthTotal, count: monthCount, goal: goalFor("monthly"), label: "Mês", icon: TrendingUp, since: startOf("month") },
     year: { total: yearTotal, count: all.filter((s) => (s.sale_date || s.created_at.slice(0, 10)) >= startOf("year").slice(0, 10)).length, goal: goalFor("yearly"), label: "Ano", icon: TrendingUp, since: startOf("year") },
   } as const;
-  const current = scopeMap[scope];
-  const scopeSince = current.since.slice(0, 10);
+  const scopeSince = scope === "custom" ? customFrom : scopeMap[scope].since.slice(0, 10);
+  const scopeUntil = scope === "custom" ? customTo : "9999-12-31";
+  const inScope = (d?: string | null) => !!d && d.slice(0, 10) >= scopeSince && d.slice(0, 10) <= scopeUntil;
+  const customList = scope === "custom"
+    ? all.filter((s) => { const d = s.sale_date || s.created_at.slice(0, 10); return d >= scopeSince && d <= scopeUntil; })
+    : [];
+  const current = scope === "custom"
+    ? { total: customList.reduce((a, s) => a + Number(s.total_amount), 0), count: customList.length, goal: 0, label: `${customFrom} → ${customTo}`, icon: Calendar, since: customFrom + "T00:00:00.000Z" }
+    : scopeMap[scope];
   const dayGoal = goalFor("daily");
   const dayPct = dayGoal ? Math.min(100, Math.round((dayTotal / dayGoal) * 100)) : 0;
   const scopePct = current.goal ? Math.min(100, Math.round((current.total / current.goal) * 100)) : 0;
 
   const counts = {
-    pago_total: all.filter((s) => s.payment_status === "pago_total" && (s.sale_date || s.created_at.slice(0, 10)) >= scopeSince).length,
-    pago_parcial: all.filter((s) => s.payment_status === "pago_parcial" && (s.sale_date || s.created_at.slice(0, 10)) >= scopeSince).length,
-    pendente: all.filter((s) => s.payment_status === "pendente" && (s.sale_date || s.created_at.slice(0, 10)) >= scopeSince).length,
+    pago_total: all.filter((s) => s.payment_status === "pago_total" && inScope(s.sale_date || s.created_at)).length,
+    pago_parcial: all.filter((s) => s.payment_status === "pago_parcial" && inScope(s.sale_date || s.created_at)).length,
+    pendente: all.filter((s) => s.payment_status === "pendente" && inScope(s.sale_date || s.created_at)).length,
   };
 
   // Service Orders por etapa
@@ -245,7 +255,7 @@ function Dashboard() {
 
   // Vendas sem nota / com nota (no escopo selecionado)
   const scopeSaleIds = new Set(
-    all.filter((s) => (s.sale_date || s.created_at.slice(0, 10)) >= scopeSince).map((s) => s.id),
+    all.filter((s) => inScope(s.sale_date || s.created_at)).map((s) => s.id),
   );
   const salesWithInvoice = new Set(invList.filter((i) => i.sale_id && scopeSaleIds.has(i.sale_id)).map((i) => i.sale_id));
   const scopeSalesWithInvoice = salesWithInvoice.size;
@@ -253,7 +263,7 @@ function Dashboard() {
 
   // Ranking vendedores (no escopo)
   const sellerRanking = (sellers.data ?? []).map((s) => {
-    const list = all.filter((x) => x.seller_id === s.id && (x.sale_date || x.created_at.slice(0, 10)) >= scopeSince);
+    const list = all.filter((x) => x.seller_id === s.id && inScope(x.sale_date || x.created_at));
     return {
       id: s.id,
       name: s.name,
@@ -268,7 +278,7 @@ function Dashboard() {
   // Assim, mover o mesmo card de volta para pronto NÃO recontabiliza.
   const producerRanking = (producers.data ?? []).map((p: any) => {
     const entreguesList = ordersList.filter(
-      (o) => o.producer_id === p.id && o.delivered_at && o.delivered_at.slice(0, 10) >= scopeSince
+      (o) => o.producer_id === p.id && inScope(o.delivered_at)
     );
     const emProducaoList = ordersList.filter(
       (o) => o.producer_id === p.id && !o.delivered_at && !o.kanban_columns?.is_done
@@ -291,7 +301,7 @@ function Dashboard() {
     const stById = new Map((serviceTypes.data ?? []).map((s: any) => [s.id, s.name]));
     const pkById = new Map((packages.data ?? []).map((p: any) => [p.id, p.name]));
     for (const s of all) {
-      if ((s.sale_date || s.created_at.slice(0, 10)) < scopeSince) continue;
+      if (!inScope(s.sale_date || s.created_at)) continue;
       const name = s.package_id
         ? (pkById.get(s.package_id) ?? "Pacote")
         : (stById.get(s.service_type_id ?? "") ?? "Outro");
@@ -371,7 +381,26 @@ function Dashboard() {
             <ToggleGroupItem value="week">Semana</ToggleGroupItem>
             <ToggleGroupItem value="month">Mês</ToggleGroupItem>
             <ToggleGroupItem value="year">Ano</ToggleGroupItem>
+            <ToggleGroupItem value="custom">Personalizado</ToggleGroupItem>
           </ToggleGroup>
+
+          {scope === "custom" && (
+            <div className="flex items-center gap-2">
+              <input
+                type="date"
+                value={customFrom}
+                onChange={(e) => setCustomFrom(e.target.value)}
+                className="h-9 rounded-md border border-input bg-background px-2 text-sm"
+              />
+              <span className="text-sm text-muted-foreground">até</span>
+              <input
+                type="date"
+                value={customTo}
+                onChange={(e) => setCustomTo(e.target.value)}
+                className="h-9 rounded-md border border-input bg-background px-2 text-sm"
+              />
+            </div>
+          )}
 
           <Select value={sellerFilter} onValueChange={setSellerFilter}>
             <SelectTrigger className="w-[200px]">
