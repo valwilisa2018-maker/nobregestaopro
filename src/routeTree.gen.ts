@@ -31,6 +31,7 @@ import { Route as AuthenticatedCommissionsRouteImport } from './routes/_authenti
 import { Route as AuthenticatedBackupRouteImport } from './routes/_authenticated/backup'
 import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/admin'
 import { Route as AuthenticatedOperacaoMetaIndexRouteImport } from './routes/_authenticated/operacao-meta.index'
+import { Route as ApiPublicTrelloWebhookRouteImport } from './routes/api/public/trello-webhook'
 import { Route as AuthenticatedOperacaoMetaTendenciasRouteImport } from './routes/_authenticated/operacao-meta.tendencias'
 import { Route as AuthenticatedOperacaoMetaRelatoriosRouteImport } from './routes/_authenticated/operacao-meta.relatorios'
 import { Route as AuthenticatedOperacaoMetaProdutoresRouteImport } from './routes/_authenticated/operacao-meta.produtores'
@@ -38,6 +39,7 @@ import { Route as AuthenticatedOperacaoMetaMensalRouteImport } from './routes/_a
 import { Route as AuthenticatedOperacaoMetaDinamicaRouteImport } from './routes/_authenticated/operacao-meta.dinamica'
 import { Route as AuthenticatedOperacaoMetaDiariaRouteImport } from './routes/_authenticated/operacao-meta.diaria'
 import { Route as AuthenticatedOperacaoMetaConquistasRouteImport } from './routes/_authenticated/operacao-meta.conquistas'
+import { Route as AuthenticatedOperacaoMetaConfiguracoesRouteImport } from './routes/_authenticated/operacao-meta.configuracoes'
 
 const ResetPasswordRoute = ResetPasswordRouteImport.update({
   id: '/reset-password',
@@ -155,6 +157,11 @@ const AuthenticatedOperacaoMetaIndexRoute =
     path: '/',
     getParentRoute: () => AuthenticatedOperacaoMetaRoute,
   } as any)
+const ApiPublicTrelloWebhookRoute = ApiPublicTrelloWebhookRouteImport.update({
+  id: '/api/public/trello-webhook',
+  path: '/api/public/trello-webhook',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AuthenticatedOperacaoMetaTendenciasRoute =
   AuthenticatedOperacaoMetaTendenciasRouteImport.update({
     id: '/tendencias',
@@ -197,6 +204,12 @@ const AuthenticatedOperacaoMetaConquistasRoute =
     path: '/conquistas',
     getParentRoute: () => AuthenticatedOperacaoMetaRoute,
   } as any)
+const AuthenticatedOperacaoMetaConfiguracoesRoute =
+  AuthenticatedOperacaoMetaConfiguracoesRouteImport.update({
+    id: '/configuracoes',
+    path: '/configuracoes',
+    getParentRoute: () => AuthenticatedOperacaoMetaRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -219,6 +232,7 @@ export interface FileRoutesByFullPath {
   '/sellers': typeof AuthenticatedSellersRoute
   '/services-todo': typeof AuthenticatedServicesTodoRoute
   '/telao': typeof AuthenticatedTelaoRoute
+  '/operacao-meta/configuracoes': typeof AuthenticatedOperacaoMetaConfiguracoesRoute
   '/operacao-meta/conquistas': typeof AuthenticatedOperacaoMetaConquistasRoute
   '/operacao-meta/diaria': typeof AuthenticatedOperacaoMetaDiariaRoute
   '/operacao-meta/dinamica': typeof AuthenticatedOperacaoMetaDinamicaRoute
@@ -226,6 +240,7 @@ export interface FileRoutesByFullPath {
   '/operacao-meta/produtores': typeof AuthenticatedOperacaoMetaProdutoresRoute
   '/operacao-meta/relatorios': typeof AuthenticatedOperacaoMetaRelatoriosRoute
   '/operacao-meta/tendencias': typeof AuthenticatedOperacaoMetaTendenciasRoute
+  '/api/public/trello-webhook': typeof ApiPublicTrelloWebhookRoute
   '/operacao-meta/': typeof AuthenticatedOperacaoMetaIndexRoute
 }
 export interface FileRoutesByTo {
@@ -248,6 +263,7 @@ export interface FileRoutesByTo {
   '/sellers': typeof AuthenticatedSellersRoute
   '/services-todo': typeof AuthenticatedServicesTodoRoute
   '/telao': typeof AuthenticatedTelaoRoute
+  '/operacao-meta/configuracoes': typeof AuthenticatedOperacaoMetaConfiguracoesRoute
   '/operacao-meta/conquistas': typeof AuthenticatedOperacaoMetaConquistasRoute
   '/operacao-meta/diaria': typeof AuthenticatedOperacaoMetaDiariaRoute
   '/operacao-meta/dinamica': typeof AuthenticatedOperacaoMetaDinamicaRoute
@@ -255,6 +271,7 @@ export interface FileRoutesByTo {
   '/operacao-meta/produtores': typeof AuthenticatedOperacaoMetaProdutoresRoute
   '/operacao-meta/relatorios': typeof AuthenticatedOperacaoMetaRelatoriosRoute
   '/operacao-meta/tendencias': typeof AuthenticatedOperacaoMetaTendenciasRoute
+  '/api/public/trello-webhook': typeof ApiPublicTrelloWebhookRoute
   '/operacao-meta': typeof AuthenticatedOperacaoMetaIndexRoute
 }
 export interface FileRoutesById {
@@ -280,6 +297,7 @@ export interface FileRoutesById {
   '/_authenticated/sellers': typeof AuthenticatedSellersRoute
   '/_authenticated/services-todo': typeof AuthenticatedServicesTodoRoute
   '/_authenticated/telao': typeof AuthenticatedTelaoRoute
+  '/_authenticated/operacao-meta/configuracoes': typeof AuthenticatedOperacaoMetaConfiguracoesRoute
   '/_authenticated/operacao-meta/conquistas': typeof AuthenticatedOperacaoMetaConquistasRoute
   '/_authenticated/operacao-meta/diaria': typeof AuthenticatedOperacaoMetaDiariaRoute
   '/_authenticated/operacao-meta/dinamica': typeof AuthenticatedOperacaoMetaDinamicaRoute
@@ -287,6 +305,7 @@ export interface FileRoutesById {
   '/_authenticated/operacao-meta/produtores': typeof AuthenticatedOperacaoMetaProdutoresRoute
   '/_authenticated/operacao-meta/relatorios': typeof AuthenticatedOperacaoMetaRelatoriosRoute
   '/_authenticated/operacao-meta/tendencias': typeof AuthenticatedOperacaoMetaTendenciasRoute
+  '/api/public/trello-webhook': typeof ApiPublicTrelloWebhookRoute
   '/_authenticated/operacao-meta/': typeof AuthenticatedOperacaoMetaIndexRoute
 }
 export interface FileRouteTypes {
@@ -312,6 +331,7 @@ export interface FileRouteTypes {
     | '/sellers'
     | '/services-todo'
     | '/telao'
+    | '/operacao-meta/configuracoes'
     | '/operacao-meta/conquistas'
     | '/operacao-meta/diaria'
     | '/operacao-meta/dinamica'
@@ -319,6 +339,7 @@ export interface FileRouteTypes {
     | '/operacao-meta/produtores'
     | '/operacao-meta/relatorios'
     | '/operacao-meta/tendencias'
+    | '/api/public/trello-webhook'
     | '/operacao-meta/'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -341,6 +362,7 @@ export interface FileRouteTypes {
     | '/sellers'
     | '/services-todo'
     | '/telao'
+    | '/operacao-meta/configuracoes'
     | '/operacao-meta/conquistas'
     | '/operacao-meta/diaria'
     | '/operacao-meta/dinamica'
@@ -348,6 +370,7 @@ export interface FileRouteTypes {
     | '/operacao-meta/produtores'
     | '/operacao-meta/relatorios'
     | '/operacao-meta/tendencias'
+    | '/api/public/trello-webhook'
     | '/operacao-meta'
   id:
     | '__root__'
@@ -372,6 +395,7 @@ export interface FileRouteTypes {
     | '/_authenticated/sellers'
     | '/_authenticated/services-todo'
     | '/_authenticated/telao'
+    | '/_authenticated/operacao-meta/configuracoes'
     | '/_authenticated/operacao-meta/conquistas'
     | '/_authenticated/operacao-meta/diaria'
     | '/_authenticated/operacao-meta/dinamica'
@@ -379,6 +403,7 @@ export interface FileRouteTypes {
     | '/_authenticated/operacao-meta/produtores'
     | '/_authenticated/operacao-meta/relatorios'
     | '/_authenticated/operacao-meta/tendencias'
+    | '/api/public/trello-webhook'
     | '/_authenticated/operacao-meta/'
   fileRoutesById: FileRoutesById
 }
@@ -387,6 +412,7 @@ export interface RootRouteChildren {
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   LoginRoute: typeof LoginRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
+  ApiPublicTrelloWebhookRoute: typeof ApiPublicTrelloWebhookRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -545,6 +571,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedOperacaoMetaIndexRouteImport
       parentRoute: typeof AuthenticatedOperacaoMetaRoute
     }
+    '/api/public/trello-webhook': {
+      id: '/api/public/trello-webhook'
+      path: '/api/public/trello-webhook'
+      fullPath: '/api/public/trello-webhook'
+      preLoaderRoute: typeof ApiPublicTrelloWebhookRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/_authenticated/operacao-meta/tendencias': {
       id: '/_authenticated/operacao-meta/tendencias'
       path: '/tendencias'
@@ -594,10 +627,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedOperacaoMetaConquistasRouteImport
       parentRoute: typeof AuthenticatedOperacaoMetaRoute
     }
+    '/_authenticated/operacao-meta/configuracoes': {
+      id: '/_authenticated/operacao-meta/configuracoes'
+      path: '/configuracoes'
+      fullPath: '/operacao-meta/configuracoes'
+      preLoaderRoute: typeof AuthenticatedOperacaoMetaConfiguracoesRouteImport
+      parentRoute: typeof AuthenticatedOperacaoMetaRoute
+    }
   }
 }
 
 interface AuthenticatedOperacaoMetaRouteChildren {
+  AuthenticatedOperacaoMetaConfiguracoesRoute: typeof AuthenticatedOperacaoMetaConfiguracoesRoute
   AuthenticatedOperacaoMetaConquistasRoute: typeof AuthenticatedOperacaoMetaConquistasRoute
   AuthenticatedOperacaoMetaDiariaRoute: typeof AuthenticatedOperacaoMetaDiariaRoute
   AuthenticatedOperacaoMetaDinamicaRoute: typeof AuthenticatedOperacaoMetaDinamicaRoute
@@ -610,6 +651,8 @@ interface AuthenticatedOperacaoMetaRouteChildren {
 
 const AuthenticatedOperacaoMetaRouteChildren: AuthenticatedOperacaoMetaRouteChildren =
   {
+    AuthenticatedOperacaoMetaConfiguracoesRoute:
+      AuthenticatedOperacaoMetaConfiguracoesRoute,
     AuthenticatedOperacaoMetaConquistasRoute:
       AuthenticatedOperacaoMetaConquistasRoute,
     AuthenticatedOperacaoMetaDiariaRoute: AuthenticatedOperacaoMetaDiariaRoute,
@@ -678,6 +721,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   LoginRoute: LoginRoute,
   ResetPasswordRoute: ResetPasswordRoute,
+  ApiPublicTrelloWebhookRoute: ApiPublicTrelloWebhookRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

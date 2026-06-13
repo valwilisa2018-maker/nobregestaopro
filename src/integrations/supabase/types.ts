@@ -345,19 +345,22 @@ export type Database = {
         Row: {
           created_at: string
           evento: Database["public"]["Enums"]["om_evento"]
-          pontos: number
+          multiplicador: number
+          pontos: number | null
           updated_at: string
         }
         Insert: {
           created_at?: string
           evento: Database["public"]["Enums"]["om_evento"]
-          pontos?: number
+          multiplicador?: number
+          pontos?: number | null
           updated_at?: string
         }
         Update: {
           created_at?: string
           evento?: Database["public"]["Enums"]["om_evento"]
-          pontos?: number
+          multiplicador?: number
+          pontos?: number | null
           updated_at?: string
         }
         Relationships: []
@@ -922,6 +925,7 @@ export type Database = {
           description: string | null
           id: string
           name: string
+          points: number
           points_value: number
           sort_order: number | null
         }
@@ -931,6 +935,7 @@ export type Database = {
           description?: string | null
           id?: string
           name: string
+          points?: number
           points_value?: number
           sort_order?: number | null
         }
@@ -940,6 +945,7 @@ export type Database = {
           description?: string | null
           id?: string
           name?: string
+          points?: number
           points_value?: number
           sort_order?: number | null
         }
