@@ -258,6 +258,17 @@ function SalesPage() {
         return;
       }
     }
+    // Minutagem obrigatória para vídeos / pacotes
+    {
+      const stName = serviceTypes.data?.find((st: any) => st.id === form.service_type_id)?.name;
+      if (isVideoService(stName, !!form.package_id)) {
+        const dur = Number(form.video_duration_seconds);
+        if (!dur || dur < 30 || dur % 30 !== 0) {
+          toast.error("Selecione a minutagem do vídeo (mínimo 30s).");
+          return;
+        }
+      }
+    }
     if (!receiptFile) { toast.error("Anexe o comprovante"); return; }
     setSaving(true);
     try {
