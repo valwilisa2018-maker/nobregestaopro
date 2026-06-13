@@ -22,7 +22,28 @@ function OperacaoMetaLayout() {
   }, [setTheme]);
 
   return (
-    <div className="space-y-4">
+    <div className={`space-y-4 -m-4 sm:-m-6 p-4 sm:p-6 min-h-screen ${theme === "dark" ? "om-dark-bg" : ""}`}>
+      {theme === "dark" && (
+        <style>{`
+          .om-dark-bg {
+            background:
+              radial-gradient(1200px 600px at 0% 0%, rgba(239,68,68,0.25), transparent 60%),
+              radial-gradient(900px 500px at 100% 10%, rgba(190,18,60,0.22), transparent 65%),
+              radial-gradient(1000px 700px at 50% 100%, rgba(120,15,30,0.35), transparent 60%),
+              linear-gradient(180deg, #1a0608 0%, #0c0203 100%);
+          }
+          .om-dark-bg [data-slot="card"], .om-dark-bg .om-card, .om-dark-bg [class*="border-border"] {
+            background: linear-gradient(160deg, rgba(40,10,15,0.85), rgba(20,5,8,0.85));
+            border-color: rgba(239,68,68,0.25) !important;
+            box-shadow: 0 10px 30px -10px rgba(0,0,0,0.6), 0 0 0 1px rgba(239,68,68,0.08), inset 0 1px 0 rgba(255,255,255,0.04) !important;
+            backdrop-filter: blur(8px);
+          }
+          .om-dark-bg [data-slot="card"]:hover {
+            border-color: rgba(239,68,68,0.5) !important;
+            box-shadow: 0 16px 40px -12px rgba(239,68,68,0.35), 0 0 0 1px rgba(239,68,68,0.2) !important;
+          }
+        `}</style>
+      )}
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
           <h1 className="text-3xl font-bold tracking-tight flex items-center gap-2">
