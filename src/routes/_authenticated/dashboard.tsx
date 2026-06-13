@@ -255,7 +255,7 @@ function Dashboard() {
 
   // Vendas sem nota / com nota (no escopo selecionado)
   const scopeSaleIds = new Set(
-    all.filter((s) => (s.sale_date || s.created_at.slice(0, 10)) >= scopeSince).map((s) => s.id),
+    all.filter((s) => inScope(s.sale_date || s.created_at)).map((s) => s.id),
   );
   const salesWithInvoice = new Set(invList.filter((i) => i.sale_id && scopeSaleIds.has(i.sale_id)).map((i) => i.sale_id));
   const scopeSalesWithInvoice = salesWithInvoice.size;
@@ -263,7 +263,7 @@ function Dashboard() {
 
   // Ranking vendedores (no escopo)
   const sellerRanking = (sellers.data ?? []).map((s) => {
-    const list = all.filter((x) => x.seller_id === s.id && (x.sale_date || x.created_at.slice(0, 10)) >= scopeSince);
+    const list = all.filter((x) => x.seller_id === s.id && inScope(x.sale_date || x.created_at));
     return {
       id: s.id,
       name: s.name,
@@ -278,7 +278,7 @@ function Dashboard() {
   // Assim, mover o mesmo card de volta para pronto NÃO recontabiliza.
   const producerRanking = (producers.data ?? []).map((p: any) => {
     const entreguesList = ordersList.filter(
-      (o) => o.producer_id === p.id && o.delivered_at && o.delivered_at.slice(0, 10) >= scopeSince
+      (o) => o.producer_id === p.id && inScope(o.delivered_at)
     );
     const emProducaoList = ordersList.filter(
       (o) => o.producer_id === p.id && !o.delivered_at && !o.kanban_columns?.is_done
@@ -301,7 +301,7 @@ function Dashboard() {
     const stById = new Map((serviceTypes.data ?? []).map((s: any) => [s.id, s.name]));
     const pkById = new Map((packages.data ?? []).map((p: any) => [p.id, p.name]));
     for (const s of all) {
-      if ((s.sale_date || s.created_at.slice(0, 10)) < scopeSince) continue;
+      if (!inScope(s.sale_date || s.created_at)) continue;
       const name = s.package_id
         ? (pkById.get(s.package_id) ?? "Pacote")
         : (stById.get(s.service_type_id ?? "") ?? "Outro");
