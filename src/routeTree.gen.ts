@@ -31,6 +31,7 @@ import { Route as AuthenticatedCommissionsRouteImport } from './routes/_authenti
 import { Route as AuthenticatedBackupRouteImport } from './routes/_authenticated/backup'
 import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/admin'
 import { Route as AuthenticatedOperacaoMetaIndexRouteImport } from './routes/_authenticated/operacao-meta.index'
+import { Route as AuthenticatedOperacaoMetaMensalRouteImport } from './routes/_authenticated/operacao-meta.mensal'
 import { Route as AuthenticatedOperacaoMetaDiariaRouteImport } from './routes/_authenticated/operacao-meta.diaria'
 
 const ResetPasswordRoute = ResetPasswordRouteImport.update({
@@ -149,6 +150,12 @@ const AuthenticatedOperacaoMetaIndexRoute =
     path: '/',
     getParentRoute: () => AuthenticatedOperacaoMetaRoute,
   } as any)
+const AuthenticatedOperacaoMetaMensalRoute =
+  AuthenticatedOperacaoMetaMensalRouteImport.update({
+    id: '/mensal',
+    path: '/mensal',
+    getParentRoute: () => AuthenticatedOperacaoMetaRoute,
+  } as any)
 const AuthenticatedOperacaoMetaDiariaRoute =
   AuthenticatedOperacaoMetaDiariaRouteImport.update({
     id: '/diaria',
@@ -178,6 +185,7 @@ export interface FileRoutesByFullPath {
   '/services-todo': typeof AuthenticatedServicesTodoRoute
   '/telao': typeof AuthenticatedTelaoRoute
   '/operacao-meta/diaria': typeof AuthenticatedOperacaoMetaDiariaRoute
+  '/operacao-meta/mensal': typeof AuthenticatedOperacaoMetaMensalRoute
   '/operacao-meta/': typeof AuthenticatedOperacaoMetaIndexRoute
 }
 export interface FileRoutesByTo {
@@ -201,6 +209,7 @@ export interface FileRoutesByTo {
   '/services-todo': typeof AuthenticatedServicesTodoRoute
   '/telao': typeof AuthenticatedTelaoRoute
   '/operacao-meta/diaria': typeof AuthenticatedOperacaoMetaDiariaRoute
+  '/operacao-meta/mensal': typeof AuthenticatedOperacaoMetaMensalRoute
   '/operacao-meta': typeof AuthenticatedOperacaoMetaIndexRoute
 }
 export interface FileRoutesById {
@@ -227,6 +236,7 @@ export interface FileRoutesById {
   '/_authenticated/services-todo': typeof AuthenticatedServicesTodoRoute
   '/_authenticated/telao': typeof AuthenticatedTelaoRoute
   '/_authenticated/operacao-meta/diaria': typeof AuthenticatedOperacaoMetaDiariaRoute
+  '/_authenticated/operacao-meta/mensal': typeof AuthenticatedOperacaoMetaMensalRoute
   '/_authenticated/operacao-meta/': typeof AuthenticatedOperacaoMetaIndexRoute
 }
 export interface FileRouteTypes {
@@ -253,6 +263,7 @@ export interface FileRouteTypes {
     | '/services-todo'
     | '/telao'
     | '/operacao-meta/diaria'
+    | '/operacao-meta/mensal'
     | '/operacao-meta/'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -276,6 +287,7 @@ export interface FileRouteTypes {
     | '/services-todo'
     | '/telao'
     | '/operacao-meta/diaria'
+    | '/operacao-meta/mensal'
     | '/operacao-meta'
   id:
     | '__root__'
@@ -301,6 +313,7 @@ export interface FileRouteTypes {
     | '/_authenticated/services-todo'
     | '/_authenticated/telao'
     | '/_authenticated/operacao-meta/diaria'
+    | '/_authenticated/operacao-meta/mensal'
     | '/_authenticated/operacao-meta/'
   fileRoutesById: FileRoutesById
 }
@@ -467,6 +480,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedOperacaoMetaIndexRouteImport
       parentRoute: typeof AuthenticatedOperacaoMetaRoute
     }
+    '/_authenticated/operacao-meta/mensal': {
+      id: '/_authenticated/operacao-meta/mensal'
+      path: '/mensal'
+      fullPath: '/operacao-meta/mensal'
+      preLoaderRoute: typeof AuthenticatedOperacaoMetaMensalRouteImport
+      parentRoute: typeof AuthenticatedOperacaoMetaRoute
+    }
     '/_authenticated/operacao-meta/diaria': {
       id: '/_authenticated/operacao-meta/diaria'
       path: '/diaria'
@@ -479,12 +499,14 @@ declare module '@tanstack/react-router' {
 
 interface AuthenticatedOperacaoMetaRouteChildren {
   AuthenticatedOperacaoMetaDiariaRoute: typeof AuthenticatedOperacaoMetaDiariaRoute
+  AuthenticatedOperacaoMetaMensalRoute: typeof AuthenticatedOperacaoMetaMensalRoute
   AuthenticatedOperacaoMetaIndexRoute: typeof AuthenticatedOperacaoMetaIndexRoute
 }
 
 const AuthenticatedOperacaoMetaRouteChildren: AuthenticatedOperacaoMetaRouteChildren =
   {
     AuthenticatedOperacaoMetaDiariaRoute: AuthenticatedOperacaoMetaDiariaRoute,
+    AuthenticatedOperacaoMetaMensalRoute: AuthenticatedOperacaoMetaMensalRoute,
     AuthenticatedOperacaoMetaIndexRoute: AuthenticatedOperacaoMetaIndexRoute,
   }
 
