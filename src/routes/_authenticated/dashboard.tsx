@@ -661,7 +661,7 @@ function Dashboard() {
             </div>
           </CardHeader>
           <CardContent className="space-y-2">
-            {producerRanking.length === 0 && <p className="text-sm text-muted-foreground">Sem produtores com vendas no período.</p>}
+            {producerRanking.length === 0 && <p className="text-sm text-muted-foreground">Sem produção no período.</p>}
             {producerRanking.map((p, i) => (
               <button
                 key={p.id}
@@ -678,12 +678,11 @@ function Dashboard() {
                   <div>
                     <div className="font-medium leading-tight">{p.name}</div>
                     <div className="text-[11px] text-muted-foreground">
-                      {p.entregues} entregue{p.entregues === 1 ? "" : "s"}
-                      {p.emProducao > 0 && ` · ${p.emProducao} em produção`}
+                      {p.emProducao > 0 ? `${p.emProducao} em produção` : "—"}
                     </div>
                   </div>
                 </div>
-                <span className="font-semibold">{p.qtd} vídeo{p.qtd === 1 ? "" : "s"}</span>
+                <span className="font-semibold">{p.entregues} vídeo{p.entregues === 1 ? "" : "s"}</span>
               </button>
             ))}
           </CardContent>
