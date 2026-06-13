@@ -113,6 +113,9 @@ export function useOmData() {
 
 /* ============================ ANÁLISE DIÁRIA ============================ */
 export function DiariaView({ delivered, producers, computePts, catName, sumPts, baseGoal = 6, workdays = [1,2,3,4,5], holidays = [] }: any) {
+  const { theme } = useTheme();
+  const isDark = theme === "dark";
+  const ringBg = pctReached => pctReached ? (isDark ? "rgba(16,185,129,0.3)" : "rgba(16,185,129,0.2)") : (isDark ? "rgba(239,68,68,0.65)" : "#0a0a0a");
   const t = today(), y = yesterday(), ms = monthStart();
   const onDate = (iso: string) => delivered.filter((o: any) => String(o.delivered_at).slice(0, 10) === iso);
   const todayOrders = onDate(t);
