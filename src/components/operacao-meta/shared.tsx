@@ -1,5 +1,5 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -65,6 +65,8 @@ export function useOmData() {
     queryKey: ["om-producers"],
     queryFn: async () =>
       (await supabase.from("producers").select("id,name,daily_points_goal,active,avatar_url")).data ?? [],
+    refetchOnWindowFocus: true,
+    refetchInterval: 30_000,
   });
   const settings = useQuery({
     queryKey: ["om-settings"],
@@ -82,7 +84,22 @@ export function useOmData() {
             "id,producer_id,sale_id,delivered_at,updated_at,redo_count,last_redo_at,sales(service_type_id,package_id,video_duration_seconds,service_types(name,points_value),packages(name,points_value))",
           )
       ).data ?? [],
+    refetchOnWindowFocus: true,
+    refetchInterval: 30_000,
   });
+
+  // Realtime: refletir imediatamente novos/desativados produtores e movimentações de cards
+  useEffect(() => {
+    const ch = supabase
+      .channel("om-realtime")
+      .on("postgres_changes", { event: "*", schema: "public", table: "producers" },
+        () => qc.invalidateQueries({ queryKey: ["om-producers"] }))
+      .on("postgres_changes", { event: "*", schema: "public", table: "service_orders" },
+        () => qc.invalidateQueries({ queryKey: ["om-orders"] }))
+      .subscribe();
+    return () => { supabase.removeChannel(ch); };
+  }, [qc]);
+
   const computePts = (o: any) => {
     const sale: any = o.sales || {};
     const base = Number((sale.packages?.points_value ?? sale.service_types?.points_value) ?? 0);
@@ -93,13 +110,19 @@ export function useOmData() {
     const s: any = o.sales || {};
     return s.packages?.name ?? s.service_types?.name ?? "Outro";
   };
-  const delivered = (orders.data ?? []).filter((o: any) => !!o.delivered_at);
+  const activeProducerIds = new Set(
+    (producers.data ?? []).filter((p: any) => p.active !== false).map((p: any) => p.id),
+  );
+  const delivered = (orders.data ?? [])
+    .filter((o: any) => !!o.delivered_at)
+    // só conta entregas de produtores ativos (desativados somem automaticamente)
+    .filter((o: any) => !o.producer_id || activeProducerIds.has(o.producer_id));
   const sumPts = (arr: any[]) => arr.reduce((a, o) => a + computePts(o), 0);
   const prodOf = (id: string) => (producers.data ?? []).find((p: any) => p.id === id) as any;
   const s = settings.data ?? { base_daily_goal: 6, workdays: [1,2,3,4,5], holidays: [] };
   return {
     qc,
-    producers: producers.data ?? [],
+    producers: (producers.data ?? []).filter((p: any) => p.active !== false),
     delivered,
     computePts,
     catName,
