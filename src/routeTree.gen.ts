@@ -30,6 +30,14 @@ import { Route as AuthenticatedCustomersRouteImport } from './routes/_authentica
 import { Route as AuthenticatedCommissionsRouteImport } from './routes/_authenticated/commissions'
 import { Route as AuthenticatedBackupRouteImport } from './routes/_authenticated/backup'
 import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/admin'
+import { Route as AuthenticatedOperacaoMetaIndexRouteImport } from './routes/_authenticated/operacao-meta.index'
+import { Route as AuthenticatedOperacaoMetaTendenciasRouteImport } from './routes/_authenticated/operacao-meta.tendencias'
+import { Route as AuthenticatedOperacaoMetaRelatoriosRouteImport } from './routes/_authenticated/operacao-meta.relatorios'
+import { Route as AuthenticatedOperacaoMetaProdutoresRouteImport } from './routes/_authenticated/operacao-meta.produtores'
+import { Route as AuthenticatedOperacaoMetaMensalRouteImport } from './routes/_authenticated/operacao-meta.mensal'
+import { Route as AuthenticatedOperacaoMetaDinamicaRouteImport } from './routes/_authenticated/operacao-meta.dinamica'
+import { Route as AuthenticatedOperacaoMetaDiariaRouteImport } from './routes/_authenticated/operacao-meta.diaria'
+import { Route as AuthenticatedOperacaoMetaConquistasRouteImport } from './routes/_authenticated/operacao-meta.conquistas'
 
 const ResetPasswordRoute = ResetPasswordRouteImport.update({
   id: '/reset-password',
@@ -141,6 +149,54 @@ const AuthenticatedAdminRoute = AuthenticatedAdminRouteImport.update({
   path: '/admin',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedOperacaoMetaIndexRoute =
+  AuthenticatedOperacaoMetaIndexRouteImport.update({
+    id: '/',
+    path: '/',
+    getParentRoute: () => AuthenticatedOperacaoMetaRoute,
+  } as any)
+const AuthenticatedOperacaoMetaTendenciasRoute =
+  AuthenticatedOperacaoMetaTendenciasRouteImport.update({
+    id: '/tendencias',
+    path: '/tendencias',
+    getParentRoute: () => AuthenticatedOperacaoMetaRoute,
+  } as any)
+const AuthenticatedOperacaoMetaRelatoriosRoute =
+  AuthenticatedOperacaoMetaRelatoriosRouteImport.update({
+    id: '/relatorios',
+    path: '/relatorios',
+    getParentRoute: () => AuthenticatedOperacaoMetaRoute,
+  } as any)
+const AuthenticatedOperacaoMetaProdutoresRoute =
+  AuthenticatedOperacaoMetaProdutoresRouteImport.update({
+    id: '/produtores',
+    path: '/produtores',
+    getParentRoute: () => AuthenticatedOperacaoMetaRoute,
+  } as any)
+const AuthenticatedOperacaoMetaMensalRoute =
+  AuthenticatedOperacaoMetaMensalRouteImport.update({
+    id: '/mensal',
+    path: '/mensal',
+    getParentRoute: () => AuthenticatedOperacaoMetaRoute,
+  } as any)
+const AuthenticatedOperacaoMetaDinamicaRoute =
+  AuthenticatedOperacaoMetaDinamicaRouteImport.update({
+    id: '/dinamica',
+    path: '/dinamica',
+    getParentRoute: () => AuthenticatedOperacaoMetaRoute,
+  } as any)
+const AuthenticatedOperacaoMetaDiariaRoute =
+  AuthenticatedOperacaoMetaDiariaRouteImport.update({
+    id: '/diaria',
+    path: '/diaria',
+    getParentRoute: () => AuthenticatedOperacaoMetaRoute,
+  } as any)
+const AuthenticatedOperacaoMetaConquistasRoute =
+  AuthenticatedOperacaoMetaConquistasRouteImport.update({
+    id: '/conquistas',
+    path: '/conquistas',
+    getParentRoute: () => AuthenticatedOperacaoMetaRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -154,7 +210,7 @@ export interface FileRoutesByFullPath {
   '/finance': typeof AuthenticatedFinanceRoute
   '/invoices': typeof AuthenticatedInvoicesRoute
   '/kanban': typeof AuthenticatedKanbanRoute
-  '/operacao-meta': typeof AuthenticatedOperacaoMetaRoute
+  '/operacao-meta': typeof AuthenticatedOperacaoMetaRouteWithChildren
   '/pagarme-history': typeof AuthenticatedPagarmeHistoryRoute
   '/payment-link': typeof AuthenticatedPaymentLinkRoute
   '/pending-payments': typeof AuthenticatedPendingPaymentsRoute
@@ -163,6 +219,14 @@ export interface FileRoutesByFullPath {
   '/sellers': typeof AuthenticatedSellersRoute
   '/services-todo': typeof AuthenticatedServicesTodoRoute
   '/telao': typeof AuthenticatedTelaoRoute
+  '/operacao-meta/conquistas': typeof AuthenticatedOperacaoMetaConquistasRoute
+  '/operacao-meta/diaria': typeof AuthenticatedOperacaoMetaDiariaRoute
+  '/operacao-meta/dinamica': typeof AuthenticatedOperacaoMetaDinamicaRoute
+  '/operacao-meta/mensal': typeof AuthenticatedOperacaoMetaMensalRoute
+  '/operacao-meta/produtores': typeof AuthenticatedOperacaoMetaProdutoresRoute
+  '/operacao-meta/relatorios': typeof AuthenticatedOperacaoMetaRelatoriosRoute
+  '/operacao-meta/tendencias': typeof AuthenticatedOperacaoMetaTendenciasRoute
+  '/operacao-meta/': typeof AuthenticatedOperacaoMetaIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -176,7 +240,6 @@ export interface FileRoutesByTo {
   '/finance': typeof AuthenticatedFinanceRoute
   '/invoices': typeof AuthenticatedInvoicesRoute
   '/kanban': typeof AuthenticatedKanbanRoute
-  '/operacao-meta': typeof AuthenticatedOperacaoMetaRoute
   '/pagarme-history': typeof AuthenticatedPagarmeHistoryRoute
   '/payment-link': typeof AuthenticatedPaymentLinkRoute
   '/pending-payments': typeof AuthenticatedPendingPaymentsRoute
@@ -185,6 +248,14 @@ export interface FileRoutesByTo {
   '/sellers': typeof AuthenticatedSellersRoute
   '/services-todo': typeof AuthenticatedServicesTodoRoute
   '/telao': typeof AuthenticatedTelaoRoute
+  '/operacao-meta/conquistas': typeof AuthenticatedOperacaoMetaConquistasRoute
+  '/operacao-meta/diaria': typeof AuthenticatedOperacaoMetaDiariaRoute
+  '/operacao-meta/dinamica': typeof AuthenticatedOperacaoMetaDinamicaRoute
+  '/operacao-meta/mensal': typeof AuthenticatedOperacaoMetaMensalRoute
+  '/operacao-meta/produtores': typeof AuthenticatedOperacaoMetaProdutoresRoute
+  '/operacao-meta/relatorios': typeof AuthenticatedOperacaoMetaRelatoriosRoute
+  '/operacao-meta/tendencias': typeof AuthenticatedOperacaoMetaTendenciasRoute
+  '/operacao-meta': typeof AuthenticatedOperacaoMetaIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -200,7 +271,7 @@ export interface FileRoutesById {
   '/_authenticated/finance': typeof AuthenticatedFinanceRoute
   '/_authenticated/invoices': typeof AuthenticatedInvoicesRoute
   '/_authenticated/kanban': typeof AuthenticatedKanbanRoute
-  '/_authenticated/operacao-meta': typeof AuthenticatedOperacaoMetaRoute
+  '/_authenticated/operacao-meta': typeof AuthenticatedOperacaoMetaRouteWithChildren
   '/_authenticated/pagarme-history': typeof AuthenticatedPagarmeHistoryRoute
   '/_authenticated/payment-link': typeof AuthenticatedPaymentLinkRoute
   '/_authenticated/pending-payments': typeof AuthenticatedPendingPaymentsRoute
@@ -209,6 +280,14 @@ export interface FileRoutesById {
   '/_authenticated/sellers': typeof AuthenticatedSellersRoute
   '/_authenticated/services-todo': typeof AuthenticatedServicesTodoRoute
   '/_authenticated/telao': typeof AuthenticatedTelaoRoute
+  '/_authenticated/operacao-meta/conquistas': typeof AuthenticatedOperacaoMetaConquistasRoute
+  '/_authenticated/operacao-meta/diaria': typeof AuthenticatedOperacaoMetaDiariaRoute
+  '/_authenticated/operacao-meta/dinamica': typeof AuthenticatedOperacaoMetaDinamicaRoute
+  '/_authenticated/operacao-meta/mensal': typeof AuthenticatedOperacaoMetaMensalRoute
+  '/_authenticated/operacao-meta/produtores': typeof AuthenticatedOperacaoMetaProdutoresRoute
+  '/_authenticated/operacao-meta/relatorios': typeof AuthenticatedOperacaoMetaRelatoriosRoute
+  '/_authenticated/operacao-meta/tendencias': typeof AuthenticatedOperacaoMetaTendenciasRoute
+  '/_authenticated/operacao-meta/': typeof AuthenticatedOperacaoMetaIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -233,6 +312,14 @@ export interface FileRouteTypes {
     | '/sellers'
     | '/services-todo'
     | '/telao'
+    | '/operacao-meta/conquistas'
+    | '/operacao-meta/diaria'
+    | '/operacao-meta/dinamica'
+    | '/operacao-meta/mensal'
+    | '/operacao-meta/produtores'
+    | '/operacao-meta/relatorios'
+    | '/operacao-meta/tendencias'
+    | '/operacao-meta/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -246,7 +333,6 @@ export interface FileRouteTypes {
     | '/finance'
     | '/invoices'
     | '/kanban'
-    | '/operacao-meta'
     | '/pagarme-history'
     | '/payment-link'
     | '/pending-payments'
@@ -255,6 +341,14 @@ export interface FileRouteTypes {
     | '/sellers'
     | '/services-todo'
     | '/telao'
+    | '/operacao-meta/conquistas'
+    | '/operacao-meta/diaria'
+    | '/operacao-meta/dinamica'
+    | '/operacao-meta/mensal'
+    | '/operacao-meta/produtores'
+    | '/operacao-meta/relatorios'
+    | '/operacao-meta/tendencias'
+    | '/operacao-meta'
   id:
     | '__root__'
     | '/'
@@ -278,6 +372,14 @@ export interface FileRouteTypes {
     | '/_authenticated/sellers'
     | '/_authenticated/services-todo'
     | '/_authenticated/telao'
+    | '/_authenticated/operacao-meta/conquistas'
+    | '/_authenticated/operacao-meta/diaria'
+    | '/_authenticated/operacao-meta/dinamica'
+    | '/_authenticated/operacao-meta/mensal'
+    | '/_authenticated/operacao-meta/produtores'
+    | '/_authenticated/operacao-meta/relatorios'
+    | '/_authenticated/operacao-meta/tendencias'
+    | '/_authenticated/operacao-meta/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -436,8 +538,97 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/operacao-meta/': {
+      id: '/_authenticated/operacao-meta/'
+      path: '/'
+      fullPath: '/operacao-meta/'
+      preLoaderRoute: typeof AuthenticatedOperacaoMetaIndexRouteImport
+      parentRoute: typeof AuthenticatedOperacaoMetaRoute
+    }
+    '/_authenticated/operacao-meta/tendencias': {
+      id: '/_authenticated/operacao-meta/tendencias'
+      path: '/tendencias'
+      fullPath: '/operacao-meta/tendencias'
+      preLoaderRoute: typeof AuthenticatedOperacaoMetaTendenciasRouteImport
+      parentRoute: typeof AuthenticatedOperacaoMetaRoute
+    }
+    '/_authenticated/operacao-meta/relatorios': {
+      id: '/_authenticated/operacao-meta/relatorios'
+      path: '/relatorios'
+      fullPath: '/operacao-meta/relatorios'
+      preLoaderRoute: typeof AuthenticatedOperacaoMetaRelatoriosRouteImport
+      parentRoute: typeof AuthenticatedOperacaoMetaRoute
+    }
+    '/_authenticated/operacao-meta/produtores': {
+      id: '/_authenticated/operacao-meta/produtores'
+      path: '/produtores'
+      fullPath: '/operacao-meta/produtores'
+      preLoaderRoute: typeof AuthenticatedOperacaoMetaProdutoresRouteImport
+      parentRoute: typeof AuthenticatedOperacaoMetaRoute
+    }
+    '/_authenticated/operacao-meta/mensal': {
+      id: '/_authenticated/operacao-meta/mensal'
+      path: '/mensal'
+      fullPath: '/operacao-meta/mensal'
+      preLoaderRoute: typeof AuthenticatedOperacaoMetaMensalRouteImport
+      parentRoute: typeof AuthenticatedOperacaoMetaRoute
+    }
+    '/_authenticated/operacao-meta/dinamica': {
+      id: '/_authenticated/operacao-meta/dinamica'
+      path: '/dinamica'
+      fullPath: '/operacao-meta/dinamica'
+      preLoaderRoute: typeof AuthenticatedOperacaoMetaDinamicaRouteImport
+      parentRoute: typeof AuthenticatedOperacaoMetaRoute
+    }
+    '/_authenticated/operacao-meta/diaria': {
+      id: '/_authenticated/operacao-meta/diaria'
+      path: '/diaria'
+      fullPath: '/operacao-meta/diaria'
+      preLoaderRoute: typeof AuthenticatedOperacaoMetaDiariaRouteImport
+      parentRoute: typeof AuthenticatedOperacaoMetaRoute
+    }
+    '/_authenticated/operacao-meta/conquistas': {
+      id: '/_authenticated/operacao-meta/conquistas'
+      path: '/conquistas'
+      fullPath: '/operacao-meta/conquistas'
+      preLoaderRoute: typeof AuthenticatedOperacaoMetaConquistasRouteImport
+      parentRoute: typeof AuthenticatedOperacaoMetaRoute
+    }
   }
 }
+
+interface AuthenticatedOperacaoMetaRouteChildren {
+  AuthenticatedOperacaoMetaConquistasRoute: typeof AuthenticatedOperacaoMetaConquistasRoute
+  AuthenticatedOperacaoMetaDiariaRoute: typeof AuthenticatedOperacaoMetaDiariaRoute
+  AuthenticatedOperacaoMetaDinamicaRoute: typeof AuthenticatedOperacaoMetaDinamicaRoute
+  AuthenticatedOperacaoMetaMensalRoute: typeof AuthenticatedOperacaoMetaMensalRoute
+  AuthenticatedOperacaoMetaProdutoresRoute: typeof AuthenticatedOperacaoMetaProdutoresRoute
+  AuthenticatedOperacaoMetaRelatoriosRoute: typeof AuthenticatedOperacaoMetaRelatoriosRoute
+  AuthenticatedOperacaoMetaTendenciasRoute: typeof AuthenticatedOperacaoMetaTendenciasRoute
+  AuthenticatedOperacaoMetaIndexRoute: typeof AuthenticatedOperacaoMetaIndexRoute
+}
+
+const AuthenticatedOperacaoMetaRouteChildren: AuthenticatedOperacaoMetaRouteChildren =
+  {
+    AuthenticatedOperacaoMetaConquistasRoute:
+      AuthenticatedOperacaoMetaConquistasRoute,
+    AuthenticatedOperacaoMetaDiariaRoute: AuthenticatedOperacaoMetaDiariaRoute,
+    AuthenticatedOperacaoMetaDinamicaRoute:
+      AuthenticatedOperacaoMetaDinamicaRoute,
+    AuthenticatedOperacaoMetaMensalRoute: AuthenticatedOperacaoMetaMensalRoute,
+    AuthenticatedOperacaoMetaProdutoresRoute:
+      AuthenticatedOperacaoMetaProdutoresRoute,
+    AuthenticatedOperacaoMetaRelatoriosRoute:
+      AuthenticatedOperacaoMetaRelatoriosRoute,
+    AuthenticatedOperacaoMetaTendenciasRoute:
+      AuthenticatedOperacaoMetaTendenciasRoute,
+    AuthenticatedOperacaoMetaIndexRoute: AuthenticatedOperacaoMetaIndexRoute,
+  }
+
+const AuthenticatedOperacaoMetaRouteWithChildren =
+  AuthenticatedOperacaoMetaRoute._addFileChildren(
+    AuthenticatedOperacaoMetaRouteChildren,
+  )
 
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedAdminRoute: typeof AuthenticatedAdminRoute
@@ -448,7 +639,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedFinanceRoute: typeof AuthenticatedFinanceRoute
   AuthenticatedInvoicesRoute: typeof AuthenticatedInvoicesRoute
   AuthenticatedKanbanRoute: typeof AuthenticatedKanbanRoute
-  AuthenticatedOperacaoMetaRoute: typeof AuthenticatedOperacaoMetaRoute
+  AuthenticatedOperacaoMetaRoute: typeof AuthenticatedOperacaoMetaRouteWithChildren
   AuthenticatedPagarmeHistoryRoute: typeof AuthenticatedPagarmeHistoryRoute
   AuthenticatedPaymentLinkRoute: typeof AuthenticatedPaymentLinkRoute
   AuthenticatedPendingPaymentsRoute: typeof AuthenticatedPendingPaymentsRoute
@@ -468,7 +659,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedFinanceRoute: AuthenticatedFinanceRoute,
   AuthenticatedInvoicesRoute: AuthenticatedInvoicesRoute,
   AuthenticatedKanbanRoute: AuthenticatedKanbanRoute,
-  AuthenticatedOperacaoMetaRoute: AuthenticatedOperacaoMetaRoute,
+  AuthenticatedOperacaoMetaRoute: AuthenticatedOperacaoMetaRouteWithChildren,
   AuthenticatedPagarmeHistoryRoute: AuthenticatedPagarmeHistoryRoute,
   AuthenticatedPaymentLinkRoute: AuthenticatedPaymentLinkRoute,
   AuthenticatedPendingPaymentsRoute: AuthenticatedPendingPaymentsRoute,
