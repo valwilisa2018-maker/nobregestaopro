@@ -18,6 +18,14 @@ import { Search } from "lucide-react";
 import { fmtDate } from "@/lib/format";
 import { formatCurrency } from "@/lib/auth";
 
+// Formata segundos em rótulo curto: 30s, 1min, 1min30s, 2min...
+function fmtVideoDuration(sec?: number | null): string {
+  if (!sec || sec < 1) return "";
+  const m = Math.floor(sec / 60);
+  const s = sec % 60;
+  return m === 0 ? `${s}s` : s === 0 ? `${m}min` : `${m}min${s}s`;
+}
+
 export const Route = createFileRoute("/_authenticated/kanban")({
   component: KanbanPage,
   validateSearch: (s: Record<string, unknown>) => ({ card: typeof s.card === "string" ? s.card : undefined }),
@@ -151,7 +159,7 @@ function KanbanPage() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("service_orders")
-        .select("*, producer:producers!service_orders_producer_id_fkey(name), sales(total_amount, paid_amount, payment_status, trello_link, producer_id, expected_delivery_date, customers(name,company,phone), sellers(name), producers(name))")
+        .select("*, producer:producers!service_orders_producer_id_fkey(name), sales(total_amount, paid_amount, payment_status, trello_link, producer_id, expected_delivery_date, video_duration_seconds, customers(name,company,phone), sellers(name), producers(name))")
         .order("created_at", { ascending: true })
         .order("service_index", { ascending: true });
       if (error) {
@@ -571,11 +579,18 @@ function KanbanPage() {
                     const company = first.sales?.customers?.company;
                     return (
                       <div key={groupKey} className="space-y-2">
-                        {first.sales?.payment_status === "pago_parcial" && (
-                          <div className="flex justify-end">
-                            <span className="text-[10px] font-bold px-2 py-0.5 rounded-md shadow-sm" style={{ background: "#f59e0b", color: "#1a1a1a" }}>
-                              A receber: {formatCurrency(Number(first.sales.total_amount ?? 0) - Number(first.sales.paid_amount ?? 0))}
-                            </span>
+                        {(first.sales?.payment_status === "pago_parcial" || first.sales?.video_duration_seconds) && (
+                          <div className="flex justify-end gap-1 flex-wrap">
+                            {first.sales?.video_duration_seconds ? (
+                              <span className="text-[10px] font-bold px-2 py-0.5 rounded-md shadow-sm" style={{ background: "#3b82f6", color: "#fff" }}>
+                                🎬 {fmtVideoDuration(first.sales.video_duration_seconds)}
+                              </span>
+                            ) : null}
+                            {first.sales?.payment_status === "pago_parcial" && (
+                              <span className="text-[10px] font-bold px-2 py-0.5 rounded-md shadow-sm" style={{ background: "#f59e0b", color: "#1a1a1a" }}>
+                                A receber: {formatCurrency(Number(first.sales.total_amount ?? 0) - Number(first.sales.paid_amount ?? 0))}
+                              </span>
+                            )}
                           </div>
                         )}
                         <Card
@@ -739,11 +754,18 @@ function KanbanPage() {
                   const c = it.card;
                   return (
                     <div key={c.id} className="space-y-1">
-                    {c.sales?.payment_status === "pago_parcial" && (
-                      <div className="flex justify-end">
-                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-md shadow-sm" style={{ background: "#f59e0b", color: "#1a1a1a" }}>
-                          A receber: {formatCurrency(Number(c.sales.total_amount ?? 0) - Number(c.sales.paid_amount ?? 0))}
-                        </span>
+                    {(c.sales?.payment_status === "pago_parcial" || c.sales?.video_duration_seconds) && (
+                      <div className="flex justify-end gap-1 flex-wrap">
+                        {c.sales?.video_duration_seconds ? (
+                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-md shadow-sm" style={{ background: "#3b82f6", color: "#fff" }}>
+                            🎬 {fmtVideoDuration(c.sales.video_duration_seconds)}
+                          </span>
+                        ) : null}
+                        {c.sales?.payment_status === "pago_parcial" && (
+                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-md shadow-sm" style={{ background: "#f59e0b", color: "#1a1a1a" }}>
+                            A receber: {formatCurrency(Number(c.sales.total_amount ?? 0) - Number(c.sales.paid_amount ?? 0))}
+                          </span>
+                        )}
                       </div>
                     )}
                     <Card draggable

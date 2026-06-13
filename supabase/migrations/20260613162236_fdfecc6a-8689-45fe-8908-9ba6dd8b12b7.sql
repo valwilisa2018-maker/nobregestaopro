@@ -1,0 +1,1 @@
+ALTER TABLE public.sales ADD COLUMN IF NOT EXISTS video_duration_seconds INTEGER CHECK (video_duration_seconds IS NULL OR (video_duration_seconds >= 30 AND video_duration_seconds % 30 = 0));

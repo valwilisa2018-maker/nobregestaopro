@@ -528,6 +528,7 @@ export type Database = {
           total_amount: number
           trello_link: string | null
           updated_at: string
+          video_duration_seconds: number | null
         }
         Insert: {
           created_at?: string
@@ -554,6 +555,7 @@ export type Database = {
           total_amount?: number
           trello_link?: string | null
           updated_at?: string
+          video_duration_seconds?: number | null
         }
         Update: {
           created_at?: string
@@ -580,6 +582,7 @@ export type Database = {
           total_amount?: number
           trello_link?: string | null
           updated_at?: string
+          video_duration_seconds?: number | null
         }
         Relationships: [
           {

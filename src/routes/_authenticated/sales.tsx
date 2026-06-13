@@ -26,6 +26,31 @@ export const Route = createFileRoute("/_authenticated/sales")({
   component: SalesPage,
 });
 
+// Detecta se o tipo de serviço selecionado é vídeo (qualquer nome contendo
+// "video" / "vídeo") OU se a venda é de um pacote (pacotes são compostos
+// por vídeos). Define se o campo "Minutagem" é obrigatório.
+function isVideoService(serviceTypeName?: string, hasPackage?: boolean) {
+  if (hasPackage) return true;
+  const n = (serviceTypeName ?? "").toLowerCase();
+  return n.includes("video") || n.includes("vídeo");
+}
+
+// Opções: 30s, 1min, 1min30, 2min, ..., 10min
+const VIDEO_DURATION_OPTIONS: { value: number; label: string }[] = Array.from({ length: 20 }, (_, i) => {
+  const sec = (i + 1) * 30;
+  const m = Math.floor(sec / 60);
+  const s = sec % 60;
+  const label = m === 0 ? `${s}s` : s === 0 ? `${m}min` : `${m}min${s}s`;
+  return { value: sec, label };
+});
+
+export function formatVideoDuration(sec?: number | null): string {
+  if (!sec || sec < 1) return "";
+  const m = Math.floor(sec / 60);
+  const s = sec % 60;
+  return m === 0 ? `${s}s` : s === 0 ? `${m}min` : `${m}min${s}s`;
+}
+
 function SalesPage() {
   const qc = useQueryClient();
   const [open, setOpen] = useState(false);
@@ -129,6 +154,7 @@ function SalesPage() {
     installments: "12",
     delivery_deadline: "",
     expected_delivery_date: new Date().toISOString().slice(0, 10),
+    video_duration_seconds: "",
   });
 
   const set = useCallback((k: string, v: string) => {
@@ -232,6 +258,17 @@ function SalesPage() {
         return;
       }
     }
+    // Minutagem obrigatória para vídeos / pacotes
+    {
+      const stName = serviceTypes.data?.find((st: any) => st.id === form.service_type_id)?.name;
+      if (isVideoService(stName, !!form.package_id)) {
+        const dur = Number(form.video_duration_seconds);
+        if (!dur || dur < 30 || dur % 30 !== 0) {
+          toast.error("Selecione a minutagem do vídeo (mínimo 30s).");
+          return;
+        }
+      }
+    }
     if (!receiptFile) { toast.error("Anexe o comprovante"); return; }
     setSaving(true);
     try {
@@ -285,6 +322,7 @@ function SalesPage() {
         sale_date: form.sale_date || new Date().toISOString().slice(0, 10),
         delivery_deadline: form.delivery_deadline,
         expected_delivery_date: form.expected_delivery_date,
+        video_duration_seconds: form.video_duration_seconds ? Number(form.video_duration_seconds) : null,
         created_by: user?.id,
       }).select("id").single();
 
@@ -314,6 +352,7 @@ function SalesPage() {
         installments: "12",
         delivery_deadline: "",
         expected_delivery_date: new Date().toISOString().slice(0, 10),
+        video_duration_seconds: "",
       });
       setReceiptFile(null);
       await qc.invalidateQueries({ queryKey: ["sales-list"] });
@@ -422,6 +461,16 @@ function SalesPage() {
         return;
       }
     }
+    {
+      const stName = serviceTypes.data?.find((st: any) => st.id === editing.service_type_id)?.name;
+      if (isVideoService(stName, !!editing.package_id)) {
+        const dur = Number(editing.video_duration_seconds);
+        if (!dur || dur < 30 || dur % 30 !== 0) {
+          toast.error("Selecione a minutagem do vídeo (mínimo 30s).");
+          return;
+        }
+      }
+    }
 
     setEditSaving(true);
     try {
@@ -464,6 +513,7 @@ function SalesPage() {
         lead_source: editing.lead_source || null,
         delivery_deadline: editing.delivery_deadline || null,
         expected_delivery_date: editing.expected_delivery_date || null,
+        video_duration_seconds: editing.video_duration_seconds ? Number(editing.video_duration_seconds) : null,
       }).eq("id", editing.id);
       if (error) throw error;
 
@@ -594,6 +644,19 @@ function SalesPage() {
                   </Select>
                 </div>
                 <div><Label>Qtd. serviços *</Label><Input type="number" min="1" value={form.service_quantity || ""} onChange={(e) => set("service_quantity", e.target.value)} /></div>
+                {isVideoService(serviceTypes.data?.find((st: any) => st.id === form.service_type_id)?.name, !!form.package_id) && (
+                  <div>
+                    <Label>Minutagem do vídeo *</Label>
+                    <Select value={form.video_duration_seconds || ""} onValueChange={(v) => set("video_duration_seconds", v)}>
+                      <SelectTrigger><SelectValue placeholder="Selecione (mín. 30s)" /></SelectTrigger>
+                      <SelectContent>
+                        {VIDEO_DURATION_OPTIONS.map((o) => (
+                          <SelectItem key={o.value} value={String(o.value)}>{o.label}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
                 <div><Label>Data da venda *</Label><Input type="date" value={form.sale_date || ""} onChange={(e) => set("sale_date", e.target.value)} /></div>
                 <div><Label>Data de entrega *</Label><Input type="date" value={form.expected_delivery_date || ""} onChange={(e) => set("expected_delivery_date", e.target.value)} /></div>
                 <div className="col-span-2">
@@ -873,6 +936,19 @@ function SalesPage() {
                 </Select>
               </div>
               <div><Label>Qtd. serviços *</Label><Input type="number" min="1" value={editing.service_quantity ?? 1} onChange={(e) => editSet("service_quantity", e.target.value)} /></div>
+              {isVideoService(serviceTypes.data?.find((st: any) => st.id === editing.service_type_id)?.name, !!editing.package_id) && (
+                <div>
+                  <Label>Minutagem do vídeo *</Label>
+                  <Select value={String(editing.video_duration_seconds ?? "")} onValueChange={(v) => editSet("video_duration_seconds", v)}>
+                    <SelectTrigger><SelectValue placeholder="Selecione (mín. 30s)" /></SelectTrigger>
+                    <SelectContent>
+                      {VIDEO_DURATION_OPTIONS.map((o) => (
+                        <SelectItem key={o.value} value={String(o.value)}>{o.label}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
               <div><Label>Data da venda *</Label><Input type="date" value={editing.sale_date ?? ""} onChange={(e) => editSet("sale_date", e.target.value)} /></div>
               <div><Label>Data de entrega *</Label><Input type="date" value={editing.expected_delivery_date ?? ""} onChange={(e) => editSet("expected_delivery_date", e.target.value)} /></div>
               <div className="col-span-2">
