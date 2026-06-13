@@ -7,7 +7,7 @@ import { supabase } from "@/integrations/supabase/client";
 import confetti from "canvas-confetti";
 import { cn } from "@/lib/utils";
 
-const LATEST_AUTO_UPDATE_ID = "update-influencer-auto-producer-v3";
+const LATEST_AUTO_UPDATE_ID = "update-operacao-metas-kanban-v1";
 
 export function ReleaseNoteCard() {
   const [activeAnnouncement, setActiveAnnouncement] = useState<any>(null);
@@ -171,8 +171,8 @@ export function ReleaseNoteCard() {
                   <Megaphone className="w-5 h-5 text-primary" />
                 </div>
                 <div>
-                  <h3 className="text-lg font-bold tracking-tight leading-tight">Gestão Inteligente</h3>
-                  <p className="text-xs text-zinc-400">Automatização Influencers</p>
+                  <h3 className="text-lg font-bold tracking-tight leading-tight">Operação Metas Integrada</h3>
+                  <p className="text-xs text-zinc-400">Kanban → Pontuação Automática</p>
                 </div>
               </div>
             </div>
@@ -180,19 +180,40 @@ export function ReleaseNoteCard() {
             <div className="p-5 space-y-4 bg-card/50 backdrop-blur-xl">
               <div className="space-y-3">
                 <p className="text-sm text-muted-foreground leading-relaxed">
-                  A partir de agora, todas as melhorias e novas regras serão informadas diretamente aqui.
+                  Agora cada card movido para <strong>Serviços Prontos</strong> no Kanban pontua automaticamente em <span className="text-primary font-medium">Operação Metas</span>.
                 </p>
-                
+
                 <div className="space-y-2">
-                  <div className="flex items-start gap-3 p-3 rounded-xl bg-muted/50 border border-border/50 transition-colors hover:bg-muted/80">
+                  <div className="flex items-start gap-3 p-3 rounded-xl bg-muted/50 border border-border/50">
                     <div className="mt-0.5 rounded-full bg-green-500/10 p-1">
                       <CheckCircle2 className="w-4 h-4 text-green-500" />
                     </div>
                     <div className="space-y-1">
-                      <p className="text-xs font-semibold text-foreground">Regra de Influencers</p>
+                      <p className="text-xs font-semibold text-foreground">Pontuação automática</p>
                       <p className="text-[11px] text-muted-foreground leading-snug">
-                        Vendas da <strong>Ester</strong> ou <strong>Pamela</strong> agora selecionam automaticamente o produtor 
-                        <span className="text-primary font-medium"> GRAVAÇÃO INFLUENCER</span>.
+                        Cada produto vale <strong>1 ponto</strong> × multiplicador do evento configurado.
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-3 p-3 rounded-xl bg-muted/50 border border-border/50">
+                    <div className="mt-0.5 rounded-full bg-green-500/10 p-1">
+                      <CheckCircle2 className="w-4 h-4 text-green-500" />
+                    </div>
+                    <div className="space-y-1">
+                      <p className="text-xs font-semibold text-foreground">Sem duplicidade</p>
+                      <p className="text-[11px] text-muted-foreground leading-snug">
+                        Se o card voltar e for movido novamente para Serviços Prontos, <strong>não conta de novo</strong>.
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-3 p-3 rounded-xl bg-muted/50 border border-border/50">
+                    <div className="mt-0.5 rounded-full bg-green-500/10 p-1">
+                      <CheckCircle2 className="w-4 h-4 text-green-500" />
+                    </div>
+                    <div className="space-y-1">
+                      <p className="text-xs font-semibold text-foreground">Integração Trello + Configurações</p>
+                      <p className="text-[11px] text-muted-foreground leading-snug">
+                        Nova tela <span className="text-primary font-medium">Operação Metas → Configurações</span> para mapear listas, membros e multiplicadores.
                       </p>
                     </div>
                   </div>
