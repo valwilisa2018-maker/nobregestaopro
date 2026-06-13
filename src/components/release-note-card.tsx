@@ -200,9 +200,9 @@ export function ReleaseNoteCard() {
                       <CheckCircle2 className="w-4 h-4 text-green-500" />
                     </div>
                     <div className="space-y-1">
-                      <p className="text-xs font-semibold text-foreground">Sem duplicidade</p>
+                      <p className="text-xs font-semibold text-foreground">Nova aba Operação Metas</p>
                       <p className="text-[11px] text-muted-foreground leading-snug">
-                        Se o card voltar e for movido novamente para Serviços Prontos, <strong>não conta de novo</strong>.
+                        Acompanhe a produção em tempo real: <strong>Diária, Mensal, Produtores, Conquistas, Tendências</strong> e mais.
                       </p>
                     </div>
                   </div>
