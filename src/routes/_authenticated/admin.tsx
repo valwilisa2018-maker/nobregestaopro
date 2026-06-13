@@ -651,6 +651,20 @@ function AdminPage() {
               <div key={p.id} className="p-3 rounded-lg border border-border/50 bg-card flex items-center gap-3">
                 <span className="flex-1 font-medium">{p.name}</span>
                 <span className="text-xs text-muted-foreground">R$ {Number(p.default_price ?? 0).toFixed(2)}</span>
+                <div className="flex items-center gap-1" title="Pontos por unidade">
+                  <Input
+                    type="number" step="0.5" min="0"
+                    defaultValue={Number(p.points_value ?? 0)}
+                    onBlur={async (e) => {
+                      const v = Number(e.target.value);
+                      if (v === Number(p.points_value ?? 0)) return;
+                      const { error } = await supabase.from("packages").update({ points_value: v }).eq("id", p.id);
+                      if (error) toast.error(error.message); else { toast.success("Pontuação atualizada"); qc.invalidateQueries({ queryKey: ["admin-packages"] }); qc.invalidateQueries({ queryKey: ["pkg-all"] }); }
+                    }}
+                    className="h-8 w-16 text-center"
+                  />
+                  <span className="text-[10px] text-muted-foreground">pts</span>
+                </div>
                 <Button size="sm" variant={p.active ? "outline" : "secondary"} onClick={() => togglePackage(p.id, p.active)}>
                   {p.active ? "Desativar" : "Ativar"}
                 </Button>
