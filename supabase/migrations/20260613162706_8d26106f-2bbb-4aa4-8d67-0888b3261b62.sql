@@ -1,0 +1,9 @@
+
+ALTER TABLE public.service_types
+  ADD COLUMN IF NOT EXISTS points_value NUMERIC NOT NULL DEFAULT 0;
+
+ALTER TABLE public.packages
+  ADD COLUMN IF NOT EXISTS points_value NUMERIC NOT NULL DEFAULT 0;
+
+ALTER TABLE public.producers
+  ADD COLUMN IF NOT EXISTS daily_points_goal NUMERIC NOT NULL DEFAULT 7;
