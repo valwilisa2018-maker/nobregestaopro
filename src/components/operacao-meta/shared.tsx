@@ -12,6 +12,7 @@ import {
   Zap, Star,
 } from "lucide-react";
 import { toast } from "sonner";
+import { useTheme } from "@/hooks/use-theme";
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid,
   RadialBarChart, RadialBar, PolarAngleAxis, LineChart, Line, Area, AreaChart,
