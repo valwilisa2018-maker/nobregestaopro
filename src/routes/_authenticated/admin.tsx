@@ -508,6 +508,20 @@ function AdminPage() {
                 ) : (
                   <>
                     <span className="flex-1 truncate">{s.name}</span>
+                    <div className="flex items-center gap-1" title="Pontos por unidade">
+                      <Input
+                        type="number" step="0.5" min="0"
+                        defaultValue={Number(s.points_value ?? 0)}
+                        onBlur={async (e) => {
+                          const v = Number(e.target.value);
+                          if (v === Number(s.points_value ?? 0)) return;
+                          const { error } = await supabase.from("service_types").update({ points_value: v }).eq("id", s.id);
+                          if (error) toast.error(error.message); else { toast.success("Pontuação atualizada"); qc.invalidateQueries({ queryKey: ["admin-services"] }); }
+                        }}
+                        className="h-8 w-16 text-center"
+                      />
+                      <span className="text-[10px] text-muted-foreground">pts</span>
+                    </div>
                     <button
                       onClick={() => toggleServiceActive(s.id, s.active)}
                       className={`text-xs px-2 py-0.5 rounded ${s.active ? "text-emerald-600" : "text-muted-foreground"}`}
