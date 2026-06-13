@@ -461,6 +461,16 @@ function SalesPage() {
         return;
       }
     }
+    {
+      const stName = serviceTypes.data?.find((st: any) => st.id === editing.service_type_id)?.name;
+      if (isVideoService(stName, !!editing.package_id)) {
+        const dur = Number(editing.video_duration_seconds);
+        if (!dur || dur < 30 || dur % 30 !== 0) {
+          toast.error("Selecione a minutagem do vídeo (mínimo 30s).");
+          return;
+        }
+      }
+    }
 
     setEditSaving(true);
     try {
