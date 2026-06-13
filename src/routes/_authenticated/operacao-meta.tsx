@@ -2,7 +2,7 @@ import { createFileRoute, Link, Outlet, useRouterState } from "@tanstack/react-r
 import { useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Sparkles, Sun, Moon } from "lucide-react";
+import { Clapperboard, Sun, Moon } from "lucide-react";
 import { useTheme } from "@/hooks/use-theme";
 import { OM_MENU } from "@/components/operacao-meta/shared";
 
@@ -47,7 +47,7 @@ function OperacaoMetaLayout() {
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
           <h1 className="text-3xl font-bold tracking-tight flex items-center gap-2">
-            <Sparkles className="w-7 h-7 text-primary" /> Operação Meta
+            <Clapperboard className="w-7 h-7 text-primary" /> Operação Metas
           </h1>
           <p className="text-muted-foreground text-sm">Painel premium de pontuação por produtor</p>
         </div>
