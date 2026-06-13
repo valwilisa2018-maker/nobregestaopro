@@ -38,12 +38,38 @@ export const monthLabel = (iso: string) => {
 };
 export const initials = (n?: string) => (n ?? "?").split(/\s+/).map((x) => x[0]).slice(0, 2).join("").toUpperCase();
 
+export function workdaysInMonth(workdays: number[] = [1,2,3,4,5], holidays: string[] = [], offset = 0): number {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = now.getMonth() + offset;
+  const last = new Date(year, month + 1, 0).getDate();
+  let count = 0;
+  for (let day = 1; day <= last; day++) {
+    const d = new Date(year, month, day);
+    const iso = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
+    if (workdays.includes(d.getDay()) && !holidays.includes(iso)) count++;
+  }
+  return count;
+}
+
+export function isWorkingDay(iso: string, workdays: number[] = [1,2,3,4,5], holidays: string[] = []): boolean {
+  const [y,m,d] = iso.split("-").map(Number);
+  const dt = new Date(y, m-1, d);
+  return workdays.includes(dt.getDay()) && !holidays.includes(iso);
+}
+
 export function useOmData() {
   const qc = useQueryClient();
   const producers = useQuery({
     queryKey: ["om-producers"],
     queryFn: async () =>
       (await supabase.from("producers").select("id,name,daily_points_goal,active,avatar_url")).data ?? [],
+  });
+  const settings = useQuery({
+    queryKey: ["om-settings"],
+    queryFn: async () =>
+      (await (supabase as any).from("om_settings").select("*").eq("id", true).maybeSingle()).data
+        ?? { base_daily_goal: 6, workdays: [1,2,3,4,5], holidays: [] },
   });
   const orders = useQuery({
     queryKey: ["om-orders"],
@@ -69,11 +95,23 @@ export function useOmData() {
   const delivered = (orders.data ?? []).filter((o: any) => !!o.delivered_at);
   const sumPts = (arr: any[]) => arr.reduce((a, o) => a + computePts(o), 0);
   const prodOf = (id: string) => (producers.data ?? []).find((p: any) => p.id === id) as any;
-  return { qc, producers: producers.data ?? [], delivered, computePts, catName, sumPts, prodOf };
+  const s = settings.data ?? { base_daily_goal: 6, workdays: [1,2,3,4,5], holidays: [] };
+  return {
+    qc,
+    producers: producers.data ?? [],
+    delivered,
+    computePts,
+    catName,
+    sumPts,
+    prodOf,
+    baseGoal: Number(s.base_daily_goal ?? 6),
+    workdays: (s.workdays ?? [1,2,3,4,5]) as number[],
+    holidays: (s.holidays ?? []) as string[],
+  };
 }
 
 /* ============================ ANÁLISE DIÁRIA ============================ */
-export function DiariaView({ delivered, producers, computePts, catName, sumPts }: any) {
+export function DiariaView({ delivered, producers, computePts, catName, sumPts, baseGoal = 6, workdays = [1,2,3,4,5], holidays = [] }: any) {
   const t = today(), y = yesterday(), ms = monthStart();
   const onDate = (iso: string) => delivered.filter((o: any) => String(o.delivered_at).slice(0, 10) === iso);
   const todayOrders = onDate(t);
@@ -84,7 +122,10 @@ export function DiariaView({ delivered, producers, computePts, catName, sumPts }
   const yPts = sumPts(yOrders);
   const monthPts = sumPts(monthOrders);
 
-  const totalGoalToday = producers.filter((p: any) => p.active !== false).reduce((a: number, p: any) => a + Number(p.daily_points_goal ?? 7), 0);
+  const todayIsWorking = isWorkingDay(t, workdays, holidays);
+  const totalGoalToday = todayIsWorking
+    ? producers.filter((p: any) => p.active !== false).reduce((a: number, p: any) => a + Number(p.daily_points_goal ?? baseGoal), 0)
+    : 0;
   const pct = totalGoalToday > 0 ? Math.min(100, Math.round((todayPts / totalGoalToday) * 100)) : 0;
   const diffYesterday = todayPts - yPts;
 
@@ -389,14 +430,14 @@ export function MensalView({ delivered, producers, computePts, catName, sumPts, 
 }
 
 /* ============================ DINÂMICA ============================ */
-export function DinamicaView({ delivered, producers, computePts, sumPts, prodOf }: any) {
+export function DinamicaView({ delivered, producers, computePts, sumPts, prodOf, baseGoal = 6, workdays = [1,2,3,4,5], holidays = [] }: any) {
   const ms = monthStart(0), me = monthEnd(0);
   const monthOrders = delivered.filter((o: any) => { const d = String(o.delivered_at).slice(0, 10); return d >= ms && d <= me; });
   const monthPts = sumPts(monthOrders);
 
-  const totalGoalDay = producers.filter((p: any) => p.active !== false).reduce((a: number, p: any) => a + Number(p.daily_points_goal ?? 7), 0);
-  const daysInMonth = new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0).getDate();
-  const monthGoal = totalGoalDay * daysInMonth;
+  const totalGoalDay = producers.filter((p: any) => p.active !== false).reduce((a: number, p: any) => a + Number(p.daily_points_goal ?? baseGoal), 0);
+  const workDays = workdaysInMonth(workdays, holidays, 0);
+  const monthGoal = totalGoalDay * workDays;
   const pct = monthGoal > 0 ? Math.min(100, Math.round((monthPts / monthGoal) * 100)) : 0;
 
   const sevenAgo = new Date(); sevenAgo.setDate(sevenAgo.getDate() - 7);
@@ -421,7 +462,7 @@ export function DinamicaView({ delivered, producers, computePts, sumPts, prodOf 
     for (const o of todayOrders) { if (!o.producer_id) continue; m.set(o.producer_id, (m.get(o.producer_id) ?? 0) + computePts(o)); }
     return producers.filter((p: any) => p.active !== false).map((p: any) => {
       const pts = m.get(p.id) ?? 0;
-      const goal = Number(p.daily_points_goal ?? 7);
+      const goal = Number(p.daily_points_goal ?? baseGoal);
       return { name: p.name, avatar_url: p.avatar_url, pts: Math.round(pts), goal, ok: pts >= goal };
     }).filter((x: any) => x.ok);
   }, [todayOrders, producers]);

@@ -95,6 +95,16 @@ function AdminPage() {
     if (error) toast.error(error.message);
     else { toast.success("Meta atualizada"); qc.invalidateQueries({ queryKey: ["admin-producers-goals"] }); }
   };
+  const omSettings = useQuery({
+    queryKey: ["admin-om-settings"],
+    queryFn: async () => (await (supabase as any).from("om_settings").select("*").eq("id", true).maybeSingle()).data ?? { base_daily_goal: 6, workdays: [1,2,3,4,5], holidays: [] },
+  });
+  const saveOmSettings = async (patch: any) => {
+    const { error } = await (supabase as any).from("om_settings").update(patch).eq("id", true);
+    if (error) toast.error(error.message);
+    else { toast.success("Configuração salva"); qc.invalidateQueries({ queryKey: ["admin-om-settings"] }); }
+  };
+  const [newHoliday, setNewHoliday] = useState("");
   const cols = useQuery({ queryKey: ["admin-cols"], queryFn: async () => (await supabase.from("kanban_columns").select("*").order("sort_order")).data ?? [] });
   const sellers = useQuery({ queryKey: ["admin-sellers"], queryFn: async () => (await supabase.from("sellers").select("*").order("name")).data ?? [] });
   const [newService, setNewService] = useState("");
@@ -419,9 +429,9 @@ function AdminPage() {
                     <div className="flex-1 truncate text-sm font-medium">{p.name}</div>
                     <Input
                       type="number" step="0.5" min="0"
-                      defaultValue={p.daily_points_goal ?? 7}
+                      defaultValue={p.daily_points_goal ?? (omSettings.data?.base_daily_goal ?? 6)}
                       key={`${p.id}-${p.daily_points_goal}`}
-                      onBlur={(e) => { if (Number(e.target.value) !== Number(p.daily_points_goal ?? 7)) updateProducerGoal(p.id, e.target.value); }}
+                      onBlur={(e) => { if (Number(e.target.value) !== Number(p.daily_points_goal ?? (omSettings.data?.base_daily_goal ?? 6))) updateProducerGoal(p.id, e.target.value); }}
                       className="h-8 w-20 text-center"
                     />
                     <span className="text-[10px] text-muted-foreground">pts</span>
@@ -430,6 +440,64 @@ function AdminPage() {
                 {(producersGoals.data ?? []).length === 0 && (
                   <div className="col-span-full text-sm text-muted-foreground italic">Nenhum produtor cadastrado.</div>
                 )}
+              </div>
+            </CardContent>
+          </Card>
+          <Card className="border-border/50">
+            <CardHeader>
+              <CardTitle className="text-base">Operação Meta — Configuração</CardTitle>
+              <CardDescription>Meta base por produtor, dias úteis e feriados (afeta a soma diária e mensal).</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex items-center gap-3">
+                <Label className="text-sm w-56">Meta diária base por produtor</Label>
+                <Input
+                  type="number" step="0.5" min="0"
+                  defaultValue={omSettings.data?.base_daily_goal ?? 6}
+                  key={`base-${omSettings.data?.base_daily_goal}`}
+                  onBlur={(e) => { const n = Number(e.target.value); if (Number.isFinite(n) && n !== Number(omSettings.data?.base_daily_goal)) saveOmSettings({ base_daily_goal: n }); }}
+                  className="h-9 w-28 text-center"
+                />
+                <span className="text-xs text-muted-foreground">pontos (padrão 6)</span>
+              </div>
+              <div>
+                <Label className="text-sm">Dias úteis</Label>
+                <div className="flex flex-wrap gap-2 mt-2">
+                  {[{n:1,l:"Seg"},{n:2,l:"Ter"},{n:3,l:"Qua"},{n:4,l:"Qui"},{n:5,l:"Sex"},{n:6,l:"Sáb"},{n:0,l:"Dom"}].map(d => {
+                    const wd: number[] = omSettings.data?.workdays ?? [1,2,3,4,5];
+                    const on = wd.includes(d.n);
+                    return (
+                      <Button key={d.n} type="button" size="sm" variant={on ? "default" : "outline"}
+                        onClick={() => saveOmSettings({ workdays: on ? wd.filter(x => x !== d.n) : [...wd, d.n].sort() })}>
+                        {d.l}
+                      </Button>
+                    );
+                  })}
+                </div>
+              </div>
+              <div>
+                <Label className="text-sm">Feriados (não contam na meta mensal)</Label>
+                <div className="flex gap-2 mt-2">
+                  <Input type="date" value={newHoliday} onChange={(e) => setNewHoliday(e.target.value)} className="h-9 w-48" />
+                  <Button size="sm" onClick={() => {
+                    if (!newHoliday) return;
+                    const cur: string[] = omSettings.data?.holidays ?? [];
+                    if (cur.includes(newHoliday)) { toast.info("Data já adicionada"); return; }
+                    saveOmSettings({ holidays: [...cur, newHoliday].sort() });
+                    setNewHoliday("");
+                  }}>Adicionar</Button>
+                </div>
+                <div className="flex flex-wrap gap-2 mt-3">
+                  {((omSettings.data?.holidays ?? []) as string[]).map((h) => (
+                    <Badge key={h} variant="secondary" className="gap-1">
+                      {h.split("-").reverse().join("/")}
+                      <button className="ml-1 text-destructive hover:underline" onClick={() => saveOmSettings({ holidays: (omSettings.data?.holidays ?? []).filter((x: string) => x !== h) })}>×</button>
+                    </Badge>
+                  ))}
+                  {((omSettings.data?.holidays ?? []).length === 0) && (
+                    <span className="text-xs text-muted-foreground italic">Nenhum feriado cadastrado.</span>
+                  )}
+                </div>
               </div>
             </CardContent>
           </Card>
