@@ -38,6 +38,26 @@ export const monthLabel = (iso: string) => {
 };
 export const initials = (n?: string) => (n ?? "?").split(/\s+/).map((x) => x[0]).slice(0, 2).join("").toUpperCase();
 
+export function workdaysInMonth(workdays: number[] = [1,2,3,4,5], holidays: string[] = [], offset = 0): number {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = now.getMonth() + offset;
+  const last = new Date(year, month + 1, 0).getDate();
+  let count = 0;
+  for (let day = 1; day <= last; day++) {
+    const d = new Date(year, month, day);
+    const iso = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
+    if (workdays.includes(d.getDay()) && !holidays.includes(iso)) count++;
+  }
+  return count;
+}
+
+export function isWorkingDay(iso: string, workdays: number[] = [1,2,3,4,5], holidays: string[] = []): boolean {
+  const [y,m,d] = iso.split("-").map(Number);
+  const dt = new Date(y, m-1, d);
+  return workdays.includes(dt.getDay()) && !holidays.includes(iso);
+}
+
 export function useOmData() {
   const qc = useQueryClient();
   const producers = useQuery({
