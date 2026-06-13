@@ -74,7 +74,10 @@ function OperacaoMetaPage() {
       const sale: any = o.sales || {};
       const pkg = sale.packages;
       const st = sale.service_types;
-      const points = Number((pkg?.points_value ?? st?.points_value) ?? 0);
+      const basePoints = Number((pkg?.points_value ?? st?.points_value) ?? 0);
+      const dur = Number(sale.video_duration_seconds ?? 0);
+      const multiplier = dur >= 30 ? dur / 30 : 1;
+      const points = basePoints * multiplier;
       const typeName = pkg?.name ?? st?.name ?? "Outro";
       const e = map.get(pid)!;
       e.videos += 1;
