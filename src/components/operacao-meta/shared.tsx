@@ -231,11 +231,11 @@ export function MensalView({ delivered, producers, computePts, catName, sumPts, 
   const prevApprov = prevProjetos > 0 ? Math.round(((prevProjetos - prevAlt) / prevProjetos) * 100) : 0;
 
   const ranking = (arr: any[]) => {
-    const m = new Map<string, { name: string; points: number; projetos: number }>();
+    const m = new Map<string, { name: string; points: number; projetos: number; avatar_url?: string }>();
     for (const o of arr) {
       if (!o.producer_id) continue;
       const prod = prodOf(o.producer_id);
-      const cur = m.get(o.producer_id) ?? { name: prod?.name ?? "—", points: 0, projetos: 0 };
+      const cur = m.get(o.producer_id) ?? { name: prod?.name ?? "—", points: 0, projetos: 0, avatar_url: prod?.avatar_url };
       cur.points += computePts(o);
       cur.projetos += 1;
       m.set(o.producer_id, cur);
@@ -253,7 +253,7 @@ export function MensalView({ delivered, producers, computePts, catName, sumPts, 
         m.set(o.producer_id, (m.get(o.producer_id) ?? 0) + 1);
       }
     }
-    return Array.from(m.entries()).map(([pid, c]) => ({ name: (prodOf(pid)?.name ?? "—").toUpperCase(), value: c }))
+    return Array.from(m.entries()).map(([pid, c]) => ({ name: (prodOf(pid)?.name ?? "—").toUpperCase(), avatar_url: prodOf(pid)?.avatar_url, value: c }))
       .sort((a, b) => b.value - a.value).slice(0, 6);
   }, [cur]);
 
@@ -283,7 +283,7 @@ export function MensalView({ delivered, producers, computePts, catName, sumPts, 
     let best: any = null;
     for (const [pid, c] of m.entries()) if (!best || c > best.count) best = { pid, count: c };
     if (!best) return null;
-    return { name: prodOf(best.pid)?.name ?? "—", count: best.count, day: lastDay };
+    return { name: prodOf(best.pid)?.name ?? "—", avatar_url: prodOf(best.pid)?.avatar_url, count: best.count, day: lastDay };
   }, [cur]);
 
   const dif = (a: number, b: number) => b === 0 ? "—" : `${a >= b ? "+" : ""}${Math.round(((a - b) / b) * 100)}%`;
@@ -302,8 +302,8 @@ export function MensalView({ delivered, producers, computePts, catName, sumPts, 
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-3">
             <HighlightCard title="Rei do Mês" icon={Crown} producer={rei} valueLabel={rei ? `${Math.round(rei.points)} pts` : "—"} />
             <HighlightCard title="Mais Projetos" icon={Folder} producer={maisProj} valueLabel={maisProj ? `${maisProj.projetos} proj` : "—"} />
-            <HighlightCard title="Refeitor" icon={RefreshCw} producer={reBest ? { name: reBest.name } : null} valueLabel={reBest ? `${reBest.value} alterações` : "—"} />
-            <HighlightCard title="Finalizador" icon={Flame} producer={finalizador ? { name: finalizador.name } : null} valueLabel={finalizador ? `${finalizador.count} proj em 1 dia` : "—"} />
+            <HighlightCard title="Refeitor" icon={RefreshCw} producer={reBest ? { name: reBest.name, avatar_url: reBest.avatar_url } : null} valueLabel={reBest ? `${reBest.value} alterações` : "—"} />
+            <HighlightCard title="Finalizador" icon={Flame} producer={finalizador ? { name: finalizador.name, avatar_url: finalizador.avatar_url } : null} valueLabel={finalizador ? `${finalizador.count} proj em 1 dia` : "—"} />
           </div>
         </CardContent>
       </Card>
