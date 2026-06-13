@@ -87,6 +87,14 @@ function AdminPage() {
   const qc = useQueryClient();
   const goals = useQuery({ queryKey: ["admin-goals"], queryFn: async () => (await supabase.from("goals").select("*").is("seller_id", null)).data ?? [] });
   const services = useQuery({ queryKey: ["admin-services"], queryFn: async () => (await supabase.from("service_types").select("*").order("sort_order")).data ?? [] });
+  const producersGoals = useQuery({ queryKey: ["admin-producers-goals"], queryFn: async () => (await supabase.from("producers").select("id,name,avatar_url,daily_points_goal,active").order("name")).data ?? [] });
+  const updateProducerGoal = async (id: string, v: string) => {
+    const n = Number(v);
+    if (!Number.isFinite(n) || n < 0) { toast.error("Valor inválido"); return; }
+    const { error } = await supabase.from("producers").update({ daily_points_goal: n }).eq("id", id);
+    if (error) toast.error(error.message);
+    else { toast.success("Meta atualizada"); qc.invalidateQueries({ queryKey: ["admin-producers-goals"] }); }
+  };
   const cols = useQuery({ queryKey: ["admin-cols"], queryFn: async () => (await supabase.from("kanban_columns").select("*").order("sort_order")).data ?? [] });
   const sellers = useQuery({ queryKey: ["admin-sellers"], queryFn: async () => (await supabase.from("sellers").select("*").order("name")).data ?? [] });
   const [newService, setNewService] = useState("");
