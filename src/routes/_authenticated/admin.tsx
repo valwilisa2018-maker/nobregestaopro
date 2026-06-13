@@ -95,6 +95,16 @@ function AdminPage() {
     if (error) toast.error(error.message);
     else { toast.success("Meta atualizada"); qc.invalidateQueries({ queryKey: ["admin-producers-goals"] }); }
   };
+  const omSettings = useQuery({
+    queryKey: ["admin-om-settings"],
+    queryFn: async () => (await (supabase as any).from("om_settings").select("*").eq("id", true).maybeSingle()).data ?? { base_daily_goal: 6, workdays: [1,2,3,4,5], holidays: [] },
+  });
+  const saveOmSettings = async (patch: any) => {
+    const { error } = await (supabase as any).from("om_settings").update(patch).eq("id", true);
+    if (error) toast.error(error.message);
+    else { toast.success("Configuração salva"); qc.invalidateQueries({ queryKey: ["admin-om-settings"] }); }
+  };
+  const [newHoliday, setNewHoliday] = useState("");
   const cols = useQuery({ queryKey: ["admin-cols"], queryFn: async () => (await supabase.from("kanban_columns").select("*").order("sort_order")).data ?? [] });
   const sellers = useQuery({ queryKey: ["admin-sellers"], queryFn: async () => (await supabase.from("sellers").select("*").order("name")).data ?? [] });
   const [newService, setNewService] = useState("");
