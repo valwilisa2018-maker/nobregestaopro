@@ -294,12 +294,81 @@ export type Database = {
           },
         ]
       }
+      om_eventos: {
+        Row: {
+          card_key: string
+          card_name: string
+          created_at: string
+          evento: Database["public"]["Enums"]["om_evento"]
+          id: string
+          occurred_at: string
+          pontos: number
+          producer_id: string
+          raw: Json | null
+          trello_card_id: string | null
+        }
+        Insert: {
+          card_key: string
+          card_name: string
+          created_at?: string
+          evento: Database["public"]["Enums"]["om_evento"]
+          id?: string
+          occurred_at?: string
+          pontos?: number
+          producer_id: string
+          raw?: Json | null
+          trello_card_id?: string | null
+        }
+        Update: {
+          card_key?: string
+          card_name?: string
+          created_at?: string
+          evento?: Database["public"]["Enums"]["om_evento"]
+          id?: string
+          occurred_at?: string
+          pontos?: number
+          producer_id?: string
+          raw?: Json | null
+          trello_card_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "om_eventos_producer_id_fkey"
+            columns: ["producer_id"]
+            isOneToOne: false
+            referencedRelation: "producers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      om_scoring: {
+        Row: {
+          created_at: string
+          evento: Database["public"]["Enums"]["om_evento"]
+          pontos: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          evento: Database["public"]["Enums"]["om_evento"]
+          pontos?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          evento?: Database["public"]["Enums"]["om_evento"]
+          pontos?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       om_settings: {
         Row: {
           base_daily_goal: number
           created_at: string
           holidays: string[]
           id: boolean
+          trello_webhook_secret: string | null
           updated_at: string
           workdays: number[]
         }
@@ -308,6 +377,7 @@ export type Database = {
           created_at?: string
           holidays?: string[]
           id?: boolean
+          trello_webhook_secret?: string | null
           updated_at?: string
           workdays?: number[]
         }
@@ -316,10 +386,73 @@ export type Database = {
           created_at?: string
           holidays?: string[]
           id?: boolean
+          trello_webhook_secret?: string | null
           updated_at?: string
           workdays?: number[]
         }
         Relationships: []
+      }
+      om_trello_list_map: {
+        Row: {
+          created_at: string
+          evento: Database["public"]["Enums"]["om_evento"]
+          id: string
+          list_id: string
+          list_name: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          evento: Database["public"]["Enums"]["om_evento"]
+          id?: string
+          list_id: string
+          list_name: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          evento?: Database["public"]["Enums"]["om_evento"]
+          id?: string
+          list_id?: string
+          list_name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      om_trello_member_map: {
+        Row: {
+          created_at: string
+          id: string
+          producer_id: string
+          trello_member_id: string
+          trello_username: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          producer_id: string
+          trello_member_id: string
+          trello_username?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          producer_id?: string
+          trello_member_id?: string
+          trello_username?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "om_trello_member_map_producer_id_fkey"
+            columns: ["producer_id"]
+            isOneToOne: false
+            referencedRelation: "producers"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       packages: {
         Row: {
@@ -973,6 +1106,7 @@ export type Database = {
         | "pronto_para_envio"
         | "a_fazer"
       log_level: "INFO" | "WARN" | "ERROR" | "CRITICAL"
+      om_evento: "pronto" | "alteracao" | "entregue" | "distribuicao_edicao"
       payment_method: "pix" | "cartao" | "boleto"
       payment_status: "pago_total" | "pago_parcial" | "pendente"
     }
@@ -1130,6 +1264,7 @@ export const Constants = {
         "a_fazer",
       ],
       log_level: ["INFO", "WARN", "ERROR", "CRITICAL"],
+      om_evento: ["pronto", "alteracao", "entregue", "distribuicao_edicao"],
       payment_method: ["pix", "cartao", "boleto"],
       payment_status: ["pago_total", "pago_parcial", "pendente"],
     },
