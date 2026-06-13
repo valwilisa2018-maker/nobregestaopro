@@ -1,4 +1,3 @@
-import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useState } from "react";
@@ -26,11 +25,7 @@ const EVENTOS = [
   { value: "distribuicao_edicao", label: "Distribuição p/ Edição (gravação)" },
 ] as const;
 
-export const Route = createFileRoute("/_authenticated/operacao-meta/configuracoes")({
-  component: ConfiguracoesView,
-});
-
-function ConfiguracoesView() {
+export function OmConfiguracoesSection() {
   const qc = useQueryClient();
   const scoring = useQuery({
     queryKey: ["om-scoring"],
@@ -64,7 +59,6 @@ function ConfiguracoesView() {
 
   return (
     <div className="space-y-4">
-      {/* Webhook URL */}
       <Card className="border-border/50">
         <CardContent className="p-5 space-y-3">
           <div className="flex items-center gap-2 text-sm font-semibold">
@@ -87,7 +81,6 @@ function ConfiguracoesView() {
         </CardContent>
       </Card>
 
-      {/* Pontuação por evento */}
       <Card className="border-border/50">
         <CardContent className="p-5 space-y-3">
           <div className="text-sm font-semibold">Multiplicador por Evento</div>
@@ -114,7 +107,6 @@ function ConfiguracoesView() {
         </CardContent>
       </Card>
 
-      {/* Mapa de listas */}
       <Card className="border-border/50">
         <CardContent className="p-5 space-y-3">
           <div className="flex items-center gap-2 text-sm font-semibold">
@@ -149,7 +141,6 @@ function ConfiguracoesView() {
         </CardContent>
       </Card>
 
-      {/* Mapa de membros */}
       <Card className="border-border/50">
         <CardContent className="p-5 space-y-3">
           <div className="text-sm font-semibold">Membros do Trello → Produtor</div>
