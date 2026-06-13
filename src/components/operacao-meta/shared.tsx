@@ -184,8 +184,12 @@ export function DiariaView({ delivered, producers, computePts, catName, sumPts, 
       <Card className="border-border/50 overflow-hidden" style={{ boxShadow: "var(--shadow-card)" }}>
         <CardContent className="p-6">
           <SectionLabel icon={Target}>Meta do Dia</SectionLabel>
-          <div className="grid grid-cols-1 md:grid-cols-[1fr_auto] gap-6 items-center mt-4">
-            <div className="relative h-[340px] md:h-[400px] w-full flex items-center justify-center">
+          <div className="grid grid-cols-2 md:grid-cols-[1fr_auto_1fr] gap-4 items-center mt-4">
+            <div className="flex flex-col gap-2 md:w-52 justify-self-end w-full">
+              <MiniStat icon={TrendingUp} label="vs Ontem" value={`${diffYesterday >= 0 ? "+" : ""}${diffYesterday.toFixed(0)}`} valueClass={diffYesterday >= 0 ? "text-emerald-500" : "text-red-500"} />
+              <MiniStat icon={Calendar} label="Ontem" value={yPts > 0 ? yPts.toFixed(0) : "--"} suffix="pts" />
+            </div>
+            <div className="relative h-[340px] md:h-[400px] w-full md:w-[400px] flex items-center justify-center col-span-2 md:col-span-1 order-first md:order-none mx-auto">
               <ResponsiveContainer width="100%" height="100%">
                 <RadialBarChart innerRadius="76%" outerRadius="100%" data={[{ name: "pct", value: pct, fill: pct >= 100 ? "#10b981" : status.color }]} startAngle={90} endAngle={-270}>
                   <PolarAngleAxis type="number" domain={[0, 100]} tick={false} />
@@ -197,14 +201,12 @@ export function DiariaView({ delivered, producers, computePts, catName, sumPts, 
                 <div className="text-sm md:text-base text-muted-foreground mt-2 font-medium">{todayPts.toFixed(0)} / {totalGoalToday} pts</div>
               </div>
             </div>
-            <div className="grid grid-cols-2 md:grid-cols-1 gap-2 md:w-56">
+            <div className="flex flex-col gap-2 md:w-52 justify-self-start w-full">
               <div className="p-3 rounded-xl bg-muted/40 border border-border/40">
                 <div className="text-[10px] uppercase text-muted-foreground font-medium">Status</div>
                 <div className="text-xl mt-1">{status.emoji}</div>
                 <div className="text-sm font-bold leading-tight">{status.title}</div>
               </div>
-              <MiniStat icon={TrendingUp} label="vs Ontem" value={`${diffYesterday >= 0 ? "+" : ""}${diffYesterday.toFixed(0)}`} valueClass={diffYesterday >= 0 ? "text-emerald-500" : "text-red-500"} />
-              <MiniStat icon={Calendar} label="Ontem" value={yPts > 0 ? yPts.toFixed(0) : "--"} suffix="pts" />
               <MiniStat icon={Sparkles} label="Pontos do Mês" value={monthPts.toFixed(0)} />
             </div>
           </div>
