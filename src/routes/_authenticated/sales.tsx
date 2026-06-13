@@ -32,7 +32,26 @@ export const Route = createFileRoute("/_authenticated/sales")({
 function isVideoService(serviceTypeName?: string, hasPackage?: boolean) {
   if (hasPackage) return true;
   const n = (serviceTypeName ?? "").toLowerCase();
-  return n.includes("video") || n.includes("vídeo");
+  if (n.includes("video") || n.includes("vídeo")) return true;
+  // Outros formatos de vídeo (sem a palavra "vídeo" no nome)
+  const videoKeywords = [
+    "influencer",
+    "pamela",
+    "pâmela",
+    "ester",
+    "videoflow",
+    "pixar",
+    "pixer",
+    "3d",
+    "whiteboard",
+    "realista",
+    "explainer",
+    "anime",
+    "motion",
+    "animacao",
+    "animação",
+  ];
+  return videoKeywords.some((k) => n.includes(k));
 }
 
 // Opções: 30s, 1min, 1min30, 2min, ..., 10min
