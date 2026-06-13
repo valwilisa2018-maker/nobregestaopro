@@ -513,6 +513,7 @@ function SalesPage() {
         lead_source: editing.lead_source || null,
         delivery_deadline: editing.delivery_deadline || null,
         expected_delivery_date: editing.expected_delivery_date || null,
+        video_duration_seconds: editing.video_duration_seconds ? Number(editing.video_duration_seconds) : null,
       }).eq("id", editing.id);
       if (error) throw error;
 
