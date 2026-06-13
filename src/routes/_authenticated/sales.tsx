@@ -315,6 +315,7 @@ function SalesPage() {
         installments: "12",
         delivery_deadline: "",
         expected_delivery_date: new Date().toISOString().slice(0, 10),
+        video_duration_seconds: "",
       });
       setReceiptFile(null);
       await qc.invalidateQueries({ queryKey: ["sales-list"] });
