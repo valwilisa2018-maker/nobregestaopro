@@ -843,6 +843,10 @@ function AdminPage() {
           <CelebrationSettingsCard />
         </TabsContent>
 
+        <TabsContent value="operacao-metas" className="mt-4 space-y-3">
+          <OmConfiguracoesSection />
+        </TabsContent>
+
         <TabsContent value="senha" className="mt-4 space-y-3">
           <Card>
             <CardHeader><CardTitle>Alterar senha de acesso</CardTitle></CardHeader>
