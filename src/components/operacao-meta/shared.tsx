@@ -165,13 +165,13 @@ export function DiariaView({ delivered, producers, computePts, catName, sumPts, 
               </div>
               <div className="h-[180px] relative flex items-center justify-center">
                 <ResponsiveContainer width="100%" height="100%">
-                  <RadialBarChart innerRadius="78%" outerRadius="100%" data={[{ name: "pct", value: pct, fill: status.color }]} startAngle={90} endAngle={-270}>
+                  <RadialBarChart innerRadius="78%" outerRadius="100%" data={[{ name: "pct", value: pct, fill: pct >= 100 ? "#10b981" : status.color }]} startAngle={90} endAngle={-270}>
                     <PolarAngleAxis type="number" domain={[0, 100]} tick={false} />
-                    <RadialBar dataKey="value" cornerRadius={20} background={{ fill: "hsl(var(--muted) / 0.3)" }} />
+                    <RadialBar dataKey="value" cornerRadius={20} background={{ fill: pct >= 100 ? "rgba(16,185,129,0.25)" : "rgba(239,68,68,0.35)" }} />
                   </RadialBarChart>
                 </ResponsiveContainer>
                 <div className="absolute inset-0 flex flex-col items-center justify-center">
-                  <div className="text-3xl font-extrabold">{pct}%</div>
+                  <div className={`text-3xl font-extrabold ${pct >= 100 ? "text-emerald-500" : ""}`}>{pct}%</div>
                   <div className="text-[10px] text-muted-foreground mt-0.5">{todayPts.toFixed(0)} / {totalGoalToday} pts</div>
                 </div>
               </div>
