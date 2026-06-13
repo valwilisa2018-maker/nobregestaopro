@@ -26,6 +26,31 @@ export const Route = createFileRoute("/_authenticated/sales")({
   component: SalesPage,
 });
 
+// Detecta se o tipo de serviço selecionado é vídeo (qualquer nome contendo
+// "video" / "vídeo") OU se a venda é de um pacote (pacotes são compostos
+// por vídeos). Define se o campo "Minutagem" é obrigatório.
+function isVideoService(serviceTypeName?: string, hasPackage?: boolean) {
+  if (hasPackage) return true;
+  const n = (serviceTypeName ?? "").toLowerCase();
+  return n.includes("video") || n.includes("vídeo");
+}
+
+// Opções: 30s, 1min, 1min30, 2min, ..., 10min
+const VIDEO_DURATION_OPTIONS: { value: number; label: string }[] = Array.from({ length: 20 }, (_, i) => {
+  const sec = (i + 1) * 30;
+  const m = Math.floor(sec / 60);
+  const s = sec % 60;
+  const label = m === 0 ? `${s}s` : s === 0 ? `${m}min` : `${m}min${s}s`;
+  return { value: sec, label };
+});
+
+export function formatVideoDuration(sec?: number | null): string {
+  if (!sec || sec < 1) return "";
+  const m = Math.floor(sec / 60);
+  const s = sec % 60;
+  return m === 0 ? `${s}s` : s === 0 ? `${m}min` : `${m}min${s}s`;
+}
+
 function SalesPage() {
   const qc = useQueryClient();
   const [open, setOpen] = useState(false);
