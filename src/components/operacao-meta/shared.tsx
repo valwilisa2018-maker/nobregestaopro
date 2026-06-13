@@ -12,6 +12,7 @@ import {
   Zap, Star,
 } from "lucide-react";
 import { toast } from "sonner";
+import { useTheme } from "@/hooks/use-theme";
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid,
   RadialBarChart, RadialBar, PolarAngleAxis, LineChart, Line, Area, AreaChart,
@@ -112,6 +113,9 @@ export function useOmData() {
 
 /* ============================ ANÁLISE DIÁRIA ============================ */
 export function DiariaView({ delivered, producers, computePts, catName, sumPts, baseGoal = 6, workdays = [1,2,3,4,5], holidays = [] }: any) {
+  const { theme } = useTheme();
+  const isDark = theme === "dark";
+  const ringBg = (pctReached: boolean) => pctReached ? (isDark ? "rgba(16,185,129,0.3)" : "rgba(16,185,129,0.2)") : (isDark ? "rgba(239,68,68,0.65)" : "#0a0a0a");
   const t = today(), y = yesterday(), ms = monthStart();
   const onDate = (iso: string) => delivered.filter((o: any) => String(o.delivered_at).slice(0, 10) === iso);
   const todayOrders = onDate(t);
@@ -167,11 +171,11 @@ export function DiariaView({ delivered, producers, computePts, catName, sumPts, 
                 <ResponsiveContainer width="100%" height="100%">
                   <RadialBarChart innerRadius="78%" outerRadius="100%" data={[{ name: "pct", value: pct, fill: pct >= 100 ? "#10b981" : status.color }]} startAngle={90} endAngle={-270}>
                     <PolarAngleAxis type="number" domain={[0, 100]} tick={false} />
-                    <RadialBar dataKey="value" cornerRadius={20} background={{ fill: pct >= 100 ? "rgba(16,185,129,0.25)" : "rgba(239,68,68,0.35)" }} />
+                    <RadialBar dataKey="value" cornerRadius={20} background={{ fill: ringBg(pct >= 100) }} />
                   </RadialBarChart>
                 </ResponsiveContainer>
                 <div className="absolute inset-0 flex flex-col items-center justify-center">
-                  <div className={`text-3xl font-extrabold ${pct >= 100 ? "text-emerald-500" : ""}`}>{pct}%</div>
+                  <div className="text-3xl font-extrabold text-emerald-500">{pct}%</div>
                   <div className="text-[10px] text-muted-foreground mt-0.5">{todayPts.toFixed(0)} / {totalGoalToday} pts</div>
                 </div>
               </div>
