@@ -22,7 +22,7 @@ function OperacaoMetaLayout() {
   }, [setTheme]);
 
   return (
-    <div className={`space-y-4 -m-4 sm:-m-6 p-4 sm:p-6 min-h-screen ${theme === "dark" ? "om-dark-bg" : ""}`}>
+    <div className={`space-y-4 -m-4 sm:-m-6 p-4 sm:p-6 min-h-screen ${theme === "dark" ? "om-dark-bg" : "om-light-bg"}`}>
       {theme === "dark" && (
         <style>{`
           .om-dark-bg {
@@ -41,6 +41,27 @@ function OperacaoMetaLayout() {
           .om-dark-bg [data-slot="card"]:hover {
             border-color: rgba(239,68,68,0.5) !important;
             box-shadow: 0 16px 40px -12px rgba(239,68,68,0.35), 0 0 0 1px rgba(239,68,68,0.2) !important;
+          }
+        `}</style>
+      )}
+      {theme !== "dark" && (
+        <style>{`
+          .om-light-bg {
+            background:
+              radial-gradient(1000px 500px at 0% 0%, rgba(239,68,68,0.08), transparent 60%),
+              radial-gradient(800px 400px at 100% 10%, rgba(190,18,60,0.06), transparent 65%),
+              linear-gradient(180deg, #f7f5f3 0%, #ececec 100%);
+          }
+          .om-light-bg [data-slot="card"], .om-light-bg .om-card, .om-light-bg [class*="border-border"] {
+            background: linear-gradient(160deg, #ffffff, #fafafa) !important;
+            border-color: rgba(15,15,15,0.12) !important;
+            box-shadow: 0 14px 36px -16px rgba(15,15,15,0.25), 0 2px 6px -2px rgba(15,15,15,0.08), 0 0 0 1px rgba(239,68,68,0.06) !important;
+          }
+          .om-light-bg [data-slot="card"]:hover {
+            border-color: rgba(239,68,68,0.4) !important;
+            box-shadow: 0 20px 44px -16px rgba(239,68,68,0.25), 0 4px 10px -2px rgba(15,15,15,0.12), 0 0 0 1px rgba(239,68,68,0.2) !important;
+            transform: translateY(-1px);
+            transition: all .2s ease;
           }
         `}</style>
       )}
