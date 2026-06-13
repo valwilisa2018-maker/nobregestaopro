@@ -1001,11 +1001,12 @@ function SectionLabel({ icon: Icon, iconClass = "", children }: any) {
     </div>
   );
 }
-function MiniStat({ icon: Icon, label, value, suffix, valueClass }: any) {
+function MiniStat({ icon: Icon, label, value, suffix, valueClass, size }: any) {
+  const lg = size === "lg";
   return (
-    <div className="p-3 rounded-xl bg-muted/40 border border-border/40">
-      <div className="text-[10px] uppercase text-muted-foreground flex items-center gap-1 font-medium"><Icon className="w-3 h-3" /> {label}</div>
-      <div className={`text-xl font-bold mt-1 ${valueClass ?? ""}`}>{value} {suffix && <span className="text-xs text-muted-foreground">{suffix}</span>}</div>
+    <div className={`rounded-xl bg-muted/40 border border-border/40 ${lg ? "p-5 flex-1 flex flex-col justify-center" : "p-3"}`}>
+      <div className={`uppercase text-muted-foreground flex items-center gap-1.5 font-medium tracking-wide ${lg ? "text-xs" : "text-[10px]"}`}><Icon className={lg ? "w-4 h-4" : "w-3 h-3"} /> {label}</div>
+      <div className={`font-bold mt-2 ${lg ? "text-3xl" : "text-xl"} ${valueClass ?? ""}`}>{value} {suffix && <span className={`text-muted-foreground ${lg ? "text-sm" : "text-xs"}`}>{suffix}</span>}</div>
     </div>
   );
 }
