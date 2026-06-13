@@ -430,14 +430,14 @@ export function MensalView({ delivered, producers, computePts, catName, sumPts, 
 }
 
 /* ============================ DINÂMICA ============================ */
-export function DinamicaView({ delivered, producers, computePts, sumPts, prodOf }: any) {
+export function DinamicaView({ delivered, producers, computePts, sumPts, prodOf, baseGoal = 6, workdays = [1,2,3,4,5], holidays = [] }: any) {
   const ms = monthStart(0), me = monthEnd(0);
   const monthOrders = delivered.filter((o: any) => { const d = String(o.delivered_at).slice(0, 10); return d >= ms && d <= me; });
   const monthPts = sumPts(monthOrders);
 
-  const totalGoalDay = producers.filter((p: any) => p.active !== false).reduce((a: number, p: any) => a + Number(p.daily_points_goal ?? 7), 0);
-  const daysInMonth = new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0).getDate();
-  const monthGoal = totalGoalDay * daysInMonth;
+  const totalGoalDay = producers.filter((p: any) => p.active !== false).reduce((a: number, p: any) => a + Number(p.daily_points_goal ?? baseGoal), 0);
+  const workDays = workdaysInMonth(workdays, holidays, 0);
+  const monthGoal = totalGoalDay * workDays;
   const pct = monthGoal > 0 ? Math.min(100, Math.round((monthPts / monthGoal) * 100)) : 0;
 
   const sevenAgo = new Date(); sevenAgo.setDate(sevenAgo.getDate() - 7);
