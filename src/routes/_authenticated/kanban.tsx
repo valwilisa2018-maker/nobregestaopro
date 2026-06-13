@@ -579,11 +579,18 @@ function KanbanPage() {
                     const company = first.sales?.customers?.company;
                     return (
                       <div key={groupKey} className="space-y-2">
-                        {first.sales?.payment_status === "pago_parcial" && (
-                          <div className="flex justify-end">
-                            <span className="text-[10px] font-bold px-2 py-0.5 rounded-md shadow-sm" style={{ background: "#f59e0b", color: "#1a1a1a" }}>
-                              A receber: {formatCurrency(Number(first.sales.total_amount ?? 0) - Number(first.sales.paid_amount ?? 0))}
-                            </span>
+                        {(first.sales?.payment_status === "pago_parcial" || first.sales?.video_duration_seconds) && (
+                          <div className="flex justify-end gap-1 flex-wrap">
+                            {first.sales?.video_duration_seconds ? (
+                              <span className="text-[10px] font-bold px-2 py-0.5 rounded-md shadow-sm" style={{ background: "#3b82f6", color: "#fff" }}>
+                                🎬 {fmtVideoDuration(first.sales.video_duration_seconds)}
+                              </span>
+                            ) : null}
+                            {first.sales?.payment_status === "pago_parcial" && (
+                              <span className="text-[10px] font-bold px-2 py-0.5 rounded-md shadow-sm" style={{ background: "#f59e0b", color: "#1a1a1a" }}>
+                                A receber: {formatCurrency(Number(first.sales.total_amount ?? 0) - Number(first.sales.paid_amount ?? 0))}
+                              </span>
+                            )}
                           </div>
                         )}
                         <Card
