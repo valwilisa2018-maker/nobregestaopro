@@ -39,7 +39,7 @@ function startOf(period: "day" | "week" | "month" | "year") {
 function Dashboard() {
   const navigate = useNavigate();
   // Filtros principais
-  const [scope, setScope] = useState<"day" | "week" | "month">("day");
+  const [scope, setScope] = useState<"day" | "week" | "month" | "year">("day");
   const { user } = useAuth();
   const [sellerFilter, setSellerFilter] = useState<string>("all");
   const [serviceFilter, setServiceFilter] = useState<string>("all");
@@ -194,6 +194,7 @@ function Dashboard() {
     day: { total: dayTotal, count: dayCount, goal: goalFor("daily"), label: "Hoje", icon: DollarSign, since: startOf("day") },
     week: { total: weekTotal, count: weekCount, goal: goalFor("weekly"), label: "Semana", icon: Calendar, since: startOf("week") },
     month: { total: monthTotal, count: monthCount, goal: goalFor("monthly"), label: "Mês", icon: TrendingUp, since: startOf("month") },
+    year: { total: yearTotal, count: all.filter((s) => (s.sale_date || s.created_at.slice(0, 10)) >= startOf("year").slice(0, 10)).length, goal: goalFor("yearly"), label: "Ano", icon: TrendingUp, since: startOf("year") },
   } as const;
   const current = scopeMap[scope];
   const scopeSince = current.since.slice(0, 10);
@@ -369,6 +370,7 @@ function Dashboard() {
             <ToggleGroupItem value="day">Dia</ToggleGroupItem>
             <ToggleGroupItem value="week">Semana</ToggleGroupItem>
             <ToggleGroupItem value="month">Mês</ToggleGroupItem>
+            <ToggleGroupItem value="year">Ano</ToggleGroupItem>
           </ToggleGroup>
 
           <Select value={sellerFilter} onValueChange={setSellerFilter}>
