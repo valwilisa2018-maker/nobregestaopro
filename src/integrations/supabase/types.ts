@@ -301,6 +301,7 @@ export type Database = {
           default_price: number | null
           id: string
           name: string
+          points_value: number
           quantity: number
           service_type_id: string | null
         }
@@ -310,6 +311,7 @@ export type Database = {
           default_price?: number | null
           id?: string
           name: string
+          points_value?: number
           quantity?: number
           service_type_id?: string | null
         }
@@ -319,6 +321,7 @@ export type Database = {
           default_price?: number | null
           id?: string
           name?: string
+          points_value?: number
           quantity?: number
           service_type_id?: string | null
         }
@@ -390,6 +393,7 @@ export type Database = {
           average_delivery_days: number | null
           created_at: string
           custom_kanban_columns: Json | null
+          daily_points_goal: number
           email: string | null
           id: string
           name: string
@@ -405,6 +409,7 @@ export type Database = {
           average_delivery_days?: number | null
           created_at?: string
           custom_kanban_columns?: Json | null
+          daily_points_goal?: number
           email?: string | null
           id?: string
           name: string
@@ -420,6 +425,7 @@ export type Database = {
           average_delivery_days?: number | null
           created_at?: string
           custom_kanban_columns?: Json | null
+          daily_points_goal?: number
           email?: string | null
           id?: string
           name?: string
@@ -756,6 +762,7 @@ export type Database = {
           description: string | null
           id: string
           name: string
+          points_value: number
           sort_order: number | null
         }
         Insert: {
@@ -764,6 +771,7 @@ export type Database = {
           description?: string | null
           id?: string
           name: string
+          points_value?: number
           sort_order?: number | null
         }
         Update: {
@@ -772,6 +780,7 @@ export type Database = {
           description?: string | null
           id?: string
           name?: string
+          points_value?: number
           sort_order?: number | null
         }
         Relationships: []
