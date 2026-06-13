@@ -754,11 +754,18 @@ function KanbanPage() {
                   const c = it.card;
                   return (
                     <div key={c.id} className="space-y-1">
-                    {c.sales?.payment_status === "pago_parcial" && (
-                      <div className="flex justify-end">
-                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-md shadow-sm" style={{ background: "#f59e0b", color: "#1a1a1a" }}>
-                          A receber: {formatCurrency(Number(c.sales.total_amount ?? 0) - Number(c.sales.paid_amount ?? 0))}
-                        </span>
+                    {(c.sales?.payment_status === "pago_parcial" || c.sales?.video_duration_seconds) && (
+                      <div className="flex justify-end gap-1 flex-wrap">
+                        {c.sales?.video_duration_seconds ? (
+                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-md shadow-sm" style={{ background: "#3b82f6", color: "#fff" }}>
+                            🎬 {fmtVideoDuration(c.sales.video_duration_seconds)}
+                          </span>
+                        ) : null}
+                        {c.sales?.payment_status === "pago_parcial" && (
+                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-md shadow-sm" style={{ background: "#f59e0b", color: "#1a1a1a" }}>
+                            A receber: {formatCurrency(Number(c.sales.total_amount ?? 0) - Number(c.sales.paid_amount ?? 0))}
+                          </span>
+                        )}
                       </div>
                     )}
                     <Card draggable
