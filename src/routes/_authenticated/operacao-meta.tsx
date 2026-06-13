@@ -496,29 +496,6 @@ function OperacaoMetaPage() {
         </CardContent>
       </Card>
 
-      {/* ============= METAS POR PRODUTOR ============= */}
-      <Card className="border-border/50" style={{ boxShadow: "var(--shadow-card)" }}>
-        <CardContent className="p-5">
-          <div className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground font-semibold mb-3 flex items-center gap-1.5">
-            <Target className="w-3 h-3 text-primary" /> Meta diária por produtor
-          </div>
-          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-2">
-            {(producers.data ?? []).map((p: any) => (
-              <div key={p.id} className="flex items-center gap-3 p-3 rounded-lg border border-border/40 bg-muted/20">
-                <Avatar className="w-9 h-9"><AvatarImage src={p.avatar_url} /><AvatarFallback>{initials(p.name)}</AvatarFallback></Avatar>
-                <div className="flex-1 truncate text-sm font-medium">{p.name}</div>
-                <Input
-                  type="number" step="0.5" min="0"
-                  defaultValue={p.daily_points_goal ?? 7}
-                  onBlur={(e) => { if (Number(e.target.value) !== Number(p.daily_points_goal)) updateGoal(p.id, e.target.value); }}
-                  className="h-8 w-20 text-center"
-                />
-                <span className="text-[10px] text-muted-foreground">pts</span>
-              </div>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
     </div>
   );
 }
