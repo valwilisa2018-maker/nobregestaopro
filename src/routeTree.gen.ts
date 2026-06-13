@@ -39,7 +39,6 @@ import { Route as AuthenticatedOperacaoMetaMensalRouteImport } from './routes/_a
 import { Route as AuthenticatedOperacaoMetaDinamicaRouteImport } from './routes/_authenticated/operacao-meta.dinamica'
 import { Route as AuthenticatedOperacaoMetaDiariaRouteImport } from './routes/_authenticated/operacao-meta.diaria'
 import { Route as AuthenticatedOperacaoMetaConquistasRouteImport } from './routes/_authenticated/operacao-meta.conquistas'
-import { Route as AuthenticatedOperacaoMetaConfiguracoesRouteImport } from './routes/_authenticated/operacao-meta.configuracoes'
 
 const ResetPasswordRoute = ResetPasswordRouteImport.update({
   id: '/reset-password',
@@ -204,12 +203,6 @@ const AuthenticatedOperacaoMetaConquistasRoute =
     path: '/conquistas',
     getParentRoute: () => AuthenticatedOperacaoMetaRoute,
   } as any)
-const AuthenticatedOperacaoMetaConfiguracoesRoute =
-  AuthenticatedOperacaoMetaConfiguracoesRouteImport.update({
-    id: '/configuracoes',
-    path: '/configuracoes',
-    getParentRoute: () => AuthenticatedOperacaoMetaRoute,
-  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -232,7 +225,6 @@ export interface FileRoutesByFullPath {
   '/sellers': typeof AuthenticatedSellersRoute
   '/services-todo': typeof AuthenticatedServicesTodoRoute
   '/telao': typeof AuthenticatedTelaoRoute
-  '/operacao-meta/configuracoes': typeof AuthenticatedOperacaoMetaConfiguracoesRoute
   '/operacao-meta/conquistas': typeof AuthenticatedOperacaoMetaConquistasRoute
   '/operacao-meta/diaria': typeof AuthenticatedOperacaoMetaDiariaRoute
   '/operacao-meta/dinamica': typeof AuthenticatedOperacaoMetaDinamicaRoute
@@ -263,7 +255,6 @@ export interface FileRoutesByTo {
   '/sellers': typeof AuthenticatedSellersRoute
   '/services-todo': typeof AuthenticatedServicesTodoRoute
   '/telao': typeof AuthenticatedTelaoRoute
-  '/operacao-meta/configuracoes': typeof AuthenticatedOperacaoMetaConfiguracoesRoute
   '/operacao-meta/conquistas': typeof AuthenticatedOperacaoMetaConquistasRoute
   '/operacao-meta/diaria': typeof AuthenticatedOperacaoMetaDiariaRoute
   '/operacao-meta/dinamica': typeof AuthenticatedOperacaoMetaDinamicaRoute
@@ -297,7 +288,6 @@ export interface FileRoutesById {
   '/_authenticated/sellers': typeof AuthenticatedSellersRoute
   '/_authenticated/services-todo': typeof AuthenticatedServicesTodoRoute
   '/_authenticated/telao': typeof AuthenticatedTelaoRoute
-  '/_authenticated/operacao-meta/configuracoes': typeof AuthenticatedOperacaoMetaConfiguracoesRoute
   '/_authenticated/operacao-meta/conquistas': typeof AuthenticatedOperacaoMetaConquistasRoute
   '/_authenticated/operacao-meta/diaria': typeof AuthenticatedOperacaoMetaDiariaRoute
   '/_authenticated/operacao-meta/dinamica': typeof AuthenticatedOperacaoMetaDinamicaRoute
@@ -331,7 +321,6 @@ export interface FileRouteTypes {
     | '/sellers'
     | '/services-todo'
     | '/telao'
-    | '/operacao-meta/configuracoes'
     | '/operacao-meta/conquistas'
     | '/operacao-meta/diaria'
     | '/operacao-meta/dinamica'
@@ -362,7 +351,6 @@ export interface FileRouteTypes {
     | '/sellers'
     | '/services-todo'
     | '/telao'
-    | '/operacao-meta/configuracoes'
     | '/operacao-meta/conquistas'
     | '/operacao-meta/diaria'
     | '/operacao-meta/dinamica'
@@ -395,7 +383,6 @@ export interface FileRouteTypes {
     | '/_authenticated/sellers'
     | '/_authenticated/services-todo'
     | '/_authenticated/telao'
-    | '/_authenticated/operacao-meta/configuracoes'
     | '/_authenticated/operacao-meta/conquistas'
     | '/_authenticated/operacao-meta/diaria'
     | '/_authenticated/operacao-meta/dinamica'
@@ -627,18 +614,10 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedOperacaoMetaConquistasRouteImport
       parentRoute: typeof AuthenticatedOperacaoMetaRoute
     }
-    '/_authenticated/operacao-meta/configuracoes': {
-      id: '/_authenticated/operacao-meta/configuracoes'
-      path: '/configuracoes'
-      fullPath: '/operacao-meta/configuracoes'
-      preLoaderRoute: typeof AuthenticatedOperacaoMetaConfiguracoesRouteImport
-      parentRoute: typeof AuthenticatedOperacaoMetaRoute
-    }
   }
 }
 
 interface AuthenticatedOperacaoMetaRouteChildren {
-  AuthenticatedOperacaoMetaConfiguracoesRoute: typeof AuthenticatedOperacaoMetaConfiguracoesRoute
   AuthenticatedOperacaoMetaConquistasRoute: typeof AuthenticatedOperacaoMetaConquistasRoute
   AuthenticatedOperacaoMetaDiariaRoute: typeof AuthenticatedOperacaoMetaDiariaRoute
   AuthenticatedOperacaoMetaDinamicaRoute: typeof AuthenticatedOperacaoMetaDinamicaRoute
@@ -651,8 +630,6 @@ interface AuthenticatedOperacaoMetaRouteChildren {
 
 const AuthenticatedOperacaoMetaRouteChildren: AuthenticatedOperacaoMetaRouteChildren =
   {
-    AuthenticatedOperacaoMetaConfiguracoesRoute:
-      AuthenticatedOperacaoMetaConfiguracoesRoute,
     AuthenticatedOperacaoMetaConquistasRoute:
       AuthenticatedOperacaoMetaConquistasRoute,
     AuthenticatedOperacaoMetaDiariaRoute: AuthenticatedOperacaoMetaDiariaRoute,
