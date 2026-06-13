@@ -845,8 +845,10 @@ export type Database = {
           expected_delivery_date: string | null
           id: string
           labels: string[]
+          last_redo_at: string | null
           priority: number
           producer_id: string | null
+          redo_count: number
           sale_id: string | null
           service_index: number
           sort_order: number
@@ -865,8 +867,10 @@ export type Database = {
           expected_delivery_date?: string | null
           id?: string
           labels?: string[]
+          last_redo_at?: string | null
           priority?: number
           producer_id?: string | null
+          redo_count?: number
           sale_id?: string | null
           service_index?: number
           sort_order?: number
@@ -885,8 +889,10 @@ export type Database = {
           expected_delivery_date?: string | null
           id?: string
           labels?: string[]
+          last_redo_at?: string | null
           priority?: number
           producer_id?: string | null
+          redo_count?: number
           sale_id?: string | null
           service_index?: number
           sort_order?: number
