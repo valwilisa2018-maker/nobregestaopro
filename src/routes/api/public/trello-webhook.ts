@@ -83,18 +83,22 @@ export const Route = createFileRoute("/api/public/trello-webhook")({
           return Response.json({ ok: true, skipped: "member not mapped" });
         }
 
-        // Scoring multiplier
-        const { data: scoring } = await supabaseAdmin
-          .from("om_scoring" as any)
-          .select("multiplicador")
-          .eq("evento", evento)
-          .maybeSingle();
-        const multiplicador = Number((scoring as any)?.multiplicador ?? 1);
-
-        // Points base = 1 (per-card service points integration is TODO)
+        // Apenas "Serviço Pronto" e "Distribuição p/ Edição (gravação)"
+        // geram pontuação. Alteração e Entregue são registrados (para contagem)
+        // mas valem 0 pontos.
+        const SCORING_EVENTS = new Set(["pronto", "distribuicao_edicao"]);
+        let pontos = 0;
+        if (SCORING_EVENTS.has(evento)) {
+          const { data: scoring } = await supabaseAdmin
+            .from("om_scoring" as any)
+            .select("multiplicador")
+            .eq("evento", evento)
+            .maybeSingle();
+          const multiplicador = Number((scoring as any)?.multiplicador ?? 1);
+          pontos = Math.round(1 * multiplicador);
+        }
         const cardName: string = String(card.name ?? "").trim();
         const cardKey = cardName.toLowerCase();
-        const pontos = Math.round(1 * multiplicador);
 
         const { error } = await supabaseAdmin.from("om_eventos" as any).insert({
           producer_id: producerId,
