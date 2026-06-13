@@ -18,6 +18,14 @@ import { Search } from "lucide-react";
 import { fmtDate } from "@/lib/format";
 import { formatCurrency } from "@/lib/auth";
 
+// Formata segundos em rótulo curto: 30s, 1min, 1min30s, 2min...
+function fmtVideoDuration(sec?: number | null): string {
+  if (!sec || sec < 1) return "";
+  const m = Math.floor(sec / 60);
+  const s = sec % 60;
+  return m === 0 ? `${s}s` : s === 0 ? `${m}min` : `${m}min${s}s`;
+}
+
 export const Route = createFileRoute("/_authenticated/kanban")({
   component: KanbanPage,
   validateSearch: (s: Record<string, unknown>) => ({ card: typeof s.card === "string" ? s.card : undefined }),
