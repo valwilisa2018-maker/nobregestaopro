@@ -936,6 +936,19 @@ function SalesPage() {
                 </Select>
               </div>
               <div><Label>Qtd. serviços *</Label><Input type="number" min="1" value={editing.service_quantity ?? 1} onChange={(e) => editSet("service_quantity", e.target.value)} /></div>
+              {isVideoService(serviceTypes.data?.find((st: any) => st.id === editing.service_type_id)?.name, !!editing.package_id) && (
+                <div>
+                  <Label>Minutagem do vídeo *</Label>
+                  <Select value={String(editing.video_duration_seconds ?? "")} onValueChange={(v) => editSet("video_duration_seconds", v)}>
+                    <SelectTrigger><SelectValue placeholder="Selecione (mín. 30s)" /></SelectTrigger>
+                    <SelectContent>
+                      {VIDEO_DURATION_OPTIONS.map((o) => (
+                        <SelectItem key={o.value} value={String(o.value)}>{o.label}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
               <div><Label>Data da venda *</Label><Input type="date" value={editing.sale_date ?? ""} onChange={(e) => editSet("sale_date", e.target.value)} /></div>
               <div><Label>Data de entrega *</Label><Input type="date" value={editing.expected_delivery_date ?? ""} onChange={(e) => editSet("expected_delivery_date", e.target.value)} /></div>
               <div className="col-span-2">
