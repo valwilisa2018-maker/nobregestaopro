@@ -381,7 +381,26 @@ function Dashboard() {
             <ToggleGroupItem value="week">Semana</ToggleGroupItem>
             <ToggleGroupItem value="month">Mês</ToggleGroupItem>
             <ToggleGroupItem value="year">Ano</ToggleGroupItem>
+            <ToggleGroupItem value="custom">Personalizado</ToggleGroupItem>
           </ToggleGroup>
+
+          {scope === "custom" && (
+            <div className="flex items-center gap-2">
+              <input
+                type="date"
+                value={customFrom}
+                onChange={(e) => setCustomFrom(e.target.value)}
+                className="h-9 rounded-md border border-input bg-background px-2 text-sm"
+              />
+              <span className="text-sm text-muted-foreground">até</span>
+              <input
+                type="date"
+                value={customTo}
+                onChange={(e) => setCustomTo(e.target.value)}
+                className="h-9 rounded-md border border-input bg-background px-2 text-sm"
+              />
+            </div>
+          )}
 
           <Select value={sellerFilter} onValueChange={setSellerFilter}>
             <SelectTrigger className="w-[200px]">
