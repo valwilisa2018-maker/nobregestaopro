@@ -322,6 +322,7 @@ function SalesPage() {
         sale_date: form.sale_date || new Date().toISOString().slice(0, 10),
         delivery_deadline: form.delivery_deadline,
         expected_delivery_date: form.expected_delivery_date,
+        video_duration_seconds: form.video_duration_seconds ? Number(form.video_duration_seconds) : null,
         created_by: user?.id,
       }).select("id").single();
 
