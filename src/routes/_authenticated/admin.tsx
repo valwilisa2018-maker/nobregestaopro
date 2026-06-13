@@ -87,6 +87,14 @@ function AdminPage() {
   const qc = useQueryClient();
   const goals = useQuery({ queryKey: ["admin-goals"], queryFn: async () => (await supabase.from("goals").select("*").is("seller_id", null)).data ?? [] });
   const services = useQuery({ queryKey: ["admin-services"], queryFn: async () => (await supabase.from("service_types").select("*").order("sort_order")).data ?? [] });
+  const producersGoals = useQuery({ queryKey: ["admin-producers-goals"], queryFn: async () => (await supabase.from("producers").select("id,name,avatar_url,daily_points_goal,active").order("name")).data ?? [] });
+  const updateProducerGoal = async (id: string, v: string) => {
+    const n = Number(v);
+    if (!Number.isFinite(n) || n < 0) { toast.error("Valor inválido"); return; }
+    const { error } = await supabase.from("producers").update({ daily_points_goal: n }).eq("id", id);
+    if (error) toast.error(error.message);
+    else { toast.success("Meta atualizada"); qc.invalidateQueries({ queryKey: ["admin-producers-goals"] }); }
+  };
   const cols = useQuery({ queryKey: ["admin-cols"], queryFn: async () => (await supabase.from("kanban_columns").select("*").order("sort_order")).data ?? [] });
   const sellers = useQuery({ queryKey: ["admin-sellers"], queryFn: async () => (await supabase.from("sellers").select("*").order("name")).data ?? [] });
   const [newService, setNewService] = useState("");
@@ -396,6 +404,35 @@ function AdminPage() {
                 </CardContent>
               </Card>
             ))}
+          <Card className="border-border/50">
+            <CardHeader>
+              <CardTitle className="text-base">Meta diária por produtor (pontos)</CardTitle>
+              <CardDescription>Pontuação diária esperada de cada produtor — usada em Operação Meta.</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-2">
+                {(producersGoals.data ?? []).filter((p: any) => p.active).map((p: any) => (
+                  <div key={p.id} className="flex items-center gap-3 p-3 rounded-lg border border-border/40 bg-muted/20">
+                    <div className="w-9 h-9 rounded-full bg-muted overflow-hidden border flex items-center justify-center text-xs font-bold text-muted-foreground">
+                      {p.avatar_url ? <img src={p.avatar_url} alt={p.name} className="w-full h-full object-cover" /> : (p.name?.charAt(0)?.toUpperCase() ?? "?")}
+                    </div>
+                    <div className="flex-1 truncate text-sm font-medium">{p.name}</div>
+                    <Input
+                      type="number" step="0.5" min="0"
+                      defaultValue={p.daily_points_goal ?? 7}
+                      key={`${p.id}-${p.daily_points_goal}`}
+                      onBlur={(e) => { if (Number(e.target.value) !== Number(p.daily_points_goal ?? 7)) updateProducerGoal(p.id, e.target.value); }}
+                      className="h-8 w-20 text-center"
+                    />
+                    <span className="text-[10px] text-muted-foreground">pts</span>
+                  </div>
+                ))}
+                {(producersGoals.data ?? []).length === 0 && (
+                  <div className="col-span-full text-sm text-muted-foreground italic">Nenhum produtor cadastrado.</div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
         </TabsContent>
 
         <TabsContent value="commissions" className="space-y-3 mt-4">
