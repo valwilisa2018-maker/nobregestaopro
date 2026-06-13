@@ -261,19 +261,28 @@ function Dashboard() {
     };
   }).filter((s) => s.qtd > 0).sort((a, b) => b.total - a.total).slice(0, 5);
 
-  // Ranking produtores (no escopo) — por PRODUÇÃO de vídeos (service_orders), não vendas
+  // Ranking produtores (no escopo) — conta cada card que foi movido para
+  // "serviço pronto" dentro do período, usando delivered_at (gravado uma
+  // única vez na primeira vez que o card chega na coluna concluída).
+  // Assim, mover o mesmo card de volta para pronto NÃO recontabiliza.
   const producerRanking = (producers.data ?? []).map((p: any) => {
-    const list = ordersList.filter((o) => o.producer_id === p.id && o.created_at >= scopeSince);
-    const entregues = list.filter((o) => !!o.delivered_at || o.kanban_columns?.is_done).length;
-    const emProducao = list.length - entregues;
+    const entreguesList = ordersList.filter(
+      (o) => o.producer_id === p.id && o.delivered_at && o.delivered_at.slice(0, 10) >= scopeSince
+    );
+    const emProducaoList = ordersList.filter(
+      (o) => o.producer_id === p.id && !o.delivered_at && !o.kanban_columns?.is_done
+    );
+    const entregues = entreguesList.length;
+    const emProducao = emProducaoList.length;
     return {
       id: p.id,
       name: p.name,
       entregues,
       emProducao,
-      qtd: list.length,
+      qtd: entregues + emProducao,
     };
-  }).filter((p) => p.qtd > 0).sort((a, b) => b.entregues - a.entregues || b.qtd - a.qtd).slice(0, 5);
+  }).filter((p) => p.entregues > 0 || p.emProducao > 0)
+    .sort((a, b) => b.entregues - a.entregues || b.qtd - a.qtd).slice(0, 5);
 
   // Produtos / serviços mais vendidos (no escopo) — combina service_types + packages
   const productRanking = useMemo(() => {
