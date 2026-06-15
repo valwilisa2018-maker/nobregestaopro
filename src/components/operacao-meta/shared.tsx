@@ -166,7 +166,7 @@ export function DiariaView({ delivered, producers, computePts, catName, sumPts, 
     for (const o of todayOrders) { if (!o.producer_id) continue; m.set(o.producer_id, (m.get(o.producer_id) ?? 0) + computePts(o)); }
     return Array.from(m.entries()).map(([pid, p]) => {
       const prod = producers.find((x: any) => x.id === pid);
-      return { name: prod?.name ?? "—", points: Number(p.toFixed(1)) };
+      return { name: prod?.name ?? "—", avatar: prod?.avatar_url ?? null, points: Number(p.toFixed(1)) };
     }).sort((a, b) => b.points - a.points);
   }, [todayOrders, producers]);
 
@@ -238,16 +238,34 @@ export function DiariaView({ delivered, producers, computePts, catName, sumPts, 
             {todayRanking.length === 0 ? (
               <div className="h-[260px] flex items-center justify-center text-sm text-muted-foreground">Sem dados ainda</div>
             ) : (
-              <div className="h-[260px] mt-3">
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={todayRanking} layout="vertical" margin={{ left: 20 }}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border) / 0.3)" />
-                    <XAxis type="number" stroke="hsl(var(--muted-foreground))" fontSize={11} />
-                    <YAxis dataKey="name" type="category" stroke="hsl(var(--muted-foreground))" fontSize={11} width={80} />
-                    <Tooltip contentStyle={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: 8 }} />
-                    <Bar dataKey="points" fill="var(--ranking-bar, hsl(var(--primary)))" radius={[0, 6, 6, 0]} />
-                  </BarChart>
-                </ResponsiveContainer>
+              <div className="mt-3 space-y-3">
+                {todayRanking.map((r, i) => {
+                  const max = todayRanking[0]?.points || 1;
+                  const pctBar = Math.max(4, Math.round((r.points / max) * 100));
+                  const initials = r.name.split(/\s+/).map((n: string) => n[0]).join("").slice(0, 2).toUpperCase();
+                  return (
+                    <div key={i} className="flex items-center gap-3">
+                      <div className="text-xs font-bold text-muted-foreground w-5 text-right shrink-0">#{i + 1}</div>
+                      {r.avatar ? (
+                        <img src={r.avatar} alt={r.name} className="w-9 h-9 rounded-full object-cover shrink-0 ring-2 ring-border" />
+                      ) : (
+                        <div className="w-9 h-9 rounded-full bg-muted flex items-center justify-center text-xs font-bold shrink-0 ring-2 ring-border">{initials}</div>
+                      )}
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center justify-between gap-2 mb-1">
+                          <span className="text-sm font-medium truncate">{r.name}</span>
+                          <span className="text-sm font-bold tabular-nums shrink-0">{r.points}</span>
+                        </div>
+                        <div className="h-2.5 rounded-full bg-muted/60 overflow-hidden">
+                          <div
+                            className="h-full rounded-full transition-all"
+                            style={{ width: `${pctBar}%`, background: "var(--ranking-bar, hsl(var(--primary)))" }}
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             )}
           </CardContent>
