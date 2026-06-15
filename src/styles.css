@@ -168,6 +168,8 @@
   --shadow-premium: 0 10px 40px -10px oklch(0.55 0.22 25 / 0.25);
   --shadow-card: 0 4px 24px -8px oklch(0.18 0.01 270 / 0.08);
   --shadow-elegant: 0 1px 3px oklch(0.18 0.01 270 / 0.06), 0 8px 24px -8px oklch(0.18 0.01 270 / 0.10);
+
+  --ranking-bar: oklch(0.55 0.22 25);
 }
 
 @theme inline {
