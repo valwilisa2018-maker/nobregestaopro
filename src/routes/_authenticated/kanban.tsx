@@ -204,7 +204,8 @@ function KanbanPage() {
     const col = cols.data?.find((c: any) => c.id === columnId);
     // Ao mover para uma coluna, novos cards vão para o topo (sort_order menor).
     // Em colunas concluídas isso garante "mais recente em cima".
-    const newSort = -Date.now();
+    // Usa segundos (não ms) para caber em INTEGER (int32). Negativo = mais recente em cima.
+    const newSort = -Math.floor(Date.now() / 1000);
     const { error } = await supabase
       .from("service_orders")
       .update({ column_id: columnId, sort_order: newSort })
@@ -226,7 +227,7 @@ function KanbanPage() {
 
   const moveMany = async (cardIds: string[], columnId: string) => {
     const col = cols.data?.find((c: any) => c.id === columnId);
-    const baseSort = -Date.now();
+    const baseSort = -Math.floor(Date.now() / 1000);
     // Atualiza em paralelo para manter ordem relativa entre os cards do grupo.
     const results = await Promise.all(
       cardIds.map((id, i) =>
