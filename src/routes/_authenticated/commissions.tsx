@@ -169,17 +169,17 @@ function CommissionsPage() {
             ) : (
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={chartData} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                  <XAxis dataKey="name" stroke="hsl(var(--muted-foreground))" fontSize={12} />
-                  <YAxis stroke="hsl(var(--muted-foreground))" fontSize={12} tickFormatter={(v) => `R$ ${Math.round(v / 1000)}k`} />
+                  <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
+                  <XAxis dataKey="name" stroke="var(--muted-foreground)" fontSize={12} />
+                  <YAxis stroke="var(--muted-foreground)" fontSize={12} tickFormatter={(v) => `R$ ${Math.round(v / 1000)}k`} />
                   <Tooltip
-                    contentStyle={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: 8 }}
+                    contentStyle={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: 8 }}
                     formatter={(value: any) => formatCurrency(Number(value))}
                   />
                   <Legend />
-                  <Bar dataKey="Meta" fill="hsl(var(--muted-foreground))" opacity={0.4} radius={[4, 4, 0, 0]} />
-                  <Bar dataKey="Vendido" fill="hsl(var(--primary))" opacity={0.6} radius={[4, 4, 0, 0]} />
-                  <Bar dataKey="Pago" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="Meta" fill="var(--muted-foreground)" opacity={0.4} radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="Vendido" fill="var(--primary)" opacity={0.6} radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="Pago" fill="var(--primary)" radius={[4, 4, 0, 0]} />
                   <Bar dataKey="Comissão" fill="#10b981" radius={[4, 4, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>

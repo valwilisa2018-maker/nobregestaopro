@@ -259,7 +259,7 @@ export function DiariaView({ delivered, producers, computePts, catName, sumPts, 
                         <div className="h-2.5 rounded-full bg-muted/60 overflow-hidden">
                           <div
                             className="h-full rounded-full transition-all"
-                            style={{ width: `${pctBar}%`, background: "var(--ranking-bar, hsl(var(--primary)))" }}
+                            style={{ width: `${pctBar}%`, background: "var(--ranking-bar, var(--primary))" }}
                           />
                         </div>
                       </div>
@@ -418,10 +418,10 @@ export function MensalView({ delivered, producers, computePts, catName, sumPts, 
             <div className="h-[300px] mt-3">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={rPts.slice(0, 8).map(r => ({ name: r.name.toUpperCase(), value: Math.round(r.points) }))} layout="vertical" margin={{ left: 20 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border) / 0.3)" />
-                  <XAxis type="number" stroke="hsl(var(--muted-foreground))" fontSize={11} />
-                  <YAxis dataKey="name" type="category" stroke="hsl(var(--muted-foreground))" fontSize={11} width={80} />
-                  <Tooltip contentStyle={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: 8 }} />
+                  <CartesianGrid strokeDasharray="3 3" stroke="color-mix(in oklab, var(--border) calc(0.3 * 100%), transparent)" />
+                  <XAxis type="number" stroke="var(--muted-foreground)" fontSize={11} />
+                  <YAxis dataKey="name" type="category" stroke="var(--muted-foreground)" fontSize={11} width={80} />
+                  <Tooltip contentStyle={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: 8 }} />
                   <Bar dataKey="value" fill="#ef4444" radius={[0, 6, 6, 0]} />
                 </BarChart>
               </ResponsiveContainer>
@@ -440,7 +440,7 @@ export function MensalView({ delivered, producers, computePts, catName, sumPts, 
                     <Pie data={cats} dataKey="value" nameKey="name" innerRadius={60} outerRadius={90} paddingAngle={2}>
                       {cats.map((_: any, i: number) => <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />)}
                     </Pie>
-                    <Tooltip contentStyle={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: 8 }} />
+                    <Tooltip contentStyle={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: 8 }} />
                     <Legend wrapperStyle={{ fontSize: 10 }} />
                   </PieChart>
                 </ResponsiveContainer>
@@ -457,10 +457,10 @@ export function MensalView({ delivered, producers, computePts, catName, sumPts, 
               <div className="h-[300px] mt-3">
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart data={altPerProducer}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border) / 0.3)" />
-                    <XAxis dataKey="name" stroke="hsl(var(--muted-foreground))" fontSize={10} angle={-30} textAnchor="end" height={60} />
-                    <YAxis stroke="hsl(var(--muted-foreground))" fontSize={11} />
-                    <Tooltip contentStyle={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: 8 }} />
+                    <CartesianGrid strokeDasharray="3 3" stroke="color-mix(in oklab, var(--border) calc(0.3 * 100%), transparent)" />
+                    <XAxis dataKey="name" stroke="var(--muted-foreground)" fontSize={10} angle={-30} textAnchor="end" height={60} />
+                    <YAxis stroke="var(--muted-foreground)" fontSize={11} />
+                    <Tooltip contentStyle={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: 8 }} />
                     <Bar dataKey="value" fill="#f97316" radius={[6, 6, 0, 0]} />
                   </BarChart>
                 </ResponsiveContainer>
@@ -676,10 +676,10 @@ export function TendenciasView({ delivered, sumPts }: any) {
                   <stop offset="100%" stopColor="#ef4444" stopOpacity={0} />
                 </linearGradient>
               </defs>
-              <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border) / 0.3)" />
-              <XAxis dataKey="name" stroke="hsl(var(--muted-foreground))" fontSize={10} interval={3} />
-              <YAxis stroke="hsl(var(--muted-foreground))" fontSize={10} />
-              <Tooltip contentStyle={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: 8 }} />
+              <CartesianGrid strokeDasharray="3 3" stroke="color-mix(in oklab, var(--border) calc(0.3 * 100%), transparent)" />
+              <XAxis dataKey="name" stroke="var(--muted-foreground)" fontSize={10} interval={3} />
+              <YAxis stroke="var(--muted-foreground)" fontSize={10} />
+              <Tooltip contentStyle={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: 8 }} />
               <Area type="monotone" dataKey="value" stroke="#ef4444" fill="url(#gPts)" />
             </AreaChart>
           </ResponsiveContainer>
@@ -688,10 +688,10 @@ export function TendenciasView({ delivered, sumPts }: any) {
         <ChartCard title="Produtores Ativos por Dia" icon={Users} accent="text-blue-500">
           <ResponsiveContainer width="100%" height="100%">
             <BarChart data={activeProdsSeries}>
-              <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border) / 0.3)" />
-              <XAxis dataKey="name" stroke="hsl(var(--muted-foreground))" fontSize={10} interval={3} />
-              <YAxis stroke="hsl(var(--muted-foreground))" fontSize={10} />
-              <Tooltip contentStyle={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: 8 }} />
+              <CartesianGrid strokeDasharray="3 3" stroke="color-mix(in oklab, var(--border) calc(0.3 * 100%), transparent)" />
+              <XAxis dataKey="name" stroke="var(--muted-foreground)" fontSize={10} interval={3} />
+              <YAxis stroke="var(--muted-foreground)" fontSize={10} />
+              <Tooltip contentStyle={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: 8 }} />
               <Bar dataKey="value" fill="#3b82f6" radius={[4, 4, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
@@ -700,10 +700,10 @@ export function TendenciasView({ delivered, sumPts }: any) {
         <ChartCard title="Projetos vs Alterações" icon={RefreshCw} accent="text-amber-500">
           <ResponsiveContainer width="100%" height="100%">
             <LineChart data={projAltSeries}>
-              <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border) / 0.3)" />
-              <XAxis dataKey="name" stroke="hsl(var(--muted-foreground))" fontSize={10} interval={3} />
-              <YAxis stroke="hsl(var(--muted-foreground))" fontSize={10} />
-              <Tooltip contentStyle={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: 8 }} />
+              <CartesianGrid strokeDasharray="3 3" stroke="color-mix(in oklab, var(--border) calc(0.3 * 100%), transparent)" />
+              <XAxis dataKey="name" stroke="var(--muted-foreground)" fontSize={10} interval={3} />
+              <YAxis stroke="var(--muted-foreground)" fontSize={10} />
+              <Tooltip contentStyle={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: 8 }} />
               <Legend wrapperStyle={{ fontSize: 11 }} />
               <Line type="monotone" dataKey="projetos" stroke="#10b981" strokeWidth={2} dot={false} />
               <Line type="monotone" dataKey="alteracoes" stroke="#f59e0b" strokeWidth={2} dot={false} />
@@ -720,10 +720,10 @@ export function TendenciasView({ delivered, sumPts }: any) {
                   <stop offset="100%" stopColor="#8b5cf6" stopOpacity={0} />
                 </linearGradient>
               </defs>
-              <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border) / 0.3)" />
-              <XAxis dataKey="name" stroke="hsl(var(--muted-foreground))" fontSize={10} interval={3} />
-              <YAxis stroke="hsl(var(--muted-foreground))" fontSize={10} />
-              <Tooltip contentStyle={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: 8 }} />
+              <CartesianGrid strokeDasharray="3 3" stroke="color-mix(in oklab, var(--border) calc(0.3 * 100%), transparent)" />
+              <XAxis dataKey="name" stroke="var(--muted-foreground)" fontSize={10} interval={3} />
+              <YAxis stroke="var(--muted-foreground)" fontSize={10} />
+              <Tooltip contentStyle={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: 8 }} />
               <Area type="monotone" dataKey="value" stroke="#8b5cf6" fill="url(#gAvg)" />
             </AreaChart>
           </ResponsiveContainer>
