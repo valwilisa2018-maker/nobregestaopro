@@ -557,6 +557,13 @@ function KanbanPage() {
             }
             return true;
           });
+          // Ordena pela posição manual (sort_order). Como `move` define
+          // sort_order = -Date.now() ao mover, os mais recentes ficam no topo
+          // (essencial para a coluna "Serviços Entregues").
+          colCards.sort((a: any, b: any) =>
+            (a.sort_order ?? 0) - (b.sort_order ?? 0) ||
+            new Date(a.created_at).getTime() - new Date(b.created_at).getTime(),
+          );
           // Group by sale_id (same customer/sale = same package). Cards without sale_id stay solo.
           const groupsMap = new Map<string, any[]>();
           const soloCards: any[] = [];
@@ -582,10 +589,22 @@ function KanbanPage() {
               className="min-w-[280px] w-[280px] flex-shrink-0 rounded-lg border-2 border-foreground bg-muted p-3 shadow-md overflow-hidden"
               onDragOver={(e) => e.preventDefault()}
               onDrop={() => {
-                if (draggingGroup && draggingGroup.length) moveMany(draggingGroup, col.id);
-                else if (dragging) move(dragging, col.id);
+                const movingIds = draggingGroup && draggingGroup.length
+                  ? draggingGroup
+                  : dragging ? [dragging] : [];
+                if (movingIds.length) {
+                  if (draggingFromCol === col.id) {
+                    // Soltou em área vazia da mesma coluna → manda para o final.
+                    reorderInColumn(col.id, movingIds, null);
+                  } else if (draggingGroup && draggingGroup.length) {
+                    moveMany(draggingGroup, col.id);
+                  } else if (dragging) {
+                    move(dragging, col.id);
+                  }
+                }
                 setDragging(null);
                 setDraggingGroup(null);
+                setDraggingFromCol(null);
               }}
             >
               <div className="flex items-center justify-between px-4 py-3 rounded-t-md bg-foreground text-background -m-3 mb-3">
