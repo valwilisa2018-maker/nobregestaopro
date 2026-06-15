@@ -638,7 +638,29 @@ function KanbanPage() {
                     const customerName = first.sales?.customers?.name ?? "Cliente";
                     const company = first.sales?.customers?.company;
                     return (
-                      <div key={groupKey} className="space-y-2">
+                      <div
+                        key={groupKey}
+                        className="space-y-2"
+                        onDragOver={(e) => {
+                          if (draggingFromCol === col.id) {
+                            e.preventDefault();
+                            e.stopPropagation();
+                          }
+                        }}
+                        onDrop={(e) => {
+                          if (draggingFromCol !== col.id) return;
+                          e.stopPropagation();
+                          const movingIds = draggingGroup && draggingGroup.length
+                            ? draggingGroup
+                            : dragging ? [dragging] : [];
+                          if (movingIds.length && !movingIds.includes(first.id)) {
+                            reorderInColumn(col.id, movingIds, first.id);
+                          }
+                          setDragging(null);
+                          setDraggingGroup(null);
+                          setDraggingFromCol(null);
+                        }}
+                      >
                         {(first.sales?.payment_status === "pago_parcial" || first.sales?.video_duration_seconds) && (
                           <div className="flex justify-end gap-1 flex-wrap">
                             {first.sales?.video_duration_seconds ? (
@@ -655,9 +677,9 @@ function KanbanPage() {
                         )}
                         <Card
                           draggable
-                          onDragStart={() => { setDraggingGroup(it.cards.map((x: any) => x.id)); setDragMoved(false); }}
+                          onDragStart={() => { setDraggingGroup(it.cards.map((x: any) => x.id)); setDraggingFromCol(col.id); setDragMoved(false); }}
                           onDrag={() => setDragMoved(true)}
-                          onDragEnd={() => { setDraggingGroup(null); setTimeout(() => setDragMoved(false), 0); }}
+                          onDragEnd={() => { setDraggingGroup(null); setDraggingFromCol(null); setTimeout(() => setDragMoved(false), 0); }}
                           onClick={() => { if (!dragMoved) setExpandedGroups((s) => ({ ...s, [groupKey]: !s[groupKey] })); }}
                           className="cursor-grab active:cursor-grabbing bg-background hover:border-primary/70 transition-all overflow-hidden border-2 border-foreground/15 shadow-md"
                           style={{ boxShadow: "var(--shadow-card)", borderLeft: `4px solid ${col.color || "var(--primary)"}` }}>
@@ -728,9 +750,9 @@ function KanbanPage() {
                         </Card>
                         {isOpen && it.cards.map((c: any) => (
                           <Card key={c.id} draggable
-                            onDragStart={() => { setDragging(c.id); setDragMoved(false); }}
+                            onDragStart={() => { setDragging(c.id); setDraggingFromCol(col.id); setDragMoved(false); }}
                             onDrag={() => setDragMoved(true)}
-                            onDragEnd={() => { setDragging(null); setTimeout(() => setDragMoved(false), 0); }}
+                            onDragEnd={() => { setDragging(null); setDraggingFromCol(null); setTimeout(() => setDragMoved(false), 0); }}
                             onClick={() => { if (!dragMoved) openEdit(c); }}
                             className="cursor-pointer bg-background hover:border-primary/70 transition-all overflow-hidden border-2 border-foreground/15 shadow-md ml-4"
                             style={{
@@ -813,7 +835,29 @@ function KanbanPage() {
                   }
                   const c = it.card;
                   return (
-                    <div key={c.id} className="space-y-1">
+                    <div
+                      key={c.id}
+                      className="space-y-1"
+                      onDragOver={(e) => {
+                        if (draggingFromCol === col.id) {
+                          e.preventDefault();
+                          e.stopPropagation();
+                        }
+                      }}
+                      onDrop={(e) => {
+                        if (draggingFromCol !== col.id) return;
+                        e.stopPropagation();
+                        const movingIds = draggingGroup && draggingGroup.length
+                          ? draggingGroup
+                          : dragging ? [dragging] : [];
+                        if (movingIds.length && !movingIds.includes(c.id)) {
+                          reorderInColumn(col.id, movingIds, c.id);
+                        }
+                        setDragging(null);
+                        setDraggingGroup(null);
+                        setDraggingFromCol(null);
+                      }}
+                    >
                     {(c.sales?.payment_status === "pago_parcial" || c.sales?.video_duration_seconds) && (
                       <div className="flex justify-end gap-1 flex-wrap">
                         {c.sales?.video_duration_seconds ? (
@@ -829,9 +873,9 @@ function KanbanPage() {
                       </div>
                     )}
                     <Card draggable
-                    onDragStart={() => { setDragging(c.id); setDragMoved(false); }}
+                    onDragStart={() => { setDragging(c.id); setDraggingFromCol(col.id); setDragMoved(false); }}
                     onDrag={() => setDragMoved(true)}
-                    onDragEnd={() => { setDragging(null); setTimeout(() => setDragMoved(false), 0); }}
+                    onDragEnd={() => { setDragging(null); setDraggingFromCol(null); setTimeout(() => setDragMoved(false), 0); }}
                     onClick={() => { if (!dragMoved) openEdit(c); }}
                     className="cursor-pointer bg-background hover:border-primary/70 transition-all overflow-hidden border-2 border-foreground/15 shadow-md"
                     style={{
