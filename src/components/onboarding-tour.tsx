@@ -139,9 +139,9 @@ export function OnboardingTour() {
         options: {
           primaryColor: "hsl(0 84% 55%)",
           zIndex: 10000,
-          arrowColor: "hsl(var(--card, 0 0% 100%))",
-          backgroundColor: "hsl(var(--card, 0 0% 100%))",
-          textColor: "hsl(var(--foreground, 0 0% 10%))",
+          arrowColor: "var(--card)",
+          backgroundColor: "var(--card)",
+          textColor: "var(--foreground)",
           overlayColor: "rgba(0,0,0,0.55)",
         },
       }}
