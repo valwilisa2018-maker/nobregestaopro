@@ -97,6 +97,7 @@ function KanbanPage() {
   const { card: cardParam } = Route.useSearch();
   const [dragging, setDragging] = useState<string | null>(null);
   const [draggingGroup, setDraggingGroup] = useState<string[] | null>(null);
+  const [draggingFromCol, setDraggingFromCol] = useState<string | null>(null);
   const boardRef = useRef<HTMLDivElement | null>(null);
   const topScrollRef = useRef<HTMLDivElement | null>(null);
   const [boardScrollWidth, setBoardScrollWidth] = useState(0);
@@ -201,13 +202,12 @@ function KanbanPage() {
 
   const move = async (cardId: string, columnId: string) => {
     const col = cols.data?.find((c: any) => c.id === columnId);
-    // Atualiza apenas a coluna. delivered_at é "first-time only":
-    // marca na primeira vez que o card chega numa coluna concluída e
-    // NUNCA é apagado/sobrescrito (evita burlar o ranking movendo o
-    // mesmo card de volta para concluído).
+    // Ao mover para uma coluna, novos cards vão para o topo (sort_order menor).
+    // Em colunas concluídas isso garante "mais recente em cima".
+    const newSort = -Date.now();
     const { error } = await supabase
       .from("service_orders")
-      .update({ column_id: columnId })
+      .update({ column_id: columnId, sort_order: newSort })
       .eq("id", cardId);
     if (!error && col?.is_done) {
       await supabase
@@ -226,10 +226,17 @@ function KanbanPage() {
 
   const moveMany = async (cardIds: string[], columnId: string) => {
     const col = cols.data?.find((c: any) => c.id === columnId);
-    const { error } = await supabase
-      .from("service_orders")
-      .update({ column_id: columnId })
-      .in("id", cardIds);
+    const baseSort = -Date.now();
+    // Atualiza em paralelo para manter ordem relativa entre os cards do grupo.
+    const results = await Promise.all(
+      cardIds.map((id, i) =>
+        supabase
+          .from("service_orders")
+          .update({ column_id: columnId, sort_order: baseSort + i })
+          .eq("id", id),
+      ),
+    );
+    const error = results.find((r) => r.error)?.error;
     if (!error && col?.is_done) {
       await supabase
         .from("service_orders")
@@ -243,6 +250,40 @@ function KanbanPage() {
       toast.success(`${cardIds.length} cards movidos`);
       qc.invalidateQueries({ queryKey: ["kanban-cards"] });
     }
+  };
+
+  // Reordena cards dentro da mesma coluna. beforeCardId = inserir antes desse card
+  // (null = colocar no final). Trabalha com IDs individuais; quando um grupo é
+  // arrastado, todos os cards do grupo são reposicionados juntos.
+  const reorderInColumn = async (
+    colId: string,
+    movingIds: string[],
+    beforeCardId: string | null,
+  ) => {
+    const inCol = (cards.data ?? [])
+      .filter((c: any) => c.column_id === colId)
+      .sort(
+        (a: any, b: any) =>
+          (a.sort_order ?? 0) - (b.sort_order ?? 0) ||
+          new Date(a.created_at).getTime() - new Date(b.created_at).getTime(),
+      );
+    const movingSet = new Set(movingIds);
+    const moving = inCol.filter((c: any) => movingSet.has(c.id));
+    const rest = inCol.filter((c: any) => !movingSet.has(c.id));
+    const idx = beforeCardId
+      ? rest.findIndex((c: any) => c.id === beforeCardId)
+      : rest.length;
+    const insertAt = idx < 0 ? rest.length : idx;
+    rest.splice(insertAt, 0, ...moving);
+    await Promise.all(
+      rest.map((c: any, i: number) =>
+        supabase
+          .from("service_orders")
+          .update({ sort_order: (i + 1) * 10 })
+          .eq("id", c.id),
+      ),
+    );
+    qc.invalidateQueries({ queryKey: ["kanban-cards"] });
   };
 
   const transferCard = async (cardId: string, producerId: string) => {
