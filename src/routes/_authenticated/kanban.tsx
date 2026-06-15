@@ -97,6 +97,7 @@ function KanbanPage() {
   const { card: cardParam } = Route.useSearch();
   const [dragging, setDragging] = useState<string | null>(null);
   const [draggingGroup, setDraggingGroup] = useState<string[] | null>(null);
+  const [draggingFromCol, setDraggingFromCol] = useState<string | null>(null);
   const boardRef = useRef<HTMLDivElement | null>(null);
   const topScrollRef = useRef<HTMLDivElement | null>(null);
   const [boardScrollWidth, setBoardScrollWidth] = useState(0);
@@ -201,13 +202,12 @@ function KanbanPage() {
 
   const move = async (cardId: string, columnId: string) => {
     const col = cols.data?.find((c: any) => c.id === columnId);
-    // Atualiza apenas a coluna. delivered_at é "first-time only":
-    // marca na primeira vez que o card chega numa coluna concluída e
-    // NUNCA é apagado/sobrescrito (evita burlar o ranking movendo o
-    // mesmo card de volta para concluído).
+    // Ao mover para uma coluna, novos cards vão para o topo (sort_order menor).
+    // Em colunas concluídas isso garante "mais recente em cima".
+    const newSort = -Date.now();
     const { error } = await supabase
       .from("service_orders")
-      .update({ column_id: columnId })
+      .update({ column_id: columnId, sort_order: newSort })
       .eq("id", cardId);
     if (!error && col?.is_done) {
       await supabase
@@ -226,10 +226,17 @@ function KanbanPage() {
 
   const moveMany = async (cardIds: string[], columnId: string) => {
     const col = cols.data?.find((c: any) => c.id === columnId);
-    const { error } = await supabase
-      .from("service_orders")
-      .update({ column_id: columnId })
-      .in("id", cardIds);
+    const baseSort = -Date.now();
+    // Atualiza em paralelo para manter ordem relativa entre os cards do grupo.
+    const results = await Promise.all(
+      cardIds.map((id, i) =>
+        supabase
+          .from("service_orders")
+          .update({ column_id: columnId, sort_order: baseSort + i })
+          .eq("id", id),
+      ),
+    );
+    const error = results.find((r) => r.error)?.error;
     if (!error && col?.is_done) {
       await supabase
         .from("service_orders")
@@ -243,6 +250,40 @@ function KanbanPage() {
       toast.success(`${cardIds.length} cards movidos`);
       qc.invalidateQueries({ queryKey: ["kanban-cards"] });
     }
+  };
+
+  // Reordena cards dentro da mesma coluna. beforeCardId = inserir antes desse card
+  // (null = colocar no final). Trabalha com IDs individuais; quando um grupo é
+  // arrastado, todos os cards do grupo são reposicionados juntos.
+  const reorderInColumn = async (
+    colId: string,
+    movingIds: string[],
+    beforeCardId: string | null,
+  ) => {
+    const inCol = (cards.data ?? [])
+      .filter((c: any) => c.column_id === colId)
+      .sort(
+        (a: any, b: any) =>
+          (a.sort_order ?? 0) - (b.sort_order ?? 0) ||
+          new Date(a.created_at).getTime() - new Date(b.created_at).getTime(),
+      );
+    const movingSet = new Set(movingIds);
+    const moving = inCol.filter((c: any) => movingSet.has(c.id));
+    const rest = inCol.filter((c: any) => !movingSet.has(c.id));
+    const idx = beforeCardId
+      ? rest.findIndex((c: any) => c.id === beforeCardId)
+      : rest.length;
+    const insertAt = idx < 0 ? rest.length : idx;
+    rest.splice(insertAt, 0, ...moving);
+    await Promise.all(
+      rest.map((c: any, i: number) =>
+        supabase
+          .from("service_orders")
+          .update({ sort_order: (i + 1) * 10 })
+          .eq("id", c.id),
+      ),
+    );
+    qc.invalidateQueries({ queryKey: ["kanban-cards"] });
   };
 
   const transferCard = async (cardId: string, producerId: string) => {
@@ -516,6 +557,13 @@ function KanbanPage() {
             }
             return true;
           });
+          // Ordena pela posição manual (sort_order). Como `move` define
+          // sort_order = -Date.now() ao mover, os mais recentes ficam no topo
+          // (essencial para a coluna "Serviços Entregues").
+          colCards.sort((a: any, b: any) =>
+            (a.sort_order ?? 0) - (b.sort_order ?? 0) ||
+            new Date(a.created_at).getTime() - new Date(b.created_at).getTime(),
+          );
           // Group by sale_id (same customer/sale = same package). Cards without sale_id stay solo.
           const groupsMap = new Map<string, any[]>();
           const soloCards: any[] = [];
@@ -541,10 +589,22 @@ function KanbanPage() {
               className="min-w-[280px] w-[280px] flex-shrink-0 rounded-lg border-2 border-foreground bg-muted p-3 shadow-md overflow-hidden"
               onDragOver={(e) => e.preventDefault()}
               onDrop={() => {
-                if (draggingGroup && draggingGroup.length) moveMany(draggingGroup, col.id);
-                else if (dragging) move(dragging, col.id);
+                const movingIds = draggingGroup && draggingGroup.length
+                  ? draggingGroup
+                  : dragging ? [dragging] : [];
+                if (movingIds.length) {
+                  if (draggingFromCol === col.id) {
+                    // Soltou em área vazia da mesma coluna → manda para o final.
+                    reorderInColumn(col.id, movingIds, null);
+                  } else if (draggingGroup && draggingGroup.length) {
+                    moveMany(draggingGroup, col.id);
+                  } else if (dragging) {
+                    move(dragging, col.id);
+                  }
+                }
                 setDragging(null);
                 setDraggingGroup(null);
+                setDraggingFromCol(null);
               }}
             >
               <div className="flex items-center justify-between px-4 py-3 rounded-t-md bg-foreground text-background -m-3 mb-3">
@@ -578,7 +638,29 @@ function KanbanPage() {
                     const customerName = first.sales?.customers?.name ?? "Cliente";
                     const company = first.sales?.customers?.company;
                     return (
-                      <div key={groupKey} className="space-y-2">
+                      <div
+                        key={groupKey}
+                        className="space-y-2"
+                        onDragOver={(e) => {
+                          if (draggingFromCol === col.id) {
+                            e.preventDefault();
+                            e.stopPropagation();
+                          }
+                        }}
+                        onDrop={(e) => {
+                          if (draggingFromCol !== col.id) return;
+                          e.stopPropagation();
+                          const movingIds = draggingGroup && draggingGroup.length
+                            ? draggingGroup
+                            : dragging ? [dragging] : [];
+                          if (movingIds.length && !movingIds.includes(first.id)) {
+                            reorderInColumn(col.id, movingIds, first.id);
+                          }
+                          setDragging(null);
+                          setDraggingGroup(null);
+                          setDraggingFromCol(null);
+                        }}
+                      >
                         {(first.sales?.payment_status === "pago_parcial" || first.sales?.video_duration_seconds) && (
                           <div className="flex justify-end gap-1 flex-wrap">
                             {first.sales?.video_duration_seconds ? (
@@ -595,9 +677,9 @@ function KanbanPage() {
                         )}
                         <Card
                           draggable
-                          onDragStart={() => { setDraggingGroup(it.cards.map((x: any) => x.id)); setDragMoved(false); }}
+                          onDragStart={() => { setDraggingGroup(it.cards.map((x: any) => x.id)); setDraggingFromCol(col.id); setDragMoved(false); }}
                           onDrag={() => setDragMoved(true)}
-                          onDragEnd={() => { setDraggingGroup(null); setTimeout(() => setDragMoved(false), 0); }}
+                          onDragEnd={() => { setDraggingGroup(null); setDraggingFromCol(null); setTimeout(() => setDragMoved(false), 0); }}
                           onClick={() => { if (!dragMoved) setExpandedGroups((s) => ({ ...s, [groupKey]: !s[groupKey] })); }}
                           className="cursor-grab active:cursor-grabbing bg-background hover:border-primary/70 transition-all overflow-hidden border-2 border-foreground/15 shadow-md"
                           style={{ boxShadow: "var(--shadow-card)", borderLeft: `4px solid ${col.color || "var(--primary)"}` }}>
@@ -668,9 +750,9 @@ function KanbanPage() {
                         </Card>
                         {isOpen && it.cards.map((c: any) => (
                           <Card key={c.id} draggable
-                            onDragStart={() => { setDragging(c.id); setDragMoved(false); }}
+                            onDragStart={() => { setDragging(c.id); setDraggingFromCol(col.id); setDragMoved(false); }}
                             onDrag={() => setDragMoved(true)}
-                            onDragEnd={() => { setDragging(null); setTimeout(() => setDragMoved(false), 0); }}
+                            onDragEnd={() => { setDragging(null); setDraggingFromCol(null); setTimeout(() => setDragMoved(false), 0); }}
                             onClick={() => { if (!dragMoved) openEdit(c); }}
                             className="cursor-pointer bg-background hover:border-primary/70 transition-all overflow-hidden border-2 border-foreground/15 shadow-md ml-4"
                             style={{
@@ -753,7 +835,29 @@ function KanbanPage() {
                   }
                   const c = it.card;
                   return (
-                    <div key={c.id} className="space-y-1">
+                    <div
+                      key={c.id}
+                      className="space-y-1"
+                      onDragOver={(e) => {
+                        if (draggingFromCol === col.id) {
+                          e.preventDefault();
+                          e.stopPropagation();
+                        }
+                      }}
+                      onDrop={(e) => {
+                        if (draggingFromCol !== col.id) return;
+                        e.stopPropagation();
+                        const movingIds = draggingGroup && draggingGroup.length
+                          ? draggingGroup
+                          : dragging ? [dragging] : [];
+                        if (movingIds.length && !movingIds.includes(c.id)) {
+                          reorderInColumn(col.id, movingIds, c.id);
+                        }
+                        setDragging(null);
+                        setDraggingGroup(null);
+                        setDraggingFromCol(null);
+                      }}
+                    >
                     {(c.sales?.payment_status === "pago_parcial" || c.sales?.video_duration_seconds) && (
                       <div className="flex justify-end gap-1 flex-wrap">
                         {c.sales?.video_duration_seconds ? (
@@ -769,9 +873,9 @@ function KanbanPage() {
                       </div>
                     )}
                     <Card draggable
-                    onDragStart={() => { setDragging(c.id); setDragMoved(false); }}
+                    onDragStart={() => { setDragging(c.id); setDraggingFromCol(col.id); setDragMoved(false); }}
                     onDrag={() => setDragMoved(true)}
-                    onDragEnd={() => { setDragging(null); setTimeout(() => setDragMoved(false), 0); }}
+                    onDragEnd={() => { setDragging(null); setDraggingFromCol(null); setTimeout(() => setDragMoved(false), 0); }}
                     onClick={() => { if (!dragMoved) openEdit(c); }}
                     className="cursor-pointer bg-background hover:border-primary/70 transition-all overflow-hidden border-2 border-foreground/15 shadow-md"
                     style={{
