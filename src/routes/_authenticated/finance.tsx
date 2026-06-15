@@ -548,10 +548,10 @@ function FinancePage() {
               <CardContent className="h-[300px]">
                 <ResponsiveContainer width="100%" height="100%">
                   <LineChart data={monthChart}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                    <XAxis dataKey="mes" stroke="hsl(var(--muted-foreground))" fontSize={12} />
-                    <YAxis stroke="hsl(var(--muted-foreground))" fontSize={12} tickFormatter={(v) => `R$ ${Math.round(v/1000)}k`} />
-                    <Tooltip contentStyle={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: 8 }} formatter={(v: any) => formatCurrency(Number(v))} />
+                    <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
+                    <XAxis dataKey="mes" stroke="var(--muted-foreground)" fontSize={12} />
+                    <YAxis stroke="var(--muted-foreground)" fontSize={12} tickFormatter={(v) => `R$ ${Math.round(v/1000)}k`} />
+                    <Tooltip contentStyle={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: 8 }} formatter={(v: any) => formatCurrency(Number(v))} />
                     <Legend />
                     <Line type="monotone" dataKey="Faturamento" stroke="#3b82f6" strokeWidth={2} dot={false} />
                     <Line type="monotone" dataKey="Despesas" stroke="#ef4444" strokeWidth={2} dot={false} />
@@ -591,10 +591,10 @@ function FinancePage() {
                       <stop offset="100%" stopColor="#10b981" stopOpacity={0} />
                     </linearGradient>
                   </defs>
-                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                  <XAxis dataKey="mes" stroke="hsl(var(--muted-foreground))" fontSize={12} />
-                  <YAxis stroke="hsl(var(--muted-foreground))" fontSize={12} tickFormatter={(v) => `R$ ${Math.round(v/1000)}k`} />
-                  <Tooltip contentStyle={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: 8 }} formatter={(v: any) => formatCurrency(Number(v))} />
+                  <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
+                  <XAxis dataKey="mes" stroke="var(--muted-foreground)" fontSize={12} />
+                  <YAxis stroke="var(--muted-foreground)" fontSize={12} tickFormatter={(v) => `R$ ${Math.round(v/1000)}k`} />
+                  <Tooltip contentStyle={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: 8 }} formatter={(v: any) => formatCurrency(Number(v))} />
                   <Area type="monotone" dataKey="Saldo" stroke="#10b981" fill="url(#grad-saldo)" strokeWidth={2} />
                 </AreaChart>
               </ResponsiveContainer>
@@ -879,10 +879,10 @@ function FinancePage() {
             <CardContent className="h-[300px]">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={salesBySeller}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                  <XAxis dataKey="name" stroke="hsl(var(--muted-foreground))" fontSize={12} />
-                  <YAxis stroke="hsl(var(--muted-foreground))" fontSize={12} tickFormatter={(v) => `R$ ${Math.round(v/1000)}k`} />
-                  <Tooltip contentStyle={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: 8 }} formatter={(v: any) => formatCurrency(Number(v))} />
+                  <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
+                  <XAxis dataKey="name" stroke="var(--muted-foreground)" fontSize={12} />
+                  <YAxis stroke="var(--muted-foreground)" fontSize={12} tickFormatter={(v) => `R$ ${Math.round(v/1000)}k`} />
+                  <Tooltip contentStyle={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: 8 }} formatter={(v: any) => formatCurrency(Number(v))} />
                   <Legend />
                   <Bar dataKey="Vendido" fill="#3b82f6" radius={[6, 6, 0, 0]} />
                   <Bar dataKey="Pago" fill="#10b981" radius={[6, 6, 0, 0]} />
@@ -965,11 +965,11 @@ function FinancePage() {
             <CardContent className="h-[300px]">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={prodByProducer}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                  <XAxis dataKey="name" stroke="hsl(var(--muted-foreground))" fontSize={12} />
-                  <YAxis yAxisId="left" stroke="hsl(var(--muted-foreground))" fontSize={12} />
-                  <YAxis yAxisId="right" orientation="right" stroke="hsl(var(--muted-foreground))" fontSize={12} tickFormatter={(v) => `R$ ${Math.round(v/1000)}k`} />
-                  <Tooltip contentStyle={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: 8 }} />
+                  <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
+                  <XAxis dataKey="name" stroke="var(--muted-foreground)" fontSize={12} />
+                  <YAxis yAxisId="left" stroke="var(--muted-foreground)" fontSize={12} />
+                  <YAxis yAxisId="right" orientation="right" stroke="var(--muted-foreground)" fontSize={12} tickFormatter={(v) => `R$ ${Math.round(v/1000)}k`} />
+                  <Tooltip contentStyle={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: 8 }} />
                   <Legend />
                   <Bar yAxisId="left" dataKey="Quantidade" fill="#8b5cf6" radius={[6, 6, 0, 0]} />
                   <Bar yAxisId="right" dataKey="Valor" fill="#06b6d4" radius={[6, 6, 0, 0]} />

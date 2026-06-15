@@ -90,7 +90,7 @@ const PAYMENT_STYLE: Record<string, { bg: string; fg: string; label: string }> =
   pendente:     { bg: "#ef4444", fg: "#fff", label: "Pendente" },
 };
 const paymentStyle = (s?: string | null) =>
-  PAYMENT_STYLE[s ?? ""] ?? { bg: "hsl(var(--muted))", fg: "hsl(var(--foreground))", label: (s ?? "—").replace("_", " ") };
+  PAYMENT_STYLE[s ?? ""] ?? { bg: "var(--muted)", fg: "var(--foreground)", label: (s ?? "—").replace("_", " ") };
 
 function KanbanPage() {
   const qc = useQueryClient();
@@ -600,7 +600,7 @@ function KanbanPage() {
                           onDragEnd={() => { setDraggingGroup(null); setTimeout(() => setDragMoved(false), 0); }}
                           onClick={() => { if (!dragMoved) setExpandedGroups((s) => ({ ...s, [groupKey]: !s[groupKey] })); }}
                           className="cursor-grab active:cursor-grabbing bg-background hover:border-primary/70 transition-all overflow-hidden border-2 border-foreground/15 shadow-md"
-                          style={{ boxShadow: "var(--shadow-card)", borderLeft: `4px solid ${col.color || "hsl(var(--primary))"}` }}>
+                          style={{ boxShadow: "var(--shadow-card)", borderLeft: `4px solid ${col.color || "var(--primary)"}` }}>
                           <CardContent className="p-3 space-y-1">
                             <div className="flex items-center justify-between">
                               <div className="flex items-center gap-2">
@@ -675,7 +675,7 @@ function KanbanPage() {
                             className="cursor-pointer bg-background hover:border-primary/70 transition-all overflow-hidden border-2 border-foreground/15 shadow-md ml-4"
                             style={{
                               boxShadow: "var(--shadow-card)",
-                              borderLeft: `4px solid ${col.color || "hsl(var(--primary))"}`,
+                              borderLeft: `4px solid ${col.color || "var(--primary)"}`,
                             }}>
                             <CardContent className="p-3 space-y-2">
                               {(c.labels?.length ?? 0) > 0 && (
@@ -684,7 +684,7 @@ function KanbanPage() {
                                     const { name, color } = parseLabel(raw);
                                     return (
                                       <span key={i} className="text-[10px] px-1.5 py-0.5 rounded font-medium"
-                                        style={{ background: color || "hsl(var(--primary) / 0.15)", color: color ? "#fff" : "hsl(var(--primary))" }}>
+                                        style={{ background: color || "color-mix(in oklab, var(--primary) calc(0.15 * 100%), transparent)", color: color ? "#fff" : "var(--primary)" }}>
                                         {name}
                                       </span>
                                     );
@@ -776,7 +776,7 @@ function KanbanPage() {
                     className="cursor-pointer bg-background hover:border-primary/70 transition-all overflow-hidden border-2 border-foreground/15 shadow-md"
                     style={{
                       boxShadow: "var(--shadow-card)",
-                      borderLeft: `4px solid ${col.color || "hsl(var(--primary))"}`,
+                      borderLeft: `4px solid ${col.color || "var(--primary)"}`,
                     }}>
                     <CardContent className="p-3 space-y-2">
                       {(c.labels?.length ?? 0) > 0 && (
@@ -785,7 +785,7 @@ function KanbanPage() {
                             const { name, color } = parseLabel(raw);
                             return (
                               <span key={i} className="text-[10px] px-1.5 py-0.5 rounded font-medium"
-                                style={{ background: color || "hsl(var(--primary) / 0.15)", color: color ? "#fff" : "hsl(var(--primary))" }}>
+                                style={{ background: color || "color-mix(in oklab, var(--primary) calc(0.15 * 100%), transparent)", color: color ? "#fff" : "var(--primary)" }}>
                                 {name}
                               </span>
                             );
@@ -963,7 +963,7 @@ function KanbanPage() {
                       const { name, color } = parseLabel(raw);
                       return (
                         <span key={i} className="flex items-center gap-1 text-xs px-2 py-1 rounded font-medium"
-                          style={{ background: color || "hsl(var(--muted))", color: color ? "#fff" : "hsl(var(--foreground))" }}>
+                          style={{ background: color || "var(--muted)", color: color ? "#fff" : "var(--foreground)" }}>
                           {name}
                           <button type="button" onClick={() => removeLabel(i)}
                             className="hover:opacity-70" style={{ color: color ? "#fff" : undefined }}>
