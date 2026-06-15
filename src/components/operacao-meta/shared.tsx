@@ -245,7 +245,7 @@ export function DiariaView({ delivered, producers, computePts, catName, sumPts, 
                     <XAxis type="number" stroke="hsl(var(--muted-foreground))" fontSize={11} />
                     <YAxis dataKey="name" type="category" stroke="hsl(var(--muted-foreground))" fontSize={11} width={80} />
                     <Tooltip contentStyle={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: 8 }} />
-                    <Bar dataKey="points" fill="hsl(var(--primary))" radius={[0, 6, 6, 0]} />
+                    <Bar dataKey="points" fill="var(--ranking-bar, hsl(var(--primary)))" radius={[0, 6, 6, 0]} />
                   </BarChart>
                 </ResponsiveContainer>
               </div>
