@@ -21,6 +21,7 @@ import { fmtDate } from "@/lib/format";
 import { createPaymentLink } from "@/lib/pagarme.functions";
 import { Copy, Link2, ExternalLink } from "lucide-react";
 import { QRCodeSVG } from "qrcode.react";
+import { autoLinkFolderFromUrl } from "@/lib/project-folders";
 
 export const Route = createFileRoute("/_authenticated/sales")({
   component: SalesPage,
