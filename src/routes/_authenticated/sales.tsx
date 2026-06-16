@@ -378,7 +378,7 @@ function SalesPage() {
         customer_name: "", company: "", document: "", phone: "", email: "",
         total_amount: "", paid_amount: "0", payment_status: "pago_total",
         payment_method: "pix", seller_id: "", producer_id: "", service_type_id: "",
-        package_id: "", package_name: "", service_quantity: "1", notes: "", trello_link: "",
+        package_id: "", package_name: "", service_quantity: "1", notes: "",
         google_drive_link: "", platform_link: "",
         sale_date: new Date().toISOString().slice(0, 10), lead_source: "",
         with_invoice: "sim",
