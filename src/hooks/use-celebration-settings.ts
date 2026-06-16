@@ -7,7 +7,7 @@ const VOLUME_KEY = "telao.celebration.volume";
 const SOUND_ID_KEY = "telao.celebration.soundId";
 const EVENT = "telao-celebration-changed";
 
-export type SoundId = "buzina" | "caixa" | "sino" | "custom" | "run-vine" | "danger-alarm";
+export type SoundId = "buzina" | "caixa" | "sino" | "custom" | "run-vine" | "danger-alarm" | "nobre";
 
 export type CelebrationSettings = {
   soundEnabled: boolean;
