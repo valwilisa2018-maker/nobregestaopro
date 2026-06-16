@@ -512,7 +512,7 @@ function ChatOrganizador() {
                 />
                 <div className="flex flex-col gap-1">
                   <input ref={fileRef} type="file" multiple accept="image/*,video/*,audio/*,application/pdf,.pdf,.doc,.docx,.txt" className="hidden" onChange={(e) => sendFiles(e.target.files)} />
-                  <Button size="icon" variant="outline" onClick={() => fileRef.current?.click()} disabled={sending || !active} title="Anexar arquivo">
+                  <Button size="icon" variant="outline" onClick={() => fileRef.current?.click()} disabled={sending} title="Anexar arquivo (se não houver pasta ativa, será solicitado o nome)">
                     <Paperclip className="w-4 h-4" />
                   </Button>
                   <Button size="icon" variant={recording ? "destructive" : "outline"} onClick={toggleRecord} disabled={sending && !recording} title='Gravar áudio (diga "criar pasta NOME")'>
