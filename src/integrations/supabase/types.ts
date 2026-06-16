@@ -743,6 +743,7 @@ export type Database = {
           google_drive_link: string | null
           id: string
           kanban_card_id: string | null
+          parent_id: string | null
           platform_link: string | null
           sale_id: string | null
           service_type: string | null
@@ -756,6 +757,7 @@ export type Database = {
           google_drive_link?: string | null
           id?: string
           kanban_card_id?: string | null
+          parent_id?: string | null
           platform_link?: string | null
           sale_id?: string | null
           service_type?: string | null
@@ -769,6 +771,7 @@ export type Database = {
           google_drive_link?: string | null
           id?: string
           kanban_card_id?: string | null
+          parent_id?: string | null
           platform_link?: string | null
           sale_id?: string | null
           service_type?: string | null
@@ -780,6 +783,13 @@ export type Database = {
             columns: ["kanban_card_id"]
             isOneToOne: false
             referencedRelation: "service_orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_folders_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "project_folders"
             referencedColumns: ["id"]
           },
           {
