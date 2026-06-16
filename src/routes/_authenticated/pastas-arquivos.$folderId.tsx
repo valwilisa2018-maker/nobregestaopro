@@ -27,7 +27,12 @@ function iconFor(mime?: string | null) {
 function isTextFile(item: any) {
   const t = (item?.file_type ?? "").toLowerCase();
   const n = (item?.file_name ?? "").toLowerCase();
-  return t.startsWith("text/") || /\.(txt|md|html?|rtf)$/i.test(n);
+  return (
+    t.startsWith("text/") ||
+    t.includes("officedocument.wordprocessingml") ||
+    t === "application/msword" ||
+    /\.(txt|md|html?|rtf|docx?|odt)$/i.test(n)
+  );
 }
 
 /** Inline preview tile (Google Drive-style). */
@@ -421,10 +426,20 @@ function RoteiroEditor({
     (async () => {
       try {
         const url = await getSignedUrl(item.file_url);
-        const text = await fetch(url).then((r) => r.text());
-        if (!alive) return;
-        const looksHtml = /<[a-z][^>]*>/i.test(text);
-        setHtml(looksHtml ? text : text.replace(/\n/g, "<br/>"));
+        const name = (item.file_name ?? "").toLowerCase();
+        const isDocx = /\.docx$/i.test(name) || (item.file_type ?? "").includes("officedocument.wordprocessingml");
+        if (isDocx) {
+          const buf = await fetch(url).then((r) => r.arrayBuffer());
+          const mammoth = await import("mammoth/mammoth.browser");
+          const res = await (mammoth as any).convertToHtml({ arrayBuffer: buf });
+          if (!alive) return;
+          setHtml(res.value || "<p>(documento vazio)</p>");
+        } else {
+          const text = await fetch(url).then((r) => r.text());
+          if (!alive) return;
+          const looksHtml = /<[a-z][^>]*>/i.test(text);
+          setHtml(looksHtml ? text : text.replace(/\n/g, "<br/>"));
+        }
       } catch (e: any) {
         toast.error(e?.message ?? "Erro ao carregar");
       } finally {
