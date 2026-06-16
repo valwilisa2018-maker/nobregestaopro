@@ -17,6 +17,7 @@ import { Plus, Loader2, Trash2, X, Calendar, Clock, ExternalLink, MessageCircle,
 import { Search } from "lucide-react";
 import { fmtDate } from "@/lib/format";
 import { formatCurrency } from "@/lib/auth";
+import { autoLinkFolderFromUrl } from "@/lib/project-folders";
 
 // Formata segundos em rótulo curto: 30s, 1min, 1min30s, 2min...
 function fmtVideoDuration(sec?: number | null): string {
