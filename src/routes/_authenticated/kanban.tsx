@@ -1073,10 +1073,31 @@ function KanbanPage() {
                 />
                 {editing.trello_link && (
                   <a href={editing.trello_link} target="_blank" rel="noreferrer"
-                    className="flex items-center gap-2 text-sm text-primary hover:underline break-all mt-1">
+                    className="flex items-center gap-2 text-sm text-blue-500 hover:underline break-all mt-1">
                     <ExternalLink className="w-4 h-4 shrink-0" />
-                    Abrir link
+                    Abrir Google Drive
                   </a>
+                )}
+              </div>
+              <div>
+                <Label>Link da pasta da plataforma</Label>
+                <Input
+                  type="url"
+                  placeholder="https://..."
+                  value={editing.platform_link ?? ""}
+                  onChange={(e) => setEditing({ ...editing, platform_link: e.target.value })}
+                  disabled={!editing.sale_id}
+                />
+                {editing.platform_link ? (
+                  <a href={editing.platform_link} target="_blank" rel="noreferrer"
+                    className="flex items-center gap-2 text-sm text-red-500 hover:underline break-all mt-1">
+                    <ExternalLink className="w-4 h-4 shrink-0" />
+                    Abrir na Plataforma
+                  </a>
+                ) : (
+                  <p className="text-xs text-muted-foreground mt-1 opacity-60">
+                    {editing.sale_id ? "Cole o link da pasta da plataforma para ativar o botão" : "Disponível somente para cards vinculados a uma venda"}
+                  </p>
                 )}
               </div>
               {editing.customer_phone && (
