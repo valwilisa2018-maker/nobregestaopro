@@ -73,6 +73,8 @@ type CardForm = {
   color: string;
   labels: string[];
   trello_link?: string | null;
+  platform_link?: string | null;
+  sale_id?: string | null;
   customer_phone?: string | null;
   customer_name?: string | null;
   producer_id?: string | null;
@@ -182,6 +184,8 @@ function KanbanPage() {
       due_date: found.due_date ?? "", due_time: (found.due_time ?? "").slice(0, 5),
       color: found.color ?? "", labels: found.labels ?? [],
       trello_link: found.trello_link ?? found.sales?.trello_link ?? null,
+      platform_link: found.sales?.platform_link ?? null,
+      sale_id: found.sale_id ?? null,
       customer_phone: found.sales?.customers?.phone ?? null,
       customer_name: found.sales?.customers?.name ?? null,
       producer_id: found.producer_id ?? null,
@@ -349,6 +353,8 @@ function KanbanPage() {
       due_date: c.due_date ?? "", due_time: (c.due_time ?? "").slice(0, 5),
       color: c.color ?? "", labels: c.labels ?? [],
       trello_link: c.trello_link ?? c.sales?.trello_link ?? null,
+      platform_link: c.sales?.platform_link ?? null,
+      sale_id: c.sale_id ?? null,
       customer_phone: c.sales?.customers?.phone ?? null,
       customer_name: c.sales?.customers?.name ?? null,
       producer_id: c.producer_id ?? null,
