@@ -167,7 +167,8 @@ function SalesPage() {
     customer_name: "", company: "", document: "", phone: "", email: "",
     total_amount: "", paid_amount: "0", payment_status: "pago_total",
     payment_method: "pix", seller_id: "", producer_id: "", service_type_id: "",
-    package_id: "", package_name: "", service_quantity: "1", notes: "", trello_link: "",
+    package_id: "", package_name: "", service_quantity: "1", notes: "",
+    google_drive_link: "", platform_link: "",
     sale_date: new Date().toISOString().slice(0, 10), lead_source: "",
     with_invoice: "sim",
     installments: "12",
@@ -268,14 +269,24 @@ function SalesPage() {
 
     for (const [k, label] of required) {
       const val = String((form as any)[k] ?? "").trim();
+      if (k === "trello_link") continue;
       if (!val) {
         toast.error(`Preencha o campo: ${label}`);
         return;
       }
-      if (k === "trello_link" && !val.toLowerCase().match(/^https:\/\/drive\.google\.com\//)) {
-        toast.error("O link deve ser um link de compartilhamento válido do Google Drive (ex: https://drive.google.com/...)");
-        return;
-      }
+    }
+    // At least one of the two links is required
+    const gLink = form.google_drive_link.trim();
+    const pLink = form.platform_link.trim();
+    if (!gLink && !pLink) {
+      toast.error("Informe o Link do Google Drive ou o Link da Plataforma (pelo menos um).");
+      return;
+    }
+    if (gLink && !gLink.toLowerCase().startsWith("http")) {
+      toast.error("Link do Google Drive inválido."); return;
+    }
+    if (pLink && !pLink.toLowerCase().startsWith("http")) {
+      toast.error("Link da Plataforma inválido."); return;
     }
     // Minutagem obrigatória para vídeos / pacotes
     {
@@ -335,7 +346,9 @@ function SalesPage() {
         package_name: form.package_name || null,
         service_quantity: Number(form.service_quantity || 1),
         notes: form.notes || null,
-        trello_link: form.trello_link || null,
+        trello_link: form.google_drive_link || form.platform_link || null,
+        google_drive_link: form.google_drive_link || null,
+        platform_link: form.platform_link || null,
         lead_source: form.lead_source || null,
         receipt_url,
         sale_date: form.sale_date || new Date().toISOString().slice(0, 10),
@@ -365,7 +378,8 @@ function SalesPage() {
         customer_name: "", company: "", document: "", phone: "", email: "",
         total_amount: "", paid_amount: "0", payment_status: "pago_total",
         payment_method: "pix", seller_id: "", producer_id: "", service_type_id: "",
-        package_id: "", package_name: "", service_quantity: "1", notes: "", trello_link: "",
+        package_id: "", package_name: "", service_quantity: "1", notes: "",
+        google_drive_link: "", platform_link: "",
         sale_date: new Date().toISOString().slice(0, 10), lead_source: "",
         with_invoice: "sim",
         installments: "12",
@@ -471,12 +485,17 @@ function SalesPage() {
 
     for (const [k, label] of required) {
       const val = String(editing[k] ?? "").trim();
+      if (k === "trello_link") continue;
       if (!val) {
         toast.error(`Preencha o campo: ${label}`);
         return;
       }
-      if (k === "trello_link" && !val.toLowerCase().match(/^https:\/\/drive\.google\.com\//)) {
-        toast.error("O link deve ser um link de compartilhamento válido do Google Drive (ex: https://drive.google.com/...)");
+    }
+    {
+      const g = String(editing.google_drive_link ?? "").trim();
+      const p = String(editing.platform_link ?? "").trim();
+      if (!g && !p) {
+        toast.error("Informe o Link do Google Drive ou o Link da Plataforma (pelo menos um).");
         return;
       }
     }
@@ -528,7 +547,9 @@ function SalesPage() {
         package_name: editing.package_name || null,
         service_quantity: Number(editing.service_quantity || 1),
         notes: editing.notes || null,
-        trello_link: editing.trello_link || null,
+        trello_link: editing.google_drive_link || editing.platform_link || editing.trello_link || null,
+        google_drive_link: editing.google_drive_link || null,
+        platform_link: editing.platform_link || null,
         lead_source: editing.lead_source || null,
         delivery_deadline: editing.delivery_deadline || null,
         expected_delivery_date: editing.expected_delivery_date || null,
@@ -688,11 +709,21 @@ function SalesPage() {
                   </Select>
                 </div>
                 <div className="col-span-2">
-                  <Label>Link Google Drive *</Label>
+                  <Label>Link do Google Drive</Label>
                   <div className="flex gap-2">
-                    <Input placeholder="Cole o link do Google aqui" value={form.trello_link || ""} onChange={(e) => set("trello_link", e.target.value)} />
-                    <Button type="button" variant="outline" onClick={() => window.open("https://drive.google.com/drive/u/0/home", "_blank", "noopener,noreferrer")}>Abrir Google Drive</Button>
+                    <Input placeholder="https://drive.google.com/..." value={form.google_drive_link} onChange={(e) => set("google_drive_link", e.target.value)} />
+                    <Button type="button" variant="outline" onClick={() => window.open("https://drive.google.com/drive/u/0/home", "_blank", "noopener,noreferrer")}>Abrir Drive</Button>
                   </div>
+                </div>
+                <div className="col-span-2">
+                  <Label>Link da Plataforma (pasta interna)</Label>
+                  <div className="flex gap-2">
+                    <Input placeholder="Cole aqui o link gerado no Chat Organizador" value={form.platform_link} onChange={(e) => set("platform_link", e.target.value)} />
+                    <Button type="button" variant="outline" asChild>
+                      <a href="/chat-organizador" target="_blank" rel="noreferrer">Abrir Chat</a>
+                    </Button>
+                  </div>
+                  <p className="text-[11px] text-muted-foreground mt-1">Informe pelo menos um dos dois links (Drive ou Plataforma).</p>
                 </div>
                 <div className="col-span-2">
                   <Label>Comprovante (imagem ou PDF) *</Label>
@@ -978,11 +1009,21 @@ function SalesPage() {
                 </Select>
               </div>
               <div className="col-span-2">
-                <Label>Link Google Drive *</Label>
+                <Label>Link do Google Drive</Label>
                 <div className="flex gap-2">
-                  <Input placeholder="Cole o link do Google aqui" value={editing.trello_link ?? ""} onChange={(e) => editSet("trello_link", e.target.value)} />
-                  <Button type="button" variant="outline" onClick={() => window.open("https://drive.google.com/drive/u/0/home", "_blank", "noopener,noreferrer")}>Abrir Google Drive</Button>
+                  <Input placeholder="https://drive.google.com/..." value={editing.google_drive_link ?? editing.trello_link ?? ""} onChange={(e) => editSet("google_drive_link", e.target.value)} />
+                  <Button type="button" variant="outline" onClick={() => window.open("https://drive.google.com/drive/u/0/home", "_blank", "noopener,noreferrer")}>Abrir Drive</Button>
                 </div>
+              </div>
+              <div className="col-span-2">
+                <Label>Link da Plataforma (pasta interna)</Label>
+                <div className="flex gap-2">
+                  <Input placeholder="Cole aqui o link gerado no Chat Organizador" value={editing.platform_link ?? ""} onChange={(e) => editSet("platform_link", e.target.value)} />
+                  <Button type="button" variant="outline" asChild>
+                    <a href="/chat-organizador" target="_blank" rel="noreferrer">Abrir Chat</a>
+                  </Button>
+                </div>
+                <p className="text-[11px] text-muted-foreground mt-1">Informe pelo menos um dos dois links.</p>
               </div>
               <div className="col-span-2"><Label>Prazo de entrega *</Label><Input placeholder="Ex: 7 dias úteis" value={editing.delivery_deadline ?? ""} onChange={(e) => editSet("delivery_deadline", e.target.value)} /></div>
               <div className="col-span-2"><Label>Observações (opcional)</Label><Textarea value={editing.notes ?? ""} onChange={(e) => editSet("notes", e.target.value)} /></div>

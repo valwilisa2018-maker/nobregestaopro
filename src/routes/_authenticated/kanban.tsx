@@ -161,7 +161,7 @@ function KanbanPage() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("service_orders")
-        .select("*, producer:producers!service_orders_producer_id_fkey(name), sales(total_amount, paid_amount, payment_status, trello_link, producer_id, expected_delivery_date, video_duration_seconds, customers(name,company,phone), sellers(name), producers(name))")
+        .select("*, producer:producers!service_orders_producer_id_fkey(name), sales(total_amount, paid_amount, payment_status, trello_link, google_drive_link, platform_link, producer_id, expected_delivery_date, video_duration_seconds, customers(name,company,phone), sellers(name), producers(name))")
         .order("created_at", { ascending: true })
         .order("service_index", { ascending: true });
       if (error) {
@@ -983,7 +983,10 @@ function KanbanPage() {
                           </span>
                         )}
                       </div>
-                      <CardFolderBadges cardId={c.id} />
+                      <CardLinkButtons
+                        driveLink={c.sales?.google_drive_link ?? c.sales?.trello_link ?? null}
+                        platformLink={c.sales?.platform_link ?? null}
+                      />
                     </CardContent>
                   </Card>
                     </div>
@@ -1181,51 +1184,55 @@ function KanbanPage() {
   );
 }
 
-function CardFolderBadges({ cardId }: { cardId: string }) {
-  const qc = useQueryClient();
-  const q = useQuery({
-    queryKey: ["card_folder", cardId],
-    queryFn: async () => {
-      const { data } = await supabase
-        .from("project_folders" as any)
-        .select("id, google_drive_link")
-        .eq("kanban_card_id", cardId)
-        .maybeSingle();
-      return (data ?? null) as any;
-    },
-  });
-  useEffect(() => {
-    const ch = supabase
-      .channel(`realtime:folder-badge:${cardId}`)
-      .on("postgres_changes", { event: "*", schema: "public", table: "project_folders" }, () => {
-        qc.invalidateQueries({ queryKey: ["card_folder", cardId] });
-      })
-      .subscribe();
-    return () => { supabase.removeChannel(ch); };
-  }, [cardId, qc]);
-  const f = q.data;
-  if (!f && !q.isLoading) return null;
-  if (!f) return null;
+function CardLinkButtons({
+  driveLink,
+  platformLink,
+}: {
+  driveLink?: string | null;
+  platformLink?: string | null;
+}) {
+  const hasDrive = !!driveLink;
+  const hasPlatform = !!platformLink;
+  const stop = (e: React.MouseEvent) => e.stopPropagation();
   return (
-    <div className="flex flex-wrap items-center gap-1 pt-1 border-t border-dashed" onClick={(e) => e.stopPropagation()}>
-      <Link
-        to="/pastas-arquivos/$folderId"
-        params={{ folderId: f.id }}
-        className="inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded bg-primary/10 text-primary hover:bg-primary/20"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <FolderOpen className="w-3 h-3" /> Abrir pasta
-      </Link>
-      {f.google_drive_link && (
+    <div className="flex flex-wrap items-center gap-1 pt-1 border-t border-dashed" onClick={stop}>
+      {hasDrive ? (
         <a
-          href={f.google_drive_link}
+          href={driveLink!}
           target="_blank"
           rel="noreferrer"
-          className="inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded bg-muted hover:bg-muted/80"
-          onClick={(e) => e.stopPropagation()}
+          onClick={stop}
+          className="inline-flex items-center gap-1 text-[10px] font-medium px-2 py-1 rounded bg-blue-600 text-white hover:bg-blue-700 transition"
         >
-          <LinkIcon className="w-3 h-3" /> Drive
+          <LinkIcon className="w-3 h-3" /> Abrir Google Drive
         </a>
+      ) : (
+        <span
+          aria-disabled
+          className="inline-flex items-center gap-1 text-[10px] font-medium px-2 py-1 rounded bg-blue-600/20 text-blue-700 dark:text-blue-300 opacity-50 cursor-not-allowed"
+          title="Sem link do Google Drive"
+        >
+          <LinkIcon className="w-3 h-3" /> Google Drive
+        </span>
+      )}
+      {hasPlatform ? (
+        <a
+          href={platformLink!}
+          target="_blank"
+          rel="noreferrer"
+          onClick={stop}
+          className="inline-flex items-center gap-1 text-[10px] font-medium px-2 py-1 rounded bg-red-600 text-white hover:bg-red-700 transition"
+        >
+          <FolderOpen className="w-3 h-3" /> Abrir na Plataforma
+        </a>
+      ) : (
+        <span
+          aria-disabled
+          className="inline-flex items-center gap-1 text-[10px] font-medium px-2 py-1 rounded bg-red-600/20 text-red-700 dark:text-red-300 opacity-50 cursor-not-allowed"
+          title="Sem link da Plataforma"
+        >
+          <FolderOpen className="w-3 h-3" /> Plataforma
+        </span>
       )}
     </div>
   );

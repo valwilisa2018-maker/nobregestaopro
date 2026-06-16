@@ -743,6 +743,7 @@ export type Database = {
           google_drive_link: string | null
           id: string
           kanban_card_id: string | null
+          platform_link: string | null
           sale_id: string | null
           service_type: string | null
           updated_at: string
@@ -755,6 +756,7 @@ export type Database = {
           google_drive_link?: string | null
           id?: string
           kanban_card_id?: string | null
+          platform_link?: string | null
           sale_id?: string | null
           service_type?: string | null
           updated_at?: string
@@ -767,6 +769,7 @@ export type Database = {
           google_drive_link?: string | null
           id?: string
           kanban_card_id?: string | null
+          platform_link?: string | null
           sale_id?: string | null
           service_type?: string | null
           updated_at?: string
@@ -836,6 +839,7 @@ export type Database = {
           customer_id: string
           delivery_deadline: string | null
           expected_delivery_date: string | null
+          google_drive_link: string | null
           id: string
           is_payment_link: boolean | null
           lead_source: string | null
@@ -846,6 +850,7 @@ export type Database = {
           paid_amount: number
           payment_method: Database["public"]["Enums"]["payment_method"] | null
           payment_status: Database["public"]["Enums"]["payment_status"]
+          platform_link: string | null
           producer_id: string | null
           receipt_url: string | null
           sale_date: string
@@ -863,6 +868,7 @@ export type Database = {
           customer_id: string
           delivery_deadline?: string | null
           expected_delivery_date?: string | null
+          google_drive_link?: string | null
           id?: string
           is_payment_link?: boolean | null
           lead_source?: string | null
@@ -873,6 +879,7 @@ export type Database = {
           paid_amount?: number
           payment_method?: Database["public"]["Enums"]["payment_method"] | null
           payment_status?: Database["public"]["Enums"]["payment_status"]
+          platform_link?: string | null
           producer_id?: string | null
           receipt_url?: string | null
           sale_date?: string
@@ -890,6 +897,7 @@ export type Database = {
           customer_id?: string
           delivery_deadline?: string | null
           expected_delivery_date?: string | null
+          google_drive_link?: string | null
           id?: string
           is_payment_link?: boolean | null
           lead_source?: string | null
@@ -900,6 +908,7 @@ export type Database = {
           paid_amount?: number
           payment_method?: Database["public"]["Enums"]["payment_method"] | null
           payment_status?: Database["public"]["Enums"]["payment_status"]
+          platform_link?: string | null
           producer_id?: string | null
           receipt_url?: string | null
           sale_date?: string

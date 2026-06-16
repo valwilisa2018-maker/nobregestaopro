@@ -1,41 +1,51 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { MessagesSquare, Send, Paperclip, Mic, Square, Search, FileText, Link2, Link2Off } from "lucide-react";
+import { MessagesSquare, Send, Paperclip, Mic, Square, Search, FileText, Copy, FolderPlus } from "lucide-react";
 import { toast } from "sonner";
-import {
-  CATEGORIES,
-  detectCategory,
-  parseCommandCategory,
-  uploadToFolder,
-  getSignedUrl,
-  type CategoryId,
-} from "@/lib/project-folders";
+import { detectCategory, uploadToFolder, getSignedUrl, type CategoryId } from "@/lib/project-folders";
+import { transcribeAudio } from "@/lib/ai-transcribe.functions";
 
 export const Route = createFileRoute("/_authenticated/chat-organizador")({
   component: ChatOrganizador,
 });
 
+/** Detect "criar pasta NOME" / "nova pasta NOME" / "abrir pasta NOME" voice commands. */
+function parseCreateFolderCommand(input: string): string | null {
+  const t = input.trim();
+  if (!t) return null;
+  const patterns = [
+    /^(?:cria(?:r)?|nova|abrir|gera(?:r)?)\s+(?:uma\s+)?pasta\s+(?:do|de|para|pra|chamada|com\s+o\s+nome\s+de|nome)?\s*(.+)$/i,
+    /^pasta\s+nova\s+(?:do|de|para|pra)?\s*(.+)$/i,
+  ];
+  for (const re of patterns) {
+    const m = t.match(re);
+    if (m && m[1]) {
+      return m[1]
+        .replace(/[.!?]+$/g, "")
+        .replace(/^\s+|\s+$/g, "")
+        .slice(0, 120);
+    }
+  }
+  return null;
+}
+
 function ChatOrganizador() {
   const qc = useQueryClient();
+  const transcribe = useServerFn(transcribeAudio);
   const [search, setSearch] = useState("");
   const [activeFolderId, setActiveFolderId] = useState<string | null>(null);
-  const [filterSellerId, setFilterSellerId] = useState<string>(() => {
-    if (typeof window === "undefined") return "_mine";
-    return localStorage.getItem("chat_filter_seller") ?? "_mine";
-  });
-  useEffect(() => {
-    try { localStorage.setItem("chat_filter_seller", filterSellerId); } catch {}
-  }, [filterSellerId]);
   const [text, setText] = useState("");
   const [sending, setSending] = useState(false);
   const [recording, setRecording] = useState(false);
+  const [lastCreated, setLastCreated] = useState<{ id: string; name: string } | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
   const recRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
@@ -46,7 +56,7 @@ function ChatOrganizador() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("project_folders" as any)
-        .select("id, folder_name, client_name, service_type, sale_id, kanban_card_id")
+        .select("id, folder_name, client_name, service_type, sale_id, kanban_card_id, platform_link, google_drive_link")
         .order("created_at", { ascending: false });
       if (error) throw error;
       return (data ?? []) as any[];
@@ -66,53 +76,7 @@ function ChatOrganizador() {
     [folders.data, activeFolderId],
   );
 
-  // Current user role + own seller id (used to limit non-admins)
-  const me = useQuery({
-    queryKey: ["chat_me"],
-    queryFn: async () => {
-      const { data: ud } = await supabase.auth.getUser();
-      const uid = ud.user?.id ?? null;
-      if (!uid) return { uid: null, isAdmin: false, sellerId: null as string | null };
-      const { data: isAdminData } = await supabase.rpc("has_role", { _user_id: uid, _role: "admin" as any });
-      const { data: s } = await supabase.from("sellers").select("id").eq("user_id", uid).maybeSingle();
-      return { uid, isAdmin: !!isAdminData, sellerId: s?.id ?? null };
-    },
-  });
-
-  // All sellers — available to everyone in the chat filter
-  const sellers = useQuery({
-    queryKey: ["chat_sellers"],
-    queryFn: async () =>
-      (await supabase.from("sellers").select("id,name").order("name")).data ?? [],
-  });
-
-  // Effective seller filter: non-admin always = own seller; admin = chosen seller
-  const effectiveSellerId = useMemo(() => {
-    if (!me.data) return null;
-    if (filterSellerId === "_all") return null;
-    if (filterSellerId === "_mine") return me.data.sellerId;
-    return filterSellerId;
-  }, [me.data, filterSellerId]);
-
-  // Kanban cards (service orders) for linking
-  const cards = useQuery({
-    queryKey: ["chat_kanban_cards", effectiveSellerId, me.data?.isAdmin],
-    enabled: !!me.data,
-    queryFn: async () => {
-      let q = supabase
-        .from("service_orders")
-        .select("id, title, sale_id, sales!inner(seller_id, customer_id, customers(name), sellers(name), service_types(name))")
-        .order("created_at", { ascending: false })
-        .limit(200);
-      if (filterSellerId === "_mine" && !me.data?.sellerId) return [];
-      if (effectiveSellerId) q = q.eq("sales.seller_id", effectiveSellerId);
-      const { data, error } = await q;
-      if (error) throw error;
-      return (data ?? []) as any[];
-    },
-  });
-
-  // Realtime sync: any change to project_folders refreshes folders + card-folder caches
+  // Realtime sync: any change to project_folders refreshes the folders list
   useEffect(() => {
     const ch = supabase
       .channel("realtime:project_folders:chat")
@@ -128,49 +92,12 @@ function ChatOrganizador() {
       .subscribe();
     return () => { supabase.removeChannel(ch); };
   }, [qc]);
-  const [cardSearch, setCardSearch] = useState("");
-  const filteredCards = useMemo(() => {
-    const term = cardSearch.trim().toLowerCase();
-    return (cards.data ?? []).filter((c: any) => {
-      if (!term) return true;
-      const name = `${c.title ?? ""} ${c.sales?.customers?.name ?? ""}`.toLowerCase();
-      return name.includes(term);
-    });
-  }, [cards.data, cardSearch]);
 
-  async function linkToCard(cardId: string, saleId: string | null) {
-    if (!active) { toast.error("Selecione uma pasta primeiro"); return; }
-    const { error } = await supabase
-      .from("project_folders" as any)
-      .update({ kanban_card_id: cardId, sale_id: saleId })
-      .eq("id", active.id);
-    if (error) { toast.error(error.message); return; }
-    toast.success("Pasta vinculada ao card");
-    qc.invalidateQueries({ queryKey: ["chat_folders"] });
-    qc.invalidateQueries({ queryKey: ["card_folder", cardId] });
-  }
-  async function unlinkFromCard() {
-    if (!active) return;
-    const { error } = await supabase
-      .from("project_folders" as any)
-      .update({ kanban_card_id: null, sale_id: null })
-      .eq("id", active.id);
-    if (error) { toast.error(error.message); return; }
-    toast.success("Desvinculado");
-    qc.invalidateQueries({ queryKey: ["chat_folders"] });
-  }
-
-  // Auto-select the first folder once they load (or auto-match by what the user typed)
+  // Auto-select the first folder once they load
   useEffect(() => {
     if (activeFolderId || !folders.data?.length) return;
-    const term = text.trim().toLowerCase();
-    const match = term
-      ? folders.data.find((f: any) =>
-          `${f.client_name ?? ""} ${f.folder_name ?? ""}`.toLowerCase().includes(term),
-        )
-      : null;
-    setActiveFolderId((match ?? folders.data[0]).id);
-  }, [folders.data, activeFolderId, text]);
+    setActiveFolderId(folders.data[0].id);
+  }, [folders.data, activeFolderId]);
 
   const msgs = useQuery({
     queryKey: ["chat_messages", activeFolderId],
@@ -190,12 +117,62 @@ function ChatOrganizador() {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight });
   }, [msgs.data]);
 
+  /** Creates a project folder and returns its platform link. */
+  async function createFolderFromCommand(name: string) {
+    const { data: ud } = await supabase.auth.getUser();
+    const platformLink =
+      typeof window !== "undefined" ? `${window.location.origin}/pastas-arquivos/` : "/pastas-arquivos/";
+    const { data, error } = await supabase
+      .from("project_folders" as any)
+      .insert({
+        folder_name: name,
+        client_name: name,
+        created_by: ud.user?.id ?? null,
+      })
+      .select("id, folder_name")
+      .single();
+    if (error) throw error;
+    const folder = data as any;
+    const fullLink = `${platformLink}${folder.id}`;
+    await supabase
+      .from("project_folders" as any)
+      .update({ platform_link: fullLink })
+      .eq("id", folder.id);
+    setLastCreated({ id: folder.id, name: folder.folder_name });
+    setActiveFolderId(folder.id);
+    qc.invalidateQueries({ queryKey: ["chat_folders"] });
+    qc.invalidateQueries({ queryKey: ["project_folders_list"] });
+    try {
+      await navigator.clipboard.writeText(fullLink);
+      toast.success(`Pasta "${folder.folder_name}" criada — link copiado!`);
+    } catch {
+      toast.success(`Pasta "${folder.folder_name}" criada com sucesso`);
+    }
+    return fullLink;
+  }
+
   async function sendText() {
-    if (!active || !text.trim()) return;
+    if (!text.trim()) return;
+    const cmdName = parseCreateFolderCommand(text);
+    if (cmdName) {
+      setSending(true);
+      try {
+        await createFolderFromCommand(cmdName);
+        setText("");
+      } catch (e: any) {
+        toast.error(e?.message ?? "Erro ao criar pasta");
+      } finally {
+        setSending(false);
+      }
+      return;
+    }
+    if (!active) {
+      toast.error('Selecione uma pasta — ou diga "criar pasta NOME".');
+      return;
+    }
     setSending(true);
     try {
       const { data: ud } = await supabase.auth.getUser();
-      const cat = parseCommandCategory(text);
       await supabase.from("project_folder_messages" as any).insert({
         folder_id: active.id,
         sale_id: active.sale_id,
@@ -203,23 +180,6 @@ function ChatOrganizador() {
         message: text,
         sender_id: ud.user?.id,
       });
-      // If command mentions a category and there are recent unsorted files, recategorize the latest "outros"
-      if (cat) {
-        const { data: pending } = await supabase
-          .from("project_folder_files" as any)
-          .select("id")
-          .eq("folder_id", active.id)
-          .eq("file_category", "outros")
-          .order("created_at", { ascending: false })
-          .limit(5);
-        if (pending && pending.length) {
-          await supabase
-            .from("project_folder_files" as any)
-            .update({ file_category: cat })
-            .in("id", (pending as any[]).map((p: any) => p.id));
-          toast.success(`${pending.length} arquivo(s) movido(s) para ${cat}`);
-        }
-      }
       setText("");
       qc.invalidateQueries({ queryKey: ["chat_messages", active.id] });
     } catch (e: any) {
@@ -263,12 +223,25 @@ function ChatOrganizador() {
     }
   }
 
+  /** Convert Blob → base64 (no data URL prefix). */
+  function blobToBase64(blob: Blob): Promise<string> {
+    return new Promise((resolve, reject) => {
+      const r = new FileReader();
+      r.onloadend = () => {
+        const s = String(r.result ?? "");
+        const idx = s.indexOf(",");
+        resolve(idx >= 0 ? s.slice(idx + 1) : s);
+      };
+      r.onerror = reject;
+      r.readAsDataURL(blob);
+    });
+  }
+
   async function toggleRecord() {
     if (recording) {
       recRef.current?.stop();
       return;
     }
-    if (!active) return;
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       const mr = new MediaRecorder(stream);
@@ -278,8 +251,38 @@ function ChatOrganizador() {
         stream.getTracks().forEach((t) => t.stop());
         setRecording(false);
         const blob = new Blob(chunksRef.current, { type: "audio/webm" });
-        const file = new File([blob], `audio-${Date.now()}.webm`, { type: "audio/webm" });
-        await sendFiles({ 0: file, length: 1, item: () => file } as any);
+        setSending(true);
+        try {
+          const base64 = await blobToBase64(blob);
+          const res = await transcribe({ data: { audio_base64: base64, format: "webm" } });
+          const transcript = (res?.text ?? "").trim();
+          if (!transcript) {
+            toast.error("Não consegui entender o áudio. Tente novamente.");
+            return;
+          }
+          const cmdName = parseCreateFolderCommand(transcript);
+          if (cmdName) {
+            await createFolderFromCommand(cmdName);
+            return;
+          }
+          if (active) {
+            const { data: ud } = await supabase.auth.getUser();
+            await supabase.from("project_folder_messages" as any).insert({
+              folder_id: active.id,
+              sale_id: active.sale_id,
+              kanban_card_id: active.kanban_card_id,
+              message: `🎙 ${transcript}`,
+              sender_id: ud.user?.id,
+            });
+            qc.invalidateQueries({ queryKey: ["chat_messages", active.id] });
+          } else {
+            toast.message(`Transcrição: ${transcript}`);
+          }
+        } catch (e: any) {
+          toast.error(e?.message ?? "Erro na transcrição");
+        } finally {
+          setSending(false);
+        }
       };
       mr.start();
       recRef.current = mr;
@@ -296,6 +299,13 @@ function ChatOrganizador() {
     } catch (e: any) {
       toast.error(e?.message ?? "Erro ao abrir");
     }
+  }
+
+  function copy(url: string) {
+    try {
+      navigator.clipboard.writeText(url);
+      toast.success("Link copiado");
+    } catch { toast.error("Não foi possível copiar"); }
   }
 
   return (
@@ -346,18 +356,28 @@ function ChatOrganizador() {
             </Select>
           </div>
           <div className="text-xs text-muted-foreground max-w-md">
-            Envie texto, áudio, imagem, PDF ou vídeo. Comandos: "coloca em referências", "esse pdf é roteiro", "entrega final"...
+            💡 Diga ou digite <strong>"criar pasta NOME"</strong> para gerar uma pasta automaticamente. Mande áudio, foto, vídeo ou PDF para a pasta ativa.
           </div>
         </header>
+        {lastCreated && (
+          <div className="border-b bg-primary/5 px-4 py-3 flex items-center justify-between gap-2">
+            <div className="text-sm">
+              ✅ <strong>Pasta "{lastCreated.name}" criada com sucesso.</strong>{" "}
+              <span className="text-muted-foreground">Link já copiado — cole no card do Kanban ou na venda.</span>
+            </div>
+            <Button size="sm" variant="outline"
+              onClick={() => copy(`${window.location.origin}/pastas-arquivos/${lastCreated.id}`)}>
+              <Copy className="w-3 h-3 mr-1" /> Copiar link
+            </Button>
+          </div>
+        )}
         <>
             <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 space-y-2">
               {!active && (
-                <div className="text-center text-muted-foreground text-sm py-8">
-                  {folders.isLoading
-                    ? "Carregando pastas..."
-                    : (folders.data?.length ?? 0) === 0
-                      ? "Nenhuma pasta disponível. Crie uma venda no Kanban para gerar uma pasta automaticamente."
-                      : "Selecione uma pasta acima para começar."}
+                <div className="text-center text-muted-foreground text-sm py-8 space-y-2">
+                  <FolderPlus className="w-10 h-10 mx-auto opacity-50" />
+                  <div>Nenhuma pasta selecionada.</div>
+                  <div className="text-xs">Grave um áudio dizendo <em>"criar pasta CLIENTE"</em> ou digite o mesmo comando abaixo.</div>
                 </div>
               )}
               {(msgs.data ?? []).map((m: any) => (
@@ -380,7 +400,7 @@ function ChatOrganizador() {
                 <Textarea
                   value={text}
                   onChange={(e) => setText(e.target.value)}
-                  placeholder={active ? "Digite uma mensagem ou comando..." : "Selecione uma pasta acima para enviar..."}
+                  placeholder='Digite uma mensagem ou: "criar pasta CLIENTE"'
                   className="min-h-[50px] flex-1"
                   onKeyDown={(e) => {
                     if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendText(); }
@@ -391,75 +411,20 @@ function ChatOrganizador() {
                   <Button size="icon" variant="outline" onClick={() => fileRef.current?.click()} disabled={sending || !active} title="Anexar arquivo">
                     <Paperclip className="w-4 h-4" />
                   </Button>
-                  <Button size="icon" variant={recording ? "destructive" : "outline"} onClick={toggleRecord} disabled={!active && !recording} title="Gravar áudio">
+                  <Button size="icon" variant={recording ? "destructive" : "outline"} onClick={toggleRecord} disabled={sending && !recording} title='Gravar áudio (diga "criar pasta NOME")'>
                     {recording ? <Square className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
                   </Button>
-                  <Button size="icon" onClick={sendText} disabled={sending || !text.trim() || !active} title="Enviar">
+                  <Button size="icon" onClick={sendText} disabled={sending || !text.trim()} title="Enviar">
                     <Send className="w-4 h-4" />
                   </Button>
                 </div>
               </div>
-              <div className="text-[10px] text-muted-foreground">Categorias: {CATEGORIES.map((c) => c.label).join(" • ")}</div>
+              <div className="text-[10px] text-muted-foreground">
+                Dica: grave um áudio dizendo <em>"criar pasta João da Costa"</em> — a pasta é criada e o link é copiado.
+              </div>
             </footer>
         </>
       </section>
-
-      <aside className="w-80 border-l flex flex-col">
-        <div className="p-3 border-b">
-          <div className="text-sm font-semibold mb-2">Cards do Kanban</div>
-          <Select value={filterSellerId} onValueChange={setFilterSellerId}>
-            <SelectTrigger className="h-8 text-xs mb-2"><SelectValue placeholder="Vendedor" /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="_all">Todos vendedores</SelectItem>
-              {me.data?.sellerId && <SelectItem value="_mine">Meus cards</SelectItem>}
-              {(sellers.data ?? []).map((s: any) => (
-                <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <div className="relative">
-            <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-3 h-3 text-muted-foreground" />
-            <Input value={cardSearch} onChange={(e) => setCardSearch(e.target.value)} placeholder="Buscar card..." className="pl-7 h-8 text-sm" />
-          </div>
-          {active && (
-            <div className="mt-2 text-[11px] text-muted-foreground">
-              Pasta ativa: <span className="font-medium text-foreground">{active.folder_name}</span>
-              {active.kanban_card_id && (
-                <button onClick={unlinkFromCard} className="ml-2 inline-flex items-center gap-1 text-destructive hover:underline">
-                  <Link2Off className="w-3 h-3" /> desvincular
-                </button>
-              )}
-            </div>
-          )}
-        </div>
-        <div className="flex-1 overflow-y-auto">
-          {cards.isLoading && <div className="p-3 text-xs text-muted-foreground">Carregando...</div>}
-          {filteredCards.map((c: any) => {
-            const linked = active?.kanban_card_id === c.id;
-            return (
-              <div key={c.id} className={`px-3 py-2 border-b ${linked ? "bg-primary/5" : ""}`}>
-                <div className="text-sm font-medium truncate">{c.sales?.customers?.name ?? c.title}</div>
-                <div className="text-[11px] text-muted-foreground truncate">
-                  {c.sales?.service_types?.name ?? c.title}
-                  {c.sales?.sellers?.name && <> • {c.sales.sellers.name}</>}
-                </div>
-                <Button
-                  size="sm"
-                  variant={linked ? "secondary" : "default"}
-                  className="h-7 text-xs mt-1"
-                  disabled={!active || linked}
-                  onClick={() => linkToCard(c.id, c.sale_id)}
-                >
-                  <Link2 className="w-3 h-3 mr-1" /> {linked ? "Vinculado" : "Vincular pasta"}
-                </Button>
-              </div>
-            );
-          })}
-          {!cards.isLoading && filteredCards.length === 0 && (
-            <div className="p-3 text-xs text-muted-foreground">Nenhum card encontrado.</div>
-          )}
-        </div>
-      </aside>
     </div>
   );
 }
