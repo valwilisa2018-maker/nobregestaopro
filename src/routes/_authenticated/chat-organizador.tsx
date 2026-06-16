@@ -120,11 +120,8 @@ function ChatOrganizador() {
     return () => { supabase.removeChannel(ch); };
   }, [qc]);
 
-  // Auto-select the first folder once they load
-  useEffect(() => {
-    if (activeFolderId || !folders.data?.length) return;
-    setActiveFolderId(folders.data[0].id);
-  }, [folders.data, activeFolderId]);
+  // Do NOT auto-select a folder. The chat is exclusively for CREATING a new
+  // folder — after creation the chat resets and waits for the next one.
 
   const msgs = useQuery({
     queryKey: ["chat_messages", activeFolderId],
@@ -211,131 +208,46 @@ function ChatOrganizador() {
     const fileName = `roteiro-${new Date().toISOString().replace(/[:.]/g, "-")}.html`;
     const doc = `<!doctype html><html><head><meta charset="utf-8"><title>Roteiro</title><style>body{font-family:Arial,sans-serif;max-width:820px;margin:32px auto;padding:0 24px;line-height:1.6;color:#111}</style></head><body>${html}</body></html>`;
     const file = new File([doc], fileName, { type: "text/html" });
-    if (!active) {
-      setPendingFiles((prev) => [...prev, file]);
-      toast.success('Roteiro pronto. Agora diga ou digite: "criar pasta NOME".');
-      setRoteiroOpen(false);
-      setRoteiroText("");
-      return;
-    }
-    setSending(true);
-    try {
-      const { data: ud } = await supabase.auth.getUser();
-      const saved = await uploadToFolder({
-        folderId: active.id,
-        saleId: active.sale_id ?? null,
-        cardId: active.kanban_card_id ?? null,
-        file,
-        category: "roteiro",
-        userId: ud.user?.id ?? null,
-      });
-      await supabase.from("project_folder_messages" as any).insert({
-        folder_id: active.id,
-        sale_id: active.sale_id,
-        kanban_card_id: active.kanban_card_id,
-        message: "📝 Roteiro enviado",
-        file_url: saved.file_url,
-        file_id: saved.id,
-        sender_id: ud.user?.id,
-      });
-      qc.invalidateQueries({ queryKey: ["chat_messages", active.id] });
-      qc.invalidateQueries({ queryKey: ["project_folder_files", active.id] });
-      toast.success("Roteiro enviado");
-      setRoteiroOpen(false);
-      setRoteiroText("");
-    } catch (e: any) {
-      toast.error(e?.message ?? "Erro ao enviar roteiro");
-    } finally {
-      setSending(false);
-    }
+    // Roteiro always goes into the NEXT folder. The chat does not append to
+    // an existing folder — that's done manually from "Pastas e arquivos".
+    setPendingFiles((prev) => [...prev, file]);
+    toast.success('Roteiro pronto. Agora diga ou digite: "criar pasta NOME".');
+    setRoteiroOpen(false);
+    setRoteiroText("");
   }
 
   async function sendText() {
     if (!text.trim()) return;
     const cmdName = parseCreateFolderCommand(text);
-    if (cmdName) {
-      setSending(true);
-      try {
-        const created = await createFolderFromCommand(cmdName);
-        if (pendingFiles.length) {
-          await uploadFilesToFolder(created.id, pendingFiles);
-          toast.success(`${pendingFiles.length} arquivo(s) enviados para a pasta`);
-        }
-        resetChat();
-      } catch (e: any) {
-        toast.error(e?.message ?? "Erro ao criar pasta");
-      } finally {
-        setSending(false);
-      }
-      return;
-    }
-    if (!active) {
-      toast.error('Selecione uma pasta — ou diga "criar pasta NOME".');
+    if (!cmdName) {
+      toast.error('Diga ou digite: "criar pasta NOME". O chat é só para criar pastas.');
       return;
     }
     setSending(true);
     try {
-      const { data: ud } = await supabase.auth.getUser();
-      await supabase.from("project_folder_messages" as any).insert({
-        folder_id: active.id,
-        sale_id: active.sale_id,
-        kanban_card_id: active.kanban_card_id,
-        message: text,
-        sender_id: ud.user?.id,
-      });
-      setText("");
-      qc.invalidateQueries({ queryKey: ["chat_messages", active.id] });
+      const created = await createFolderFromCommand(cmdName);
+      if (pendingFiles.length) {
+        await uploadFilesToFolder(created.id, pendingFiles);
+        toast.success(`${pendingFiles.length} arquivo(s) enviados para a pasta`);
+      }
+      resetChat();
     } catch (e: any) {
-      toast.error(e?.message ?? "Erro ao enviar");
+      toast.error(e?.message ?? "Erro ao criar pasta");
     } finally {
       setSending(false);
-      taRef.current?.focus();
     }
   }
 
   async function sendFiles(list: FileList | null) {
     if (!list || !list.length) return;
-    if (!active) {
-      const incoming = Array.from(list);
-      setPendingFiles((prev) => [...prev, ...incoming]);
-      toast.success(
-        `${incoming.length} arquivo(s) prontos. Agora diga ou digite: "criar pasta NOME".`,
-      );
-      if (fileRef.current) fileRef.current.value = "";
-      taRef.current?.focus();
-      return;
-    }
-    const target = active;
-    setSending(true);
-    try {
-      const { data: ud } = await supabase.auth.getUser();
-      for (const file of Array.from(list)) {
-        const cat: CategoryId = detectCategory(file);
-        const saved = await uploadToFolder({
-          folderId: target.id,
-          saleId: target.sale_id ?? null,
-          cardId: target.kanban_card_id ?? null,
-          file,
-          category: cat,
-          userId: ud.user?.id ?? null,
-        });
-        await supabase.from("project_folder_messages" as any).insert({
-          folder_id: target.id,
-          sale_id: target.sale_id,
-          kanban_card_id: target.kanban_card_id,
-          file_url: saved.file_url,
-          file_id: saved.id,
-          sender_id: ud.user?.id,
-        });
-      }
-      toast.success("Enviado");
-      qc.invalidateQueries({ queryKey: ["chat_messages", target.id] });
-      qc.invalidateQueries({ queryKey: ["project_folder_files", target.id] });
-    } catch (e: any) {
-      toast.error(e?.message ?? "Erro ao enviar");
-    } finally {
-      setSending(false);
-    }
+    // Files always go into the NEXT folder created via the chat.
+    const incoming = Array.from(list);
+    setPendingFiles((prev) => [...prev, ...incoming]);
+    toast.success(
+      `${incoming.length} arquivo(s) prontos. Agora diga ou digite: "criar pasta NOME".`,
+    );
+    if (fileRef.current) fileRef.current.value = "";
+    taRef.current?.focus();
   }
 
   /** Convert Blob → base64 (no data URL prefix). */
@@ -402,32 +314,14 @@ function ChatOrganizador() {
             resetChat();
             return;
           }
-          if (!active) {
-            toast.error('Selecione uma pasta ativa antes de gravar — ou diga "criar pasta NOME".');
-            return;
-          }
-          // Save the actual audio so it can be played back (WhatsApp-style).
-          const { data: ud } = await supabase.auth.getUser();
+          // Audio outside of "criar pasta NOME" is not used by the chat.
           const audioFile = new File([blob], `audio-${Date.now()}.webm`, { type: "audio/webm" });
-          const saved = await uploadToFolder({
-            folderId: active.id,
-            saleId: active.sale_id ?? null,
-            cardId: active.kanban_card_id ?? null,
-            file: audioFile,
-            category: "audios",
-            userId: ud.user?.id ?? null,
-          });
-          await supabase.from("project_folder_messages" as any).insert({
-            folder_id: active.id,
-            sale_id: active.sale_id,
-            kanban_card_id: active.kanban_card_id,
-            message: transcript ? `🎙 ${transcript}` : null,
-            file_url: saved.file_url,
-            file_id: saved.id,
-            sender_id: ud.user?.id,
-          });
-          qc.invalidateQueries({ queryKey: ["chat_messages", active.id] });
-          qc.invalidateQueries({ queryKey: ["project_folder_files", active.id] });
+          setPendingFiles((prev) => [...prev, audioFile]);
+          toast.message(
+            transcript
+              ? `Áudio salvo. Diga "criar pasta NOME" para criar a pasta. (transcrição: ${transcript})`
+              : 'Áudio salvo. Diga "criar pasta NOME" para criar a pasta.',
+          );
         } catch (e: any) {
           toast.error(e?.message ?? "Erro na transcrição");
         } finally {
