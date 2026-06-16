@@ -1,11 +1,10 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { ArrowLeft, Upload, FileImage, FileVideo, FileAudio, FileText, File as FileIcon, Trash2, Link as LinkIcon, Download, Copy } from "lucide-react";
+import { ArrowLeft, Upload, FileImage, FileVideo, FileAudio, FileText, File as FileIcon, Trash2, Link as LinkIcon, Download, Copy, ChevronDown, ChevronRight, Folder as FolderIcon } from "lucide-react";
 import { toast } from "sonner";
 import { CATEGORIES, type CategoryId, detectCategory, uploadToFolder, getSignedUrl } from "@/lib/project-folders";
 
@@ -22,10 +21,76 @@ function iconFor(mime?: string | null) {
   return FileIcon;
 }
 
+/** Inline preview tile (Google Drive-style). */
+function PreviewTile({
+  item,
+  onOpen,
+  onDelete,
+}: {
+  item: any;
+  onOpen: (path: string) => void;
+  onDelete: (id: string, path: string) => void;
+}) {
+  const [url, setUrl] = useState<string | null>(null);
+  useEffect(() => {
+    let alive = true;
+    getSignedUrl(item.file_url).then((u) => { if (alive) setUrl(u); }).catch(() => {});
+    return () => { alive = false; };
+  }, [item.file_url]);
+
+  const mime = (item.file_type ?? "").toLowerCase();
+  const isImage = mime.startsWith("image/");
+  const isVideo = mime.startsWith("video/");
+  const isAudio = mime.startsWith("audio/") || /\.(webm|mp3|wav|m4a|ogg|oga)$/i.test(item.file_url ?? "");
+  const isPdf = mime === "application/pdf";
+  const Icon = iconFor(item.file_type);
+
+  return (
+    <div className="group relative rounded-md border bg-card overflow-hidden hover:shadow-md transition">
+      <div className="aspect-video bg-muted/40 flex items-center justify-center overflow-hidden">
+        {!url && <div className="text-[10px] text-muted-foreground">carregando…</div>}
+        {url && isImage && (
+          <button onClick={() => onOpen(item.file_url)} className="w-full h-full">
+            <img src={url} alt={item.file_name} className="w-full h-full object-cover" />
+          </button>
+        )}
+        {url && isVideo && (
+          <video src={url} className="w-full h-full object-cover" controls preload="metadata" />
+        )}
+        {url && isAudio && !isVideo && (
+          <div className="p-2 w-full"><audio src={url} controls preload="metadata" className="w-full" /></div>
+        )}
+        {url && isPdf && (
+          <iframe src={url} className="w-full h-full" title={item.file_name} />
+        )}
+        {url && !isImage && !isVideo && !isAudio && !isPdf && (
+          <Icon className="w-10 h-10 text-muted-foreground" />
+        )}
+      </div>
+      <div className="p-2 flex items-center gap-2">
+        <Icon className="w-4 h-4 text-primary shrink-0" />
+        <button onClick={() => onOpen(item.file_url)} className="text-xs truncate flex-1 text-left hover:underline">
+          {item.file_name}
+        </button>
+        <Button size="sm" variant="ghost" className="h-6 w-6 p-0" onClick={() => onOpen(item.file_url)} title="Abrir">
+          <Download className="w-3 h-3" />
+        </Button>
+        <Button size="sm" variant="ghost" className="h-6 w-6 p-0 text-destructive"
+          onClick={() => onDelete(item.id, item.file_url)} title="Excluir">
+          <Trash2 className="w-3 h-3" />
+        </Button>
+      </div>
+    </div>
+  );
+}
+
 function FolderDetail() {
   const { folderId } = Route.useParams();
   const qc = useQueryClient();
   const [busy, setBusy] = useState<string | null>(null);
+  const [open, setOpen] = useState<Record<string, boolean>>(() =>
+    Object.fromEntries(CATEGORIES.map((c) => [c.id, true])),
+  );
   const fileInputs = useRef<Record<string, HTMLInputElement | null>>({});
 
   const folder = useQuery({
@@ -133,7 +198,11 @@ function FolderDetail() {
         </Button>
       </div>
       <div className="flex items-start justify-between flex-wrap gap-2">
-        <div>
+        <div className="flex items-start gap-3">
+          <div className="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center">
+            <FolderIcon className="w-6 h-6 text-primary" />
+          </div>
+          <div>
           <h1 className="text-2xl font-bold">{f.folder_name}</h1>
           <p className="text-sm text-muted-foreground">{f.client_name} • {f.service_type}</p>
           {f.google_drive_link && (
@@ -142,6 +211,7 @@ function FolderDetail() {
               <LinkIcon className="w-3 h-3" /> {f.google_drive_link}
             </a>
           )}
+          </div>
         </div>
         <div className="flex flex-col items-end gap-2">
           <Button size="sm" variant="outline" onClick={saveDrive}>
@@ -176,47 +246,47 @@ function FolderDetail() {
         </Button>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
-        {CATEGORIES.map((cat) => (
-          <Card key={cat.id} className="border-2">
-            <CardContent className="p-3 space-y-2">
-              <div className="flex items-center justify-between">
-                <div className="font-semibold">{cat.label}</div>
-                <Button size="sm" variant="ghost" disabled={busy === cat.id}
-                  onClick={() => fileInputs.current[cat.id]?.click()}>
-                  <Upload className="w-4 h-4 mr-1" /> {busy === cat.id ? "Enviando..." : "Upload"}
-                </Button>
-                <input
-                  ref={(el) => { fileInputs.current[cat.id] = el; }}
-                  type="file" multiple className="hidden"
-                  onChange={(e) => handleUpload(cat.id, e.target.files)}
-                />
-              </div>
-              <div className="space-y-1 min-h-[40px]">
-                {grouped[cat.id]?.length ? grouped[cat.id].map((it) => {
-                  const Icon = iconFor(it.file_type);
-                  return (
-                    <div key={it.id} className="flex items-center justify-between gap-2 px-2 py-1 rounded hover:bg-muted/50 text-xs">
-                      <button onClick={() => openFile(it.file_url)} className="flex items-center gap-2 min-w-0 flex-1 text-left">
-                        <Icon className="w-4 h-4 text-primary shrink-0" />
-                        <span className="truncate">{it.file_name}</span>
-                      </button>
-                      <Button size="sm" variant="ghost" className="h-6 w-6 p-0" onClick={() => openFile(it.file_url)}>
-                        <Download className="w-3 h-3" />
-                      </Button>
-                      <Button size="sm" variant="ghost" className="h-6 w-6 p-0 text-destructive"
-                        onClick={() => deleteFile(it.id, it.file_url)}>
-                        <Trash2 className="w-3 h-3" />
-                      </Button>
+      <div className="space-y-3">
+        {CATEGORIES.map((cat) => {
+          const items = grouped[cat.id] ?? [];
+          const isOpen = open[cat.id] ?? true;
+          return (
+            <Card key={cat.id}>
+              <CardContent className="p-3 space-y-3">
+                <div className="flex items-center justify-between gap-2">
+                  <button
+                    onClick={() => setOpen((s) => ({ ...s, [cat.id]: !isOpen }))}
+                    className="flex items-center gap-2 font-semibold text-sm"
+                  >
+                    {isOpen ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
+                    {cat.label}
+                    <span className="text-xs text-muted-foreground font-normal">({items.length})</span>
+                  </button>
+                  <Button size="sm" variant="outline" disabled={busy === cat.id}
+                    onClick={() => fileInputs.current[cat.id]?.click()}>
+                    <Upload className="w-4 h-4 mr-1" /> {busy === cat.id ? "Enviando..." : "Upload"}
+                  </Button>
+                  <input
+                    ref={(el) => { fileInputs.current[cat.id] = el; }}
+                    type="file" multiple className="hidden"
+                    onChange={(e) => handleUpload(cat.id, e.target.files)}
+                  />
+                </div>
+                {isOpen && (
+                  items.length ? (
+                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-5 gap-3">
+                      {items.map((it) => (
+                        <PreviewTile key={it.id} item={it} onOpen={openFile} onDelete={deleteFile} />
+                      ))}
                     </div>
-                  );
-                }) : (
-                  <div className="text-xs text-muted-foreground italic px-2 py-1">vazio</div>
+                  ) : (
+                    <div className="text-xs text-muted-foreground italic px-2 py-2">Nenhum arquivo nesta seção ainda.</div>
+                  )
                 )}
-              </div>
-            </CardContent>
-          </Card>
-        ))}
+              </CardContent>
+            </Card>
+          );
+        })}
       </div>
     </div>
   );
