@@ -557,6 +557,25 @@ function SalesPage() {
       }).eq("id", editing.id);
       if (error) throw error;
 
+      // Propagar link/produtor para as ordens de serviço existentes
+      try {
+        const newLink = editing.google_drive_link || editing.platform_link || editing.trello_link || null;
+        await supabase.from("service_orders").update({
+          trello_link: newLink,
+          producer_id: editing.producer_id || null,
+          expected_delivery_date: editing.expected_delivery_date || null,
+        }).eq("sale_id", editing.id);
+
+        // Recalcular valor das notas fiscais existentes quando não for pacote
+        if (!editing.package_id) {
+          const qty = Math.max(1, Number(editing.service_quantity || 1));
+          const unit = Number(editing.total_amount) / qty;
+          await supabase.from("invoices").update({ amount: unit }).eq("sale_id", editing.id);
+        }
+      } catch (propErr: any) {
+        await logger.error(`Erro ao propagar edição: ${propErr?.message}`, { context: "sales/submitEdit/propagate", details: { error: propErr } });
+      }
+
       // Acrescentar serviços novos se a quantidade aumentou
       try {
         const newQty = Math.max(1, Number(editing.service_quantity || 1));
