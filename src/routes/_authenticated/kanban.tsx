@@ -98,6 +98,7 @@ function KanbanPage() {
   const [dragging, setDragging] = useState<string | null>(null);
   const [draggingGroup, setDraggingGroup] = useState<string[] | null>(null);
   const [draggingFromCol, setDraggingFromCol] = useState<string | null>(null);
+  const isProcessingMove = useRef(false);
   const boardRef = useRef<HTMLDivElement | null>(null);
   const topScrollRef = useRef<HTMLDivElement | null>(null);
   const [boardScrollWidth, setBoardScrollWidth] = useState(0);
