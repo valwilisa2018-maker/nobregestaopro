@@ -46,15 +46,15 @@ export function parseCommandCategory(text: string): CategoryId | null {
 export async function uploadToFolder(opts: {
   folderId: string;
   saleId: string | null;
-  cardId: string;
+  cardId: string | null;
   file: File;
   category: CategoryId;
   userId: string | null;
 }) {
   const { folderId, saleId, cardId, file, category, userId } = opts;
-  if (!saleId) throw new Error("Pasta sem venda vinculada");
   const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
-  const path = `${saleId}/${category}/${Date.now()}-${safeName}`;
+  const scope = saleId ?? `folder-${folderId}`;
+  const path = `${scope}/${category}/${Date.now()}-${safeName}`;
   const { error: upErr } = await supabase.storage.from("project-files").upload(path, file, {
     contentType: file.type || "application/octet-stream",
     upsert: false,
