@@ -574,7 +574,10 @@ function KanbanPage() {
           const colCards = (cards.data ?? []).filter((c: any) => {
             if (c.column_id !== col.id) return false;
             
-            if (producerFilter !== "all") {
+            // Quando há pesquisa ativa, ignora o filtro de produtor
+            // para também trazer serviços entregues (e quaisquer cards
+            // sem produtor atribuído) nos resultados.
+            if (producerFilter !== "all" && !q) {
               const cardProducerId = c.producer_id;
               const saleProducerId = c.sales?.producer_id;
               
