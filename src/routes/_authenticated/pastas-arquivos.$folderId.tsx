@@ -91,6 +91,7 @@ function FolderDetail() {
   const [open, setOpen] = useState<Record<string, boolean>>(() =>
     Object.fromEntries(CATEGORIES.map((c) => [c.id, true])),
   );
+  const [dragOver, setDragOver] = useState<string | null>(null);
   const fileInputs = useRef<Record<string, HTMLInputElement | null>>({});
 
   const folder = useQuery({
@@ -143,6 +144,68 @@ function FolderDetail() {
     }
   }
 
+  /** Upload arbitrary files routing each to its best-fit category automatically. */
+  async function uploadFilesAuto(list: File[] | FileList, forceCategory?: CategoryId) {
+    if (!folder.data || !list) return;
+    const arr = Array.from(list as any) as File[];
+    if (!arr.length) return;
+    setBusy(forceCategory ?? "__drop");
+    const { data: ud } = await supabase.auth.getUser();
+    try {
+      for (const file of arr) {
+        const cat: CategoryId = forceCategory ?? detectCategory(file);
+        await uploadToFolder({
+          folderId,
+          saleId: folder.data.sale_id,
+          cardId: folder.data.kanban_card_id,
+          file,
+          category: cat,
+          userId: ud.user?.id ?? null,
+        });
+      }
+      toast.success(`${arr.length} arquivo(s) enviado(s)`);
+      qc.invalidateQueries({ queryKey: ["project_folder_files", folderId] });
+    } catch (e: any) {
+      toast.error(e?.message ?? "Erro ao enviar");
+    } finally {
+      setBusy(null);
+      setDragOver(null);
+    }
+  }
+
+  // Cole (Ctrl/Cmd+V) arquivos copiados em qualquer lugar da página da pasta.
+  useEffect(() => {
+    const onPaste = (e: ClipboardEvent) => {
+      const items = e.clipboardData?.files;
+      if (items && items.length) {
+        e.preventDefault();
+        uploadFilesAuto(items);
+      }
+    };
+    window.addEventListener("paste", onPaste);
+    return () => window.removeEventListener("paste", onPaste);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [folder.data?.id]);
+
+  function dropHandlers(category?: CategoryId) {
+    const key = category ?? "__page";
+    return {
+      onDragOver: (e: React.DragEvent) => {
+        if (e.dataTransfer.types.includes("Files")) {
+          e.preventDefault();
+          setDragOver(key);
+        }
+      },
+      onDragLeave: () => setDragOver((cur) => (cur === key ? null : cur)),
+      onDrop: (e: React.DragEvent) => {
+        if (!e.dataTransfer.files?.length) return;
+        e.preventDefault();
+        e.stopPropagation();
+        uploadFilesAuto(e.dataTransfer.files, category);
+      },
+    };
+  }
+
   async function openFile(path: string) {
     try {
       const url = await getSignedUrl(path);
@@ -191,11 +254,21 @@ function FolderDetail() {
   }
 
   return (
-    <div className="p-6 space-y-4">
+    <div className="p-6 space-y-4 relative" {...dropHandlers()}>
+      {dragOver === "__page" && (
+        <div className="fixed inset-0 z-50 bg-primary/10 border-4 border-dashed border-primary pointer-events-none flex items-center justify-center">
+          <div className="bg-background/95 px-6 py-3 rounded-lg font-semibold text-primary shadow-lg">
+            Solte os arquivos aqui
+          </div>
+        </div>
+      )}
       <div className="flex items-center gap-2">
         <Button asChild variant="ghost" size="sm">
           <Link to="/pastas-arquivos"><ArrowLeft className="w-4 h-4 mr-1" /> Voltar</Link>
         </Button>
+        <div className="ml-auto text-[11px] text-muted-foreground">
+          💡 Arraste arquivos aqui ou cole com <kbd className="px-1 border rounded">Ctrl/Cmd+V</kbd>
+        </div>
       </div>
       <div className="flex items-start justify-between flex-wrap gap-2">
         <div className="flex items-start gap-3">
@@ -250,8 +323,13 @@ function FolderDetail() {
         {CATEGORIES.map((cat) => {
           const items = grouped[cat.id] ?? [];
           const isOpen = open[cat.id] ?? true;
+          const isDragging = dragOver === cat.id;
           return (
-            <Card key={cat.id}>
+            <Card
+              key={cat.id}
+              className={isDragging ? "ring-2 ring-primary bg-primary/5 transition" : "transition"}
+              {...dropHandlers(cat.id)}
+            >
               <CardContent className="p-3 space-y-3">
                 <div className="flex items-center justify-between gap-2">
                   <button
@@ -280,7 +358,9 @@ function FolderDetail() {
                       ))}
                     </div>
                   ) : (
-                    <div className="text-xs text-muted-foreground italic px-2 py-2">Nenhum arquivo nesta seção ainda.</div>
+                    <div className={`text-xs italic px-2 py-4 rounded border-2 border-dashed text-center ${isDragging ? "border-primary text-primary" : "border-muted text-muted-foreground"}`}>
+                      {isDragging ? "Solte aqui para enviar" : "Nenhum arquivo. Arraste, cole ou clique em Upload."}
+                    </div>
                   )
                 )}
               </CardContent>
