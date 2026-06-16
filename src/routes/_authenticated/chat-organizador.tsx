@@ -409,7 +409,11 @@ function ChatOrganizador() {
               <span className="text-muted-foreground">Link já copiado — cole no card do Kanban ou na venda.</span>
             </div>
             <Button size="sm" variant="outline"
-              onClick={() => copy(`${window.location.origin}/pastas-arquivos/${lastCreated.id}`)}>
+              onClick={() => {
+                copy(`${window.location.origin}/pastas-arquivos/${lastCreated.id}`);
+                setLastCreated(null);
+                resetChat();
+              }}>
               <Copy className="w-3 h-3 mr-1" /> Copiar link
             </Button>
           </div>
