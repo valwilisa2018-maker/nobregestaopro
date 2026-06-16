@@ -9,6 +9,7 @@ import { toast } from "sonner";
 import { type CategoryId, detectCategory, uploadToFolder, getSignedUrl } from "@/lib/project-folders";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+import JSZip from "jszip";
 
 export const Route = createFileRoute("/_authenticated/pastas-arquivos/$folderId")({
   component: FolderDetail,
@@ -266,6 +267,44 @@ function FolderDetail() {
     }
   }
 
+  async function downloadAllZip() {
+    const list = files.data ?? [];
+    if (!list.length || !folder.data) return;
+    setBusy("__zip");
+    try {
+      const zip = new JSZip();
+      const used = new Map<string, number>();
+      for (const it of list) {
+        const url = await getSignedUrl(it.file_url);
+        const res = await fetch(url);
+        const blob = await res.blob();
+        let name = it.file_name || it.file_url.split("/").pop() || "arquivo";
+        if (used.has(name)) {
+          const n = (used.get(name) ?? 1) + 1;
+          used.set(name, n);
+          const dot = name.lastIndexOf(".");
+          name = dot > 0 ? `${name.slice(0, dot)} (${n})${name.slice(dot)}` : `${name} (${n})`;
+        } else {
+          used.set(name, 1);
+        }
+        zip.file(name, blob);
+      }
+      const content = await zip.generateAsync({ type: "blob" });
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(content);
+      a.download = `${folder.data.folder_name || "pasta"}.zip`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(a.href);
+      toast.success("ZIP gerado");
+    } catch (e: any) {
+      toast.error(e?.message ?? "Erro ao gerar ZIP");
+    } finally {
+      setBusy(null);
+    }
+  }
+
   if (folder.isLoading) return <div className="p-6">Carregando...</div>;
   if (!folder.data) return <div className="p-6">Pasta não encontrada.</div>;
 
@@ -352,6 +391,10 @@ function FolderDetail() {
           <Button size="sm" variant="outline" disabled={busy === "__upload"}
             onClick={() => fileInputRef.current?.click()}>
             <Upload className="w-4 h-4 mr-1" /> {busy === "__upload" ? "Enviando..." : "Upload"}
+          </Button>
+          <Button size="sm" variant="outline" disabled={busy === "__zip" || items.length === 0}
+            onClick={downloadAllZip} title="Baixar todos os arquivos em ZIP">
+            <Download className="w-4 h-4 mr-1" /> {busy === "__zip" ? "Compactando..." : "Baixar tudo (ZIP)"}
           </Button>
           <input
             ref={fileInputRef}
