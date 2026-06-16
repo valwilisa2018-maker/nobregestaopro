@@ -200,6 +200,53 @@ function ChatOrganizador() {
     setTimeout(() => taRef.current?.focus(), 0);
   }
 
+  async function submitRoteiro() {
+    const content = roteiroText.trim();
+    if (!content) {
+      toast.error("Cole o roteiro antes de enviar");
+      return;
+    }
+    const fileName = `roteiro-${new Date().toISOString().replace(/[:.]/g, "-")}.txt`;
+    const file = new File([content], fileName, { type: "text/plain" });
+    if (!active) {
+      setPendingFiles((prev) => [...prev, file]);
+      toast.success('Roteiro pronto. Agora diga ou digite: "criar pasta NOME".');
+      setRoteiroOpen(false);
+      setRoteiroText("");
+      return;
+    }
+    setSending(true);
+    try {
+      const { data: ud } = await supabase.auth.getUser();
+      const saved = await uploadToFolder({
+        folderId: active.id,
+        saleId: active.sale_id ?? null,
+        cardId: active.kanban_card_id ?? null,
+        file,
+        category: "roteiro",
+        userId: ud.user?.id ?? null,
+      });
+      await supabase.from("project_folder_messages" as any).insert({
+        folder_id: active.id,
+        sale_id: active.sale_id,
+        kanban_card_id: active.kanban_card_id,
+        message: "📝 Roteiro enviado",
+        file_url: saved.file_url,
+        file_id: saved.id,
+        sender_id: ud.user?.id,
+      });
+      qc.invalidateQueries({ queryKey: ["chat_messages", active.id] });
+      qc.invalidateQueries({ queryKey: ["project_folder_files", active.id] });
+      toast.success("Roteiro enviado");
+      setRoteiroOpen(false);
+      setRoteiroText("");
+    } catch (e: any) {
+      toast.error(e?.message ?? "Erro ao enviar roteiro");
+    } finally {
+      setSending(false);
+    }
+  }
+
   async function sendText() {
     if (!text.trim()) return;
     const cmdName = parseCreateFolderCommand(text);
