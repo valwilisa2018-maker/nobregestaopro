@@ -8,7 +8,8 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { MessagesSquare, Send, Paperclip, Mic, Square, Search, FileText, Copy, FolderPlus, FolderOpen } from "lucide-react";
+import { MessagesSquare, Send, Paperclip, Mic, Square, Search, FileText, Copy, FolderPlus, FolderOpen, ScrollText } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { detectCategory, uploadToFolder, getSignedUrl, type CategoryId } from "@/lib/project-folders";
 import { transcribeAudio } from "@/lib/ai-transcribe.functions";
@@ -48,6 +49,8 @@ function ChatOrganizador() {
   const [lastCreated, setLastCreated] = useState<{ id: string; name: string } | null>(null);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [pendingFiles, setPendingFiles] = useState<File[]>([]);
+  const [roteiroOpen, setRoteiroOpen] = useState(false);
+  const [roteiroText, setRoteiroText] = useState("");
   const fileRef = useRef<HTMLInputElement>(null);
   const recRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
