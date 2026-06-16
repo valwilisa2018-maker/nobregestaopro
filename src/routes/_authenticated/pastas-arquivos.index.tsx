@@ -313,7 +313,14 @@ function PastasArquivosPage() {
                   </div>
                   <div className="flex items-center justify-between text-xs text-muted-foreground">
                     <span className="flex items-center gap-1"><FileText className="w-3 h-3" /> {count} arquivos</span>
-                    <span>{f.sales?.sellers?.name ?? "—"}</span>
+                  </div>
+                  <div className="flex flex-wrap gap-1">
+                    <span className="inline-flex items-center gap-1 rounded-md bg-blue-500/10 text-blue-600 dark:text-blue-400 px-2 py-0.5 text-[10px] font-medium">
+                      Vendedor: {f.sales?.sellers?.name ?? "—"}
+                    </span>
+                    <span className="inline-flex items-center gap-1 rounded-md bg-purple-500/10 text-purple-600 dark:text-purple-400 px-2 py-0.5 text-[10px] font-medium">
+                      Produtor: {f.service_orders?.producers?.name ?? "—"}
+                    </span>
                   </div>
                   {f.google_drive_link && (
                     <a href={f.google_drive_link} target="_blank" rel="noreferrer"
