@@ -214,32 +214,73 @@ function ChatOrganizador() {
   }
 
   async function sendFiles(list: FileList | null) {
-    if (!active || !list) return;
+    if (!list || !list.length) return;
+    // If no folder is active, ask for a name, create one, then upload to it.
+    let target = active;
+    if (!target) {
+      const name = window.prompt(
+        'Nenhuma pasta ativa. Qual o nome da nova pasta para estes arquivos?',
+        '',
+      );
+      if (!name || !name.trim()) {
+        toast.error('Envio cancelado — informe um nome para a pasta.');
+        return;
+      }
+      setSending(true);
+      try {
+        await createFolderFromCommand(name.trim());
+      } catch (e: any) {
+        toast.error(e?.message ?? 'Erro ao criar pasta');
+        setSending(false);
+        return;
+      } finally {
+        setSending(false);
+      }
+      // Refresh folders and grab the just-created one
+      const res = await qc.fetchQuery({
+        queryKey: ['chat_folders'],
+        queryFn: async () => {
+          const { data, error } = await supabase
+            .from('project_folders' as any)
+            .select(
+              'id, folder_name, client_name, service_type, sale_id, kanban_card_id, platform_link, google_drive_link, created_at',
+            )
+            .order('created_at', { ascending: false });
+          if (error) throw error;
+          return (data ?? []) as any[];
+        },
+      });
+      target = (res ?? []).find((f: any) => f.folder_name === name.trim()) ?? null;
+      if (!target) {
+        toast.error('Pasta criada, mas não foi possível localizá-la para o upload.');
+        return;
+      }
+    }
     setSending(true);
     try {
       const { data: ud } = await supabase.auth.getUser();
       for (const file of Array.from(list)) {
         const cat: CategoryId = detectCategory(file);
         const saved = await uploadToFolder({
-          folderId: active.id,
-          saleId: active.sale_id ?? null,
-          cardId: active.kanban_card_id ?? null,
+          folderId: target.id,
+          saleId: target.sale_id ?? null,
+          cardId: target.kanban_card_id ?? null,
           file,
           category: cat,
           userId: ud.user?.id ?? null,
         });
         await supabase.from("project_folder_messages" as any).insert({
-          folder_id: active.id,
-          sale_id: active.sale_id,
-          kanban_card_id: active.kanban_card_id,
+          folder_id: target.id,
+          sale_id: target.sale_id,
+          kanban_card_id: target.kanban_card_id,
           file_url: saved.file_url,
           file_id: saved.id,
           sender_id: ud.user?.id,
         });
       }
       toast.success("Enviado");
-      qc.invalidateQueries({ queryKey: ["chat_messages", active.id] });
-      qc.invalidateQueries({ queryKey: ["project_folder_files", active.id] });
+      qc.invalidateQueries({ queryKey: ["chat_messages", target.id] });
+      qc.invalidateQueries({ queryKey: ["project_folder_files", target.id] });
     } catch (e: any) {
       toast.error(e?.message ?? "Erro ao enviar");
     } finally {
@@ -471,7 +512,7 @@ function ChatOrganizador() {
                 />
                 <div className="flex flex-col gap-1">
                   <input ref={fileRef} type="file" multiple accept="image/*,video/*,audio/*,application/pdf,.pdf,.doc,.docx,.txt" className="hidden" onChange={(e) => sendFiles(e.target.files)} />
-                  <Button size="icon" variant="outline" onClick={() => fileRef.current?.click()} disabled={sending || !active} title="Anexar arquivo">
+                  <Button size="icon" variant="outline" onClick={() => fileRef.current?.click()} disabled={sending} title="Anexar arquivo (se não houver pasta ativa, será solicitado o nome)">
                     <Paperclip className="w-4 h-4" />
                   </Button>
                   <Button size="icon" variant={recording ? "destructive" : "outline"} onClick={toggleRecord} disabled={sending && !recording} title='Gravar áudio (diga "criar pasta NOME")'>
