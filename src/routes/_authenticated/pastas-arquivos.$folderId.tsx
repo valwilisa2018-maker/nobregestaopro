@@ -46,6 +46,7 @@ function PreviewTile({
   onDelete: (id: string, path: string) => void;
 }) {
   const [url, setUrl] = useState<string | null>(null);
+  const [textPreview, setTextPreview] = useState<string | null>(null);
   useEffect(() => {
     let alive = true;
     getSignedUrl(item.file_url).then((u) => { if (alive) setUrl(u); }).catch(() => {});
@@ -57,7 +58,18 @@ function PreviewTile({
   const isVideo = mime.startsWith("video/");
   const isAudio = mime.startsWith("audio/") || /\.(webm|mp3|wav|m4a|ogg|oga)$/i.test(item.file_url ?? "");
   const isPdf = mime === "application/pdf";
+  const isText = mime.startsWith("text/") || /\.(txt|md|csv|log|json|html?)$/i.test(item.file_name ?? "");
   const Icon = iconFor(item.file_type);
+
+  useEffect(() => {
+    if (!url || !isText) return;
+    let alive = true;
+    fetch(url)
+      .then((r) => r.text())
+      .then((t) => { if (alive) setTextPreview(t.slice(0, 2000)); })
+      .catch(() => {});
+    return () => { alive = false; };
+  }, [url, isText]);
 
   return (
     <div className="group relative rounded-lg border bg-card overflow-hidden hover:shadow-md hover:border-primary/40 transition">
@@ -99,7 +111,12 @@ function PreviewTile({
         {url && isPdf && (
           <iframe src={url} className="w-full h-full pointer-events-none" title={item.file_name} />
         )}
-        {url && !isImage && !isVideo && !isAudio && !isPdf && (
+        {url && isText && (
+          <pre className="w-full h-full overflow-hidden text-[9px] leading-tight p-2 text-left whitespace-pre-wrap bg-background text-foreground">
+            {textPreview ?? "carregando…"}
+          </pre>
+        )}
+        {url && !isImage && !isVideo && !isAudio && !isPdf && !isText && (
           <Icon className="w-12 h-12 text-muted-foreground" />
         )}
       </button>
