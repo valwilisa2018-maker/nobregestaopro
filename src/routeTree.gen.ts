@@ -33,6 +33,7 @@ import { Route as AuthenticatedBackupRouteImport } from './routes/_authenticated
 import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/admin'
 import { Route as AuthenticatedOperacaoMetaIndexRouteImport } from './routes/_authenticated/operacao-meta.index'
 import { Route as ApiPublicTrelloWebhookRouteImport } from './routes/api/public/trello-webhook'
+import { Route as AuthenticatedPastasArquivosFolderIdRouteImport } from './routes/_authenticated/pastas-arquivos.$folderId'
 import { Route as AuthenticatedOperacaoMetaTendenciasRouteImport } from './routes/_authenticated/operacao-meta.tendencias'
 import { Route as AuthenticatedOperacaoMetaRelatoriosRouteImport } from './routes/_authenticated/operacao-meta.relatorios'
 import { Route as AuthenticatedOperacaoMetaProdutoresRouteImport } from './routes/_authenticated/operacao-meta.produtores'
@@ -168,6 +169,12 @@ const ApiPublicTrelloWebhookRoute = ApiPublicTrelloWebhookRouteImport.update({
   path: '/api/public/trello-webhook',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AuthenticatedPastasArquivosFolderIdRoute =
+  AuthenticatedPastasArquivosFolderIdRouteImport.update({
+    id: '/$folderId',
+    path: '/$folderId',
+    getParentRoute: () => AuthenticatedPastasArquivosRoute,
+  } as any)
 const AuthenticatedOperacaoMetaTendenciasRoute =
   AuthenticatedOperacaoMetaTendenciasRouteImport.update({
     id: '/tendencias',
@@ -225,7 +232,7 @@ export interface FileRoutesByFullPath {
   '/kanban': typeof AuthenticatedKanbanRoute
   '/operacao-meta': typeof AuthenticatedOperacaoMetaRouteWithChildren
   '/pagarme-history': typeof AuthenticatedPagarmeHistoryRoute
-  '/pastas-arquivos': typeof AuthenticatedPastasArquivosRoute
+  '/pastas-arquivos': typeof AuthenticatedPastasArquivosRouteWithChildren
   '/payment-link': typeof AuthenticatedPaymentLinkRoute
   '/pending-payments': typeof AuthenticatedPendingPaymentsRoute
   '/producers': typeof AuthenticatedProducersRoute
@@ -240,6 +247,7 @@ export interface FileRoutesByFullPath {
   '/operacao-meta/produtores': typeof AuthenticatedOperacaoMetaProdutoresRoute
   '/operacao-meta/relatorios': typeof AuthenticatedOperacaoMetaRelatoriosRoute
   '/operacao-meta/tendencias': typeof AuthenticatedOperacaoMetaTendenciasRoute
+  '/pastas-arquivos/$folderId': typeof AuthenticatedPastasArquivosFolderIdRoute
   '/api/public/trello-webhook': typeof ApiPublicTrelloWebhookRoute
   '/operacao-meta/': typeof AuthenticatedOperacaoMetaIndexRoute
 }
@@ -256,7 +264,7 @@ export interface FileRoutesByTo {
   '/invoices': typeof AuthenticatedInvoicesRoute
   '/kanban': typeof AuthenticatedKanbanRoute
   '/pagarme-history': typeof AuthenticatedPagarmeHistoryRoute
-  '/pastas-arquivos': typeof AuthenticatedPastasArquivosRoute
+  '/pastas-arquivos': typeof AuthenticatedPastasArquivosRouteWithChildren
   '/payment-link': typeof AuthenticatedPaymentLinkRoute
   '/pending-payments': typeof AuthenticatedPendingPaymentsRoute
   '/producers': typeof AuthenticatedProducersRoute
@@ -271,6 +279,7 @@ export interface FileRoutesByTo {
   '/operacao-meta/produtores': typeof AuthenticatedOperacaoMetaProdutoresRoute
   '/operacao-meta/relatorios': typeof AuthenticatedOperacaoMetaRelatoriosRoute
   '/operacao-meta/tendencias': typeof AuthenticatedOperacaoMetaTendenciasRoute
+  '/pastas-arquivos/$folderId': typeof AuthenticatedPastasArquivosFolderIdRoute
   '/api/public/trello-webhook': typeof ApiPublicTrelloWebhookRoute
   '/operacao-meta': typeof AuthenticatedOperacaoMetaIndexRoute
 }
@@ -290,7 +299,7 @@ export interface FileRoutesById {
   '/_authenticated/kanban': typeof AuthenticatedKanbanRoute
   '/_authenticated/operacao-meta': typeof AuthenticatedOperacaoMetaRouteWithChildren
   '/_authenticated/pagarme-history': typeof AuthenticatedPagarmeHistoryRoute
-  '/_authenticated/pastas-arquivos': typeof AuthenticatedPastasArquivosRoute
+  '/_authenticated/pastas-arquivos': typeof AuthenticatedPastasArquivosRouteWithChildren
   '/_authenticated/payment-link': typeof AuthenticatedPaymentLinkRoute
   '/_authenticated/pending-payments': typeof AuthenticatedPendingPaymentsRoute
   '/_authenticated/producers': typeof AuthenticatedProducersRoute
@@ -305,6 +314,7 @@ export interface FileRoutesById {
   '/_authenticated/operacao-meta/produtores': typeof AuthenticatedOperacaoMetaProdutoresRoute
   '/_authenticated/operacao-meta/relatorios': typeof AuthenticatedOperacaoMetaRelatoriosRoute
   '/_authenticated/operacao-meta/tendencias': typeof AuthenticatedOperacaoMetaTendenciasRoute
+  '/_authenticated/pastas-arquivos/$folderId': typeof AuthenticatedPastasArquivosFolderIdRoute
   '/api/public/trello-webhook': typeof ApiPublicTrelloWebhookRoute
   '/_authenticated/operacao-meta/': typeof AuthenticatedOperacaoMetaIndexRoute
 }
@@ -339,6 +349,7 @@ export interface FileRouteTypes {
     | '/operacao-meta/produtores'
     | '/operacao-meta/relatorios'
     | '/operacao-meta/tendencias'
+    | '/pastas-arquivos/$folderId'
     | '/api/public/trello-webhook'
     | '/operacao-meta/'
   fileRoutesByTo: FileRoutesByTo
@@ -370,6 +381,7 @@ export interface FileRouteTypes {
     | '/operacao-meta/produtores'
     | '/operacao-meta/relatorios'
     | '/operacao-meta/tendencias'
+    | '/pastas-arquivos/$folderId'
     | '/api/public/trello-webhook'
     | '/operacao-meta'
   id:
@@ -403,6 +415,7 @@ export interface FileRouteTypes {
     | '/_authenticated/operacao-meta/produtores'
     | '/_authenticated/operacao-meta/relatorios'
     | '/_authenticated/operacao-meta/tendencias'
+    | '/_authenticated/pastas-arquivos/$folderId'
     | '/api/public/trello-webhook'
     | '/_authenticated/operacao-meta/'
   fileRoutesById: FileRoutesById
@@ -585,6 +598,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicTrelloWebhookRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_authenticated/pastas-arquivos/$folderId': {
+      id: '/_authenticated/pastas-arquivos/$folderId'
+      path: '/$folderId'
+      fullPath: '/pastas-arquivos/$folderId'
+      preLoaderRoute: typeof AuthenticatedPastasArquivosFolderIdRouteImport
+      parentRoute: typeof AuthenticatedPastasArquivosRoute
+    }
     '/_authenticated/operacao-meta/tendencias': {
       id: '/_authenticated/operacao-meta/tendencias'
       path: '/tendencias'
@@ -670,6 +690,21 @@ const AuthenticatedOperacaoMetaRouteWithChildren =
     AuthenticatedOperacaoMetaRouteChildren,
   )
 
+interface AuthenticatedPastasArquivosRouteChildren {
+  AuthenticatedPastasArquivosFolderIdRoute: typeof AuthenticatedPastasArquivosFolderIdRoute
+}
+
+const AuthenticatedPastasArquivosRouteChildren: AuthenticatedPastasArquivosRouteChildren =
+  {
+    AuthenticatedPastasArquivosFolderIdRoute:
+      AuthenticatedPastasArquivosFolderIdRoute,
+  }
+
+const AuthenticatedPastasArquivosRouteWithChildren =
+  AuthenticatedPastasArquivosRoute._addFileChildren(
+    AuthenticatedPastasArquivosRouteChildren,
+  )
+
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedAdminRoute: typeof AuthenticatedAdminRoute
   AuthenticatedBackupRoute: typeof AuthenticatedBackupRoute
@@ -681,7 +716,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedKanbanRoute: typeof AuthenticatedKanbanRoute
   AuthenticatedOperacaoMetaRoute: typeof AuthenticatedOperacaoMetaRouteWithChildren
   AuthenticatedPagarmeHistoryRoute: typeof AuthenticatedPagarmeHistoryRoute
-  AuthenticatedPastasArquivosRoute: typeof AuthenticatedPastasArquivosRoute
+  AuthenticatedPastasArquivosRoute: typeof AuthenticatedPastasArquivosRouteWithChildren
   AuthenticatedPaymentLinkRoute: typeof AuthenticatedPaymentLinkRoute
   AuthenticatedPendingPaymentsRoute: typeof AuthenticatedPendingPaymentsRoute
   AuthenticatedProducersRoute: typeof AuthenticatedProducersRoute
@@ -702,7 +737,8 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedKanbanRoute: AuthenticatedKanbanRoute,
   AuthenticatedOperacaoMetaRoute: AuthenticatedOperacaoMetaRouteWithChildren,
   AuthenticatedPagarmeHistoryRoute: AuthenticatedPagarmeHistoryRoute,
-  AuthenticatedPastasArquivosRoute: AuthenticatedPastasArquivosRoute,
+  AuthenticatedPastasArquivosRoute:
+    AuthenticatedPastasArquivosRouteWithChildren,
   AuthenticatedPaymentLinkRoute: AuthenticatedPaymentLinkRoute,
   AuthenticatedPendingPaymentsRoute: AuthenticatedPendingPaymentsRoute,
   AuthenticatedProducersRoute: AuthenticatedProducersRoute,
