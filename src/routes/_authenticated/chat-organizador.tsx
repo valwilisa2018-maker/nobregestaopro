@@ -267,8 +267,29 @@ function ChatOrganizador() {
       return;
     }
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      const mr = new MediaRecorder(stream);
+      const stream = await navigator.mediaDevices.getUserMedia({
+        audio: {
+          echoCancellation: true,
+          noiseSuppression: true,
+          autoGainControl: true,
+          channelCount: 1,
+          sampleRate: 48000,
+        } as MediaTrackConstraints,
+      });
+      // Pick the best supported mime for clearer voice capture.
+      const mimeCandidates = [
+        "audio/webm;codecs=opus",
+        "audio/webm",
+        "audio/mp4",
+      ];
+      const mimeType =
+        mimeCandidates.find((m) =>
+          typeof MediaRecorder !== "undefined" && MediaRecorder.isTypeSupported?.(m),
+        ) ?? "";
+      const mr = new MediaRecorder(
+        stream,
+        mimeType ? { mimeType, audioBitsPerSecond: 128000 } : { audioBitsPerSecond: 128000 },
+      );
       chunksRef.current = [];
       mr.ondataavailable = (e) => { if (e.data.size) chunksRef.current.push(e.data); };
       mr.onstop = async () => {
@@ -317,7 +338,8 @@ function ChatOrganizador() {
           setSending(false);
         }
       };
-      mr.start();
+      // Emit a chunk every 250ms so very short presses still capture audio.
+      mr.start(250);
       recRef.current = mr;
       setRecording(true);
     } catch (e: any) {
@@ -407,8 +429,14 @@ function ChatOrganizador() {
               {!active && (
                 <div className="text-center text-muted-foreground text-sm py-8 space-y-2">
                   <FolderPlus className="w-10 h-10 mx-auto opacity-50" />
-                  <div>Nenhuma pasta selecionada.</div>
-                  <div className="text-xs">Grave um áudio dizendo <em>"criar pasta CLIENTE"</em> ou digite o mesmo comando abaixo.</div>
+                  <div className="font-medium">Envie todos seus arquivos para criar a pasta.</div>
+                  <div className="text-xs max-w-md mx-auto">
+                    Depois de enviar todos seus arquivos, a pasta é criada automaticamente.
+                    <br />
+                    <strong>Digitando:</strong> escreva <em>"criar pasta NOME"</em> e pressione Enter.
+                    <br />
+                    <strong>Por áudio:</strong> toque no microfone <Mic className="inline w-3 h-3" /> e diga <em>"criar pasta NOME"</em>.
+                  </div>
                 </div>
               )}
               {(msgs.data ?? []).map((m: any) => {
@@ -454,8 +482,11 @@ function ChatOrganizador() {
                   </Button>
                 </div>
               </div>
-              <div className="text-[10px] text-muted-foreground">
-                Dica: grave um áudio dizendo <em>"criar pasta João da Costa"</em> — a pasta é criada e o link é copiado.
+              <div className="text-[11px] text-muted-foreground text-center leading-relaxed">
+                <strong>Envie todos seus arquivos para criar a pasta.</strong> Depois de enviar, a pasta é criada automaticamente.
+                <br />
+                <strong>Digitando:</strong> <em>"criar pasta NOME"</em> + Enter &nbsp;•&nbsp;
+                <strong>Áudio:</strong> toque no <Mic className="inline w-3 h-3" /> e diga <em>"criar pasta NOME"</em>.
               </div>
             </footer>
         </>
