@@ -787,22 +787,22 @@ function SalesPage() {
                     </SelectContent>
                   </Select>
                 </div>
-                <div className="col-span-2">
-                  <Label>Link do Google Drive *</Label>
+                 <div className="col-span-2">
+                   <Label>Link do Google Drive</Label>
                   <div className="flex gap-2">
                     <Input placeholder="https://drive.google.com/..." value={form.google_drive_link} onChange={(e) => set("google_drive_link", e.target.value)} />
                     <Button type="button" variant="outline" onClick={() => window.open("https://drive.google.com/drive/u/0/home", "_blank", "noopener,noreferrer")}>Abrir Drive</Button>
                   </div>
                 </div>
                 <div className="col-span-2">
-                  <Label>Link da Plataforma (pasta interna) *</Label>
+                   <Label>Link da Plataforma (pasta interna)</Label>
                   <div className="flex gap-2">
                     <Input placeholder="Cole aqui o link gerado no Chat Organizador" value={form.platform_link} onChange={(e) => set("platform_link", e.target.value)} />
                     <Button type="button" variant="outline" asChild>
                       <a href="/chat-organizador" target="_blank" rel="noreferrer">Abrir Chat</a>
                     </Button>
                   </div>
-                  <p className="text-[11px] text-destructive mt-1">Obrigatório: informe pelo menos um dos dois links (Drive ou Plataforma).</p>
+                   <p className="text-[11px] text-muted-foreground mt-1">Informe pelo menos um dos dois links (Drive ou Plataforma). Não precisa preencher os dois.</p>
                 </div>
                 <div className="col-span-2">
                   <Label>Comprovante (imagem ou PDF) *</Label>
@@ -1087,22 +1087,22 @@ function SalesPage() {
                   <SelectContent><SelectItem value="cliente_recuperacao">Cliente Recuperação</SelectItem><SelectItem value="trafego_pago">Tráfego Pago</SelectItem><SelectItem value="indicacao">Indicação</SelectItem><SelectItem value="organico">Orgânico / Redes Sociais</SelectItem><SelectItem value="cliente_antigo">Cliente Antigo</SelectItem><SelectItem value="prospeccao">Prospecção Ativa</SelectItem><SelectItem value="outros">Outros</SelectItem></SelectContent>
                 </Select>
               </div>
-              <div className="col-span-2">
-                <Label>Link do Google Drive *</Label>
+               <div className="col-span-2">
+                 <Label>Link do Google Drive</Label>
                 <div className="flex gap-2">
                   <Input placeholder="https://drive.google.com/..." value={editing.google_drive_link ?? editing.trello_link ?? ""} onChange={(e) => editSet("google_drive_link", e.target.value)} />
                   <Button type="button" variant="outline" onClick={() => window.open("https://drive.google.com/drive/u/0/home", "_blank", "noopener,noreferrer")}>Abrir Drive</Button>
                 </div>
               </div>
               <div className="col-span-2">
-                <Label>Link da Plataforma (pasta interna) *</Label>
+                 <Label>Link da Plataforma (pasta interna)</Label>
                 <div className="flex gap-2">
                   <Input placeholder="Cole aqui o link gerado no Chat Organizador" value={editing.platform_link ?? ""} onChange={(e) => editSet("platform_link", e.target.value)} />
                   <Button type="button" variant="outline" asChild>
                     <a href="/chat-organizador" target="_blank" rel="noreferrer">Abrir Chat</a>
                   </Button>
                 </div>
-                <p className="text-[11px] text-destructive mt-1">Obrigatório: informe pelo menos um dos dois links (Drive ou Plataforma).</p>
+                 <p className="text-[11px] text-muted-foreground mt-1">Informe pelo menos um dos dois links (Drive ou Plataforma). Não precisa preencher os dois.</p>
               </div>
               <div className="col-span-2"><Label>Prazo de entrega *</Label><Input placeholder="Ex: 7 dias úteis" value={editing.delivery_deadline ?? ""} onChange={(e) => editSet("delivery_deadline", e.target.value)} /></div>
               <div className="col-span-2"><Label>Observações (opcional)</Label><Textarea value={editing.notes ?? ""} onChange={(e) => editSet("notes", e.target.value)} /></div>
