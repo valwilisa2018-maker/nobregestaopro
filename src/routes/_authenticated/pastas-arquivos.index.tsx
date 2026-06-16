@@ -143,14 +143,19 @@ function PastasArquivosPage() {
     if (!nName.trim()) { toast.error("Informe um nome"); return; }
     setSaving(true);
     const { data: u } = await supabase.auth.getUser();
-    const { error } = await supabase.from("project_folders" as any).insert({
+    const { data: inserted, error } = await supabase.from("project_folders" as any).insert({
       folder_name: nName.trim(),
       client_name: nClient.trim() || null,
       service_type: nService.trim() || null,
       created_by: u.user?.id,
-    });
+    }).select("id").single();
     setSaving(false);
     if (error) { toast.error(error.message); return; }
+    // Link da plataforma já fica salvo na pasta no momento da criação.
+    if (inserted?.id) {
+      const url = `${window.location.origin}/pastas-arquivos/${inserted.id}`;
+      await supabase.from("project_folders" as any).update({ platform_link: url }).eq("id", inserted.id);
+    }
     toast.success("Pasta criada");
     setNName(""); setNClient(""); setNService(""); setOpen(false);
     folders.refetch();
