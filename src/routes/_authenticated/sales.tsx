@@ -557,6 +557,65 @@ function SalesPage() {
       }).eq("id", editing.id);
       if (error) throw error;
 
+      // Acrescentar serviços novos se a quantidade aumentou
+      try {
+        const newQty = Math.max(1, Number(editing.service_quantity || 1));
+        const { data: existingOrders } = await supabase
+          .from("service_orders")
+          .select("id, service_index")
+          .eq("sale_id", editing.id);
+        const currentCount = existingOrders?.length ?? 0;
+        if (newQty > currentCount) {
+          let colId: string | undefined;
+          const { data: defCol } = await supabase.from("kanban_columns").select("id").eq("is_default", true).limit(1).maybeSingle();
+          colId = defCol?.id;
+          if (!colId) {
+            const { data: firstCol } = await supabase.from("kanban_columns").select("id").order("sort_order").limit(1).maybeSingle();
+            colId = firstCol?.id;
+          }
+          const custName = editing.customer_name || editing.customers?.name || "Cliente";
+          const stName = (serviceTypes.data ?? []).find((st: any) => st.id === editing.service_type_id)?.name || "Serviço";
+          const newOrders: any[] = [];
+          for (let i = currentCount + 1; i <= newQty; i++) {
+            newOrders.push({
+              sale_id: editing.id,
+              column_id: colId,
+              service_index: i,
+              title: `${custName} • ${stName} #${i}`,
+              description: editing.notes || null,
+              sort_order: i,
+              producer_id: editing.producer_id || null,
+              expected_delivery_date: editing.expected_delivery_date || null,
+              trello_link: editing.google_drive_link || editing.platform_link || editing.trello_link || null,
+            });
+          }
+          if (newOrders.length && colId) {
+            const { error: soErr } = await supabase.from("service_orders").insert(newOrders);
+            if (soErr) throw soErr;
+          }
+          // Notas fiscais adicionais (apenas se não for pacote)
+          if (!editing.package_id && editing.customer_id) {
+            const unit = Number(editing.total_amount) / newQty;
+            const newInvoices: any[] = [];
+            for (let i = 0; i < (newQty - currentCount); i++) {
+              newInvoices.push({
+                sale_id: editing.id,
+                customer_id: editing.customer_id,
+                amount: unit,
+                status: "a_fazer",
+                notes: editing.notes || null,
+              });
+            }
+            if (newInvoices.length) {
+              await supabase.from("invoices").insert(newInvoices);
+            }
+          }
+          toast.success(`${newQty - currentCount} serviço(s) adicionado(s) à venda`);
+        }
+      } catch (addErr: any) {
+        await logger.error(`Erro ao acrescentar serviços: ${addErr?.message}`, { context: "sales/submitEdit/addServices", details: { error: addErr } });
+      }
+
       toast.success("Venda atualizada");
       setEditing(null);
       await qc.invalidateQueries({ queryKey: ["sales-list"] });
