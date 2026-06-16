@@ -787,21 +787,21 @@ function SalesPage() {
                   </Select>
                 </div>
                 <div className="col-span-2">
-                  <Label>Link do Google Drive</Label>
+                  <Label>Link do Google Drive *</Label>
                   <div className="flex gap-2">
                     <Input placeholder="https://drive.google.com/..." value={form.google_drive_link} onChange={(e) => set("google_drive_link", e.target.value)} />
                     <Button type="button" variant="outline" onClick={() => window.open("https://drive.google.com/drive/u/0/home", "_blank", "noopener,noreferrer")}>Abrir Drive</Button>
                   </div>
                 </div>
                 <div className="col-span-2">
-                  <Label>Link da Plataforma (pasta interna)</Label>
+                  <Label>Link da Plataforma (pasta interna) *</Label>
                   <div className="flex gap-2">
                     <Input placeholder="Cole aqui o link gerado no Chat Organizador" value={form.platform_link} onChange={(e) => set("platform_link", e.target.value)} />
                     <Button type="button" variant="outline" asChild>
                       <a href="/chat-organizador" target="_blank" rel="noreferrer">Abrir Chat</a>
                     </Button>
                   </div>
-                  <p className="text-[11px] text-muted-foreground mt-1">Informe pelo menos um dos dois links (Drive ou Plataforma).</p>
+                  <p className="text-[11px] text-destructive mt-1">Obrigatório: informe pelo menos um dos dois links (Drive ou Plataforma).</p>
                 </div>
                 <div className="col-span-2">
                   <Label>Comprovante (imagem ou PDF) *</Label>
