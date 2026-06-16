@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Upload, FileImage, FileVideo, FileAudio, FileText, File as FileIcon, Trash2, Link as LinkIcon, Download, Copy, Folder as FolderIcon, LayoutGrid, List as ListIcon, Save, X } from "lucide-react";
+import { ArrowLeft, Upload, FileImage, FileVideo, FileAudio, FileText, File as FileIcon, Trash2, Link as LinkIcon, Download, Copy, Folder as FolderIcon, LayoutGrid, List as ListIcon, Save, X, FolderPlus } from "lucide-react";
 import { toast } from "sonner";
 import { type CategoryId, detectCategory, uploadToFolder, getSignedUrl } from "@/lib/project-folders";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -169,6 +169,51 @@ function FolderDetail() {
       return (data ?? []) as any[];
     },
   });
+
+  const subfolders = useQuery({
+    queryKey: ["project_folder_children", folderId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("project_folders" as any)
+        .select("id, folder_name, created_at")
+        .eq("parent_id", folderId)
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+      return (data ?? []) as any[];
+    },
+  });
+
+  async function createSubfolder() {
+    if (!folder.data) return;
+    const name = window.prompt("Nome da nova pasta:");
+    if (!name || !name.trim()) return;
+    const { data: u } = await supabase.auth.getUser();
+    const { data: inserted, error } = await (supabase.from("project_folders" as any).insert({
+      folder_name: name.trim(),
+      client_name: folder.data.client_name,
+      service_type: folder.data.service_type,
+      sale_id: folder.data.sale_id,
+      kanban_card_id: folder.data.kanban_card_id,
+      parent_id: folderId,
+      created_by: u.user?.id,
+    }).select("id").single() as any);
+    if (error) { toast.error(error.message); return; }
+    const newId = (inserted as any)?.id;
+    if (newId) {
+      const url = `${window.location.origin}/pastas-arquivos/${newId}`;
+      await supabase.from("project_folders" as any).update({ platform_link: url }).eq("id", newId);
+    }
+    toast.success("Pasta criada");
+    qc.invalidateQueries({ queryKey: ["project_folder_children", folderId] });
+  }
+
+  async function deleteSubfolder(id: string) {
+    if (!confirm("Excluir esta subpasta e todo seu conteúdo?")) return;
+    const { error } = await supabase.from("project_folders" as any).delete().eq("id", id);
+    if (error) { toast.error(error.message); return; }
+    toast.success("Pasta excluída");
+    qc.invalidateQueries({ queryKey: ["project_folder_children", folderId] });
+  }
 
   /** Upload arbitrary files routing each to its best-fit category automatically. */
   async function uploadFilesAuto(list: File[] | FileList, forceCategory?: CategoryId) {
@@ -388,6 +433,9 @@ function FolderDetail() {
             <ToggleGroupItem value="grid" aria-label="Grade"><LayoutGrid className="w-4 h-4" /></ToggleGroupItem>
             <ToggleGroupItem value="list" aria-label="Lista"><ListIcon className="w-4 h-4" /></ToggleGroupItem>
           </ToggleGroup>
+          <Button size="sm" variant="outline" onClick={createSubfolder}>
+            <FolderPlus className="w-4 h-4 mr-1" /> Nova pasta
+          </Button>
           <Button size="sm" variant="outline" disabled={busy === "__upload"}
             onClick={() => fileInputRef.current?.click()}>
             <Upload className="w-4 h-4 mr-1" /> {busy === "__upload" ? "Enviando..." : "Upload"}
@@ -411,11 +459,38 @@ function FolderDetail() {
         </div>
       </div>
 
-      {items.length === 0 ? (
+      {(subfolders.data?.length ?? 0) > 0 && (
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-5 gap-3">
+          {subfolders.data!.map((s: any) => (
+            <div key={s.id} className="group relative rounded-lg border bg-card hover:shadow-md hover:border-primary/40 transition flex items-center gap-2 px-3 py-3">
+              <FolderIcon className="w-5 h-5 text-primary shrink-0" />
+              <Link
+                to="/pastas-arquivos/$folderId"
+                params={{ folderId: s.id }}
+                className="flex-1 text-sm font-medium truncate hover:underline"
+                title={s.folder_name}
+              >
+                {s.folder_name}
+              </Link>
+              <Button
+                size="sm"
+                variant="ghost"
+                className="h-7 w-7 p-0 text-destructive opacity-0 group-hover:opacity-100"
+                onClick={() => deleteSubfolder(s.id)}
+                title="Excluir"
+              >
+                <Trash2 className="w-3 h-3" />
+              </Button>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {items.length === 0 && (subfolders.data?.length ?? 0) === 0 ? (
         <div className="text-xs italic px-2 py-12 rounded border-2 border-dashed text-center border-muted text-muted-foreground">
           Nenhum arquivo nesta pasta. Arraste, cole ou clique em Upload.
         </div>
-      ) : view === "grid" ? (
+      ) : items.length === 0 ? null : view === "grid" ? (
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-5 gap-3">
           {items.map((it) => (
             <PreviewTile

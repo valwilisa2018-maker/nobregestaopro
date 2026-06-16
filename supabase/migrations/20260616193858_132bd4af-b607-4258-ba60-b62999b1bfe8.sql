@@ -1,0 +1,1 @@
+ALTER TABLE public.project_folders ADD COLUMN IF NOT EXISTS parent_id uuid REFERENCES public.project_folders(id) ON DELETE CASCADE; CREATE INDEX IF NOT EXISTS idx_project_folders_parent_id ON public.project_folders(parent_id);
