@@ -98,6 +98,7 @@ function KanbanPage() {
   const [dragging, setDragging] = useState<string | null>(null);
   const [draggingGroup, setDraggingGroup] = useState<string[] | null>(null);
   const [draggingFromCol, setDraggingFromCol] = useState<string | null>(null);
+  const isProcessingMove = useRef(false);
   const boardRef = useRef<HTMLDivElement | null>(null);
   const topScrollRef = useRef<HTMLDivElement | null>(null);
   const [boardScrollWidth, setBoardScrollWidth] = useState(0);
@@ -200,6 +201,30 @@ function KanbanPage() {
     return () => ro.disconnect();
   }, [cols.data, cards.data]);
 
+  const resetDragState = () => {
+    setDragging(null);
+    setDraggingGroup(null);
+    setDraggingFromCol(null);
+  };
+
+  const safeMutate = async (fn: () => Promise<void>) => {
+    if (isProcessingMove.current) {
+      toast.info("Aguarde a movimentação anterior…");
+      return;
+    }
+    isProcessingMove.current = true;
+    try {
+      await fn();
+    } catch (e: any) {
+      await logger.error(`Falha no drag-and-drop: ${e?.message ?? e}`, { context: "kanban/safeMutate", details: { error: e } });
+      toast.error("Falha ao mover card");
+    } finally {
+      isProcessingMove.current = false;
+      resetDragState();
+      qc.invalidateQueries({ queryKey: ["kanban-cards"] });
+    }
+  };
+
   const move = async (cardId: string, columnId: string) => {
     const col = cols.data?.find((c: any) => c.id === columnId);
     // Ao mover para uma coluna, novos cards vão para o topo (sort_order menor).
@@ -261,6 +286,8 @@ function KanbanPage() {
     movingIds: string[],
     beforeCardId: string | null,
   ) => {
+    if (!movingIds.length) return;
+    if (beforeCardId && movingIds.includes(beforeCardId)) return;
     const inCol = (cards.data ?? [])
       .filter((c: any) => c.column_id === colId)
       .sort(
@@ -268,6 +295,7 @@ function KanbanPage() {
           (a.sort_order ?? 0) - (b.sort_order ?? 0) ||
           new Date(a.created_at).getTime() - new Date(b.created_at).getTime(),
       );
+    if (inCol.length < 2) return;
     const movingSet = new Set(movingIds);
     const moving = inCol.filter((c: any) => movingSet.has(c.id));
     const rest = inCol.filter((c: any) => !movingSet.has(c.id));
@@ -527,6 +555,7 @@ function KanbanPage() {
         }}
         onDragLeave={() => { autoScrollSpeed.current = 0; }}
         onDrop={() => { autoScrollSpeed.current = 0; }}
+        onDragEnd={() => { autoScrollSpeed.current = 0; resetDragState(); }}
       >
         {(cols.data ?? []).map((col: any) => {
           const q = search.trim().toLowerCase();
@@ -589,23 +618,23 @@ function KanbanPage() {
               key={col.id}
               className="min-w-[280px] w-[280px] flex-shrink-0 rounded-lg border-2 border-foreground bg-muted p-3 shadow-md overflow-hidden"
               onDragOver={(e) => e.preventDefault()}
-              onDrop={() => {
+              onDrop={(e) => {
+                e.preventDefault();
+                const targetCol = cols.data?.find((c: any) => c.id === col.id);
+                if (!targetCol) { resetDragState(); return; }
                 const movingIds = draggingGroup && draggingGroup.length
                   ? draggingGroup
                   : dragging ? [dragging] : [];
-                if (movingIds.length) {
-                  if (draggingFromCol === col.id) {
-                    // Soltou em área vazia da mesma coluna → manda para o final.
-                    reorderInColumn(col.id, movingIds, null);
-                  } else if (draggingGroup && draggingGroup.length) {
-                    moveMany(draggingGroup, col.id);
-                  } else if (dragging) {
-                    move(dragging, col.id);
-                  }
+                if (!movingIds.length) { resetDragState(); return; }
+                if (draggingFromCol === col.id) {
+                  safeMutate(() => reorderInColumn(col.id, movingIds, null));
+                } else if (draggingGroup && draggingGroup.length) {
+                  safeMutate(() => moveMany(draggingGroup, col.id));
+                } else if (dragging) {
+                  safeMutate(() => move(dragging, col.id));
+                } else {
+                  resetDragState();
                 }
-                setDragging(null);
-                setDraggingGroup(null);
-                setDraggingFromCol(null);
               }}
             >
               <div className="flex items-center justify-between px-4 py-3 rounded-t-md bg-foreground text-background -m-3 mb-3">
@@ -649,17 +678,17 @@ function KanbanPage() {
                           }
                         }}
                         onDrop={(e) => {
-                          if (draggingFromCol !== col.id) return;
+                          if (draggingFromCol !== col.id) { resetDragState(); return; }
+                          e.preventDefault();
                           e.stopPropagation();
                           const movingIds = draggingGroup && draggingGroup.length
                             ? draggingGroup
                             : dragging ? [dragging] : [];
                           if (movingIds.length && !movingIds.includes(first.id)) {
-                            reorderInColumn(col.id, movingIds, first.id);
+                            safeMutate(() => reorderInColumn(col.id, movingIds, first.id));
+                          } else {
+                            resetDragState();
                           }
-                          setDragging(null);
-                          setDraggingGroup(null);
-                          setDraggingFromCol(null);
                         }}
                       >
                         {(first.sales?.payment_status === "pago_parcial" || first.sales?.video_duration_seconds) && (
@@ -846,17 +875,17 @@ function KanbanPage() {
                         }
                       }}
                       onDrop={(e) => {
-                        if (draggingFromCol !== col.id) return;
+                        if (draggingFromCol !== col.id) { resetDragState(); return; }
+                        e.preventDefault();
                         e.stopPropagation();
                         const movingIds = draggingGroup && draggingGroup.length
                           ? draggingGroup
                           : dragging ? [dragging] : [];
                         if (movingIds.length && !movingIds.includes(c.id)) {
-                          reorderInColumn(col.id, movingIds, c.id);
+                          safeMutate(() => reorderInColumn(col.id, movingIds, c.id));
+                        } else {
+                          resetDragState();
                         }
-                        setDragging(null);
-                        setDraggingGroup(null);
-                        setDraggingFromCol(null);
                       }}
                     >
                     {(c.sales?.payment_status === "pago_parcial" || c.sales?.video_duration_seconds) && (
