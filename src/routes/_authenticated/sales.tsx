@@ -269,6 +269,7 @@ function SalesPage() {
 
     for (const [k, label] of required) {
       const val = String((form as any)[k] ?? "").trim();
+      if (k === "trello_link") continue;
       if (!val) {
         toast.error(`Preencha o campo: ${label}`);
         return;
