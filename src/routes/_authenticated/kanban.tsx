@@ -983,6 +983,7 @@ function KanbanPage() {
                           </span>
                         )}
                       </div>
+                      <CardFolderBadges cardId={c.id} />
                     </CardContent>
                   </Card>
                     </div>
@@ -1176,6 +1177,56 @@ function KanbanPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+    </div>
+  );
+}
+
+function CardFolderBadges({ cardId }: { cardId: string }) {
+  const qc = useQueryClient();
+  const q = useQuery({
+    queryKey: ["card_folder", cardId],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("project_folders" as any)
+        .select("id, google_drive_link")
+        .eq("kanban_card_id", cardId)
+        .maybeSingle();
+      return (data ?? null) as any;
+    },
+  });
+  useEffect(() => {
+    const ch = supabase
+      .channel(`realtime:folder-badge:${cardId}`)
+      .on("postgres_changes", { event: "*", schema: "public", table: "project_folders" }, () => {
+        qc.invalidateQueries({ queryKey: ["card_folder", cardId] });
+      })
+      .subscribe();
+    return () => { supabase.removeChannel(ch); };
+  }, [cardId, qc]);
+  const f = q.data;
+  if (!f && !q.isLoading) return null;
+  if (!f) return null;
+  return (
+    <div className="flex flex-wrap items-center gap-1 pt-1 border-t border-dashed" onClick={(e) => e.stopPropagation()}>
+      <Link
+        to="/pastas-arquivos/$folderId"
+        params={{ folderId: f.id }}
+        className="inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded bg-primary/10 text-primary hover:bg-primary/20"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <FolderOpen className="w-3 h-3" /> Abrir pasta
+      </Link>
+      {f.google_drive_link && (
+        <a
+          href={f.google_drive_link}
+          target="_blank"
+          rel="noreferrer"
+          className="inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded bg-muted hover:bg-muted/80"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <LinkIcon className="w-3 h-3" /> Drive
+        </a>
+      )}
     </div>
   );
 }

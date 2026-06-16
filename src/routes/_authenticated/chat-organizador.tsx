@@ -26,6 +26,7 @@ function ChatOrganizador() {
   const qc = useQueryClient();
   const [search, setSearch] = useState("");
   const [activeFolderId, setActiveFolderId] = useState<string | null>(null);
+  const [filterSellerId, setFilterSellerId] = useState<string>("_mine");
   const [text, setText] = useState("");
   const [sending, setSending] = useState(false);
   const [recording, setRecording] = useState(false);
@@ -59,32 +60,48 @@ function ChatOrganizador() {
     [folders.data, activeFolderId],
   );
 
-  // Kanban cards (service orders) for linking
-  const cards = useQuery({
-    queryKey: ["chat_kanban_cards"],
+  // Current user role + own seller id (used to limit non-admins)
+  const me = useQuery({
+    queryKey: ["chat_me"],
     queryFn: async () => {
       const { data: ud } = await supabase.auth.getUser();
-      const uid = ud.user?.id;
-      const isAdmin = uid
-        ? !!(await supabase.rpc("has_role", { _user_id: uid, _role: "admin" as any })).data
-        : false;
+      const uid = ud.user?.id ?? null;
+      if (!uid) return { uid: null, isAdmin: false, sellerId: null as string | null };
+      const { data: isAdminData } = await supabase.rpc("has_role", { _user_id: uid, _role: "admin" as any });
+      const { data: s } = await supabase.from("sellers").select("id").eq("user_id", uid).maybeSingle();
+      return { uid, isAdmin: !!isAdminData, sellerId: s?.id ?? null };
+    },
+  });
 
-      let sellerId: string | null = null;
-      if (!isAdmin && uid) {
-        const { data: s } = await supabase
-          .from("sellers").select("id").eq("user_id", uid).maybeSingle();
-        sellerId = s?.id ?? null;
-      }
+  // All sellers (admin filter)
+  const sellers = useQuery({
+    queryKey: ["chat_sellers"],
+    enabled: !!me.data?.isAdmin,
+    queryFn: async () =>
+      (await supabase.from("sellers").select("id,name").order("name")).data ?? [],
+  });
 
+  // Effective seller filter: non-admin always = own seller; admin = chosen seller
+  const effectiveSellerId = useMemo(() => {
+    if (!me.data) return null;
+    if (!me.data.isAdmin) return me.data.sellerId;
+    if (filterSellerId === "_all") return null;
+    if (filterSellerId === "_mine") return me.data.sellerId;
+    return filterSellerId;
+  }, [me.data, filterSellerId]);
+
+  // Kanban cards (service orders) for linking
+  const cards = useQuery({
+    queryKey: ["chat_kanban_cards", effectiveSellerId, me.data?.isAdmin],
+    enabled: !!me.data,
+    queryFn: async () => {
       let q = supabase
         .from("service_orders")
-        .select("id, title, sale_id, sales!inner(seller_id, customer_id, customers(name), service_types(name))")
+        .select("id, title, sale_id, sales!inner(seller_id, customer_id, customers(name), sellers(name), service_types(name))")
         .order("created_at", { ascending: false })
         .limit(200);
-      if (!isAdmin) {
-        if (!sellerId) return [];
-        q = q.eq("sales.seller_id", sellerId);
-      }
+      if (effectiveSellerId === null && !me.data?.isAdmin) return [];
+      if (effectiveSellerId) q = q.eq("sales.seller_id", effectiveSellerId);
       const { data, error } = await q;
       if (error) throw error;
       return (data ?? []) as any[];
@@ -386,6 +403,18 @@ function ChatOrganizador() {
       <aside className="w-80 border-l flex flex-col">
         <div className="p-3 border-b">
           <div className="text-sm font-semibold mb-2">Cards do Kanban</div>
+          {me.data?.isAdmin && (
+            <Select value={filterSellerId} onValueChange={setFilterSellerId}>
+              <SelectTrigger className="h-8 text-xs mb-2"><SelectValue placeholder="Vendedor" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="_all">Todos vendedores</SelectItem>
+                <SelectItem value="_mine">Meus cards</SelectItem>
+                {(sellers.data ?? []).map((s: any) => (
+                  <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
           <div className="relative">
             <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-3 h-3 text-muted-foreground" />
             <Input value={cardSearch} onChange={(e) => setCardSearch(e.target.value)} placeholder="Buscar card..." className="pl-7 h-8 text-sm" />
@@ -408,7 +437,10 @@ function ChatOrganizador() {
             return (
               <div key={c.id} className={`px-3 py-2 border-b ${linked ? "bg-primary/5" : ""}`}>
                 <div className="text-sm font-medium truncate">{c.sales?.customers?.name ?? c.title}</div>
-                <div className="text-[11px] text-muted-foreground truncate">{c.sales?.service_types?.name ?? c.title}</div>
+                <div className="text-[11px] text-muted-foreground truncate">
+                  {c.sales?.service_types?.name ?? c.title}
+                  {c.sales?.sellers?.name && <> • {c.sales.sellers.name}</>}
+                </div>
                 <Button
                   size="sm"
                   variant={linked ? "secondary" : "default"}
