@@ -55,39 +55,53 @@ function PreviewTile({
   const Icon = iconFor(item.file_type);
 
   return (
-    <div className="group relative rounded-md border bg-card overflow-hidden hover:shadow-md transition">
-      <div className="aspect-video bg-muted/40 flex items-center justify-center overflow-hidden">
-        {!url && <div className="text-[10px] text-muted-foreground">carregando…</div>}
-        {url && isImage && (
-          <button onClick={() => onOpen(item.file_url)} className="w-full h-full">
-            <img src={url} alt={item.file_name} className="w-full h-full object-cover" />
-          </button>
-        )}
-        {url && isVideo && (
-          <video src={url} className="w-full h-full object-cover" controls preload="metadata" />
-        )}
-        {url && isAudio && !isVideo && (
-          <div className="p-2 w-full"><audio src={url} controls preload="metadata" className="w-full" /></div>
-        )}
-        {url && isPdf && (
-          <iframe src={url} className="w-full h-full" title={item.file_name} />
-        )}
-        {url && !isImage && !isVideo && !isAudio && !isPdf && (
-          <Icon className="w-10 h-10 text-muted-foreground" />
-        )}
-      </div>
-      <div className="p-2 flex items-center gap-2">
+    <div className="group relative rounded-lg border bg-card overflow-hidden hover:shadow-md hover:border-primary/40 transition">
+      {/* Header — ícone + nome + ações (estilo Google Drive) */}
+      <div className="flex items-center gap-2 px-3 py-2 border-b">
         <Icon className="w-4 h-4 text-primary shrink-0" />
-        <button onClick={() => onOpen(item.file_url)} className="text-xs truncate flex-1 text-left hover:underline">
+        <button
+          onClick={() => onOpen(item.file_url)}
+          className="text-xs font-medium truncate flex-1 text-left hover:underline"
+          title={item.file_name}
+        >
           {item.file_name}
         </button>
-        <Button size="sm" variant="ghost" className="h-6 w-6 p-0" onClick={() => onOpen(item.file_url)} title="Abrir">
+        <Button size="sm" variant="ghost" className="h-6 w-6 p-0 opacity-0 group-hover:opacity-100" onClick={() => onOpen(item.file_url)} title="Abrir">
           <Download className="w-3 h-3" />
         </Button>
-        <Button size="sm" variant="ghost" className="h-6 w-6 p-0 text-destructive"
+        <Button size="sm" variant="ghost" className="h-6 w-6 p-0 text-destructive opacity-0 group-hover:opacity-100"
           onClick={() => onDelete(item.id, item.file_url)} title="Excluir">
           <Trash2 className="w-3 h-3" />
         </Button>
+      </div>
+      {/* Thumbnail grande */}
+      <button
+        onClick={() => onOpen(item.file_url)}
+        className="block w-full aspect-[4/3] bg-muted/40 flex items-center justify-center overflow-hidden"
+      >
+        {!url && <div className="text-[10px] text-muted-foreground">carregando…</div>}
+        {url && isImage && (
+          <img src={url} alt={item.file_name} className="w-full h-full object-cover" />
+        )}
+        {url && isVideo && (
+          <video src={url} className="w-full h-full object-cover" preload="metadata" muted />
+        )}
+        {url && isAudio && !isVideo && (
+          <div className="p-2 w-full" onClick={(e) => e.stopPropagation()}>
+            <audio src={url} controls preload="metadata" className="w-full" />
+          </div>
+        )}
+        {url && isPdf && (
+          <iframe src={url} className="w-full h-full pointer-events-none" title={item.file_name} />
+        )}
+        {url && !isImage && !isVideo && !isAudio && !isPdf && (
+          <Icon className="w-12 h-12 text-muted-foreground" />
+        )}
+      </button>
+      {/* Rodapé com metadados */}
+      <div className="px-3 py-1.5 text-[10px] text-muted-foreground truncate border-t bg-muted/20">
+        {new Date(item.created_at).toLocaleDateString("pt-BR", { day: "2-digit", month: "short" })}
+        {item.file_size ? ` • ${Math.round(item.file_size / 1024)} KB` : ""}
       </div>
     </div>
   );
