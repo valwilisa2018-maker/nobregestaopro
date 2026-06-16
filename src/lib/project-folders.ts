@@ -84,3 +84,37 @@ export async function getSignedUrl(path: string, expires = 3600) {
   if (error) throw error;
   return data.signedUrl;
 }
+
+/**
+ * Extrai o folderId de uma URL no formato .../pastas-arquivos/{uuid}
+ */
+export function extractFolderIdFromLink(link?: string | null): string | null {
+  if (!link) return null;
+  const m = link.match(/pastas-arquivos\/([0-9a-fA-F-]{36})/);
+  return m?.[1] ?? null;
+}
+
+/**
+ * Quando o vendedor cola o link da Plataforma na venda ou no card,
+ * vincula automaticamente sale_id / kanban_card_id na pasta correspondente.
+ * Só preenche campos ainda nulos (não sobrescreve vínculos existentes).
+ */
+export async function autoLinkFolderFromUrl(
+  url: string | null | undefined,
+  opts: { saleId?: string | null; kanbanCardId?: string | null },
+) {
+  const folderId = extractFolderIdFromLink(url);
+  if (!folderId) return null;
+  const { data: folder } = await supabase
+    .from("project_folders" as any)
+    .select("id, sale_id, kanban_card_id")
+    .eq("id", folderId)
+    .maybeSingle();
+  if (!folder) return null;
+  const patch: Record<string, string> = {};
+  if (opts.saleId && !(folder as any).sale_id) patch.sale_id = opts.saleId;
+  if (opts.kanbanCardId && !(folder as any).kanban_card_id) patch.kanban_card_id = opts.kanbanCardId;
+  if (Object.keys(patch).length === 0) return folder;
+  await supabase.from("project_folders" as any).update(patch).eq("id", folderId);
+  return { ...(folder as any), ...patch };
+}

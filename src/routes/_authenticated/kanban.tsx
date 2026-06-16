@@ -17,6 +17,7 @@ import { Plus, Loader2, Trash2, X, Calendar, Clock, ExternalLink, MessageCircle,
 import { Search } from "lucide-react";
 import { fmtDate } from "@/lib/format";
 import { formatCurrency } from "@/lib/auth";
+import { autoLinkFolderFromUrl } from "@/lib/project-folders";
 
 // Formata segundos em rótulo curto: 30s, 1min, 1min30s, 2min...
 function fmtVideoDuration(sec?: number | null): string {
@@ -389,6 +390,13 @@ function KanbanPage() {
             .eq("id", editing.sale_id);
           if (e2) throw e2;
         }
+        // Auto-vincular pasta da Plataforma a partir dos links do card
+        try {
+          await autoLinkFolderFromUrl(editing.platform_link || editing.trello_link, {
+            saleId: editing.sale_id ?? null,
+            kanbanCardId: editing.id,
+          });
+        } catch (e) { /* não bloqueia o save */ }
         toast.success("Card atualizado");
       } else {
         const { error } = await supabase.from("service_orders").insert({ ...payload, service_index: 1, sort_order: 9999 });

@@ -21,6 +21,7 @@ import { fmtDate } from "@/lib/format";
 import { createPaymentLink } from "@/lib/pagarme.functions";
 import { Copy, Link2, ExternalLink } from "lucide-react";
 import { QRCodeSVG } from "qrcode.react";
+import { autoLinkFolderFromUrl } from "@/lib/project-folders";
 
 export const Route = createFileRoute("/_authenticated/sales")({
   component: SalesPage,
@@ -419,6 +420,13 @@ function SalesPage() {
         });
       }
 
+      // Auto-vincular pasta da Plataforma (se o link colado for /pastas-arquivos/{id})
+      if (saleRow?.id) {
+        try {
+          await autoLinkFolderFromUrl(form.platform_link || form.google_drive_link, { saleId: saleRow.id });
+        } catch (e) { /* não bloqueia a venda */ }
+      }
+
       toast.success("Venda criada — cards de produção gerados automaticamente");
       setOpen(false);
       setForm({
@@ -605,6 +613,11 @@ function SalesPage() {
         video_duration_seconds: editing.video_duration_seconds ? Number(editing.video_duration_seconds) : null,
       }).eq("id", editing.id);
       if (error) throw error;
+
+      // Auto-vincular pasta da Plataforma com base no link
+      try {
+        await autoLinkFolderFromUrl(editing.platform_link || editing.google_drive_link, { saleId: editing.id });
+      } catch (e) { /* não bloqueia o save */ }
 
       // Propagar link/produtor para as ordens de serviço existentes
       try {
