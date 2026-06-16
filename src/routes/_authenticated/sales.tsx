@@ -494,7 +494,8 @@ function SalesPage() {
     {
       const g = String(editing.google_drive_link ?? "").trim();
       const p = String(editing.platform_link ?? "").trim();
-      if (!g && !p) {
+      const t = String(editing.trello_link ?? "").trim();
+      if (!g && !p && !t) {
         toast.error("Informe o Link do Google Drive ou o Link da Plataforma (pelo menos um).");
         return;
       }
