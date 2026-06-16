@@ -9,7 +9,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import { FolderOpen, Search, Link as LinkIcon, Copy, FileText, Plus, RefreshCw } from "lucide-react";
+import { FolderOpen, Search, Link as LinkIcon, Copy, FileText, Plus, RefreshCw, Trash2, CheckSquare, Square } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/pastas-arquivos")({
@@ -27,6 +28,7 @@ function PastasArquivosPage() {
   const [nClient, setNClient] = useState("");
   const [nService, setNService] = useState("");
   const [saving, setSaving] = useState(false);
+  const [selected, setSelected] = useState<Set<string>>(new Set());
 
   const folders = useQuery({
     queryKey: ["project_folders_list"],
@@ -127,6 +129,25 @@ function PastasArquivosPage() {
     folders.refetch();
   }
 
+  function toggleSelect(id: string) {
+    setSelected((prev) => {
+      const n = new Set(prev);
+      if (n.has(id)) n.delete(id); else n.add(id);
+      return n;
+    });
+  }
+
+  async function deleteFolders(ids: string[]) {
+    if (ids.length === 0) return;
+    if (!confirm(`Excluir ${ids.length} pasta(s)? Esta ação não pode ser desfeita.`)) return;
+    const { error } = await supabase.from("project_folders" as any).delete().in("id", ids);
+    if (error) { toast.error(error.message); return; }
+    toast.success(`${ids.length} pasta(s) excluída(s)`);
+    setSelected(new Set());
+    folders.refetch();
+    counts.refetch();
+  }
+
   return (
     <div className="p-6 space-y-4">
       <div className="flex items-center justify-between">
@@ -134,6 +155,11 @@ function PastasArquivosPage() {
           <FolderOpen className="w-6 h-6 text-primary" /> Pastas e Arquivos
         </h1>
         <div className="flex items-center gap-2">
+        {selected.size > 0 && (
+          <Button variant="destructive" onClick={() => deleteFolders(Array.from(selected))}>
+            <Trash2 className="w-4 h-4 mr-1" /> Excluir ({selected.size})
+          </Button>
+        )}
         <Button
           variant="outline"
           onClick={async () => {
@@ -209,6 +235,24 @@ function PastasArquivosPage() {
           <Switch checked={onlyWithoutLink} onCheckedChange={setOnlyWithoutLink} />
           Apenas sem link do Drive
         </label>
+        {filtered.length > 0 && (
+          <Button
+            variant="ghost"
+            size="sm"
+            className="ml-auto"
+            onClick={() => {
+              const allIds = filtered.map((f: any) => f.id);
+              const allSelected = allIds.every((id) => selected.has(id));
+              setSelected(allSelected ? new Set() : new Set(allIds));
+            }}
+          >
+            {filtered.every((f: any) => selected.has(f.id)) ? (
+              <><CheckSquare className="w-4 h-4 mr-1" /> Desmarcar todas</>
+            ) : (
+              <><Square className="w-4 h-4 mr-1" /> Selecionar todas</>
+            )}
+          </Button>
+        )}
       </div>
 
       {folders.isLoading ? (
@@ -220,9 +264,14 @@ function PastasArquivosPage() {
           {filtered.map((f: any) => {
             const count = counts.data?.get(f.id) ?? 0;
             return (
-              <Card key={f.id} className="hover:border-primary/60 transition">
+              <Card key={f.id} className={`hover:border-primary/60 transition ${selected.has(f.id) ? "ring-2 ring-primary" : ""}`}>
                 <CardContent className="p-4 space-y-2">
                   <div className="flex items-start gap-2">
+                    <Checkbox
+                      checked={selected.has(f.id)}
+                      onCheckedChange={() => toggleSelect(f.id)}
+                      className="mt-1"
+                    />
                     <FolderOpen className="w-8 h-8 text-primary shrink-0" />
                     <div className="min-w-0">
                       <div className="font-semibold text-sm truncate">{f.folder_name}</div>
@@ -248,6 +297,10 @@ function PastasArquivosPage() {
                     </Button>
                     <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => saveDrive(f.id, f.google_drive_link)}>
                       <LinkIcon className="w-3 h-3 mr-1" /> Drive
+                    </Button>
+                    <Button size="sm" variant="ghost" className="h-7 text-xs text-destructive hover:text-destructive ml-auto"
+                      onClick={() => deleteFolders([f.id])}>
+                      <Trash2 className="w-3 h-3" />
                     </Button>
                   </div>
                 </CardContent>
