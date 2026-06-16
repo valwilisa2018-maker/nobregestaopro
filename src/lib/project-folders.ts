@@ -53,7 +53,7 @@ export async function uploadToFolder(opts: {
 }) {
   const { folderId, saleId, cardId, file, category, userId } = opts;
   const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
-  const scope = saleId ?? `folder-${folderId}`;
+  const scope = saleId ?? folderId;
   const path = `${scope}/${category}/${Date.now()}-${safeName}`;
   const { error: upErr } = await supabase.storage.from("project-files").upload(path, file, {
     contentType: file.type || "application/octet-stream",

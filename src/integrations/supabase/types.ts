@@ -1262,6 +1262,10 @@ export type Database = {
         Args: { _card_id: string; _sale_id: string; _user_id: string }
         Returns: boolean
       }
+      user_can_access_project_scope: {
+        Args: { _scope_id: string; _user_id: string }
+        Returns: boolean
+      }
       user_can_access_sale: {
         Args: { _sale_id: string; _user_id: string }
         Returns: boolean
