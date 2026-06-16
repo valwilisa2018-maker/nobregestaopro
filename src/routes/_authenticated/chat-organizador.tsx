@@ -198,8 +198,8 @@ function ChatOrganizador() {
         const cat: CategoryId = detectCategory(file);
         const saved = await uploadToFolder({
           folderId: active.id,
-          saleId: active.sale_id,
-          cardId: active.kanban_card_id,
+          saleId: active.sale_id ?? null,
+          cardId: active.kanban_card_id ?? null,
           file,
           category: cat,
           userId: ud.user?.id ?? null,

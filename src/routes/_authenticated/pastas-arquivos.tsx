@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
 import { FolderOpen, Search, Link as LinkIcon, Copy, FileText, Plus } from "lucide-react";
 import { toast } from "sonner";
 
@@ -20,6 +21,7 @@ function PastasArquivosPage() {
   const [sellerId, setSellerId] = useState<string>("_all");
   const [producerId, setProducerId] = useState<string>("_all");
   const [columnId, setColumnId] = useState<string>("_all");
+  const [onlyWithoutLink, setOnlyWithoutLink] = useState<boolean>(true);
   const [open, setOpen] = useState(false);
   const [nName, setNName] = useState("");
   const [nClient, setNClient] = useState("");
@@ -79,9 +81,10 @@ function PastasArquivosPage() {
       if (sellerId !== "_all" && f.sales?.seller_id !== sellerId) return false;
       if (producerId !== "_all" && f.service_orders?.producer_id !== producerId) return false;
       if (columnId !== "_all" && f.service_orders?.column_id !== columnId) return false;
+      if (onlyWithoutLink && f.google_drive_link) return false;
       return true;
     });
-  }, [folders.data, search, sellerId, producerId, columnId]);
+  }, [folders.data, search, sellerId, producerId, columnId, onlyWithoutLink]);
 
   async function saveDrive(folderId: string, current: string | null) {
     const link = window.prompt("Link do Google Drive:", current ?? "");
@@ -189,6 +192,10 @@ function PastasArquivosPage() {
             {(cols.data ?? []).map((c: any) => (<SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>))}
           </SelectContent>
         </Select>
+        <label className="flex items-center gap-2 text-xs text-muted-foreground ml-2">
+          <Switch checked={onlyWithoutLink} onCheckedChange={setOnlyWithoutLink} />
+          Apenas sem link do Drive
+        </label>
       </div>
 
       {folders.isLoading ? (
