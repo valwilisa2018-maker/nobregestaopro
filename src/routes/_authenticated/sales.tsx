@@ -394,7 +394,7 @@ function SalesPage() {
         package_name: form.package_name || null,
         service_quantity: Number(form.service_quantity || 1),
         notes: form.notes || null,
-        trello_link: form.google_drive_link || form.platform_link || null,
+        trello_link: null,
         google_drive_link: form.google_drive_link || null,
         platform_link: form.platform_link || null,
         lead_source: form.lead_source || null,
@@ -550,8 +550,7 @@ function SalesPage() {
     {
       const g = String(editing.google_drive_link ?? "").trim();
       const p = String(editing.platform_link ?? "").trim();
-      const t = String(editing.trello_link ?? "").trim();
-      if (!g && !p && !t) {
+      if (!g && !p) {
         toast.error("Informe o Link do Google Drive ou o Link da Plataforma (pelo menos um).");
         return;
       }
@@ -604,7 +603,7 @@ function SalesPage() {
         package_name: editing.package_name || null,
         service_quantity: Number(editing.service_quantity || 1),
         notes: editing.notes || null,
-        trello_link: editing.google_drive_link || editing.platform_link || editing.trello_link || null,
+        trello_link: null,
         google_drive_link: editing.google_drive_link || null,
         platform_link: editing.platform_link || null,
         lead_source: editing.lead_source || null,
@@ -621,9 +620,8 @@ function SalesPage() {
 
       // Propagar link/produtor para as ordens de serviço existentes
       try {
-        const newLink = editing.google_drive_link || editing.platform_link || editing.trello_link || null;
         await supabase.from("service_orders").update({
-          trello_link: newLink,
+          trello_link: null,
           producer_id: editing.producer_id || null,
           expected_delivery_date: editing.expected_delivery_date || null,
         }).eq("sale_id", editing.id);
@@ -667,7 +665,7 @@ function SalesPage() {
               sort_order: i,
               producer_id: editing.producer_id || null,
               expected_delivery_date: editing.expected_delivery_date || null,
-              trello_link: editing.google_drive_link || editing.platform_link || editing.trello_link || null,
+              trello_link: null,
             });
           }
           if (newOrders.length && colId) {
@@ -948,9 +946,9 @@ function SalesPage() {
                     <TableCell><Badge variant={statusVariant(s.payment_status) as any}>{s.payment_status.replace("_", " ")}</Badge></TableCell>
                     <TableCell>
                       <div className="flex items-center gap-1">
-                        {(s.google_drive_link || s.trello_link) && (
+                        {s.google_drive_link && (
                           <a
-                            href={s.google_drive_link || s.trello_link}
+                            href={s.google_drive_link}
                             target="_blank"
                             rel="noreferrer"
                             title="Abrir Google Drive"
@@ -1216,7 +1214,7 @@ function SalesPage() {
                <div className="col-span-2">
                  <Label>Link do Google Drive</Label>
                 <div className="flex gap-2">
-                  <Input placeholder="https://drive.google.com/..." value={editing.google_drive_link ?? editing.trello_link ?? ""} onChange={(e) => editSet("google_drive_link", e.target.value)} />
+                  <Input placeholder="https://drive.google.com/..." value={editing.google_drive_link ?? ""} onChange={(e) => editSet("google_drive_link", e.target.value)} />
                   <Button type="button" variant="outline" onClick={() => window.open("https://drive.google.com/drive/u/0/home", "_blank", "noopener,noreferrer")}>Abrir Drive</Button>
                 </div>
               </div>
