@@ -403,6 +403,18 @@ function PastasArquivosPage() {
                   <span className="text-xs text-muted-foreground hidden sm:flex items-center gap-1 w-20 justify-end">
                     <FileText className="w-3 h-3" /> {count}
                   </span>
+                  {f.google_drive_link && (
+                    <a
+                      href={f.google_drive_link}
+                      target="_blank"
+                      rel="noreferrer"
+                      onClick={(e) => e.stopPropagation()}
+                      className="hidden sm:inline-flex items-center gap-1 text-xs text-primary hover:underline"
+                      title={f.google_drive_link}
+                    >
+                      <LinkIcon className="w-3 h-3" /> Drive
+                    </a>
+                  )}
                   <Button
                     size="sm"
                     variant="default"
