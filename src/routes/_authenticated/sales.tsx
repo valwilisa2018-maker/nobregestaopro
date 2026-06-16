@@ -948,6 +948,17 @@ function SalesPage() {
                     <TableCell><Badge variant={statusVariant(s.payment_status) as any}>{s.payment_status.replace("_", " ")}</Badge></TableCell>
                     <TableCell>
                       <div className="flex items-center gap-1">
+                        {(s.google_drive_link || s.trello_link) && (
+                          <a
+                            href={s.google_drive_link || s.trello_link}
+                            target="_blank"
+                            rel="noreferrer"
+                            title="Abrir Google Drive"
+                            className="inline-flex items-center justify-center h-9 w-9 rounded-md text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-950"
+                          >
+                            <ExternalLink className="w-4 h-4" />
+                          </a>
+                        )}
                         {s.payment_method === "cartao" && !s.pagarme_id && (
                           <Button size="icon" variant="ghost" className="text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50" title="Gerar Link Pagar.me" onClick={() => handleGenerateLink(s)}>
                             <Link2 className="w-4 h-4" />
