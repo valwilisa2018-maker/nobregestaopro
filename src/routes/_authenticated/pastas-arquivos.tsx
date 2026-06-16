@@ -32,7 +32,7 @@ function PastasArquivosPage() {
       const { data, error } = await supabase
         .from("project_folders" as any)
         .select(
-          "id, sale_id, kanban_card_id, client_name, service_type, folder_name, google_drive_link, created_at, " +
+          "id, sale_id, kanban_card_id, client_name, service_type, folder_name, google_drive_link, platform_link, created_at, " +
             "service_orders:kanban_card_id(column_id, producer_id, producers(name)), " +
             "sales:sale_id(seller_id, sellers(name))",
         )
@@ -97,10 +97,14 @@ function PastasArquivosPage() {
     }
   }
 
-  function copyInternal(folderId: string) {
-    const url = `${window.location.origin}/pastas-arquivos/${folderId}`;
-    navigator.clipboard.writeText(url);
-    toast.success("Link copiado");
+  async function copyInternal(f: any) {
+    const url = f.platform_link ?? `${window.location.origin}/pastas-arquivos/${f.id}`;
+    try { await navigator.clipboard.writeText(url); } catch {}
+    if (!f.platform_link) {
+      await supabase.from("project_folders" as any).update({ platform_link: url }).eq("id", f.id);
+      folders.refetch();
+    }
+    toast.success("Link da Plataforma copiado");
   }
 
   async function createFolder() {
@@ -219,8 +223,8 @@ function PastasArquivosPage() {
                     <Button asChild size="sm" variant="default" className="h-7 text-xs">
                       <Link to="/pastas-arquivos/$folderId" params={{ folderId: f.id }}>Abrir</Link>
                     </Button>
-                    <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => copyInternal(f.id)}>
-                      <Copy className="w-3 h-3 mr-1" /> Link
+                    <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => copyInternal(f)}>
+                      <Copy className="w-3 h-3 mr-1" /> Copiar link
                     </Button>
                     <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => saveDrive(f.id, f.google_drive_link)}>
                       <LinkIcon className="w-3 h-3 mr-1" /> Drive
