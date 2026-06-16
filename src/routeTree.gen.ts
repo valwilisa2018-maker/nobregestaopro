@@ -20,6 +20,7 @@ import { Route as AuthenticatedSalesRouteImport } from './routes/_authenticated/
 import { Route as AuthenticatedProducersRouteImport } from './routes/_authenticated/producers'
 import { Route as AuthenticatedPendingPaymentsRouteImport } from './routes/_authenticated/pending-payments'
 import { Route as AuthenticatedPaymentLinkRouteImport } from './routes/_authenticated/payment-link'
+import { Route as AuthenticatedPastasArquivosRouteImport } from './routes/_authenticated/pastas-arquivos'
 import { Route as AuthenticatedPagarmeHistoryRouteImport } from './routes/_authenticated/pagarme-history'
 import { Route as AuthenticatedOperacaoMetaRouteImport } from './routes/_authenticated/operacao-meta'
 import { Route as AuthenticatedKanbanRouteImport } from './routes/_authenticated/kanban'
@@ -28,10 +29,12 @@ import { Route as AuthenticatedFinanceRouteImport } from './routes/_authenticate
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
 import { Route as AuthenticatedCustomersRouteImport } from './routes/_authenticated/customers'
 import { Route as AuthenticatedCommissionsRouteImport } from './routes/_authenticated/commissions'
+import { Route as AuthenticatedChatOrganizadorRouteImport } from './routes/_authenticated/chat-organizador'
 import { Route as AuthenticatedBackupRouteImport } from './routes/_authenticated/backup'
 import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/admin'
 import { Route as AuthenticatedOperacaoMetaIndexRouteImport } from './routes/_authenticated/operacao-meta.index'
 import { Route as ApiPublicTrelloWebhookRouteImport } from './routes/api/public/trello-webhook'
+import { Route as AuthenticatedPastasArquivosFolderIdRouteImport } from './routes/_authenticated/pastas-arquivos.$folderId'
 import { Route as AuthenticatedOperacaoMetaTendenciasRouteImport } from './routes/_authenticated/operacao-meta.tendencias'
 import { Route as AuthenticatedOperacaoMetaRelatoriosRouteImport } from './routes/_authenticated/operacao-meta.relatorios'
 import { Route as AuthenticatedOperacaoMetaProdutoresRouteImport } from './routes/_authenticated/operacao-meta.produtores'
@@ -97,6 +100,12 @@ const AuthenticatedPaymentLinkRoute =
     path: '/payment-link',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedPastasArquivosRoute =
+  AuthenticatedPastasArquivosRouteImport.update({
+    id: '/pastas-arquivos',
+    path: '/pastas-arquivos',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedPagarmeHistoryRoute =
   AuthenticatedPagarmeHistoryRouteImport.update({
     id: '/pagarme-history',
@@ -140,6 +149,12 @@ const AuthenticatedCommissionsRoute =
     path: '/commissions',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedChatOrganizadorRoute =
+  AuthenticatedChatOrganizadorRouteImport.update({
+    id: '/chat-organizador',
+    path: '/chat-organizador',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedBackupRoute = AuthenticatedBackupRouteImport.update({
   id: '/backup',
   path: '/backup',
@@ -161,6 +176,12 @@ const ApiPublicTrelloWebhookRoute = ApiPublicTrelloWebhookRouteImport.update({
   path: '/api/public/trello-webhook',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AuthenticatedPastasArquivosFolderIdRoute =
+  AuthenticatedPastasArquivosFolderIdRouteImport.update({
+    id: '/$folderId',
+    path: '/$folderId',
+    getParentRoute: () => AuthenticatedPastasArquivosRoute,
+  } as any)
 const AuthenticatedOperacaoMetaTendenciasRoute =
   AuthenticatedOperacaoMetaTendenciasRouteImport.update({
     id: '/tendencias',
@@ -210,6 +231,7 @@ export interface FileRoutesByFullPath {
   '/reset-password': typeof ResetPasswordRoute
   '/admin': typeof AuthenticatedAdminRoute
   '/backup': typeof AuthenticatedBackupRoute
+  '/chat-organizador': typeof AuthenticatedChatOrganizadorRoute
   '/commissions': typeof AuthenticatedCommissionsRoute
   '/customers': typeof AuthenticatedCustomersRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
@@ -218,6 +240,7 @@ export interface FileRoutesByFullPath {
   '/kanban': typeof AuthenticatedKanbanRoute
   '/operacao-meta': typeof AuthenticatedOperacaoMetaRouteWithChildren
   '/pagarme-history': typeof AuthenticatedPagarmeHistoryRoute
+  '/pastas-arquivos': typeof AuthenticatedPastasArquivosRouteWithChildren
   '/payment-link': typeof AuthenticatedPaymentLinkRoute
   '/pending-payments': typeof AuthenticatedPendingPaymentsRoute
   '/producers': typeof AuthenticatedProducersRoute
@@ -232,6 +255,7 @@ export interface FileRoutesByFullPath {
   '/operacao-meta/produtores': typeof AuthenticatedOperacaoMetaProdutoresRoute
   '/operacao-meta/relatorios': typeof AuthenticatedOperacaoMetaRelatoriosRoute
   '/operacao-meta/tendencias': typeof AuthenticatedOperacaoMetaTendenciasRoute
+  '/pastas-arquivos/$folderId': typeof AuthenticatedPastasArquivosFolderIdRoute
   '/api/public/trello-webhook': typeof ApiPublicTrelloWebhookRoute
   '/operacao-meta/': typeof AuthenticatedOperacaoMetaIndexRoute
 }
@@ -241,6 +265,7 @@ export interface FileRoutesByTo {
   '/reset-password': typeof ResetPasswordRoute
   '/admin': typeof AuthenticatedAdminRoute
   '/backup': typeof AuthenticatedBackupRoute
+  '/chat-organizador': typeof AuthenticatedChatOrganizadorRoute
   '/commissions': typeof AuthenticatedCommissionsRoute
   '/customers': typeof AuthenticatedCustomersRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
@@ -248,6 +273,7 @@ export interface FileRoutesByTo {
   '/invoices': typeof AuthenticatedInvoicesRoute
   '/kanban': typeof AuthenticatedKanbanRoute
   '/pagarme-history': typeof AuthenticatedPagarmeHistoryRoute
+  '/pastas-arquivos': typeof AuthenticatedPastasArquivosRouteWithChildren
   '/payment-link': typeof AuthenticatedPaymentLinkRoute
   '/pending-payments': typeof AuthenticatedPendingPaymentsRoute
   '/producers': typeof AuthenticatedProducersRoute
@@ -262,6 +288,7 @@ export interface FileRoutesByTo {
   '/operacao-meta/produtores': typeof AuthenticatedOperacaoMetaProdutoresRoute
   '/operacao-meta/relatorios': typeof AuthenticatedOperacaoMetaRelatoriosRoute
   '/operacao-meta/tendencias': typeof AuthenticatedOperacaoMetaTendenciasRoute
+  '/pastas-arquivos/$folderId': typeof AuthenticatedPastasArquivosFolderIdRoute
   '/api/public/trello-webhook': typeof ApiPublicTrelloWebhookRoute
   '/operacao-meta': typeof AuthenticatedOperacaoMetaIndexRoute
 }
@@ -273,6 +300,7 @@ export interface FileRoutesById {
   '/reset-password': typeof ResetPasswordRoute
   '/_authenticated/admin': typeof AuthenticatedAdminRoute
   '/_authenticated/backup': typeof AuthenticatedBackupRoute
+  '/_authenticated/chat-organizador': typeof AuthenticatedChatOrganizadorRoute
   '/_authenticated/commissions': typeof AuthenticatedCommissionsRoute
   '/_authenticated/customers': typeof AuthenticatedCustomersRoute
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
@@ -281,6 +309,7 @@ export interface FileRoutesById {
   '/_authenticated/kanban': typeof AuthenticatedKanbanRoute
   '/_authenticated/operacao-meta': typeof AuthenticatedOperacaoMetaRouteWithChildren
   '/_authenticated/pagarme-history': typeof AuthenticatedPagarmeHistoryRoute
+  '/_authenticated/pastas-arquivos': typeof AuthenticatedPastasArquivosRouteWithChildren
   '/_authenticated/payment-link': typeof AuthenticatedPaymentLinkRoute
   '/_authenticated/pending-payments': typeof AuthenticatedPendingPaymentsRoute
   '/_authenticated/producers': typeof AuthenticatedProducersRoute
@@ -295,6 +324,7 @@ export interface FileRoutesById {
   '/_authenticated/operacao-meta/produtores': typeof AuthenticatedOperacaoMetaProdutoresRoute
   '/_authenticated/operacao-meta/relatorios': typeof AuthenticatedOperacaoMetaRelatoriosRoute
   '/_authenticated/operacao-meta/tendencias': typeof AuthenticatedOperacaoMetaTendenciasRoute
+  '/_authenticated/pastas-arquivos/$folderId': typeof AuthenticatedPastasArquivosFolderIdRoute
   '/api/public/trello-webhook': typeof ApiPublicTrelloWebhookRoute
   '/_authenticated/operacao-meta/': typeof AuthenticatedOperacaoMetaIndexRoute
 }
@@ -306,6 +336,7 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/admin'
     | '/backup'
+    | '/chat-organizador'
     | '/commissions'
     | '/customers'
     | '/dashboard'
@@ -314,6 +345,7 @@ export interface FileRouteTypes {
     | '/kanban'
     | '/operacao-meta'
     | '/pagarme-history'
+    | '/pastas-arquivos'
     | '/payment-link'
     | '/pending-payments'
     | '/producers'
@@ -328,6 +360,7 @@ export interface FileRouteTypes {
     | '/operacao-meta/produtores'
     | '/operacao-meta/relatorios'
     | '/operacao-meta/tendencias'
+    | '/pastas-arquivos/$folderId'
     | '/api/public/trello-webhook'
     | '/operacao-meta/'
   fileRoutesByTo: FileRoutesByTo
@@ -337,6 +370,7 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/admin'
     | '/backup'
+    | '/chat-organizador'
     | '/commissions'
     | '/customers'
     | '/dashboard'
@@ -344,6 +378,7 @@ export interface FileRouteTypes {
     | '/invoices'
     | '/kanban'
     | '/pagarme-history'
+    | '/pastas-arquivos'
     | '/payment-link'
     | '/pending-payments'
     | '/producers'
@@ -358,6 +393,7 @@ export interface FileRouteTypes {
     | '/operacao-meta/produtores'
     | '/operacao-meta/relatorios'
     | '/operacao-meta/tendencias'
+    | '/pastas-arquivos/$folderId'
     | '/api/public/trello-webhook'
     | '/operacao-meta'
   id:
@@ -368,6 +404,7 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/_authenticated/admin'
     | '/_authenticated/backup'
+    | '/_authenticated/chat-organizador'
     | '/_authenticated/commissions'
     | '/_authenticated/customers'
     | '/_authenticated/dashboard'
@@ -376,6 +413,7 @@ export interface FileRouteTypes {
     | '/_authenticated/kanban'
     | '/_authenticated/operacao-meta'
     | '/_authenticated/pagarme-history'
+    | '/_authenticated/pastas-arquivos'
     | '/_authenticated/payment-link'
     | '/_authenticated/pending-payments'
     | '/_authenticated/producers'
@@ -390,6 +428,7 @@ export interface FileRouteTypes {
     | '/_authenticated/operacao-meta/produtores'
     | '/_authenticated/operacao-meta/relatorios'
     | '/_authenticated/operacao-meta/tendencias'
+    | '/_authenticated/pastas-arquivos/$folderId'
     | '/api/public/trello-webhook'
     | '/_authenticated/operacao-meta/'
   fileRoutesById: FileRoutesById
@@ -481,6 +520,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedPaymentLinkRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/pastas-arquivos': {
+      id: '/_authenticated/pastas-arquivos'
+      path: '/pastas-arquivos'
+      fullPath: '/pastas-arquivos'
+      preLoaderRoute: typeof AuthenticatedPastasArquivosRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/pagarme-history': {
       id: '/_authenticated/pagarme-history'
       path: '/pagarme-history'
@@ -537,6 +583,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedCommissionsRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/chat-organizador': {
+      id: '/_authenticated/chat-organizador'
+      path: '/chat-organizador'
+      fullPath: '/chat-organizador'
+      preLoaderRoute: typeof AuthenticatedChatOrganizadorRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/backup': {
       id: '/_authenticated/backup'
       path: '/backup'
@@ -564,6 +617,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/api/public/trello-webhook'
       preLoaderRoute: typeof ApiPublicTrelloWebhookRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/_authenticated/pastas-arquivos/$folderId': {
+      id: '/_authenticated/pastas-arquivos/$folderId'
+      path: '/$folderId'
+      fullPath: '/pastas-arquivos/$folderId'
+      preLoaderRoute: typeof AuthenticatedPastasArquivosFolderIdRouteImport
+      parentRoute: typeof AuthenticatedPastasArquivosRoute
     }
     '/_authenticated/operacao-meta/tendencias': {
       id: '/_authenticated/operacao-meta/tendencias'
@@ -650,9 +710,25 @@ const AuthenticatedOperacaoMetaRouteWithChildren =
     AuthenticatedOperacaoMetaRouteChildren,
   )
 
+interface AuthenticatedPastasArquivosRouteChildren {
+  AuthenticatedPastasArquivosFolderIdRoute: typeof AuthenticatedPastasArquivosFolderIdRoute
+}
+
+const AuthenticatedPastasArquivosRouteChildren: AuthenticatedPastasArquivosRouteChildren =
+  {
+    AuthenticatedPastasArquivosFolderIdRoute:
+      AuthenticatedPastasArquivosFolderIdRoute,
+  }
+
+const AuthenticatedPastasArquivosRouteWithChildren =
+  AuthenticatedPastasArquivosRoute._addFileChildren(
+    AuthenticatedPastasArquivosRouteChildren,
+  )
+
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedAdminRoute: typeof AuthenticatedAdminRoute
   AuthenticatedBackupRoute: typeof AuthenticatedBackupRoute
+  AuthenticatedChatOrganizadorRoute: typeof AuthenticatedChatOrganizadorRoute
   AuthenticatedCommissionsRoute: typeof AuthenticatedCommissionsRoute
   AuthenticatedCustomersRoute: typeof AuthenticatedCustomersRoute
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
@@ -661,6 +737,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedKanbanRoute: typeof AuthenticatedKanbanRoute
   AuthenticatedOperacaoMetaRoute: typeof AuthenticatedOperacaoMetaRouteWithChildren
   AuthenticatedPagarmeHistoryRoute: typeof AuthenticatedPagarmeHistoryRoute
+  AuthenticatedPastasArquivosRoute: typeof AuthenticatedPastasArquivosRouteWithChildren
   AuthenticatedPaymentLinkRoute: typeof AuthenticatedPaymentLinkRoute
   AuthenticatedPendingPaymentsRoute: typeof AuthenticatedPendingPaymentsRoute
   AuthenticatedProducersRoute: typeof AuthenticatedProducersRoute
@@ -673,6 +750,7 @@ interface AuthenticatedRouteRouteChildren {
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAdminRoute: AuthenticatedAdminRoute,
   AuthenticatedBackupRoute: AuthenticatedBackupRoute,
+  AuthenticatedChatOrganizadorRoute: AuthenticatedChatOrganizadorRoute,
   AuthenticatedCommissionsRoute: AuthenticatedCommissionsRoute,
   AuthenticatedCustomersRoute: AuthenticatedCustomersRoute,
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
@@ -681,6 +759,8 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedKanbanRoute: AuthenticatedKanbanRoute,
   AuthenticatedOperacaoMetaRoute: AuthenticatedOperacaoMetaRouteWithChildren,
   AuthenticatedPagarmeHistoryRoute: AuthenticatedPagarmeHistoryRoute,
+  AuthenticatedPastasArquivosRoute:
+    AuthenticatedPastasArquivosRouteWithChildren,
   AuthenticatedPaymentLinkRoute: AuthenticatedPaymentLinkRoute,
   AuthenticatedPendingPaymentsRoute: AuthenticatedPendingPaymentsRoute,
   AuthenticatedProducersRoute: AuthenticatedProducersRoute,
