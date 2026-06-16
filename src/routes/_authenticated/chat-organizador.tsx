@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { MessagesSquare, Send, Paperclip, Mic, Square, Search, FileText } from "lucide-react";
+import { MessagesSquare, Send, Paperclip, Mic, Square, Search, FileText, Link2, Link2Off } from "lucide-react";
 import { toast } from "sonner";
 import {
   CATEGORIES,
@@ -58,6 +58,51 @@ function ChatOrganizador() {
     () => (folders.data ?? []).find((f: any) => f.id === activeFolderId) ?? null,
     [folders.data, activeFolderId],
   );
+
+  // Kanban cards (service orders) for linking
+  const cards = useQuery({
+    queryKey: ["chat_kanban_cards"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("service_orders")
+        .select("id, title, sale_id, sales(customer_id, customers(name), service_types(name))")
+        .order("created_at", { ascending: false })
+        .limit(200);
+      if (error) throw error;
+      return (data ?? []) as any[];
+    },
+  });
+  const [cardSearch, setCardSearch] = useState("");
+  const filteredCards = useMemo(() => {
+    const term = cardSearch.trim().toLowerCase();
+    return (cards.data ?? []).filter((c: any) => {
+      if (!term) return true;
+      const name = `${c.title ?? ""} ${c.sales?.customers?.name ?? ""}`.toLowerCase();
+      return name.includes(term);
+    });
+  }, [cards.data, cardSearch]);
+
+  async function linkToCard(cardId: string, saleId: string | null) {
+    if (!active) { toast.error("Selecione uma pasta primeiro"); return; }
+    const { error } = await supabase
+      .from("project_folders" as any)
+      .update({ kanban_card_id: cardId, sale_id: saleId })
+      .eq("id", active.id);
+    if (error) { toast.error(error.message); return; }
+    toast.success("Pasta vinculada ao card");
+    qc.invalidateQueries({ queryKey: ["chat_folders"] });
+    qc.invalidateQueries({ queryKey: ["card_folder", cardId] });
+  }
+  async function unlinkFromCard() {
+    if (!active) return;
+    const { error } = await supabase
+      .from("project_folders" as any)
+      .update({ kanban_card_id: null, sale_id: null })
+      .eq("id", active.id);
+    if (error) { toast.error(error.message); return; }
+    toast.success("Desvinculado");
+    qc.invalidateQueries({ queryKey: ["chat_folders"] });
+  }
 
   // Auto-select the first folder once they load (or auto-match by what the user typed)
   useEffect(() => {
@@ -302,6 +347,50 @@ function ChatOrganizador() {
             </footer>
         </>
       </section>
+
+      <aside className="w-80 border-l flex flex-col">
+        <div className="p-3 border-b">
+          <div className="text-sm font-semibold mb-2">Cards do Kanban</div>
+          <div className="relative">
+            <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-3 h-3 text-muted-foreground" />
+            <Input value={cardSearch} onChange={(e) => setCardSearch(e.target.value)} placeholder="Buscar card..." className="pl-7 h-8 text-sm" />
+          </div>
+          {active && (
+            <div className="mt-2 text-[11px] text-muted-foreground">
+              Pasta ativa: <span className="font-medium text-foreground">{active.folder_name}</span>
+              {active.kanban_card_id && (
+                <button onClick={unlinkFromCard} className="ml-2 inline-flex items-center gap-1 text-destructive hover:underline">
+                  <Link2Off className="w-3 h-3" /> desvincular
+                </button>
+              )}
+            </div>
+          )}
+        </div>
+        <div className="flex-1 overflow-y-auto">
+          {cards.isLoading && <div className="p-3 text-xs text-muted-foreground">Carregando...</div>}
+          {filteredCards.map((c: any) => {
+            const linked = active?.kanban_card_id === c.id;
+            return (
+              <div key={c.id} className={`px-3 py-2 border-b ${linked ? "bg-primary/5" : ""}`}>
+                <div className="text-sm font-medium truncate">{c.sales?.customers?.name ?? c.title}</div>
+                <div className="text-[11px] text-muted-foreground truncate">{c.sales?.service_types?.name ?? c.title}</div>
+                <Button
+                  size="sm"
+                  variant={linked ? "secondary" : "default"}
+                  className="h-7 text-xs mt-1"
+                  disabled={!active || linked}
+                  onClick={() => linkToCard(c.id, c.sale_id)}
+                >
+                  <Link2 className="w-3 h-3 mr-1" /> {linked ? "Vinculado" : "Vincular pasta"}
+                </Button>
+              </div>
+            );
+          })}
+          {!cards.isLoading && filteredCards.length === 0 && (
+            <div className="p-3 text-xs text-muted-foreground">Nenhum card encontrado.</div>
+          )}
+        </div>
+      </aside>
     </div>
   );
 }
