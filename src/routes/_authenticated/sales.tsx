@@ -141,6 +141,43 @@ function SalesPage() {
     return data ?? [];
   }});
 
+  const filteredSales = useMemo(() => {
+    const list = salesList ?? [];
+    const term = fSearch.trim().toLowerCase();
+    return list.filter((s: any) => {
+      if (fSeller !== "all" && s.seller_id !== fSeller) return false;
+      if (fProducer !== "all" && s.producer_id !== fProducer) return false;
+      if (fService !== "all" && s.service_type_id !== fService) return false;
+      const d = s.sale_date ? new Date(s.sale_date) : null;
+      if (d) {
+        if (fYear !== "all" && String(d.getFullYear()) !== fYear) return false;
+        if (fMonth !== "all" && String(d.getMonth() + 1) !== fMonth) return false;
+        if (fFrom && s.sale_date < fFrom) return false;
+        if (fTo && s.sale_date > fTo + "T23:59:59") return false;
+      }
+      if (term) {
+        const hay = [
+          s.customers?.name, s.customers?.company,
+          s.service_types?.name, s.sellers?.name, s.producers?.name,
+        ].filter(Boolean).join(" ").toLowerCase();
+        if (!hay.includes(term)) return false;
+      }
+      return true;
+    });
+  }, [salesList, fSearch, fSeller, fProducer, fService, fYear, fMonth, fFrom, fTo]);
+
+  const yearOptions = useMemo(() => {
+    const ys = new Set<string>();
+    (salesList ?? []).forEach((s: any) => { if (s.sale_date) ys.add(String(new Date(s.sale_date).getFullYear())); });
+    return Array.from(ys).sort((a, b) => Number(b) - Number(a));
+  }, [salesList]);
+
+  const clearFilters = () => {
+    setFSearch(""); setFSeller("all"); setFProducer("all"); setFService("all");
+    setFYear("all"); setFMonth("all"); setFFrom(""); setFTo("");
+  };
+  const hasFilters = fSearch || fSeller !== "all" || fProducer !== "all" || fService !== "all" || fYear !== "all" || fMonth !== "all" || fFrom || fTo;
+
   const handleGenerateLink = async (sale: any) => {
     setIsGeneratingLink(true);
     try {
