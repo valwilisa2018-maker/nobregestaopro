@@ -618,23 +618,23 @@ function KanbanPage() {
               key={col.id}
               className="min-w-[280px] w-[280px] flex-shrink-0 rounded-lg border-2 border-foreground bg-muted p-3 shadow-md overflow-hidden"
               onDragOver={(e) => e.preventDefault()}
-              onDrop={() => {
+              onDrop={(e) => {
+                e.preventDefault();
+                const targetCol = cols.data?.find((c: any) => c.id === col.id);
+                if (!targetCol) { resetDragState(); return; }
                 const movingIds = draggingGroup && draggingGroup.length
                   ? draggingGroup
                   : dragging ? [dragging] : [];
-                if (movingIds.length) {
-                  if (draggingFromCol === col.id) {
-                    // Soltou em área vazia da mesma coluna → manda para o final.
-                    reorderInColumn(col.id, movingIds, null);
-                  } else if (draggingGroup && draggingGroup.length) {
-                    moveMany(draggingGroup, col.id);
-                  } else if (dragging) {
-                    move(dragging, col.id);
-                  }
+                if (!movingIds.length) { resetDragState(); return; }
+                if (draggingFromCol === col.id) {
+                  safeMutate(() => reorderInColumn(col.id, movingIds, null));
+                } else if (draggingGroup && draggingGroup.length) {
+                  safeMutate(() => moveMany(draggingGroup, col.id));
+                } else if (dragging) {
+                  safeMutate(() => move(dragging, col.id));
+                } else {
+                  resetDragState();
                 }
-                setDragging(null);
-                setDraggingGroup(null);
-                setDraggingFromCol(null);
               }}
             >
               <div className="flex items-center justify-between px-4 py-3 rounded-t-md bg-foreground text-background -m-3 mb-3">
