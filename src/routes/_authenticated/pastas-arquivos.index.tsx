@@ -9,8 +9,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import { FolderOpen, Search, Link as LinkIcon, Copy, FileText, Plus, RefreshCw, Trash2, CheckSquare, Square, Loader2 } from "lucide-react";
+import { FolderOpen, Search, Link as LinkIcon, Copy, FileText, Plus, RefreshCw, Trash2, CheckSquare, Square, Loader2, LayoutGrid, List as ListIcon } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/pastas-arquivos/")({
@@ -30,6 +31,9 @@ function PastasArquivosPage() {
   const [saving, setSaving] = useState(false);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [openingId, setOpeningId] = useState<string | null>(null);
+  const [viewMode, setViewMode] = useState<"grid" | "list">(() =>
+    (typeof window !== "undefined" && (localStorage.getItem("pastas_index_view") as any)) || "grid",
+  );
   const navigate = useNavigate();
   const qc = useQueryClient();
 
@@ -286,13 +290,27 @@ function PastasArquivosPage() {
             )}
           </Button>
         )}
+        <ToggleGroup
+          type="single"
+          value={viewMode}
+          onValueChange={(v) => {
+            if (!v) return;
+            setViewMode(v as any);
+            if (typeof window !== "undefined") localStorage.setItem("pastas_index_view", v);
+          }}
+          size="sm"
+          className={filtered.length > 0 ? "" : "ml-auto"}
+        >
+          <ToggleGroupItem value="grid" aria-label="Grade"><LayoutGrid className="w-4 h-4" /></ToggleGroupItem>
+          <ToggleGroupItem value="list" aria-label="Lista"><ListIcon className="w-4 h-4" /></ToggleGroupItem>
+        </ToggleGroup>
       </div>
 
       {folders.isLoading ? (
         <div className="text-muted-foreground">Carregando...</div>
       ) : filtered.length === 0 ? (
         <div className="text-muted-foreground py-12 text-center">Nenhuma pasta encontrada.</div>
-      ) : (
+      ) : viewMode === "grid" ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
           {filtered.map((f: any) => {
             const count = counts.data?.get(f.id) ?? 0;
@@ -355,6 +373,53 @@ function PastasArquivosPage() {
             );
           })}
         </div>
+      ) : (
+        <Card>
+          <CardContent className="p-0 divide-y">
+            {filtered.map((f: any) => {
+              const count = counts.data?.get(f.id) ?? 0;
+              return (
+                <div key={f.id} className={`flex items-center gap-3 px-3 py-2 hover:bg-muted/40 ${selected.has(f.id) ? "bg-primary/5" : ""}`}>
+                  <Checkbox
+                    checked={selected.has(f.id)}
+                    onCheckedChange={() => toggleSelect(f.id)}
+                  />
+                  <FolderOpen className="w-5 h-5 text-primary shrink-0" />
+                  <div className="min-w-0 flex-1">
+                    <div className="text-sm font-medium truncate">{f.folder_name}</div>
+                    <div className="text-xs text-muted-foreground truncate">{f.client_name} • {f.service_type}</div>
+                  </div>
+                  <div className="hidden md:flex flex-wrap gap-1 max-w-[320px]">
+                    <span className="inline-flex items-center gap-1 rounded-md bg-blue-500/10 text-blue-600 dark:text-blue-400 px-2 py-0.5 text-[10px] font-medium">
+                      Vendedor: {f.sales?.sellers?.name ?? "—"}
+                    </span>
+                    <span className="inline-flex items-center gap-1 rounded-md bg-purple-500/10 text-purple-600 dark:text-purple-400 px-2 py-0.5 text-[10px] font-medium">
+                      Produtor: {f.service_orders?.producers?.name ?? "—"}
+                    </span>
+                  </div>
+                  <span className="text-xs text-muted-foreground hidden sm:flex items-center gap-1 w-20 justify-end">
+                    <FileText className="w-3 h-3" /> {count}
+                  </span>
+                  <Button
+                    size="sm"
+                    variant="default"
+                    className="h-7 text-xs"
+                    disabled={openingId === f.id}
+                    onClick={() => openFolder(f.id)}
+                  >
+                    {openingId === f.id ? <Loader2 className="w-3 h-3 animate-spin" /> : "Abrir"}
+                  </Button>
+                  <Button size="sm" variant="ghost" className="h-7 w-7 p-0" onClick={() => copyInternal(f)} title="Copiar link">
+                    <Copy className="w-3 h-3" />
+                  </Button>
+                  <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-destructive" onClick={() => deleteFolders([f.id])} title="Excluir">
+                    <Trash2 className="w-3 h-3" />
+                  </Button>
+                </div>
+              );
+            })}
+          </CardContent>
+        </Card>
       )}
     </div>
   );
