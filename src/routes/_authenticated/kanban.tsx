@@ -555,6 +555,7 @@ function KanbanPage() {
         }}
         onDragLeave={() => { autoScrollSpeed.current = 0; }}
         onDrop={() => { autoScrollSpeed.current = 0; }}
+        onDragEnd={() => { autoScrollSpeed.current = 0; resetDragState(); }}
       >
         {(cols.data ?? []).map((col: any) => {
           const q = search.trim().toLowerCase();
