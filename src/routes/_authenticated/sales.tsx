@@ -346,7 +346,9 @@ function SalesPage() {
         package_name: form.package_name || null,
         service_quantity: Number(form.service_quantity || 1),
         notes: form.notes || null,
-        trello_link: form.trello_link || null,
+        trello_link: form.google_drive_link || form.platform_link || null,
+        google_drive_link: form.google_drive_link || null,
+        platform_link: form.platform_link || null,
         lead_source: form.lead_source || null,
         receipt_url,
         sale_date: form.sale_date || new Date().toISOString().slice(0, 10),
@@ -377,6 +379,7 @@ function SalesPage() {
         total_amount: "", paid_amount: "0", payment_status: "pago_total",
         payment_method: "pix", seller_id: "", producer_id: "", service_type_id: "",
         package_id: "", package_name: "", service_quantity: "1", notes: "", trello_link: "",
+        google_drive_link: "", platform_link: "",
         sale_date: new Date().toISOString().slice(0, 10), lead_source: "",
         with_invoice: "sim",
         installments: "12",
@@ -699,11 +702,21 @@ function SalesPage() {
                   </Select>
                 </div>
                 <div className="col-span-2">
-                  <Label>Link Google Drive *</Label>
+                  <Label>Link do Google Drive</Label>
                   <div className="flex gap-2">
-                    <Input placeholder="Cole o link do Google aqui" value={form.trello_link || ""} onChange={(e) => set("trello_link", e.target.value)} />
-                    <Button type="button" variant="outline" onClick={() => window.open("https://drive.google.com/drive/u/0/home", "_blank", "noopener,noreferrer")}>Abrir Google Drive</Button>
+                    <Input placeholder="https://drive.google.com/..." value={form.google_drive_link} onChange={(e) => set("google_drive_link", e.target.value)} />
+                    <Button type="button" variant="outline" onClick={() => window.open("https://drive.google.com/drive/u/0/home", "_blank", "noopener,noreferrer")}>Abrir Drive</Button>
                   </div>
+                </div>
+                <div className="col-span-2">
+                  <Label>Link da Plataforma (pasta interna)</Label>
+                  <div className="flex gap-2">
+                    <Input placeholder="Cole aqui o link gerado no Chat Organizador" value={form.platform_link} onChange={(e) => set("platform_link", e.target.value)} />
+                    <Button type="button" variant="outline" asChild>
+                      <a href="/chat-organizador" target="_blank" rel="noreferrer">Abrir Chat</a>
+                    </Button>
+                  </div>
+                  <p className="text-[11px] text-muted-foreground mt-1">Informe pelo menos um dos dois links (Drive ou Plataforma).</p>
                 </div>
                 <div className="col-span-2">
                   <Label>Comprovante (imagem ou PDF) *</Label>
