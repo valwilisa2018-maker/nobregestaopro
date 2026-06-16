@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useState, useCallback } from "react";
+import { useState, useCallback, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -13,7 +13,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { FileText, Download, History, LayoutGrid, List, QrCode } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Plus, Loader2, Pencil, Eye, Trash2, Check } from "lucide-react";
+import { Plus, Loader2, Pencil, Eye, Trash2, Check, Search, X } from "lucide-react";
 import { toast } from "sonner";
 import { logger } from "@/lib/logger";
 import { formatCurrency } from "@/lib/auth";
@@ -81,6 +81,16 @@ function SalesPage() {
   const [paymentLinkData, setPaymentLinkData] = useState<{ url: string; id: string } | null>(null);
   const [isGeneratingLink, setIsGeneratingLink] = useState(false);
 
+  // ----- Filters -----
+  const [fSearch, setFSearch] = useState("");
+  const [fSeller, setFSeller] = useState<string>("all");
+  const [fProducer, setFProducer] = useState<string>("all");
+  const [fService, setFService] = useState<string>("all");
+  const [fYear, setFYear] = useState<string>("all");
+  const [fMonth, setFMonth] = useState<string>("all");
+  const [fFrom, setFFrom] = useState<string>("");
+  const [fTo, setFTo] = useState<string>("");
+
   const { data: salesList, isLoading: loadingSales, error: salesError, refetch } = useQuery({
     queryKey: ["sales-list"],
     queryFn: async () => {
@@ -130,6 +140,43 @@ function SalesPage() {
     if (error) { toast.error("Erro ao carregar pacotes"); throw error; }
     return data ?? [];
   }});
+
+  const filteredSales = useMemo(() => {
+    const list = salesList ?? [];
+    const term = fSearch.trim().toLowerCase();
+    return list.filter((s: any) => {
+      if (fSeller !== "all" && s.seller_id !== fSeller) return false;
+      if (fProducer !== "all" && s.producer_id !== fProducer) return false;
+      if (fService !== "all" && s.service_type_id !== fService) return false;
+      const d = s.sale_date ? new Date(s.sale_date) : null;
+      if (d) {
+        if (fYear !== "all" && String(d.getFullYear()) !== fYear) return false;
+        if (fMonth !== "all" && String(d.getMonth() + 1) !== fMonth) return false;
+        if (fFrom && s.sale_date < fFrom) return false;
+        if (fTo && s.sale_date > fTo + "T23:59:59") return false;
+      }
+      if (term) {
+        const hay = [
+          s.customers?.name, s.customers?.company,
+          s.service_types?.name, s.sellers?.name, s.producers?.name,
+        ].filter(Boolean).join(" ").toLowerCase();
+        if (!hay.includes(term)) return false;
+      }
+      return true;
+    });
+  }, [salesList, fSearch, fSeller, fProducer, fService, fYear, fMonth, fFrom, fTo]);
+
+  const yearOptions = useMemo(() => {
+    const ys = new Set<string>();
+    (salesList ?? []).forEach((s: any) => { if (s.sale_date) ys.add(String(new Date(s.sale_date).getFullYear())); });
+    return Array.from(ys).sort((a, b) => Number(b) - Number(a));
+  }, [salesList]);
+
+  const clearFilters = () => {
+    setFSearch(""); setFSeller("all"); setFProducer("all"); setFService("all");
+    setFYear("all"); setFMonth("all"); setFFrom(""); setFTo("");
+  };
+  const hasFilters = fSearch || fSeller !== "all" || fProducer !== "all" || fService !== "all" || fYear !== "all" || fMonth !== "all" || fFrom || fTo;
 
   const handleGenerateLink = async (sale: any) => {
     setIsGeneratingLink(true);
@@ -823,6 +870,48 @@ function SalesPage() {
         </div>
       </div>
 
+      <Card className="border-border/50">
+        <CardContent className="p-3 grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-2">
+          <div className="col-span-2 md:col-span-2 lg:col-span-2 relative">
+            <Search className="w-3.5 h-3.5 absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground" />
+            <Input className="pl-7 h-9" placeholder="Cliente, serviço, vendedor, produtor..." value={fSearch} onChange={(e) => setFSearch(e.target.value)} />
+          </div>
+          <Select value={fSeller} onValueChange={setFSeller}>
+            <SelectTrigger className="h-9"><SelectValue placeholder="Vendedor" /></SelectTrigger>
+            <SelectContent><SelectItem value="all">Todos vendedores</SelectItem>{(sellers.data ?? []).map((s: any) => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}</SelectContent>
+          </Select>
+          <Select value={fProducer} onValueChange={setFProducer}>
+            <SelectTrigger className="h-9"><SelectValue placeholder="Produtor" /></SelectTrigger>
+            <SelectContent><SelectItem value="all">Todos produtores</SelectItem>{(producers.data ?? []).map((p: any) => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}</SelectContent>
+          </Select>
+          <Select value={fService} onValueChange={setFService}>
+            <SelectTrigger className="h-9"><SelectValue placeholder="Serviço" /></SelectTrigger>
+            <SelectContent><SelectItem value="all">Todos serviços</SelectItem>{(serviceTypes.data ?? []).map((st: any) => <SelectItem key={st.id} value={st.id}>{st.name}</SelectItem>)}</SelectContent>
+          </Select>
+          <Select value={fYear} onValueChange={setFYear}>
+            <SelectTrigger className="h-9"><SelectValue placeholder="Ano" /></SelectTrigger>
+            <SelectContent><SelectItem value="all">Todos anos</SelectItem>{yearOptions.map((y) => <SelectItem key={y} value={y}>{y}</SelectItem>)}</SelectContent>
+          </Select>
+          <Select value={fMonth} onValueChange={setFMonth}>
+            <SelectTrigger className="h-9"><SelectValue placeholder="Mês" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todos meses</SelectItem>
+              {["Janeiro","Fevereiro","Março","Abril","Maio","Junho","Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"].map((m, i) => (
+                <SelectItem key={i} value={String(i + 1)}>{m}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Input type="date" className="h-9" value={fFrom} onChange={(e) => setFFrom(e.target.value)} title="De" />
+          <Input type="date" className="h-9" value={fTo} onChange={(e) => setFTo(e.target.value)} title="Até" />
+          <div className="col-span-2 md:col-span-4 lg:col-span-8 flex items-center justify-between text-xs text-muted-foreground">
+            <span>{filteredSales.length} de {(salesList ?? []).length} vendas</span>
+            {hasFilters && (
+              <Button variant="ghost" size="sm" className="h-7" onClick={clearFilters}><X className="w-3 h-3 mr-1" />Limpar filtros</Button>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+
       {viewMode === "table" ? (
         <Card className="border-border/50" style={{ boxShadow: "var(--shadow-card)" }}>
           <CardContent className="p-0">
@@ -835,7 +924,7 @@ function SalesPage() {
                 {salesError && (
                   <TableRow><TableCell colSpan={8} className="text-center py-12 text-destructive"><p>Ocorreu um erro ao carregar as vendas.</p><p className="text-xs mt-1 mb-2">{(salesError as any)?.message || "Erro desconhecido"}</p><Button variant="outline" size="sm" className="mt-2" onClick={() => refetch()}>Tentar novamente</Button></TableCell></TableRow>
                 )}
-                {!loadingSales && !salesError && (salesList ?? []).map((s: any) => (
+                {!loadingSales && !salesError && filteredSales.map((s: any) => (
                   <TableRow key={s.id}>
                     <TableCell className="whitespace-nowrap">{fmtDate(s.sale_date)}</TableCell>
                     <TableCell><div className="font-medium">{s.customers?.name}</div><div className="text-xs text-muted-foreground">{s.customers?.company}</div></TableCell>
@@ -880,7 +969,7 @@ function SalesPage() {
                     </TableCell>
                   </TableRow>
                 ))}
-                {!loadingSales && !salesError && (salesList ?? []).length === 0 && (<TableRow><TableCell colSpan={8} className="text-center text-muted-foreground py-8">Nenhuma venda cadastrada ainda</TableCell></TableRow>)}
+                {!loadingSales && !salesError && filteredSales.length === 0 && (<TableRow><TableCell colSpan={8} className="text-center text-muted-foreground py-8">Nenhuma venda cadastrada ainda</TableCell></TableRow>)}
               </TableBody>
             </Table>
           </CardContent>
@@ -889,7 +978,7 @@ function SalesPage() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {loadingSales && <div className="col-span-full py-20 text-center"><Loader2 className="w-10 h-10 animate-spin mx-auto text-primary" /><p className="mt-4 text-muted-foreground">Carregando...</p></div>}
           {salesError && <div className="col-span-full py-20 text-center text-destructive"><p>Erro ao carregar vendas.</p><Button variant="outline" className="mt-4" onClick={() => qc.invalidateQueries({ queryKey: ["sales-list"] })}>Tentar novamente</Button></div>}
-          {!loadingSales && !salesError && (salesList ?? []).map((s: any) => (
+          {!loadingSales && !salesError && filteredSales.map((s: any) => (
             <Card key={s.id} className="border-border/50 overflow-hidden hover:shadow-md transition-shadow">
               <CardContent className="p-0">
                 <div className="p-4 space-y-3">
@@ -935,7 +1024,7 @@ function SalesPage() {
               </CardContent>
             </Card>
           ))}
-                {(salesList ?? []).length === 0 && (<div className="col-span-full py-12 text-center text-muted-foreground italic">Nenhuma venda cadastrada ainda</div>)}
+                {filteredSales.length === 0 && (<div className="col-span-full py-12 text-center text-muted-foreground italic">Nenhuma venda cadastrada ainda</div>)}
         </div>
       )}
 
