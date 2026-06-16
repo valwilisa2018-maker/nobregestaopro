@@ -29,6 +29,7 @@ import { Route as AuthenticatedFinanceRouteImport } from './routes/_authenticate
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
 import { Route as AuthenticatedCustomersRouteImport } from './routes/_authenticated/customers'
 import { Route as AuthenticatedCommissionsRouteImport } from './routes/_authenticated/commissions'
+import { Route as AuthenticatedChatOrganizadorRouteImport } from './routes/_authenticated/chat-organizador'
 import { Route as AuthenticatedBackupRouteImport } from './routes/_authenticated/backup'
 import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/admin'
 import { Route as AuthenticatedOperacaoMetaIndexRouteImport } from './routes/_authenticated/operacao-meta.index'
@@ -148,6 +149,12 @@ const AuthenticatedCommissionsRoute =
     path: '/commissions',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedChatOrganizadorRoute =
+  AuthenticatedChatOrganizadorRouteImport.update({
+    id: '/chat-organizador',
+    path: '/chat-organizador',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedBackupRoute = AuthenticatedBackupRouteImport.update({
   id: '/backup',
   path: '/backup',
@@ -224,6 +231,7 @@ export interface FileRoutesByFullPath {
   '/reset-password': typeof ResetPasswordRoute
   '/admin': typeof AuthenticatedAdminRoute
   '/backup': typeof AuthenticatedBackupRoute
+  '/chat-organizador': typeof AuthenticatedChatOrganizadorRoute
   '/commissions': typeof AuthenticatedCommissionsRoute
   '/customers': typeof AuthenticatedCustomersRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
@@ -257,6 +265,7 @@ export interface FileRoutesByTo {
   '/reset-password': typeof ResetPasswordRoute
   '/admin': typeof AuthenticatedAdminRoute
   '/backup': typeof AuthenticatedBackupRoute
+  '/chat-organizador': typeof AuthenticatedChatOrganizadorRoute
   '/commissions': typeof AuthenticatedCommissionsRoute
   '/customers': typeof AuthenticatedCustomersRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
@@ -291,6 +300,7 @@ export interface FileRoutesById {
   '/reset-password': typeof ResetPasswordRoute
   '/_authenticated/admin': typeof AuthenticatedAdminRoute
   '/_authenticated/backup': typeof AuthenticatedBackupRoute
+  '/_authenticated/chat-organizador': typeof AuthenticatedChatOrganizadorRoute
   '/_authenticated/commissions': typeof AuthenticatedCommissionsRoute
   '/_authenticated/customers': typeof AuthenticatedCustomersRoute
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
@@ -326,6 +336,7 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/admin'
     | '/backup'
+    | '/chat-organizador'
     | '/commissions'
     | '/customers'
     | '/dashboard'
@@ -359,6 +370,7 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/admin'
     | '/backup'
+    | '/chat-organizador'
     | '/commissions'
     | '/customers'
     | '/dashboard'
@@ -392,6 +404,7 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/_authenticated/admin'
     | '/_authenticated/backup'
+    | '/_authenticated/chat-organizador'
     | '/_authenticated/commissions'
     | '/_authenticated/customers'
     | '/_authenticated/dashboard'
@@ -570,6 +583,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedCommissionsRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/chat-organizador': {
+      id: '/_authenticated/chat-organizador'
+      path: '/chat-organizador'
+      fullPath: '/chat-organizador'
+      preLoaderRoute: typeof AuthenticatedChatOrganizadorRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/backup': {
       id: '/_authenticated/backup'
       path: '/backup'
@@ -708,6 +728,7 @@ const AuthenticatedPastasArquivosRouteWithChildren =
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedAdminRoute: typeof AuthenticatedAdminRoute
   AuthenticatedBackupRoute: typeof AuthenticatedBackupRoute
+  AuthenticatedChatOrganizadorRoute: typeof AuthenticatedChatOrganizadorRoute
   AuthenticatedCommissionsRoute: typeof AuthenticatedCommissionsRoute
   AuthenticatedCustomersRoute: typeof AuthenticatedCustomersRoute
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
@@ -729,6 +750,7 @@ interface AuthenticatedRouteRouteChildren {
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAdminRoute: AuthenticatedAdminRoute,
   AuthenticatedBackupRoute: AuthenticatedBackupRoute,
+  AuthenticatedChatOrganizadorRoute: AuthenticatedChatOrganizadorRoute,
   AuthenticatedCommissionsRoute: AuthenticatedCommissionsRoute,
   AuthenticatedCustomersRoute: AuthenticatedCustomersRoute,
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
