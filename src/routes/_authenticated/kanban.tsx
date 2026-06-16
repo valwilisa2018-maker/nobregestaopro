@@ -1007,8 +1007,8 @@ function KanbanPage() {
                         )}
                       </div>
                       <CardLinkButtons
-                        driveLink={c.sales?.google_drive_link ?? null}
-                        platformLink={c.sales?.platform_link ?? null}
+                        driveLink={c.sales?.google_drive_link ?? c.sales?.trello_link ?? c.trello_link ?? null}
+                        platformLink={c.sales?.platform_link ?? c.platform_link ?? null}
                       />
                     </CardContent>
                   </Card>
