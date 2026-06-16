@@ -338,9 +338,6 @@ function PastasArquivosPage() {
                     <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => copyInternal(f)}>
                       <Copy className="w-3 h-3 mr-1" /> Copiar link
                     </Button>
-                    <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => saveDrive(f.id, f.google_drive_link)}>
-                      <LinkIcon className="w-3 h-3 mr-1" /> Drive
-                    </Button>
                     <Button size="sm" variant="ghost" className="h-7 text-xs text-destructive hover:text-destructive ml-auto"
                       onClick={() => deleteFolders([f.id])}>
                       <Trash2 className="w-3 h-3" />
