@@ -430,7 +430,8 @@ function RoteiroEditor({
         const isDocx = /\.docx$/i.test(name) || (item.file_type ?? "").includes("officedocument.wordprocessingml");
         if (isDocx) {
           const buf = await fetch(url).then((r) => r.arrayBuffer());
-          const mammoth = await import("mammoth/mammoth.browser");
+          // @ts-expect-error - no types for browser bundle
+          const mammoth = await import("mammoth/mammoth.browser.js");
           const res = await (mammoth as any).convertToHtml({ arrayBuffer: buf });
           if (!alive) return;
           setHtml(res.value || "<p>(documento vazio)</p>");
