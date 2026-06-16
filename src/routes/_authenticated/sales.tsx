@@ -394,7 +394,7 @@ function SalesPage() {
         package_name: form.package_name || null,
         service_quantity: Number(form.service_quantity || 1),
         notes: form.notes || null,
-        trello_link: form.google_drive_link || form.platform_link || null,
+        trello_link: null,
         google_drive_link: form.google_drive_link || null,
         platform_link: form.platform_link || null,
         lead_source: form.lead_source || null,
@@ -604,7 +604,7 @@ function SalesPage() {
         package_name: editing.package_name || null,
         service_quantity: Number(editing.service_quantity || 1),
         notes: editing.notes || null,
-        trello_link: editing.google_drive_link || editing.platform_link || editing.trello_link || null,
+        trello_link: null,
         google_drive_link: editing.google_drive_link || null,
         platform_link: editing.platform_link || null,
         lead_source: editing.lead_source || null,
@@ -621,9 +621,8 @@ function SalesPage() {
 
       // Propagar link/produtor para as ordens de serviço existentes
       try {
-        const newLink = editing.google_drive_link || editing.platform_link || editing.trello_link || null;
         await supabase.from("service_orders").update({
-          trello_link: newLink,
+          trello_link: null,
           producer_id: editing.producer_id || null,
           expected_delivery_date: editing.expected_delivery_date || null,
         }).eq("sale_id", editing.id);
@@ -667,7 +666,7 @@ function SalesPage() {
               sort_order: i,
               producer_id: editing.producer_id || null,
               expected_delivery_date: editing.expected_delivery_date || null,
-              trello_link: editing.google_drive_link || editing.platform_link || editing.trello_link || null,
+              trello_link: null,
             });
           }
           if (newOrders.length && colId) {
