@@ -959,6 +959,17 @@ function SalesPage() {
                             <ExternalLink className="w-4 h-4" />
                           </a>
                         )}
+                        {s.platform_link && (
+                          <a
+                            href={s.platform_link}
+                            target="_blank"
+                            rel="noreferrer"
+                            title="Abrir link da plataforma"
+                            className="inline-flex items-center justify-center h-9 w-9 rounded-md text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-950"
+                          >
+                            <Link2 className="w-4 h-4" />
+                          </a>
+                        )}
                         {s.payment_method === "cartao" && !s.pagarme_id && (
                           <Button size="icon" variant="ghost" className="text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50" title="Gerar Link Pagar.me" onClick={() => handleGenerateLink(s)}>
                             <Link2 className="w-4 h-4" />
