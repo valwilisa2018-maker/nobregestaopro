@@ -13,7 +13,7 @@ import { FolderOpen, Search, Link as LinkIcon, Copy, FileText, Plus, RefreshCw, 
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
 
-export const Route = createFileRoute("/_authenticated/pastas-arquivos")({
+export const Route = createFileRoute("/_authenticated/pastas-arquivos/")({
   component: PastasArquivosPage,
 });
 
