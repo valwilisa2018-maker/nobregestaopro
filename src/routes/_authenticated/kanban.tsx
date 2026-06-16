@@ -1194,6 +1194,20 @@ function CardFolderActions({ cardId }: { cardId: string }) {
     },
   });
   const f = q.data;
+  const qc = useQueryClient();
+  useEffect(() => {
+    const ch = supabase
+      .channel(`realtime:folder:${cardId}`)
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "project_folders" },
+        () => {
+          qc.invalidateQueries({ queryKey: ["card_folder", cardId] });
+        },
+      )
+      .subscribe();
+    return () => { supabase.removeChannel(ch); };
+  }, [cardId, qc]);
   const [pickOpen, setPickOpen] = useState(false);
   const allFolders = useQuery({
     queryKey: ["folders_pick_all"],

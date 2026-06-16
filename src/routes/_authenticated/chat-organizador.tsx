@@ -72,6 +72,23 @@ function ChatOrganizador() {
       return (data ?? []) as any[];
     },
   });
+
+  // Realtime sync: any change to project_folders refreshes folders + card-folder caches
+  useEffect(() => {
+    const ch = supabase
+      .channel("realtime:project_folders:chat")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "project_folders" },
+        () => {
+          qc.invalidateQueries({ queryKey: ["chat_folders"] });
+          qc.invalidateQueries({ queryKey: ["card_folder"] });
+          qc.invalidateQueries({ queryKey: ["project_folders_list"] });
+        },
+      )
+      .subscribe();
+    return () => { supabase.removeChannel(ch); };
+  }, [qc]);
   const [cardSearch, setCardSearch] = useState("");
   const filteredCards = useMemo(() => {
     const term = cardSearch.trim().toLowerCase();
