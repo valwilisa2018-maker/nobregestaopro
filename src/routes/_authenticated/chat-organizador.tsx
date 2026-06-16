@@ -47,6 +47,7 @@ function ChatOrganizador() {
   const [recording, setRecording] = useState(false);
   const [lastCreated, setLastCreated] = useState<{ id: string; name: string } | null>(null);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const [pendingFiles, setPendingFiles] = useState<File[]>([]);
   const fileRef = useRef<HTMLInputElement>(null);
   const recRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
@@ -161,7 +162,6 @@ function ChatOrganizador() {
       .update({ platform_link: fullLink })
       .eq("id", folder.id);
     setLastCreated({ id: folder.id, name: folder.folder_name });
-    setActiveFolderId(folder.id);
     qc.invalidateQueries({ queryKey: ["chat_folders"] });
     qc.invalidateQueries({ queryKey: ["project_folders_list"] });
     try {
@@ -173,19 +173,46 @@ function ChatOrganizador() {
     return { id: folder.id as string, name: folder.folder_name as string, link: fullLink };
   }
 
+  async function uploadFilesToFolder(folderId: string, files: File[]) {
+    const { data: ud } = await supabase.auth.getUser();
+    for (const file of files) {
+      const cat: CategoryId = detectCategory(file);
+      await uploadToFolder({
+        folderId,
+        saleId: null,
+        cardId: null,
+        file,
+        category: cat,
+        userId: ud.user?.id ?? null,
+      });
+    }
+    qc.invalidateQueries({ queryKey: ["project_folder_files", folderId] });
+  }
+
+  function resetChat() {
+    setPendingFiles([]);
+    setText("");
+    setActiveFolderId(null);
+    if (fileRef.current) fileRef.current.value = "";
+    setTimeout(() => taRef.current?.focus(), 0);
+  }
+
   async function sendText() {
     if (!text.trim()) return;
     const cmdName = parseCreateFolderCommand(text);
     if (cmdName) {
       setSending(true);
       try {
-        await createFolderFromCommand(cmdName);
-        setText("");
+        const created = await createFolderFromCommand(cmdName);
+        if (pendingFiles.length) {
+          await uploadFilesToFolder(created.id, pendingFiles);
+          toast.success(`${pendingFiles.length} arquivo(s) enviados para a pasta`);
+        }
+        resetChat();
       } catch (e: any) {
         toast.error(e?.message ?? "Erro ao criar pasta");
       } finally {
         setSending(false);
-        taRef.current?.focus();
       }
       return;
     }
@@ -215,25 +242,17 @@ function ChatOrganizador() {
 
   async function sendFiles(list: FileList | null) {
     if (!list || !list.length) return;
-    // If no folder is active, ask for a name, create one, then upload to it.
-    let target = active;
-    if (!target) {
-      const name = window.prompt(
-        'Nenhuma pasta ativa. Qual o nome da nova pasta para estes arquivos?',
-        '',
+    if (!active) {
+      const incoming = Array.from(list);
+      setPendingFiles((prev) => [...prev, ...incoming]);
+      toast.success(
+        `${incoming.length} arquivo(s) prontos. Agora diga ou digite: "criar pasta NOME".`,
       );
-      if (!name || !name.trim()) {
-        toast.error('Envio cancelado — informe um nome para a pasta.');
-        return;
-      }
-      try {
-        const created = await createFolderFromCommand(name.trim());
-        target = { id: created.id, sale_id: null, kanban_card_id: null } as any;
-      } catch (e: any) {
-        toast.error(e?.message ?? 'Erro ao criar pasta');
-        return;
-      }
+      if (fileRef.current) fileRef.current.value = "";
+      taRef.current?.focus();
+      return;
     }
+    const target = active;
     setSending(true);
     try {
       const { data: ud } = await supabase.auth.getUser();
@@ -322,7 +341,12 @@ function ChatOrganizador() {
           const transcript = (res?.text ?? "").trim();
           const cmdName = transcript ? parseCreateFolderCommand(transcript) : null;
           if (cmdName) {
-            await createFolderFromCommand(cmdName);
+            const created = await createFolderFromCommand(cmdName);
+            if (pendingFiles.length) {
+              await uploadFilesToFolder(created.id, pendingFiles);
+              toast.success(`${pendingFiles.length} arquivo(s) enviados para a pasta`);
+            }
+            resetChat();
             return;
           }
           if (!active) {
@@ -476,6 +500,35 @@ function ChatOrganizador() {
               })}
             </div>
             <footer className="border-t p-3 space-y-2">
+              {pendingFiles.length > 0 && (
+                <div className="rounded-md border bg-muted/40 p-2 space-y-1">
+                  <div className="text-[11px] font-medium text-muted-foreground">
+                    {pendingFiles.length} arquivo(s) prontos — diga ou digite <em>"criar pasta NOME"</em>:
+                  </div>
+                  <div className="flex flex-wrap gap-1">
+                    {pendingFiles.map((f, i) => (
+                      <span key={i} className="text-[10px] bg-background border rounded px-2 py-0.5 inline-flex items-center gap-1">
+                        <Paperclip className="w-3 h-3" />
+                        {f.name}
+                        <button
+                          type="button"
+                          className="ml-1 text-muted-foreground hover:text-destructive"
+                          onClick={() => setPendingFiles((prev) => prev.filter((_, j) => j !== i))}
+                        >
+                          ×
+                        </button>
+                      </span>
+                    ))}
+                    <button
+                      type="button"
+                      className="text-[10px] underline text-muted-foreground ml-1"
+                      onClick={() => setPendingFiles([])}
+                    >
+                      limpar
+                    </button>
+                  </div>
+                </div>
+              )}
               <div className="flex items-end gap-2">
                 <Textarea
                   ref={taRef}
