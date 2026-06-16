@@ -1,12 +1,14 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Upload, FileImage, FileVideo, FileAudio, FileText, File as FileIcon, Trash2, Link as LinkIcon, Download, Copy, ChevronDown, ChevronRight, Folder as FolderIcon } from "lucide-react";
+import { ArrowLeft, Upload, FileImage, FileVideo, FileAudio, FileText, File as FileIcon, Trash2, Link as LinkIcon, Download, Copy, Folder as FolderIcon, LayoutGrid, List as ListIcon, Save, X } from "lucide-react";
 import { toast } from "sonner";
-import { CATEGORIES, type CategoryId, detectCategory, uploadToFolder, getSignedUrl } from "@/lib/project-folders";
+import { type CategoryId, detectCategory, uploadToFolder, getSignedUrl } from "@/lib/project-folders";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 
 export const Route = createFileRoute("/_authenticated/pastas-arquivos/$folderId")({
   component: FolderDetail,
@@ -18,7 +20,14 @@ function iconFor(mime?: string | null) {
   if (t.startsWith("video/")) return FileVideo;
   if (t.startsWith("audio/")) return FileAudio;
   if (t === "application/pdf") return FileText;
+  if (t.startsWith("text/")) return FileText;
   return FileIcon;
+}
+
+function isTextFile(item: any) {
+  const t = (item?.file_type ?? "").toLowerCase();
+  const n = (item?.file_name ?? "").toLowerCase();
+  return t.startsWith("text/") || /\.(txt|md|html?|rtf)$/i.test(n);
 }
 
 /** Inline preview tile (Google Drive-style). */
@@ -88,11 +97,15 @@ function FolderDetail() {
   const { folderId } = Route.useParams();
   const qc = useQueryClient();
   const [busy, setBusy] = useState<string | null>(null);
-  const [open, setOpen] = useState<Record<string, boolean>>(() =>
-    Object.fromEntries(CATEGORIES.map((c) => [c.id, true])),
-  );
   const [dragOver, setDragOver] = useState<string | null>(null);
-  const fileInputs = useRef<Record<string, HTMLInputElement | null>>({});
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const [view, setView] = useState<"grid" | "list">(() =>
+    (typeof window !== "undefined" && (localStorage.getItem("pastas_view") as any)) || "grid",
+  );
+  useEffect(() => {
+    if (typeof window !== "undefined") localStorage.setItem("pastas_view", view);
+  }, [view]);
+  const [editing, setEditing] = useState<any | null>(null);
 
   const folder = useQuery({
     queryKey: ["project_folder", folderId],
@@ -119,30 +132,6 @@ function FolderDetail() {
       return (data ?? []) as any[];
     },
   });
-
-  async function handleUpload(category: CategoryId, list: FileList | null) {
-    if (!list || !folder.data) return;
-    setBusy(category);
-    const { data: ud } = await supabase.auth.getUser();
-    try {
-      for (const file of Array.from(list)) {
-        await uploadToFolder({
-          folderId,
-          saleId: folder.data.sale_id,
-          cardId: folder.data.kanban_card_id,
-          file,
-          category,
-          userId: ud.user?.id ?? null,
-        });
-      }
-      toast.success("Upload concluído");
-      qc.invalidateQueries({ queryKey: ["project_folder_files", folderId] });
-    } catch (e: any) {
-      toast.error(e?.message ?? "Erro ao enviar");
-    } finally {
-      setBusy(null);
-    }
-  }
 
   /** Upload arbitrary files routing each to its best-fit category automatically. */
   async function uploadFilesAuto(list: File[] | FileList, forceCategory?: CategoryId) {
@@ -247,11 +236,7 @@ function FolderDetail() {
   const f = folder.data;
   const platformLink =
     f.platform_link ?? (typeof window !== "undefined" ? `${window.location.origin}/pastas-arquivos/${f.id}` : `/pastas-arquivos/${f.id}`);
-  const grouped: Record<string, any[]> = {};
-  for (const cat of CATEGORIES) grouped[cat.id] = [];
-  for (const file of files.data ?? []) {
-    (grouped[file.file_category] ||= []).push(file);
-  }
+  const items: any[] = files.data ?? [];
 
   return (
     <div className="p-6 space-y-4 relative" {...dropHandlers()}>
@@ -319,56 +304,200 @@ function FolderDetail() {
         </Button>
       </div>
 
-      <div className="space-y-3">
-        {CATEGORIES.map((cat) => {
-          const items = grouped[cat.id] ?? [];
-          const isOpen = open[cat.id] ?? true;
-          const isDragging = dragOver === cat.id;
-          return (
-            <Card
-              key={cat.id}
-              className={isDragging ? "ring-2 ring-primary bg-primary/5 transition" : "transition"}
-              {...dropHandlers(cat.id)}
-            >
-              <CardContent className="p-3 space-y-3">
-                <div className="flex items-center justify-between gap-2">
-                  <button
-                    onClick={() => setOpen((s) => ({ ...s, [cat.id]: !isOpen }))}
-                    className="flex items-center gap-2 font-semibold text-sm"
-                  >
-                    {isOpen ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
-                    {cat.label}
-                    <span className="text-xs text-muted-foreground font-normal">({items.length})</span>
-                  </button>
-                  <Button size="sm" variant="outline" disabled={busy === cat.id}
-                    onClick={() => fileInputs.current[cat.id]?.click()}>
-                    <Upload className="w-4 h-4 mr-1" /> {busy === cat.id ? "Enviando..." : "Upload"}
-                  </Button>
-                  <input
-                    ref={(el) => { fileInputs.current[cat.id] = el; }}
-                    type="file" multiple className="hidden"
-                    onChange={(e) => handleUpload(cat.id, e.target.files)}
-                  />
-                </div>
-                {isOpen && (
-                  items.length ? (
-                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-5 gap-3">
-                      {items.map((it) => (
-                        <PreviewTile key={it.id} item={it} onOpen={openFile} onDelete={deleteFile} />
-                      ))}
-                    </div>
-                  ) : (
-                    <div className={`text-xs italic px-2 py-4 rounded border-2 border-dashed text-center ${isDragging ? "border-primary text-primary" : "border-muted text-muted-foreground"}`}>
-                      {isDragging ? "Solte aqui para enviar" : "Nenhum arquivo. Arraste, cole ou clique em Upload."}
-                    </div>
-                  )
-                )}
-              </CardContent>
-            </Card>
-          );
-        })}
+      <div className="flex items-center justify-between gap-2 flex-wrap">
+        <div className="text-sm text-muted-foreground">
+          {items.length} {items.length === 1 ? "arquivo" : "arquivos"}
+        </div>
+        <div className="flex items-center gap-2">
+          <ToggleGroup type="single" value={view} onValueChange={(v) => v && setView(v as any)} size="sm">
+            <ToggleGroupItem value="grid" aria-label="Grade"><LayoutGrid className="w-4 h-4" /></ToggleGroupItem>
+            <ToggleGroupItem value="list" aria-label="Lista"><ListIcon className="w-4 h-4" /></ToggleGroupItem>
+          </ToggleGroup>
+          <Button size="sm" variant="outline" disabled={busy === "__upload"}
+            onClick={() => fileInputRef.current?.click()}>
+            <Upload className="w-4 h-4 mr-1" /> {busy === "__upload" ? "Enviando..." : "Upload"}
+          </Button>
+          <input
+            ref={fileInputRef}
+            type="file" multiple className="hidden"
+            onChange={(e) => {
+              if (e.target.files?.length) {
+                setBusy("__upload");
+                uploadFilesAuto(e.target.files).finally(() => {
+                  if (fileInputRef.current) fileInputRef.current.value = "";
+                });
+              }
+            }}
+          />
+        </div>
       </div>
+
+      {items.length === 0 ? (
+        <div className="text-xs italic px-2 py-12 rounded border-2 border-dashed text-center border-muted text-muted-foreground">
+          Nenhum arquivo nesta pasta. Arraste, cole ou clique em Upload.
+        </div>
+      ) : view === "grid" ? (
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-5 gap-3">
+          {items.map((it) => (
+            <PreviewTile
+              key={it.id}
+              item={it}
+              onOpen={(p) => (isTextFile(it) ? setEditing(it) : openFile(p))}
+              onDelete={deleteFile}
+            />
+          ))}
+        </div>
+      ) : (
+        <Card>
+          <CardContent className="p-0 divide-y">
+            {items.map((it) => {
+              const Icon = iconFor(it.file_type);
+              return (
+                <div key={it.id} className="flex items-center gap-3 px-3 py-2 hover:bg-muted/40">
+                  <Icon className="w-4 h-4 text-primary shrink-0" />
+                  <button
+                    onClick={() => (isTextFile(it) ? setEditing(it) : openFile(it.file_url))}
+                    className="flex-1 text-left text-sm truncate hover:underline"
+                  >
+                    {it.file_name}
+                  </button>
+                  <span className="text-xs text-muted-foreground hidden sm:inline">
+                    {new Date(it.created_at).toLocaleDateString()}
+                  </span>
+                  <Button size="sm" variant="ghost" className="h-7 w-7 p-0"
+                    onClick={() => openFile(it.file_url)} title="Baixar/Abrir">
+                    <Download className="w-3 h-3" />
+                  </Button>
+                  <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-destructive"
+                    onClick={() => deleteFile(it.id, it.file_url)} title="Excluir">
+                    <Trash2 className="w-3 h-3" />
+                  </Button>
+                </div>
+              );
+            })}
+          </CardContent>
+        </Card>
+      )}
+
+      {editing && (
+        <RoteiroEditor
+          item={editing}
+          folder={f}
+          onClose={() => setEditing(null)}
+          onSaved={() => {
+            setEditing(null);
+            qc.invalidateQueries({ queryKey: ["project_folder_files", folderId] });
+          }}
+        />
+      )}
     </div>
+  );
+}
+
+function RoteiroEditor({
+  item, folder, onClose, onSaved,
+}: { item: any; folder: any; onClose: () => void; onSaved: () => void }) {
+  const [html, setHtml] = useState<string>("");
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const ref = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    let alive = true;
+    (async () => {
+      try {
+        const url = await getSignedUrl(item.file_url);
+        const text = await fetch(url).then((r) => r.text());
+        if (!alive) return;
+        const looksHtml = /<[a-z][^>]*>/i.test(text);
+        setHtml(looksHtml ? text : text.replace(/\n/g, "<br/>"));
+      } catch (e: any) {
+        toast.error(e?.message ?? "Erro ao carregar");
+      } finally {
+        if (alive) setLoading(false);
+      }
+    })();
+    return () => { alive = false; };
+  }, [item.file_url]);
+
+  function exec(cmd: string, val?: string) {
+    ref.current?.focus();
+    document.execCommand(cmd, false, val);
+  }
+
+  async function copyText() {
+    const text = ref.current?.innerText ?? "";
+    try { await navigator.clipboard.writeText(text); toast.success("Texto copiado"); }
+    catch { toast.error("Falha ao copiar"); }
+  }
+
+  async function save() {
+    setSaving(true);
+    try {
+      const content = ref.current?.innerHTML ?? html;
+      const blob = new Blob([content], { type: "text/html" });
+      const { error: upErr } = await supabase.storage
+        .from("project-files")
+        .update(item.file_url, blob, { contentType: "text/html", upsert: true });
+      if (upErr) throw upErr;
+      await supabase.from("project_folder_files" as any)
+        .update({ file_type: "text/html", file_size: blob.size })
+        .eq("id", item.id);
+      toast.success("Roteiro salvo");
+      onSaved();
+    } catch (e: any) {
+      toast.error(e?.message ?? "Erro ao salvar");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  const colors = ["#000000", "#ef4444", "#f59e0b", "#10b981", "#3b82f6", "#a855f7", "#ec4899", "#6b7280"];
+
+  return (
+    <Dialog open onOpenChange={(o) => { if (!o) onClose(); }}>
+      <DialogContent className="max-w-3xl">
+        <DialogHeader>
+          <DialogTitle className="truncate">{item.file_name}</DialogTitle>
+        </DialogHeader>
+        <div className="flex flex-wrap items-center gap-1 border rounded-md p-1 bg-muted/30">
+          <Button size="sm" variant="ghost" className="h-7" onClick={() => exec("bold")}><b>B</b></Button>
+          <Button size="sm" variant="ghost" className="h-7 italic" onClick={() => exec("italic")}>I</Button>
+          <Button size="sm" variant="ghost" className="h-7 underline" onClick={() => exec("underline")}>U</Button>
+          <div className="w-px h-5 bg-border mx-1" />
+          <span className="text-xs text-muted-foreground mr-1">Cor:</span>
+          {colors.map((c) => (
+            <button
+              key={c}
+              type="button"
+              className="w-5 h-5 rounded border"
+              style={{ backgroundColor: c }}
+              onClick={() => exec("foreColor", c)}
+              title={c}
+            />
+          ))}
+          <div className="ml-auto flex gap-1">
+            <Button size="sm" variant="outline" className="h-7" onClick={copyText}>
+              <Copy className="w-3 h-3 mr-1" /> Copiar
+            </Button>
+            <Button size="sm" className="h-7" onClick={save} disabled={saving || loading}>
+              <Save className="w-3 h-3 mr-1" /> {saving ? "Salvando..." : "Salvar"}
+            </Button>
+          </div>
+        </div>
+        {loading ? (
+          <div className="py-12 text-center text-muted-foreground text-sm">Carregando...</div>
+        ) : (
+          <div
+            ref={ref}
+            contentEditable
+            suppressContentEditableWarning
+            className="min-h-[300px] max-h-[60vh] overflow-auto border rounded-md p-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+            dangerouslySetInnerHTML={{ __html: html }}
+          />
+        )}
+      </DialogContent>
+    </Dialog>
   );
 }
 
