@@ -630,6 +630,164 @@ export type Database = {
         }
         Relationships: []
       }
+      project_folder_files: {
+        Row: {
+          created_at: string
+          file_category: string
+          file_name: string
+          file_size: number | null
+          file_type: string | null
+          file_url: string
+          folder_id: string
+          id: string
+          kanban_card_id: string | null
+          sale_id: string | null
+          uploaded_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          file_category: string
+          file_name: string
+          file_size?: number | null
+          file_type?: string | null
+          file_url: string
+          folder_id: string
+          id?: string
+          kanban_card_id?: string | null
+          sale_id?: string | null
+          uploaded_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          file_category?: string
+          file_name?: string
+          file_size?: number | null
+          file_type?: string | null
+          file_url?: string
+          folder_id?: string
+          id?: string
+          kanban_card_id?: string | null
+          sale_id?: string | null
+          uploaded_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_folder_files_folder_id_fkey"
+            columns: ["folder_id"]
+            isOneToOne: false
+            referencedRelation: "project_folders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      project_folder_messages: {
+        Row: {
+          audio_url: string | null
+          created_at: string
+          file_id: string | null
+          file_url: string | null
+          folder_id: string
+          id: string
+          kanban_card_id: string | null
+          message: string | null
+          sale_id: string | null
+          sender_id: string | null
+        }
+        Insert: {
+          audio_url?: string | null
+          created_at?: string
+          file_id?: string | null
+          file_url?: string | null
+          folder_id: string
+          id?: string
+          kanban_card_id?: string | null
+          message?: string | null
+          sale_id?: string | null
+          sender_id?: string | null
+        }
+        Update: {
+          audio_url?: string | null
+          created_at?: string
+          file_id?: string | null
+          file_url?: string | null
+          folder_id?: string
+          id?: string
+          kanban_card_id?: string | null
+          message?: string | null
+          sale_id?: string | null
+          sender_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_folder_messages_file_id_fkey"
+            columns: ["file_id"]
+            isOneToOne: false
+            referencedRelation: "project_folder_files"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_folder_messages_folder_id_fkey"
+            columns: ["folder_id"]
+            isOneToOne: false
+            referencedRelation: "project_folders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      project_folders: {
+        Row: {
+          client_name: string | null
+          created_at: string
+          created_by: string | null
+          folder_name: string
+          google_drive_link: string | null
+          id: string
+          kanban_card_id: string
+          sale_id: string | null
+          service_type: string | null
+          updated_at: string
+        }
+        Insert: {
+          client_name?: string | null
+          created_at?: string
+          created_by?: string | null
+          folder_name: string
+          google_drive_link?: string | null
+          id?: string
+          kanban_card_id: string
+          sale_id?: string | null
+          service_type?: string | null
+          updated_at?: string
+        }
+        Update: {
+          client_name?: string | null
+          created_at?: string
+          created_by?: string | null
+          folder_name?: string
+          google_drive_link?: string | null
+          id?: string
+          kanban_card_id?: string
+          sale_id?: string | null
+          service_type?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_folders_kanban_card_id_fkey"
+            columns: ["kanban_card_id"]
+            isOneToOne: true
+            referencedRelation: "service_orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_folders_sale_id_fkey"
+            columns: ["sale_id"]
+            isOneToOne: false
+            referencedRelation: "sales"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       sale_receipts: {
         Row: {
           amount: number
@@ -1088,6 +1246,10 @@ export type Database = {
           _role: Database["public"]["Enums"]["app_role"]
           _user_id: string
         }
+        Returns: boolean
+      }
+      user_can_access_card: {
+        Args: { _card_id: string; _sale_id: string; _user_id: string }
         Returns: boolean
       }
     }
