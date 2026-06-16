@@ -453,9 +453,20 @@ function ChatOrganizador() {
             <footer className="border-t p-3 space-y-2">
               {pendingFiles.length > 0 && (
                 <div className="rounded-md border bg-muted/40 p-2 space-y-1">
-                  <div className="text-[11px] font-medium text-muted-foreground">
-                    {pendingFiles.length} arquivo(s) prontos — diga ou digite <em>"criar pasta NOME"</em>:
-                  </div>
+                  {(() => {
+                    const roteiros = pendingFiles.filter((f) => /\.html?$/i.test(f.name) || f.type === "text/html").length;
+                    const audios = pendingFiles.filter((f) => f.type.startsWith("audio/")).length;
+                    const outros = pendingFiles.length - roteiros - audios;
+                    return (
+                      <div className="text-[11px] font-medium text-muted-foreground flex flex-wrap gap-2">
+                        <span>Fila ({pendingFiles.length}):</span>
+                        <span>📝 {roteiros} roteiro(s)</span>
+                        <span>🎙 {audios} áudio(s)</span>
+                        <span>📎 {outros} arquivo(s)</span>
+                        <span className="ml-auto">diga/digite <em>"criar pasta NOME"</em></span>
+                      </div>
+                    );
+                  })()}
                   <div className="flex flex-wrap gap-1">
                     {pendingFiles.map((f, i) => (
                       <span key={i} className="text-[10px] bg-background border rounded px-2 py-0.5 inline-flex items-center gap-1">
