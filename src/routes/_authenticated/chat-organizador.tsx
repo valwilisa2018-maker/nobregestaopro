@@ -500,6 +500,35 @@ function ChatOrganizador() {
               })}
             </div>
             <footer className="border-t p-3 space-y-2">
+              {pendingFiles.length > 0 && (
+                <div className="rounded-md border bg-muted/40 p-2 space-y-1">
+                  <div className="text-[11px] font-medium text-muted-foreground">
+                    {pendingFiles.length} arquivo(s) prontos — diga ou digite <em>"criar pasta NOME"</em>:
+                  </div>
+                  <div className="flex flex-wrap gap-1">
+                    {pendingFiles.map((f, i) => (
+                      <span key={i} className="text-[10px] bg-background border rounded px-2 py-0.5 inline-flex items-center gap-1">
+                        <Paperclip className="w-3 h-3" />
+                        {f.name}
+                        <button
+                          type="button"
+                          className="ml-1 text-muted-foreground hover:text-destructive"
+                          onClick={() => setPendingFiles((prev) => prev.filter((_, j) => j !== i))}
+                        >
+                          ×
+                        </button>
+                      </span>
+                    ))}
+                    <button
+                      type="button"
+                      className="text-[10px] underline text-muted-foreground ml-1"
+                      onClick={() => setPendingFiles([])}
+                    >
+                      limpar
+                    </button>
+                  </div>
+                </div>
+              )}
               <div className="flex items-end gap-2">
                 <Textarea
                   ref={taRef}
