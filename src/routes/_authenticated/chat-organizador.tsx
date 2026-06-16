@@ -670,7 +670,7 @@ function RoteiroFullscreen({
   onSubmit,
   sending,
 }: {
-  editorRef: React.RefObject<HTMLDivElement>;
+  editorRef: React.RefObject<HTMLDivElement | null>;
   activeName: string | null;
   onClose: () => void;
   onSubmit: () => void;
