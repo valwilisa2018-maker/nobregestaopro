@@ -799,6 +799,10 @@ function KanbanPage() {
                                 </span>
                               </div>
                             )}
+                            <CardLinkButtons
+                              driveLink={first.sales?.google_drive_link ?? first.sales?.trello_link ?? first.trello_link ?? null}
+                              platformLink={first.sales?.platform_link ?? first.platform_link ?? null}
+                            />
                           </CardContent>
                         </Card>
                         {isOpen && it.cards.map((c: any) => (
@@ -880,6 +884,10 @@ function KanbanPage() {
                                   </span>
                                 )}
                               </div>
+                              <CardLinkButtons
+                                driveLink={c.sales?.google_drive_link ?? c.sales?.trello_link ?? c.trello_link ?? null}
+                                platformLink={c.sales?.platform_link ?? c.platform_link ?? null}
+                              />
                             </CardContent>
                           </Card>
                         ))}
