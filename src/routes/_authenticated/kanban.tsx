@@ -983,7 +983,10 @@ function KanbanPage() {
                           </span>
                         )}
                       </div>
-                      <CardFolderBadges cardId={c.id} />
+                      <CardLinkButtons
+                        driveLink={c.sales?.google_drive_link ?? c.sales?.trello_link ?? null}
+                        platformLink={c.sales?.platform_link ?? null}
+                      />
                     </CardContent>
                   </Card>
                     </div>
