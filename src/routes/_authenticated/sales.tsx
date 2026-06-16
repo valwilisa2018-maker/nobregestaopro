@@ -81,6 +81,16 @@ function SalesPage() {
   const [paymentLinkData, setPaymentLinkData] = useState<{ url: string; id: string } | null>(null);
   const [isGeneratingLink, setIsGeneratingLink] = useState(false);
 
+  // ----- Filters -----
+  const [fSearch, setFSearch] = useState("");
+  const [fSeller, setFSeller] = useState<string>("all");
+  const [fProducer, setFProducer] = useState<string>("all");
+  const [fService, setFService] = useState<string>("all");
+  const [fYear, setFYear] = useState<string>("all");
+  const [fMonth, setFMonth] = useState<string>("all");
+  const [fFrom, setFFrom] = useState<string>("");
+  const [fTo, setFTo] = useState<string>("");
+
   const { data: salesList, isLoading: loadingSales, error: salesError, refetch } = useQuery({
     queryKey: ["sales-list"],
     queryFn: async () => {
