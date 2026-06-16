@@ -8,7 +8,8 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { MessagesSquare, Send, Paperclip, Mic, Square, Search, FileText, Copy, FolderPlus, FolderOpen } from "lucide-react";
+import { MessagesSquare, Send, Paperclip, Mic, Square, Search, FileText, Copy, FolderPlus, FolderOpen, ScrollText } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { detectCategory, uploadToFolder, getSignedUrl, type CategoryId } from "@/lib/project-folders";
 import { transcribeAudio } from "@/lib/ai-transcribe.functions";
@@ -48,6 +49,8 @@ function ChatOrganizador() {
   const [lastCreated, setLastCreated] = useState<{ id: string; name: string } | null>(null);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [pendingFiles, setPendingFiles] = useState<File[]>([]);
+  const [roteiroOpen, setRoteiroOpen] = useState(false);
+  const [roteiroText, setRoteiroText] = useState("");
   const fileRef = useRef<HTMLInputElement>(null);
   const recRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
@@ -195,6 +198,53 @@ function ChatOrganizador() {
     setActiveFolderId(null);
     if (fileRef.current) fileRef.current.value = "";
     setTimeout(() => taRef.current?.focus(), 0);
+  }
+
+  async function submitRoteiro() {
+    const content = roteiroText.trim();
+    if (!content) {
+      toast.error("Cole o roteiro antes de enviar");
+      return;
+    }
+    const fileName = `roteiro-${new Date().toISOString().replace(/[:.]/g, "-")}.txt`;
+    const file = new File([content], fileName, { type: "text/plain" });
+    if (!active) {
+      setPendingFiles((prev) => [...prev, file]);
+      toast.success('Roteiro pronto. Agora diga ou digite: "criar pasta NOME".');
+      setRoteiroOpen(false);
+      setRoteiroText("");
+      return;
+    }
+    setSending(true);
+    try {
+      const { data: ud } = await supabase.auth.getUser();
+      const saved = await uploadToFolder({
+        folderId: active.id,
+        saleId: active.sale_id ?? null,
+        cardId: active.kanban_card_id ?? null,
+        file,
+        category: "roteiro",
+        userId: ud.user?.id ?? null,
+      });
+      await supabase.from("project_folder_messages" as any).insert({
+        folder_id: active.id,
+        sale_id: active.sale_id,
+        kanban_card_id: active.kanban_card_id,
+        message: "📝 Roteiro enviado",
+        file_url: saved.file_url,
+        file_id: saved.id,
+        sender_id: ud.user?.id,
+      });
+      qc.invalidateQueries({ queryKey: ["chat_messages", active.id] });
+      qc.invalidateQueries({ queryKey: ["project_folder_files", active.id] });
+      toast.success("Roteiro enviado");
+      setRoteiroOpen(false);
+      setRoteiroText("");
+    } catch (e: any) {
+      toast.error(e?.message ?? "Erro ao enviar roteiro");
+    } finally {
+      setSending(false);
+    }
   }
 
   async function sendText() {
@@ -546,6 +596,9 @@ function ChatOrganizador() {
                   <Button size="icon" variant="outline" onClick={() => fileRef.current?.click()} disabled={sending} title="Anexar arquivo (se não houver pasta ativa, será solicitado o nome)">
                     <Paperclip className="w-4 h-4" />
                   </Button>
+                  <Button size="icon" variant="outline" onClick={() => setRoteiroOpen(true)} disabled={sending} title="Escrever/Colar roteiro">
+                    <ScrollText className="w-4 h-4" />
+                  </Button>
                   <Button size="icon" variant={recording ? "destructive" : "outline"} onClick={toggleRecord} disabled={sending && !recording} title='Gravar áudio (diga "criar pasta NOME")'>
                     {recording ? <Square className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
                   </Button>
@@ -563,6 +616,32 @@ function ChatOrganizador() {
             </footer>
         </>
       </section>
+      <Dialog open={roteiroOpen} onOpenChange={(o) => { setRoteiroOpen(o); if (!o) setRoteiroText(""); }}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Roteiro</DialogTitle>
+            <DialogDescription>
+              Cole ou escreva o roteiro abaixo. Ao confirmar, ele será enviado como arquivo
+              <strong> .txt</strong> dentro da pasta {active ? `"${active.client_name ?? active.folder_name}"` : "(será anexado ao criar a próxima pasta)"}.
+            </DialogDescription>
+          </DialogHeader>
+          <Textarea
+            value={roteiroText}
+            onChange={(e) => setRoteiroText(e.target.value)}
+            placeholder="Cole aqui o roteiro completo..."
+            className="min-h-[280px] font-mono text-sm"
+            autoFocus
+          />
+          <DialogFooter>
+            <Button variant="outline" onClick={() => { setRoteiroOpen(false); setRoteiroText(""); }} disabled={sending}>
+              Cancelar
+            </Button>
+            <Button onClick={submitRoteiro} disabled={sending || !roteiroText.trim()}>
+              <Send className="w-4 h-4 mr-1" /> Enviar roteiro
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
