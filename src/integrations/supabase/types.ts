@@ -742,7 +742,7 @@ export type Database = {
           folder_name: string
           google_drive_link: string | null
           id: string
-          kanban_card_id: string
+          kanban_card_id: string | null
           sale_id: string | null
           service_type: string | null
           updated_at: string
@@ -754,7 +754,7 @@ export type Database = {
           folder_name: string
           google_drive_link?: string | null
           id?: string
-          kanban_card_id: string
+          kanban_card_id?: string | null
           sale_id?: string | null
           service_type?: string | null
           updated_at?: string
@@ -766,7 +766,7 @@ export type Database = {
           folder_name?: string
           google_drive_link?: string | null
           id?: string
-          kanban_card_id?: string
+          kanban_card_id?: string | null
           sale_id?: string | null
           service_type?: string | null
           updated_at?: string
@@ -775,7 +775,7 @@ export type Database = {
           {
             foreignKeyName: "project_folders_kanban_card_id_fkey"
             columns: ["kanban_card_id"]
-            isOneToOne: true
+            isOneToOne: false
             referencedRelation: "service_orders"
             referencedColumns: ["id"]
           },
