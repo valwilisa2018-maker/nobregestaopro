@@ -983,6 +983,7 @@ function KanbanPage() {
                           </span>
                         )}
                       </div>
+                      <CardFolderBadges cardId={c.id} />
                     </CardContent>
                   </Card>
                     </div>
