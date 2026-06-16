@@ -619,32 +619,15 @@ function ChatOrganizador() {
             </footer>
         </>
       </section>
-      <Dialog open={roteiroOpen} onOpenChange={(o) => { setRoteiroOpen(o); if (!o) setRoteiroText(""); }}>
-        <DialogContent className="max-w-2xl">
-          <DialogHeader>
-            <DialogTitle>Roteiro</DialogTitle>
-            <DialogDescription>
-              Cole ou escreva o roteiro abaixo. Ao confirmar, ele será enviado como arquivo
-              <strong> .txt</strong> dentro da pasta {active ? `"${active.client_name ?? active.folder_name}"` : "(será anexado ao criar a próxima pasta)"}.
-            </DialogDescription>
-          </DialogHeader>
-          <Textarea
-            value={roteiroText}
-            onChange={(e) => setRoteiroText(e.target.value)}
-            placeholder="Cole aqui o roteiro completo..."
-            className="min-h-[280px] font-mono text-sm"
-            autoFocus
-          />
-          <DialogFooter>
-            <Button variant="outline" onClick={() => { setRoteiroOpen(false); setRoteiroText(""); }} disabled={sending}>
-              Cancelar
-            </Button>
-            <Button onClick={submitRoteiro} disabled={sending || !roteiroText.trim()}>
-              <Send className="w-4 h-4 mr-1" /> Enviar roteiro
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      {roteiroOpen && (
+        <RoteiroFullscreen
+          editorRef={editorRef}
+          activeName={active ? (active.client_name ?? active.folder_name) : null}
+          onClose={() => { setRoteiroOpen(false); setRoteiroText(""); }}
+          onSubmit={submitRoteiro}
+          sending={sending}
+        />
+      )}
     </div>
   );
 }
