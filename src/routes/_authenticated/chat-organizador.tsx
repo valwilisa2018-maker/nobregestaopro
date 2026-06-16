@@ -437,7 +437,10 @@ function ChatOrganizador() {
             return (
               <div key={c.id} className={`px-3 py-2 border-b ${linked ? "bg-primary/5" : ""}`}>
                 <div className="text-sm font-medium truncate">{c.sales?.customers?.name ?? c.title}</div>
-                <div className="text-[11px] text-muted-foreground truncate">{c.sales?.service_types?.name ?? c.title}</div>
+                <div className="text-[11px] text-muted-foreground truncate">
+                  {c.sales?.service_types?.name ?? c.title}
+                  {c.sales?.sellers?.name && <> • {c.sales.sellers.name}</>}
+                </div>
                 <Button
                   size="sm"
                   variant={linked ? "secondary" : "default"}
