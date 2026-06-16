@@ -51,6 +51,7 @@ function ChatOrganizador() {
   const [pendingFiles, setPendingFiles] = useState<File[]>([]);
   const [roteiroOpen, setRoteiroOpen] = useState(false);
   const [roteiroText, setRoteiroText] = useState("");
+  const editorRef = useRef<HTMLDivElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
   const recRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
@@ -201,13 +202,15 @@ function ChatOrganizador() {
   }
 
   async function submitRoteiro() {
-    const content = roteiroText.trim();
-    if (!content) {
+    const html = editorRef.current?.innerHTML?.trim() ?? "";
+    const plain = editorRef.current?.innerText?.trim() ?? "";
+    if (!plain) {
       toast.error("Cole o roteiro antes de enviar");
       return;
     }
-    const fileName = `roteiro-${new Date().toISOString().replace(/[:.]/g, "-")}.txt`;
-    const file = new File([content], fileName, { type: "text/plain" });
+    const fileName = `roteiro-${new Date().toISOString().replace(/[:.]/g, "-")}.html`;
+    const doc = `<!doctype html><html><head><meta charset="utf-8"><title>Roteiro</title><style>body{font-family:Arial,sans-serif;max-width:820px;margin:32px auto;padding:0 24px;line-height:1.6;color:#111}</style></head><body>${html}</body></html>`;
+    const file = new File([doc], fileName, { type: "text/html" });
     if (!active) {
       setPendingFiles((prev) => [...prev, file]);
       toast.success('Roteiro pronto. Agora diga ou digite: "criar pasta NOME".');
@@ -616,32 +619,15 @@ function ChatOrganizador() {
             </footer>
         </>
       </section>
-      <Dialog open={roteiroOpen} onOpenChange={(o) => { setRoteiroOpen(o); if (!o) setRoteiroText(""); }}>
-        <DialogContent className="max-w-2xl">
-          <DialogHeader>
-            <DialogTitle>Roteiro</DialogTitle>
-            <DialogDescription>
-              Cole ou escreva o roteiro abaixo. Ao confirmar, ele será enviado como arquivo
-              <strong> .txt</strong> dentro da pasta {active ? `"${active.client_name ?? active.folder_name}"` : "(será anexado ao criar a próxima pasta)"}.
-            </DialogDescription>
-          </DialogHeader>
-          <Textarea
-            value={roteiroText}
-            onChange={(e) => setRoteiroText(e.target.value)}
-            placeholder="Cole aqui o roteiro completo..."
-            className="min-h-[280px] font-mono text-sm"
-            autoFocus
-          />
-          <DialogFooter>
-            <Button variant="outline" onClick={() => { setRoteiroOpen(false); setRoteiroText(""); }} disabled={sending}>
-              Cancelar
-            </Button>
-            <Button onClick={submitRoteiro} disabled={sending || !roteiroText.trim()}>
-              <Send className="w-4 h-4 mr-1" /> Enviar roteiro
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      {roteiroOpen && (
+        <RoteiroFullscreen
+          editorRef={editorRef}
+          activeName={active ? (active.client_name ?? active.folder_name) : null}
+          onClose={() => { setRoteiroOpen(false); setRoteiroText(""); }}
+          onSubmit={submitRoteiro}
+          sending={sending}
+        />
+      )}
     </div>
   );
 }
@@ -674,5 +660,109 @@ function MediaPart({ path }: { path: string }) {
     <a href={url} target="_blank" rel="noreferrer" className="flex items-center gap-2 text-xs underline">
       <FileText className="w-3 h-3" /> Abrir arquivo
     </a>
+  );
+}
+
+function RoteiroFullscreen({
+  editorRef,
+  activeName,
+  onClose,
+  onSubmit,
+  sending,
+}: {
+  editorRef: React.RefObject<HTMLDivElement | null>;
+  activeName: string | null;
+  onClose: () => void;
+  onSubmit: () => void;
+  sending: boolean;
+}) {
+  const [color, setColor] = useState("#111111");
+  const [highlight, setHighlight] = useState("#fff59d");
+  const exec = (cmd: string, val?: string) => {
+    editorRef.current?.focus();
+    document.execCommand(cmd, false, val);
+  };
+  return (
+    <div className="fixed inset-0 z-50 bg-background flex flex-col">
+      <div className="border-b px-4 py-3 flex items-center justify-between gap-4">
+        <div>
+          <h2 className="text-lg font-semibold">Roteiro</h2>
+          <p className="text-xs text-muted-foreground">
+            Edite à vontade — será enviado como arquivo <strong>.html</strong>{" "}
+            {activeName ? `na pasta "${activeName}"` : "(será anexado ao criar a próxima pasta)"}.
+          </p>
+        </div>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" onClick={onClose} disabled={sending}>Cancelar</Button>
+          <Button onClick={onSubmit} disabled={sending}>
+            <Send className="w-4 h-4 mr-1" /> Enviar roteiro
+          </Button>
+        </div>
+      </div>
+      <div className="border-b px-4 py-2 flex flex-wrap items-center gap-1 bg-muted/30">
+        <select
+          className="h-8 rounded border bg-background px-2 text-sm"
+          onChange={(e) => exec("fontSize", e.target.value)}
+          defaultValue="3"
+          title="Tamanho"
+        >
+          <option value="1">10</option>
+          <option value="2">13</option>
+          <option value="3">16</option>
+          <option value="4">18</option>
+          <option value="5">24</option>
+          <option value="6">32</option>
+          <option value="7">48</option>
+        </select>
+        <select
+          className="h-8 rounded border bg-background px-2 text-sm"
+          onChange={(e) => exec("formatBlock", e.target.value)}
+          defaultValue="p"
+          title="Estilo"
+        >
+          <option value="p">Parágrafo</option>
+          <option value="h1">Título 1</option>
+          <option value="h2">Título 2</option>
+          <option value="h3">Título 3</option>
+          <option value="blockquote">Citação</option>
+          <option value="pre">Código</option>
+        </select>
+        <div className="w-px h-6 bg-border mx-1" />
+        <Button size="sm" variant="ghost" onClick={() => exec("bold")} title="Negrito"><b>B</b></Button>
+        <Button size="sm" variant="ghost" onClick={() => exec("italic")} title="Itálico"><i>I</i></Button>
+        <Button size="sm" variant="ghost" onClick={() => exec("underline")} title="Sublinhado"><u>U</u></Button>
+        <Button size="sm" variant="ghost" onClick={() => exec("strikeThrough")} title="Tachado"><s>S</s></Button>
+        <div className="w-px h-6 bg-border mx-1" />
+        <label className="flex items-center gap-1 text-xs" title="Cor do texto">
+          <span>A</span>
+          <input type="color" value={color} onChange={(e) => { setColor(e.target.value); exec("foreColor", e.target.value); }} className="w-7 h-7 rounded border" />
+        </label>
+        <label className="flex items-center gap-1 text-xs" title="Marca-texto">
+          <span>🖍</span>
+          <input type="color" value={highlight} onChange={(e) => { setHighlight(e.target.value); exec("hiliteColor", e.target.value); }} className="w-7 h-7 rounded border" />
+        </label>
+        <div className="w-px h-6 bg-border mx-1" />
+        <Button size="sm" variant="ghost" onClick={() => exec("insertUnorderedList")} title="Lista">• Lista</Button>
+        <Button size="sm" variant="ghost" onClick={() => exec("insertOrderedList")} title="Numerada">1. Lista</Button>
+        <div className="w-px h-6 bg-border mx-1" />
+        <Button size="sm" variant="ghost" onClick={() => exec("justifyLeft")} title="Esquerda">⯇</Button>
+        <Button size="sm" variant="ghost" onClick={() => exec("justifyCenter")} title="Centro">≡</Button>
+        <Button size="sm" variant="ghost" onClick={() => exec("justifyRight")} title="Direita">⯈</Button>
+        <div className="w-px h-6 bg-border mx-1" />
+        <Button size="sm" variant="ghost" onClick={() => exec("removeFormat")} title="Limpar formatação">⌫ Limpar</Button>
+        <Button size="sm" variant="ghost" onClick={() => exec("undo")} title="Desfazer">↶</Button>
+        <Button size="sm" variant="ghost" onClick={() => exec("redo")} title="Refazer">↷</Button>
+      </div>
+      <div className="flex-1 overflow-auto bg-muted/10 p-6">
+        <div
+          ref={editorRef}
+          contentEditable
+          suppressContentEditableWarning
+          className="mx-auto max-w-4xl min-h-full bg-background rounded shadow-sm border p-8 outline-none focus:ring-2 focus:ring-primary/30 prose prose-sm max-w-none"
+          style={{ fontFamily: "Arial, sans-serif", fontSize: 16, lineHeight: 1.6 }}
+          data-placeholder="Cole ou escreva aqui o roteiro completo..."
+        />
+      </div>
+    </div>
   );
 }
