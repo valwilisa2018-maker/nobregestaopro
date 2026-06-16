@@ -325,15 +325,6 @@ function ChatOrganizador() {
     }
   }
 
-  async function openSigned(path: string) {
-    try {
-      const url = await getSignedUrl(path);
-      window.open(url, "_blank");
-    } catch (e: any) {
-      toast.error(e?.message ?? "Erro ao abrir");
-    }
-  }
-
   function copy(url: string) {
     try {
       navigator.clipboard.writeText(url);
