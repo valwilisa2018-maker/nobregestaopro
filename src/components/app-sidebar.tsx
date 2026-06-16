@@ -2,7 +2,7 @@ import { Link, useRouterState, useNavigate } from "@tanstack/react-router";
 import {
   LayoutDashboard, ShoppingCart, KanbanSquare, Users, UserCheck, Briefcase,
   FileText, Settings, LogOut, ListTodo, Database, Sun, Moon, Link2, Wallet, DollarSign, Tv, AlertCircle,
-  CreditCard, Sparkles, Clapperboard, FolderOpen, MessagesSquare,
+  CreditCard, Sparkles, Clapperboard, FolderOpen, MessagesSquare, Smartphone,
 } from "lucide-react";
 import logoUrl from "@/assets/logo.png";
 import {
@@ -49,6 +49,7 @@ const groups = [
     label: "Administração",
     items: [
       { title: "Backup", url: "/backup", icon: Database },
+      { title: "Conectar WhatsApp", url: "/whatsapp", icon: Smartphone },
       { title: "Configurações", url: "/admin", icon: Settings },
     ],
   },
