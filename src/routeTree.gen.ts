@@ -35,6 +35,7 @@ import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/
 import { Route as AuthenticatedPastasArquivosIndexRouteImport } from './routes/_authenticated/pastas-arquivos.index'
 import { Route as AuthenticatedOperacaoMetaIndexRouteImport } from './routes/_authenticated/operacao-meta.index'
 import { Route as ApiPublicTrelloWebhookRouteImport } from './routes/api/public/trello-webhook'
+import { Route as ApiPublicEvolutionWebhookRouteImport } from './routes/api/public/evolution-webhook'
 import { Route as AuthenticatedPastasArquivosFolderIdRouteImport } from './routes/_authenticated/pastas-arquivos.$folderId'
 import { Route as AuthenticatedOperacaoMetaTendenciasRouteImport } from './routes/_authenticated/operacao-meta.tendencias'
 import { Route as AuthenticatedOperacaoMetaRelatoriosRouteImport } from './routes/_authenticated/operacao-meta.relatorios'
@@ -182,6 +183,12 @@ const ApiPublicTrelloWebhookRoute = ApiPublicTrelloWebhookRouteImport.update({
   path: '/api/public/trello-webhook',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicEvolutionWebhookRoute =
+  ApiPublicEvolutionWebhookRouteImport.update({
+    id: '/api/public/evolution-webhook',
+    path: '/api/public/evolution-webhook',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const AuthenticatedPastasArquivosFolderIdRoute =
   AuthenticatedPastasArquivosFolderIdRouteImport.update({
     id: '/pastas-arquivos/$folderId',
@@ -262,6 +269,7 @@ export interface FileRoutesByFullPath {
   '/operacao-meta/relatorios': typeof AuthenticatedOperacaoMetaRelatoriosRoute
   '/operacao-meta/tendencias': typeof AuthenticatedOperacaoMetaTendenciasRoute
   '/pastas-arquivos/$folderId': typeof AuthenticatedPastasArquivosFolderIdRoute
+  '/api/public/evolution-webhook': typeof ApiPublicEvolutionWebhookRoute
   '/api/public/trello-webhook': typeof ApiPublicTrelloWebhookRoute
   '/operacao-meta/': typeof AuthenticatedOperacaoMetaIndexRoute
   '/pastas-arquivos/': typeof AuthenticatedPastasArquivosIndexRoute
@@ -296,6 +304,7 @@ export interface FileRoutesByTo {
   '/operacao-meta/relatorios': typeof AuthenticatedOperacaoMetaRelatoriosRoute
   '/operacao-meta/tendencias': typeof AuthenticatedOperacaoMetaTendenciasRoute
   '/pastas-arquivos/$folderId': typeof AuthenticatedPastasArquivosFolderIdRoute
+  '/api/public/evolution-webhook': typeof ApiPublicEvolutionWebhookRoute
   '/api/public/trello-webhook': typeof ApiPublicTrelloWebhookRoute
   '/operacao-meta': typeof AuthenticatedOperacaoMetaIndexRoute
   '/pastas-arquivos': typeof AuthenticatedPastasArquivosIndexRoute
@@ -333,6 +342,7 @@ export interface FileRoutesById {
   '/_authenticated/operacao-meta/relatorios': typeof AuthenticatedOperacaoMetaRelatoriosRoute
   '/_authenticated/operacao-meta/tendencias': typeof AuthenticatedOperacaoMetaTendenciasRoute
   '/_authenticated/pastas-arquivos/$folderId': typeof AuthenticatedPastasArquivosFolderIdRoute
+  '/api/public/evolution-webhook': typeof ApiPublicEvolutionWebhookRoute
   '/api/public/trello-webhook': typeof ApiPublicTrelloWebhookRoute
   '/_authenticated/operacao-meta/': typeof AuthenticatedOperacaoMetaIndexRoute
   '/_authenticated/pastas-arquivos/': typeof AuthenticatedPastasArquivosIndexRoute
@@ -370,6 +380,7 @@ export interface FileRouteTypes {
     | '/operacao-meta/relatorios'
     | '/operacao-meta/tendencias'
     | '/pastas-arquivos/$folderId'
+    | '/api/public/evolution-webhook'
     | '/api/public/trello-webhook'
     | '/operacao-meta/'
     | '/pastas-arquivos/'
@@ -404,6 +415,7 @@ export interface FileRouteTypes {
     | '/operacao-meta/relatorios'
     | '/operacao-meta/tendencias'
     | '/pastas-arquivos/$folderId'
+    | '/api/public/evolution-webhook'
     | '/api/public/trello-webhook'
     | '/operacao-meta'
     | '/pastas-arquivos'
@@ -440,6 +452,7 @@ export interface FileRouteTypes {
     | '/_authenticated/operacao-meta/relatorios'
     | '/_authenticated/operacao-meta/tendencias'
     | '/_authenticated/pastas-arquivos/$folderId'
+    | '/api/public/evolution-webhook'
     | '/api/public/trello-webhook'
     | '/_authenticated/operacao-meta/'
     | '/_authenticated/pastas-arquivos/'
@@ -450,6 +463,7 @@ export interface RootRouteChildren {
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   LoginRoute: typeof LoginRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
+  ApiPublicEvolutionWebhookRoute: typeof ApiPublicEvolutionWebhookRoute
   ApiPublicTrelloWebhookRoute: typeof ApiPublicTrelloWebhookRoute
 }
 
@@ -637,6 +651,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicTrelloWebhookRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/evolution-webhook': {
+      id: '/api/public/evolution-webhook'
+      path: '/api/public/evolution-webhook'
+      fullPath: '/api/public/evolution-webhook'
+      preLoaderRoute: typeof ApiPublicEvolutionWebhookRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/_authenticated/pastas-arquivos/$folderId': {
       id: '/_authenticated/pastas-arquivos/$folderId'
       path: '/pastas-arquivos/$folderId'
@@ -786,6 +807,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   LoginRoute: LoginRoute,
   ResetPasswordRoute: ResetPasswordRoute,
+  ApiPublicEvolutionWebhookRoute: ApiPublicEvolutionWebhookRoute,
   ApiPublicTrelloWebhookRoute: ApiPublicTrelloWebhookRoute,
 }
 export const routeTree = rootRouteImport
