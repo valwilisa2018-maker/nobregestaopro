@@ -20,6 +20,7 @@ import { Route as AuthenticatedSalesRouteImport } from './routes/_authenticated/
 import { Route as AuthenticatedProducersRouteImport } from './routes/_authenticated/producers'
 import { Route as AuthenticatedPendingPaymentsRouteImport } from './routes/_authenticated/pending-payments'
 import { Route as AuthenticatedPaymentLinkRouteImport } from './routes/_authenticated/payment-link'
+import { Route as AuthenticatedPastasArquivosRouteImport } from './routes/_authenticated/pastas-arquivos'
 import { Route as AuthenticatedPagarmeHistoryRouteImport } from './routes/_authenticated/pagarme-history'
 import { Route as AuthenticatedOperacaoMetaRouteImport } from './routes/_authenticated/operacao-meta'
 import { Route as AuthenticatedKanbanRouteImport } from './routes/_authenticated/kanban'
@@ -95,6 +96,12 @@ const AuthenticatedPaymentLinkRoute =
   AuthenticatedPaymentLinkRouteImport.update({
     id: '/payment-link',
     path: '/payment-link',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedPastasArquivosRoute =
+  AuthenticatedPastasArquivosRouteImport.update({
+    id: '/pastas-arquivos',
+    path: '/pastas-arquivos',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
 const AuthenticatedPagarmeHistoryRoute =
@@ -218,6 +225,7 @@ export interface FileRoutesByFullPath {
   '/kanban': typeof AuthenticatedKanbanRoute
   '/operacao-meta': typeof AuthenticatedOperacaoMetaRouteWithChildren
   '/pagarme-history': typeof AuthenticatedPagarmeHistoryRoute
+  '/pastas-arquivos': typeof AuthenticatedPastasArquivosRoute
   '/payment-link': typeof AuthenticatedPaymentLinkRoute
   '/pending-payments': typeof AuthenticatedPendingPaymentsRoute
   '/producers': typeof AuthenticatedProducersRoute
@@ -248,6 +256,7 @@ export interface FileRoutesByTo {
   '/invoices': typeof AuthenticatedInvoicesRoute
   '/kanban': typeof AuthenticatedKanbanRoute
   '/pagarme-history': typeof AuthenticatedPagarmeHistoryRoute
+  '/pastas-arquivos': typeof AuthenticatedPastasArquivosRoute
   '/payment-link': typeof AuthenticatedPaymentLinkRoute
   '/pending-payments': typeof AuthenticatedPendingPaymentsRoute
   '/producers': typeof AuthenticatedProducersRoute
@@ -281,6 +290,7 @@ export interface FileRoutesById {
   '/_authenticated/kanban': typeof AuthenticatedKanbanRoute
   '/_authenticated/operacao-meta': typeof AuthenticatedOperacaoMetaRouteWithChildren
   '/_authenticated/pagarme-history': typeof AuthenticatedPagarmeHistoryRoute
+  '/_authenticated/pastas-arquivos': typeof AuthenticatedPastasArquivosRoute
   '/_authenticated/payment-link': typeof AuthenticatedPaymentLinkRoute
   '/_authenticated/pending-payments': typeof AuthenticatedPendingPaymentsRoute
   '/_authenticated/producers': typeof AuthenticatedProducersRoute
@@ -314,6 +324,7 @@ export interface FileRouteTypes {
     | '/kanban'
     | '/operacao-meta'
     | '/pagarme-history'
+    | '/pastas-arquivos'
     | '/payment-link'
     | '/pending-payments'
     | '/producers'
@@ -344,6 +355,7 @@ export interface FileRouteTypes {
     | '/invoices'
     | '/kanban'
     | '/pagarme-history'
+    | '/pastas-arquivos'
     | '/payment-link'
     | '/pending-payments'
     | '/producers'
@@ -376,6 +388,7 @@ export interface FileRouteTypes {
     | '/_authenticated/kanban'
     | '/_authenticated/operacao-meta'
     | '/_authenticated/pagarme-history'
+    | '/_authenticated/pastas-arquivos'
     | '/_authenticated/payment-link'
     | '/_authenticated/pending-payments'
     | '/_authenticated/producers'
@@ -479,6 +492,13 @@ declare module '@tanstack/react-router' {
       path: '/payment-link'
       fullPath: '/payment-link'
       preLoaderRoute: typeof AuthenticatedPaymentLinkRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/pastas-arquivos': {
+      id: '/_authenticated/pastas-arquivos'
+      path: '/pastas-arquivos'
+      fullPath: '/pastas-arquivos'
+      preLoaderRoute: typeof AuthenticatedPastasArquivosRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/pagarme-history': {
@@ -661,6 +681,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedKanbanRoute: typeof AuthenticatedKanbanRoute
   AuthenticatedOperacaoMetaRoute: typeof AuthenticatedOperacaoMetaRouteWithChildren
   AuthenticatedPagarmeHistoryRoute: typeof AuthenticatedPagarmeHistoryRoute
+  AuthenticatedPastasArquivosRoute: typeof AuthenticatedPastasArquivosRoute
   AuthenticatedPaymentLinkRoute: typeof AuthenticatedPaymentLinkRoute
   AuthenticatedPendingPaymentsRoute: typeof AuthenticatedPendingPaymentsRoute
   AuthenticatedProducersRoute: typeof AuthenticatedProducersRoute
@@ -681,6 +702,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedKanbanRoute: AuthenticatedKanbanRoute,
   AuthenticatedOperacaoMetaRoute: AuthenticatedOperacaoMetaRouteWithChildren,
   AuthenticatedPagarmeHistoryRoute: AuthenticatedPagarmeHistoryRoute,
+  AuthenticatedPastasArquivosRoute: AuthenticatedPastasArquivosRoute,
   AuthenticatedPaymentLinkRoute: AuthenticatedPaymentLinkRoute,
   AuthenticatedPendingPaymentsRoute: AuthenticatedPendingPaymentsRoute,
   AuthenticatedProducersRoute: AuthenticatedProducersRoute,
