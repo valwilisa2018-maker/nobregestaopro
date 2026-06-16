@@ -870,6 +870,48 @@ function SalesPage() {
         </div>
       </div>
 
+      <Card className="border-border/50">
+        <CardContent className="p-3 grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-2">
+          <div className="col-span-2 md:col-span-2 lg:col-span-2 relative">
+            <Search className="w-3.5 h-3.5 absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground" />
+            <Input className="pl-7 h-9" placeholder="Cliente, serviço, vendedor, produtor..." value={fSearch} onChange={(e) => setFSearch(e.target.value)} />
+          </div>
+          <Select value={fSeller} onValueChange={setFSeller}>
+            <SelectTrigger className="h-9"><SelectValue placeholder="Vendedor" /></SelectTrigger>
+            <SelectContent><SelectItem value="all">Todos vendedores</SelectItem>{(sellers.data ?? []).map((s: any) => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}</SelectContent>
+          </Select>
+          <Select value={fProducer} onValueChange={setFProducer}>
+            <SelectTrigger className="h-9"><SelectValue placeholder="Produtor" /></SelectTrigger>
+            <SelectContent><SelectItem value="all">Todos produtores</SelectItem>{(producers.data ?? []).map((p: any) => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}</SelectContent>
+          </Select>
+          <Select value={fService} onValueChange={setFService}>
+            <SelectTrigger className="h-9"><SelectValue placeholder="Serviço" /></SelectTrigger>
+            <SelectContent><SelectItem value="all">Todos serviços</SelectItem>{(serviceTypes.data ?? []).map((st: any) => <SelectItem key={st.id} value={st.id}>{st.name}</SelectItem>)}</SelectContent>
+          </Select>
+          <Select value={fYear} onValueChange={setFYear}>
+            <SelectTrigger className="h-9"><SelectValue placeholder="Ano" /></SelectTrigger>
+            <SelectContent><SelectItem value="all">Todos anos</SelectItem>{yearOptions.map((y) => <SelectItem key={y} value={y}>{y}</SelectItem>)}</SelectContent>
+          </Select>
+          <Select value={fMonth} onValueChange={setFMonth}>
+            <SelectTrigger className="h-9"><SelectValue placeholder="Mês" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todos meses</SelectItem>
+              {["Janeiro","Fevereiro","Março","Abril","Maio","Junho","Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"].map((m, i) => (
+                <SelectItem key={i} value={String(i + 1)}>{m}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Input type="date" className="h-9" value={fFrom} onChange={(e) => setFFrom(e.target.value)} title="De" />
+          <Input type="date" className="h-9" value={fTo} onChange={(e) => setFTo(e.target.value)} title="Até" />
+          <div className="col-span-2 md:col-span-4 lg:col-span-8 flex items-center justify-between text-xs text-muted-foreground">
+            <span>{filteredSales.length} de {(salesList ?? []).length} vendas</span>
+            {hasFilters && (
+              <Button variant="ghost" size="sm" className="h-7" onClick={clearFilters}><X className="w-3 h-3 mr-1" />Limpar filtros</Button>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+
       {viewMode === "table" ? (
         <Card className="border-border/50" style={{ boxShadow: "var(--shadow-card)" }}>
           <CardContent className="p-0">
