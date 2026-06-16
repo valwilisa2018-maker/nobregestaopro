@@ -390,6 +390,13 @@ function KanbanPage() {
             .eq("id", editing.sale_id);
           if (e2) throw e2;
         }
+        // Auto-vincular pasta da Plataforma a partir dos links do card
+        try {
+          await autoLinkFolderFromUrl(editing.platform_link || editing.trello_link, {
+            saleId: editing.sale_id ?? null,
+            kanbanCardId: editing.id,
+          });
+        } catch (e) { /* não bloqueia o save */ }
         toast.success("Card atualizado");
       } else {
         const { error } = await supabase.from("service_orders").insert({ ...payload, service_index: 1, sort_order: 9999 });
