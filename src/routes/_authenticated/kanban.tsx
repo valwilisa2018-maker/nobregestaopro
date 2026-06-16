@@ -383,6 +383,12 @@ function KanbanPage() {
       if (editing.id) {
         const { error } = await supabase.from("service_orders").update(payload).eq("id", editing.id);
         if (error) throw error;
+        if (editing.sale_id) {
+          const { error: e2 } = await supabase.from("sales")
+            .update({ platform_link: editing.platform_link?.trim() || null })
+            .eq("id", editing.sale_id);
+          if (e2) throw e2;
+        }
         toast.success("Card atualizado");
       } else {
         const { error } = await supabase.from("service_orders").insert({ ...payload, service_index: 1, sort_order: 9999 });
