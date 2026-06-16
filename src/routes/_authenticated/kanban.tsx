@@ -201,6 +201,30 @@ function KanbanPage() {
     return () => ro.disconnect();
   }, [cols.data, cards.data]);
 
+  const resetDragState = () => {
+    setDragging(null);
+    setDraggingGroup(null);
+    setDraggingFromCol(null);
+  };
+
+  const safeMutate = async (fn: () => Promise<void>) => {
+    if (isProcessingMove.current) {
+      toast.info("Aguarde a movimentação anterior…");
+      return;
+    }
+    isProcessingMove.current = true;
+    try {
+      await fn();
+    } catch (e: any) {
+      await logger.error(`Falha no drag-and-drop: ${e?.message ?? e}`, { context: "kanban/safeMutate", details: { error: e } });
+      toast.error("Falha ao mover card");
+    } finally {
+      isProcessingMove.current = false;
+      resetDragState();
+      qc.invalidateQueries({ queryKey: ["kanban-cards"] });
+    }
+  };
+
   const move = async (cardId: string, columnId: string) => {
     const col = cols.data?.find((c: any) => c.id === columnId);
     // Ao mover para uma coluna, novos cards vão para o topo (sort_order menor).
