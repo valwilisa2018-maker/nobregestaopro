@@ -425,43 +425,6 @@ function ChatOrganizador() {
             </footer>
         </>
       </section>
-              Pasta ativa: <span className="font-medium text-foreground">{active.folder_name}</span>
-              {active.kanban_card_id && (
-                <button onClick={unlinkFromCard} className="ml-2 inline-flex items-center gap-1 text-destructive hover:underline">
-                  <Link2Off className="w-3 h-3" /> desvincular
-                </button>
-              )}
-            </div>
-          )}
-        </div>
-        <div className="flex-1 overflow-y-auto">
-          {cards.isLoading && <div className="p-3 text-xs text-muted-foreground">Carregando...</div>}
-          {filteredCards.map((c: any) => {
-            const linked = active?.kanban_card_id === c.id;
-            return (
-              <div key={c.id} className={`px-3 py-2 border-b ${linked ? "bg-primary/5" : ""}`}>
-                <div className="text-sm font-medium truncate">{c.sales?.customers?.name ?? c.title}</div>
-                <div className="text-[11px] text-muted-foreground truncate">
-                  {c.sales?.service_types?.name ?? c.title}
-                  {c.sales?.sellers?.name && <> • {c.sales.sellers.name}</>}
-                </div>
-                <Button
-                  size="sm"
-                  variant={linked ? "secondary" : "default"}
-                  className="h-7 text-xs mt-1"
-                  disabled={!active || linked}
-                  onClick={() => linkToCard(c.id, c.sale_id)}
-                >
-                  <Link2 className="w-3 h-3 mr-1" /> {linked ? "Vinculado" : "Vincular pasta"}
-                </Button>
-              </div>
-            );
-          })}
-          {!cards.isLoading && filteredCards.length === 0 && (
-            <div className="p-3 text-xs text-muted-foreground">Nenhum card encontrado.</div>
-          )}
-        </div>
-      </aside>
     </div>
   );
 }
