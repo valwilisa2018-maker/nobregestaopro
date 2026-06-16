@@ -485,12 +485,17 @@ function SalesPage() {
 
     for (const [k, label] of required) {
       const val = String(editing[k] ?? "").trim();
+      if (k === "trello_link") continue;
       if (!val) {
         toast.error(`Preencha o campo: ${label}`);
         return;
       }
-      if (k === "trello_link" && !val.toLowerCase().match(/^https:\/\/drive\.google\.com\//)) {
-        toast.error("O link deve ser um link de compartilhamento válido do Google Drive (ex: https://drive.google.com/...)");
+    }
+    {
+      const g = String(editing.google_drive_link ?? "").trim();
+      const p = String(editing.platform_link ?? "").trim();
+      if (!g && !p) {
+        toast.error("Informe o Link do Google Drive ou o Link da Plataforma (pelo menos um).");
         return;
       }
     }
@@ -542,7 +547,9 @@ function SalesPage() {
         package_name: editing.package_name || null,
         service_quantity: Number(editing.service_quantity || 1),
         notes: editing.notes || null,
-        trello_link: editing.trello_link || null,
+        trello_link: editing.google_drive_link || editing.platform_link || editing.trello_link || null,
+        google_drive_link: editing.google_drive_link || null,
+        platform_link: editing.platform_link || null,
         lead_source: editing.lead_source || null,
         delivery_deadline: editing.delivery_deadline || null,
         expected_delivery_date: editing.expected_delivery_date || null,
