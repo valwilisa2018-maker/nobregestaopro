@@ -614,6 +614,11 @@ function SalesPage() {
       }).eq("id", editing.id);
       if (error) throw error;
 
+      // Auto-vincular pasta da Plataforma com base no link
+      try {
+        await autoLinkFolderFromUrl(editing.platform_link || editing.google_drive_link, { saleId: editing.id });
+      } catch (e) { /* não bloqueia o save */ }
+
       // Propagar link/produtor para as ordens de serviço existentes
       try {
         const newLink = editing.google_drive_link || editing.platform_link || editing.trello_link || null;
