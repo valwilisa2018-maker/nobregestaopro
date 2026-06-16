@@ -946,9 +946,9 @@ function SalesPage() {
                     <TableCell><Badge variant={statusVariant(s.payment_status) as any}>{s.payment_status.replace("_", " ")}</Badge></TableCell>
                     <TableCell>
                       <div className="flex items-center gap-1">
-                        {s.google_drive_link && (
+                        {(s.google_drive_link || s.trello_link) && (
                           <a
-                            href={s.google_drive_link}
+                            href={s.google_drive_link || s.trello_link}
                             target="_blank"
                             rel="noreferrer"
                             title="Abrir Google Drive"
