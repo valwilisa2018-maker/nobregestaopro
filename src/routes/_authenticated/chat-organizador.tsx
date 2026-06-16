@@ -170,7 +170,7 @@ function ChatOrganizador() {
     } catch {
       toast.success(`Pasta "${folder.folder_name}" criada com sucesso`);
     }
-    return fullLink;
+    return { id: folder.id as string, name: folder.folder_name as string, link: fullLink };
   }
 
   async function sendText() {
@@ -226,33 +226,11 @@ function ChatOrganizador() {
         toast.error('Envio cancelado — informe um nome para a pasta.');
         return;
       }
-      setSending(true);
       try {
-        await createFolderFromCommand(name.trim());
+        const created = await createFolderFromCommand(name.trim());
+        target = { id: created.id, sale_id: null, kanban_card_id: null } as any;
       } catch (e: any) {
         toast.error(e?.message ?? 'Erro ao criar pasta');
-        setSending(false);
-        return;
-      } finally {
-        setSending(false);
-      }
-      // Refresh folders and grab the just-created one
-      const res = await qc.fetchQuery({
-        queryKey: ['chat_folders'],
-        queryFn: async () => {
-          const { data, error } = await supabase
-            .from('project_folders' as any)
-            .select(
-              'id, folder_name, client_name, service_type, sale_id, kanban_card_id, platform_link, google_drive_link, created_at',
-            )
-            .order('created_at', { ascending: false });
-          if (error) throw error;
-          return (data ?? []) as any[];
-        },
-      });
-      target = (res ?? []).find((f: any) => f.folder_name === name.trim()) ?? null;
-      if (!target) {
-        toast.error('Pasta criada, mas não foi possível localizá-la para o upload.');
         return;
       }
     }
