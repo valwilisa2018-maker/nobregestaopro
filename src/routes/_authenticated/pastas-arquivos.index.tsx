@@ -340,7 +340,7 @@ function PastasArquivosPage() {
                       Vendedor: {f.sales?.sellers?.name ?? "—"}
                     </span>
                     <span className="inline-flex items-center gap-1 rounded-md bg-purple-500/10 text-purple-600 dark:text-purple-400 px-2 py-0.5 text-[10px] font-medium">
-                      Produtor: {f.service_orders?.producers?.name ?? "—"}
+                      Produtor: {f.service_orders?.producers?.name ?? f.sales?.producers?.name ?? "—"}
                     </span>
                   </div>
                   {f.google_drive_link && (
@@ -397,7 +397,7 @@ function PastasArquivosPage() {
                       Vendedor: {f.sales?.sellers?.name ?? "—"}
                     </span>
                     <span className="inline-flex items-center gap-1 rounded-md bg-purple-500/10 text-purple-600 dark:text-purple-400 px-2 py-0.5 text-[10px] font-medium">
-                      Produtor: {f.service_orders?.producers?.name ?? "—"}
+                      Produtor: {f.service_orders?.producers?.name ?? f.sales?.producers?.name ?? "—"}
                     </span>
                   </div>
                   <span className="text-xs text-muted-foreground hidden sm:flex items-center gap-1 w-20 justify-end">
