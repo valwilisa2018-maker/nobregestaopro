@@ -69,7 +69,7 @@ function PastasArquivosPage() {
         .select(
           "id, sale_id, kanban_card_id, client_name, service_type, folder_name, google_drive_link, platform_link, created_at, " +
             "service_orders:kanban_card_id(column_id, producer_id, producers(name)), " +
-            "sales:sale_id(seller_id, sellers(name))",
+            "sales:sale_id(seller_id, sellers(name), producer_id, producers(name))",
         )
         .order("created_at", { ascending: false });
       if (error) throw error;
@@ -112,7 +112,10 @@ function PastasArquivosPage() {
     return (folders.data ?? []).filter((f: any) => {
       if (term && !(`${f.client_name ?? ""} ${f.folder_name ?? ""}`.toLowerCase().includes(term))) return false;
       if (sellerId !== "_all" && f.sales?.seller_id !== sellerId) return false;
-      if (producerId !== "_all" && f.service_orders?.producer_id !== producerId) return false;
+      if (producerId !== "_all") {
+        const pid = f.service_orders?.producer_id ?? f.sales?.producer_id;
+        if (pid !== producerId) return false;
+      }
       if (columnId !== "_all" && f.service_orders?.column_id !== columnId) return false;
       if (onlyWithoutLink && f.google_drive_link) return false;
       return true;
