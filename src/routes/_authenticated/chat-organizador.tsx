@@ -6,6 +6,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { MessagesSquare, Send, Paperclip, Mic, Square, Search, FileText } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -57,6 +58,18 @@ function ChatOrganizador() {
     () => (folders.data ?? []).find((f: any) => f.id === activeFolderId) ?? null,
     [folders.data, activeFolderId],
   );
+
+  // Auto-select the first folder once they load (or auto-match by what the user typed)
+  useEffect(() => {
+    if (activeFolderId || !folders.data?.length) return;
+    const term = text.trim().toLowerCase();
+    const match = term
+      ? folders.data.find((f: any) =>
+          `${f.client_name ?? ""} ${f.folder_name ?? ""}`.toLowerCase().includes(term),
+        )
+      : null;
+    setActiveFolderId((match ?? folders.data[0]).id);
+  }, [folders.data, activeFolderId, text]);
 
   const msgs = useQuery({
     queryKey: ["chat_messages", activeFolderId],
@@ -215,19 +228,37 @@ function ChatOrganizador() {
       </aside>
 
       <section className="flex-1 flex flex-col">
-        {!active ? (
-          <div className="flex-1 flex items-center justify-center text-muted-foreground">
-            Selecione uma pasta para começar
+        <header className="border-b px-4 py-3 flex items-center gap-3 flex-wrap">
+          <div className="flex-1 min-w-[220px]">
+            <div className="text-[10px] uppercase text-muted-foreground tracking-wider mb-1">Pasta ativa</div>
+            <Select value={activeFolderId ?? ""} onValueChange={(v) => setActiveFolderId(v)}>
+              <SelectTrigger className="h-9">
+                <SelectValue placeholder={folders.isLoading ? "Carregando pastas..." : "Selecione uma pasta"} />
+              </SelectTrigger>
+              <SelectContent>
+                {(folders.data ?? []).map((f: any) => (
+                  <SelectItem key={f.id} value={f.id}>
+                    {f.client_name} — {f.service_type}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
-        ) : (
-          <>
-            <header className="border-b px-4 py-3">
-              <div className="font-semibold">{active.folder_name}</div>
-              <div className="text-xs text-muted-foreground">
-                Comandos: "coloca em referências", "esse pdf é roteiro", "entrega final"...
-              </div>
-            </header>
+          <div className="text-xs text-muted-foreground max-w-md">
+            Envie texto, áudio, imagem, PDF ou vídeo. Comandos: "coloca em referências", "esse pdf é roteiro", "entrega final"...
+          </div>
+        </header>
+        <>
             <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 space-y-2">
+              {!active && (
+                <div className="text-center text-muted-foreground text-sm py-8">
+                  {folders.isLoading
+                    ? "Carregando pastas..."
+                    : (folders.data?.length ?? 0) === 0
+                      ? "Nenhuma pasta disponível. Crie uma venda no Kanban para gerar uma pasta automaticamente."
+                      : "Selecione uma pasta acima para começar."}
+                </div>
+              )}
               {(msgs.data ?? []).map((m: any) => (
                 <Card key={m.id} className="max-w-2xl">
                   <CardContent className="p-3 space-y-1">
@@ -248,7 +279,7 @@ function ChatOrganizador() {
                 <Textarea
                   value={text}
                   onChange={(e) => setText(e.target.value)}
-                  placeholder="Digite uma mensagem ou comando..."
+                  placeholder={active ? "Digite uma mensagem ou comando..." : "Selecione uma pasta acima para enviar..."}
                   className="min-h-[50px] flex-1"
                   onKeyDown={(e) => {
                     if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendText(); }
@@ -256,21 +287,20 @@ function ChatOrganizador() {
                 />
                 <div className="flex flex-col gap-1">
                   <input ref={fileRef} type="file" multiple className="hidden" onChange={(e) => sendFiles(e.target.files)} />
-                  <Button size="icon" variant="outline" onClick={() => fileRef.current?.click()} disabled={sending}>
+                  <Button size="icon" variant="outline" onClick={() => fileRef.current?.click()} disabled={sending || !active} title="Anexar arquivo">
                     <Paperclip className="w-4 h-4" />
                   </Button>
-                  <Button size="icon" variant={recording ? "destructive" : "outline"} onClick={toggleRecord}>
+                  <Button size="icon" variant={recording ? "destructive" : "outline"} onClick={toggleRecord} disabled={!active && !recording} title="Gravar áudio">
                     {recording ? <Square className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
                   </Button>
-                  <Button size="icon" onClick={sendText} disabled={sending || !text.trim()}>
+                  <Button size="icon" onClick={sendText} disabled={sending || !text.trim() || !active} title="Enviar">
                     <Send className="w-4 h-4" />
                   </Button>
                 </div>
               </div>
               <div className="text-[10px] text-muted-foreground">Categorias: {CATEGORIES.map((c) => c.label).join(" • ")}</div>
             </footer>
-          </>
-        )}
+        </>
       </section>
     </div>
   );
