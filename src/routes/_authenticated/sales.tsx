@@ -420,6 +420,13 @@ function SalesPage() {
         });
       }
 
+      // Auto-vincular pasta da Plataforma (se o link colado for /pastas-arquivos/{id})
+      if (saleRow?.id) {
+        try {
+          await autoLinkFolderFromUrl(form.platform_link || form.google_drive_link, { saleId: saleRow.id });
+        } catch (e) { /* não bloqueia a venda */ }
+      }
+
       toast.success("Venda criada — cards de produção gerados automaticamente");
       setOpen(false);
       setForm({
