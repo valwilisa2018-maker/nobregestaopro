@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import { FolderOpen, Search, Link as LinkIcon, Copy, FileText, Plus } from "lucide-react";
+import { FolderOpen, Search, Link as LinkIcon, Copy, FileText, Plus, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/pastas-arquivos")({
@@ -133,6 +133,18 @@ function PastasArquivosPage() {
         <h1 className="text-2xl font-bold flex items-center gap-2">
           <FolderOpen className="w-6 h-6 text-primary" /> Pastas e Arquivos
         </h1>
+        <div className="flex items-center gap-2">
+        <Button
+          variant="outline"
+          onClick={async () => {
+            await Promise.all([folders.refetch(), counts.refetch()]);
+            toast.success("Lista sincronizada");
+          }}
+          disabled={folders.isFetching}
+        >
+          <RefreshCw className={`w-4 h-4 mr-1 ${folders.isFetching ? "animate-spin" : ""}`} />
+          Sincronizar
+        </Button>
         <Dialog open={open} onOpenChange={setOpen}>
           <DialogTrigger asChild>
             <Button><Plus className="w-4 h-4 mr-1" /> Nova pasta</Button>
@@ -159,6 +171,7 @@ function PastasArquivosPage() {
             </DialogFooter>
           </DialogContent>
         </Dialog>
+        </div>
       </div>
 
       <div className="flex flex-wrap gap-2 items-center">
