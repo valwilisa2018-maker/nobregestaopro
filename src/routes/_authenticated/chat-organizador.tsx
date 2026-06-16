@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { MessagesSquare, Send, Paperclip, Mic, Square, Search, FileText, Copy, FolderPlus } from "lucide-react";
+import { MessagesSquare, Send, Paperclip, Mic, Square, Search, FileText, Copy, FolderPlus, FolderOpen } from "lucide-react";
 import { toast } from "sonner";
 import { detectCategory, uploadToFolder, getSignedUrl, type CategoryId } from "@/lib/project-folders";
 import { transcribeAudio } from "@/lib/ai-transcribe.functions";
@@ -46,30 +46,52 @@ function ChatOrganizador() {
   const [sending, setSending] = useState(false);
   const [recording, setRecording] = useState(false);
   const [lastCreated, setLastCreated] = useState<{ id: string; name: string } | null>(null);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
   const recRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const taRef = useRef<HTMLTextAreaElement>(null);
+
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data }) => setCurrentUserId(data.user?.id ?? null));
+  }, []);
+
+  useEffect(() => { taRef.current?.focus(); }, [activeFolderId]);
 
   const folders = useQuery({
     queryKey: ["chat_folders"],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("project_folders" as any)
-        .select("id, folder_name, client_name, service_type, sale_id, kanban_card_id, platform_link, google_drive_link")
+        .select("id, folder_name, client_name, service_type, sale_id, kanban_card_id, platform_link, google_drive_link, created_at")
         .order("created_at", { ascending: false });
       if (error) throw error;
       return (data ?? []) as any[];
     },
   });
 
+  // Cutoff: only show folders created from "now" forward (per user request).
+  // Stored once in localStorage so the list stays clean across reloads.
+  const cutoffISO = useMemo(() => {
+    const KEY = "chat_organizador_cutoff_iso";
+    const existing = typeof window !== "undefined" ? localStorage.getItem(KEY) : null;
+    if (existing) return existing;
+    const nowIso = new Date().toISOString();
+    if (typeof window !== "undefined") localStorage.setItem(KEY, nowIso);
+    return nowIso;
+  }, []);
+
   const filteredFolders = useMemo(() => {
     const term = search.trim().toLowerCase();
-    if (!term) return folders.data ?? [];
-    return (folders.data ?? []).filter((f: any) =>
+    const base = (folders.data ?? []).filter(
+      (f: any) => !f.created_at || f.created_at >= cutoffISO,
+    );
+    if (!term) return base;
+    return base.filter((f: any) =>
       `${f.client_name ?? ""} ${f.folder_name ?? ""}`.toLowerCase().includes(term),
     );
-  }, [folders.data, search]);
+  }, [folders.data, search, cutoffISO]);
 
   const active = useMemo(
     () => (folders.data ?? []).find((f: any) => f.id === activeFolderId) ?? null,
@@ -163,6 +185,7 @@ function ChatOrganizador() {
         toast.error(e?.message ?? "Erro ao criar pasta");
       } finally {
         setSending(false);
+        taRef.current?.focus();
       }
       return;
     }
@@ -186,6 +209,7 @@ function ChatOrganizador() {
       toast.error(e?.message ?? "Erro ao enviar");
     } finally {
       setSending(false);
+      taRef.current?.focus();
     }
   }
 
@@ -256,28 +280,37 @@ function ChatOrganizador() {
           const base64 = await blobToBase64(blob);
           const res = await transcribe({ data: { audio_base64: base64, format: "webm" } });
           const transcript = (res?.text ?? "").trim();
-          if (!transcript) {
-            toast.error("Não consegui entender o áudio. Tente novamente.");
-            return;
-          }
-          const cmdName = parseCreateFolderCommand(transcript);
+          const cmdName = transcript ? parseCreateFolderCommand(transcript) : null;
           if (cmdName) {
             await createFolderFromCommand(cmdName);
             return;
           }
-          if (active) {
-            const { data: ud } = await supabase.auth.getUser();
-            await supabase.from("project_folder_messages" as any).insert({
-              folder_id: active.id,
-              sale_id: active.sale_id,
-              kanban_card_id: active.kanban_card_id,
-              message: `🎙 ${transcript}`,
-              sender_id: ud.user?.id,
-            });
-            qc.invalidateQueries({ queryKey: ["chat_messages", active.id] });
-          } else {
-            toast.message(`Transcrição: ${transcript}`);
+          if (!active) {
+            toast.error('Selecione uma pasta ativa antes de gravar — ou diga "criar pasta NOME".');
+            return;
           }
+          // Save the actual audio so it can be played back (WhatsApp-style).
+          const { data: ud } = await supabase.auth.getUser();
+          const audioFile = new File([blob], `audio-${Date.now()}.webm`, { type: "audio/webm" });
+          const saved = await uploadToFolder({
+            folderId: active.id,
+            saleId: active.sale_id ?? null,
+            cardId: active.kanban_card_id ?? null,
+            file: audioFile,
+            category: "audios",
+            userId: ud.user?.id ?? null,
+          });
+          await supabase.from("project_folder_messages" as any).insert({
+            folder_id: active.id,
+            sale_id: active.sale_id,
+            kanban_card_id: active.kanban_card_id,
+            message: transcript ? `🎙 ${transcript}` : null,
+            file_url: saved.file_url,
+            file_id: saved.id,
+            sender_id: ud.user?.id,
+          });
+          qc.invalidateQueries({ queryKey: ["chat_messages", active.id] });
+          qc.invalidateQueries({ queryKey: ["project_folder_files", active.id] });
         } catch (e: any) {
           toast.error(e?.message ?? "Erro na transcrição");
         } finally {
@@ -289,15 +322,6 @@ function ChatOrganizador() {
       setRecording(true);
     } catch (e: any) {
       toast.error("Não foi possível acessar o microfone");
-    }
-  }
-
-  async function openSigned(path: string) {
-    try {
-      const url = await getSignedUrl(path);
-      window.open(url, "_blank");
-    } catch (e: any) {
-      toast.error(e?.message ?? "Erro ao abrir");
     }
   }
 
@@ -347,7 +371,7 @@ function ChatOrganizador() {
                 <SelectValue placeholder={folders.isLoading ? "Carregando pastas..." : "Selecione uma pasta"} />
               </SelectTrigger>
               <SelectContent>
-                {(folders.data ?? []).map((f: any) => (
+                {filteredFolders.map((f: any) => (
                   <SelectItem key={f.id} value={f.id}>
                     {f.client_name} — {f.service_type}
                   </SelectItem>
@@ -355,6 +379,13 @@ function ChatOrganizador() {
               </SelectContent>
             </Select>
           </div>
+          {active && (
+            <Link to="/pastas-arquivos/$folderId" params={{ folderId: active.id }}>
+              <Button size="sm" variant="outline">
+                <FolderOpen className="w-4 h-4 mr-1" /> Abrir pasta
+              </Button>
+            </Link>
+          )}
           <div className="text-xs text-muted-foreground max-w-md">
             💡 Diga ou digite <strong>"criar pasta NOME"</strong> para gerar uma pasta automaticamente. Mande áudio, foto, vídeo ou PDF para a pasta ativa.
           </div>
@@ -372,7 +403,7 @@ function ChatOrganizador() {
           </div>
         )}
         <>
-            <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 space-y-2">
+            <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 space-y-3 bg-muted/20">
               {!active && (
                 <div className="text-center text-muted-foreground text-sm py-8 space-y-2">
                   <FolderPlus className="w-10 h-10 mx-auto opacity-50" />
@@ -380,34 +411,38 @@ function ChatOrganizador() {
                   <div className="text-xs">Grave um áudio dizendo <em>"criar pasta CLIENTE"</em> ou digite o mesmo comando abaixo.</div>
                 </div>
               )}
-              {(msgs.data ?? []).map((m: any) => (
-                <Card key={m.id} className="max-w-2xl">
-                  <CardContent className="p-3 space-y-1">
-                    {m.message && <div className="text-sm whitespace-pre-wrap">{m.message}</div>}
-                    {m.file_url && (
-                      <button onClick={() => openSigned(m.file_url)}
-                        className="flex items-center gap-2 text-xs text-primary hover:underline">
-                        <FileText className="w-3 h-3" /> Abrir arquivo
-                      </button>
-                    )}
-                    <div className="text-[10px] text-muted-foreground">{new Date(m.created_at).toLocaleString("pt-BR")}</div>
-                  </CardContent>
-                </Card>
-              ))}
+              {(msgs.data ?? []).map((m: any) => {
+                const mine = currentUserId && m.sender_id === currentUserId;
+                return (
+                  <div key={m.id} className={`flex ${mine ? "justify-end" : "justify-start"}`}>
+                    <Card className={`max-w-[75%] ${mine ? "bg-primary text-primary-foreground" : "bg-card"}`}>
+                      <CardContent className="p-2 space-y-1">
+                        {m.message && <div className="text-sm whitespace-pre-wrap break-words">{m.message}</div>}
+                        {m.file_url && <MediaPart path={m.file_url} />}
+                        <div className={`text-[10px] ${mine ? "text-primary-foreground/70" : "text-muted-foreground"} text-right`}>
+                          {new Date(m.created_at).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </div>
+                );
+              })}
             </div>
             <footer className="border-t p-3 space-y-2">
               <div className="flex items-end gap-2">
                 <Textarea
+                  ref={taRef}
                   value={text}
                   onChange={(e) => setText(e.target.value)}
                   placeholder='Digite uma mensagem ou: "criar pasta CLIENTE"'
                   className="min-h-[50px] flex-1"
+                  autoFocus
                   onKeyDown={(e) => {
                     if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendText(); }
                   }}
                 />
                 <div className="flex flex-col gap-1">
-                  <input ref={fileRef} type="file" multiple className="hidden" onChange={(e) => sendFiles(e.target.files)} />
+                  <input ref={fileRef} type="file" multiple accept="image/*,video/*,audio/*,application/pdf,.pdf,.doc,.docx,.txt" className="hidden" onChange={(e) => sendFiles(e.target.files)} />
                   <Button size="icon" variant="outline" onClick={() => fileRef.current?.click()} disabled={sending || !active} title="Anexar arquivo">
                     <Paperclip className="w-4 h-4" />
                   </Button>
@@ -426,5 +461,36 @@ function ChatOrganizador() {
         </>
       </section>
     </div>
+  );
+}
+
+/** Inline media renderer: image/video/audio play directly; others get a download link. */
+function MediaPart({ path }: { path: string }) {
+  const [url, setUrl] = useState<string | null>(null);
+  useEffect(() => {
+    let alive = true;
+    getSignedUrl(path).then((u) => { if (alive) setUrl(u); }).catch(() => {});
+    return () => { alive = false; };
+  }, [path]);
+  const ext = path.split(".").pop()?.toLowerCase() ?? "";
+  const isImage = ["png", "jpg", "jpeg", "gif", "webp", "avif"].includes(ext);
+  const isVideo = ["mp4", "mov", "webm", "mkv"].includes(ext);
+  const isAudio = ["webm", "mp3", "wav", "m4a", "ogg", "oga"].includes(ext) && !isVideo;
+  // webm can be audio or video; prefer audio when path contains "audio"
+  const isVoice = ext === "webm" && path.includes("/audios/");
+  if (!url) return <div className="text-xs text-muted-foreground">Carregando mídia…</div>;
+  if (isVoice || (isAudio && !isVideo)) {
+    return <audio controls src={url} className="max-w-full" preload="metadata" />;
+  }
+  if (isImage) {
+    return <img src={url} alt="anexo" className="max-w-full rounded max-h-72 object-contain" />;
+  }
+  if (isVideo) {
+    return <video controls src={url} className="max-w-full rounded max-h-72" />;
+  }
+  return (
+    <a href={url} target="_blank" rel="noreferrer" className="flex items-center gap-2 text-xs underline">
+      <FileText className="w-3 h-3" /> Abrir arquivo
+    </a>
   );
 }
