@@ -983,6 +983,7 @@ function KanbanPage() {
                           </span>
                         )}
                       </div>
+                      <CardFolderActions cardId={c.id} />
                     </CardContent>
                   </Card>
                     </div>
@@ -1176,6 +1177,55 @@ function KanbanPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+    </div>
+  );
+}
+
+function CardFolderActions({ cardId }: { cardId: string }) {
+  const q = useQuery({
+    queryKey: ["card_folder", cardId],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("project_folders" as any)
+        .select("id, google_drive_link")
+        .eq("kanban_card_id", cardId)
+        .maybeSingle();
+      return (data ?? null) as any;
+    },
+  });
+  const f = q.data;
+  async function setDrive(e: React.MouseEvent) {
+    e.stopPropagation();
+    if (!f) return;
+    const link = window.prompt("Link do Google Drive:", f.google_drive_link ?? "");
+    if (link === null) return;
+    const { error } = await supabase
+      .from("project_folders" as any)
+      .update({ google_drive_link: link })
+      .eq("id", f.id);
+    if (error) toast.error(error.message);
+    else { toast.success("Link salvo"); q.refetch(); }
+  }
+  return (
+    <div className="flex items-center gap-1 pt-1 border-t border-dashed" onClick={(e) => e.stopPropagation()}>
+      {f ? (
+        <Link
+          to="/pastas-arquivos/$folderId"
+          params={{ folderId: f.id }}
+          className="inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded bg-primary/10 text-primary hover:bg-primary/20"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <FolderOpen className="w-3 h-3" /> Pasta
+        </Link>
+      ) : (
+        <span className="text-[10px] text-muted-foreground">sem pasta</span>
+      )}
+      <button
+        onClick={setDrive}
+        className="inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded bg-muted hover:bg-muted/80"
+      >
+        <LinkIcon className="w-3 h-3" /> {f?.google_drive_link ? "Drive ✓" : "Drive"}
+      </button>
     </div>
   );
 }
