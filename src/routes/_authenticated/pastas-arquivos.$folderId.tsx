@@ -5,7 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { ArrowLeft, Upload, FileImage, FileVideo, FileAudio, FileText, File as FileIcon, Trash2, Link as LinkIcon, Download } from "lucide-react";
+import { ArrowLeft, Upload, FileImage, FileVideo, FileAudio, FileText, File as FileIcon, Trash2, Link as LinkIcon, Download, Copy } from "lucide-react";
 import { toast } from "sonner";
 import { CATEGORIES, type CategoryId, detectCategory, uploadToFolder, getSignedUrl } from "@/lib/project-folders";
 
@@ -117,6 +117,8 @@ function FolderDetail() {
   if (!folder.data) return <div className="p-6">Pasta não encontrada.</div>;
 
   const f = folder.data;
+  const platformLink =
+    f.platform_link ?? (typeof window !== "undefined" ? `${window.location.origin}/pastas-arquivos/${f.id}` : `/pastas-arquivos/${f.id}`);
   const grouped: Record<string, any[]> = {};
   for (const cat of CATEGORIES) grouped[cat.id] = [];
   for (const file of files.data ?? []) {
@@ -141,8 +143,36 @@ function FolderDetail() {
             </a>
           )}
         </div>
-        <Button size="sm" variant="outline" onClick={saveDrive}>
-          <LinkIcon className="w-4 h-4 mr-1" /> {f.google_drive_link ? "Editar link Drive" : "Adicionar link Drive"}
+        <div className="flex flex-col items-end gap-2">
+          <Button size="sm" variant="outline" onClick={saveDrive}>
+            <LinkIcon className="w-4 h-4 mr-1" /> {f.google_drive_link ? "Editar link Drive" : "Adicionar link Drive"}
+          </Button>
+          <Button
+            size="sm"
+            variant="secondary"
+            onClick={() => {
+              navigator.clipboard.writeText(platformLink);
+              toast.success("Link da Plataforma copiado");
+            }}
+          >
+            <Copy className="w-4 h-4 mr-1" /> Copiar link da Plataforma
+          </Button>
+        </div>
+      </div>
+      <div className="rounded-md border bg-muted/30 px-3 py-2 text-xs flex items-center gap-2">
+        <LinkIcon className="w-3 h-3 text-red-600" />
+        <span className="text-muted-foreground">Link da Plataforma:</span>
+        <code className="flex-1 truncate">{platformLink}</code>
+        <Button
+          size="sm"
+          variant="ghost"
+          className="h-7"
+          onClick={() => {
+            navigator.clipboard.writeText(platformLink);
+            toast.success("Copiado");
+          }}
+        >
+          <Copy className="w-3 h-3" />
         </Button>
       </div>
 
