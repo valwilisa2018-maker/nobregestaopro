@@ -6,7 +6,9 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { FolderOpen, Search, Link as LinkIcon, Copy, FileText } from "lucide-react";
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { FolderOpen, Search, Link as LinkIcon, Copy, FileText, Plus } from "lucide-react";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/pastas-arquivos")({
@@ -18,6 +20,11 @@ function PastasArquivosPage() {
   const [sellerId, setSellerId] = useState<string>("_all");
   const [producerId, setProducerId] = useState<string>("_all");
   const [columnId, setColumnId] = useState<string>("_all");
+  const [open, setOpen] = useState(false);
+  const [nName, setNName] = useState("");
+  const [nClient, setNClient] = useState("");
+  const [nService, setNService] = useState("");
+  const [saving, setSaving] = useState(false);
 
   const folders = useQuery({
     queryKey: ["project_folders_list"],
@@ -96,12 +103,55 @@ function PastasArquivosPage() {
     toast.success("Link copiado");
   }
 
+  async function createFolder() {
+    if (!nName.trim()) { toast.error("Informe um nome"); return; }
+    setSaving(true);
+    const { data: u } = await supabase.auth.getUser();
+    const { error } = await supabase.from("project_folders" as any).insert({
+      folder_name: nName.trim(),
+      client_name: nClient.trim() || null,
+      service_type: nService.trim() || null,
+      created_by: u.user?.id,
+    });
+    setSaving(false);
+    if (error) { toast.error(error.message); return; }
+    toast.success("Pasta criada");
+    setNName(""); setNClient(""); setNService(""); setOpen(false);
+    folders.refetch();
+  }
+
   return (
     <div className="p-6 space-y-4">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold flex items-center gap-2">
           <FolderOpen className="w-6 h-6 text-primary" /> Pastas e Arquivos
         </h1>
+        <Dialog open={open} onOpenChange={setOpen}>
+          <DialogTrigger asChild>
+            <Button><Plus className="w-4 h-4 mr-1" /> Nova pasta</Button>
+          </DialogTrigger>
+          <DialogContent>
+            <DialogHeader><DialogTitle>Criar nova pasta</DialogTitle></DialogHeader>
+            <div className="space-y-3">
+              <div className="space-y-1">
+                <Label>Nome da pasta *</Label>
+                <Input value={nName} onChange={(e) => setNName(e.target.value)} placeholder="Ex: Cliente X - Vídeo institucional" />
+              </div>
+              <div className="space-y-1">
+                <Label>Cliente (opcional)</Label>
+                <Input value={nClient} onChange={(e) => setNClient(e.target.value)} />
+              </div>
+              <div className="space-y-1">
+                <Label>Tipo de serviço (opcional)</Label>
+                <Input value={nService} onChange={(e) => setNService(e.target.value)} />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setOpen(false)}>Cancelar</Button>
+              <Button onClick={createFolder} disabled={saving}>Criar</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
 
       <div className="flex flex-wrap gap-2 items-center">
