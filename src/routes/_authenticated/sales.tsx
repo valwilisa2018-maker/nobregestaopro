@@ -438,6 +438,7 @@ function SalesPage() {
       await qc.invalidateQueries({ queryKey: ["sales-list"] });
     } catch (e: any) {
       await logger.error(`Erro ao criar venda: ${e.message}`, { context: "sales/submit", details: { form, error: e } });
+      toast.error(`Erro ao criar venda: ${e?.message ?? "tente novamente"}`);
     } finally { setSaving(false); }
   };
 
@@ -688,6 +689,7 @@ function SalesPage() {
       await qc.invalidateQueries({ queryKey: ["sales-list"] });
     } catch (e: any) {
       await logger.error(`Erro ao atualizar venda: ${e.message}`, { context: "sales/submitEdit", details: { editing, error: e } });
+      toast.error(`Erro ao atualizar venda: ${e?.message ?? "tente novamente"}`);
     } finally { setEditSaving(false); }
   };
 
