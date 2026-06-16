@@ -63,11 +63,29 @@ function ChatOrganizador() {
   const cards = useQuery({
     queryKey: ["chat_kanban_cards"],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const { data: ud } = await supabase.auth.getUser();
+      const uid = ud.user?.id;
+      const isAdmin = uid
+        ? !!(await supabase.rpc("has_role", { _user_id: uid, _role: "admin" as any })).data
+        : false;
+
+      let sellerId: string | null = null;
+      if (!isAdmin && uid) {
+        const { data: s } = await supabase
+          .from("sellers").select("id").eq("user_id", uid).maybeSingle();
+        sellerId = s?.id ?? null;
+      }
+
+      let q = supabase
         .from("service_orders")
-        .select("id, title, sale_id, sales(customer_id, customers(name), service_types(name))")
+        .select("id, title, sale_id, sales!inner(seller_id, customer_id, customers(name), service_types(name))")
         .order("created_at", { ascending: false })
         .limit(200);
+      if (!isAdmin) {
+        if (!sellerId) return [];
+        q = q.eq("sales.seller_id", sellerId);
+      }
+      const { data, error } = await q;
       if (error) throw error;
       return (data ?? []) as any[];
     },
