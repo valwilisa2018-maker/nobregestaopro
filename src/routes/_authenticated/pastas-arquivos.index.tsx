@@ -143,14 +143,20 @@ function PastasArquivosPage() {
     if (!nName.trim()) { toast.error("Informe um nome"); return; }
     setSaving(true);
     const { data: u } = await supabase.auth.getUser();
-    const { error } = await supabase.from("project_folders" as any).insert({
+    const { data: inserted, error } = await (supabase.from("project_folders" as any).insert({
       folder_name: nName.trim(),
       client_name: nClient.trim() || null,
       service_type: nService.trim() || null,
       created_by: u.user?.id,
-    });
+    }).select("id").single() as any);
     setSaving(false);
     if (error) { toast.error(error.message); return; }
+    // Link da plataforma já fica salvo na pasta no momento da criação.
+    const newId = (inserted as any)?.id as string | undefined;
+    if (newId) {
+      const url = `${window.location.origin}/pastas-arquivos/${newId}`;
+      await supabase.from("project_folders" as any).update({ platform_link: url }).eq("id", newId);
+    }
     toast.success("Pasta criada");
     setNName(""); setNClient(""); setNService(""); setOpen(false);
     folders.refetch();
@@ -331,9 +337,6 @@ function PastasArquivosPage() {
                     </Button>
                     <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => copyInternal(f)}>
                       <Copy className="w-3 h-3 mr-1" /> Copiar link
-                    </Button>
-                    <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => saveDrive(f.id, f.google_drive_link)}>
-                      <LinkIcon className="w-3 h-3 mr-1" /> Drive
                     </Button>
                     <Button size="sm" variant="ghost" className="h-7 text-xs text-destructive hover:text-destructive ml-auto"
                       onClick={() => deleteFolders([f.id])}>
