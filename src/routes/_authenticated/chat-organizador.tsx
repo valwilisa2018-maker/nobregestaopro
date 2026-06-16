@@ -407,18 +407,16 @@ function ChatOrganizador() {
       <aside className="w-80 border-l flex flex-col">
         <div className="p-3 border-b">
           <div className="text-sm font-semibold mb-2">Cards do Kanban</div>
-          {me.data?.isAdmin && (
-            <Select value={filterSellerId} onValueChange={setFilterSellerId}>
-              <SelectTrigger className="h-8 text-xs mb-2"><SelectValue placeholder="Vendedor" /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="_all">Todos vendedores</SelectItem>
-                <SelectItem value="_mine">Meus cards</SelectItem>
-                {(sellers.data ?? []).map((s: any) => (
-                  <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          )}
+          <Select value={filterSellerId} onValueChange={setFilterSellerId}>
+            <SelectTrigger className="h-8 text-xs mb-2"><SelectValue placeholder="Vendedor" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="_all">Todos vendedores</SelectItem>
+              {me.data?.sellerId && <SelectItem value="_mine">Meus cards</SelectItem>}
+              {(sellers.data ?? []).map((s: any) => (
+                <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
           <div className="relative">
             <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-3 h-3 text-muted-foreground" />
             <Input value={cardSearch} onChange={(e) => setCardSearch(e.target.value)} placeholder="Buscar card..." className="pl-7 h-8 text-sm" />
