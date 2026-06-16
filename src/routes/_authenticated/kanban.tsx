@@ -73,6 +73,8 @@ type CardForm = {
   color: string;
   labels: string[];
   trello_link?: string | null;
+  platform_link?: string | null;
+  sale_id?: string | null;
   customer_phone?: string | null;
   customer_name?: string | null;
   producer_id?: string | null;
@@ -182,6 +184,8 @@ function KanbanPage() {
       due_date: found.due_date ?? "", due_time: (found.due_time ?? "").slice(0, 5),
       color: found.color ?? "", labels: found.labels ?? [],
       trello_link: found.trello_link ?? found.sales?.trello_link ?? null,
+      platform_link: found.sales?.platform_link ?? null,
+      sale_id: found.sale_id ?? null,
       customer_phone: found.sales?.customers?.phone ?? null,
       customer_name: found.sales?.customers?.name ?? null,
       producer_id: found.producer_id ?? null,
@@ -349,6 +353,8 @@ function KanbanPage() {
       due_date: c.due_date ?? "", due_time: (c.due_time ?? "").slice(0, 5),
       color: c.color ?? "", labels: c.labels ?? [],
       trello_link: c.trello_link ?? c.sales?.trello_link ?? null,
+      platform_link: c.sales?.platform_link ?? null,
+      sale_id: c.sale_id ?? null,
       customer_phone: c.sales?.customers?.phone ?? null,
       customer_name: c.sales?.customers?.name ?? null,
       producer_id: c.producer_id ?? null,
@@ -377,6 +383,12 @@ function KanbanPage() {
       if (editing.id) {
         const { error } = await supabase.from("service_orders").update(payload).eq("id", editing.id);
         if (error) throw error;
+        if (editing.sale_id) {
+          const { error: e2 } = await supabase.from("sales")
+            .update({ platform_link: editing.platform_link?.trim() || null })
+            .eq("id", editing.sale_id);
+          if (e2) throw e2;
+        }
         toast.success("Card atualizado");
       } else {
         const { error } = await supabase.from("service_orders").insert({ ...payload, service_index: 1, sort_order: 9999 });
@@ -1061,10 +1073,31 @@ function KanbanPage() {
                 />
                 {editing.trello_link && (
                   <a href={editing.trello_link} target="_blank" rel="noreferrer"
-                    className="flex items-center gap-2 text-sm text-primary hover:underline break-all mt-1">
+                    className="flex items-center gap-2 text-sm text-blue-500 hover:underline break-all mt-1">
                     <ExternalLink className="w-4 h-4 shrink-0" />
-                    Abrir link
+                    Abrir Google Drive
                   </a>
+                )}
+              </div>
+              <div>
+                <Label>Link da pasta da plataforma</Label>
+                <Input
+                  type="url"
+                  placeholder="https://..."
+                  value={editing.platform_link ?? ""}
+                  onChange={(e) => setEditing({ ...editing, platform_link: e.target.value })}
+                  disabled={!editing.sale_id}
+                />
+                {editing.platform_link ? (
+                  <a href={editing.platform_link} target="_blank" rel="noreferrer"
+                    className="flex items-center gap-2 text-sm text-red-500 hover:underline break-all mt-1">
+                    <ExternalLink className="w-4 h-4 shrink-0" />
+                    Abrir na Plataforma
+                  </a>
+                ) : (
+                  <p className="text-xs text-muted-foreground mt-1 opacity-60">
+                    {editing.sale_id ? "Cole o link da pasta da plataforma para ativar o botão" : "Disponível somente para cards vinculados a uma venda"}
+                  </p>
                 )}
               </div>
               {editing.customer_phone && (
