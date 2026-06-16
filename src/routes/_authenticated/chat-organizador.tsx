@@ -51,6 +51,7 @@ function ChatOrganizador() {
   const [pendingFiles, setPendingFiles] = useState<File[]>([]);
   const [roteiroOpen, setRoteiroOpen] = useState(false);
   const [roteiroText, setRoteiroText] = useState("");
+  const editorRef = useRef<HTMLDivElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
   const recRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
@@ -201,13 +202,15 @@ function ChatOrganizador() {
   }
 
   async function submitRoteiro() {
-    const content = roteiroText.trim();
-    if (!content) {
+    const html = editorRef.current?.innerHTML?.trim() ?? "";
+    const plain = editorRef.current?.innerText?.trim() ?? "";
+    if (!plain) {
       toast.error("Cole o roteiro antes de enviar");
       return;
     }
-    const fileName = `roteiro-${new Date().toISOString().replace(/[:.]/g, "-")}.txt`;
-    const file = new File([content], fileName, { type: "text/plain" });
+    const fileName = `roteiro-${new Date().toISOString().replace(/[:.]/g, "-")}.html`;
+    const doc = `<!doctype html><html><head><meta charset="utf-8"><title>Roteiro</title><style>body{font-family:Arial,sans-serif;max-width:820px;margin:32px auto;padding:0 24px;line-height:1.6;color:#111}</style></head><body>${html}</body></html>`;
+    const file = new File([doc], fileName, { type: "text/html" });
     if (!active) {
       setPendingFiles((prev) => [...prev, file]);
       toast.success('Roteiro pronto. Agora diga ou digite: "criar pasta NOME".');
