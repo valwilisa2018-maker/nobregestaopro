@@ -678,17 +678,17 @@ function KanbanPage() {
                           }
                         }}
                         onDrop={(e) => {
-                          if (draggingFromCol !== col.id) return;
+                          if (draggingFromCol !== col.id) { resetDragState(); return; }
+                          e.preventDefault();
                           e.stopPropagation();
                           const movingIds = draggingGroup && draggingGroup.length
                             ? draggingGroup
                             : dragging ? [dragging] : [];
                           if (movingIds.length && !movingIds.includes(first.id)) {
-                            reorderInColumn(col.id, movingIds, first.id);
+                            safeMutate(() => reorderInColumn(col.id, movingIds, first.id));
+                          } else {
+                            resetDragState();
                           }
-                          setDragging(null);
-                          setDraggingGroup(null);
-                          setDraggingFromCol(null);
                         }}
                       >
                         {(first.sales?.payment_status === "pago_parcial" || first.sales?.video_duration_seconds) && (
