@@ -1200,7 +1200,7 @@ function CardFolderActions({ cardId }: { cardId: string }) {
       .channel(`realtime:folder:${cardId}`)
       .on(
         "postgres_changes",
-        { event: "*", schema: "public", table: "project_folders", filter: `kanban_card_id=eq.${cardId}` },
+        { event: "*", schema: "public", table: "project_folders" },
         () => {
           qc.invalidateQueries({ queryKey: ["card_folder", cardId] });
         },
