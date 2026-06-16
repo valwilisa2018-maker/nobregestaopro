@@ -882,7 +882,7 @@ function SalesPage() {
                 {salesError && (
                   <TableRow><TableCell colSpan={8} className="text-center py-12 text-destructive"><p>Ocorreu um erro ao carregar as vendas.</p><p className="text-xs mt-1 mb-2">{(salesError as any)?.message || "Erro desconhecido"}</p><Button variant="outline" size="sm" className="mt-2" onClick={() => refetch()}>Tentar novamente</Button></TableCell></TableRow>
                 )}
-                {!loadingSales && !salesError && (salesList ?? []).map((s: any) => (
+                {!loadingSales && !salesError && filteredSales.map((s: any) => (
                   <TableRow key={s.id}>
                     <TableCell className="whitespace-nowrap">{fmtDate(s.sale_date)}</TableCell>
                     <TableCell><div className="font-medium">{s.customers?.name}</div><div className="text-xs text-muted-foreground">{s.customers?.company}</div></TableCell>
@@ -927,7 +927,7 @@ function SalesPage() {
                     </TableCell>
                   </TableRow>
                 ))}
-                {!loadingSales && !salesError && (salesList ?? []).length === 0 && (<TableRow><TableCell colSpan={8} className="text-center text-muted-foreground py-8">Nenhuma venda cadastrada ainda</TableCell></TableRow>)}
+                {!loadingSales && !salesError && filteredSales.length === 0 && (<TableRow><TableCell colSpan={8} className="text-center text-muted-foreground py-8">Nenhuma venda cadastrada ainda</TableCell></TableRow>)}
               </TableBody>
             </Table>
           </CardContent>
@@ -936,7 +936,7 @@ function SalesPage() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {loadingSales && <div className="col-span-full py-20 text-center"><Loader2 className="w-10 h-10 animate-spin mx-auto text-primary" /><p className="mt-4 text-muted-foreground">Carregando...</p></div>}
           {salesError && <div className="col-span-full py-20 text-center text-destructive"><p>Erro ao carregar vendas.</p><Button variant="outline" className="mt-4" onClick={() => qc.invalidateQueries({ queryKey: ["sales-list"] })}>Tentar novamente</Button></div>}
-          {!loadingSales && !salesError && (salesList ?? []).map((s: any) => (
+          {!loadingSales && !salesError && filteredSales.map((s: any) => (
             <Card key={s.id} className="border-border/50 overflow-hidden hover:shadow-md transition-shadow">
               <CardContent className="p-0">
                 <div className="p-4 space-y-3">
@@ -982,7 +982,7 @@ function SalesPage() {
               </CardContent>
             </Card>
           ))}
-                {(salesList ?? []).length === 0 && (<div className="col-span-full py-12 text-center text-muted-foreground italic">Nenhuma venda cadastrada ainda</div>)}
+                {filteredSales.length === 0 && (<div className="col-span-full py-12 text-center text-muted-foreground italic">Nenhuma venda cadastrada ainda</div>)}
         </div>
       )}
 
