@@ -349,6 +349,12 @@ function PastasArquivosPage() {
                       <LinkIcon className="w-3 h-3" /> Google Drive
                     </a>
                   )}
+                  {f.platform_link && (
+                    <a href={f.platform_link} target="_blank" rel="noreferrer"
+                       className="text-xs text-emerald-600 truncate flex items-center gap-1 hover:underline">
+                      <LinkIcon className="w-3 h-3" /> Plataforma
+                    </a>
+                  )}
                   <div className="flex flex-wrap gap-1 pt-1">
                     <Button
                       size="sm"
@@ -413,6 +419,18 @@ function PastasArquivosPage() {
                       title={f.google_drive_link}
                     >
                       <LinkIcon className="w-3 h-3" /> Drive
+                    </a>
+                  )}
+                  {f.platform_link && (
+                    <a
+                      href={f.platform_link}
+                      target="_blank"
+                      rel="noreferrer"
+                      onClick={(e) => e.stopPropagation()}
+                      className="hidden sm:inline-flex items-center gap-1 text-xs text-emerald-600 hover:underline"
+                      title={f.platform_link}
+                    >
+                      <LinkIcon className="w-3 h-3" /> Plataforma
                     </a>
                   )}
                   <Button
