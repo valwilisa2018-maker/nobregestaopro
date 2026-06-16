@@ -1252,6 +1252,10 @@ export type Database = {
         Args: { _card_id: string; _sale_id: string; _user_id: string }
         Returns: boolean
       }
+      user_can_access_sale: {
+        Args: { _sale_id: string; _user_id: string }
+        Returns: boolean
+      }
     }
     Enums: {
       announcement_type: "info" | "warning" | "maintenance" | "update"
