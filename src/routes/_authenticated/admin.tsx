@@ -46,6 +46,18 @@ const PERIOD_LABEL: Record<string, string> = {
 
 function AdminPage() {
   const navigate = useNavigate();
+  // Server-side admin role check (cannot be bypassed from client)
+  const adminCheck = useQuery({
+    queryKey: ["is-admin-check"],
+    queryFn: async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return false;
+      const { data, error } = await supabase.rpc("has_role", { _user_id: user.id, _role: "admin" });
+      if (error) return false;
+      return data === true;
+    },
+    staleTime: 60_000,
+  });
   const PASS_KEY = "admin_settings_password";
   const SESSION_KEY = "admin_settings_unlocked";
   const [unlocked, setUnlocked] = useState<boolean>(() => {
@@ -315,13 +327,35 @@ function AdminPage() {
     else { toast.success("Vendedor excluído"); qc.invalidateQueries({ queryKey: ["admin-sellers"] }); qc.invalidateQueries({ queryKey: ["sellers-page"] }); }
   };
 
+  if (adminCheck.isLoading) {
+    return (
+      <div className="flex min-h-[60vh] items-center justify-center">
+        <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+  if (!adminCheck.data) {
+    return (
+      <div className="flex min-h-[60vh] items-center justify-center">
+        <Card className="w-full max-w-md">
+          <CardHeader>
+            <CardTitle>Acesso negado</CardTitle>
+            <p className="text-sm text-muted-foreground mt-1">Esta área é restrita a administradores.</p>
+          </CardHeader>
+          <CardContent>
+            <Button className="w-full" onClick={() => navigate({ to: "/dashboard" })}>Voltar ao Dashboard</Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
   if (!unlocked) {
     return (
       <div className="flex min-h-[60vh] items-center justify-center">
         <Card className="w-full max-w-md">
           <CardHeader>
             <CardTitle>Acesso às Configurações</CardTitle>
-            <p className="text-sm text-muted-foreground mt-1">Área restrita — somente administradores.</p>
+            <p className="text-sm text-muted-foreground mt-1">Segundo fator: digite sua senha de configurações.</p>
           </CardHeader>
           <CardContent className="space-y-3">
             <Label>Senha</Label>

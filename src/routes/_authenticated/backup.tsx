@@ -1,4 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { useNavigate } from "@tanstack/react-router";
+import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Download, Upload, Loader2 } from "lucide-react";
@@ -17,6 +19,18 @@ export const Route = createFileRoute("/_authenticated/backup")({
 });
 
 function BackupPage() {
+  const navigate = useNavigate();
+  const adminCheck = useQuery({
+    queryKey: ["is-admin-check"],
+    queryFn: async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return false;
+      const { data, error } = await supabase.rpc("has_role", { _user_id: user.id, _role: "admin" });
+      if (error) return false;
+      return data === true;
+    },
+    staleTime: 60_000,
+  });
   const [exporting, setExporting] = useState(false);
   const [importing, setImporting] = useState(false);
   const fileRef = useRef<HTMLInputElement | null>(null);
@@ -96,6 +110,26 @@ function BackupPage() {
     }
   };
 
+  if (adminCheck.isLoading) {
+    return (
+      <div className="flex min-h-[60vh] items-center justify-center">
+        <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+  if (!adminCheck.data) {
+    return (
+      <div className="flex min-h-[60vh] items-center justify-center">
+        <Card className="w-full max-w-md">
+          <CardHeader><CardTitle>Acesso negado</CardTitle></CardHeader>
+          <CardContent className="space-y-3">
+            <p className="text-sm text-muted-foreground">Backup e restauração são restritos a administradores.</p>
+            <Button className="w-full" onClick={() => navigate({ to: "/dashboard" })}>Voltar ao Dashboard</Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
   return (
     <div className="space-y-6">
       <div>
