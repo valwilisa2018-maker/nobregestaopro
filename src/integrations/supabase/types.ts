@@ -1257,6 +1257,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      purge_old_project_folders: { Args: never; Returns: Json }
       user_can_access_card: {
         Args: { _card_id: string; _sale_id: string; _user_id: string }
         Returns: boolean
