@@ -983,7 +983,6 @@ function KanbanPage() {
                           </span>
                         )}
                       </div>
-                      <CardFolderActions cardId={c.id} />
                     </CardContent>
                   </Card>
                     </div>
