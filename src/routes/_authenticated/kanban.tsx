@@ -286,6 +286,8 @@ function KanbanPage() {
     movingIds: string[],
     beforeCardId: string | null,
   ) => {
+    if (!movingIds.length) return;
+    if (beforeCardId && movingIds.includes(beforeCardId)) return;
     const inCol = (cards.data ?? [])
       .filter((c: any) => c.column_id === colId)
       .sort(
@@ -293,6 +295,7 @@ function KanbanPage() {
           (a.sort_order ?? 0) - (b.sort_order ?? 0) ||
           new Date(a.created_at).getTime() - new Date(b.created_at).getTime(),
       );
+    if (inCol.length < 2) return;
     const movingSet = new Set(movingIds);
     const moving = inCol.filter((c: any) => movingSet.has(c.id));
     const rest = inCol.filter((c: any) => !movingSet.has(c.id));
