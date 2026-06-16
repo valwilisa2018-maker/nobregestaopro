@@ -1,5 +1,5 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
-import { useQuery } from "@tanstack/react-query";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import { FolderOpen, Search, Link as LinkIcon, Copy, FileText, Plus, RefreshCw, Trash2, CheckSquare, Square } from "lucide-react";
+import { FolderOpen, Search, Link as LinkIcon, Copy, FileText, Plus, RefreshCw, Trash2, CheckSquare, Square, Loader2 } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
 
@@ -29,6 +29,33 @@ function PastasArquivosPage() {
   const [nService, setNService] = useState("");
   const [saving, setSaving] = useState(false);
   const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [openingId, setOpeningId] = useState<string | null>(null);
+  const navigate = useNavigate();
+  const qc = useQueryClient();
+
+  async function openFolder(id: string) {
+    setOpeningId(id);
+    try {
+      const data = await qc.fetchQuery({
+        queryKey: ["project_folder", id],
+        queryFn: async () => {
+          const { data, error } = await supabase
+            .from("project_folders" as any)
+            .select("*")
+            .eq("id", id)
+            .single();
+          if (error) throw error;
+          return data as any;
+        },
+      });
+      if (!data) throw new Error("Pasta não encontrada");
+      await navigate({ to: "/pastas-arquivos/$folderId", params: { folderId: id } });
+    } catch (e: any) {
+      toast.error(e?.message ?? "Erro ao abrir a pasta");
+    } finally {
+      setOpeningId(null);
+    }
+  }
 
   const folders = useQuery({
     queryKey: ["project_folders_list"],
@@ -289,8 +316,18 @@ function PastasArquivosPage() {
                     </a>
                   )}
                   <div className="flex flex-wrap gap-1 pt-1">
-                    <Button asChild size="sm" variant="default" className="h-7 text-xs">
-                      <Link to="/pastas-arquivos/$folderId" params={{ folderId: f.id }}>Abrir</Link>
+                    <Button
+                      size="sm"
+                      variant="default"
+                      className="h-7 text-xs"
+                      disabled={openingId === f.id}
+                      onClick={() => openFolder(f.id)}
+                    >
+                      {openingId === f.id ? (
+                        <><Loader2 className="w-3 h-3 mr-1 animate-spin" /> Abrindo...</>
+                      ) : (
+                        "Abrir"
+                      )}
                     </Button>
                     <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => copyInternal(f)}>
                       <Copy className="w-3 h-3 mr-1" /> Copiar link
