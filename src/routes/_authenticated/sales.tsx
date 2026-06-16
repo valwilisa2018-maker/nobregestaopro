@@ -273,10 +273,19 @@ function SalesPage() {
         toast.error(`Preencha o campo: ${label}`);
         return;
       }
-      if (k === "trello_link" && !val.toLowerCase().match(/^https:\/\/drive\.google\.com\//)) {
-        toast.error("O link deve ser um link de compartilhamento válido do Google Drive (ex: https://drive.google.com/...)");
-        return;
-      }
+    }
+    // At least one of the two links is required
+    const gLink = form.google_drive_link.trim();
+    const pLink = form.platform_link.trim();
+    if (!gLink && !pLink) {
+      toast.error("Informe o Link do Google Drive ou o Link da Plataforma (pelo menos um).");
+      return;
+    }
+    if (gLink && !gLink.toLowerCase().startsWith("http")) {
+      toast.error("Link do Google Drive inválido."); return;
+    }
+    if (pLink && !pLink.toLowerCase().startsWith("http")) {
+      toast.error("Link da Plataforma inválido."); return;
     }
     // Minutagem obrigatória para vídeos / pacotes
     {
