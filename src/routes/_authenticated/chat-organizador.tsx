@@ -26,7 +26,13 @@ function ChatOrganizador() {
   const qc = useQueryClient();
   const [search, setSearch] = useState("");
   const [activeFolderId, setActiveFolderId] = useState<string | null>(null);
-  const [filterSellerId, setFilterSellerId] = useState<string>("_mine");
+  const [filterSellerId, setFilterSellerId] = useState<string>(() => {
+    if (typeof window === "undefined") return "_mine";
+    return localStorage.getItem("chat_filter_seller") ?? "_mine";
+  });
+  useEffect(() => {
+    try { localStorage.setItem("chat_filter_seller", filterSellerId); } catch {}
+  }, [filterSellerId]);
   const [text, setText] = useState("");
   const [sending, setSending] = useState(false);
   const [recording, setRecording] = useState(false);
@@ -73,10 +79,9 @@ function ChatOrganizador() {
     },
   });
 
-  // All sellers (admin filter)
+  // All sellers — available to everyone in the chat filter
   const sellers = useQuery({
     queryKey: ["chat_sellers"],
-    enabled: !!me.data?.isAdmin,
     queryFn: async () =>
       (await supabase.from("sellers").select("id,name").order("name")).data ?? [],
   });
@@ -84,7 +89,6 @@ function ChatOrganizador() {
   // Effective seller filter: non-admin always = own seller; admin = chosen seller
   const effectiveSellerId = useMemo(() => {
     if (!me.data) return null;
-    if (!me.data.isAdmin) return me.data.sellerId;
     if (filterSellerId === "_all") return null;
     if (filterSellerId === "_mine") return me.data.sellerId;
     return filterSellerId;
@@ -100,7 +104,7 @@ function ChatOrganizador() {
         .select("id, title, sale_id, sales!inner(seller_id, customer_id, customers(name), sellers(name), service_types(name))")
         .order("created_at", { ascending: false })
         .limit(200);
-      if (effectiveSellerId === null && !me.data?.isAdmin) return [];
+      if (filterSellerId === "_mine" && !me.data?.sellerId) return [];
       if (effectiveSellerId) q = q.eq("sales.seller_id", effectiveSellerId);
       const { data, error } = await q;
       if (error) throw error;
@@ -403,18 +407,16 @@ function ChatOrganizador() {
       <aside className="w-80 border-l flex flex-col">
         <div className="p-3 border-b">
           <div className="text-sm font-semibold mb-2">Cards do Kanban</div>
-          {me.data?.isAdmin && (
-            <Select value={filterSellerId} onValueChange={setFilterSellerId}>
-              <SelectTrigger className="h-8 text-xs mb-2"><SelectValue placeholder="Vendedor" /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="_all">Todos vendedores</SelectItem>
-                <SelectItem value="_mine">Meus cards</SelectItem>
-                {(sellers.data ?? []).map((s: any) => (
-                  <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          )}
+          <Select value={filterSellerId} onValueChange={setFilterSellerId}>
+            <SelectTrigger className="h-8 text-xs mb-2"><SelectValue placeholder="Vendedor" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="_all">Todos vendedores</SelectItem>
+              {me.data?.sellerId && <SelectItem value="_mine">Meus cards</SelectItem>}
+              {(sellers.data ?? []).map((s: any) => (
+                <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
           <div className="relative">
             <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-3 h-3 text-muted-foreground" />
             <Input value={cardSearch} onChange={(e) => setCardSearch(e.target.value)} placeholder="Buscar card..." className="pl-7 h-8 text-sm" />
