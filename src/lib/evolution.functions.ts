@@ -100,17 +100,21 @@ async function evoFetch(path: string, init: EvoFetchInit = {}) {
         ...(fetchInit.headers ?? {}),
       },
     });
-  } catch (e: any) {
+  } catch (e: unknown) {
     clearTimeout(timeout);
-    console.error("[evolution] fetch failed", path, e?.message ?? e);
+    console.error("[evolution] fetch failed", path, errorMessage(e));
     throw new Error(
-      `Evolution inacessível em ${url} (${e?.name ?? "erro"}: ${e?.message ?? "sem detalhes"})`,
+      `Evolution inacessível em ${url} (${errorName(e)}: ${errorMessage(e) || "sem detalhes"})`,
     );
   }
   clearTimeout(timeout);
   const text = await res.text();
-  let body: any = null;
-  try { body = text ? JSON.parse(text) : null; } catch { body = text; }
+  let body: unknown = null;
+  try {
+    body = text ? JSON.parse(text) : null;
+  } catch {
+    body = text;
+  }
   if (!res.ok) {
     console.error("[evolution] http error", path, res.status, body);
     throw new Error(
@@ -125,7 +129,7 @@ export const evolutionCreateInstance = createServerFn({ method: "POST" })
   .inputValidator((d: { instanceName: string }) => d)
   .handler(async ({ data }) => {
     const webhookUrl = getWebhookUrl();
-    let result: any;
+    let result: unknown;
     try {
       result = await evoFetch("/instance/create", {
         method: "POST",
@@ -142,8 +146,8 @@ export const evolutionCreateInstance = createServerFn({ method: "POST" })
           },
         }),
       });
-    } catch (e: any) {
-      const msg = String(e?.message ?? "").toLowerCase();
+    } catch (e: unknown) {
+      const msg = errorMessage(e).toLowerCase();
       // Instance already exists → just connect and reuse it
       const canTryConnect =
         msg.includes("already") ||
@@ -154,7 +158,9 @@ export const evolutionCreateInstance = createServerFn({ method: "POST" })
         msg.includes("inacessível");
       if (canTryConnect) {
         try {
-          result = await evoFetch(`/instance/connect/${data.instanceName}`, { timeoutMs: 45000 });
+          result = await evoFetch(`/instance/connect/${data.instanceName}`, {
+            timeoutMs: 45000,
+          });
         } catch {
           throw e;
         }
@@ -171,10 +177,12 @@ export const evolutionCreateInstance = createServerFn({ method: "POST" })
     }
     // Always fetch the QR explicitly — some Evolution versions don't return
     // a base64 in /instance/create even when qrcode:true.
-    if (!result?.qrcode?.base64 && !result?.base64) {
+    if (!hasQr(result)) {
       try {
-        const qr = await evoFetch(`/instance/connect/${data.instanceName}`, { timeoutMs: 45000 });
-        result = { ...(result ?? {}), ...qr };
+        const qr = await evoFetch(`/instance/connect/${data.instanceName}`, {
+          timeoutMs: 45000,
+        });
+        result = { ...asRecord(result), ...asRecord(qr) };
       } catch (e) {
         console.error("[evolution] connect after create failed", e);
       }
@@ -187,14 +195,18 @@ export const evolutionGetQr = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: { instanceName: string }) => d)
   .handler(async ({ data }) => {
-    return await evoFetch(`/instance/connect/${data.instanceName}`, { timeoutMs: 45000 });
+    return await evoFetch(`/instance/connect/${data.instanceName}`, {
+      timeoutMs: 45000,
+    });
   });
 
 export const evolutionStatus = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: { instanceName: string }) => d)
   .handler(async ({ data }) => {
-    return await evoFetch(`/instance/connectionState/${data.instanceName}`, { timeoutMs: 12000 });
+    return await evoFetch(`/instance/connectionState/${data.instanceName}`, {
+      timeoutMs: 12000,
+    });
   });
 
 export const evolutionLogout = createServerFn({ method: "POST" })
