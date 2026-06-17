@@ -93,28 +93,40 @@ async function setInstanceWebhook(instanceName: string) {
 
 async function evoFetch(path: string, init: EvoFetchInit = {}): Promise<EvoResponse> {
   const { url, key } = getConfig();
-  const controller = new AbortController();
-  const { timeoutMs = 20000, ...fetchInit } = init;
-  const timeout = setTimeout(() => controller.abort(), timeoutMs);
+  const { timeoutMs = 90000, ...fetchInit } = init;
+  // Render free-tier cold starts can take 30-60s. Retry once after a warmup
+  // attempt so the first call doesn't fail with AbortError.
+  const attempt = async (ms: number): Promise<Response> => {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), ms);
+    try {
+      return await fetch(`${url}${path}`, {
+        ...fetchInit,
+        signal: controller.signal,
+        headers: {
+          "Content-Type": "application/json",
+          apikey: key,
+          ...(fetchInit.headers ?? {}),
+        },
+      });
+    } finally {
+      clearTimeout(timeout);
+    }
+  };
   let res: Response;
   try {
-    res = await fetch(`${url}${path}`, {
-      ...fetchInit,
-      signal: controller.signal,
-      headers: {
-        "Content-Type": "application/json",
-        apikey: key,
-        ...(fetchInit.headers ?? {}),
-      },
-    });
+    res = await attempt(timeoutMs);
   } catch (e: unknown) {
-    clearTimeout(timeout);
-    console.error("[evolution] fetch failed", path, errorMessage(e));
-    throw new Error(
-      `Evolution inacessível em ${url} (${errorName(e)}: ${errorMessage(e) || "sem detalhes"})`,
-    );
+    console.warn("[evolution] first attempt failed, retrying", path, errorMessage(e));
+    try {
+      res = await attempt(timeoutMs);
+    } catch (e2: unknown) {
+      console.error("[evolution] fetch failed", path, errorMessage(e2));
+      throw new Error(
+        `Evolution inacessível em ${url} (${errorName(e2)}: ${errorMessage(e2) || "sem detalhes"}). O servidor pode estar acordando — tente novamente em 30s.`,
+      );
+    }
   }
-  clearTimeout(timeout);
   const text = await res.text();
   let body: EvoResponse = null;
   try {
