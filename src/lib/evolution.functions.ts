@@ -8,10 +8,24 @@ function getConfig() {
   return { url: url.replace(/\/$/, ""), key };
 }
 
-function getWebhookUrl() {
-  const base =
-    process.env.PUBLIC_APP_URL?.replace(/\/$/, "") ?? "https://nobregestaopro.lovable.app";
-  return `${base}/api/public/evolution-webhook`;
+async function getWebhookUrl() {
+  const configured = process.env.PUBLIC_APP_URL?.replace(/\/$/, "");
+  if (configured) return `${configured}/api/public/evolution-webhook`;
+
+  try {
+    const { getRequestHeader } = await import("@tanstack/react-start/server");
+    const host =
+      getRequestHeader("x-forwarded-host")?.split(",")[0]?.trim() ??
+      getRequestHeader("host")?.split(",")[0]?.trim();
+    const proto = getRequestHeader("x-forwarded-proto")?.split(",")[0]?.trim() ?? "https";
+    if (host && !host.startsWith("id-preview--") && !host.includes("lovable.dev")) {
+      return `${proto}://${host}/api/public/evolution-webhook`;
+    }
+  } catch {
+    // Falls back below when there is no request context.
+  }
+
+  return "https://nobregestaopro.lovable.app/api/public/evolution-webhook";
 }
 
 const WEBHOOK_EVENTS = [
@@ -22,7 +36,7 @@ const WEBHOOK_EVENTS = [
   "SEND_MESSAGE",
 ];
 
-type EvoFetchInit = RequestInit & { timeoutMs?: number };
+type EvoFetchInit = RequestInit & { retry?: boolean; timeoutMs?: number };
 
 type JsonValue =
   | string
@@ -54,13 +68,32 @@ function nestedString(value: unknown, path: string[]) {
   return typeof current === "string" ? current : null;
 }
 
+function extractQr(result: unknown) {
+  if (typeof result === "string" && result.length > 50) return result;
+  const candidates = [
+    nestedString(result, ["base64"]),
+    nestedString(result, ["code"]),
+    nestedString(result, ["qrcode", "base64"]),
+    nestedString(result, ["qrcode", "code"]),
+    nestedString(result, ["qrcode"]),
+    nestedString(result, ["qr", "base64"]),
+    nestedString(result, ["qr", "code"]),
+    nestedString(result, ["data", "base64"]),
+    nestedString(result, ["data", "code"]),
+    nestedString(result, ["data", "qrcode", "base64"]),
+    nestedString(result, ["data", "qrcode", "code"]),
+    nestedString(result, ["instance", "qrcode", "base64"]),
+  ];
+  return candidates.find((c) => typeof c === "string" && c.length > 50) ?? null;
+}
+
 function hasQr(result: unknown) {
-  return Boolean(nestedString(result, ["base64"]) || nestedString(result, ["qrcode", "base64"]));
+  return Boolean(extractQr(result));
 }
 
 async function setInstanceWebhook(instanceName: string) {
-  const webhookUrl = getWebhookUrl();
-  // Evolution v2 shape
+  const webhookUrl = await getWebhookUrl();
+  // Evolution v2 documented shape
   try {
     return await evoFetch(`/webhook/set/${instanceName}`, {
       method: "POST",
@@ -69,14 +102,31 @@ async function setInstanceWebhook(instanceName: string) {
         webhook: {
           enabled: true,
           url: webhookUrl,
-          byEvents: false,
-          base64: true,
+          webhookByEvents: false,
+          webhookBase64: true,
           events: WEBHOOK_EVENTS,
         },
       }),
     });
   } catch {
-    // Fallback older shape
+    // Fallback common v2 inline shape
+    try {
+      return await evoFetch(`/webhook/set/${instanceName}`, {
+        method: "POST",
+        timeoutMs: 8000,
+        body: JSON.stringify({
+          webhook: {
+            enabled: true,
+            url: webhookUrl,
+            byEvents: false,
+            base64: true,
+            events: WEBHOOK_EVENTS,
+          },
+        }),
+      });
+    } catch {
+      // Fallback older flat shape
+    }
     return await evoFetch(`/webhook/set/${instanceName}`, {
       method: "POST",
       timeoutMs: 8000,
@@ -93,7 +143,7 @@ async function setInstanceWebhook(instanceName: string) {
 
 async function evoFetch(path: string, init: EvoFetchInit = {}): Promise<EvoResponse> {
   const { url, key } = getConfig();
-  const { timeoutMs = 90000, ...fetchInit } = init;
+  const { retry = true, timeoutMs = 90000, ...fetchInit } = init;
   // Render free-tier cold starts can take 30-60s. Retry once after a warmup
   // attempt so the first call doesn't fail with AbortError.
   const attempt = async (ms: number): Promise<Response> => {
@@ -117,6 +167,11 @@ async function evoFetch(path: string, init: EvoFetchInit = {}): Promise<EvoRespo
   try {
     res = await attempt(timeoutMs);
   } catch (e: unknown) {
+    if (!retry) {
+      throw new Error(
+        `Evolution inacessível em ${url} (${errorName(e)}: ${errorMessage(e) || "sem detalhes"}).`,
+      );
+    }
     console.warn("[evolution] first attempt failed, retrying", path, errorMessage(e));
     try {
       res = await attempt(timeoutMs);
@@ -143,11 +198,32 @@ async function evoFetch(path: string, init: EvoFetchInit = {}): Promise<EvoRespo
   return body;
 }
 
+const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
+async function connectForQr(instanceName: string, attempts = 3): Promise<EvoResponse> {
+  let last: EvoResponse = null;
+  for (let attempt = 1; attempt <= attempts; attempt += 1) {
+    try {
+      const result = await evoFetch(`/instance/connect/${instanceName}`, {
+        retry: false,
+        timeoutMs: 45000,
+      });
+      last = result;
+      if (hasQr(result)) return result;
+    } catch (e) {
+      console.warn("[evolution] connect qr attempt failed", attempt, errorMessage(e));
+      if (attempt === attempts) throw e;
+    }
+    await wait(1500 * attempt);
+  }
+  return last ?? {};
+}
+
 export const evolutionCreateInstance = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: { instanceName: string }) => d)
   .handler(async ({ data }) => {
-    const webhookUrl = getWebhookUrl();
+    const webhookUrl = await getWebhookUrl();
     let result: EvoResponse;
     try {
       result = await evoFetch("/instance/create", {
@@ -158,7 +234,10 @@ export const evolutionCreateInstance = createServerFn({ method: "POST" })
           qrcode: true,
           integration: "WHATSAPP-BAILEYS",
           webhook: {
+            enabled: true,
             url: webhookUrl,
+            webhookByEvents: false,
+            webhookBase64: true,
             byEvents: false,
             base64: true,
             events: WEBHOOK_EVENTS,
@@ -177,9 +256,7 @@ export const evolutionCreateInstance = createServerFn({ method: "POST" })
         msg.includes("inacessível");
       if (canTryConnect) {
         try {
-          result = await evoFetch(`/instance/connect/${data.instanceName}`, {
-            timeoutMs: 45000,
-          });
+          result = await connectForQr(data.instanceName, 2);
         } catch {
           throw e;
         }
@@ -198,10 +275,11 @@ export const evolutionCreateInstance = createServerFn({ method: "POST" })
     // a base64 in /instance/create even when qrcode:true.
     if (!hasQr(result)) {
       try {
-        const qr = await evoFetch(`/instance/connect/${data.instanceName}`, {
-          timeoutMs: 45000,
-        });
-        result = { ...asRecord(result), ...asRecord(qr) };
+        const qr = await connectForQr(data.instanceName, 3);
+        result =
+          typeof qr === "string"
+            ? { ...asRecord(result), code: qr }
+            : { ...asRecord(result), ...asRecord(qr) };
       } catch (e) {
         console.error("[evolution] connect after create failed", e);
       }
@@ -214,9 +292,7 @@ export const evolutionGetQr = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: { instanceName: string }) => d)
   .handler(async ({ data }) => {
-    return await evoFetch(`/instance/connect/${data.instanceName}`, {
-      timeoutMs: 45000,
-    });
+    return await connectForQr(data.instanceName, 2);
   });
 
 export const evolutionStatus = createServerFn({ method: "POST" })
@@ -224,7 +300,8 @@ export const evolutionStatus = createServerFn({ method: "POST" })
   .inputValidator((d: { instanceName: string }) => d)
   .handler(async ({ data }) => {
     return await evoFetch(`/instance/connectionState/${data.instanceName}`, {
-      timeoutMs: 12000,
+      retry: false,
+      timeoutMs: 6000,
     });
   });
 
