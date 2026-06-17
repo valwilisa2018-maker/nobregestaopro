@@ -10,7 +10,9 @@ type WhatsappStatusInsert = {
 };
 
 function asRecord(value: unknown): WebhookPayload {
-  return value && typeof value === "object" && !Array.isArray(value) ? (value as WebhookPayload) : {};
+  return value && typeof value === "object" && !Array.isArray(value)
+    ? (value as WebhookPayload)
+    : {};
 }
 
 function mapState(payload: WebhookPayload): string | null {
