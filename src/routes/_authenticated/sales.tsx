@@ -940,7 +940,7 @@ function SalesPage() {
                 {!loadingSales && !salesError && filteredSales.map((s: any) => (
                   <TableRow key={s.id}>
                     <TableCell className="whitespace-nowrap">{fmtDate(s.sale_date)}</TableCell>
-                    <TableCell><div className="font-medium">{s.customers?.name}</div><div className="text-xs text-muted-foreground">{s.customers?.company}</div></TableCell>
+                    <TableCell><div className="font-semibold text-base">{s.customers?.company || "—"}</div><div className="text-xs text-muted-foreground">{s.customers?.name}</div></TableCell>
                     <TableCell>{s.service_types?.name ?? "—"}</TableCell><TableCell>{s.sellers?.name ?? "—"}</TableCell><TableCell>{s.producers?.name ?? "—"}</TableCell>
                     <TableCell className="text-right font-semibold">{formatCurrency(s.total_amount)}</TableCell>
                     <TableCell><Badge variant={statusVariant(s.payment_status) as any}>{s.payment_status.replace("_", " ")}</Badge></TableCell>
@@ -985,7 +985,7 @@ function SalesPage() {
                           <DialogContent className="max-w-xl">
                             <DialogHeader><DialogTitle>Histórico de Pagamentos e Comprovantes</DialogTitle></DialogHeader>
                             <div className="space-y-4 py-4">
-                              <div className="flex justify-between items-center pb-2 border-bottom"><div><h3 className="font-semibold text-lg">{s.customers?.name}</h3><p className="text-sm text-muted-foreground">{s.customers?.company}</p></div><div className="text-right"><p className="text-xs text-muted-foreground">Valor Total</p><p className="font-bold text-lg">{formatCurrency(s.total_amount)}</p></div></div>
+                              <div className="flex justify-between items-center pb-2 border-bottom"><div><h3 className="font-semibold text-lg">{s.customers?.company || "—"}</h3><p className="text-xs text-muted-foreground">{s.customers?.name}</p></div><div className="text-right"><p className="text-xs text-muted-foreground">Valor Total</p><p className="font-bold text-lg">{formatCurrency(s.total_amount)}</p></div></div>
                               <Tabs defaultValue="receipts" className="w-full">
                                 <TabsList className="grid w-full grid-cols-2"><TabsTrigger value="receipts" className="flex gap-2"><FileText className="w-4 h-4" /> Comprovantes</TabsTrigger><TabsTrigger value="history" className="flex gap-2"><History className="w-4 h-4" /> Resumo</TabsTrigger></TabsList>
                                 <TabsContent value="receipts" className="mt-4">
@@ -1017,7 +1017,7 @@ function SalesPage() {
             <Card key={s.id} className="border-border/50 overflow-hidden hover:shadow-md transition-shadow">
               <CardContent className="p-0">
                 <div className="p-4 space-y-3">
-                  <div className="flex justify-between items-start"><div><h3 className="font-bold text-lg leading-tight">{s.customers?.name}</h3><p className="text-sm text-muted-foreground">{s.customers?.company}</p></div><Badge variant={statusVariant(s.payment_status) as any}>{s.payment_status.replace("_", " ")}</Badge></div>
+                  <div className="flex justify-between items-start"><div><h3 className="font-bold text-lg leading-tight">{s.customers?.company || "—"}</h3><p className="text-xs text-muted-foreground">{s.customers?.name}</p></div><Badge variant={statusVariant(s.payment_status) as any}>{s.payment_status.replace("_", " ")}</Badge></div>
                   <div className="grid grid-cols-2 gap-2 text-sm"><div><p className="text-xs text-muted-foreground">Serviço</p><p className="font-medium truncate">{s.service_types?.name ?? "—"}</p></div><div><p className="text-xs text-muted-foreground">Data</p><p className="font-medium">{fmtDate(s.sale_date)}</p></div><div><p className="text-xs text-muted-foreground">Vendedor</p><p className="font-medium truncate">{s.sellers?.name ?? "—"}</p></div><div><p className="text-xs text-muted-foreground">Produtor</p><p className="font-medium truncate">{s.producers?.name ?? "—"}</p></div></div>
                   <div className="pt-2 border-t flex justify-between items-center"><div><p className="text-xs text-muted-foreground">Valor Total</p><p className="text-lg font-bold text-primary">{formatCurrency(s.total_amount)}</p></div>
                     <div className="flex gap-1">
@@ -1038,7 +1038,7 @@ function SalesPage() {
                         <DialogContent className="max-w-xl">
                           <DialogHeader><DialogTitle>Histórico de Pagamentos e Comprovantes</DialogTitle></DialogHeader>
                           <div className="space-y-4 py-4">
-                            <div className="flex justify-between items-center pb-2 border-bottom"><div><h3 className="font-semibold text-lg">{s.customers?.name}</h3><p className="text-sm text-muted-foreground">{s.customers?.company}</p></div><div className="text-right"><p className="text-xs text-muted-foreground">Valor Total</p><p className="font-bold text-lg">{formatCurrency(s.total_amount)}</p></div></div>
+                            <div className="flex justify-between items-center pb-2 border-bottom"><div><h3 className="font-semibold text-lg">{s.customers?.company || "—"}</h3><p className="text-xs text-muted-foreground">{s.customers?.name}</p></div><div className="text-right"><p className="text-xs text-muted-foreground">Valor Total</p><p className="font-bold text-lg">{formatCurrency(s.total_amount)}</p></div></div>
                             <Tabs defaultValue="receipts" className="w-full">
                               <TabsList className="grid w-full grid-cols-2"><TabsTrigger value="receipts" className="flex gap-2"><FileText className="w-4 h-4" /> Comprovantes</TabsTrigger><TabsTrigger value="history" className="flex gap-2"><History className="w-4 h-4" /> Resumo</TabsTrigger></TabsList>
                               <TabsContent value="receipts" className="mt-4">
