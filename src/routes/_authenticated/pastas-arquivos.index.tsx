@@ -71,6 +71,7 @@ function PastasArquivosPage() {
             "service_orders:kanban_card_id(column_id, producer_id, producers(name)), " +
             "sales:sale_id(seller_id, sellers(name), producer_id, producers(name))",
         )
+        .is("parent_id", null)
         .order("created_at", { ascending: false });
       if (error) throw error;
       return data ?? [];
