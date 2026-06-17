@@ -81,9 +81,13 @@ export function useOmData() {
         await supabase
           .from("service_orders")
           .select(
-            "id,producer_id,sale_id,delivered_at,updated_at,redo_count,last_redo_at,sales(service_type_id,package_id,video_duration_seconds,service_types(name,points_value),packages(name,points_value))",
+              "id,producer_id,sale_id,delivered_at,updated_at,redo_count,last_redo_at,sales(producer_id,service_type_id,package_id,video_duration_seconds,service_types(name,points_value),packages(name,points_value))",
           )
-      ).data ?? [],
+        ).data?.map((o: any) => ({
+          ...o,
+          // Fallback: se a ordem não tem producer_id atribuído, usa o da venda.
+          producer_id: o.producer_id ?? o.sales?.producer_id ?? null,
+        })) ?? [],
     refetchOnWindowFocus: true,
     refetchInterval: 30_000,
   });
