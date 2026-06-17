@@ -244,15 +244,20 @@ function WhatsAppConnectPage() {
           const st = String(row.state ?? "unknown");
           setState(st);
           setLastCheck(new Date());
+          setStatusMessage(null);
           if (typeof row.number === "string") setNumber(row.number);
           if (st === "open" || st === "connected") {
-            if (qr) {
-              setQr(null);
-              toast.success("WhatsApp conectado!");
-            }
+            setQr((prev) => {
+              if (prev) {
+                toast.success("WhatsApp conectado!");
+              }
+              return null;
+            });
           } else if (st === "close" || st === "disconnected") {
             setNumber(null);
             toast.warning("WhatsApp desconectou");
+          } else if (st === "unreachable") {
+            setStatusMessage("Evolution não respondeu no tempo esperado. A sincronização automática continua ativa.");
           }
           // Re-confirm with Evolution to make sure we mirror the real state
           syncStatus(true);
