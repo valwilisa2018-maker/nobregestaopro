@@ -25,6 +25,32 @@ const WEBHOOK_EVENTS = [
 
 type EvoFetchInit = RequestInit & { timeoutMs?: number };
 
+type LooseRecord = Record<string, unknown>;
+
+function errorMessage(error: unknown) {
+  return error instanceof Error ? error.message : String(error);
+}
+
+function errorName(error: unknown) {
+  return error instanceof Error ? error.name : "erro";
+}
+
+function asRecord(value: unknown): LooseRecord {
+  return value && typeof value === "object" ? (value as LooseRecord) : {};
+}
+
+function nestedString(value: unknown, path: string[]) {
+  let current: unknown = value;
+  for (const key of path) {
+    current = asRecord(current)[key];
+  }
+  return typeof current === "string" ? current : null;
+}
+
+function hasQr(result: unknown) {
+  return Boolean(nestedString(result, ["base64"]) || nestedString(result, ["qrcode", "base64"]));
+}
+
 async function setInstanceWebhook(instanceName: string) {
   const webhookUrl = getWebhookUrl();
   // Evolution v2 shape
