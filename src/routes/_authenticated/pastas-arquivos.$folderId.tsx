@@ -144,6 +144,8 @@ function FolderDetail() {
     if (typeof window !== "undefined") localStorage.setItem("pastas_view", view);
   }, [view]);
   const [editing, setEditing] = useState<any | null>(null);
+  type UploadItem = { id: string; name: string; size: number; status: "uploading" | "done" | "error"; error?: string };
+  const [uploads, setUploads] = useState<UploadItem[]>([]);
 
   const folder = useQuery({
     queryKey: ["project_folder", folderId],
@@ -237,20 +239,39 @@ function FolderDetail() {
     if (!arr.length) return;
     setBusy(forceCategory ?? "__drop");
     const { data: ud } = await supabase.auth.getUser();
+    const queued: UploadItem[] = arr.map((f) => ({
+      id: `${Date.now()}-${Math.random().toString(36).slice(2)}-${f.name}`,
+      name: f.name,
+      size: f.size,
+      status: "uploading",
+    }));
+    setUploads((prev) => [...queued, ...prev]);
     try {
-      for (const file of arr) {
+      for (let i = 0; i < arr.length; i++) {
+        const file = arr[i];
+        const qid = queued[i].id;
         const cat: CategoryId = forceCategory ?? detectCategory(file);
-        await uploadToFolder({
-          folderId,
-          saleId: folder.data.sale_id,
-          cardId: folder.data.kanban_card_id,
-          file,
-          category: cat,
-          userId: ud.user?.id ?? null,
-        });
+        try {
+          await uploadToFolder({
+            folderId,
+            saleId: folder.data.sale_id,
+            cardId: folder.data.kanban_card_id,
+            file,
+            category: cat,
+            userId: ud.user?.id ?? null,
+          });
+          setUploads((prev) => prev.map((u) => (u.id === qid ? { ...u, status: "done" } : u)));
+        } catch (err: any) {
+          setUploads((prev) => prev.map((u) => (u.id === qid ? { ...u, status: "error", error: err?.message } : u)));
+          throw err;
+        }
       }
       toast.success(`${arr.length} arquivo(s) enviado(s)`);
       qc.invalidateQueries({ queryKey: ["project_folder_files", folderId] });
+      // Auto-clear completed items after a short delay
+      setTimeout(() => {
+        setUploads((prev) => prev.filter((u) => u.status === "uploading"));
+      }, 2500);
     } catch (e: any) {
       toast.error(e?.message ?? "Erro ao enviar");
     } finally {
