@@ -133,3 +133,43 @@ export const evolutionLogout = createServerFn({ method: "POST" })
   .handler(async ({ data }) => {
     return await evoFetch(`/instance/logout/${data.instanceName}`, { method: "DELETE" });
   });
+
+export const evolutionDelete = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: { instanceName: string }) => d)
+  .handler(async ({ data }) => {
+    // Logout first (ignore if already disconnected), then delete the instance
+    try {
+      await evoFetch(`/instance/logout/${data.instanceName}`, { method: "DELETE" });
+    } catch {
+      // ignore — likely already disconnected
+    }
+    try {
+      return await evoFetch(`/instance/delete/${data.instanceName}`, { method: "DELETE" });
+    } catch (e: any) {
+      // If instance doesn't exist, treat as success
+      if (String(e?.message ?? "").match(/not.?found|does not exist|404/i)) {
+        return { deleted: true };
+      }
+      throw e;
+    }
+  });
+
+export const evolutionFetchInstance = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: { instanceName: string }) => d)
+  .handler(async ({ data }) => {
+    try {
+      const all = await evoFetch(
+        `/instance/fetchInstances?instanceName=${encodeURIComponent(data.instanceName)}`,
+      );
+      const list = Array.isArray(all) ? all : [];
+      const found = list.find((i: any) => {
+        const n = i?.instance?.instanceName ?? i?.name ?? i?.instanceName;
+        return n === data.instanceName;
+      });
+      return found ?? null;
+    } catch {
+      return null;
+    }
+  });
