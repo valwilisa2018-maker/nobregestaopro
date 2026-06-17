@@ -4,10 +4,19 @@ import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { Loader2, Smartphone, RefreshCw, LogOut, Trash2, CheckCircle2, XCircle, AlertCircle } from "lucide-react";
+import {
+  AlertCircle,
+  CheckCircle2,
+  Loader2,
+  LogOut,
+  RefreshCw,
+  Smartphone,
+  Trash2,
+  XCircle,
+} from "lucide-react";
 import { QRCodeSVG } from "qrcode.react";
 import { supabase } from "@/integrations/supabase/client";
 import {
@@ -19,26 +28,50 @@ import {
   evolutionFetchInstance,
 } from "@/lib/evolution.functions";
 
+type JsonRecord = { [key: string]: unknown };
+type StatusVariant = "default" | "secondary" | "outline";
+
+function asRecord(value: unknown): JsonRecord {
+  return value && typeof value === "object" ? (value as JsonRecord) : {};
+}
+
+function nestedValue(value: unknown, path: string[]) {
+  let current: unknown = value;
+  for (const key of path) {
+    current = asRecord(current)[key];
+  }
+  return current;
+}
+
+function nestedString(value: unknown, path: string[]) {
+  const found = nestedValue(value, path);
+  return typeof found === "string" ? found : null;
+}
+
+function getErrorMessage(error: unknown) {
+  return error instanceof Error ? error.message : String(error);
+}
+
 export const Route = createFileRoute("/_authenticated/whatsapp")({
   component: WhatsAppConnectPage,
   head: () => ({ meta: [{ title: "Conectar WhatsApp" }] }),
 });
 
-function extractQrBase64(resp: any): string | null {
+function extractQrBase64(resp: unknown): string | null {
   if (!resp) return null;
   const candidates = [
-    resp?.base64,
-    resp?.code,
-    resp?.qrcode?.base64,
-    resp?.qrcode?.code,
-    resp?.qrcode,
-    resp?.qr?.base64,
-    resp?.qr?.code,
-    resp?.data?.base64,
-    resp?.data?.code,
-    resp?.data?.qrcode?.base64,
-    resp?.data?.qrcode?.code,
-    resp?.instance?.qrcode?.base64,
+    nestedString(resp, ["base64"]),
+    nestedString(resp, ["code"]),
+    nestedString(resp, ["qrcode", "base64"]),
+    nestedString(resp, ["qrcode", "code"]),
+    nestedString(resp, ["qrcode"]),
+    nestedString(resp, ["qr", "base64"]),
+    nestedString(resp, ["qr", "code"]),
+    nestedString(resp, ["data", "base64"]),
+    nestedString(resp, ["data", "code"]),
+    nestedString(resp, ["data", "qrcode", "base64"]),
+    nestedString(resp, ["data", "qrcode", "code"]),
+    nestedString(resp, ["instance", "qrcode", "base64"]),
   ];
   for (const c of candidates) {
     if (typeof c === "string" && c.length > 50) {
