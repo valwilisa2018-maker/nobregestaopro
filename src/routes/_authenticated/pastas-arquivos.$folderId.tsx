@@ -16,6 +16,20 @@ export const Route = createFileRoute("/_authenticated/pastas-arquivos/$folderId"
   component: FolderDetail,
 });
 
+function htmlToPlainText(html: string): string {
+  const tmp = document.createElement("div");
+  tmp.innerHTML = html
+    .replace(/<\s*br\s*\/?\s*>/gi, "\n")
+    .replace(/<\/\s*(p|div|li|h[1-6]|tr|blockquote)\s*>/gi, "\n")
+    .replace(/<\s*li[^>]*>/gi, "• ");
+  const text = tmp.textContent || "";
+  return text
+    .replace(/\u00a0/g, " ")
+    .replace(/[ \t]+\n/g, "\n")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+}
+
 function iconFor(mime?: string | null) {
   const t = (mime ?? "").toLowerCase();
   if (t.startsWith("image/")) return FileImage;
