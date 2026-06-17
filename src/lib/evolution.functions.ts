@@ -264,7 +264,10 @@ export const evolutionCreateInstance = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: { instanceName: string }) => d)
   .handler(async ({ data }) => {
-    await syncWhatsappStatus(data.instanceName, { state: "connecting", last_event: "CONNECT_REQUESTED" });
+    await syncWhatsappStatus(data.instanceName, {
+      state: "connecting",
+      last_event: "CONNECT_REQUESTED",
+    });
     const webhookUrl = await getWebhookUrl();
     let result: EvoResponse;
     try {
@@ -329,7 +332,7 @@ export const evolutionCreateInstance = createServerFn({ method: "POST" })
     const state = extractState(result);
     const number = extractNumber(result);
     await syncWhatsappStatus(data.instanceName, {
-      state: hasQr(result) ? "qrcode" : state ?? "connecting",
+      state: hasQr(result) ? "qrcode" : (state ?? "connecting"),
       number,
       last_event: hasQr(result) ? "QRCODE_UPDATED" : "CONNECT_REQUESTED",
     });
@@ -343,7 +346,7 @@ export const evolutionGetQr = createServerFn({ method: "POST" })
   .handler(async ({ data }) => {
     const result = await connectForQr(data.instanceName, 2);
     await syncWhatsappStatus(data.instanceName, {
-      state: hasQr(result) ? "qrcode" : extractState(result) ?? "connecting",
+      state: hasQr(result) ? "qrcode" : (extractState(result) ?? "connecting"),
       number: extractNumber(result),
       last_event: hasQr(result) ? "QRCODE_UPDATED" : "CONNECT_REQUESTED",
     });
