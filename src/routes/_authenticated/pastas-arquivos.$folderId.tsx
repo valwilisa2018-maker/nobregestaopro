@@ -336,8 +336,20 @@ function FolderDetail() {
       for (const it of list) {
         const url = await getSignedUrl(it.file_url);
         const res = await fetch(url);
-        const blob = await res.blob();
         let name = it.file_name || it.file_url.split("/").pop() || "arquivo";
+        const type = (it.file_type ?? "").toLowerCase();
+        const isRoteiro = type === "text/html" || /\.html?$/i.test(name);
+        let blob: Blob;
+        if (isRoteiro) {
+          const htmlText = await res.text();
+          const tmp = document.createElement("div");
+          tmp.innerHTML = htmlText;
+          const text = tmp.innerText || tmp.textContent || "";
+          blob = new Blob([text], { type: "text/plain;charset=utf-8" });
+          name = name.replace(/\.[^.]+$/, "") + ".txt";
+        } else {
+          blob = await res.blob();
+        }
         if (used.has(name)) {
           const n = (used.get(name) ?? 1) + 1;
           used.set(name, n);
