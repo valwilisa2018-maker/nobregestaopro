@@ -630,6 +630,28 @@ function RoteiroEditor({
     catch { toast.error("Falha ao copiar"); }
   }
 
+  function downloadAs(kind: "txt" | "html") {
+    const baseName = (item.file_name ?? "roteiro").replace(/\.[^.]+$/, "");
+    if (kind === "txt") {
+      const text = ref.current?.innerText ?? "";
+      const blob = new Blob([text], { type: "text/plain;charset=utf-8" });
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = `${baseName}.txt`;
+      a.click();
+      URL.revokeObjectURL(a.href);
+    } else {
+      const content = ref.current?.innerHTML ?? html;
+      const doc = `<!doctype html><html><head><meta charset="utf-8"><title>${baseName}</title><style>body{font-family:Arial,sans-serif;max-width:820px;margin:32px auto;padding:0 24px;line-height:1.6;color:#111}</style></head><body>${content}</body></html>`;
+      const blob = new Blob([doc], { type: "text/html;charset=utf-8" });
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = `${baseName}.html`;
+      a.click();
+      URL.revokeObjectURL(a.href);
+    }
+  }
+
   async function save() {
     setSaving(true);
     try {
@@ -655,7 +677,7 @@ function RoteiroEditor({
 
   return (
     <Dialog open onOpenChange={(o) => { if (!o) onClose(); }}>
-      <DialogContent className="max-w-3xl">
+      <DialogContent className="max-w-none w-screen h-screen sm:rounded-none p-4 flex flex-col gap-3 overflow-hidden">
         <DialogHeader>
           <DialogTitle className="truncate">{item.file_name}</DialogTitle>
         </DialogHeader>
@@ -679,6 +701,12 @@ function RoteiroEditor({
             <Button size="sm" variant="outline" className="h-7" onClick={copyText}>
               <Copy className="w-3 h-3 mr-1" /> Copiar
             </Button>
+            <Button size="sm" variant="outline" className="h-7" onClick={() => downloadAs("txt")}>
+              <Download className="w-3 h-3 mr-1" /> .txt
+            </Button>
+            <Button size="sm" variant="outline" className="h-7" onClick={() => downloadAs("html")}>
+              <Download className="w-3 h-3 mr-1" /> .html
+            </Button>
             <Button size="sm" className="h-7" onClick={save} disabled={saving || loading}>
               <Save className="w-3 h-3 mr-1" /> {saving ? "Salvando..." : "Salvar"}
             </Button>
@@ -691,7 +719,7 @@ function RoteiroEditor({
             ref={ref}
             contentEditable
             suppressContentEditableWarning
-            className="min-h-[300px] max-h-[60vh] overflow-auto border rounded-md p-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+            className="flex-1 min-h-0 overflow-auto border rounded-md p-4 text-sm bg-background focus:outline-none focus:ring-2 focus:ring-primary"
             dangerouslySetInnerHTML={{ __html: html }}
           />
         )}
