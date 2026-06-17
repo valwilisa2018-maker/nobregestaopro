@@ -264,6 +264,7 @@ export const evolutionCreateInstance = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: { instanceName: string }) => d)
   .handler(async ({ data }) => {
+    await syncWhatsappStatus(data.instanceName, { state: "connecting", last_event: "CONNECT_REQUESTED" });
     const webhookUrl = await getWebhookUrl();
     let result: EvoResponse;
     try {
@@ -325,6 +326,13 @@ export const evolutionCreateInstance = createServerFn({ method: "POST" })
         console.error("[evolution] connect after create failed", e);
       }
     }
+    const state = extractState(result);
+    const number = extractNumber(result);
+    await syncWhatsappStatus(data.instanceName, {
+      state: hasQr(result) ? "qrcode" : state ?? "connecting",
+      number,
+      last_event: hasQr(result) ? "QRCODE_UPDATED" : "CONNECT_REQUESTED",
+    });
     console.log("[evolution] create result keys", Object.keys(asRecord(result)));
     return result ?? {};
   });
@@ -333,17 +341,37 @@ export const evolutionGetQr = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: { instanceName: string }) => d)
   .handler(async ({ data }) => {
-    return await connectForQr(data.instanceName, 2);
+    const result = await connectForQr(data.instanceName, 2);
+    await syncWhatsappStatus(data.instanceName, {
+      state: hasQr(result) ? "qrcode" : extractState(result) ?? "connecting",
+      number: extractNumber(result),
+      last_event: hasQr(result) ? "QRCODE_UPDATED" : "CONNECT_REQUESTED",
+    });
+    return result;
   });
 
 export const evolutionStatus = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: { instanceName: string }) => d)
   .handler(async ({ data }) => {
-    return await evoFetch(`/instance/connectionState/${data.instanceName}`, {
-      retry: false,
-      timeoutMs: 6000,
-    });
+    try {
+      const result = await evoFetch(`/instance/connectionState/${data.instanceName}`, {
+        retry: false,
+        timeoutMs: 6000,
+      });
+      await syncWhatsappStatus(data.instanceName, {
+        state: extractState(result) ?? "unknown",
+        number: extractNumber(result),
+        last_event: "STATUS_CHECK",
+      });
+      return result;
+    } catch (e) {
+      await syncWhatsappStatus(data.instanceName, {
+        state: "unreachable",
+        last_event: "STATUS_UNREACHABLE",
+      });
+      throw e;
+    }
   });
 
 export const evolutionLogout = createServerFn({ method: "POST" })
