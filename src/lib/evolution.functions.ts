@@ -10,8 +10,7 @@ function getConfig() {
 
 function getWebhookUrl() {
   const base =
-    process.env.PUBLIC_APP_URL?.replace(/\/$/, "") ??
-    "https://nobregestaopro.lovable.app";
+    process.env.PUBLIC_APP_URL?.replace(/\/$/, "") ?? "https://nobregestaopro.lovable.app";
   return `${base}/api/public/evolution-webhook`;
 }
 
@@ -44,9 +43,7 @@ function errorName(error: unknown) {
 }
 
 function asRecord(value: unknown): LooseRecord {
-  return value && typeof value === "object" && !Array.isArray(value)
-    ? (value as LooseRecord)
-    : {};
+  return value && typeof value === "object" && !Array.isArray(value) ? (value as LooseRecord) : {};
 }
 
 function nestedString(value: unknown, path: string[]) {
@@ -58,10 +55,7 @@ function nestedString(value: unknown, path: string[]) {
 }
 
 function hasQr(result: unknown) {
-  return Boolean(
-    nestedString(result, ["base64"]) ||
-      nestedString(result, ["qrcode", "base64"]),
-  );
+  return Boolean(nestedString(result, ["base64"]) || nestedString(result, ["qrcode", "base64"]));
 }
 
 async function setInstanceWebhook(instanceName: string) {

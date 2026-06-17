@@ -167,9 +167,12 @@ function WhatsAppConnectPage() {
 
   const startPolling = (fast = false) => {
     stopPolling();
-    pollRef.current = window.setInterval(() => {
-      syncStatus(true);
-    }, fast ? 3000 : 10000);
+    pollRef.current = window.setInterval(
+      () => {
+        syncStatus(true);
+      },
+      fast ? 3000 : 10000,
+    );
   };
 
   // Auto-sync on mount and whenever the instance name changes
@@ -314,13 +317,13 @@ function WhatsAppConnectPage() {
   const stateColor: StatusVariant = isConnected
     ? "default"
     : state === "qrcode" || state === "connecting"
-    ? "secondary"
-    : "outline";
+      ? "secondary"
+      : "outline";
   const StateIcon = isConnected
     ? CheckCircle2
     : state === "qrcode" || state === "connecting"
-    ? AlertCircle
-    : XCircle;
+      ? AlertCircle
+      : XCircle;
 
   return (
     <div className="container mx-auto max-w-3xl py-8 space-y-6">
@@ -329,8 +332,8 @@ function WhatsAppConnectPage() {
           <Smartphone className="h-7 w-7" /> Conectar WhatsApp
         </h1>
         <p className="text-muted-foreground mt-1">
-          Conecte um número via Evolution API. Escaneie o QR Code com o WhatsApp
-          do celular que vai ser o número-robô.
+          Conecte um número via Evolution API. Escaneie o QR Code com o WhatsApp do celular que vai
+          ser o número-robô.
         </p>
       </div>
 
@@ -338,8 +341,7 @@ function WhatsAppConnectPage() {
         <CardHeader>
           <CardTitle>Instância</CardTitle>
           <CardDescription>
-            Nome da instância na Evolution API. Use algo simples como{" "}
-            <code>nobre-bot</code>.
+            Nome da instância na Evolution API. Use algo simples como <code>nobre-bot</code>.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -401,8 +403,8 @@ function WhatsAppConnectPage() {
           <CardHeader>
             <CardTitle>Escaneie o QR Code</CardTitle>
             <CardDescription>
-              No celular: WhatsApp → Configurações → Aparelhos conectados →
-              Conectar um aparelho. O status atualiza sozinho ao conectar.
+              No celular: WhatsApp → Configurações → Aparelhos conectados → Conectar um aparelho. O
+              status atualiza sozinho ao conectar.
             </CardDescription>
           </CardHeader>
           <CardContent className="flex justify-center">
