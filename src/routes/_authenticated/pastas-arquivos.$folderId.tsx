@@ -413,15 +413,24 @@ function FolderDetail() {
   const platformLink =
     f.platform_link ?? (typeof window !== "undefined" ? `${window.location.origin}/pastas-arquivos/${f.id}` : `/pastas-arquivos/${f.id}`);
   const items: any[] = files.data ?? [];
+  const uploadingCount = uploads.filter((u) => u.status === "uploading").length;
+  const isUploading = uploadingCount > 0;
 
   return (
     <div className="p-6 space-y-4 relative" {...dropHandlers()}>
-      {dragOver === "__page" && (
+      {(dragOver === "__page" || isUploading) && (
         <div className="fixed inset-0 z-50 bg-primary/10 border-4 border-dashed border-primary pointer-events-none flex items-center justify-center">
           <div className="bg-background/95 px-6 py-3 rounded-lg font-semibold text-primary shadow-lg">
-            <div className="flex items-center gap-2">
-              <Upload className="w-5 h-5" /> Solte os arquivos aqui
-            </div>
+            {isUploading ? (
+              <div className="flex items-center gap-2">
+                <Loader2 className="w-5 h-5 animate-spin" />
+                Carregando… {uploadingCount} arquivo(s)
+              </div>
+            ) : (
+              <div className="flex items-center gap-2">
+                <Upload className="w-5 h-5" /> Solte os arquivos aqui
+              </div>
+            )}
           </div>
         </div>
       )}
