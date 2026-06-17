@@ -10,8 +10,7 @@ function getConfig() {
 
 function getWebhookUrl() {
   const base =
-    process.env.PUBLIC_APP_URL?.replace(/\/$/, "") ??
-    "https://nobregestaopro.lovable.app";
+    process.env.PUBLIC_APP_URL?.replace(/\/$/, "") ?? "https://nobregestaopro.lovable.app";
   return `${base}/api/public/evolution-webhook`;
 }
 
@@ -23,12 +22,49 @@ const WEBHOOK_EVENTS = [
   "SEND_MESSAGE",
 ];
 
+type EvoFetchInit = RequestInit & { timeoutMs?: number };
+
+type JsonValue =
+  | string
+  | number
+  | boolean
+  | null
+  | { [key: string]: JsonValue | undefined }
+  | JsonValue[];
+type LooseRecord = { [key: string]: JsonValue | undefined };
+type EvoResponse = JsonValue;
+
+function errorMessage(error: unknown) {
+  return error instanceof Error ? error.message : String(error);
+}
+
+function errorName(error: unknown) {
+  return error instanceof Error ? error.name : "erro";
+}
+
+function asRecord(value: unknown): LooseRecord {
+  return value && typeof value === "object" && !Array.isArray(value) ? (value as LooseRecord) : {};
+}
+
+function nestedString(value: unknown, path: string[]) {
+  let current: unknown = value;
+  for (const key of path) {
+    current = asRecord(current)[key];
+  }
+  return typeof current === "string" ? current : null;
+}
+
+function hasQr(result: unknown) {
+  return Boolean(nestedString(result, ["base64"]) || nestedString(result, ["qrcode", "base64"]));
+}
+
 async function setInstanceWebhook(instanceName: string) {
   const webhookUrl = getWebhookUrl();
   // Evolution v2 shape
   try {
     return await evoFetch(`/webhook/set/${instanceName}`, {
       method: "POST",
+      timeoutMs: 8000,
       body: JSON.stringify({
         webhook: {
           enabled: true,
@@ -43,6 +79,7 @@ async function setInstanceWebhook(instanceName: string) {
     // Fallback older shape
     return await evoFetch(`/webhook/set/${instanceName}`, {
       method: "POST",
+      timeoutMs: 8000,
       body: JSON.stringify({
         enabled: true,
         url: webhookUrl,
@@ -54,32 +91,37 @@ async function setInstanceWebhook(instanceName: string) {
   }
 }
 
-async function evoFetch(path: string, init: RequestInit = {}) {
+async function evoFetch(path: string, init: EvoFetchInit = {}): Promise<EvoResponse> {
   const { url, key } = getConfig();
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 20000);
+  const { timeoutMs = 20000, ...fetchInit } = init;
+  const timeout = setTimeout(() => controller.abort(), timeoutMs);
   let res: Response;
   try {
     res = await fetch(`${url}${path}`, {
-      ...init,
+      ...fetchInit,
       signal: controller.signal,
       headers: {
         "Content-Type": "application/json",
         apikey: key,
-        ...(init.headers ?? {}),
+        ...(fetchInit.headers ?? {}),
       },
     });
-  } catch (e: any) {
+  } catch (e: unknown) {
     clearTimeout(timeout);
-    console.error("[evolution] fetch failed", path, e?.message ?? e);
+    console.error("[evolution] fetch failed", path, errorMessage(e));
     throw new Error(
-      `Evolution inacessível em ${url} (${e?.name ?? "erro"}: ${e?.message ?? "sem detalhes"})`,
+      `Evolution inacessível em ${url} (${errorName(e)}: ${errorMessage(e) || "sem detalhes"})`,
     );
   }
   clearTimeout(timeout);
   const text = await res.text();
-  let body: any = null;
-  try { body = text ? JSON.parse(text) : null; } catch { body = text; }
+  let body: EvoResponse = null;
+  try {
+    body = text ? (JSON.parse(text) as EvoResponse) : null;
+  } catch {
+    body = text;
+  }
   if (!res.ok) {
     console.error("[evolution] http error", path, res.status, body);
     throw new Error(
@@ -94,10 +136,11 @@ export const evolutionCreateInstance = createServerFn({ method: "POST" })
   .inputValidator((d: { instanceName: string }) => d)
   .handler(async ({ data }) => {
     const webhookUrl = getWebhookUrl();
-    let result: any;
+    let result: EvoResponse;
     try {
       result = await evoFetch("/instance/create", {
         method: "POST",
+        timeoutMs: 45000,
         body: JSON.stringify({
           instanceName: data.instanceName,
           qrcode: true,
@@ -110,11 +153,24 @@ export const evolutionCreateInstance = createServerFn({ method: "POST" })
           },
         }),
       });
-    } catch (e: any) {
-      const msg = String(e?.message ?? "").toLowerCase();
+    } catch (e: unknown) {
+      const msg = errorMessage(e).toLowerCase();
       // Instance already exists → just connect and reuse it
-      if (msg.includes("already") || msg.includes("in use") || msg.includes("exists") || msg.includes("409")) {
-        result = await evoFetch(`/instance/connect/${data.instanceName}`);
+      const canTryConnect =
+        msg.includes("already") ||
+        msg.includes("in use") ||
+        msg.includes("exists") ||
+        msg.includes("409") ||
+        msg.includes("abort") ||
+        msg.includes("inacessível");
+      if (canTryConnect) {
+        try {
+          result = await evoFetch(`/instance/connect/${data.instanceName}`, {
+            timeoutMs: 45000,
+          });
+        } catch {
+          throw e;
+        }
       } else {
         throw e;
       }
@@ -128,30 +184,36 @@ export const evolutionCreateInstance = createServerFn({ method: "POST" })
     }
     // Always fetch the QR explicitly — some Evolution versions don't return
     // a base64 in /instance/create even when qrcode:true.
-    if (!result?.qrcode?.base64 && !result?.base64) {
+    if (!hasQr(result)) {
       try {
-        const qr = await evoFetch(`/instance/connect/${data.instanceName}`);
-        result = { ...(result ?? {}), ...qr };
+        const qr = await evoFetch(`/instance/connect/${data.instanceName}`, {
+          timeoutMs: 45000,
+        });
+        result = { ...asRecord(result), ...asRecord(qr) };
       } catch (e) {
         console.error("[evolution] connect after create failed", e);
       }
     }
-    console.log("[evolution] create result keys", Object.keys(result ?? {}));
-    return result;
+    console.log("[evolution] create result keys", Object.keys(asRecord(result)));
+    return result ?? {};
   });
 
 export const evolutionGetQr = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: { instanceName: string }) => d)
   .handler(async ({ data }) => {
-    return await evoFetch(`/instance/connect/${data.instanceName}`);
+    return await evoFetch(`/instance/connect/${data.instanceName}`, {
+      timeoutMs: 45000,
+    });
   });
 
 export const evolutionStatus = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: { instanceName: string }) => d)
   .handler(async ({ data }) => {
-    return await evoFetch(`/instance/connectionState/${data.instanceName}`);
+    return await evoFetch(`/instance/connectionState/${data.instanceName}`, {
+      timeoutMs: 12000,
+    });
   });
 
 export const evolutionLogout = createServerFn({ method: "POST" })
@@ -173,9 +235,9 @@ export const evolutionDelete = createServerFn({ method: "POST" })
     }
     try {
       return await evoFetch(`/instance/delete/${data.instanceName}`, { method: "DELETE" });
-    } catch (e: any) {
+    } catch (e: unknown) {
       // If instance doesn't exist, treat as success
-      if (String(e?.message ?? "").match(/not.?found|does not exist|404/i)) {
+      if (errorMessage(e).match(/not.?found|does not exist|404/i)) {
         return { deleted: true };
       }
       throw e;
@@ -191,8 +253,11 @@ export const evolutionFetchInstance = createServerFn({ method: "POST" })
         `/instance/fetchInstances?instanceName=${encodeURIComponent(data.instanceName)}`,
       );
       const list = Array.isArray(all) ? all : [];
-      const found = list.find((i: any) => {
-        const n = i?.instance?.instanceName ?? i?.name ?? i?.instanceName;
+      const found = list.find((item) => {
+        const n =
+          nestedString(item, ["instance", "instanceName"]) ??
+          nestedString(item, ["name"]) ??
+          nestedString(item, ["instanceName"]);
         return n === data.instanceName;
       });
       return found ?? null;

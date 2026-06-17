@@ -4,10 +4,20 @@ import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { Loader2, Smartphone, RefreshCw, LogOut, Trash2, CheckCircle2, XCircle, AlertCircle } from "lucide-react";
+import {
+  AlertCircle,
+  CheckCircle2,
+  Loader2,
+  LogOut,
+  RefreshCw,
+  Smartphone,
+  Trash2,
+  XCircle,
+} from "lucide-react";
+import { QRCodeSVG } from "qrcode.react";
 import { supabase } from "@/integrations/supabase/client";
 import {
   evolutionCreateInstance,
@@ -18,43 +28,78 @@ import {
   evolutionFetchInstance,
 } from "@/lib/evolution.functions";
 
+type JsonRecord = { [key: string]: unknown };
+type StatusVariant = "default" | "secondary" | "outline";
+
+function asRecord(value: unknown): JsonRecord {
+  return value && typeof value === "object" ? (value as JsonRecord) : {};
+}
+
+function nestedValue(value: unknown, path: string[]) {
+  let current: unknown = value;
+  for (const key of path) {
+    current = asRecord(current)[key];
+  }
+  return current;
+}
+
+function nestedString(value: unknown, path: string[]) {
+  const found = nestedValue(value, path);
+  return typeof found === "string" ? found : null;
+}
+
+function getErrorMessage(error: unknown) {
+  return error instanceof Error ? error.message : String(error);
+}
+
 export const Route = createFileRoute("/_authenticated/whatsapp")({
   component: WhatsAppConnectPage,
   head: () => ({ meta: [{ title: "Conectar WhatsApp" }] }),
 });
 
-function extractQrBase64(resp: any): string | null {
+function extractQrBase64(resp: unknown): string | null {
   if (!resp) return null;
   const candidates = [
-    resp?.base64,
-    resp?.qrcode?.base64,
-    resp?.qrcode,
-    resp?.qr?.base64,
-    resp?.instance?.qrcode?.base64,
+    nestedString(resp, ["base64"]),
+    nestedString(resp, ["code"]),
+    nestedString(resp, ["qrcode", "base64"]),
+    nestedString(resp, ["qrcode", "code"]),
+    nestedString(resp, ["qrcode"]),
+    nestedString(resp, ["qr", "base64"]),
+    nestedString(resp, ["qr", "code"]),
+    nestedString(resp, ["data", "base64"]),
+    nestedString(resp, ["data", "code"]),
+    nestedString(resp, ["data", "qrcode", "base64"]),
+    nestedString(resp, ["data", "qrcode", "code"]),
+    nestedString(resp, ["instance", "qrcode", "base64"]),
   ];
   for (const c of candidates) {
     if (typeof c === "string" && c.length > 50) {
-      return c.startsWith("data:") ? c : `data:image/png;base64,${c}`;
+      if (c.startsWith("data:image")) return c;
+      if (c.startsWith("iVBOR") || c.startsWith("/9j/") || c.startsWith("R0lGOD")) {
+        return `data:image/png;base64,${c}`;
+      }
+      return c;
     }
   }
   return null;
 }
 
-function extractState(resp: any): string {
+function extractState(resp: unknown): string {
   return (
-    resp?.instance?.state ??
-    resp?.state ??
-    resp?.status ??
+    nestedString(resp, ["instance", "state"]) ??
+    nestedString(resp, ["state"]) ??
+    nestedString(resp, ["status"]) ??
     "unknown"
   );
 }
 
-function extractNumber(resp: any): string | null {
+function extractNumber(resp: unknown): string | null {
   return (
-    resp?.instance?.owner ??
-    resp?.instance?.number ??
-    resp?.owner ??
-    resp?.number ??
+    nestedString(resp, ["instance", "owner"]) ??
+    nestedString(resp, ["instance", "number"]) ??
+    nestedString(resp, ["owner"]) ??
+    nestedString(resp, ["number"]) ??
     null
   );
 }
@@ -105,13 +150,15 @@ function WhatsAppConnectPage() {
         try {
           const info = await fetchInstance({ data: { instanceName: instanceName.trim() } });
           setNumber(extractNumber(info));
-        } catch {}
+        } catch {
+          // Número é opcional; status continua válido sem ele.
+        }
       } else {
         setNumber(null);
       }
       return st;
-    } catch (e: any) {
-      if (!silent) toast.error(e?.message ?? "Falha ao verificar status");
+    } catch (e: unknown) {
+      if (!silent) toast.error(getErrorMessage(e) || "Falha ao verificar status");
       setState("disconnected");
       setNumber(null);
       return "disconnected";
@@ -120,9 +167,12 @@ function WhatsAppConnectPage() {
 
   const startPolling = (fast = false) => {
     stopPolling();
-    pollRef.current = window.setInterval(() => {
-      syncStatus(true);
-    }, fast ? 3000 : 10000);
+    pollRef.current = window.setInterval(
+      () => {
+        syncStatus(true);
+      },
+      fast ? 3000 : 10000,
+    );
   };
 
   // Auto-sync on mount and whenever the instance name changes
@@ -148,12 +198,12 @@ function WhatsAppConnectPage() {
           filter: `instance_name=eq.${name}`,
         },
         (payload) => {
-          const row: any = payload.new ?? payload.old;
+          const row = asRecord(payload.new ?? payload.old);
           if (!row) return;
           const st = String(row.state ?? "unknown");
           setState(st);
           setLastCheck(new Date());
-          if (row.number) setNumber(row.number);
+          if (typeof row.number === "string") setNumber(row.number);
           if (st === "open" || st === "connected") {
             if (qr) {
               setQr(null);
@@ -200,8 +250,8 @@ function WhatsAppConnectPage() {
         await syncStatus(false);
         toast.message("Não retornou QR — verifique o status.");
       }
-    } catch (e: any) {
-      toast.error(e?.message ?? "Falha ao conectar");
+    } catch (e: unknown) {
+      toast.error(getErrorMessage(e) || "Falha ao conectar");
     } finally {
       setLoading(false);
     }
@@ -216,8 +266,8 @@ function WhatsAppConnectPage() {
         setQr(b64);
         startPolling(true);
       } else toast.message("QR não disponível agora");
-    } catch (e: any) {
-      toast.error(e?.message ?? "Erro");
+    } catch (e: unknown) {
+      toast.error(getErrorMessage(e) || "Erro");
     } finally {
       setLoading(false);
     }
@@ -240,8 +290,8 @@ function WhatsAppConnectPage() {
       setNumber(null);
       await syncStatus(true);
       toast.success("Desconectado");
-    } catch (e: any) {
-      toast.error(e?.message ?? "Erro");
+    } catch (e: unknown) {
+      toast.error(getErrorMessage(e) || "Erro");
     } finally {
       setLoading(false);
     }
@@ -256,24 +306,24 @@ function WhatsAppConnectPage() {
       setState("disconnected");
       setNumber(null);
       toast.success("Instância removida da Evolution");
-    } catch (e: any) {
-      toast.error(e?.message ?? "Erro");
+    } catch (e: unknown) {
+      toast.error(getErrorMessage(e) || "Erro");
     } finally {
       setLoading(false);
     }
   };
 
   const isConnected = state === "open" || state === "connected";
-  const stateColor = isConnected
+  const stateColor: StatusVariant = isConnected
     ? "default"
     : state === "qrcode" || state === "connecting"
-    ? "secondary"
-    : "outline";
+      ? "secondary"
+      : "outline";
   const StateIcon = isConnected
     ? CheckCircle2
     : state === "qrcode" || state === "connecting"
-    ? AlertCircle
-    : XCircle;
+      ? AlertCircle
+      : XCircle;
 
   return (
     <div className="container mx-auto max-w-3xl py-8 space-y-6">
@@ -282,8 +332,8 @@ function WhatsAppConnectPage() {
           <Smartphone className="h-7 w-7" /> Conectar WhatsApp
         </h1>
         <p className="text-muted-foreground mt-1">
-          Conecte um número via Evolution API. Escaneie o QR Code com o WhatsApp
-          do celular que vai ser o número-robô.
+          Conecte um número via Evolution API. Escaneie o QR Code com o WhatsApp do celular que vai
+          ser o número-robô.
         </p>
       </div>
 
@@ -291,8 +341,7 @@ function WhatsAppConnectPage() {
         <CardHeader>
           <CardTitle>Instância</CardTitle>
           <CardDescription>
-            Nome da instância na Evolution API. Use algo simples como{" "}
-            <code>nobre-bot</code>.
+            Nome da instância na Evolution API. Use algo simples como <code>nobre-bot</code>.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -332,7 +381,7 @@ function WhatsAppConnectPage() {
             <div className="flex items-center gap-2">
               <StateIcon className="h-4 w-4" />
               <span className="text-muted-foreground">Status:</span>
-              <Badge variant={stateColor as any}>{state}</Badge>
+              <Badge variant={stateColor}>{state}</Badge>
             </div>
             {number && (
               <div className="flex items-center gap-1">
@@ -354,16 +403,22 @@ function WhatsAppConnectPage() {
           <CardHeader>
             <CardTitle>Escaneie o QR Code</CardTitle>
             <CardDescription>
-              No celular: WhatsApp → Configurações → Aparelhos conectados →
-              Conectar um aparelho. O status atualiza sozinho ao conectar.
+              No celular: WhatsApp → Configurações → Aparelhos conectados → Conectar um aparelho. O
+              status atualiza sozinho ao conectar.
             </CardDescription>
           </CardHeader>
           <CardContent className="flex justify-center">
-            <img
-              src={qr}
-              alt="QR Code WhatsApp"
-              className="w-72 h-72 border rounded-lg bg-white p-2"
-            />
+            {qr.startsWith("data:image") ? (
+              <img
+                src={qr}
+                alt="QR Code WhatsApp"
+                className="w-72 h-72 border rounded-lg bg-white p-2"
+              />
+            ) : (
+              <div className="w-72 h-72 border rounded-lg bg-white p-4 flex items-center justify-center">
+                <QRCodeSVG value={qr} size={248} level="M" includeMargin />
+              </div>
+            )}
           </CardContent>
         </Card>
       )}
