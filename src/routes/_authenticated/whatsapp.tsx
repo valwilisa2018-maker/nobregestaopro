@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { Loader2, Smartphone, RefreshCw, LogOut, Trash2, CheckCircle2, XCircle, AlertCircle } from "lucide-react";
+import { QRCodeSVG } from "qrcode.react";
 import { supabase } from "@/integrations/supabase/client";
 import {
   evolutionCreateInstance,
@@ -27,14 +28,25 @@ function extractQrBase64(resp: any): string | null {
   if (!resp) return null;
   const candidates = [
     resp?.base64,
+    resp?.code,
     resp?.qrcode?.base64,
+    resp?.qrcode?.code,
     resp?.qrcode,
     resp?.qr?.base64,
+    resp?.qr?.code,
+    resp?.data?.base64,
+    resp?.data?.code,
+    resp?.data?.qrcode?.base64,
+    resp?.data?.qrcode?.code,
     resp?.instance?.qrcode?.base64,
   ];
   for (const c of candidates) {
     if (typeof c === "string" && c.length > 50) {
-      return c.startsWith("data:") ? c : `data:image/png;base64,${c}`;
+      if (c.startsWith("data:image")) return c;
+      if (c.startsWith("iVBOR") || c.startsWith("/9j/") || c.startsWith("R0lGOD")) {
+        return `data:image/png;base64,${c}`;
+      }
+      return c;
     }
   }
   return null;
@@ -359,11 +371,17 @@ function WhatsAppConnectPage() {
             </CardDescription>
           </CardHeader>
           <CardContent className="flex justify-center">
-            <img
-              src={qr}
-              alt="QR Code WhatsApp"
-              className="w-72 h-72 border rounded-lg bg-white p-2"
-            />
+            {qr.startsWith("data:image") ? (
+              <img
+                src={qr}
+                alt="QR Code WhatsApp"
+                className="w-72 h-72 border rounded-lg bg-white p-2"
+              />
+            ) : (
+              <div className="w-72 h-72 border rounded-lg bg-white p-4 flex items-center justify-center">
+                <QRCodeSVG value={qr} size={248} level="M" includeMargin />
+              </div>
+            )}
           </CardContent>
         </Card>
       )}
