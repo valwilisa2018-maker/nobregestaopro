@@ -444,6 +444,11 @@ function WhatsAppConnectPage() {
               </span>
             )}
           </div>
+          {statusMessage && (
+            <div className="rounded-md border border-border bg-muted/40 px-3 py-2 text-sm text-muted-foreground">
+              {statusMessage}
+            </div>
+          )}
         </CardContent>
       </Card>
 
