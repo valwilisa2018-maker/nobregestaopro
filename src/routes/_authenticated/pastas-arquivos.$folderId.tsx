@@ -739,7 +739,7 @@ function RoteiroEditor({
     catch { toast.error("Falha ao copiar"); }
   }
 
-  function downloadAs(kind: "txt" | "html") {
+  function downloadAs(kind: "txt" | "html" | "doc") {
     const baseName = (item.file_name ?? "roteiro").replace(/\.[^.]+$/, "");
     if (kind === "txt") {
       const text = ref.current?.innerText ?? "";
@@ -747,6 +747,15 @@ function RoteiroEditor({
       const a = document.createElement("a");
       a.href = URL.createObjectURL(blob);
       a.download = `${baseName}.txt`;
+      a.click();
+      URL.revokeObjectURL(a.href);
+    } else if (kind === "doc") {
+      const content = ref.current?.innerHTML ?? html;
+      const doc = `<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40"><head><meta charset="utf-8"><title>${baseName}</title><!--[if gte mso 9]><xml><w:WordDocument><w:View>Print</w:View><w:Zoom>100</w:Zoom></w:WordDocument></xml><![endif]--><style>body{font-family:Calibri,Arial,sans-serif;font-size:11pt;line-height:1.5;color:#111}</style></head><body>${content}</body></html>`;
+      const blob = new Blob(["\ufeff", doc], { type: "application/msword" });
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = `${baseName}.doc`;
       a.click();
       URL.revokeObjectURL(a.href);
     } else {
@@ -812,6 +821,9 @@ function RoteiroEditor({
             </Button>
             <Button size="sm" variant="outline" className="h-7" onClick={() => downloadAs("txt")}>
               <Download className="w-3 h-3 mr-1" /> .txt
+            </Button>
+            <Button size="sm" variant="outline" className="h-7" onClick={() => downloadAs("doc")}>
+              <Download className="w-3 h-3 mr-1" /> Word
             </Button>
             <Button size="sm" variant="outline" className="h-7" onClick={() => downloadAs("html")}>
               <Download className="w-3 h-3 mr-1" /> .html
