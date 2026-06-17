@@ -56,18 +56,32 @@ async function setInstanceWebhook(instanceName: string) {
 
 async function evoFetch(path: string, init: RequestInit = {}) {
   const { url, key } = getConfig();
-  const res = await fetch(`${url}${path}`, {
-    ...init,
-    headers: {
-      "Content-Type": "application/json",
-      apikey: key,
-      ...(init.headers ?? {}),
-    },
-  });
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 20000);
+  let res: Response;
+  try {
+    res = await fetch(`${url}${path}`, {
+      ...init,
+      signal: controller.signal,
+      headers: {
+        "Content-Type": "application/json",
+        apikey: key,
+        ...(init.headers ?? {}),
+      },
+    });
+  } catch (e: any) {
+    clearTimeout(timeout);
+    console.error("[evolution] fetch failed", path, e?.message ?? e);
+    throw new Error(
+      `Evolution inacessível em ${url} (${e?.name ?? "erro"}: ${e?.message ?? "sem detalhes"})`,
+    );
+  }
+  clearTimeout(timeout);
   const text = await res.text();
   let body: any = null;
   try { body = text ? JSON.parse(text) : null; } catch { body = text; }
   if (!res.ok) {
+    console.error("[evolution] http error", path, res.status, body);
     throw new Error(
       `Evolution ${res.status}: ${typeof body === "string" ? body : JSON.stringify(body)}`,
     );
@@ -97,7 +111,9 @@ export const evolutionCreateInstance = createServerFn({ method: "POST" })
         }),
       });
     } catch (e: any) {
-      if (String(e?.message ?? "").includes("already")) {
+      const msg = String(e?.message ?? "").toLowerCase();
+      // Instance already exists → just connect and reuse it
+      if (msg.includes("already") || msg.includes("in use") || msg.includes("exists") || msg.includes("409")) {
         result = await evoFetch(`/instance/connect/${data.instanceName}`);
       } else {
         throw e;
@@ -110,6 +126,17 @@ export const evolutionCreateInstance = createServerFn({ method: "POST" })
     } catch {
       // non-fatal
     }
+    // Always fetch the QR explicitly — some Evolution versions don't return
+    // a base64 in /instance/create even when qrcode:true.
+    if (!result?.qrcode?.base64 && !result?.base64) {
+      try {
+        const qr = await evoFetch(`/instance/connect/${data.instanceName}`);
+        result = { ...(result ?? {}), ...qr };
+      } catch (e) {
+        console.error("[evolution] connect after create failed", e);
+      }
+    }
+    console.log("[evolution] create result keys", Object.keys(result ?? {}));
     return result;
   });
 
