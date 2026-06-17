@@ -378,7 +378,13 @@ export const evolutionLogout = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: { instanceName: string }) => d)
   .handler(async ({ data }) => {
-    return await evoFetch(`/instance/logout/${data.instanceName}`, { method: "DELETE" });
+    const result = await evoFetch(`/instance/logout/${data.instanceName}`, { method: "DELETE" });
+    await syncWhatsappStatus(data.instanceName, {
+      state: "disconnected",
+      number: null,
+      last_event: "LOGOUT_REQUESTED",
+    });
+    return result;
   });
 
 export const evolutionDelete = createServerFn({ method: "POST" })
@@ -392,10 +398,21 @@ export const evolutionDelete = createServerFn({ method: "POST" })
       // ignore — likely already disconnected
     }
     try {
-      return await evoFetch(`/instance/delete/${data.instanceName}`, { method: "DELETE" });
+      const result = await evoFetch(`/instance/delete/${data.instanceName}`, { method: "DELETE" });
+      await syncWhatsappStatus(data.instanceName, {
+        state: "disconnected",
+        number: null,
+        last_event: "INSTANCE_DELETED",
+      });
+      return result;
     } catch (e: unknown) {
       // If instance doesn't exist, treat as success
       if (errorMessage(e).match(/not.?found|does not exist|404/i)) {
+        await syncWhatsappStatus(data.instanceName, {
+          state: "disconnected",
+          number: null,
+          last_event: "INSTANCE_DELETED",
+        });
         return { deleted: true };
       }
       throw e;
