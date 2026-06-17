@@ -85,21 +85,21 @@ function extractQrBase64(resp: unknown): string | null {
   return null;
 }
 
-function extractState(resp: any): string {
+function extractState(resp: unknown): string {
   return (
-    resp?.instance?.state ??
-    resp?.state ??
-    resp?.status ??
+    nestedString(resp, ["instance", "state"]) ??
+    nestedString(resp, ["state"]) ??
+    nestedString(resp, ["status"]) ??
     "unknown"
   );
 }
 
-function extractNumber(resp: any): string | null {
+function extractNumber(resp: unknown): string | null {
   return (
-    resp?.instance?.owner ??
-    resp?.instance?.number ??
-    resp?.owner ??
-    resp?.number ??
+    nestedString(resp, ["instance", "owner"]) ??
+    nestedString(resp, ["instance", "number"]) ??
+    nestedString(resp, ["owner"]) ??
+    nestedString(resp, ["number"]) ??
     null
   );
 }
@@ -150,13 +150,15 @@ function WhatsAppConnectPage() {
         try {
           const info = await fetchInstance({ data: { instanceName: instanceName.trim() } });
           setNumber(extractNumber(info));
-        } catch {}
+        } catch {
+          // Número é opcional; status continua válido sem ele.
+        }
       } else {
         setNumber(null);
       }
       return st;
-    } catch (e: any) {
-      if (!silent) toast.error(e?.message ?? "Falha ao verificar status");
+    } catch (e: unknown) {
+      if (!silent) toast.error(getErrorMessage(e) || "Falha ao verificar status");
       setState("disconnected");
       setNumber(null);
       return "disconnected";
@@ -193,12 +195,12 @@ function WhatsAppConnectPage() {
           filter: `instance_name=eq.${name}`,
         },
         (payload) => {
-          const row: any = payload.new ?? payload.old;
+          const row = asRecord(payload.new ?? payload.old);
           if (!row) return;
           const st = String(row.state ?? "unknown");
           setState(st);
           setLastCheck(new Date());
-          if (row.number) setNumber(row.number);
+          if (typeof row.number === "string") setNumber(row.number);
           if (st === "open" || st === "connected") {
             if (qr) {
               setQr(null);
@@ -245,8 +247,8 @@ function WhatsAppConnectPage() {
         await syncStatus(false);
         toast.message("Não retornou QR — verifique o status.");
       }
-    } catch (e: any) {
-      toast.error(e?.message ?? "Falha ao conectar");
+    } catch (e: unknown) {
+      toast.error(getErrorMessage(e) || "Falha ao conectar");
     } finally {
       setLoading(false);
     }
@@ -261,8 +263,8 @@ function WhatsAppConnectPage() {
         setQr(b64);
         startPolling(true);
       } else toast.message("QR não disponível agora");
-    } catch (e: any) {
-      toast.error(e?.message ?? "Erro");
+    } catch (e: unknown) {
+      toast.error(getErrorMessage(e) || "Erro");
     } finally {
       setLoading(false);
     }
@@ -285,8 +287,8 @@ function WhatsAppConnectPage() {
       setNumber(null);
       await syncStatus(true);
       toast.success("Desconectado");
-    } catch (e: any) {
-      toast.error(e?.message ?? "Erro");
+    } catch (e: unknown) {
+      toast.error(getErrorMessage(e) || "Erro");
     } finally {
       setLoading(false);
     }
@@ -301,8 +303,8 @@ function WhatsAppConnectPage() {
       setState("disconnected");
       setNumber(null);
       toast.success("Instância removida da Evolution");
-    } catch (e: any) {
-      toast.error(e?.message ?? "Erro");
+    } catch (e: unknown) {
+      toast.error(getErrorMessage(e) || "Erro");
     } finally {
       setLoading(false);
     }
