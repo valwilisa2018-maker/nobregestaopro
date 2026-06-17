@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import { FolderOpen, Search, Link as LinkIcon, Copy, FileText, Plus, RefreshCw, Trash2, CheckSquare, Square, Loader2, LayoutGrid, List as ListIcon } from "lucide-react";
+import { FolderOpen, Search, Link as LinkIcon, Copy, FileText, Plus, RefreshCw, Trash2, CheckSquare, Square, Loader2, LayoutGrid, List as ListIcon, Pencil } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { toast } from "sonner";
@@ -186,6 +186,20 @@ function PastasArquivosPage() {
     setSelected(new Set());
     folders.refetch();
     counts.refetch();
+  }
+
+  async function renameFolder(id: string, currentName: string) {
+    const name = window.prompt("Novo nome da pasta:", currentName ?? "");
+    if (name === null) return;
+    const trimmed = name.trim();
+    if (!trimmed || trimmed === currentName) return;
+    const { error } = await supabase
+      .from("project_folders" as any)
+      .update({ folder_name: trimmed })
+      .eq("id", id);
+    if (error) { toast.error(error.message); return; }
+    toast.success("Pasta renomeada");
+    folders.refetch();
   }
 
   return (
@@ -372,6 +386,9 @@ function PastasArquivosPage() {
                     <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => copyInternal(f)}>
                       <Copy className="w-3 h-3 mr-1" /> Copiar link
                     </Button>
+                    <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => renameFolder(f.id, f.folder_name)} title="Renomear">
+                      <Pencil className="w-3 h-3" />
+                    </Button>
                     <Button size="sm" variant="ghost" className="h-7 text-xs text-destructive hover:text-destructive ml-auto"
                       onClick={() => deleteFolders([f.id])}>
                       <Trash2 className="w-3 h-3" />
@@ -444,6 +461,9 @@ function PastasArquivosPage() {
                   </Button>
                   <Button size="sm" variant="ghost" className="h-7 w-7 p-0" onClick={() => copyInternal(f)} title="Copiar link">
                     <Copy className="w-3 h-3" />
+                  </Button>
+                  <Button size="sm" variant="ghost" className="h-7 w-7 p-0" onClick={() => renameFolder(f.id, f.folder_name)} title="Renomear">
+                    <Pencil className="w-3 h-3" />
                   </Button>
                   <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-destructive" onClick={() => deleteFolders([f.id])} title="Excluir">
                     <Trash2 className="w-3 h-3" />
