@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Upload, FileImage, FileVideo, FileAudio, FileText, File as FileIcon, Trash2, Link as LinkIcon, Download, Copy, Folder as FolderIcon, LayoutGrid, List as ListIcon, Save, X, FolderPlus } from "lucide-react";
+import { ArrowLeft, Upload, FileImage, FileVideo, FileAudio, FileText, File as FileIcon, Trash2, Link as LinkIcon, Download, Copy, Folder as FolderIcon, LayoutGrid, List as ListIcon, Save, X, FolderPlus, Pencil } from "lucide-react";
 import { toast } from "sonner";
 import { type CategoryId, detectCategory, uploadToFolder, getSignedUrl } from "@/lib/project-folders";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -215,6 +215,20 @@ function FolderDetail() {
     qc.invalidateQueries({ queryKey: ["project_folder_children", folderId] });
   }
 
+  async function renameFolder(id: string, currentName: string, queryKey: any[]) {
+    const name = window.prompt("Novo nome da pasta:", currentName ?? "");
+    if (name === null) return;
+    const trimmed = name.trim();
+    if (!trimmed || trimmed === currentName) return;
+    const { error } = await supabase
+      .from("project_folders" as any)
+      .update({ folder_name: trimmed })
+      .eq("id", id);
+    if (error) { toast.error(error.message); return; }
+    toast.success("Pasta renomeada");
+    qc.invalidateQueries({ queryKey });
+  }
+
   /** Upload arbitrary files routing each to its best-fit category automatically. */
   async function uploadFilesAuto(list: File[] | FileList, forceCategory?: CategoryId) {
     if (!folder.data || !list) return;
@@ -381,7 +395,18 @@ function FolderDetail() {
             <FolderIcon className="w-6 h-6 text-primary" />
           </div>
           <div>
-          <h1 className="text-2xl font-bold">{f.folder_name}</h1>
+          <div className="flex items-center gap-2">
+            <h1 className="text-2xl font-bold">{f.folder_name}</h1>
+            <Button
+              size="sm"
+              variant="ghost"
+              className="h-7 w-7 p-0"
+              title="Renomear pasta"
+              onClick={() => renameFolder(f.id, f.folder_name, ["project_folder", folderId])}
+            >
+              <Pencil className="w-4 h-4" />
+            </Button>
+          </div>
           <p className="text-sm text-muted-foreground">{f.client_name} • {f.service_type}</p>
           {f.google_drive_link && (
             <a href={f.google_drive_link} target="_blank" rel="noreferrer"
@@ -472,6 +497,15 @@ function FolderDetail() {
               >
                 {s.folder_name}
               </Link>
+              <Button
+                size="sm"
+                variant="ghost"
+                className="h-7 w-7 p-0 opacity-0 group-hover:opacity-100"
+                onClick={() => renameFolder(s.id, s.folder_name, ["project_folder_children", folderId])}
+                title="Renomear"
+              >
+                <Pencil className="w-3 h-3" />
+              </Button>
               <Button
                 size="sm"
                 variant="ghost"
