@@ -197,7 +197,9 @@ function WhatsAppConnectPage() {
       const message = getErrorMessage(e) || "Falha ao verificar status";
       if (!silent) toast.error(message);
       setState((prev) => (prev === "qrcode" || prev === "connecting" ? prev : "unreachable"));
-      setStatusMessage("Evolution não respondeu no tempo esperado. A UI vai continuar tentando sincronizar.");
+      setStatusMessage(
+        "Evolution não respondeu no tempo esperado. A UI vai continuar tentando sincronizar.",
+      );
       setLastCheck(new Date());
       setNumber(null);
       return "unreachable";
@@ -257,7 +259,9 @@ function WhatsAppConnectPage() {
             setNumber(null);
             toast.warning("WhatsApp desconectou");
           } else if (st === "unreachable") {
-            setStatusMessage("Evolution não respondeu no tempo esperado. A sincronização automática continua ativa.");
+            setStatusMessage(
+              "Evolution não respondeu no tempo esperado. A sincronização automática continua ativa.",
+            );
           }
         },
       )
@@ -265,7 +269,6 @@ function WhatsAppConnectPage() {
     return () => {
       supabase.removeChannel(channel);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [instanceName]);
 
   const handleConnect = async () => {
@@ -294,7 +297,9 @@ function WhatsAppConnectPage() {
     } catch (e: unknown) {
       const message = getErrorMessage(e) || "Falha ao conectar";
       setState("unreachable");
-      setStatusMessage("Evolution não respondeu. Confirme se o serviço externo está ativo e tente gerar o QR novamente.");
+      setStatusMessage(
+        "Evolution não respondeu. Confirme se o serviço externo está ativo e tente gerar o QR novamente.",
+      );
       startPolling(false);
       toast.error(message);
     } finally {
@@ -319,7 +324,9 @@ function WhatsAppConnectPage() {
     } catch (e: unknown) {
       const message = getErrorMessage(e) || "Erro";
       setState("unreachable");
-      setStatusMessage("Evolution não respondeu ao atualizar o QR. Tentaremos sincronizar de novo automaticamente.");
+      setStatusMessage(
+        "Evolution não respondeu ao atualizar o QR. Tentaremos sincronizar de novo automaticamente.",
+      );
       startPolling(false);
       toast.error(message);
     } finally {
