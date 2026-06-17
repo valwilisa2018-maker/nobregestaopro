@@ -25,8 +25,15 @@ const WEBHOOK_EVENTS = [
 
 type EvoFetchInit = RequestInit & { timeoutMs?: number };
 
-type LooseRecord = Record<string, unknown>;
-type EvoResponse = LooseRecord | LooseRecord[] | string | null;
+type JsonValue =
+  | string
+  | number
+  | boolean
+  | null
+  | { [key: string]: JsonValue | undefined }
+  | JsonValue[];
+type LooseRecord = { [key: string]: JsonValue | undefined };
+type EvoResponse = JsonValue;
 
 function errorMessage(error: unknown) {
   return error instanceof Error ? error.message : String(error);
@@ -37,7 +44,9 @@ function errorName(error: unknown) {
 }
 
 function asRecord(value: unknown): LooseRecord {
-  return value && typeof value === "object" ? (value as LooseRecord) : {};
+  return value && typeof value === "object" && !Array.isArray(value)
+    ? (value as LooseRecord)
+    : {};
 }
 
 function nestedString(value: unknown, path: string[]) {
@@ -191,7 +200,7 @@ export const evolutionCreateInstance = createServerFn({ method: "POST" })
         console.error("[evolution] connect after create failed", e);
       }
     }
-    console.log("[evolution] create result keys", Object.keys(result ?? {}));
+    console.log("[evolution] create result keys", Object.keys(asRecord(result)));
     return result ?? {};
   });
 
