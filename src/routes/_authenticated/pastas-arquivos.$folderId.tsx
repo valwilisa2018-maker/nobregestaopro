@@ -739,7 +739,7 @@ function RoteiroEditor({
     catch { toast.error("Falha ao copiar"); }
   }
 
-  function downloadAs(kind: "txt" | "html" | "doc") {
+  function downloadAs(kind: "txt" | "html" | "doc" | "pdf") {
     const baseName = (item.file_name ?? "roteiro").replace(/\.[^.]+$/, "");
     if (kind === "txt") {
       const text = ref.current?.innerText ?? "";
@@ -758,6 +758,12 @@ function RoteiroEditor({
       a.download = `${baseName}.doc`;
       a.click();
       URL.revokeObjectURL(a.href);
+    } else if (kind === "pdf") {
+      const content = ref.current?.innerHTML ?? html;
+      const w = window.open("", "_blank");
+      if (!w) { toast.error("Permita pop-ups para exportar em PDF"); return; }
+      w.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>${baseName}</title><style>@page{margin:20mm}body{font-family:Arial,sans-serif;line-height:1.6;color:#111}</style></head><body>${content}<script>window.onload=()=>{window.focus();window.print();}<\/script></body></html>`);
+      w.document.close();
     } else {
       const content = ref.current?.innerHTML ?? html;
       const doc = `<!doctype html><html><head><meta charset="utf-8"><title>${baseName}</title><style>body{font-family:Arial,sans-serif;max-width:820px;margin:32px auto;padding:0 24px;line-height:1.6;color:#111}</style></head><body>${content}</body></html>`;
@@ -824,6 +830,9 @@ function RoteiroEditor({
             </Button>
             <Button size="sm" variant="outline" className="h-7" onClick={() => downloadAs("doc")}>
               <Download className="w-3 h-3 mr-1" /> Word
+            </Button>
+            <Button size="sm" variant="outline" className="h-7" onClick={() => downloadAs("pdf")}>
+              <Download className="w-3 h-3 mr-1" /> PDF
             </Button>
             <Button size="sm" variant="outline" className="h-7" onClick={() => downloadAs("html")}>
               <Download className="w-3 h-3 mr-1" /> .html
