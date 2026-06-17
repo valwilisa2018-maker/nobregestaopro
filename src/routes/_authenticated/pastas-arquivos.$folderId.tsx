@@ -386,9 +386,7 @@ function FolderDetail() {
         let blob: Blob;
         if (isRoteiro) {
           const htmlText = await res.text();
-          const tmp = document.createElement("div");
-          tmp.innerHTML = htmlText;
-          const text = tmp.innerText || tmp.textContent || "";
+          const text = htmlToPlainText(htmlText);
           blob = new Blob([text], { type: "text/plain;charset=utf-8" });
           name = name.replace(/\.[^.]+$/, "") + ".txt";
         } else {
@@ -756,7 +754,7 @@ function RoteiroEditor({
   function downloadAs(kind: "txt" | "html" | "doc" | "pdf") {
     const baseName = (item.file_name ?? "roteiro").replace(/\.[^.]+$/, "");
     if (kind === "txt") {
-      const text = ref.current?.innerText ?? "";
+      const text = htmlToPlainText(ref.current?.innerHTML ?? html);
       const blob = new Blob([text], { type: "text/plain;charset=utf-8" });
       const a = document.createElement("a");
       a.href = URL.createObjectURL(blob);
