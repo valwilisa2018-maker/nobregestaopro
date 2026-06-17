@@ -288,7 +288,11 @@ function WhatsAppConnectPage() {
         toast.message("Não retornou QR — verifique o status.");
       }
     } catch (e: unknown) {
-      toast.error(getErrorMessage(e) || "Falha ao conectar");
+      const message = getErrorMessage(e) || "Falha ao conectar";
+      setState("unreachable");
+      setStatusMessage("Evolution não respondeu. Confirme se o serviço externo está ativo e tente gerar o QR novamente.");
+      startPolling(false);
+      toast.error(message);
     } finally {
       setLoading(false);
     }
@@ -303,10 +307,16 @@ function WhatsAppConnectPage() {
       const b64 = extractQrBase64(qrResp);
       if (b64) {
         setQr(b64);
+        setState("qrcode");
+        setStatusMessage(null);
         startPolling(true);
       } else toast.message("QR não disponível agora");
     } catch (e: unknown) {
-      toast.error(getErrorMessage(e) || "Erro");
+      const message = getErrorMessage(e) || "Erro";
+      setState("unreachable");
+      setStatusMessage("Evolution não respondeu ao atualizar o QR. Tentaremos sincronizar de novo automaticamente.");
+      startPolling(false);
+      toast.error(message);
     } finally {
       setLoading(false);
     }
