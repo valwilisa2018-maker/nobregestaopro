@@ -104,11 +104,10 @@ export function useOmData() {
     const sale: any = o.sales || {};
     const base = Number((sale.packages?.points_value ?? sale.service_types?.points_value) ?? 0);
     const dur = Number(sale.video_duration_seconds ?? 0);
-    // Pontuação = base do serviço + 1 ponto por cada 30s de vídeo.
-    // Ex.: base 5 + 60s (2 blocos) = 7 pts; base 5 + 90s = 8 pts.
-    // Sem duração informada (serviços não-vídeo), retorna apenas a pontuação base.
-    const extra = dur > 0 ? Math.ceil(dur / 30) : 0;
-    return base + extra;
+    // Vídeo: cada 30s = 1 ponto (30s=1, 60s=2, 90s=3, 120s=4...).
+    // Sem duração (serviço que não é vídeo): usa a pontuação base do serviço.
+    if (dur > 0) return Math.ceil(dur / 30);
+    return base;
   };
   const catName = (o: any) => {
     const s: any = o.sales || {};
