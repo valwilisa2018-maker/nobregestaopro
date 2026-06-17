@@ -48,6 +48,31 @@ function nestedString(value: unknown, path: string[]) {
   return typeof found === "string" ? found : null;
 }
 
+function findQrCandidate(value: unknown, depth = 0): string | null {
+  if (!value || depth > 5) return null;
+  if (typeof value === "string") return value.length > 50 ? value : null;
+  if (Array.isArray(value)) {
+    for (const item of value) {
+      const found = findQrCandidate(item, depth + 1);
+      if (found) return found;
+    }
+    return null;
+  }
+  const record = asRecord(value);
+  const priorityKeys = ["base64", "code", "qrcode", "qrCode", "qr_code", "qr"];
+  for (const key of priorityKeys) {
+    const found = findQrCandidate(record[key], depth + 1);
+    if (found) return found;
+  }
+  for (const [key, item] of Object.entries(record)) {
+    if (/qr|code|base64/i.test(key)) {
+      const found = findQrCandidate(item, depth + 1);
+      if (found) return found;
+    }
+  }
+  return null;
+}
+
 function getErrorMessage(error: unknown) {
   return error instanceof Error ? error.message : String(error);
 }
@@ -71,7 +96,13 @@ function extractQrBase64(resp: unknown): string | null {
     nestedString(resp, ["data", "code"]),
     nestedString(resp, ["data", "qrcode", "base64"]),
     nestedString(resp, ["data", "qrcode", "code"]),
+    nestedString(resp, ["data", "qrCode", "base64"]),
+    nestedString(resp, ["data", "qrCode", "code"]),
+    nestedString(resp, ["qrCode", "base64"]),
+    nestedString(resp, ["qrCode", "code"]),
+    nestedString(resp, ["qrCode"]),
     nestedString(resp, ["instance", "qrcode", "base64"]),
+    findQrCandidate(resp),
   ];
   for (const c of candidates) {
     if (typeof c === "string" && c.length > 50) {
@@ -230,12 +261,6 @@ function WhatsAppConnectPage() {
     setQr(null);
     try {
       // Check first — if already open on Evolution, just sync UI
-      const current = await syncStatus(true);
-      if (current === "open" || current === "connected") {
-        toast.success("Já está conectado na Evolution.");
-        startPolling(false);
-        return;
-      }
       const resp = await create({ data: { instanceName: instanceName.trim() } });
       let base64 = extractQrBase64(resp);
       if (!base64) {
