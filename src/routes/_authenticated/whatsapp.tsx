@@ -151,7 +151,9 @@ function WhatsAppConnectPage() {
   const [loading, setLoading] = useState(false);
   const [number, setNumber] = useState<string | null>(null);
   const [lastCheck, setLastCheck] = useState<Date | null>(null);
+  const [statusMessage, setStatusMessage] = useState<string | null>(null);
   const pollRef = useRef<number | null>(null);
+  const statusInFlightRef = useRef(false);
 
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -167,11 +169,14 @@ function WhatsAppConnectPage() {
   };
 
   const syncStatus = async (silent = true) => {
+    if (statusInFlightRef.current) return state;
+    statusInFlightRef.current = true;
     try {
       const s = await status({ data: { instanceName: instanceName.trim() } });
       const st = extractState(s);
       setState(st);
       setLastCheck(new Date());
+      setStatusMessage(null);
       if (st === "open" || st === "connected") {
         if (qr) {
           setQr(null);
@@ -189,10 +194,17 @@ function WhatsAppConnectPage() {
       }
       return st;
     } catch (e: unknown) {
-      if (!silent) toast.error(getErrorMessage(e) || "Falha ao verificar status");
+      const message = getErrorMessage(e) || "Falha ao verificar status";
+      if (!silent) toast.error(message);
       setState((prev) => (prev === "qrcode" || prev === "connecting" ? prev : "unreachable"));
+      setStatusMessage(
+        "Evolution não respondeu no tempo esperado. A UI vai continuar tentando sincronizar.",
+      );
+      setLastCheck(new Date());
       setNumber(null);
       return "unreachable";
+    } finally {
+      statusInFlightRef.current = false;
     }
   };
 
@@ -234,25 +246,29 @@ function WhatsAppConnectPage() {
           const st = String(row.state ?? "unknown");
           setState(st);
           setLastCheck(new Date());
+          setStatusMessage(null);
           if (typeof row.number === "string") setNumber(row.number);
           if (st === "open" || st === "connected") {
-            if (qr) {
-              setQr(null);
-              toast.success("WhatsApp conectado!");
-            }
+            setQr((prev) => {
+              if (prev) {
+                toast.success("WhatsApp conectado!");
+              }
+              return null;
+            });
           } else if (st === "close" || st === "disconnected") {
             setNumber(null);
             toast.warning("WhatsApp desconectou");
+          } else if (st === "unreachable") {
+            setStatusMessage(
+              "Evolution não respondeu no tempo esperado. A sincronização automática continua ativa.",
+            );
           }
-          // Re-confirm with Evolution to make sure we mirror the real state
-          syncStatus(true);
         },
       )
       .subscribe();
     return () => {
       supabase.removeChannel(channel);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [instanceName]);
 
   const handleConnect = async () => {
@@ -261,6 +277,7 @@ function WhatsAppConnectPage() {
     setLoading(true);
     setQr(null);
     setState("connecting");
+    setStatusMessage(null);
     try {
       // Check first — if already open on Evolution, just sync UI
       const resp = await create({ data: { instanceName: instanceName.trim() } });
@@ -278,7 +295,13 @@ function WhatsAppConnectPage() {
         toast.message("Não retornou QR — verifique o status.");
       }
     } catch (e: unknown) {
-      toast.error(getErrorMessage(e) || "Falha ao conectar");
+      const message = getErrorMessage(e) || "Falha ao conectar";
+      setState("unreachable");
+      setStatusMessage(
+        "Evolution não respondeu. Confirme se o serviço externo está ativo e tente gerar o QR novamente.",
+      );
+      startPolling(false);
+      toast.error(message);
     } finally {
       setLoading(false);
     }
@@ -288,15 +311,24 @@ function WhatsAppConnectPage() {
     stopPolling();
     setLoading(true);
     setState("connecting");
+    setStatusMessage(null);
     try {
       const qrResp = await getQr({ data: { instanceName: instanceName.trim() } });
       const b64 = extractQrBase64(qrResp);
       if (b64) {
         setQr(b64);
+        setState("qrcode");
+        setStatusMessage(null);
         startPolling(true);
       } else toast.message("QR não disponível agora");
     } catch (e: unknown) {
-      toast.error(getErrorMessage(e) || "Erro");
+      const message = getErrorMessage(e) || "Erro";
+      setState("unreachable");
+      setStatusMessage(
+        "Evolution não respondeu ao atualizar o QR. Tentaremos sincronizar de novo automaticamente.",
+      );
+      startPolling(false);
+      toast.error(message);
     } finally {
       setLoading(false);
     }
@@ -424,6 +456,11 @@ function WhatsAppConnectPage() {
               </span>
             )}
           </div>
+          {statusMessage && (
+            <div className="rounded-md border border-border bg-muted/40 px-3 py-2 text-sm text-muted-foreground">
+              {statusMessage}
+            </div>
+          )}
         </CardContent>
       </Card>
 

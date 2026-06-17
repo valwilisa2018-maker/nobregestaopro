@@ -91,6 +91,47 @@ function hasQr(result: unknown) {
   return Boolean(extractQr(result));
 }
 
+function extractState(result: unknown) {
+  return (
+    nestedString(result, ["instance", "state"]) ??
+    nestedString(result, ["instance", "connectionStatus"]) ??
+    nestedString(result, ["state"]) ??
+    nestedString(result, ["status"]) ??
+    nestedString(result, ["connection"]) ??
+    null
+  );
+}
+
+function extractNumber(result: unknown) {
+  return (
+    nestedString(result, ["instance", "owner"]) ??
+    nestedString(result, ["instance", "number"]) ??
+    nestedString(result, ["owner"]) ??
+    nestedString(result, ["number"]) ??
+    null
+  );
+}
+
+async function syncWhatsappStatus(
+  instanceName: string,
+  patch: { state?: string; number?: string | null; last_event?: string | null },
+) {
+  try {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { error } = await supabaseAdmin.from("whatsapp_status").upsert(
+      {
+        instance_name: instanceName,
+        updated_at: new Date().toISOString(),
+        ...patch,
+      },
+      { onConflict: "instance_name" },
+    );
+    if (error) console.warn("[evolution] status sync failed", error.message);
+  } catch (e) {
+    console.warn("[evolution] status sync unavailable", errorMessage(e));
+  }
+}
+
 async function setInstanceWebhook(instanceName: string) {
   const webhookUrl = await getWebhookUrl();
   // Evolution v2 documented shape
@@ -223,6 +264,10 @@ export const evolutionCreateInstance = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: { instanceName: string }) => d)
   .handler(async ({ data }) => {
+    await syncWhatsappStatus(data.instanceName, {
+      state: "connecting",
+      last_event: "CONNECT_REQUESTED",
+    });
     const webhookUrl = await getWebhookUrl();
     let result: EvoResponse;
     try {
@@ -284,6 +329,13 @@ export const evolutionCreateInstance = createServerFn({ method: "POST" })
         console.error("[evolution] connect after create failed", e);
       }
     }
+    const state = extractState(result);
+    const number = extractNumber(result);
+    await syncWhatsappStatus(data.instanceName, {
+      state: hasQr(result) ? "qrcode" : (state ?? "connecting"),
+      number,
+      last_event: hasQr(result) ? "QRCODE_UPDATED" : "CONNECT_REQUESTED",
+    });
     console.log("[evolution] create result keys", Object.keys(asRecord(result)));
     return result ?? {};
   });
@@ -292,24 +344,50 @@ export const evolutionGetQr = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: { instanceName: string }) => d)
   .handler(async ({ data }) => {
-    return await connectForQr(data.instanceName, 2);
+    const result = await connectForQr(data.instanceName, 2);
+    await syncWhatsappStatus(data.instanceName, {
+      state: hasQr(result) ? "qrcode" : (extractState(result) ?? "connecting"),
+      number: extractNumber(result),
+      last_event: hasQr(result) ? "QRCODE_UPDATED" : "CONNECT_REQUESTED",
+    });
+    return result;
   });
 
 export const evolutionStatus = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: { instanceName: string }) => d)
   .handler(async ({ data }) => {
-    return await evoFetch(`/instance/connectionState/${data.instanceName}`, {
-      retry: false,
-      timeoutMs: 6000,
-    });
+    try {
+      const result = await evoFetch(`/instance/connectionState/${data.instanceName}`, {
+        retry: false,
+        timeoutMs: 6000,
+      });
+      await syncWhatsappStatus(data.instanceName, {
+        state: extractState(result) ?? "unknown",
+        number: extractNumber(result),
+        last_event: "STATUS_CHECK",
+      });
+      return result;
+    } catch (e) {
+      await syncWhatsappStatus(data.instanceName, {
+        state: "unreachable",
+        last_event: "STATUS_UNREACHABLE",
+      });
+      throw e;
+    }
   });
 
 export const evolutionLogout = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: { instanceName: string }) => d)
   .handler(async ({ data }) => {
-    return await evoFetch(`/instance/logout/${data.instanceName}`, { method: "DELETE" });
+    const result = await evoFetch(`/instance/logout/${data.instanceName}`, { method: "DELETE" });
+    await syncWhatsappStatus(data.instanceName, {
+      state: "disconnected",
+      number: null,
+      last_event: "LOGOUT_REQUESTED",
+    });
+    return result;
   });
 
 export const evolutionDelete = createServerFn({ method: "POST" })
@@ -323,10 +401,21 @@ export const evolutionDelete = createServerFn({ method: "POST" })
       // ignore — likely already disconnected
     }
     try {
-      return await evoFetch(`/instance/delete/${data.instanceName}`, { method: "DELETE" });
+      const result = await evoFetch(`/instance/delete/${data.instanceName}`, { method: "DELETE" });
+      await syncWhatsappStatus(data.instanceName, {
+        state: "disconnected",
+        number: null,
+        last_event: "INSTANCE_DELETED",
+      });
+      return result;
     } catch (e: unknown) {
       // If instance doesn't exist, treat as success
       if (errorMessage(e).match(/not.?found|does not exist|404/i)) {
+        await syncWhatsappStatus(data.instanceName, {
+          state: "disconnected",
+          number: null,
+          last_event: "INSTANCE_DELETED",
+        });
         return { deleted: true };
       }
       throw e;
