@@ -26,6 +26,7 @@ const WEBHOOK_EVENTS = [
 type EvoFetchInit = RequestInit & { timeoutMs?: number };
 
 type LooseRecord = Record<string, unknown>;
+type EvoResponse = LooseRecord | LooseRecord[] | string | null;
 
 function errorMessage(error: unknown) {
   return error instanceof Error ? error.message : String(error);
@@ -48,7 +49,10 @@ function nestedString(value: unknown, path: string[]) {
 }
 
 function hasQr(result: unknown) {
-  return Boolean(nestedString(result, ["base64"]) || nestedString(result, ["qrcode", "base64"]));
+  return Boolean(
+    nestedString(result, ["base64"]) ||
+      nestedString(result, ["qrcode", "base64"]),
+  );
 }
 
 async function setInstanceWebhook(instanceName: string) {
@@ -84,7 +88,7 @@ async function setInstanceWebhook(instanceName: string) {
   }
 }
 
-async function evoFetch(path: string, init: EvoFetchInit = {}) {
+async function evoFetch(path: string, init: EvoFetchInit = {}): Promise<EvoResponse> {
   const { url, key } = getConfig();
   const controller = new AbortController();
   const { timeoutMs = 20000, ...fetchInit } = init;
@@ -109,9 +113,9 @@ async function evoFetch(path: string, init: EvoFetchInit = {}) {
   }
   clearTimeout(timeout);
   const text = await res.text();
-  let body: unknown = null;
+  let body: EvoResponse = null;
   try {
-    body = text ? JSON.parse(text) : null;
+    body = text ? (JSON.parse(text) as EvoResponse) : null;
   } catch {
     body = text;
   }
@@ -129,7 +133,7 @@ export const evolutionCreateInstance = createServerFn({ method: "POST" })
   .inputValidator((d: { instanceName: string }) => d)
   .handler(async ({ data }) => {
     const webhookUrl = getWebhookUrl();
-    let result: unknown;
+    let result: EvoResponse;
     try {
       result = await evoFetch("/instance/create", {
         method: "POST",
@@ -188,7 +192,7 @@ export const evolutionCreateInstance = createServerFn({ method: "POST" })
       }
     }
     console.log("[evolution] create result keys", Object.keys(result ?? {}));
-    return result;
+    return result ?? {};
   });
 
 export const evolutionGetQr = createServerFn({ method: "POST" })
@@ -228,9 +232,9 @@ export const evolutionDelete = createServerFn({ method: "POST" })
     }
     try {
       return await evoFetch(`/instance/delete/${data.instanceName}`, { method: "DELETE" });
-    } catch (e: any) {
+    } catch (e: unknown) {
       // If instance doesn't exist, treat as success
-      if (String(e?.message ?? "").match(/not.?found|does not exist|404/i)) {
+      if (errorMessage(e).match(/not.?found|does not exist|404/i)) {
         return { deleted: true };
       }
       throw e;
@@ -246,8 +250,11 @@ export const evolutionFetchInstance = createServerFn({ method: "POST" })
         `/instance/fetchInstances?instanceName=${encodeURIComponent(data.instanceName)}`,
       );
       const list = Array.isArray(all) ? all : [];
-      const found = list.find((i: any) => {
-        const n = i?.instance?.instanceName ?? i?.name ?? i?.instanceName;
+      const found = list.find((item) => {
+        const n =
+          nestedString(item, ["instance", "instanceName"]) ??
+          nestedString(item, ["name"]) ??
+          nestedString(item, ["instanceName"]);
         return n === data.instanceName;
       });
       return found ?? null;
