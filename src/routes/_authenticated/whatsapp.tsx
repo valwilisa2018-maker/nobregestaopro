@@ -311,7 +311,7 @@ function WhatsAppConnectPage() {
   };
 
   const isConnected = state === "open" || state === "connected";
-  const stateColor = isConnected
+  const stateColor: StatusVariant = isConnected
     ? "default"
     : state === "qrcode" || state === "connecting"
     ? "secondary"
@@ -379,7 +379,7 @@ function WhatsAppConnectPage() {
             <div className="flex items-center gap-2">
               <StateIcon className="h-4 w-4" />
               <span className="text-muted-foreground">Status:</span>
-              <Badge variant={stateColor as any}>{state}</Badge>
+              <Badge variant={stateColor}>{state}</Badge>
             </div>
             {number && (
               <div className="flex items-center gap-1">
