@@ -1,6 +1,13 @@
 import { createFileRoute } from "@tanstack/react-router";
 
 type WebhookPayload = Record<string, unknown>;
+type WhatsappStatusInsert = {
+  instance_name: string;
+  last_event?: string | null;
+  number?: string | null;
+  state?: string;
+  updated_at?: string;
+};
 
 function asRecord(value: unknown): WebhookPayload {
   return value && typeof value === "object" && !Array.isArray(value) ? (value as WebhookPayload) : {};
@@ -41,7 +48,7 @@ export const Route = createFileRoute("/api/public/evolution-webhook")({
             const state = mapState(payload);
             const number = extractNumber(payload);
             const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-            const row: Record<string, string | null> = {
+            const row: WhatsappStatusInsert = {
               instance_name: instance,
               last_event: typeof payload.event === "string" ? payload.event : null,
               updated_at: new Date().toISOString(),
