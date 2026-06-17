@@ -103,7 +103,15 @@ function PreviewTile({
           <img src={url} alt={item.file_name} className="w-full h-full object-cover" />
         )}
         {url && isVideo && (
-          <video src={url} className="w-full h-full object-cover" preload="metadata" muted />
+          <video
+            src={`${url}#t=0.5`}
+            className="w-full h-full object-cover"
+            preload="metadata"
+            muted
+            playsInline
+            onMouseEnter={(e) => { (e.currentTarget as HTMLVideoElement).play().catch(() => {}); }}
+            onMouseLeave={(e) => { const v = e.currentTarget as HTMLVideoElement; v.pause(); v.currentTime = 0.5; }}
+          />
         )}
         {url && isAudio && !isVideo && (
           <div className="p-2 w-full" onClick={(e) => e.stopPropagation()}>
