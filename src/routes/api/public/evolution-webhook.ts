@@ -1,10 +1,16 @@
 import { createFileRoute } from "@tanstack/react-router";
 
-function mapState(payload: any): string | null {
-  const ev = String(payload?.event ?? "").toLowerCase();
-  const d = payload?.data ?? {};
+type WebhookPayload = Record<string, unknown>;
+
+function asRecord(value: unknown): WebhookPayload {
+  return value && typeof value === "object" && !Array.isArray(value) ? (value as WebhookPayload) : {};
+}
+
+function mapState(payload: WebhookPayload): string | null {
+  const ev = String(payload.event ?? "").toLowerCase();
+  const d = asRecord(payload.data);
   if (ev.includes("connection")) {
-    const s = d?.state ?? d?.connection ?? d?.status;
+    const s = d.state ?? d.connection ?? d.status;
     if (typeof s === "string") return s;
   }
   if (ev.includes("qrcode")) return "qrcode";
@@ -12,9 +18,10 @@ function mapState(payload: any): string | null {
   return null;
 }
 
-function extractNumber(payload: any): string | null {
-  const d = payload?.data ?? {};
-  return d?.wuid ?? d?.owner ?? d?.number ?? payload?.sender ?? null;
+function extractNumber(payload: WebhookPayload): string | null {
+  const d = asRecord(payload.data);
+  const number = d.wuid ?? d.owner ?? d.number ?? payload.sender;
+  return typeof number === "string" ? number : null;
 }
 
 export const Route = createFileRoute("/api/public/evolution-webhook")({
@@ -22,23 +29,21 @@ export const Route = createFileRoute("/api/public/evolution-webhook")({
     handlers: {
       POST: async ({ request }) => {
         try {
-          const payload = await request.json().catch(() => null);
-          const instance =
-            payload?.instance ?? payload?.instanceName ?? payload?.data?.instance;
+          const payload = asRecord(await request.json().catch(() => null));
+          const data = asRecord(payload.data);
+          const instance = payload.instance ?? payload.instanceName ?? data.instance;
           console.log("[evolution-webhook]", {
-            event: payload?.event,
+            event: payload.event,
             instance,
             at: new Date().toISOString(),
           });
-          if (instance) {
+          if (typeof instance === "string") {
             const state = mapState(payload);
             const number = extractNumber(payload);
-            const { supabaseAdmin } = await import(
-              "@/integrations/supabase/client.server"
-            );
-            const row: Record<string, any> = {
+            const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+            const row: Record<string, string | null> = {
               instance_name: instance,
-              last_event: payload?.event ?? null,
+              last_event: typeof payload.event === "string" ? payload.event : null,
               updated_at: new Date().toISOString(),
             };
             if (state) row.state = state;
