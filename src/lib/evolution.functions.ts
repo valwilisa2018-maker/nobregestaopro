@@ -18,7 +18,9 @@ async function getWebhookUrl() {
       getRequestHeader("x-forwarded-host")?.split(",")[0]?.trim() ??
       getRequestHeader("host")?.split(",")[0]?.trim();
     const proto = getRequestHeader("x-forwarded-proto")?.split(",")[0]?.trim() ?? "https";
-    if (host) return `${proto}://${host}/api/public/evolution-webhook`;
+    if (host && !host.startsWith("id-preview--") && !host.includes("lovable.dev")) {
+      return `${proto}://${host}/api/public/evolution-webhook`;
+    }
   } catch {
     // Falls back below when there is no request context.
   }
@@ -274,7 +276,10 @@ export const evolutionCreateInstance = createServerFn({ method: "POST" })
     if (!hasQr(result)) {
       try {
         const qr = await connectForQr(data.instanceName, 3);
-        result = typeof qr === "string" ? { ...asRecord(result), code: qr } : { ...asRecord(result), ...asRecord(qr) };
+        result =
+          typeof qr === "string"
+            ? { ...asRecord(result), code: qr }
+            : { ...asRecord(result), ...asRecord(qr) };
       } catch (e) {
         console.error("[evolution] connect after create failed", e);
       }
