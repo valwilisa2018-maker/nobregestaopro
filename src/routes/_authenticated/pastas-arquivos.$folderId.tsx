@@ -419,8 +419,59 @@ function FolderDetail() {
       {dragOver === "__page" && (
         <div className="fixed inset-0 z-50 bg-primary/10 border-4 border-dashed border-primary pointer-events-none flex items-center justify-center">
           <div className="bg-background/95 px-6 py-3 rounded-lg font-semibold text-primary shadow-lg">
-            Solte os arquivos aqui
+            <div className="flex items-center gap-2">
+              <Upload className="w-5 h-5" /> Solte os arquivos aqui
+            </div>
           </div>
+        </div>
+      )}
+      {uploads.length > 0 && (
+        <div className="fixed bottom-4 right-4 z-50 w-80 max-h-80 overflow-auto rounded-lg border bg-background shadow-xl">
+          <div className="px-3 py-2 border-b flex items-center justify-between bg-muted/40">
+            <div className="text-xs font-semibold flex items-center gap-2">
+              {uploads.some((u) => u.status === "uploading") ? (
+                <>
+                  <Loader2 className="w-3.5 h-3.5 animate-spin text-primary" />
+                  Enviando {uploads.filter((u) => u.status === "uploading").length} arquivo(s)…
+                </>
+              ) : (
+                <>
+                  <CheckCircle2 className="w-3.5 h-3.5 text-green-600" />
+                  Envio concluído
+                </>
+              )}
+            </div>
+            <button
+              onClick={() => setUploads((prev) => prev.filter((u) => u.status === "uploading"))}
+              className="text-muted-foreground hover:text-foreground"
+              title="Fechar"
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
+          </div>
+          <ul className="divide-y">
+            {uploads.map((u) => (
+              <li key={u.id} className="px-3 py-2 flex items-center gap-2 text-xs">
+                {u.status === "uploading" && <Loader2 className="w-3.5 h-3.5 animate-spin text-primary shrink-0" />}
+                {u.status === "done" && <CheckCircle2 className="w-3.5 h-3.5 text-green-600 shrink-0" />}
+                {u.status === "error" && <AlertCircle className="w-3.5 h-3.5 text-destructive shrink-0" />}
+                <div className="flex-1 min-w-0">
+                  <div className="truncate" title={u.name}>{u.name}</div>
+                  {u.status === "uploading" && (
+                    <div className="mt-1 h-1 bg-muted rounded overflow-hidden">
+                      <div className="h-full bg-primary animate-pulse" style={{ width: "60%" }} />
+                    </div>
+                  )}
+                  {u.status === "error" && u.error && (
+                    <div className="text-destructive text-[10px] truncate">{u.error}</div>
+                  )}
+                </div>
+                <span className="text-[10px] text-muted-foreground shrink-0">
+                  {u.size ? `${Math.round(u.size / 1024)} KB` : ""}
+                </span>
+              </li>
+            ))}
+          </ul>
         </div>
       )}
       <div className="flex items-center gap-2">
