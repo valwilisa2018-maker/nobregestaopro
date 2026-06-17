@@ -487,6 +487,13 @@ function FolderDetail() {
         <Button asChild variant="ghost" size="sm">
           <Link to="/pastas-arquivos"><ArrowLeft className="w-4 h-4 mr-1" /> Voltar</Link>
         </Button>
+        {f.parent_id && (
+          <Button asChild variant="outline" size="sm">
+            <Link to="/pastas-arquivos/$folderId" params={{ folderId: f.parent_id }}>
+              <FolderIcon className="w-4 h-4 mr-1" /> Pasta anterior
+            </Link>
+          </Button>
+        )}
         <div className="ml-auto text-[11px] text-muted-foreground">
           💡 Arraste arquivos aqui ou cole com <kbd className="px-1 border rounded">Ctrl/Cmd+V</kbd>
         </div>
