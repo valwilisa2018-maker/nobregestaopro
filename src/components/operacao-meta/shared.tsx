@@ -104,7 +104,10 @@ export function useOmData() {
     const sale: any = o.sales || {};
     const base = Number((sale.packages?.points_value ?? sale.service_types?.points_value) ?? 0);
     const dur = Number(sale.video_duration_seconds ?? 0);
-    return base * (dur >= 30 ? dur / 30 : 1);
+    // Cada 30s completos = 1 bloco de pontuação (60s=2, 90s=3, 120s=4...).
+    // Sem duração informada, considera 1 bloco (pontuação base do serviço).
+    const blocks = dur > 0 ? Math.max(1, Math.ceil(dur / 30)) : 1;
+    return base * blocks;
   };
   const catName = (o: any) => {
     const s: any = o.sales || {};
