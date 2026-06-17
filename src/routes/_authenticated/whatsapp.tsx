@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { Loader2, Smartphone, RefreshCw, LogOut, Trash2, CheckCircle2, XCircle, AlertCircle } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 import {
   evolutionCreateInstance,
   evolutionGetQr,
@@ -129,6 +130,47 @@ function WhatsAppConnectPage() {
     syncStatus(true);
     startPolling(false);
     return stopPolling;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [instanceName]);
+
+  // Realtime: react instantly to webhook-driven status updates
+  useEffect(() => {
+    const name = instanceName.trim();
+    if (!name) return;
+    const channel = supabase
+      .channel(`whatsapp_status:${name}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "whatsapp_status",
+          filter: `instance_name=eq.${name}`,
+        },
+        (payload) => {
+          const row: any = payload.new ?? payload.old;
+          if (!row) return;
+          const st = String(row.state ?? "unknown");
+          setState(st);
+          setLastCheck(new Date());
+          if (row.number) setNumber(row.number);
+          if (st === "open" || st === "connected") {
+            if (qr) {
+              setQr(null);
+              toast.success("WhatsApp conectado!");
+            }
+          } else if (st === "close" || st === "disconnected") {
+            setNumber(null);
+            toast.warning("WhatsApp desconectou");
+          }
+          // Re-confirm with Evolution to make sure we mirror the real state
+          syncStatus(true);
+        },
+      )
+      .subscribe();
+    return () => {
+      supabase.removeChannel(channel);
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [instanceName]);
 
