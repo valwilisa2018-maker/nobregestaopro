@@ -259,8 +259,6 @@ function WhatsAppConnectPage() {
           } else if (st === "unreachable") {
             setStatusMessage("Evolution não respondeu no tempo esperado. A sincronização automática continua ativa.");
           }
-          // Re-confirm with Evolution to make sure we mirror the real state
-          syncStatus(true);
         },
       )
       .subscribe();
@@ -276,6 +274,7 @@ function WhatsAppConnectPage() {
     setLoading(true);
     setQr(null);
     setState("connecting");
+    setStatusMessage(null);
     try {
       // Check first — if already open on Evolution, just sync UI
       const resp = await create({ data: { instanceName: instanceName.trim() } });
@@ -307,6 +306,7 @@ function WhatsAppConnectPage() {
     stopPolling();
     setLoading(true);
     setState("connecting");
+    setStatusMessage(null);
     try {
       const qrResp = await getQr({ data: { instanceName: instanceName.trim() } });
       const b64 = extractQrBase64(qrResp);
