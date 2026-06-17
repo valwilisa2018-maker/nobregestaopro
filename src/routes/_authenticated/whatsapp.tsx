@@ -190,9 +190,9 @@ function WhatsAppConnectPage() {
       return st;
     } catch (e: unknown) {
       if (!silent) toast.error(getErrorMessage(e) || "Falha ao verificar status");
-      setState("disconnected");
+      setState((prev) => (prev === "qrcode" || prev === "connecting" ? prev : "unreachable"));
       setNumber(null);
-      return "disconnected";
+      return "unreachable";
     }
   };
 
@@ -257,8 +257,10 @@ function WhatsAppConnectPage() {
 
   const handleConnect = async () => {
     if (!instanceName.trim()) return toast.error("Informe o nome da instância");
+    stopPolling();
     setLoading(true);
     setQr(null);
+    setState("connecting");
     try {
       // Check first — if already open on Evolution, just sync UI
       const resp = await create({ data: { instanceName: instanceName.trim() } });
@@ -283,7 +285,9 @@ function WhatsAppConnectPage() {
   };
 
   const handleRefreshQr = async () => {
+    stopPolling();
     setLoading(true);
+    setState("connecting");
     try {
       const qrResp = await getQr({ data: { instanceName: instanceName.trim() } });
       const b64 = extractQrBase64(qrResp);
