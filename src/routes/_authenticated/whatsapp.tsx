@@ -151,7 +151,9 @@ function WhatsAppConnectPage() {
   const [loading, setLoading] = useState(false);
   const [number, setNumber] = useState<string | null>(null);
   const [lastCheck, setLastCheck] = useState<Date | null>(null);
+  const [statusMessage, setStatusMessage] = useState<string | null>(null);
   const pollRef = useRef<number | null>(null);
+  const statusInFlightRef = useRef(false);
 
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -167,11 +169,14 @@ function WhatsAppConnectPage() {
   };
 
   const syncStatus = async (silent = true) => {
+    if (statusInFlightRef.current) return state;
+    statusInFlightRef.current = true;
     try {
       const s = await status({ data: { instanceName: instanceName.trim() } });
       const st = extractState(s);
       setState(st);
       setLastCheck(new Date());
+      setStatusMessage(null);
       if (st === "open" || st === "connected") {
         if (qr) {
           setQr(null);
@@ -189,10 +194,15 @@ function WhatsAppConnectPage() {
       }
       return st;
     } catch (e: unknown) {
-      if (!silent) toast.error(getErrorMessage(e) || "Falha ao verificar status");
+      const message = getErrorMessage(e) || "Falha ao verificar status";
+      if (!silent) toast.error(message);
       setState((prev) => (prev === "qrcode" || prev === "connecting" ? prev : "unreachable"));
+      setStatusMessage("Evolution não respondeu no tempo esperado. A UI vai continuar tentando sincronizar.");
+      setLastCheck(new Date());
       setNumber(null);
       return "unreachable";
+    } finally {
+      statusInFlightRef.current = false;
     }
   };
 
