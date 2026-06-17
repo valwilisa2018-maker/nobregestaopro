@@ -23,12 +23,15 @@ const WEBHOOK_EVENTS = [
   "SEND_MESSAGE",
 ];
 
+type EvoFetchInit = RequestInit & { timeoutMs?: number };
+
 async function setInstanceWebhook(instanceName: string) {
   const webhookUrl = getWebhookUrl();
   // Evolution v2 shape
   try {
     return await evoFetch(`/webhook/set/${instanceName}`, {
       method: "POST",
+      timeoutMs: 8000,
       body: JSON.stringify({
         webhook: {
           enabled: true,
@@ -43,6 +46,7 @@ async function setInstanceWebhook(instanceName: string) {
     // Fallback older shape
     return await evoFetch(`/webhook/set/${instanceName}`, {
       method: "POST",
+      timeoutMs: 8000,
       body: JSON.stringify({
         enabled: true,
         url: webhookUrl,
@@ -54,19 +58,20 @@ async function setInstanceWebhook(instanceName: string) {
   }
 }
 
-async function evoFetch(path: string, init: RequestInit = {}) {
+async function evoFetch(path: string, init: EvoFetchInit = {}) {
   const { url, key } = getConfig();
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 20000);
+  const { timeoutMs = 20000, ...fetchInit } = init;
+  const timeout = setTimeout(() => controller.abort(), timeoutMs);
   let res: Response;
   try {
     res = await fetch(`${url}${path}`, {
-      ...init,
+      ...fetchInit,
       signal: controller.signal,
       headers: {
         "Content-Type": "application/json",
         apikey: key,
-        ...(init.headers ?? {}),
+        ...(fetchInit.headers ?? {}),
       },
     });
   } catch (e: any) {
@@ -98,6 +103,7 @@ export const evolutionCreateInstance = createServerFn({ method: "POST" })
     try {
       result = await evoFetch("/instance/create", {
         method: "POST",
+        timeoutMs: 45000,
         body: JSON.stringify({
           instanceName: data.instanceName,
           qrcode: true,
@@ -113,8 +119,19 @@ export const evolutionCreateInstance = createServerFn({ method: "POST" })
     } catch (e: any) {
       const msg = String(e?.message ?? "").toLowerCase();
       // Instance already exists → just connect and reuse it
-      if (msg.includes("already") || msg.includes("in use") || msg.includes("exists") || msg.includes("409")) {
-        result = await evoFetch(`/instance/connect/${data.instanceName}`);
+      const canTryConnect =
+        msg.includes("already") ||
+        msg.includes("in use") ||
+        msg.includes("exists") ||
+        msg.includes("409") ||
+        msg.includes("abort") ||
+        msg.includes("inacessível");
+      if (canTryConnect) {
+        try {
+          result = await evoFetch(`/instance/connect/${data.instanceName}`, { timeoutMs: 45000 });
+        } catch {
+          throw e;
+        }
       } else {
         throw e;
       }
@@ -130,7 +147,7 @@ export const evolutionCreateInstance = createServerFn({ method: "POST" })
     // a base64 in /instance/create even when qrcode:true.
     if (!result?.qrcode?.base64 && !result?.base64) {
       try {
-        const qr = await evoFetch(`/instance/connect/${data.instanceName}`);
+        const qr = await evoFetch(`/instance/connect/${data.instanceName}`, { timeoutMs: 45000 });
         result = { ...(result ?? {}), ...qr };
       } catch (e) {
         console.error("[evolution] connect after create failed", e);
@@ -144,14 +161,14 @@ export const evolutionGetQr = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: { instanceName: string }) => d)
   .handler(async ({ data }) => {
-    return await evoFetch(`/instance/connect/${data.instanceName}`);
+    return await evoFetch(`/instance/connect/${data.instanceName}`, { timeoutMs: 45000 });
   });
 
 export const evolutionStatus = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: { instanceName: string }) => d)
   .handler(async ({ data }) => {
-    return await evoFetch(`/instance/connectionState/${data.instanceName}`);
+    return await evoFetch(`/instance/connectionState/${data.instanceName}`, { timeoutMs: 12000 });
   });
 
 export const evolutionLogout = createServerFn({ method: "POST" })
