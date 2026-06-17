@@ -91,6 +91,47 @@ function hasQr(result: unknown) {
   return Boolean(extractQr(result));
 }
 
+function extractState(result: unknown) {
+  return (
+    nestedString(result, ["instance", "state"]) ??
+    nestedString(result, ["instance", "connectionStatus"]) ??
+    nestedString(result, ["state"]) ??
+    nestedString(result, ["status"]) ??
+    nestedString(result, ["connection"]) ??
+    null
+  );
+}
+
+function extractNumber(result: unknown) {
+  return (
+    nestedString(result, ["instance", "owner"]) ??
+    nestedString(result, ["instance", "number"]) ??
+    nestedString(result, ["owner"]) ??
+    nestedString(result, ["number"]) ??
+    null
+  );
+}
+
+async function syncWhatsappStatus(
+  instanceName: string,
+  patch: { state?: string; number?: string | null; last_event?: string | null },
+) {
+  try {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { error } = await supabaseAdmin.from("whatsapp_status").upsert(
+      {
+        instance_name: instanceName,
+        updated_at: new Date().toISOString(),
+        ...patch,
+      },
+      { onConflict: "instance_name" },
+    );
+    if (error) console.warn("[evolution] status sync failed", error.message);
+  } catch (e) {
+    console.warn("[evolution] status sync unavailable", errorMessage(e));
+  }
+}
+
 async function setInstanceWebhook(instanceName: string) {
   const webhookUrl = await getWebhookUrl();
   // Evolution v2 documented shape
