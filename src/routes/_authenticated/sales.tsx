@@ -943,7 +943,7 @@ function SalesPage() {
                     <TableCell><div className="font-semibold text-base">{s.customers?.company || "—"}</div><div className="text-xs text-muted-foreground">{s.customers?.name}</div></TableCell>
                     <TableCell>{s.service_types?.name ?? "—"}</TableCell><TableCell>{s.sellers?.name ?? "—"}</TableCell><TableCell>{s.producers?.name ?? "—"}</TableCell>
                     <TableCell className="text-right font-semibold">{formatCurrency(s.total_amount)}</TableCell>
-                    <TableCell><Badge variant={statusVariant(s.payment_status) as any}>{s.payment_status.replace("_", " ")}</Badge></TableCell>
+                    <TableCell><Badge variant={statusVariant(s.payment_status) as any}>{String(s.payment_status ?? "—").replace("_", " ")}</Badge></TableCell>
                     <TableCell>
                       <div className="flex items-center gap-1">
                         {(s.google_drive_link || s.trello_link) && (
