@@ -9,16 +9,14 @@ async function getVersion(): Promise<string | null> {
       cache: "no-store",
       headers: { "cache-control": "no-cache" },
     });
-    const etag = res.headers.get("etag");
-    if (etag) return etag;
     const text = await res.text();
-    // hash of first 5000 chars (script tags with hashed names change between builds)
-    let hash = 0;
-    const sample = text.slice(0, 5000);
-    for (let i = 0; i < sample.length; i++) {
-      hash = ((hash << 5) - hash + sample.charCodeAt(i)) | 0;
+    // Extract hashed asset filenames from <script src="/assets/..."> and <link href="/assets/...">.
+    // These only change on real deploys, so we ignore CDN-variant ETags and header reorderings.
+    const matches = text.match(/\/assets\/[A-Za-z0-9._-]+\.(?:js|css)/g);
+    if (matches && matches.length > 0) {
+      return matches.sort().join("|");
     }
-    return String(hash);
+    return null;
   } catch {
     return null;
   }
