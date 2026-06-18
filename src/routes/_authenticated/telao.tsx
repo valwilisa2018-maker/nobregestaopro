@@ -278,48 +278,48 @@ function Telao() {
       if (error) throw error;
       return (data ?? []) as SaleRow[];
     },
-    refetchInterval: 15000,
-    refetchIntervalInBackground: true,
+    refetchInterval: 60000,
+    refetchIntervalInBackground: false,
     refetchOnWindowFocus: true,
     refetchOnReconnect: true,
-    staleTime: 0,
+    staleTime: 30_000,
   });
 
   const customersQ = useQuery({
     queryKey: ["telao-customers"],
     queryFn: async () => (await supabase.from("customers").select("id,name")).data ?? [],
-    refetchInterval: 60000,
-    refetchIntervalInBackground: true,
+    refetchInterval: 300000,
+    refetchIntervalInBackground: false,
   });
   const sellersQ = useQuery({
     queryKey: ["telao-sellers"],
     queryFn: async () => (await supabase.from("sellers").select("id,name,user_id")).data ?? [],
-    refetchInterval: 60000,
-    refetchIntervalInBackground: true,
+    refetchInterval: 300000,
+    refetchIntervalInBackground: false,
   });
   const producersQ = useQuery({
     queryKey: ["telao-producers"],
     queryFn: async () => (await supabase.from("producers").select("id,name,user_id")).data ?? [],
-    refetchInterval: 60000,
-    refetchIntervalInBackground: true,
+    refetchInterval: 300000,
+    refetchIntervalInBackground: false,
   });
   const profilesQ = useQuery({
     queryKey: ["telao-profiles"],
     queryFn: async () => (await supabase.from("profiles").select("id,full_name,email")).data ?? [],
-    refetchInterval: 60000,
-    refetchIntervalInBackground: true,
+    refetchInterval: 300000,
+    refetchIntervalInBackground: false,
   });
   const serviceTypesQ = useQuery({
     queryKey: ["telao-service-types"],
     queryFn: async () => (await supabase.from("service_types").select("id,name")).data ?? [],
-    refetchInterval: 120000,
-    refetchIntervalInBackground: true,
+    refetchInterval: 600000,
+    refetchIntervalInBackground: false,
   });
   const packagesQ = useQuery({
     queryKey: ["telao-packages"],
     queryFn: async () => (await supabase.from("packages").select("id,name")).data ?? [],
-    refetchInterval: 120000,
-    refetchIntervalInBackground: true,
+    refetchInterval: 600000,
+    refetchIntervalInBackground: false,
   });
   const serviceOrdersQ = useQuery({
     queryKey: ["telao-service-orders"],
@@ -331,14 +331,14 @@ function Telao() {
           .order("created_at", { ascending: false })
           .limit(2000)
       ).data ?? [],
-    refetchInterval: 20000,
-    refetchIntervalInBackground: true,
+    refetchInterval: 60000,
+    refetchIntervalInBackground: false,
   });
   const kanbanColumnsQ = useQuery({
     queryKey: ["telao-kanban-columns"],
     queryFn: async () => (await supabase.from("kanban_columns").select("id,is_done")).data ?? [],
-    refetchInterval: 120000,
-    refetchIntervalInBackground: true,
+    refetchInterval: 600000,
+    refetchIntervalInBackground: false,
   });
 
   const sales = salesQ.data ?? [];
