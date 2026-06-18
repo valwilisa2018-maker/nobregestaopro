@@ -66,7 +66,7 @@ export function useOmData() {
     queryFn: async () =>
       (await supabase.from("producers").select("id,name,daily_points_goal,active,avatar_url")).data ?? [],
     refetchOnWindowFocus: true,
-    refetchInterval: 30_000,
+    staleTime: 60_000,
   });
   const settings = useQuery({
     queryKey: ["om-settings"],
@@ -89,7 +89,7 @@ export function useOmData() {
           producer_id: o.producer_id ?? o.sales?.producer_id ?? null,
         })) ?? [],
     refetchOnWindowFocus: true,
-    refetchInterval: 30_000,
+    staleTime: 30_000,
   });
 
   // Realtime: refletir imediatamente novos/desativados produtores e movimentações de cards
