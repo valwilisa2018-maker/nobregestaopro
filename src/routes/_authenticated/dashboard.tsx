@@ -63,19 +63,25 @@ function Dashboard() {
 
   // Realtime — recarrega quando vendas / serviços / notas mudam
   useEffect(() => {
+    // Throttle invalidations to avoid flooding queries on bursts of changes
+    let pendingKeys = new Set<string>();
+    let timer: ReturnType<typeof setTimeout> | null = null;
+    const schedule = (key: string) => {
+      pendingKeys.add(key);
+      if (timer) return;
+      timer = setTimeout(() => {
+        pendingKeys.forEach((k) => qc.invalidateQueries({ queryKey: [k] }));
+        pendingKeys.clear();
+        timer = null;
+      }, 5000);
+    };
     const ch = supabase
       .channel("dashboard-rt")
-      .on("postgres_changes", { event: "*", schema: "public", table: "sales" }, () => {
-        qc.invalidateQueries({ queryKey: ["dash-sales"] });
-      })
-      .on("postgres_changes", { event: "*", schema: "public", table: "service_orders" }, () => {
-        qc.invalidateQueries({ queryKey: ["dash-orders"] });
-      })
-      .on("postgres_changes", { event: "*", schema: "public", table: "invoices" }, () => {
-        qc.invalidateQueries({ queryKey: ["dash-invoices"] });
-      })
+      .on("postgres_changes", { event: "*", schema: "public", table: "sales" }, () => schedule("dash-sales"))
+      .on("postgres_changes", { event: "*", schema: "public", table: "service_orders" }, () => schedule("dash-orders"))
+      .on("postgres_changes", { event: "*", schema: "public", table: "invoices" }, () => schedule("dash-invoices"))
       .subscribe();
-    return () => { supabase.removeChannel(ch); };
+    return () => { if (timer) clearTimeout(timer); supabase.removeChannel(ch); };
   }, [qc]);
 
   const sales = useQuery({
@@ -87,6 +93,8 @@ function Dashboard() {
       if (error) throw error;
       return data ?? [];
     },
+    staleTime: 60_000,
+    refetchOnWindowFocus: false,
   });
 
   const goals = useQuery({
@@ -95,6 +103,8 @@ function Dashboard() {
       const { data } = await supabase.from("goals").select("*").is("seller_id", null);
       return data ?? [];
     },
+    staleTime: 300_000,
+    refetchOnWindowFocus: false,
   });
 
   const orders = useQuery({
@@ -106,6 +116,8 @@ function Dashboard() {
       if (error) { toast.error("Erro ao carregar pedidos"); throw error; }
       return data ?? [];
     },
+    staleTime: 60_000,
+    refetchOnWindowFocus: false,
   });
 
   const sellers = useQuery({
@@ -115,6 +127,8 @@ function Dashboard() {
       if (error) { toast.error("Erro ao carregar vendedores"); throw error; }
       return data ?? [];
     },
+    staleTime: 300_000,
+    refetchOnWindowFocus: false,
   });
   const producers = useQuery({
     queryKey: ["dash-producers"],
@@ -123,6 +137,8 @@ function Dashboard() {
       if (error) { toast.error("Erro ao carregar produtores"); throw error; }
       return data ?? [];
     },
+    staleTime: 300_000,
+    refetchOnWindowFocus: false,
   });
   const invoices = useQuery({
     queryKey: ["dash-invoices"],
@@ -131,6 +147,8 @@ function Dashboard() {
       if (error) { toast.error("Erro ao carregar faturas"); throw error; }
       return data ?? [];
     },
+    staleTime: 60_000,
+    refetchOnWindowFocus: false,
   });
   const serviceTypes = useQuery({
     queryKey: ["dash-service-types"],
@@ -139,6 +157,8 @@ function Dashboard() {
       if (error) { toast.error("Erro ao carregar serviços"); throw error; }
       return data ?? [];
     },
+    staleTime: 600_000,
+    refetchOnWindowFocus: false,
   });
   const packages = useQuery({
     queryKey: ["dash-packages"],
@@ -147,6 +167,8 @@ function Dashboard() {
       if (error) { toast.error("Erro ao carregar pacotes"); throw error; }
       return data ?? [];
     },
+    staleTime: 600_000,
+    refetchOnWindowFocus: false,
   });
   const customers = useQuery({
     queryKey: ["dash-customers"],
@@ -155,6 +177,8 @@ function Dashboard() {
       if (error) { toast.error("Erro ao carregar clientes"); throw error; }
       return data ?? [];
     },
+    staleTime: 300_000,
+    refetchOnWindowFocus: false,
   });
 
   const allRaw = sales.data ?? [];
