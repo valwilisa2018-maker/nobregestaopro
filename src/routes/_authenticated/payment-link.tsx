@@ -40,35 +40,9 @@ function PaymentLinkPage() {
     
     setLoading(true); setLink(null);
     try {
-      // 1. Criar registro de venda pendente no banco
-      const { data: { user } } = await supabase.auth.getUser();
       const amountInCents = Math.round(v * 100);
-      
-      // Precisamos de um customer_id válido para a tabela sales. 
-      // Por enquanto, vamos buscar o primeiro cliente ou um placeholder se existir.
-      const { data: customer } = await supabase.from("customers").select("id").limit(1).maybeSingle();
-      
-      if (!customer) {
-        throw new Error("Nenhum cliente encontrado para vincular a venda. Cadastre um cliente primeiro.");
-      }
 
-      const { data: sale, error: saleError } = await supabase
-        .from("sales")
-        .insert({
-          customer_id: customer.id,
-          total_amount: v,
-          package_name: name.trim() || "Pagamento",
-          payment_status: "pendente",
-          is_payment_link: true,
-          created_by: user?.id,
-          sale_date: new Date().toISOString().split('T')[0]
-        })
-        .select()
-        .single();
-
-      if (saleError) throw new Error(`Erro ao registrar venda: ${saleError.message}`);
-
-      // 2. Chamar API para gerar link
+      // Apenas gerar o link de pagamento — NÃO cria venda.
       const res = await callCreate({ data: {
         name: name.trim() || "Pagamento",
         amount: amountInCents,
@@ -80,7 +54,7 @@ function PaymentLinkPage() {
         toast.error(res.error);
       } else { 
         setLink(res.url); 
-        toast.success("Link gerado e vinculado à venda!"); 
+        toast.success("Link gerado com sucesso!");
       }
     } catch (e: any) {
       toast.error(e?.message ?? "Falha ao gerar link");
