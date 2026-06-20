@@ -583,6 +583,77 @@ function Dashboard() {
         <StatCard tone="violet" label="Notas emitidas" value={`${invIssued} / ${invList.length}`} icon={FileCheck2} hint={`${invPending} aguardando`} />
       </div>
 
+      {/* Rankings — Top Vendedores / Top Produtores (logo abaixo dos cards de produção) */}
+      <div className="grid gap-4 lg:grid-cols-2">
+        <Card className="border-border/50" style={{ boxShadow: "var(--shadow-card)" }}>
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <CardTitle className="flex items-center gap-2"><Users className="w-4 h-4 text-primary" />Top Vendedores ({current.label})</CardTitle>
+              <Badge variant="outline">{sellerRanking.length}</Badge>
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            {sellerRanking.length === 0 && <p className="text-sm text-muted-foreground">Sem vendas no período para os filtros atuais.</p>}
+            {sellerRanking.map((s, i) => (
+              <button
+                key={s.id}
+                type="button"
+                onClick={() => setDrill({ kind: "seller", id: s.id, label: s.name })}
+                className="w-full flex items-center justify-between p-2.5 rounded-lg bg-muted/40 hover:bg-muted/70 hover:ring-1 hover:ring-primary/40 transition text-left cursor-pointer"
+              >
+                <div className="flex items-center gap-3">
+                  {i === 0 ? (
+                    <TopVendorBadge rank={1} size="sm" />
+                  ) : (
+                    <div className="w-7 h-7 rounded-full text-xs font-bold flex items-center justify-center bg-primary/20 text-primary">{i + 1}</div>
+                  )}
+                  <div>
+                    <div className="font-medium leading-tight">{s.name}</div>
+                    <div className="text-[11px] text-muted-foreground">{s.qtd} vendas</div>
+                  </div>
+                </div>
+                <span className="font-semibold">{formatCurrency(s.total)}</span>
+              </button>
+            ))}
+          </CardContent>
+        </Card>
+
+        <Card className="border-border/50" style={{ boxShadow: "var(--shadow-card)" }}>
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <CardTitle className="flex items-center gap-2"><Factory className="w-4 h-4 text-primary" />Top Produtores ({current.label})</CardTitle>
+              <Badge variant="outline">{producerRanking.length}</Badge>
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            {producerRanking.length === 0 && <p className="text-sm text-muted-foreground">Sem produção no período.</p>}
+            {producerRanking.map((p, i) => (
+              <button
+                key={p.id}
+                type="button"
+                onClick={() => setDrill({ kind: "producer", id: p.id, label: p.name })}
+                className="w-full flex items-center justify-between p-2.5 rounded-lg bg-muted/40 hover:bg-muted/70 hover:ring-1 hover:ring-primary/40 transition text-left cursor-pointer"
+              >
+                <div className="flex items-center gap-3">
+                  {i === 0 ? (
+                    <TopVendorBadge rank={1} size="sm" />
+                  ) : (
+                    <div className="w-7 h-7 rounded-full text-xs font-bold flex items-center justify-center bg-primary/20 text-primary">{i + 1}</div>
+                  )}
+                  <div>
+                    <div className="font-medium leading-tight">{p.name}</div>
+                    <div className="text-[11px] text-muted-foreground">
+                      {p.emProducao > 0 ? `${p.emProducao} em produção` : "—"}
+                    </div>
+                  </div>
+                </div>
+                <span className="font-semibold">{p.entregues} vídeo{p.entregues === 1 ? "" : "s"}</span>
+              </button>
+            ))}
+          </CardContent>
+        </Card>
+      </div>
+
       {/* Charts: 30 dias + Pagamento */}
       <div className="grid gap-4 lg:grid-cols-3">
         <Card className="lg:col-span-2 border-border/50" style={{ boxShadow: "var(--shadow-card)" }}>
@@ -668,77 +739,6 @@ function Dashboard() {
                 <Progress value={m.g ? Math.min(100, (m.v / m.g) * 100) : 0} className="h-2" />
                 <div className="text-[11px] text-muted-foreground mt-1">{formatCurrency(m.v)} {m.g ? `/ ${formatCurrency(m.g)}` : ""}</div>
               </div>
-            ))}
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Rankings */}
-      <div className="grid gap-4 lg:grid-cols-2">
-        <Card className="border-border/50" style={{ boxShadow: "var(--shadow-card)" }}>
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <CardTitle className="flex items-center gap-2"><Users className="w-4 h-4 text-primary" />Top Vendedores ({current.label})</CardTitle>
-              <Badge variant="outline">{sellerRanking.length}</Badge>
-            </div>
-          </CardHeader>
-          <CardContent className="space-y-2">
-            {sellerRanking.length === 0 && <p className="text-sm text-muted-foreground">Sem vendas no período para os filtros atuais.</p>}
-            {sellerRanking.map((s, i) => (
-              <button
-                key={s.id}
-                type="button"
-                onClick={() => setDrill({ kind: "seller", id: s.id, label: s.name })}
-                className="w-full flex items-center justify-between p-2.5 rounded-lg bg-muted/40 hover:bg-muted/70 hover:ring-1 hover:ring-primary/40 transition text-left cursor-pointer"
-              >
-                <div className="flex items-center gap-3">
-                  {i === 0 ? (
-                    <TopVendorBadge rank={1} size="sm" />
-                  ) : (
-                    <div className="w-7 h-7 rounded-full text-xs font-bold flex items-center justify-center bg-primary/20 text-primary">{i + 1}</div>
-                  )}
-                  <div>
-                    <div className="font-medium leading-tight">{s.name}</div>
-                    <div className="text-[11px] text-muted-foreground">{s.qtd} vendas</div>
-                  </div>
-                </div>
-                <span className="font-semibold">{formatCurrency(s.total)}</span>
-              </button>
-            ))}
-          </CardContent>
-        </Card>
-
-        <Card className="border-border/50" style={{ boxShadow: "var(--shadow-card)" }}>
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <CardTitle className="flex items-center gap-2"><Factory className="w-4 h-4 text-primary" />Top Produtores ({current.label})</CardTitle>
-              <Badge variant="outline">{producerRanking.length}</Badge>
-            </div>
-          </CardHeader>
-          <CardContent className="space-y-2">
-            {producerRanking.length === 0 && <p className="text-sm text-muted-foreground">Sem produção no período.</p>}
-            {producerRanking.map((p, i) => (
-              <button
-                key={p.id}
-                type="button"
-                onClick={() => setDrill({ kind: "producer", id: p.id, label: p.name })}
-                className="w-full flex items-center justify-between p-2.5 rounded-lg bg-muted/40 hover:bg-muted/70 hover:ring-1 hover:ring-primary/40 transition text-left cursor-pointer"
-              >
-                <div className="flex items-center gap-3">
-                  {i === 0 ? (
-                    <TopVendorBadge rank={1} size="sm" />
-                  ) : (
-                    <div className="w-7 h-7 rounded-full text-xs font-bold flex items-center justify-center bg-primary/20 text-primary">{i + 1}</div>
-                  )}
-                  <div>
-                    <div className="font-medium leading-tight">{p.name}</div>
-                    <div className="text-[11px] text-muted-foreground">
-                      {p.emProducao > 0 ? `${p.emProducao} em produção` : "—"}
-                    </div>
-                  </div>
-                </div>
-                <span className="font-semibold">{p.entregues} vídeo{p.entregues === 1 ? "" : "s"}</span>
-              </button>
             ))}
           </CardContent>
         </Card>
