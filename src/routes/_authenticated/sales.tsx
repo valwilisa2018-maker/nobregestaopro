@@ -22,6 +22,9 @@ import { createPaymentLink } from "@/lib/pagarme.functions";
 import { Copy, Link2, ExternalLink } from "lucide-react";
 import { QRCodeSVG } from "qrcode.react";
 import { autoLinkFolderFromUrl } from "@/lib/project-folders";
+import { PhoneInputBR } from "@/components/phone-input-br";
+import { waHref, formatPhoneBR } from "@/lib/phone";
+import { MessageCircle } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/sales")({
   component: SalesPage,
@@ -803,7 +806,7 @@ function SalesPage() {
                   </Select>
                 </div>
                 <div><Label>CPF/CNPJ {form.with_invoice === "sim" ? "*" : "(Opcional)"}</Label><Input value={form.document || ""} onChange={(e) => set("document", e.target.value)} /></div>
-                <div><Label>Telefone *</Label><Input value={form.phone || ""} onChange={(e) => set("phone", e.target.value)} /></div>
+                <div><Label>Telefone *</Label><PhoneInputBR value={form.phone || ""} onChange={(v) => set("phone", v)} /></div>
                 <div><Label>E-mail (opcional)</Label><Input value={form.email || ""} onChange={(e) => set("email", e.target.value)} /></div>
 
                 <div><Label>Valor total *</Label><Input type="number" step="0.01" value={form.total_amount || ""} onChange={(e) => set("total_amount", e.target.value)} /></div>
@@ -1144,7 +1147,7 @@ function SalesPage() {
                 </Select>
               </div>
               <div><Label>CPF/CNPJ {editing.with_invoice === "sim" ? "*" : "(Opcional)"}</Label><Input value={editing.document ?? editing.customers?.document ?? ""} onChange={(e) => setEditing((prev: any) => ({ ...prev, document: e.target.value }))} /></div>
-              <div><Label>Telefone *</Label><Input value={editing.phone ?? editing.customers?.phone ?? ""} onChange={(e) => setEditing((prev: any) => ({ ...prev, phone: e.target.value }))} /></div>
+              <div><Label>Telefone *</Label><PhoneInputBR value={editing.phone ?? editing.customers?.phone ?? ""} onChange={(v) => setEditing((prev: any) => ({ ...prev, phone: v }))} /></div>
               <div><Label>E-mail (opcional)</Label><Input value={editing.email ?? editing.customers?.email ?? ""} onChange={(e) => setEditing((prev: any) => ({ ...prev, email: e.target.value }))} /></div>
               <div><Label>Valor total *</Label><Input type="number" step="0.01" value={editing.total_amount ?? ""} onChange={(e) => editSet("total_amount", e.target.value)} /></div>
               <div><Label>Valor pago *</Label><Input type="number" step="0.01" value={editing.paid_amount ?? ""} onChange={(e) => editSet("paid_amount", e.target.value)} /></div>
