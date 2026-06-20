@@ -53,6 +53,9 @@ function ChatOrganizador() {
   const [roteiroText, setRoteiroText] = useState("");
   const [createOpen, setCreateOpen] = useState(false);
   const [createName, setCreateName] = useState("");
+  const [tourOpen, setTourOpen] = useState(false);
+  const [tourStep, setTourStep] = useState(0);
+  const [highlightCreate, setHighlightCreate] = useState(false);
   const editorRef = useRef<HTMLDivElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
   const recRef = useRef<MediaRecorder | null>(null);
@@ -63,6 +66,22 @@ function ChatOrganizador() {
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => setCurrentUserId(data.user?.id ?? null));
   }, []);
+
+  useEffect(() => {
+    try {
+      if (!localStorage.getItem("chat_organizador_tour_v2")) {
+        setTourOpen(true);
+        setTourStep(0);
+      }
+    } catch {}
+  }, []);
+
+  const finishTour = () => {
+    try { localStorage.setItem("chat_organizador_tour_v2", "1"); } catch {}
+    setTourOpen(false);
+    setHighlightCreate(true);
+    setTimeout(() => setHighlightCreate(false), 6000);
+  };
 
   useEffect(() => { taRef.current?.focus(); }, [activeFolderId]);
 
@@ -536,9 +555,19 @@ function ChatOrganizador() {
                   <Button size="icon" variant="outline" onClick={() => setRoteiroOpen(true)} disabled={sending} title="Escrever/Colar roteiro">
                     <ScrollText className="w-4 h-4" />
                   </Button>
-                  <Button size="icon" variant="outline" onClick={() => setCreateOpen(true)} disabled={sending} title="Criar pasta">
-                    <FolderPlus className="w-4 h-4" />
-                  </Button>
+                  <div className={`relative ${highlightCreate ? "z-10" : ""}`}>
+                    {highlightCreate && (
+                      <>
+                        <span className="pointer-events-none absolute inset-0 rounded-md ring-2 ring-primary animate-ping" />
+                        <span className="pointer-events-none absolute -left-2 top-1/2 -translate-y-1/2 -translate-x-full whitespace-nowrap rounded-md bg-primary px-2 py-1 text-[11px] font-medium text-primary-foreground shadow-md">
+                          Clique aqui para criar a pasta
+                        </span>
+                      </>
+                    )}
+                    <Button size="icon" variant={highlightCreate ? "default" : "outline"} onClick={() => { setCreateOpen(true); setHighlightCreate(false); }} disabled={sending} title="Criar pasta" className={highlightCreate ? "ring-2 ring-primary" : ""}>
+                      <FolderPlus className="w-4 h-4" />
+                    </Button>
+                  </div>
                   <Button size="icon" variant={recording ? "destructive" : "outline"} onClick={toggleRecord} disabled={sending && !recording} title='Gravar áudio (diga "criar pasta NOME")'>
                     {recording ? <Square className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
                   </Button>
@@ -590,6 +619,55 @@ function ChatOrganizador() {
             <Button onClick={handleCreateFromButton} disabled={sending || !createName.trim()}>
               <FolderPlus className="w-4 h-4 mr-1" /> Criar pasta
             </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      <Dialog open={tourOpen} onOpenChange={(o) => { if (!o) finishTour(); }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>
+              {tourStep === 0 && "✨ Novidade: Criar pasta com um clique"}
+              {tourStep === 1 && "1º passo — Toque no botão Criar pasta"}
+              {tourStep === 2 && "2º passo — Dê um nome para a pasta"}
+              {tourStep === 3 && "Pronto! Link gerado e copiado"}
+            </DialogTitle>
+            <DialogDescription className="pt-2 space-y-3 text-sm leading-relaxed">
+              {tourStep === 0 && (
+                <>
+                  Agora você pode criar uma pasta direto por aqui, sem precisar usar comandos de voz ou palavras-chave.
+                  Em 3 passos rápidos você terá a pasta pronta e o link já copiado.
+                </>
+              )}
+              {tourStep === 1 && (
+                <>
+                  Na barra de envio à direita, procure o ícone <FolderPlus className="inline w-4 h-4 align-text-bottom" /> <strong>Criar pasta</strong>.
+                  Vamos destacá-lo para você assim que fechar este tutorial.
+                </>
+              )}
+              {tourStep === 2 && (
+                <>
+                  Vai abrir uma janela perguntando <em>"Qual o nome da pasta?"</em>.
+                  Digite o nome (ex.: <em>Cliente João - Vídeo Institucional</em>) e confirme em <strong>Criar pasta</strong>.
+                </>
+              )}
+              {tourStep === 3 && (
+                <>
+                  A pasta é criada automaticamente, o <strong>link já é copiado</strong> para sua área de transferência
+                  e, se houver arquivos na fila, eles são enviados direto para ela. É só colar o link onde precisar.
+                </>
+              )}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="gap-2">
+            <Button variant="ghost" onClick={finishTour}>Pular</Button>
+            {tourStep > 0 && (
+              <Button variant="outline" onClick={() => setTourStep((s) => s - 1)}>Voltar</Button>
+            )}
+            {tourStep < 3 ? (
+              <Button onClick={() => setTourStep((s) => s + 1)}>Próximo</Button>
+            ) : (
+              <Button onClick={finishTour}>Entendi, vou criar</Button>
+            )}
           </DialogFooter>
         </DialogContent>
       </Dialog>
