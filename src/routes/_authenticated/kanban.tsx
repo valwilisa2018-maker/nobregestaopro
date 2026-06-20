@@ -1083,12 +1083,12 @@ function KanbanPage() {
                 <Label>Link do projeto</Label>
                 <Input
                   type="url"
-                  placeholder="https://..."
-                  value={editing.trello_link ?? ""}
-                  onChange={(e) => setEditing({ ...editing, trello_link: e.target.value })}
+                  placeholder="https://drive.google.com/..."
+                  value={editing.google_drive_link ?? ""}
+                  onChange={(e) => setEditing({ ...editing, google_drive_link: e.target.value })}
                 />
-                {editing.trello_link && (
-                  <a href={editing.trello_link} target="_blank" rel="noreferrer"
+                {editing.google_drive_link && (
+                  <a href={editing.google_drive_link} target="_blank" rel="noreferrer"
                     className="flex items-center gap-2 text-sm text-blue-500 hover:underline break-all mt-1">
                     <ExternalLink className="w-4 h-4 shrink-0" />
                     Abrir Google Drive
@@ -1099,10 +1099,9 @@ function KanbanPage() {
                 <Label>Link da pasta da plataforma</Label>
                 <Input
                   type="url"
-                  placeholder="https://..."
+                  placeholder="https://.../pastas-arquivos/..."
                   value={editing.platform_link ?? ""}
                   onChange={(e) => setEditing({ ...editing, platform_link: e.target.value })}
-                  disabled={!editing.sale_id}
                 />
                 {editing.platform_link ? (
                   <a href={editing.platform_link} target="_blank" rel="noreferrer"
@@ -1112,7 +1111,7 @@ function KanbanPage() {
                   </a>
                 ) : (
                   <p className="text-xs text-muted-foreground mt-1 opacity-60">
-                    {editing.sale_id ? "Cole o link da pasta da plataforma para ativar o botão" : "Disponível somente para cards vinculados a uma venda"}
+                    Cole o link da pasta da plataforma para ativar o botão
                   </p>
                 )}
               </div>
