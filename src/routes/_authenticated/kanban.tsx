@@ -60,6 +60,28 @@ function fmtVideoDuration(sec?: number | null): string {
   return m === 0 ? `${s}s` : s === 0 ? `${m}min` : `${m}min${s}s`;
 }
 
+// Converte "2:30", "1:02:30", "150s", "2min30s", "2min", "150" para segundos.
+// Retorna null se a entrada estiver vazia, 0 se ilegível.
+function parseDurationInput(raw: string): number | null {
+  const s = (raw ?? "").trim().toLowerCase();
+  if (!s) return null;
+  const mColon = s.match(/^(\d{1,2})(?::(\d{1,2}))(?::(\d{1,2}))?$/);
+  if (mColon) {
+    const a = Number(mColon[1] || 0);
+    const b = Number(mColon[2] || 0);
+    const c = mColon[3] != null ? Number(mColon[3]) : null;
+    return c != null ? a * 3600 + b * 60 + c : a * 60 + b;
+  }
+  const mUnits = s.match(/(\d+)\s*(?:min|m)\b(?:\s*(\d+)\s*s\b)?/);
+  if (mUnits) return Number(mUnits[1]) * 60 + Number(mUnits[2] || 0);
+  const mSec = s.match(/^(\d+)\s*s?$/);
+  if (mSec) {
+    const n = Number(mSec[1]);
+    return n < 60 ? n : n; // "150" => 150 segundos
+  }
+  return 0;
+}
+
 export const Route = createFileRoute("/_authenticated/kanban")({
   component: KanbanPage,
   validateSearch: (s: Record<string, unknown>) => ({ card: typeof s.card === "string" ? s.card : undefined }),
@@ -113,6 +135,8 @@ type CardForm = {
   customer_name?: string | null;
   producer_id?: string | null;
   expected_delivery_date?: string | null;
+  video_duration_seconds?: number | null;
+  video_duration_input?: string;
 };
 
 const emptyForm = (column_id = ""): CardForm => ({
