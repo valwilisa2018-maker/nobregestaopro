@@ -128,7 +128,7 @@ export function useOmData() {
         await supabase
           .from("service_orders")
           .select(
-              "id,title,producer_id,sale_id,column_id,delivered_at,updated_at,redo_count,last_redo_at,kanban_columns(name,is_done),sales(producer_id,service_type_id,package_id,video_duration_seconds,service_types(name,points,points_value),packages(name,points_value))",
+              "id,title,producer_id,sale_id,column_id,delivered_at,updated_at,redo_count,last_redo_at,kanban_columns(name,is_done,is_default),sales(producer_id,service_type_id,package_id,video_duration_seconds,service_types(name,points,points_value),packages(name,points_value))",
           )
         ).data?.map((o: any) => ({
           ...o,
@@ -174,7 +174,10 @@ export function useOmData() {
 
   // Estado atual no Kanban (independente de período): tudo que está hoje em colunas concluídas / em produção.
   const allOrders = (orders.data ?? []).filter((o: any) => !o.producer_id || activeProducerIds.has(o.producer_id));
-  const inProductionNow = allOrders.filter((o: any) => o.kanban_columns?.is_done === false);
+  // "Em produção" reflete o Kanban real: exclui a coluna "A fazer" (is_default) e as colunas concluídas (is_done)
+  const inProductionNow = allOrders.filter(
+    (o: any) => o.kanban_columns && o.kanban_columns.is_done === false && o.kanban_columns.is_default !== true,
+  );
   const doneNow = allOrders.filter((o: any) => o.kanban_columns?.is_done === true);
 
   const sumPts = (arr: any[]) => arr.reduce((a, o) => a + computePts(o), 0);
