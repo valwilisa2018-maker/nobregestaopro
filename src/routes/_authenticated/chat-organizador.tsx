@@ -553,9 +553,12 @@ function ChatOrganizador() {
                     <input ref={fileRef} type="file" multiple accept="image/*,video/*,audio/*,application/pdf,.pdf,.doc,.docx,.txt" className="hidden" onChange={(e) => sendFiles(e.target.files)} />
                     <Tooltip>
                       <TooltipTrigger asChild>
-                        <Button size="icon" variant="outline" onClick={() => fileRef.current?.click()} disabled={sending}>
-                          <Paperclip className="w-4 h-4" />
-                        </Button>
+                        <div className="flex flex-col items-center gap-1">
+                          <Button size="icon" variant="outline" onClick={() => fileRef.current?.click()} disabled={sending}>
+                            <Paperclip className="w-4 h-4" />
+                          </Button>
+                          <span className="text-[10px] text-muted-foreground leading-none">Anexar</span>
+                        </div>
                       </TooltipTrigger>
                       <TooltipContent side="top">
                         <p className="font-medium">Anexar arquivo</p>
@@ -565,9 +568,12 @@ function ChatOrganizador() {
 
                     <Tooltip>
                       <TooltipTrigger asChild>
-                        <Button size="icon" variant="outline" onClick={() => setRoteiroOpen(true)} disabled={sending}>
-                          <ScrollText className="w-4 h-4" />
-                        </Button>
+                        <div className="flex flex-col items-center gap-1">
+                          <Button size="icon" variant="outline" onClick={() => setRoteiroOpen(true)} disabled={sending}>
+                            <ScrollText className="w-4 h-4" />
+                          </Button>
+                          <span className="text-[10px] text-muted-foreground leading-none">Roteiro</span>
+                        </div>
                       </TooltipTrigger>
                       <TooltipContent side="top">
                         <p className="font-medium">Roteiro</p>
@@ -586,9 +592,12 @@ function ChatOrganizador() {
                       )}
                       <Tooltip>
                         <TooltipTrigger asChild>
-                          <Button size="icon" variant={highlightCreate ? "default" : "outline"} onClick={() => { setCreateOpen(true); setHighlightCreate(false); }} disabled={sending} className={highlightCreate ? "ring-2 ring-primary" : ""}>
-                            <FolderPlus className="w-4 h-4" />
-                          </Button>
+                          <div className="flex flex-col items-center gap-1">
+                            <Button size="icon" variant={highlightCreate ? "default" : "outline"} onClick={() => { setCreateOpen(true); setHighlightCreate(false); }} disabled={sending} className={highlightCreate ? "ring-2 ring-primary" : ""}>
+                              <FolderPlus className="w-4 h-4" />
+                            </Button>
+                            <span className="text-[10px] text-muted-foreground leading-none">Criar pasta</span>
+                          </div>
                         </TooltipTrigger>
                         <TooltipContent side="top">
                           <p className="font-medium">Criar pasta</p>
@@ -599,9 +608,12 @@ function ChatOrganizador() {
 
                     <Tooltip>
                       <TooltipTrigger asChild>
-                        <Button size="icon" variant={recording ? "destructive" : "outline"} onClick={toggleRecord} disabled={sending && !recording}>
-                          {recording ? <Square className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
-                        </Button>
+                        <div className="flex flex-col items-center gap-1">
+                          <Button size="icon" variant={recording ? "destructive" : "outline"} onClick={toggleRecord} disabled={sending && !recording}>
+                            {recording ? <Square className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
+                          </Button>
+                          <span className="text-[10px] text-muted-foreground leading-none">{recording ? "Parar" : "Áudio"}</span>
+                        </div>
                       </TooltipTrigger>
                       <TooltipContent side="top">
                         <p className="font-medium">{recording ? "Parar gravação" : "Gravar áudio"}</p>
@@ -611,9 +623,12 @@ function ChatOrganizador() {
 
                     <Tooltip>
                       <TooltipTrigger asChild>
-                        <Button size="icon" onClick={sendText} disabled={sending || !text.trim()}>
-                          <Send className="w-4 h-4" />
-                        </Button>
+                        <div className="flex flex-col items-center gap-1">
+                          <Button size="icon" onClick={sendText} disabled={sending || !text.trim()}>
+                            <Send className="w-4 h-4" />
+                          </Button>
+                          <span className="text-[10px] text-muted-foreground leading-none">Enviar</span>
+                        </div>
                       </TooltipTrigger>
                       <TooltipContent side="top">
                         <p className="font-medium">Enviar</p>
