@@ -46,6 +46,34 @@ function getCtx(): AudioContext | null {
   } catch { return null; }
 }
 
+// Limite máximo de duração de qualquer som do telão (segundos)
+const MAX_SOUND_DURATION = 20;
+
+// Mantém referência aos contextos/sources ativos para impedir sobreposição
+const activeCtxs = new Set<AudioContext>();
+let activeSource: AudioBufferSourceNode | null = null;
+
+function stopAllSounds() {
+  if (activeSource) {
+    try { activeSource.stop(0); } catch {}
+    try { activeSource.disconnect(); } catch {}
+    activeSource = null;
+  }
+  activeCtxs.forEach((c) => {
+    try { c.close(); } catch {}
+  });
+  activeCtxs.clear();
+}
+
+function registerCtx(ctx: AudioContext, lifeMs: number) {
+  activeCtxs.add(ctx);
+  const cap = Math.min(lifeMs, MAX_SOUND_DURATION * 1000);
+  setTimeout(() => {
+    try { ctx.close(); } catch {}
+    activeCtxs.delete(ctx);
+  }, cap);
+}
+
 // Buzina de caminhão / air horn — dois osciladores sawtooth detuned + ataque agressivo
 function playBuzina(ctx: AudioContext, vol = 1) {
   const now = ctx.currentTime;
@@ -73,7 +101,7 @@ function playBuzina(ctx: AudioContext, vol = 1) {
   // duas buzinadas (HOOONK HOOONK)
   blast(0, 0.45, 196);  // G3
   blast(0.55, 0.7, 196);
-  setTimeout(() => ctx.close(), 1600);
+  registerCtx(ctx, 1600);
 }
 
 // Caixa registradora — "cha-ching" com bell + click
@@ -110,7 +138,7 @@ function playCaixa(ctx: AudioContext, vol = 1) {
   };
   bell(0.05, 880);   // chá
   bell(0.22, 1175);  // ching
-  setTimeout(() => ctx.close(), 1500);
+  registerCtx(ctx, 1500);
 }
 
 // Sino de vitória — arpejo C-E-G-C ascendente
@@ -134,10 +162,12 @@ function playSino(ctx: AudioContext, vol = 1) {
       o.start(now + t); o.stop(now + t + 0.85);
     });
   });
-  setTimeout(() => ctx.close(), 1800);
+  registerCtx(ctx, 1800);
 }
 
 async function playSound(id: SoundId, vol = 1, customUrl?: string) {
+  // Interrompe qualquer som anterior — evita sobreposição de áudios
+  stopAllSounds();
   const ctx = getCtx();
   if (!ctx) return;
   
@@ -166,17 +196,26 @@ async function playSound(id: SoundId, vol = 1, customUrl?: string) {
       gainNode.gain.value = vol;
       source.connect(gainNode);
       gainNode.connect(ctx.destination);
-      source.start(0);
-      setTimeout(() => ctx.close(), (audioBuffer.duration * 1000) + 500);
+      // Limita a duração máxima a MAX_SOUND_DURATION segundos
+      const playDur = Math.min(audioBuffer.duration, MAX_SOUND_DURATION);
+      source.start(0, 0, playDur);
+      activeSource = source;
+      source.onended = () => { if (activeSource === source) activeSource = null; };
+      registerCtx(ctx, playDur * 1000 + 200);
       return;
     } catch (err) {
       console.error("Erro ao tocar som customizado:", err);
+      try { ctx.close(); } catch {}
     }
   }
 
   if (id === "buzina") playBuzina(ctx, vol);
   else if (id === "caixa") playCaixa(ctx, vol);
   else if (id === "sino") playSino(ctx, vol);
+  else {
+    // Nenhum mapeamento — fecha o contexto recém-criado
+    try { ctx.close(); } catch {}
+  }
 }
 
 // Confetti dourado, mais intenso
