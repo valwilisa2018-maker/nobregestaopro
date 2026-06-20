@@ -724,12 +724,12 @@ function Dashboard() {
                   <div>
                     <div className="font-medium leading-tight">{p.name}</div>
                     <div className="text-[11px] text-muted-foreground">
-                      {p.emProducao} em produção
+                      {p.entreguesMes} vídeo{p.entreguesMes === 1 ? "" : "s"} no mês
                       {p.segundosProntos > 0 ? ` • ${formatDuracao(p.segundosProntos)} prontos` : ""}
                     </div>
                   </div>
                 </div>
-                <span className="font-semibold">{p.entregues} vídeo{p.entregues === 1 ? "" : "s"}</span>
+                <span className="font-semibold">{p.entreguesHoje} vídeo{p.entreguesHoje === 1 ? "" : "s"}</span>
               </button>
             ))}
           </CardContent>
