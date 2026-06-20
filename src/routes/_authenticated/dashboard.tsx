@@ -276,16 +276,15 @@ function Dashboard() {
     pendente: all.filter((s) => s.payment_status === "pendente" && inScope(s.sale_date || s.created_at)).length,
   };
 
-  // Service Orders por etapa
+  // Service Orders por etapa — reflete o Kanban real
+  // "A fazer"     = coluna marcada como is_default (primeira coluna do fluxo)
+  // "Em produção" = colunas intermediárias (is_done=false e is_default=false), ex.: "Produção", "Alteração a Fazer"
+  // "Entregue"    = colunas com is_done=true (Pronto / Entregue / Alteração Pronta)
   const ordersList = (orders.data ?? []) as any[];
-  const ordersTodo = ordersList.filter((o) => {
-    const colOrder = o.kanban_columns?.sort_order ?? 999;
-    // Pega a menor ordem de coluna disponível nos dados
-    const allOrders = ordersList.map(x => x.kanban_columns?.sort_order).filter(Boolean) as number[];
-    const minOrder = allOrders.length > 0 ? Math.min(...allOrders) : 0;
-    return colOrder === minOrder && !o.kanban_columns?.is_done;
-  }).length;
-  const ordersInProd = ordersList.filter((o) => !o.kanban_columns?.is_done).length;
+  const ordersTodo = ordersList.filter((o) => o.kanban_columns?.is_default === true).length;
+  const ordersInProd = ordersList.filter(
+    (o) => o.kanban_columns && o.kanban_columns.is_done === false && o.kanban_columns.is_default !== true,
+  ).length;
   const ordersDelivered = ordersList.filter((o) => !!o.delivered_at || o.kanban_columns?.is_done).length;
 
   const totalRecordingStats = useMemo(() => {
