@@ -400,6 +400,38 @@ function Dashboard() {
     .sort((a, b) => b.emProducao - a.emProducao);
   const totalInProduction = inProductionRanking.reduce((a, p) => a + p.emProducao, 0);
 
+  // Evolução diária dos vídeos entregues no mês corrente (cumulativo + diário)
+  const monthDeliverySeries = useMemo(() => {
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = now.getMonth();
+    const today = now.getDate();
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+    const byDay = new Map<number, number>();
+    for (const o of ordersList) {
+      if (!o.delivered_at) continue;
+      const d = new Date(o.delivered_at);
+      if (d.getFullYear() !== year || d.getMonth() !== month) continue;
+      const day = d.getDate();
+      byDay.set(day, (byDay.get(day) ?? 0) + 1);
+    }
+    let acc = 0;
+    const series: { dia: string; dayNum: number; entregues: number; total: number }[] = [];
+    for (let i = 1; i <= daysInMonth; i++) {
+      const entregues = byDay.get(i) ?? 0;
+      acc += entregues;
+      series.push({
+        dia: String(i).padStart(2, "0"),
+        dayNum: i,
+        entregues,
+        // Para dias futuros, deixa o total cumulativo como null para não desenhar a linha à frente
+        total: i <= today ? acc : (null as any),
+      });
+    }
+    return series;
+  }, [ordersList]);
+  const monthDeliveredTotal = monthDeliverySeries.reduce((a, d) => a + d.entregues, 0);
+
   // Produtos / serviços mais vendidos (no escopo) — combina service_types + packages
   const productRanking = useMemo(() => {
     const map = new Map<string, { name: string; total: number; qtd: number }>();
@@ -732,6 +764,39 @@ function Dashboard() {
                 <span className="font-semibold">{p.entreguesHoje} vídeo{p.entreguesHoje === 1 ? "" : "s"}</span>
               </button>
             ))}
+
+            {/* Evolução diária de entregas no mês corrente */}
+            <div className="mt-3 pt-3 border-t border-border/40">
+              <div className="flex items-center justify-between mb-2">
+                <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+                  Evolução do mês
+                </div>
+                <div className="text-xs text-muted-foreground">
+                  <span className="font-bold text-foreground">{monthDeliveredTotal}</span> vídeos entregues
+                </div>
+              </div>
+              <div className="h-40">
+                <ResponsiveContainer width="100%" height="100%">
+                  <AreaChart data={monthDeliverySeries} margin={{ left: -20, right: 8, top: 6, bottom: 0 }}>
+                    <defs>
+                      <linearGradient id="prodMonthFill" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor={chartTheme.primary} stopOpacity={0.55} />
+                        <stop offset="100%" stopColor={chartTheme.primary} stopOpacity={0.02} />
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid strokeDasharray="3 3" stroke={chartTheme.grid} />
+                    <XAxis dataKey="dia" stroke={chartTheme.axis} tick={{ fontSize: 10 }} interval="preserveStartEnd" />
+                    <YAxis stroke={chartTheme.axis} tick={{ fontSize: 10 }} allowDecimals={false} />
+                    <Tooltip
+                      contentStyle={{ background: chartTheme.tooltipBg, border: `1px solid ${chartTheme.grid}`, borderRadius: 8, fontSize: 12 }}
+                      formatter={(v: any, name: any) => [v, name === "total" ? "Acumulado" : "No dia"]}
+                      labelFormatter={(l) => `Dia ${l}`}
+                    />
+                    <Area type="monotone" dataKey="total" stroke={chartTheme.primary} strokeWidth={2} fill="url(#prodMonthFill)" connectNulls={false} />
+                  </AreaChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
           </CardContent>
         </Card>
       </div>
