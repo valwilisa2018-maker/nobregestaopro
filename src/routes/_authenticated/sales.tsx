@@ -335,13 +335,9 @@ function SalesPage() {
         return;
       }
     }
-    // At least one of the two links is required
+    // Links são opcionais; validar apenas formato quando preenchidos
     const gLink = form.google_drive_link.trim();
     const pLink = form.platform_link.trim();
-    if (!gLink && !pLink) {
-      toast.error("Informe o Link do Google Drive ou o Link da Plataforma (pelo menos um).");
-      return;
-    }
     if (gLink && !gLink.toLowerCase().startsWith("http")) {
       toast.error("Link do Google Drive inválido."); return;
     }
@@ -564,14 +560,6 @@ function SalesPage() {
       if (k === "trello_link") continue;
       if (!val) {
         toast.error(`Preencha o campo: ${label}`);
-        return;
-      }
-    }
-    {
-      const g = String(editing.google_drive_link ?? "").trim();
-      const p = String(editing.platform_link ?? "").trim();
-      if (!g && !p) {
-        toast.error("Informe o Link do Google Drive ou o Link da Plataforma (pelo menos um).");
         return;
       }
     }
