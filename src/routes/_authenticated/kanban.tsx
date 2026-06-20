@@ -369,6 +369,17 @@ function KanbanPage() {
   const saveCard = async () => {
     if (!editing) return;
     if (!editing.title.trim()) { toast.error("Título é obrigatório"); return; }
+    const driveRaw = editing.google_drive_link?.trim() || "";
+    const platformRaw = editing.platform_link?.trim() || "";
+    const isDrive = (u: string) => /(?:drive|docs)\.google\.com|^https?:\/\/[^/]*\.googleusercontent\.com/i.test(u);
+    if (driveRaw && !isDrive(driveRaw)) {
+      toast.error("O campo 'Link do projeto' deve ser um link do Google Drive (drive.google.com).");
+      return;
+    }
+    if (platformRaw && isDrive(platformRaw)) {
+      toast.error("Esse é um link do Google Drive. Cole-o no campo 'Link do projeto', não na Plataforma.");
+      return;
+    }
     setSaving(true);
     const payload: any = {
       column_id: editing.column_id,
@@ -378,8 +389,8 @@ function KanbanPage() {
       due_time: editing.due_time || null,
       color: editing.color || null,
       labels: editing.labels,
-      google_drive_link: editing.google_drive_link?.trim() || null,
-      platform_link: editing.platform_link?.trim() || null,
+      google_drive_link: driveRaw || null,
+      platform_link: platformRaw || null,
       producer_id: editing.producer_id || null,
       expected_delivery_date: editing.expected_delivery_date || null,
     };
