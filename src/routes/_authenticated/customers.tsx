@@ -15,6 +15,7 @@ import { formatCurrency } from "@/lib/auth";
 import { fmtDate } from "@/lib/format";
 import { toast } from "sonner";
 import { z } from "zod";
+import { waHref, formatPhoneBR } from "@/lib/phone";
 
 const customerSearchSchema = z.object({
   search: z.string().optional(),
@@ -30,11 +31,7 @@ const MONTHS = [
   "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro",
 ];
 
-function waLink(phone?: string | null) {
-  const d = (phone ?? "").replace(/\D/g, "");
-  if (!d) return null;
-  return `https://wa.me/${d.length <= 11 ? `55${d}` : d}`;
-}
+const waLink = (phone?: string | null) => waHref(phone);
 
 function CustomersPage() {
   const { search: searchParam } = Route.useSearch();
@@ -322,7 +319,7 @@ function CustomersPage() {
                     <TableCell>{c.document ?? "—"}</TableCell>
                     <TableCell>
                       <div className="flex items-center gap-2 text-sm">
-                        {c.phone ?? "—"}
+                        {c.phone ? formatPhoneBR(c.phone) : "—"}
                         {waLink(c.phone) && (
                           <a href={waLink(c.phone)!} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()} className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-[#25D366] text-white hover:opacity-90">
                             <MessageCircle className="w-3.5 h-3.5" />
@@ -404,7 +401,7 @@ function CustomersPage() {
                     </div>
                     <div className="flex items-center gap-2">
                       <Phone className="h-3.5 w-3.5 text-muted-foreground" />
-                      <span>{c.phone ?? "—"}</span>
+                      <span>{c.phone ? formatPhoneBR(c.phone) : "—"}</span>
                       {waLink(c.phone) && (
                         <a href={waLink(c.phone)!} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()} className="ml-auto inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded-full bg-[#25D366] text-white hover:opacity-90">
                           <MessageCircle className="w-3 h-3" /> WhatsApp
@@ -444,7 +441,7 @@ function CustomersPage() {
                 {selected.phone && (
                   <div className="flex items-center gap-2 font-medium">
                     <Phone className="w-4 h-4 text-primary" />
-                    <span>{selected.phone}</span>
+                    <span>{formatPhoneBR(selected.phone)}</span>
                     {waLink(selected.phone) && (
                       <a href={waLink(selected.phone)!} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-full bg-[#25D366] text-white hover:opacity-90">
                         <MessageCircle className="w-2.5 h-2.5" /> WhatsApp
