@@ -46,6 +46,34 @@ function getCtx(): AudioContext | null {
   } catch { return null; }
 }
 
+// Limite máximo de duração de qualquer som do telão (segundos)
+const MAX_SOUND_DURATION = 20;
+
+// Mantém referência aos contextos/sources ativos para impedir sobreposição
+const activeCtxs = new Set<AudioContext>();
+let activeSource: AudioBufferSourceNode | null = null;
+
+function stopAllSounds() {
+  if (activeSource) {
+    try { activeSource.stop(0); } catch {}
+    try { activeSource.disconnect(); } catch {}
+    activeSource = null;
+  }
+  activeCtxs.forEach((c) => {
+    try { c.close(); } catch {}
+  });
+  activeCtxs.clear();
+}
+
+function registerCtx(ctx: AudioContext, lifeMs: number) {
+  activeCtxs.add(ctx);
+  const cap = Math.min(lifeMs, MAX_SOUND_DURATION * 1000);
+  setTimeout(() => {
+    try { ctx.close(); } catch {}
+    activeCtxs.delete(ctx);
+  }, cap);
+}
+
 // Buzina de caminhão / air horn — dois osciladores sawtooth detuned + ataque agressivo
 function playBuzina(ctx: AudioContext, vol = 1) {
   const now = ctx.currentTime;
