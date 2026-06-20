@@ -826,7 +826,7 @@ function KanbanPage() {
                               rel="noreferrer"
                               onClick={(e) => e.stopPropagation()}
                               title={`WhatsApp ${formatPhoneBR(phone)}`}
-                              className="absolute -top-2 -right-2 z-10 inline-flex items-center justify-center w-7 h-7 rounded-full bg-[#25D366] text-white shadow-md hover:scale-110 transition-transform"
+                              className="absolute top-2 right-2 z-10 inline-flex items-center justify-center w-7 h-7 rounded-full bg-[#25D366] text-white shadow-md hover:scale-110 transition-transform"
                             >
                               <MessageCircle className="w-4 h-4" />
                             </a>
@@ -972,7 +972,7 @@ function KanbanPage() {
                           rel="noreferrer"
                           onClick={(e) => e.stopPropagation()}
                           title={`WhatsApp ${formatPhoneBR(phone)}`}
-                          className="absolute -top-2 -right-2 z-10 inline-flex items-center justify-center w-7 h-7 rounded-full bg-[#25D366] text-white shadow-md hover:scale-110 transition-transform"
+                          className="absolute top-2 right-2 z-10 inline-flex items-center justify-center w-7 h-7 rounded-full bg-[#25D366] text-white shadow-md hover:scale-110 transition-transform"
                         >
                           <MessageCircle className="w-4 h-4" />
                         </a>
