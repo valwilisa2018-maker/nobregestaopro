@@ -73,7 +73,7 @@ type CardForm = {
   due_time: string;
   color: string;
   labels: string[];
-  trello_link?: string | null;
+  google_drive_link?: string | null;
   platform_link?: string | null;
   sale_id?: string | null;
   customer_phone?: string | null;
@@ -184,8 +184,9 @@ function KanbanPage() {
       title: found.title ?? "", description: found.description ?? "",
       due_date: found.due_date ?? "", due_time: (found.due_time ?? "").slice(0, 5),
       color: found.color ?? "", labels: found.labels ?? [],
-      trello_link: found.trello_link ?? found.sales?.trello_link ?? null,
-      platform_link: found.sales?.platform_link ?? null,
+      google_drive_link:
+        (found as any).google_drive_link ?? found.sales?.google_drive_link ?? found.trello_link ?? found.sales?.trello_link ?? null,
+      platform_link: (found as any).platform_link ?? found.sales?.platform_link ?? null,
       sale_id: found.sale_id ?? null,
       customer_phone: found.sales?.customers?.phone ?? null,
       customer_name: found.sales?.customers?.name ?? null,
@@ -353,8 +354,9 @@ function KanbanPage() {
       title: c.title ?? "", description: c.description ?? "",
       due_date: c.due_date ?? "", due_time: (c.due_time ?? "").slice(0, 5),
       color: c.color ?? "", labels: c.labels ?? [],
-      trello_link: c.trello_link ?? c.sales?.trello_link ?? null,
-      platform_link: c.sales?.platform_link ?? null,
+      google_drive_link:
+        c.google_drive_link ?? c.sales?.google_drive_link ?? c.trello_link ?? c.sales?.trello_link ?? null,
+      platform_link: c.platform_link ?? c.sales?.platform_link ?? null,
       sale_id: c.sale_id ?? null,
       customer_phone: c.sales?.customers?.phone ?? null,
       customer_name: c.sales?.customers?.name ?? null,
@@ -376,7 +378,8 @@ function KanbanPage() {
       due_time: editing.due_time || null,
       color: editing.color || null,
       labels: editing.labels,
-      trello_link: editing.trello_link?.trim() || null,
+      google_drive_link: editing.google_drive_link?.trim() || null,
+      platform_link: editing.platform_link?.trim() || null,
       producer_id: editing.producer_id || null,
       expected_delivery_date: editing.expected_delivery_date || null,
     };
@@ -384,15 +387,9 @@ function KanbanPage() {
       if (editing.id) {
         const { error } = await supabase.from("service_orders").update(payload).eq("id", editing.id);
         if (error) throw error;
-        if (editing.sale_id) {
-          const { error: e2 } = await supabase.from("sales")
-            .update({ platform_link: editing.platform_link?.trim() || null })
-            .eq("id", editing.sale_id);
-          if (e2) throw e2;
-        }
-        // Auto-vincular pasta da Plataforma a partir dos links do card
+        // Auto-vincular pasta da Plataforma somente a partir do link da Plataforma
         try {
-          await autoLinkFolderFromUrl(editing.platform_link || editing.trello_link, {
+          await autoLinkFolderFromUrl(editing.platform_link, {
             saleId: editing.sale_id ?? null,
             kanbanCardId: editing.id,
           });
@@ -800,8 +797,8 @@ function KanbanPage() {
                               </div>
                             )}
                             <CardLinkButtons
-                              driveLink={first.sales?.google_drive_link ?? first.sales?.trello_link ?? first.trello_link ?? null}
-                              platformLink={first.sales?.platform_link ?? null}
+                              driveLink={first.google_drive_link ?? first.sales?.google_drive_link ?? first.trello_link ?? first.sales?.trello_link ?? null}
+                              platformLink={first.platform_link ?? first.sales?.platform_link ?? null}
                             />
                           </CardContent>
                         </Card>
@@ -885,8 +882,8 @@ function KanbanPage() {
                                 )}
                               </div>
                               <CardLinkButtons
-                                driveLink={c.sales?.google_drive_link ?? c.sales?.trello_link ?? c.trello_link ?? null}
-                                platformLink={c.sales?.platform_link ?? null}
+                                driveLink={c.google_drive_link ?? c.sales?.google_drive_link ?? c.trello_link ?? c.sales?.trello_link ?? null}
+                                platformLink={c.platform_link ?? c.sales?.platform_link ?? null}
                               />
                             </CardContent>
                           </Card>
@@ -1015,8 +1012,8 @@ function KanbanPage() {
                         )}
                       </div>
                       <CardLinkButtons
-                        driveLink={c.sales?.google_drive_link ?? c.sales?.trello_link ?? c.trello_link ?? null}
-                        platformLink={c.sales?.platform_link ?? null}
+                        driveLink={c.google_drive_link ?? c.sales?.google_drive_link ?? c.trello_link ?? c.sales?.trello_link ?? null}
+                        platformLink={c.platform_link ?? c.sales?.platform_link ?? null}
                       />
                     </CardContent>
                   </Card>
@@ -1086,12 +1083,12 @@ function KanbanPage() {
                 <Label>Link do projeto</Label>
                 <Input
                   type="url"
-                  placeholder="https://..."
-                  value={editing.trello_link ?? ""}
-                  onChange={(e) => setEditing({ ...editing, trello_link: e.target.value })}
+                  placeholder="https://drive.google.com/..."
+                  value={editing.google_drive_link ?? ""}
+                  onChange={(e) => setEditing({ ...editing, google_drive_link: e.target.value })}
                 />
-                {editing.trello_link && (
-                  <a href={editing.trello_link} target="_blank" rel="noreferrer"
+                {editing.google_drive_link && (
+                  <a href={editing.google_drive_link} target="_blank" rel="noreferrer"
                     className="flex items-center gap-2 text-sm text-blue-500 hover:underline break-all mt-1">
                     <ExternalLink className="w-4 h-4 shrink-0" />
                     Abrir Google Drive
@@ -1102,10 +1099,9 @@ function KanbanPage() {
                 <Label>Link da pasta da plataforma</Label>
                 <Input
                   type="url"
-                  placeholder="https://..."
+                  placeholder="https://.../pastas-arquivos/..."
                   value={editing.platform_link ?? ""}
                   onChange={(e) => setEditing({ ...editing, platform_link: e.target.value })}
-                  disabled={!editing.sale_id}
                 />
                 {editing.platform_link ? (
                   <a href={editing.platform_link} target="_blank" rel="noreferrer"
@@ -1115,7 +1111,7 @@ function KanbanPage() {
                   </a>
                 ) : (
                   <p className="text-xs text-muted-foreground mt-1 opacity-60">
-                    {editing.sale_id ? "Cole o link da pasta da plataforma para ativar o botão" : "Disponível somente para cards vinculados a uma venda"}
+                    Cole o link da pasta da plataforma para ativar o botão
                   </p>
                 )}
               </div>

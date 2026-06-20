@@ -1020,9 +1020,11 @@ export type Database = {
           due_date: string | null
           due_time: string | null
           expected_delivery_date: string | null
+          google_drive_link: string | null
           id: string
           labels: string[]
           last_redo_at: string | null
+          platform_link: string | null
           priority: number
           producer_id: string | null
           redo_count: number
@@ -1042,9 +1044,11 @@ export type Database = {
           due_date?: string | null
           due_time?: string | null
           expected_delivery_date?: string | null
+          google_drive_link?: string | null
           id?: string
           labels?: string[]
           last_redo_at?: string | null
+          platform_link?: string | null
           priority?: number
           producer_id?: string | null
           redo_count?: number
@@ -1064,9 +1068,11 @@ export type Database = {
           due_date?: string | null
           due_time?: string | null
           expected_delivery_date?: string | null
+          google_drive_link?: string | null
           id?: string
           labels?: string[]
           last_redo_at?: string | null
+          platform_link?: string | null
           priority?: number
           producer_id?: string | null
           redo_count?: number
