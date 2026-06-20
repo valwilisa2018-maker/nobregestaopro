@@ -400,6 +400,38 @@ function Dashboard() {
     .sort((a, b) => b.emProducao - a.emProducao);
   const totalInProduction = inProductionRanking.reduce((a, p) => a + p.emProducao, 0);
 
+  // Evolução diária dos vídeos entregues no mês corrente (cumulativo + diário)
+  const monthDeliverySeries = useMemo(() => {
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = now.getMonth();
+    const today = now.getDate();
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+    const byDay = new Map<number, number>();
+    for (const o of ordersList) {
+      if (!o.delivered_at) continue;
+      const d = new Date(o.delivered_at);
+      if (d.getFullYear() !== year || d.getMonth() !== month) continue;
+      const day = d.getDate();
+      byDay.set(day, (byDay.get(day) ?? 0) + 1);
+    }
+    let acc = 0;
+    const series: { dia: string; dayNum: number; entregues: number; total: number }[] = [];
+    for (let i = 1; i <= daysInMonth; i++) {
+      const entregues = byDay.get(i) ?? 0;
+      acc += entregues;
+      series.push({
+        dia: String(i).padStart(2, "0"),
+        dayNum: i,
+        entregues,
+        // Para dias futuros, deixa o total cumulativo como null para não desenhar a linha à frente
+        total: i <= today ? acc : (null as any),
+      });
+    }
+    return series;
+  }, [ordersList]);
+  const monthDeliveredTotal = monthDeliverySeries.reduce((a, d) => a + d.entregues, 0);
+
   // Produtos / serviços mais vendidos (no escopo) — combina service_types + packages
   const productRanking = useMemo(() => {
     const map = new Map<string, { name: string; total: number; qtd: number }>();
