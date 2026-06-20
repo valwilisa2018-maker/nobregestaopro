@@ -31,6 +31,7 @@ import { Route as AuthenticatedCustomersRouteImport } from './routes/_authentica
 import { Route as AuthenticatedCommissionsRouteImport } from './routes/_authenticated/commissions'
 import { Route as AuthenticatedChatOrganizadorRouteImport } from './routes/_authenticated/chat-organizador'
 import { Route as AuthenticatedBackupRouteImport } from './routes/_authenticated/backup'
+import { Route as AuthenticatedAuditoriaRouteImport } from './routes/_authenticated/auditoria'
 import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/admin'
 import { Route as AuthenticatedPastasArquivosIndexRouteImport } from './routes/_authenticated/pastas-arquivos.index'
 import { Route as AuthenticatedOperacaoMetaIndexRouteImport } from './routes/_authenticated/operacao-meta.index'
@@ -158,6 +159,11 @@ const AuthenticatedBackupRoute = AuthenticatedBackupRouteImport.update({
   path: '/backup',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedAuditoriaRoute = AuthenticatedAuditoriaRouteImport.update({
+  id: '/auditoria',
+  path: '/auditoria',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedAdminRoute = AuthenticatedAdminRouteImport.update({
   id: '/admin',
   path: '/admin',
@@ -222,6 +228,7 @@ export interface FileRoutesByFullPath {
   '/login': typeof LoginRoute
   '/reset-password': typeof ResetPasswordRoute
   '/admin': typeof AuthenticatedAdminRoute
+  '/auditoria': typeof AuthenticatedAuditoriaRoute
   '/backup': typeof AuthenticatedBackupRoute
   '/chat-organizador': typeof AuthenticatedChatOrganizadorRoute
   '/commissions': typeof AuthenticatedCommissionsRoute
@@ -255,6 +262,7 @@ export interface FileRoutesByTo {
   '/login': typeof LoginRoute
   '/reset-password': typeof ResetPasswordRoute
   '/admin': typeof AuthenticatedAdminRoute
+  '/auditoria': typeof AuthenticatedAuditoriaRoute
   '/backup': typeof AuthenticatedBackupRoute
   '/chat-organizador': typeof AuthenticatedChatOrganizadorRoute
   '/commissions': typeof AuthenticatedCommissionsRoute
@@ -289,6 +297,7 @@ export interface FileRoutesById {
   '/login': typeof LoginRoute
   '/reset-password': typeof ResetPasswordRoute
   '/_authenticated/admin': typeof AuthenticatedAdminRoute
+  '/_authenticated/auditoria': typeof AuthenticatedAuditoriaRoute
   '/_authenticated/backup': typeof AuthenticatedBackupRoute
   '/_authenticated/chat-organizador': typeof AuthenticatedChatOrganizadorRoute
   '/_authenticated/commissions': typeof AuthenticatedCommissionsRoute
@@ -324,6 +333,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/reset-password'
     | '/admin'
+    | '/auditoria'
     | '/backup'
     | '/chat-organizador'
     | '/commissions'
@@ -357,6 +367,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/reset-password'
     | '/admin'
+    | '/auditoria'
     | '/backup'
     | '/chat-organizador'
     | '/commissions'
@@ -390,6 +401,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/reset-password'
     | '/_authenticated/admin'
+    | '/_authenticated/auditoria'
     | '/_authenticated/backup'
     | '/_authenticated/chat-organizador'
     | '/_authenticated/commissions'
@@ -584,6 +596,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedBackupRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/auditoria': {
+      id: '/_authenticated/auditoria'
+      path: '/auditoria'
+      fullPath: '/auditoria'
+      preLoaderRoute: typeof AuthenticatedAuditoriaRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/admin': {
       id: '/_authenticated/admin'
       path: '/admin'
@@ -685,6 +704,7 @@ const AuthenticatedOperacaoMetaRouteWithChildren =
 
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedAdminRoute: typeof AuthenticatedAdminRoute
+  AuthenticatedAuditoriaRoute: typeof AuthenticatedAuditoriaRoute
   AuthenticatedBackupRoute: typeof AuthenticatedBackupRoute
   AuthenticatedChatOrganizadorRoute: typeof AuthenticatedChatOrganizadorRoute
   AuthenticatedCommissionsRoute: typeof AuthenticatedCommissionsRoute
@@ -709,6 +729,7 @@ interface AuthenticatedRouteRouteChildren {
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAdminRoute: AuthenticatedAdminRoute,
+  AuthenticatedAuditoriaRoute: AuthenticatedAuditoriaRoute,
   AuthenticatedBackupRoute: AuthenticatedBackupRoute,
   AuthenticatedChatOrganizadorRoute: AuthenticatedChatOrganizadorRoute,
   AuthenticatedCommissionsRoute: AuthenticatedCommissionsRoute,
