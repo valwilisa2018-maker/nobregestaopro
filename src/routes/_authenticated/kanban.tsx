@@ -814,13 +814,29 @@ function KanbanPage() {
                             />
                           </CardContent>
                         </Card>
-                        {isOpen && it.cards.map((c: any) => (
-                          <Card key={c.id} draggable
+                        {isOpen && it.cards.map((c: any) => {
+                          const phone = c.sales?.customers?.phone;
+                          const waUrl = waHref(phone, `Olá ${c.sales?.customers?.name ?? ""}!`.trim());
+                          return (
+                          <div key={c.id} className="relative ml-4">
+                          {waUrl && (
+                            <a
+                              href={waUrl}
+                              target="_blank"
+                              rel="noreferrer"
+                              onClick={(e) => e.stopPropagation()}
+                              title={`WhatsApp ${formatPhoneBR(phone)}`}
+                              className="absolute -top-2 -right-2 z-10 inline-flex items-center justify-center w-7 h-7 rounded-full bg-[#25D366] text-white shadow-md hover:scale-110 transition-transform"
+                            >
+                              <MessageCircle className="w-4 h-4" />
+                            </a>
+                          )}
+                          <Card draggable
                             onDragStart={() => { setDragging(c.id); setDraggingFromCol(col.id); setDragMoved(false); }}
                             onDrag={() => setDragMoved(true)}
                             onDragEnd={() => { setDragging(null); setDraggingFromCol(null); setTimeout(() => setDragMoved(false), 0); }}
                             onClick={() => { if (!dragMoved) openEdit(c); }}
-                            className="cursor-pointer bg-background hover:border-primary/70 transition-all overflow-hidden border-2 border-foreground/15 shadow-md ml-4"
+                            className="cursor-pointer bg-background hover:border-primary/70 transition-all overflow-hidden border-2 border-foreground/15 shadow-md"
                             style={{
                               boxShadow: "var(--shadow-card)",
                               borderLeft: `4px solid ${col.color || "var(--primary)"}`,
@@ -899,7 +915,9 @@ function KanbanPage() {
                               />
                             </CardContent>
                           </Card>
-                        ))}
+                          </div>
+                          );
+                        })}
                       </div>
                     );
                   }
