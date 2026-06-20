@@ -1005,6 +1005,9 @@ function KanbanPage() {
                       if (!waUrl) return null;
                       return (
                         <>
+                        <TooltipProvider delayDuration={150}>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
                         <a
                           href={waUrl}
                           target="_blank"
@@ -1018,11 +1021,15 @@ function KanbanPage() {
                               () => toast.error("Não foi possível copiar")
                             );
                           }}
-                          title={`WhatsApp ${formatPhoneBR(phone)} — clique direito para copiar`}
                           className="absolute top-2 right-2 z-10 inline-flex items-center justify-center w-7 h-7 rounded-full bg-[#25D366] text-white shadow-md hover:scale-110 transition-transform"
                         >
                           <MessageCircle className="w-4 h-4" />
                         </a>
+                          </TooltipTrigger>
+                          <TooltipContent side="top">Abrir WhatsApp</TooltipContent>
+                        </Tooltip>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
                         <button
                           type="button"
                           onClick={(e) => {
@@ -1033,11 +1040,14 @@ function KanbanPage() {
                               () => toast.error("Não foi possível copiar")
                             );
                           }}
-                          title={`Copiar ${formatPhoneBR(phone)}`}
                           className="absolute top-2 right-10 z-10 inline-flex items-center justify-center w-6 h-6 rounded-full bg-foreground/80 text-background shadow-md hover:scale-110 transition-transform"
                         >
                           <Copy className="w-3 h-3" />
                         </button>
+                          </TooltipTrigger>
+                          <TooltipContent side="top">Copiar número</TooltipContent>
+                        </Tooltip>
+                        </TooltipProvider>
                         </>
                       );
                     })()}
