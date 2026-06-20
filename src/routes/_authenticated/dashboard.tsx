@@ -793,7 +793,6 @@ function Dashboard() {
                       labelFormatter={(l) => `Dia ${l}`}
                     />
                     <Area type="monotone" dataKey="total" stroke={chartTheme.primary} strokeWidth={2} fill="url(#prodMonthFill)" connectNulls={false} />
-                    <Bar dataKey="entregues" fill={chartTheme.primary} fillOpacity={0.35} radius={[3, 3, 0, 0]} />
                   </AreaChart>
                 </ResponsiveContainer>
               </div>
