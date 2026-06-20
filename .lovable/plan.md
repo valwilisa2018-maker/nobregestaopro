@@ -1,115 +1,55 @@
-# Pastas e Arquivos + Chat Organizador
+## Objetivo
 
-Nova funcionalidade integrada ao Kanban de produção, sem alterar o fluxo atual de criação de cards a partir de vendas.
+Deixar a página **Operação e Meta** simples, exata e centrada no produtor — todas as contagens vindas do **Kanban de produção** (mesma fonte do Dashboard), com mês cheio (do dia 1 até hoje) e destaque visual para quem bate a meta.
 
-## 1. Banco de dados (migration)
+## O que muda
 
-Criar 3 tabelas no schema `public`, com GRANTs, RLS e policies.
+### 1. Fonte única e exata (Kanban)
+- Toda contagem (vídeos prontos, em produção, alterações, minutagem) passa a vir de `service_orders` + `kanban_columns`, igual à correção feita no Dashboard:
+  - **Pronto** = card hoje numa coluna `is_done = true`.
+  - **Em produção** = card hoje numa coluna `is_done = false`.
+  - **Alterações** = `redo_count` somado (sem usar a comparação `updated_at != delivered_at`, que estava divergindo entre abas).
+  - **Minutagem** = extraída do título do card (mesmo parser do webhook do Trello: `2:30`, `1min30s`, `150s` etc.).
+- Filtro de período padrão: **mês corrente, do dia 1 até hoje** (com seletor para “mês anterior” e “personalizado”).
 
-### `project_folders`
-- `id` uuid PK, `sale_id` uuid FK→sales, `kanban_card_id` uuid FK→service_orders
-- `client_name` text, `service_type` text, `folder_name` text
-- `google_drive_link` text null
-- `created_by` uuid FK→auth.users
-- `created_at`, `updated_at` timestamptz
-- UNIQUE(`kanban_card_id`)
+### 2. Meta por produtor (acaba o “meta = 100” fixo)
+- Passa a usar `producers.daily_points_goal` (ou o fallback `om_settings.base_daily_goal`) × dias úteis transcorridos do mês para a barra de progresso individual.
+- **Bateu a meta no mês** → card com borda dourada, badge “🏆 Meta batida” e nome destacado.
+- **Bateu a meta do dia** → selo verde discreto.
 
-### `project_folder_files`
-- `id`, `folder_id` FK→project_folders (on delete cascade)
-- `sale_id`, `kanban_card_id`
-- `file_name`, `file_url` (storage path), `file_type` (mime), `file_size` bigint
-- `file_category` enum text: `roteiro | imagens | videos | pdfs | referencias | audios | entrega_final`
-- `uploaded_by`, `created_at`
+### 3. Consolidar as abas (de 7 para 4)
 
-### `project_folder_messages`
-- `id`, `folder_id`, `sale_id`, `kanban_card_id`
-- `message` text null, `audio_url` text null, `file_url` text null, `file_id` uuid null FK→project_folder_files
-- `sender_id`, `created_at`
+```text
+Antes:  Diária | Mensal | Dinâmica | Tendências | Produtores | Conquistas | Relatórios
+Depois: Visão Geral | Produtores | Tendências | Relatórios
+```
 
-### Trigger
-- Ao inserir em `service_orders`, criar automaticamente uma `project_folder` com nome `"{cliente} - {serviço} - DD-MM-AAAA"` derivado do sale/customer/service_type.
-- Backfill: gerar pastas para os service_orders já existentes.
+- **Visão Geral** — junta o que era *Diária* + *Mensal* + *Dinâmica*: KPIs do dia, KPIs do mês, ranking do mês, meta coletiva da equipe e quem bateu a meta hoje.
+- **Produtores** — um card por produtor com: nome, foto, **vídeos prontos no mês**, **em produção agora**, **minutagem total entregue**, **alterações**, barra de progresso vs meta individual, destaque se bateu a meta.
+- **Tendências** — gráficos de 30 dias e projeção do mês (corrigida para usar dias úteis, não calendário).
+- **Relatórios** — geração de texto para WhatsApp/print, agora batendo com os números das outras abas.
+- *Conquistas* vira uma seção dentro de **Produtores** (badges ao clicar no card), eliminando ranking duplicado.
+- *Configurações* continua acessível pelo botão de admin, sem mudança.
 
-### RLS (via `has_role` + joins)
-- **Admin**: ALL em tudo.
-- **Vendedor**: SELECT/INSERT onde `sale.seller_id` mapeia para ele (via `sellers.user_id`).
-- **Produtor**: SELECT/INSERT onde `service_order.producer_id` mapeia para ele (via `producers.user_id`).
-- DELETE em `project_folder_files`: apenas admin.
+### 4. Pequenos ajustes de UX
+- Cabeçalho da página mostra: **período ativo**, **total de vídeos prontos**, **total de minutagem**, **% da meta da equipe**.
+- Cores e ícones consistentes: 🟢 pronto, 🟡 em produção, 🔁 alteração, ⏱ minutagem.
 
-## 2. Storage
+## Detalhes técnicos
 
-Bucket privado **`project-files`**. Estrutura: `{sale_id}/{categoria}/{filename}`.
+- `src/components/operacao-meta/shared.tsx`
+  - `useOmData`: adicionar `title` em `service_orders` para extrair minutagem; adicionar join de `kanban_columns.is_done`.
+  - Novo helper `parseDuracaoSegundos` / `formatDuracao` (reaproveitar o que já está no `dashboard.tsx` — mover para `src/lib/format.ts`).
+  - Padronizar contadores num único helper `computeProducerStats(producer, orders, scope)` consumido por todas as abas.
+  - Padronizar `alteracoes = sum(redo_count)`.
+  - Remover `const meta = 100`; usar `daily_points_goal × workingDaysElapsed`.
+- `src/routes/_authenticated/operacao-meta.tsx`
+  - Reduzir tabs para 4 (Visão Geral, Produtores, Tendências, Relatórios).
+  - Adicionar barra de período (Mês atual / Mês anterior / Personalizado) com estado em URL (`?periodo=...`).
+- Arquivos a remover (substituídos pela Visão Geral): `operacao-meta.diaria.tsx`, `operacao-meta.mensal.tsx`, `operacao-meta.dinamica.tsx`, `operacao-meta.conquistas.tsx` (vira seção dentro de Produtores). Criar `operacao-meta.visao-geral.tsx`.
+- Sem mudança de schema, sem migration.
 
-Policies em `storage.objects` espelhando RLS das tabelas (admin tudo; vendedor/produtor escopo das suas vendas/cards; apenas admin deleta).
+## Fora do escopo
 
-## 3. Server functions (`src/lib/project-folders.functions.ts`)
-
-Todas com `requireSupabaseAuth`:
-- `listFolders({ search?, sellerId?, producerId?, columnId? })`
-- `getFolder({ folderId })` → folder + arquivos agrupados por categoria + mensagens
-- `updateFolder({ folderId, google_drive_link })`
-- `createSignedUploadUrl({ folderId, category, fileName, contentType })` → retorna URL assinada do Storage (upload direto do browser)
-- `registerUploadedFile({ folderId, category, file_name, file_url, file_type, file_size })`
-- `deleteFile({ fileId })` (admin)
-- `sendMessage({ folderId, message?, file_id?, audio_url? })`
-- `listMessages({ folderId })`
-- `parseCommand({ folderId, text, pendingFileIds[] })` — interpreta comandos simples ("coloca em referências", "esse pdf é roteiro", "entrega final") e move/atribui categoria; sem IA externa, regex/keywords.
-
-## 4. Rotas (TanStack, sob `_authenticated`)
-
-- `src/routes/_authenticated/pastas-arquivos.tsx` — grid estilo Google Drive
-  - busca por cliente, filtros (vendedor, produtor, coluna kanban)
-  - card de pasta com: nome, cliente, serviço, qtd arquivos, botões "Abrir", "Copiar link interno", campo Google Drive
-- `src/routes/_authenticated/pastas-arquivos.$folderId.tsx` — visão da pasta
-  - colunas por categoria, ícones por tipo (imagem/pdf/vídeo/áudio/doc)
-  - upload arrastar-soltar por categoria
-- `src/routes/_authenticated/chat-organizador.tsx`
-  - lista lateral de pastas (busca por cliente)
-  - painel de chat: input texto, upload (imagem/pdf/vídeo/doc), gravação de áudio (MediaRecorder)
-  - parser de comandos chama `parseCommand`
-  - mensagens com preview do arquivo
-
-## 5. Kanban (alterações mínimas em `src/routes/_authenticated/kanban.tsx`)
-
-No card, adicionar dois botões ao lado dos existentes:
-- **Abrir pasta da plataforma** → navega para `/pastas-arquivos/{folderId}` (consulta `project_folders` por `kanban_card_id`)
-- **Adicionar link do Google Drive** → popover com input que salva em `project_folders.google_drive_link`
-
-Não tocar em drag-and-drop nem na lógica de ordenação.
-
-## 6. Sidebar (`src/components/app-sidebar.tsx`)
-
-Adicionar dois itens:
-- "Pastas e Arquivos" → `/pastas-arquivos` (ícone FolderOpen)
-- "Chat Organizador" → `/chat-organizador` (ícone MessagesSquare)
-
-## 7. Detalhes técnicos
-
-- Upload: client gera signed URL via server fn, faz PUT direto no Storage, depois chama `registerUploadedFile`.
-- Áudio do chat: `MediaRecorder` → blob webm → upload em `{sale_id}/audios/chat-{timestamp}.webm`.
-- Parser de comandos: keywords pt-BR → categoria (`roteiro`, `imagens/imagem`, `vídeos/video`, `pdfs/pdf`, `referências/referencia`, `áudios/audio`, `entrega final`). "monta pasta pra X" só confirma que a pasta existe (já é criada por trigger).
-- Ícones de arquivo: lucide (FileImage, FileVideo, FileAudio, FileText, File).
-- Permissões na UI: ocultar botão deletar para não-admin (via `has_role`).
-
-## Arquivos a criar/editar
-
-**Criar:**
-- migration (tabelas, trigger, RLS, backfill)
-- bucket `project-files` (privado) + policies storage
-- `src/lib/project-folders.functions.ts`
-- `src/routes/_authenticated/pastas-arquivos.tsx`
-- `src/routes/_authenticated/pastas-arquivos.$folderId.tsx`
-- `src/routes/_authenticated/chat-organizador.tsx`
-- `src/components/project-folders/folder-card.tsx`
-- `src/components/project-folders/file-tile.tsx`
-- `src/components/project-folders/audio-recorder.tsx`
-
-**Editar:**
-- `src/components/app-sidebar.tsx` (2 itens)
-- `src/routes/_authenticated/kanban.tsx` (2 botões no card — sem mexer no DnD)
-
-## Confirmações antes de implementar
-
-1. **Trigger automático**: criar pasta no momento em que o `service_order` é inserido (recomendado) — OK?
-2. **Backfill**: gerar pastas para todos os cards já existentes do Kanban — OK?
-3. **Tamanho máximo de upload**: 50 MB por arquivo — OK?
+- Reconciliar `om_eventos` (Trello) com `service_orders`. O Kanban é a fonte da verdade; `om_eventos` continua sendo só auditoria do webhook.
+- Mudanças nas configurações de scoring/Trello.

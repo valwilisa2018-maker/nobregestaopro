@@ -37,13 +37,10 @@ import { Route as AuthenticatedOperacaoMetaIndexRouteImport } from './routes/_au
 import { Route as ApiPublicTrelloWebhookRouteImport } from './routes/api/public/trello-webhook'
 import { Route as ApiPublicEvolutionWebhookRouteImport } from './routes/api/public/evolution-webhook'
 import { Route as AuthenticatedPastasArquivosFolderIdRouteImport } from './routes/_authenticated/pastas-arquivos.$folderId'
+import { Route as AuthenticatedOperacaoMetaVisaoGeralRouteImport } from './routes/_authenticated/operacao-meta.visao-geral'
 import { Route as AuthenticatedOperacaoMetaTendenciasRouteImport } from './routes/_authenticated/operacao-meta.tendencias'
 import { Route as AuthenticatedOperacaoMetaRelatoriosRouteImport } from './routes/_authenticated/operacao-meta.relatorios'
 import { Route as AuthenticatedOperacaoMetaProdutoresRouteImport } from './routes/_authenticated/operacao-meta.produtores'
-import { Route as AuthenticatedOperacaoMetaMensalRouteImport } from './routes/_authenticated/operacao-meta.mensal'
-import { Route as AuthenticatedOperacaoMetaDinamicaRouteImport } from './routes/_authenticated/operacao-meta.dinamica'
-import { Route as AuthenticatedOperacaoMetaDiariaRouteImport } from './routes/_authenticated/operacao-meta.diaria'
-import { Route as AuthenticatedOperacaoMetaConquistasRouteImport } from './routes/_authenticated/operacao-meta.conquistas'
 
 const ResetPasswordRoute = ResetPasswordRouteImport.update({
   id: '/reset-password',
@@ -195,6 +192,12 @@ const AuthenticatedPastasArquivosFolderIdRoute =
     path: '/pastas-arquivos/$folderId',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedOperacaoMetaVisaoGeralRoute =
+  AuthenticatedOperacaoMetaVisaoGeralRouteImport.update({
+    id: '/visao-geral',
+    path: '/visao-geral',
+    getParentRoute: () => AuthenticatedOperacaoMetaRoute,
+  } as any)
 const AuthenticatedOperacaoMetaTendenciasRoute =
   AuthenticatedOperacaoMetaTendenciasRouteImport.update({
     id: '/tendencias',
@@ -211,30 +214,6 @@ const AuthenticatedOperacaoMetaProdutoresRoute =
   AuthenticatedOperacaoMetaProdutoresRouteImport.update({
     id: '/produtores',
     path: '/produtores',
-    getParentRoute: () => AuthenticatedOperacaoMetaRoute,
-  } as any)
-const AuthenticatedOperacaoMetaMensalRoute =
-  AuthenticatedOperacaoMetaMensalRouteImport.update({
-    id: '/mensal',
-    path: '/mensal',
-    getParentRoute: () => AuthenticatedOperacaoMetaRoute,
-  } as any)
-const AuthenticatedOperacaoMetaDinamicaRoute =
-  AuthenticatedOperacaoMetaDinamicaRouteImport.update({
-    id: '/dinamica',
-    path: '/dinamica',
-    getParentRoute: () => AuthenticatedOperacaoMetaRoute,
-  } as any)
-const AuthenticatedOperacaoMetaDiariaRoute =
-  AuthenticatedOperacaoMetaDiariaRouteImport.update({
-    id: '/diaria',
-    path: '/diaria',
-    getParentRoute: () => AuthenticatedOperacaoMetaRoute,
-  } as any)
-const AuthenticatedOperacaoMetaConquistasRoute =
-  AuthenticatedOperacaoMetaConquistasRouteImport.update({
-    id: '/conquistas',
-    path: '/conquistas',
     getParentRoute: () => AuthenticatedOperacaoMetaRoute,
   } as any)
 
@@ -261,13 +240,10 @@ export interface FileRoutesByFullPath {
   '/services-todo': typeof AuthenticatedServicesTodoRoute
   '/telao': typeof AuthenticatedTelaoRoute
   '/whatsapp': typeof AuthenticatedWhatsappRoute
-  '/operacao-meta/conquistas': typeof AuthenticatedOperacaoMetaConquistasRoute
-  '/operacao-meta/diaria': typeof AuthenticatedOperacaoMetaDiariaRoute
-  '/operacao-meta/dinamica': typeof AuthenticatedOperacaoMetaDinamicaRoute
-  '/operacao-meta/mensal': typeof AuthenticatedOperacaoMetaMensalRoute
   '/operacao-meta/produtores': typeof AuthenticatedOperacaoMetaProdutoresRoute
   '/operacao-meta/relatorios': typeof AuthenticatedOperacaoMetaRelatoriosRoute
   '/operacao-meta/tendencias': typeof AuthenticatedOperacaoMetaTendenciasRoute
+  '/operacao-meta/visao-geral': typeof AuthenticatedOperacaoMetaVisaoGeralRoute
   '/pastas-arquivos/$folderId': typeof AuthenticatedPastasArquivosFolderIdRoute
   '/api/public/evolution-webhook': typeof ApiPublicEvolutionWebhookRoute
   '/api/public/trello-webhook': typeof ApiPublicTrelloWebhookRoute
@@ -296,13 +272,10 @@ export interface FileRoutesByTo {
   '/services-todo': typeof AuthenticatedServicesTodoRoute
   '/telao': typeof AuthenticatedTelaoRoute
   '/whatsapp': typeof AuthenticatedWhatsappRoute
-  '/operacao-meta/conquistas': typeof AuthenticatedOperacaoMetaConquistasRoute
-  '/operacao-meta/diaria': typeof AuthenticatedOperacaoMetaDiariaRoute
-  '/operacao-meta/dinamica': typeof AuthenticatedOperacaoMetaDinamicaRoute
-  '/operacao-meta/mensal': typeof AuthenticatedOperacaoMetaMensalRoute
   '/operacao-meta/produtores': typeof AuthenticatedOperacaoMetaProdutoresRoute
   '/operacao-meta/relatorios': typeof AuthenticatedOperacaoMetaRelatoriosRoute
   '/operacao-meta/tendencias': typeof AuthenticatedOperacaoMetaTendenciasRoute
+  '/operacao-meta/visao-geral': typeof AuthenticatedOperacaoMetaVisaoGeralRoute
   '/pastas-arquivos/$folderId': typeof AuthenticatedPastasArquivosFolderIdRoute
   '/api/public/evolution-webhook': typeof ApiPublicEvolutionWebhookRoute
   '/api/public/trello-webhook': typeof ApiPublicTrelloWebhookRoute
@@ -334,13 +307,10 @@ export interface FileRoutesById {
   '/_authenticated/services-todo': typeof AuthenticatedServicesTodoRoute
   '/_authenticated/telao': typeof AuthenticatedTelaoRoute
   '/_authenticated/whatsapp': typeof AuthenticatedWhatsappRoute
-  '/_authenticated/operacao-meta/conquistas': typeof AuthenticatedOperacaoMetaConquistasRoute
-  '/_authenticated/operacao-meta/diaria': typeof AuthenticatedOperacaoMetaDiariaRoute
-  '/_authenticated/operacao-meta/dinamica': typeof AuthenticatedOperacaoMetaDinamicaRoute
-  '/_authenticated/operacao-meta/mensal': typeof AuthenticatedOperacaoMetaMensalRoute
   '/_authenticated/operacao-meta/produtores': typeof AuthenticatedOperacaoMetaProdutoresRoute
   '/_authenticated/operacao-meta/relatorios': typeof AuthenticatedOperacaoMetaRelatoriosRoute
   '/_authenticated/operacao-meta/tendencias': typeof AuthenticatedOperacaoMetaTendenciasRoute
+  '/_authenticated/operacao-meta/visao-geral': typeof AuthenticatedOperacaoMetaVisaoGeralRoute
   '/_authenticated/pastas-arquivos/$folderId': typeof AuthenticatedPastasArquivosFolderIdRoute
   '/api/public/evolution-webhook': typeof ApiPublicEvolutionWebhookRoute
   '/api/public/trello-webhook': typeof ApiPublicTrelloWebhookRoute
@@ -372,13 +342,10 @@ export interface FileRouteTypes {
     | '/services-todo'
     | '/telao'
     | '/whatsapp'
-    | '/operacao-meta/conquistas'
-    | '/operacao-meta/diaria'
-    | '/operacao-meta/dinamica'
-    | '/operacao-meta/mensal'
     | '/operacao-meta/produtores'
     | '/operacao-meta/relatorios'
     | '/operacao-meta/tendencias'
+    | '/operacao-meta/visao-geral'
     | '/pastas-arquivos/$folderId'
     | '/api/public/evolution-webhook'
     | '/api/public/trello-webhook'
@@ -407,13 +374,10 @@ export interface FileRouteTypes {
     | '/services-todo'
     | '/telao'
     | '/whatsapp'
-    | '/operacao-meta/conquistas'
-    | '/operacao-meta/diaria'
-    | '/operacao-meta/dinamica'
-    | '/operacao-meta/mensal'
     | '/operacao-meta/produtores'
     | '/operacao-meta/relatorios'
     | '/operacao-meta/tendencias'
+    | '/operacao-meta/visao-geral'
     | '/pastas-arquivos/$folderId'
     | '/api/public/evolution-webhook'
     | '/api/public/trello-webhook'
@@ -444,13 +408,10 @@ export interface FileRouteTypes {
     | '/_authenticated/services-todo'
     | '/_authenticated/telao'
     | '/_authenticated/whatsapp'
-    | '/_authenticated/operacao-meta/conquistas'
-    | '/_authenticated/operacao-meta/diaria'
-    | '/_authenticated/operacao-meta/dinamica'
-    | '/_authenticated/operacao-meta/mensal'
     | '/_authenticated/operacao-meta/produtores'
     | '/_authenticated/operacao-meta/relatorios'
     | '/_authenticated/operacao-meta/tendencias'
+    | '/_authenticated/operacao-meta/visao-geral'
     | '/_authenticated/pastas-arquivos/$folderId'
     | '/api/public/evolution-webhook'
     | '/api/public/trello-webhook'
@@ -665,6 +626,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedPastasArquivosFolderIdRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/operacao-meta/visao-geral': {
+      id: '/_authenticated/operacao-meta/visao-geral'
+      path: '/visao-geral'
+      fullPath: '/operacao-meta/visao-geral'
+      preLoaderRoute: typeof AuthenticatedOperacaoMetaVisaoGeralRouteImport
+      parentRoute: typeof AuthenticatedOperacaoMetaRoute
+    }
     '/_authenticated/operacao-meta/tendencias': {
       id: '/_authenticated/operacao-meta/tendencias'
       path: '/tendencias'
@@ -686,62 +654,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedOperacaoMetaProdutoresRouteImport
       parentRoute: typeof AuthenticatedOperacaoMetaRoute
     }
-    '/_authenticated/operacao-meta/mensal': {
-      id: '/_authenticated/operacao-meta/mensal'
-      path: '/mensal'
-      fullPath: '/operacao-meta/mensal'
-      preLoaderRoute: typeof AuthenticatedOperacaoMetaMensalRouteImport
-      parentRoute: typeof AuthenticatedOperacaoMetaRoute
-    }
-    '/_authenticated/operacao-meta/dinamica': {
-      id: '/_authenticated/operacao-meta/dinamica'
-      path: '/dinamica'
-      fullPath: '/operacao-meta/dinamica'
-      preLoaderRoute: typeof AuthenticatedOperacaoMetaDinamicaRouteImport
-      parentRoute: typeof AuthenticatedOperacaoMetaRoute
-    }
-    '/_authenticated/operacao-meta/diaria': {
-      id: '/_authenticated/operacao-meta/diaria'
-      path: '/diaria'
-      fullPath: '/operacao-meta/diaria'
-      preLoaderRoute: typeof AuthenticatedOperacaoMetaDiariaRouteImport
-      parentRoute: typeof AuthenticatedOperacaoMetaRoute
-    }
-    '/_authenticated/operacao-meta/conquistas': {
-      id: '/_authenticated/operacao-meta/conquistas'
-      path: '/conquistas'
-      fullPath: '/operacao-meta/conquistas'
-      preLoaderRoute: typeof AuthenticatedOperacaoMetaConquistasRouteImport
-      parentRoute: typeof AuthenticatedOperacaoMetaRoute
-    }
   }
 }
 
 interface AuthenticatedOperacaoMetaRouteChildren {
-  AuthenticatedOperacaoMetaConquistasRoute: typeof AuthenticatedOperacaoMetaConquistasRoute
-  AuthenticatedOperacaoMetaDiariaRoute: typeof AuthenticatedOperacaoMetaDiariaRoute
-  AuthenticatedOperacaoMetaDinamicaRoute: typeof AuthenticatedOperacaoMetaDinamicaRoute
-  AuthenticatedOperacaoMetaMensalRoute: typeof AuthenticatedOperacaoMetaMensalRoute
   AuthenticatedOperacaoMetaProdutoresRoute: typeof AuthenticatedOperacaoMetaProdutoresRoute
   AuthenticatedOperacaoMetaRelatoriosRoute: typeof AuthenticatedOperacaoMetaRelatoriosRoute
   AuthenticatedOperacaoMetaTendenciasRoute: typeof AuthenticatedOperacaoMetaTendenciasRoute
+  AuthenticatedOperacaoMetaVisaoGeralRoute: typeof AuthenticatedOperacaoMetaVisaoGeralRoute
   AuthenticatedOperacaoMetaIndexRoute: typeof AuthenticatedOperacaoMetaIndexRoute
 }
 
 const AuthenticatedOperacaoMetaRouteChildren: AuthenticatedOperacaoMetaRouteChildren =
   {
-    AuthenticatedOperacaoMetaConquistasRoute:
-      AuthenticatedOperacaoMetaConquistasRoute,
-    AuthenticatedOperacaoMetaDiariaRoute: AuthenticatedOperacaoMetaDiariaRoute,
-    AuthenticatedOperacaoMetaDinamicaRoute:
-      AuthenticatedOperacaoMetaDinamicaRoute,
-    AuthenticatedOperacaoMetaMensalRoute: AuthenticatedOperacaoMetaMensalRoute,
     AuthenticatedOperacaoMetaProdutoresRoute:
       AuthenticatedOperacaoMetaProdutoresRoute,
     AuthenticatedOperacaoMetaRelatoriosRoute:
       AuthenticatedOperacaoMetaRelatoriosRoute,
     AuthenticatedOperacaoMetaTendenciasRoute:
       AuthenticatedOperacaoMetaTendenciasRoute,
+    AuthenticatedOperacaoMetaVisaoGeralRoute:
+      AuthenticatedOperacaoMetaVisaoGeralRoute,
     AuthenticatedOperacaoMetaIndexRoute: AuthenticatedOperacaoMetaIndexRoute,
   }
 

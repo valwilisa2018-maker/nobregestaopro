@@ -59,6 +59,50 @@ export function isWorkingDay(iso: string, workdays: number[] = [1,2,3,4,5], holi
   return workdays.includes(dt.getDay()) && !holidays.includes(iso);
 }
 
+// Conta quantos dias úteis já passaram no mês corrente (até hoje, inclusive).
+export function workingDaysElapsed(workdays: number[] = [1,2,3,4,5], holidays: string[] = [], offset = 0): number {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = now.getMonth() + offset;
+  const last = offset === 0 ? now.getDate() : new Date(year, month + 1, 0).getDate();
+  let count = 0;
+  for (let day = 1; day <= last; day++) {
+    const d = new Date(year, month, day);
+    const iso = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
+    if (workdays.includes(d.getDay()) && !holidays.includes(iso)) count++;
+  }
+  return Math.max(1, count);
+}
+
+// Extrai duração (em segundos) do título do card. Aceita "2:30", "1:02:30", "150s", "2min", "2min30s".
+export function parseDuracaoSegundos(name: string): number {
+  if (!name) return 0;
+  const s = String(name).toLowerCase();
+  const mColon = s.match(/(?<![\d:])(\d{1,2})(?::(\d{1,2}))(?::(\d{1,2}))?(?![\d:])/);
+  if (mColon) {
+    const a = Number(mColon[1] || 0);
+    const b = Number(mColon[2] || 0);
+    const c = mColon[3] != null ? Number(mColon[3]) : null;
+    if (c != null) return a * 3600 + b * 60 + c;
+    return a * 60 + b;
+  }
+  const mUnits = s.match(/(\d+)\s*(?:min|m)\b(?:\s*(\d+)\s*s\b)?/);
+  if (mUnits) return Number(mUnits[1]) * 60 + Number(mUnits[2] || 0);
+  const mSec = s.match(/(\d+)\s*s\b/);
+  if (mSec) return Number(mSec[1]);
+  return 0;
+}
+
+export function formatDuracao(totalSeconds: number): string {
+  if (!totalSeconds || totalSeconds <= 0) return "0min";
+  const h = Math.floor(totalSeconds / 3600);
+  const m = Math.floor((totalSeconds % 3600) / 60);
+  const s = totalSeconds % 60;
+  if (h > 0) return `${h}h${m.toString().padStart(2, "0")}min`;
+  if (m > 0) return s > 0 ? `${m}min${s.toString().padStart(2, "0")}s` : `${m}min`;
+  return `${s}s`;
+}
+
 export function useOmData() {
   const qc = useQueryClient();
   const producers = useQuery({
@@ -81,7 +125,7 @@ export function useOmData() {
         await supabase
           .from("service_orders")
           .select(
-              "id,producer_id,sale_id,column_id,delivered_at,updated_at,redo_count,last_redo_at,kanban_columns(name,is_done),sales(producer_id,service_type_id,package_id,video_duration_seconds,service_types(name,points,points_value),packages(name,points_value))",
+              "id,title,producer_id,sale_id,column_id,delivered_at,updated_at,redo_count,last_redo_at,kanban_columns(name,is_done),sales(producer_id,service_type_id,package_id,video_duration_seconds,service_types(name,points,points_value),packages(name,points_value))",
           )
         ).data?.map((o: any) => ({
           ...o,
@@ -122,20 +166,29 @@ export function useOmData() {
   );
   const delivered = (orders.data ?? [])
     .filter((o: any) => !!o.delivered_at)
-    // A pontuação do ranking vem da lista/coluna "Serviço Pronto".
-    .filter((o: any) => String(o.kanban_columns?.name ?? "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim() === "servico pronto")
     // só conta entregas de produtores ativos (desativados somem automaticamente)
     .filter((o: any) => !o.producer_id || activeProducerIds.has(o.producer_id));
+
+  // Estado atual no Kanban (independente de período): tudo que está hoje em colunas concluídas / em produção.
+  const allOrders = (orders.data ?? []).filter((o: any) => !o.producer_id || activeProducerIds.has(o.producer_id));
+  const inProductionNow = allOrders.filter((o: any) => o.kanban_columns?.is_done === false);
+  const doneNow = allOrders.filter((o: any) => o.kanban_columns?.is_done === true);
+
   const sumPts = (arr: any[]) => arr.reduce((a, o) => a + computePts(o), 0);
+  const sumDuracao = (arr: any[]) => arr.reduce((a, o) => a + parseDuracaoSegundos(o.title ?? ""), 0);
   const prodOf = (id: string) => (producers.data ?? []).find((p: any) => p.id === id) as any;
   const s = settings.data ?? { base_daily_goal: 6, workdays: [1,2,3,4,5], holidays: [] };
   return {
     qc,
     producers: (producers.data ?? []).filter((p: any) => p.active !== false),
     delivered,
+    allOrders,
+    inProductionNow,
+    doneNow,
     computePts,
     catName,
     sumPts,
+    sumDuracao,
     prodOf,
     baseGoal: Number(s.base_daily_goal ?? 6),
     workdays: (s.workdays ?? [1,2,3,4,5]) as number[],
@@ -631,7 +684,7 @@ export function DinamicaView({ delivered, producers, computePts, sumPts, prodOf,
 }
 
 /* ============================ TENDÊNCIAS ============================ */
-export function TendenciasView({ delivered, sumPts }: any) {
+export function TendenciasView({ delivered, sumPts, workdays = [1,2,3,4,5], holidays = [] }: any) {
   const days: { iso: string; label: string }[] = [];
   for (let i = 29; i >= 0; i--) {
     const d = new Date(); d.setDate(d.getDate() - i);
@@ -660,11 +713,13 @@ export function TendenciasView({ delivered, sumPts }: any) {
   const prev7Eff = prev7Proj > 0 ? Math.round((prev7Pts / prev7Proj) * 10) / 10 : 0;
   const diff = (a: number, b: number) => b === 0 ? "0%" : `${a >= b ? "+" : ""}${Math.round(((a - b) / b) * 100)}%`;
 
-  const monthDays = new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0).getDate();
-  const dayOfMonth = new Date().getDate();
+  // Projeção do mês usando DIAS ÚTEIS (não calendário) — não dilui o ritmo com fins de semana e feriados.
+  const workDaysTotal = workdaysInMonth(workdays, holidays, 0);
+  const workDaysSoFar = workingDaysElapsed(workdays, holidays, 0);
   const ms = monthStart(0);
   const monthPts = sumPts(delivered.filter((o: any) => String(o.delivered_at).slice(0, 10) >= ms));
-  const projection = dayOfMonth > 0 ? Math.round((monthPts / dayOfMonth) * monthDays) : 0;
+  const projection = workDaysSoFar > 0 ? Math.round((monthPts / workDaysSoFar) * workDaysTotal) : 0;
+  const workDaysRemaining = Math.max(0, workDaysTotal - workDaysSoFar);
 
   return (
     <div className="space-y-4">
@@ -672,7 +727,7 @@ export function TendenciasView({ delivered, sumPts }: any) {
         <TrendKpi label="Pontos vs Semana Anterior" value={diff(last7Pts, prev7Pts)} sub={`${last7Pts} vs ${prev7Pts}`} positive={last7Pts >= prev7Pts} />
         <TrendKpi label="Projetos vs Semana Anterior" value={diff(last7Proj, prev7Proj)} sub={`${last7Proj} vs ${prev7Proj}`} positive={last7Proj >= prev7Proj} />
         <TrendKpi label="Eficiência vs Semana Anterior" value={diff(last7Eff, prev7Eff)} sub={`${last7Eff} vs ${prev7Eff}`} positive={last7Eff >= prev7Eff} />
-        <TrendKpi label="Projeção do Mês" value={`${projection} pts`} sub={`${monthDays - dayOfMonth} dias restantes`} positive accent="text-emerald-500" />
+          <TrendKpi label="Projeção do Mês" value={`${projection} pts`} sub={`${workDaysRemaining} dias úteis restantes`} positive accent="text-emerald-500" />
       </div>
 
       <div className="grid lg:grid-cols-2 gap-3">
@@ -742,34 +797,295 @@ export function TendenciasView({ delivered, sumPts }: any) {
   );
 }
 
+/* ============================ VISÃO GERAL ============================ */
+export function VisaoGeralView({
+  delivered, producers, inProductionNow, computePts, catName, sumPts, sumDuracao,
+  prodOf, baseGoal = 6, workdays = [1,2,3,4,5], holidays = [],
+}: any) {
+  const { theme } = useTheme();
+  const isDark = theme === "dark";
+  const ringBg = (ok: boolean) => ok ? (isDark ? "rgba(16,185,129,0.3)" : "rgba(16,185,129,0.2)") : (isDark ? "#ef4444" : "#0a0a0a");
+
+  const t = today(), y = yesterday();
+  const ms = monthStart(0), me = monthEnd(0);
+  const onDate = (iso: string) => delivered.filter((o: any) => String(o.delivered_at).slice(0, 10) === iso);
+  const todayOrders = onDate(t);
+  const yOrders = onDate(y);
+  const monthOrders = delivered.filter((o: any) => {
+    const d = String(o.delivered_at).slice(0, 10);
+    return d >= ms && d <= me;
+  });
+
+  const todayPts = sumPts(todayOrders);
+  const yPts = sumPts(yOrders);
+  const monthPts = sumPts(monthOrders);
+  const monthSec = sumDuracao(monthOrders);
+  const totalEmProducao = inProductionNow.length;
+
+  // Meta diária (soma das metas individuais dos produtores ativos)
+  const todayIsWorking = isWorkingDay(t, workdays, holidays);
+  const totalGoalToday = todayIsWorking
+    ? producers.reduce((a: number, p: any) => a + Number(p.daily_points_goal ?? baseGoal), 0)
+    : 0;
+  const pctDia = totalGoalToday > 0 ? Math.min(100, Math.round((todayPts / totalGoalToday) * 100)) : 0;
+
+  // Meta mensal coletiva = soma metas diárias × dias úteis do mês
+  const workDaysMonth = workdaysInMonth(workdays, holidays, 0);
+  const totalGoalDay = producers.reduce((a: number, p: any) => a + Number(p.daily_points_goal ?? baseGoal), 0);
+  const monthGoal = totalGoalDay * workDaysMonth;
+  const pctMes = monthGoal > 0 ? Math.min(100, Math.round((monthPts / monthGoal) * 100)) : 0;
+
+  const diffYesterday = todayPts - yPts;
+
+  const status = pctDia >= 100 ? { title: "Meta batida!", emoji: "🏆", color: "#10b981" } :
+                 pctDia >= 70  ? { title: "Quase lá!", emoji: "🔥", color: "#f59e0b" } :
+                 pctDia >= 30  ? { title: "No ritmo!", emoji: "🚀", color: "#3b82f6" } :
+                                 { title: "Vamos lá!", emoji: "🚀", color: "#ef4444" };
+
+  // Ranking do mês
+  const monthRanking = useMemo(() => {
+    const m = new Map<string, { pts: number; videos: number; sec: number }>();
+    for (const o of monthOrders) {
+      if (!o.producer_id) continue;
+      const cur = m.get(o.producer_id) ?? { pts: 0, videos: 0, sec: 0 };
+      cur.pts += computePts(o); cur.videos += 1; cur.sec += parseDuracaoSegundos(o.title ?? "");
+      m.set(o.producer_id, cur);
+    }
+    return Array.from(m.entries()).map(([pid, v]) => {
+      const prod = prodOf(pid);
+      const dailyGoal = Number(prod?.daily_points_goal ?? baseGoal);
+      const goal = dailyGoal * workingDaysElapsed(workdays, holidays, 0);
+      return {
+        id: pid, name: prod?.name ?? "—", avatar_url: prod?.avatar_url,
+        pts: Math.round(v.pts), videos: v.videos, sec: v.sec,
+        bateu: v.pts >= goal && goal > 0,
+      };
+    }).sort((a, b) => b.videos - a.videos || b.sec - a.sec).slice(0, 10);
+  }, [monthOrders, producers, baseGoal, workdays, holidays]);
+
+  // Quem bateu a meta do dia
+  const metaBatidaHoje = useMemo(() => {
+    const m = new Map<string, number>();
+    for (const o of todayOrders) { if (!o.producer_id) continue; m.set(o.producer_id, (m.get(o.producer_id) ?? 0) + computePts(o)); }
+    return producers.map((p: any) => {
+      const pts = m.get(p.id) ?? 0;
+      const goal = Number(p.daily_points_goal ?? baseGoal);
+      return { name: p.name, avatar_url: p.avatar_url, pts: Math.round(pts), goal, ok: pts >= goal };
+    }).filter((x: any) => x.ok);
+  }, [todayOrders, producers, baseGoal]);
+
+  // Categorias do mês
+  const cats = useMemo(() => {
+    const m = new Map<string, number>();
+    for (const o of monthOrders) m.set(catName(o), (m.get(catName(o)) ?? 0) + 1);
+    return Array.from(m.entries()).map(([n, c]) => ({ name: n, value: c })).sort((a, b) => b.value - a.value).slice(0, 8);
+  }, [monthOrders]);
+
+  const PIE_COLORS = ["#ef4444", "#f59e0b", "#10b981", "#3b82f6", "#8b5cf6", "#ec4899", "#14b8a6", "#f97316"];
+
+  return (
+    <div className="space-y-4">
+      {/* Header KPIs do mês */}
+      <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
+        <BigKpi label={`Vídeos prontos — ${monthLabel(ms)}`} value={String(monthOrders.length)} accent="text-emerald-500" />
+        <BigKpi label="Minutagem total" value={formatDuracao(monthSec)} accent="text-blue-500" />
+        <BigKpi label="Em produção agora" value={String(totalEmProducao)} accent="text-amber-500" />
+        <BigKpi label="Pontos do mês" value={String(Math.round(monthPts))} accent="text-rose-500" />
+        <BigKpi label="Meta da equipe" value={`${pctMes}%`} accent={pctMes >= 100 ? "text-emerald-500" : "text-rose-500"} />
+      </div>
+
+      {/* Meta do dia */}
+      <Card className="border-border/50 overflow-hidden" style={{ boxShadow: "var(--shadow-card)" }}>
+        <CardContent className="p-6">
+          <SectionLabel icon={Target}>Meta do Dia ({fmtBR(t)})</SectionLabel>
+          <div className="grid grid-cols-2 md:grid-cols-[1fr_auto_1fr] gap-4 md:gap-6 items-stretch mt-4">
+            <div className="flex flex-col gap-3 w-full h-full justify-center">
+              <MiniStat icon={TrendingUp} label="vs Ontem" value={`${diffYesterday >= 0 ? "+" : ""}${diffYesterday.toFixed(0)}`} valueClass={diffYesterday >= 0 ? "text-emerald-500" : "text-red-500"} size="lg" />
+              <MiniStat icon={Calendar} label="Ontem" value={yPts > 0 ? yPts.toFixed(0) : "--"} suffix="pts" size="lg" />
+            </div>
+            <div className="relative h-[300px] md:h-[360px] w-full md:w-[360px] flex items-center justify-center col-span-2 md:col-span-1 order-first md:order-none mx-auto">
+              <ResponsiveContainer width="100%" height="100%">
+                <RadialBarChart innerRadius="76%" outerRadius="100%" data={[{ name: "pct", value: pctDia, fill: "#10b981" }]} startAngle={90} endAngle={-270}>
+                  <PolarAngleAxis type="number" domain={[0, 100]} tick={false} />
+                  <RadialBar dataKey="value" cornerRadius={30} background={{ fill: ringBg(pctDia >= 100) }} />
+                </RadialBarChart>
+              </ResponsiveContainer>
+              <div className="absolute inset-0 flex flex-col items-center justify-center">
+                <div className="text-6xl md:text-7xl font-extrabold tracking-tight" style={{ color: "#10b981" }}>{pctDia}%</div>
+                <div className="text-sm text-muted-foreground mt-2 font-medium">{todayPts.toFixed(0)} / {totalGoalToday} pts</div>
+              </div>
+            </div>
+            <div className="flex flex-col gap-3 w-full h-full justify-center">
+              <div className="p-5 rounded-xl bg-muted/40 border border-border/40 flex-1 flex flex-col justify-center">
+                <div className="text-xs uppercase text-muted-foreground font-medium tracking-wide">Status</div>
+                <div className="text-3xl mt-2">{status.emoji}</div>
+                <div className="text-lg font-bold leading-tight mt-1">{status.title}</div>
+              </div>
+              <MiniStat icon={Folder} label="Vídeos hoje" value={String(todayOrders.length)} size="lg" />
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Meta coletiva do mês */}
+      <Card className="border-border/50" style={{ boxShadow: "var(--shadow-card)" }}>
+        <CardContent className="p-5">
+          <div className="flex items-center justify-between flex-wrap gap-2">
+            <div>
+              <div className="font-bold flex items-center gap-2"><Target className="w-4 h-4 text-rose-500" /> Meta Coletiva — {monthLabel(ms)}</div>
+              <div className="text-xs text-muted-foreground">Soma das metas individuais × {workDaysMonth} dias úteis do mês</div>
+            </div>
+            {pctMes >= 70 && <span className="px-3 py-1 rounded-full bg-emerald-500/15 text-emerald-500 text-xs font-bold">✓ Recompensas ativadas</span>}
+          </div>
+          <div className="mt-4">
+            <div className="text-3xl font-extrabold"><span className="text-rose-500">{Math.round(monthPts)}</span> <span className="text-base text-muted-foreground">/ {monthGoal} pontos</span></div>
+            <div className="mt-2 h-3 rounded-full bg-muted overflow-hidden">
+              <div className="h-full" style={{ width: `${pctMes}%`, background: "linear-gradient(90deg,#ef4444,#f59e0b,#fde047)" }} />
+            </div>
+            <div className="flex justify-between text-[10px] text-muted-foreground mt-1">
+              <span>0%</span><span>70%</span><span>80%</span><span>100%</span>
+            </div>
+          </div>
+          <div className="flex flex-wrap gap-2 mt-4">
+            <RewardChip pct={70} label="R$ 5.000,00" active={pctMes >= 70} />
+            <RewardChip pct={80} label="R$ 7.500,00" active={pctMes >= 80} />
+            <RewardChip pct={100} label="R$ 10.000,00" active={pctMes >= 100} highlight />
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Quem bateu a meta hoje */}
+      <Card className="border-border/50" style={{ boxShadow: "var(--shadow-card)" }}>
+        <CardContent className="p-5">
+          <div className="font-bold flex items-center gap-2 mb-1">✅ Meta Diária Batida</div>
+          <div className="text-xs text-muted-foreground mb-3">Produtores que atingiram ou superaram a meta de hoje.</div>
+          {metaBatidaHoje.length === 0 ? (
+            <div className="text-center py-6 text-sm text-muted-foreground">Ninguém bateu a meta hoje ainda.</div>
+          ) : (
+            <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-2">
+              {metaBatidaHoje.map((p: any) => (
+                <div key={p.name} className="flex items-center justify-between p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/30">
+                  <div className="flex items-center gap-2"><Avatar className="w-10 h-10 ring-2 ring-emerald-500/40"><AvatarImage src={p.avatar_url} /><AvatarFallback className="text-xs">{initials(p.name)}</AvatarFallback></Avatar><span className="font-bold text-sm">{p.name}</span></div>
+                  <span className="text-emerald-500 font-bold">{p.pts}/{p.goal}</span>
+                </div>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Ranking do mês + Categorias */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
+        <Card className="lg:col-span-2 border-border/50" style={{ boxShadow: "var(--shadow-card)" }}>
+          <CardContent className="p-5">
+            <SectionLabel icon={Trophy} iconClass="text-amber-500">Ranking do Mês — {monthLabel(ms)}</SectionLabel>
+            {monthRanking.length === 0 ? (
+              <div className="h-[260px] flex items-center justify-center text-sm text-muted-foreground">Sem entregas ainda este mês</div>
+            ) : (
+              <div className="mt-3 space-y-3">
+                {monthRanking.map((r: any, i: number) => {
+                  const max = monthRanking[0]?.videos || 1;
+                  const pctBar = Math.max(4, Math.round((r.videos / max) * 100));
+                  return (
+                    <div key={r.id} className="flex items-center gap-3">
+                      <div className="text-xs font-bold text-muted-foreground w-5 text-right shrink-0">#{i + 1}</div>
+                      {r.avatar_url ? (
+                        <img src={r.avatar_url} alt={r.name} className={`w-9 h-9 rounded-full object-cover shrink-0 ring-2 ${r.bateu ? "ring-amber-400" : "ring-border"}`} />
+                      ) : (
+                        <div className={`w-9 h-9 rounded-full bg-muted flex items-center justify-center text-xs font-bold shrink-0 ring-2 ${r.bateu ? "ring-amber-400" : "ring-border"}`}>{initials(r.name)}</div>
+                      )}
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center justify-between gap-2 mb-1">
+                          <span className="text-sm font-medium truncate flex items-center gap-1">
+                            {r.name}
+                            {r.bateu && <span className="text-[10px] text-amber-500 font-bold">🏆</span>}
+                          </span>
+                          <span className="text-xs tabular-nums shrink-0 text-muted-foreground">
+                            <span className="font-bold text-foreground">{r.videos}</span> vídeos · {formatDuracao(r.sec)} · {r.pts} pts
+                          </span>
+                        </div>
+                        <div className="h-2.5 rounded-full bg-muted/60 overflow-hidden">
+                          <div className="h-full rounded-full transition-all" style={{ width: `${pctBar}%`, background: r.bateu ? "linear-gradient(90deg,#f59e0b,#fde047)" : "var(--ranking-bar, var(--primary))" }} />
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card className="border-border/50" style={{ boxShadow: "var(--shadow-card)" }}>
+          <CardContent className="p-5">
+            <SectionLabel icon={Folder} iconClass="text-amber-500">Categorias do Mês</SectionLabel>
+            {cats.length === 0 ? (
+              <div className="h-[260px] flex items-center justify-center text-sm text-muted-foreground">Sem categorias</div>
+            ) : (
+              <div className="h-[260px] mt-3">
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie data={cats} dataKey="value" nameKey="name" innerRadius={55} outerRadius={85} paddingAngle={2}>
+                      {cats.map((_: any, i: number) => <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />)}
+                    </Pie>
+                    <Tooltip contentStyle={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: 8 }} />
+                    <Legend wrapperStyle={{ fontSize: 10 }} />
+                  </PieChart>
+                </ResponsiveContainer>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+    </div>
+  );
+}
+
 /* ============================ PRODUTORES ============================ */
-export function ProdutoresView({ delivered, producers, computePts }: any) {
+export function ProdutoresView({
+  delivered, producers, inProductionNow, computePts, sumDuracao,
+  baseGoal = 6, workdays = [1,2,3,4,5], holidays = [],
+}: any) {
   const [search, setSearch] = useState("");
-  const [sortBy, setSortBy] = useState<"pontos" | "projetos" | "nome">("pontos");
+  const [sortBy, setSortBy] = useState<"pontos" | "videos" | "minutagem" | "nome">("videos");
+  const [selectedId, setSelectedId] = useState<string | null>(null);
 
   const ms = monthStart(0);
-  const days = (Date.now() - new Date(ms).getTime()) / 86400000;
+  const me = monthEnd(0);
+  const workDaysElapsed = workingDaysElapsed(workdays, holidays, 0);
 
   const list = useMemo(() => {
     return producers.map((p: any) => {
-      const orders = delivered.filter((o: any) => o.producer_id === p.id);
-      const monthOrders = orders.filter((o: any) => String(o.delivered_at).slice(0, 10) >= ms);
+      const all = delivered.filter((o: any) => o.producer_id === p.id);
+      const monthOrders = all.filter((o: any) => {
+        const d = String(o.delivered_at).slice(0, 10);
+        return d >= ms && d <= me;
+      });
       const pontos = monthOrders.reduce((a: number, o: any) => a + computePts(o), 0);
-      const projetos = monthOrders.length;
-      const alteracoes = monthOrders.filter((o: any) => o.updated_at && o.updated_at !== o.delivered_at).length;
-      const mediaDia = days > 0 ? Math.round((pontos / days) * 10) / 10 : 0;
-      const eficiencia = projetos > 0 ? Math.round(((projetos - alteracoes) / projetos) * 10) / 10 + 1 : 1;
-      const meta = 100;
-      const pctMeta = Math.min(100, Math.round((pontos / meta) * 100));
-      return { ...p, pontos: Math.round(pontos), projetos, mediaDia, eficiencia, pctMeta };
+      const videos = monthOrders.length;
+      const alteracoes = monthOrders.reduce((a: number, o: any) => a + Number(o.redo_count ?? 0), 0);
+      const segundos = sumDuracao(monthOrders);
+      const emProducao = inProductionNow.filter((o: any) => o.producer_id === p.id).length;
+      const dailyGoal = Number(p.daily_points_goal ?? baseGoal);
+      const monthGoal = dailyGoal * workDaysElapsed;
+      const pctMeta = monthGoal > 0 ? Math.min(999, Math.round((pontos / monthGoal) * 100)) : 0;
+      const bateu = pctMeta >= 100;
+      return {
+        ...p,
+        pontos: Math.round(pontos), videos, alteracoes, segundos,
+        emProducao, monthGoal, pctMeta, bateu, dailyGoal,
+      };
     })
     .filter((p: any) => p.name?.toLowerCase().includes(search.toLowerCase()))
     .sort((a: any, b: any) => {
       if (sortBy === "nome") return String(a.name).localeCompare(String(b.name));
-      if (sortBy === "projetos") return b.projetos - a.projetos;
+      if (sortBy === "videos") return b.videos - a.videos;
+      if (sortBy === "minutagem") return b.segundos - a.segundos;
       return b.pontos - a.pontos;
     });
-  }, [producers, delivered, search, sortBy, ms]);
+  }, [producers, delivered, inProductionNow, search, sortBy, ms, me, workDaysElapsed, baseGoal, sumDuracao, computePts]);
+
+  const selected = list.find((p: any) => p.id === selectedId);
 
   return (
     <div className="space-y-4">
@@ -778,8 +1094,9 @@ export function ProdutoresView({ delivered, producers, computePts }: any) {
         <div className="flex items-center gap-2 ml-auto">
           <span className="text-xs text-muted-foreground">Ordenar por:</span>
           <select value={sortBy} onChange={(e) => setSortBy(e.target.value as any)} className="bg-background border border-border rounded-md px-2 py-1.5 text-sm">
+            <option value="videos">🎬 Vídeos prontos</option>
+            <option value="minutagem">⏱ Minutagem</option>
             <option value="pontos">🏆 Pontos</option>
-            <option value="projetos">📁 Projetos</option>
             <option value="nome">🔤 Nome</option>
           </select>
         </div>
@@ -787,35 +1104,104 @@ export function ProdutoresView({ delivered, producers, computePts }: any) {
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
         {list.map((p: any) => (
-          <Card key={p.id} className="border-border/50 hover:border-rose-500/50 transition" style={{ boxShadow: "var(--shadow-card)" }}>
+          <Card
+            key={p.id}
+            onClick={() => setSelectedId(p.id)}
+            className={`cursor-pointer transition border ${
+              p.bateu
+                ? "border-amber-400/80 ring-2 ring-amber-400/40 hover:ring-amber-400/70"
+                : "border-border/50 hover:border-rose-500/50"
+            }`}
+            style={{ boxShadow: "var(--shadow-card)" }}
+          >
             <CardContent className="p-4">
               <div className="flex items-center gap-2">
                 <Avatar className="w-14 h-14 ring-2 ring-primary/30"><AvatarImage src={p.avatar_url} /><AvatarFallback>{initials(p.name)}</AvatarFallback></Avatar>
-                <div className="min-w-0">
+                <div className="min-w-0 flex-1">
                   <div className="font-bold uppercase text-sm truncate">{p.name}</div>
-                  <div className="text-[10px] text-muted-foreground">Produtor</div>
+                  <div className="text-[10px] text-muted-foreground">Meta diária: {p.dailyGoal} pts</div>
                 </div>
+                {p.bateu && (
+                  <span className="px-2 py-0.5 rounded-full bg-amber-400 text-amber-950 text-[10px] font-extrabold whitespace-nowrap">🏆 META</span>
+                )}
               </div>
               <div className="grid grid-cols-2 gap-2 mt-3">
-                <ProdCell label="🏆 Pontos" value={p.pontos} accent="text-rose-500" />
-                <ProdCell label="📁 Projetos" value={p.projetos} />
-                <ProdCell label="📈 Média/Dia" value={p.mediaDia} />
-                <ProdCell label="✨ Eficiência" value={p.eficiencia} />
+                <ProdCell label="🎬 Vídeos prontos" value={p.videos} accent="text-emerald-500" />
+                <ProdCell label="🟡 Em produção" value={p.emProducao} />
+                <ProdCell label="⏱ Minutagem" value={formatDuracao(p.segundos)} />
+                <ProdCell label="🔁 Alterações" value={p.alteracoes} />
               </div>
               <div className="mt-3">
                 <div className="flex items-center justify-between text-[10px] mb-1">
-                  <span className="text-muted-foreground">Meta Mensal (100 pts)</span>
-                  <span className="font-bold">{p.pctMeta}%</span>
+                  <span className="text-muted-foreground">Meta do mês ({p.monthGoal} pts)</span>
+                  <span className="font-bold">{p.pontos} pts • {p.pctMeta}%</span>
                 </div>
-                <div className="h-1.5 rounded-full bg-muted overflow-hidden">
-                  <div className="h-full" style={{ width: `${p.pctMeta}%`, background: p.pctMeta >= 100 ? "#10b981" : "#ef4444" }} />
+                <div className="h-2 rounded-full bg-muted overflow-hidden">
+                  <div className="h-full transition-all" style={{ width: `${Math.min(100, p.pctMeta)}%`, background: p.bateu ? "linear-gradient(90deg,#f59e0b,#fbbf24,#fde047)" : "#ef4444" }} />
                 </div>
               </div>
             </CardContent>
           </Card>
         ))}
+        {list.length === 0 && (
+          <div className="col-span-full text-center py-12 text-sm text-muted-foreground">Nenhum produtor encontrado.</div>
+        )}
       </div>
+
+      {selected && (
+        <ProducerAchievements producer={selected} delivered={delivered} onClose={() => setSelectedId(null)} />
+      )}
     </div>
+  );
+}
+
+function ProducerAchievements({ producer, delivered, onClose }: any) {
+  const orders = delivered.filter((o: any) => o.producer_id === producer.id);
+  const byDay = new Map<string, any[]>();
+  for (const o of orders) {
+    const d = String(o.delivered_at).slice(0, 10);
+    const arr = byDay.get(d) ?? []; arr.push(o); byDay.set(d, arr);
+  }
+  const totalDeliveries = orders.length;
+  const maxInDay = Math.max(0, ...Array.from(byDay.values()).map(a => a.length));
+  const perfectDays = Array.from(byDay.values()).filter(a => a.length >= 10 && a.every((o: any) => Number(o.redo_count ?? 0) === 0)).length;
+
+  const badges = [
+    { ok: producer.bateu, color: "#f59e0b", title: "Meta do Mês Batida", desc: "Atingiu 100% da meta mensal individual" },
+    { ok: totalDeliveries >= 50, color: "#8b5cf6", title: "Veterano", desc: "50+ vídeos entregues" },
+    { ok: maxInDay >= 10, color: "#3b82f6", title: "Maratonista", desc: "10+ vídeos entregues em um único dia" },
+    { ok: perfectDays >= 1, color: "#10b981", title: "Dia Perfeito", desc: "Um dia com 10+ entregas e zero alterações" },
+    { ok: producer.alteracoes === 0 && producer.videos > 0, color: "#22c55e", title: "Mão de Ouro", desc: "Sem alterações no mês" },
+    { ok: totalDeliveries >= 100, color: "#ef4444", title: "Lenda", desc: "100+ vídeos entregues no histórico" },
+  ];
+
+  return (
+    <Card className="border-amber-400/40" style={{ boxShadow: "var(--shadow-card)" }}>
+      <CardContent className="p-5">
+        <div className="flex items-center gap-3 mb-4">
+          <Avatar className="w-16 h-16 ring-2 ring-amber-400/50"><AvatarImage src={producer.avatar_url} /><AvatarFallback>{initials(producer.name)}</AvatarFallback></Avatar>
+          <div className="flex-1">
+            <div className="text-lg font-extrabold uppercase">{producer.name}</div>
+            <div className="text-xs text-muted-foreground">
+              {producer.videos} vídeos no mês • {formatDuracao(producer.segundos)} • {producer.pontos}/{producer.monthGoal} pts
+            </div>
+          </div>
+          <Button variant="ghost" size="sm" onClick={onClose}>Fechar</Button>
+        </div>
+        <SectionLabel icon={Award} iconClass="text-amber-500">Conquistas</SectionLabel>
+        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3 mt-3">
+          {badges.map((a, i) => (
+            <div key={i} className={`p-3 rounded-xl border ${a.ok ? "bg-card border-border/50" : "bg-muted/20 border-border/30 opacity-50"}`} style={{ borderLeft: `4px solid ${a.color}` }}>
+              <div className="flex items-center gap-2 mb-1">
+                <Award className="w-4 h-4" style={{ color: a.color }} />
+                <div className="font-bold text-sm">{a.title}</div>
+              </div>
+              <div className="text-[11px] text-muted-foreground">{a.desc}</div>
+            </div>
+          ))}
+        </div>
+      </CardContent>
+    </Card>
   );
 }
 
@@ -935,7 +1321,7 @@ export function RelatoriosView({ delivered, producers, computePts, sumPts }: any
   });
   const pts = sumPts(orders);
   const proj = orders.length;
-  const alt = orders.filter((o: any) => o.updated_at && o.updated_at !== o.delivered_at).length;
+  const alt = orders.reduce((a: number, o: any) => a + Number(o.redo_count ?? 0), 0);
   const prods = new Set(orders.map((o: any) => o.producer_id).filter(Boolean));
 
   const perProducer = useMemo(() => {
@@ -945,7 +1331,7 @@ export function RelatoriosView({ delivered, producers, computePts, sumPts }: any
       const prod = producers.find((p: any) => p.id === o.producer_id);
       const cur = m.get(o.producer_id) ?? { name: prod?.name ?? "—", pts: 0, proj: 0, alt: 0 };
       cur.pts += computePts(o); cur.proj += 1;
-      if (o.updated_at && o.updated_at !== o.delivered_at) cur.alt += 1;
+      cur.alt += Number(o.redo_count ?? 0);
       m.set(o.producer_id, cur);
     }
     return Array.from(m.values()).sort((a, b) => b.pts - a.pts);
@@ -1137,11 +1523,8 @@ function ProdCell({ label, value, accent = "" }: any) {
 }
 
 export const OM_MENU = [
-  { key: "diaria", label: "Análise Diária", path: "/operacao-meta/diaria", icon: BarChart3 },
-  { key: "mensal", label: "Análise Mensal", path: "/operacao-meta/mensal", icon: BarChart3 },
-  { key: "dinamica", label: "Dinâmica", path: "/operacao-meta/dinamica", icon: PartyPopper },
-  { key: "tendencias", label: "Tendências", path: "/operacao-meta/tendencias", icon: LineIcon },
+  { key: "visao-geral", label: "Visão Geral", path: "/operacao-meta/visao-geral", icon: BarChart3 },
   { key: "produtores", label: "Produtores", path: "/operacao-meta/produtores", icon: Users },
-  { key: "conquistas", label: "Conquistas", path: "/operacao-meta/conquistas", icon: Trophy },
+  { key: "tendencias", label: "Tendências", path: "/operacao-meta/tendencias", icon: LineIcon },
   { key: "relatorios", label: "Relatórios", path: "/operacao-meta/relatorios", icon: FileText },
 ] as const;

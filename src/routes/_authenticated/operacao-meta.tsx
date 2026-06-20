@@ -83,7 +83,7 @@ function OperacaoMetaLayout() {
           <nav className="flex flex-row flex-wrap gap-1 overflow-x-auto">
             {OM_MENU.map((m) => {
               const Icon = m.icon;
-              const isActive = pathname === m.path || (pathname === "/operacao-meta" && m.key === "diaria");
+              const isActive = pathname === m.path || (pathname === "/operacao-meta" && m.key === "visao-geral");
               return (
                 <Link
                   key={m.key}
