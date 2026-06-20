@@ -269,26 +269,37 @@ function SalesPage() {
     });
   }, [serviceTypes.data, sellers.data, producers.data]);
 
+  // ID do cliente existente que o usuário escolheu reutilizar (quando há homônimos).
+  // Quando nulo, a venda sempre cria/usa um cliente novo conforme os dados digitados.
+  const [linkedCustomerId, setLinkedCustomerId] = useState<string | null>(null);
+
   const autofillFromCustomer = (field: "customer_name" | "company", value: string) => {
+    // Apenas atualiza o campo digitado — NÃO sobrescreve outros campos automaticamente,
+    // pois clientes diferentes podem ter o mesmo nome/empresa.
     setForm((f) => ({ ...f, [field]: value }));
-    const list = customersAll.data ?? [];
-    const v = value.trim().toLowerCase();
-    if (!v) return;
-    const match = list.find((c: any) =>
-      field === "customer_name"
-        ? (c.name ?? "").toLowerCase() === v
-        : (c.company ?? "").toLowerCase() === v
+    // Se o usuário começou a digitar de novo, desfaz qualquer vínculo anterior.
+    setLinkedCustomerId(null);
+  };
+
+  // Sugestões (homônimos) baseadas no nome digitado
+  const customerSuggestions = (() => {
+    const v = form.customer_name.trim().toLowerCase();
+    if (!v) return [] as any[];
+    return (customersAll.data ?? []).filter(
+      (c: any) => (c.name ?? "").toLowerCase() === v
     );
-    if (match) {
-      setForm((f) => ({
-        ...f,
-        customer_name: match.name ?? f.customer_name,
-        company: match.company ?? f.company,
-        document: match.document ?? f.document,
-        phone: match.phone ?? f.phone,
-        email: match.email ?? f.email,
-      }));
-    }
+  })();
+
+  const applyExistingCustomer = (c: any) => {
+    setForm((f) => ({
+      ...f,
+      customer_name: c.name ?? f.customer_name,
+      company: c.company ?? "",
+      document: c.document ?? "",
+      phone: c.phone ?? "",
+      email: c.email ?? "",
+    }));
+    setLinkedCustomerId(c.id);
   };
 
   const submit = async () => {
@@ -351,10 +362,17 @@ function SalesPage() {
     setSaving(true);
     try {
       const list = customersAll.data ?? [];
-      const existing = list.find((c: any) =>
-        (c.name ?? "").toLowerCase() === form.customer_name.trim().toLowerCase() &&
-        (c.company ?? "").toLowerCase() === form.company.trim().toLowerCase()
-      );
+      // 1) Se o usuário escolheu explicitamente reutilizar um cliente, usa esse.
+      // 2) Senão, tenta casar por CPF/CNPJ (identificador único e seguro).
+      // 3) Caso contrário, cria um cliente novo — mesmo que o nome já exista
+      //    (homônimos são clientes diferentes).
+      let existing: any = null;
+      if (linkedCustomerId) {
+        existing = list.find((c: any) => c.id === linkedCustomerId) || null;
+      } else if (form.document.trim()) {
+        const doc = form.document.trim();
+        existing = list.find((c: any) => (c.document ?? "").trim() === doc) || null;
+      }
       let cust: any;
       if (existing) {
         cust = existing;
@@ -443,6 +461,7 @@ function SalesPage() {
         video_duration_seconds: "",
       });
       setReceiptFile(null);
+      setLinkedCustomerId(null);
       await qc.invalidateQueries({ queryKey: ["sales-list"] });
     } catch (e: any) {
       await logger.error(`Erro ao criar venda: ${e.message}`, { context: "sales/submit", details: { form, error: e } });
