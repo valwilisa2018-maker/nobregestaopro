@@ -73,7 +73,7 @@ type CardForm = {
   due_time: string;
   color: string;
   labels: string[];
-  trello_link?: string | null;
+  google_drive_link?: string | null;
   platform_link?: string | null;
   sale_id?: string | null;
   customer_phone?: string | null;
