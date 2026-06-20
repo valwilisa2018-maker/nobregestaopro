@@ -36,6 +36,36 @@ function startOf(period: "day" | "week" | "month" | "year") {
   return d.toISOString();
 }
 
+// Extrai a duração (em segundos) a partir do nome do card.
+// Aceita "2:30", "1:02:30", "150s", "2min", "2min30s" etc. Retorna 0 se nada confiável.
+function parseDuracaoSegundos(name: string): number {
+  if (!name) return 0;
+  const s = name.toLowerCase();
+  const mColon = s.match(/(?<![\d:])(\d{1,2})(?::(\d{1,2}))(?::(\d{1,2}))?(?![\d:])/);
+  if (mColon) {
+    const a = Number(mColon[1] || 0);
+    const b = Number(mColon[2] || 0);
+    const c = mColon[3] != null ? Number(mColon[3]) : null;
+    if (c != null) return a * 3600 + b * 60 + c;
+    return a * 60 + b;
+  }
+  const mUnits = s.match(/(\d+)\s*(?:min|m)\b(?:\s*(\d+)\s*s\b)?/);
+  if (mUnits) return Number(mUnits[1]) * 60 + Number(mUnits[2] || 0);
+  const mSec = s.match(/(\d+)\s*s\b/);
+  if (mSec) return Number(mSec[1]);
+  return 0;
+}
+
+function formatDuracao(totalSeconds: number): string {
+  if (!totalSeconds) return "0min";
+  const h = Math.floor(totalSeconds / 3600);
+  const m = Math.floor((totalSeconds % 3600) / 60);
+  const s = totalSeconds % 60;
+  if (h > 0) return `${h}h${m.toString().padStart(2, "0")}min`;
+  if (m > 0) return s > 0 ? `${m}min${s.toString().padStart(2, "0")}s` : `${m}min`;
+  return `${s}s`;
+}
+
 function Dashboard() {
   const navigate = useNavigate();
   // Filtros principais
