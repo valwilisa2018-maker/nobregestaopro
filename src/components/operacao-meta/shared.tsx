@@ -182,7 +182,16 @@ export function useOmData() {
   const doneNow = allOrders.filter((o: any) => o.kanban_columns?.is_done === true);
 
   const sumPts = (arr: any[]) => arr.reduce((a, o) => a + computePts(o), 0);
-  const sumDuracao = (arr: any[]) => arr.reduce((a, o) => a + parseDuracaoSegundos(o.title ?? ""), 0);
+  // Prioridade: minutagem do card → minutagem da venda → parse do título (legado).
+  const sumDuracao = (arr: any[]) =>
+    arr.reduce(
+      (a, o) =>
+        a +
+        (Number(o.video_duration_seconds) ||
+          Number(o.sales?.video_duration_seconds) ||
+          parseDuracaoSegundos(o.title ?? "")),
+      0,
+    );
   const prodOf = (id: string) => (producers.data ?? []).find((p: any) => p.id === id) as any;
   const s = settings.data ?? { base_daily_goal: 6, workdays: [1,2,3,4,5], holidays: [] };
   return {
