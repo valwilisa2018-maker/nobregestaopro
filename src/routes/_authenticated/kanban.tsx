@@ -14,6 +14,7 @@ import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Plus, Loader2, Trash2, X, Calendar, Clock, ExternalLink, MessageCircle, ChevronDown, ChevronRight, Layers, MoreVertical, Edit2, UserPlus, AlertCircle, FolderOpen, Link as LinkIcon } from "lucide-react";
+import { waHref, formatPhoneBR } from "@/lib/phone";
 import { Search } from "lucide-react";
 import { fmtDate } from "@/lib/format";
 import { formatCurrency } from "@/lib/auth";
@@ -1126,15 +1127,15 @@ function KanbanPage() {
                   </p>
                 )}
               </div>
-              {editing.customer_phone && (
+              {editing.customer_phone && waHref(editing.customer_phone) && (
                 <div>
                   <Label>Cliente</Label>
                   <a
-                    href={`https://wa.me/${editing.customer_phone.replace(/\D/g, "")}?text=${encodeURIComponent(`Olá ${editing.customer_name ?? ""}!`.trim())}`}
+                    href={waHref(editing.customer_phone, `Olá ${editing.customer_name ?? ""}!`.trim())!}
                     target="_blank" rel="noreferrer"
                     className="mt-1 inline-flex items-center gap-2 px-3 py-2 rounded-md bg-green-600 hover:bg-green-700 text-white text-sm font-medium transition-colors">
                     <MessageCircle className="w-4 h-4" />
-                    WhatsApp {editing.customer_phone}
+                    WhatsApp {formatPhoneBR(editing.customer_phone)}
                   </a>
                 </div>
               )}
