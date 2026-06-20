@@ -37,7 +37,7 @@ const SALE_ROW_HEIGHT = 72;
 const SALE_SCROLL_DURATION_PER_ROW = 3.2;
 
 // ============ SOM ============
-type SoundId = "buzina" | "caixa" | "sino" | "custom" | "run-vine" | "danger-alarm" | "nobre";
+type SoundId = "buzina" | "caixa" | "sino" | "custom" | "run-vine" | "danger-alarm" | "nobre" | "gol-da-nobre";
 
 function getCtx(): AudioContext | null {
   try {
