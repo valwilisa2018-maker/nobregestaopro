@@ -112,7 +112,7 @@ function Dashboard() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("service_orders")
-        .select("id,column_id,delivered_at,sale_id,producer_id,created_at,kanban_columns(name,is_done,sort_order)");
+        .select("id,title,column_id,delivered_at,sale_id,producer_id,created_at,kanban_columns(name,is_done,sort_order)");
       if (error) { toast.error("Erro ao carregar pedidos"); throw error; }
       return data ?? [];
     },
