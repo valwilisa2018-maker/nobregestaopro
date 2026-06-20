@@ -59,6 +59,50 @@ export function isWorkingDay(iso: string, workdays: number[] = [1,2,3,4,5], holi
   return workdays.includes(dt.getDay()) && !holidays.includes(iso);
 }
 
+// Conta quantos dias úteis já passaram no mês corrente (até hoje, inclusive).
+export function workingDaysElapsed(workdays: number[] = [1,2,3,4,5], holidays: string[] = [], offset = 0): number {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = now.getMonth() + offset;
+  const last = offset === 0 ? now.getDate() : new Date(year, month + 1, 0).getDate();
+  let count = 0;
+  for (let day = 1; day <= last; day++) {
+    const d = new Date(year, month, day);
+    const iso = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
+    if (workdays.includes(d.getDay()) && !holidays.includes(iso)) count++;
+  }
+  return Math.max(1, count);
+}
+
+// Extrai duração (em segundos) do título do card. Aceita "2:30", "1:02:30", "150s", "2min", "2min30s".
+export function parseDuracaoSegundos(name: string): number {
+  if (!name) return 0;
+  const s = String(name).toLowerCase();
+  const mColon = s.match(/(?<![\d:])(\d{1,2})(?::(\d{1,2}))(?::(\d{1,2}))?(?![\d:])/);
+  if (mColon) {
+    const a = Number(mColon[1] || 0);
+    const b = Number(mColon[2] || 0);
+    const c = mColon[3] != null ? Number(mColon[3]) : null;
+    if (c != null) return a * 3600 + b * 60 + c;
+    return a * 60 + b;
+  }
+  const mUnits = s.match(/(\d+)\s*(?:min|m)\b(?:\s*(\d+)\s*s\b)?/);
+  if (mUnits) return Number(mUnits[1]) * 60 + Number(mUnits[2] || 0);
+  const mSec = s.match(/(\d+)\s*s\b/);
+  if (mSec) return Number(mSec[1]);
+  return 0;
+}
+
+export function formatDuracao(totalSeconds: number): string {
+  if (!totalSeconds || totalSeconds <= 0) return "0min";
+  const h = Math.floor(totalSeconds / 3600);
+  const m = Math.floor((totalSeconds % 3600) / 60);
+  const s = totalSeconds % 60;
+  if (h > 0) return `${h}h${m.toString().padStart(2, "0")}min`;
+  if (m > 0) return s > 0 ? `${m}min${s.toString().padStart(2, "0")}s` : `${m}min`;
+  return `${s}s`;
+}
+
 export function useOmData() {
   const qc = useQueryClient();
   const producers = useQuery({
@@ -81,7 +125,7 @@ export function useOmData() {
         await supabase
           .from("service_orders")
           .select(
-              "id,producer_id,sale_id,column_id,delivered_at,updated_at,redo_count,last_redo_at,kanban_columns(name,is_done),sales(producer_id,service_type_id,package_id,video_duration_seconds,service_types(name,points,points_value),packages(name,points_value))",
+              "id,title,producer_id,sale_id,column_id,delivered_at,updated_at,redo_count,last_redo_at,kanban_columns(name,is_done),sales(producer_id,service_type_id,package_id,video_duration_seconds,service_types(name,points,points_value),packages(name,points_value))",
           )
         ).data?.map((o: any) => ({
           ...o,
@@ -122,20 +166,29 @@ export function useOmData() {
   );
   const delivered = (orders.data ?? [])
     .filter((o: any) => !!o.delivered_at)
-    // A pontuação do ranking vem da lista/coluna "Serviço Pronto".
-    .filter((o: any) => String(o.kanban_columns?.name ?? "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim() === "servico pronto")
     // só conta entregas de produtores ativos (desativados somem automaticamente)
     .filter((o: any) => !o.producer_id || activeProducerIds.has(o.producer_id));
+
+  // Estado atual no Kanban (independente de período): tudo que está hoje em colunas concluídas / em produção.
+  const allOrders = (orders.data ?? []).filter((o: any) => !o.producer_id || activeProducerIds.has(o.producer_id));
+  const inProductionNow = allOrders.filter((o: any) => o.kanban_columns?.is_done === false);
+  const doneNow = allOrders.filter((o: any) => o.kanban_columns?.is_done === true);
+
   const sumPts = (arr: any[]) => arr.reduce((a, o) => a + computePts(o), 0);
+  const sumDuracao = (arr: any[]) => arr.reduce((a, o) => a + parseDuracaoSegundos(o.title ?? ""), 0);
   const prodOf = (id: string) => (producers.data ?? []).find((p: any) => p.id === id) as any;
   const s = settings.data ?? { base_daily_goal: 6, workdays: [1,2,3,4,5], holidays: [] };
   return {
     qc,
     producers: (producers.data ?? []).filter((p: any) => p.active !== false),
     delivered,
+    allOrders,
+    inProductionNow,
+    doneNow,
     computePts,
     catName,
     sumPts,
+    sumDuracao,
     prodOf,
     baseGoal: Number(s.base_daily_goal ?? 6),
     workdays: (s.workdays ?? [1,2,3,4,5]) as number[],
