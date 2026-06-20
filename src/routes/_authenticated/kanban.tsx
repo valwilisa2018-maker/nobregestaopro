@@ -13,7 +13,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { Plus, Loader2, Trash2, X, Calendar, Clock, ExternalLink, MessageCircle, ChevronDown, ChevronRight, Layers, MoreVertical, Edit2, UserPlus, AlertCircle, FolderOpen, Link as LinkIcon } from "lucide-react";
+import { Plus, Loader2, Trash2, X, Calendar, Clock, ExternalLink, MessageCircle, ChevronDown, ChevronRight, Layers, MoreVertical, Edit2, UserPlus, AlertCircle, FolderOpen, Link as LinkIcon, Copy } from "lucide-react";
 import { waHref, formatPhoneBR } from "@/lib/phone";
 import { Search } from "lucide-react";
 import { fmtDate } from "@/lib/format";
@@ -839,6 +839,23 @@ function KanbanPage() {
                               <MessageCircle className="w-4 h-4" />
                             </a>
                           )}
+                          {waUrl && (
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                navigator.clipboard.writeText(formatPhoneBR(phone)).then(
+                                  () => toast.success(`Número copiado: ${formatPhoneBR(phone)}`),
+                                  () => toast.error("Não foi possível copiar")
+                                );
+                              }}
+                              title={`Copiar ${formatPhoneBR(phone)}`}
+                              className="absolute top-2 right-10 z-10 inline-flex items-center justify-center w-6 h-6 rounded-full bg-foreground/80 text-background shadow-md hover:scale-110 transition-transform"
+                            >
+                              <Copy className="w-3 h-3" />
+                            </button>
+                          )}
                           <Card draggable
                             onDragStart={() => { setDragging(c.id); setDraggingFromCol(col.id); setDragMoved(false); }}
                             onDrag={() => setDragMoved(true)}
@@ -974,6 +991,7 @@ function KanbanPage() {
                       const waUrl = waHref(phone, `Olá ${c.sales?.customers?.name ?? ""}!`.trim());
                       if (!waUrl) return null;
                       return (
+                        <>
                         <a
                           href={waUrl}
                           target="_blank"
@@ -992,6 +1010,22 @@ function KanbanPage() {
                         >
                           <MessageCircle className="w-4 h-4" />
                         </a>
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            navigator.clipboard.writeText(formatPhoneBR(phone)).then(
+                              () => toast.success(`Número copiado: ${formatPhoneBR(phone)}`),
+                              () => toast.error("Não foi possível copiar")
+                            );
+                          }}
+                          title={`Copiar ${formatPhoneBR(phone)}`}
+                          className="absolute top-2 right-10 z-10 inline-flex items-center justify-center w-6 h-6 rounded-full bg-foreground/80 text-background shadow-md hover:scale-110 transition-transform"
+                        >
+                          <Copy className="w-3 h-3" />
+                        </button>
+                        </>
                       );
                     })()}
                     <Card draggable
