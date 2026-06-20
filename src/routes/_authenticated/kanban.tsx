@@ -249,6 +249,11 @@ function KanbanPage() {
       customer_name: found.sales?.customers?.name ?? null,
       producer_id: found.producer_id ?? null,
       expected_delivery_date: found.expected_delivery_date ?? found.sales?.expected_delivery_date ?? null,
+      video_duration_seconds:
+        (found as any).video_duration_seconds ?? found.sales?.video_duration_seconds ?? null,
+      video_duration_input: fmtVideoDuration(
+        (found as any).video_duration_seconds ?? found.sales?.video_duration_seconds ?? null,
+      ),
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [cardParam, cards.data]);
