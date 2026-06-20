@@ -368,6 +368,21 @@ function Dashboard() {
     )
     .slice(0, 5);
 
+  // Ranking de "Em Produção" por produtor — reflete o Kanban real (estado atual)
+  const inProductionRanking = (producers.data ?? []).map((p: any) => {
+    const emProducao = ordersList.filter(
+      (o) =>
+        o.producer_id === p.id &&
+        o.kanban_columns &&
+        o.kanban_columns.is_done === false &&
+        o.kanban_columns.is_default !== true,
+    ).length;
+    return { id: p.id, name: p.name, emProducao };
+  })
+    .filter((p) => p.emProducao > 0)
+    .sort((a, b) => b.emProducao - a.emProducao);
+  const totalInProduction = inProductionRanking.reduce((a, p) => a + p.emProducao, 0);
+
   // Produtos / serviços mais vendidos (no escopo) — combina service_types + packages
   const productRanking = useMemo(() => {
     const map = new Map<string, { name: string; total: number; qtd: number }>();
@@ -703,6 +718,62 @@ function Dashboard() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Em Produção por Produtor — snapshot atual do Kanban */}
+      <Card className="border-border/50" style={{ boxShadow: "var(--shadow-card)" }}>
+        <CardHeader>
+          <div className="flex items-center justify-between flex-wrap gap-2">
+            <CardTitle className="flex items-center gap-2">
+              <Factory className="w-4 h-4 text-amber-500" />
+              Em Produção por Produtor
+            </CardTitle>
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-muted-foreground">Total</span>
+              <Badge className="bg-amber-500/15 text-amber-500 border-amber-500/30 hover:bg-amber-500/20">
+                {totalInProduction} {totalInProduction === 1 ? "vídeo" : "vídeos"}
+              </Badge>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent>
+          {inProductionRanking.length === 0 ? (
+            <p className="text-sm text-muted-foreground">Nenhum vídeo em produção no momento.</p>
+          ) : (
+            <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+              {inProductionRanking.map((p, i) => {
+                const max = inProductionRanking[0]?.emProducao || 1;
+                const pct = Math.max(6, Math.round((p.emProducao / max) * 100));
+                return (
+                  <button
+                    key={p.id}
+                    type="button"
+                    onClick={() => setDrill({ kind: "producer", id: p.id, label: p.name })}
+                    className="flex items-center gap-3 p-2.5 rounded-lg bg-muted/40 hover:bg-muted/70 hover:ring-1 hover:ring-amber-500/40 transition text-left cursor-pointer"
+                  >
+                    <div className="w-7 h-7 rounded-full text-xs font-bold flex items-center justify-center bg-amber-500/20 text-amber-500 shrink-0">
+                      {i + 1}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between gap-2 mb-1">
+                        <span className="font-medium truncate">{p.name}</span>
+                        <span className="text-sm font-bold tabular-nums text-amber-500 shrink-0">
+                          {p.emProducao}
+                        </span>
+                      </div>
+                      <div className="h-1.5 rounded-full bg-muted overflow-hidden">
+                        <div
+                          className="h-full rounded-full bg-gradient-to-r from-amber-500 to-orange-500"
+                          style={{ width: `${pct}%` }}
+                        />
+                      </div>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
       {/* Charts: 30 dias + Pagamento */}
       <div className="grid gap-4 lg:grid-cols-3">
