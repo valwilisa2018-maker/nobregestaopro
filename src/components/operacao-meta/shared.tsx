@@ -948,9 +948,23 @@ export function VisaoGeralView({
           <div className="flex items-center justify-between flex-wrap gap-2">
             <div>
               <div className="font-bold flex items-center gap-2"><Target className="w-4 h-4 text-rose-500" /> Meta Coletiva — {monthLabel(ms)}</div>
-              <div className="text-xs text-muted-foreground">Soma das metas individuais × {workDaysMonth} dias úteis do mês</div>
+              <div className="text-xs text-muted-foreground">
+                Pontuação diária da equipe (<span className="font-semibold text-foreground">{totalGoalDay} pts/dia</span>) × <span className="font-semibold text-foreground">{workDaysMonth} dias úteis</span> = <span className="font-semibold text-foreground">{monthGoal} pts no mês</span>
+              </div>
             </div>
             {pctMes >= 70 && <span className="px-3 py-1 rounded-full bg-emerald-500/15 text-emerald-500 text-xs font-bold">✓ Recompensas ativadas</span>}
+          </div>
+          <div className="mt-3 flex flex-wrap gap-1.5">
+            {producers.map((p: any) => (
+              <span
+                key={p.id}
+                className="inline-flex items-center gap-1.5 px-2 py-1 rounded-md bg-muted/50 border border-border/40 text-[11px]"
+                title={`${p.name} — ${Number(p.daily_points_goal ?? baseGoal)} pts/dia`}
+              >
+                <span className="font-medium">{p.name}</span>
+                <span className="text-muted-foreground">{Number(p.daily_points_goal ?? baseGoal)} pts/dia</span>
+              </span>
+            ))}
           </div>
           <div className="mt-4">
             <div className="text-3xl font-extrabold"><span className="text-rose-500">{Math.round(monthPts)}</span> <span className="text-base text-muted-foreground">/ {monthGoal} pontos</span></div>
