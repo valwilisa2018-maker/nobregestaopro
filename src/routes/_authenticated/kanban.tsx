@@ -286,6 +286,7 @@ function KanbanPage() {
     } else {
       toast.success("Card movido");
       qc.invalidateQueries({ queryKey: ["kanban-cards"] });
+      void checkDeliveryPaymentReminder([cardId], col?.name);
     }
   };
 
@@ -314,6 +315,7 @@ function KanbanPage() {
     } else {
       toast.success(`${cardIds.length} cards movidos`);
       qc.invalidateQueries({ queryKey: ["kanban-cards"] });
+      void checkDeliveryPaymentReminder(cardIds, col?.name);
     }
   };
 
