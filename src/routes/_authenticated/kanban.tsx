@@ -184,8 +184,9 @@ function KanbanPage() {
       title: found.title ?? "", description: found.description ?? "",
       due_date: found.due_date ?? "", due_time: (found.due_time ?? "").slice(0, 5),
       color: found.color ?? "", labels: found.labels ?? [],
-      trello_link: found.trello_link ?? found.sales?.trello_link ?? null,
-      platform_link: found.sales?.platform_link ?? null,
+      google_drive_link:
+        (found as any).google_drive_link ?? found.sales?.google_drive_link ?? found.trello_link ?? found.sales?.trello_link ?? null,
+      platform_link: (found as any).platform_link ?? found.sales?.platform_link ?? null,
       sale_id: found.sale_id ?? null,
       customer_phone: found.sales?.customers?.phone ?? null,
       customer_name: found.sales?.customers?.name ?? null,
@@ -353,8 +354,9 @@ function KanbanPage() {
       title: c.title ?? "", description: c.description ?? "",
       due_date: c.due_date ?? "", due_time: (c.due_time ?? "").slice(0, 5),
       color: c.color ?? "", labels: c.labels ?? [],
-      trello_link: c.trello_link ?? c.sales?.trello_link ?? null,
-      platform_link: c.sales?.platform_link ?? null,
+      google_drive_link:
+        c.google_drive_link ?? c.sales?.google_drive_link ?? c.trello_link ?? c.sales?.trello_link ?? null,
+      platform_link: c.platform_link ?? c.sales?.platform_link ?? null,
       sale_id: c.sale_id ?? null,
       customer_phone: c.sales?.customers?.phone ?? null,
       customer_name: c.sales?.customers?.name ?? null,
@@ -376,7 +378,8 @@ function KanbanPage() {
       due_time: editing.due_time || null,
       color: editing.color || null,
       labels: editing.labels,
-      trello_link: editing.trello_link?.trim() || null,
+      google_drive_link: editing.google_drive_link?.trim() || null,
+      platform_link: editing.platform_link?.trim() || null,
       producer_id: editing.producer_id || null,
       expected_delivery_date: editing.expected_delivery_date || null,
     };
@@ -384,15 +387,9 @@ function KanbanPage() {
       if (editing.id) {
         const { error } = await supabase.from("service_orders").update(payload).eq("id", editing.id);
         if (error) throw error;
-        if (editing.sale_id) {
-          const { error: e2 } = await supabase.from("sales")
-            .update({ platform_link: editing.platform_link?.trim() || null })
-            .eq("id", editing.sale_id);
-          if (e2) throw e2;
-        }
-        // Auto-vincular pasta da Plataforma a partir dos links do card
+        // Auto-vincular pasta da Plataforma somente a partir do link da Plataforma
         try {
-          await autoLinkFolderFromUrl(editing.platform_link || editing.trello_link, {
+          await autoLinkFolderFromUrl(editing.platform_link, {
             saleId: editing.sale_id ?? null,
             kanbanCardId: editing.id,
           });
