@@ -83,22 +83,39 @@ export const Route = createFileRoute("/api/public/trello-webhook")({
           return Response.json({ ok: true, skipped: "member not mapped" });
         }
 
-        // Apenas "Serviço Pronto" e "Distribuição p/ Edição (gravação)"
-        // geram pontuação. Alteração e Entregue são registrados (para contagem)
-        // mas valem 0 pontos.
-        const SCORING_EVENTS = new Set(["pronto", "distribuicao_edicao"]);
+        // Pontuação:
+        // - "pronto": 1 ponto a cada 30s de vídeo, lendo a duração do nome do card.
+        //   Formatos aceitos no título: "2:30", "02:30", "(2:30)", "150s",
+        //   "2min", "2 min 30 s", "2m30s". Sem duração reconhecida → 0 pontos.
+        // - "distribuicao_edicao": 1 ponto fixo × multiplicador.
+        // - "alteracao" / "entregue": registrados para contagem, valem 0 pontos.
+        const cardName: string = String(card.name ?? "").trim();
+        const cardKey = cardName.toLowerCase();
+
         let pontos = 0;
-        if (SCORING_EVENTS.has(evento)) {
+        let duracaoSegundos = 0;
+        if (evento === "pronto") {
+          duracaoSegundos = parseDuracaoSegundos(cardName);
+          if (duracaoSegundos > 0) {
+            const { data: scoring } = await supabaseAdmin
+              .from("om_scoring" as any)
+              .select("multiplicador")
+              .eq("evento", "pronto")
+              .maybeSingle();
+            const multiplicador = Number((scoring as any)?.multiplicador ?? 1);
+            // 1 ponto a cada 30s — contagem completa (arredonda pra cima).
+            const blocos = Math.ceil(duracaoSegundos / 30);
+            pontos = Math.round(blocos * multiplicador);
+          }
+        } else if (evento === "distribuicao_edicao") {
           const { data: scoring } = await supabaseAdmin
             .from("om_scoring" as any)
             .select("multiplicador")
-            .eq("evento", evento)
+            .eq("evento", "distribuicao_edicao")
             .maybeSingle();
           const multiplicador = Number((scoring as any)?.multiplicador ?? 1);
           pontos = Math.round(1 * multiplicador);
         }
-        const cardName: string = String(card.name ?? "").trim();
-        const cardKey = cardName.toLowerCase();
 
         const { error } = await supabaseAdmin.from("om_eventos" as any).insert({
           producer_id: producerId,
@@ -122,8 +139,46 @@ export const Route = createFileRoute("/api/public/trello-webhook")({
           duplicate: !!error,
           evento,
           pontos,
+          duracao_segundos: duracaoSegundos,
         });
       },
     },
   },
 });
+
+/**
+ * Extrai a duração (em segundos) a partir do nome do card.
+ * Suporta os formatos mais comuns usados pelos produtores:
+ *   "2:30", "02:30", "(2:30)", "- 2:30"   → mm:ss
+ *   "1:02:30"                              → hh:mm:ss
+ *   "150s", "150 s"                        → segundos
+ *   "2min", "2 min", "2m"                  → minutos
+ *   "2min30s", "2m 30s", "2 min 30 s"      → minutos + segundos
+ * Retorna 0 se não encontrar nada confiável.
+ */
+function parseDuracaoSegundos(name: string): number {
+  if (!name) return 0;
+  const s = name.toLowerCase();
+
+  // hh:mm:ss ou mm:ss (com borda para não pegar dentro de palavras)
+  const mColon = s.match(/(?<![\d:])(\d{1,2})(?::(\d{1,2}))(?::(\d{1,2}))?(?![\d:])/);
+  if (mColon) {
+    const a = Number(mColon[1] || 0);
+    const b = Number(mColon[2] || 0);
+    const c = mColon[3] != null ? Number(mColon[3]) : null;
+    if (c != null) return a * 3600 + b * 60 + c; // hh:mm:ss
+    return a * 60 + b; // mm:ss
+  }
+
+  // "2min30s" / "2m 30s" / "2 min"
+  const mUnits = s.match(/(\d+)\s*(?:min|m)\b(?:\s*(\d+)\s*s\b)?/);
+  if (mUnits) {
+    return Number(mUnits[1]) * 60 + Number(mUnits[2] || 0);
+  }
+
+  // "150s"
+  const mSec = s.match(/(\d+)\s*s\b/);
+  if (mSec) return Number(mSec[1]);
+
+  return 0;
+}
