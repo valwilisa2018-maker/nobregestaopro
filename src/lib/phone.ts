@@ -34,6 +34,7 @@ export function waHref(phone?: string | null, text?: string): string | null {
   let d = digitsOnly(phone);
   if (!d) return null;
   if (d.length <= 11) d = `55${d}`;
-  const base = `https://web.whatsapp.com/send?phone=${d}`;
+  // wa.me funciona em ambos: abre o app no mobile e o WhatsApp Web no desktop
+  const base = `https://wa.me/${d}`;
   return text ? `${base}&text=${encodeURIComponent(text)}` : base;
 }
