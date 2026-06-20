@@ -37,6 +37,7 @@ import { Route as AuthenticatedOperacaoMetaIndexRouteImport } from './routes/_au
 import { Route as ApiPublicTrelloWebhookRouteImport } from './routes/api/public/trello-webhook'
 import { Route as ApiPublicEvolutionWebhookRouteImport } from './routes/api/public/evolution-webhook'
 import { Route as AuthenticatedPastasArquivosFolderIdRouteImport } from './routes/_authenticated/pastas-arquivos.$folderId'
+import { Route as AuthenticatedOperacaoMetaVisaoGeralRouteImport } from './routes/_authenticated/operacao-meta.visao-geral'
 import { Route as AuthenticatedOperacaoMetaTendenciasRouteImport } from './routes/_authenticated/operacao-meta.tendencias'
 import { Route as AuthenticatedOperacaoMetaRelatoriosRouteImport } from './routes/_authenticated/operacao-meta.relatorios'
 import { Route as AuthenticatedOperacaoMetaProdutoresRouteImport } from './routes/_authenticated/operacao-meta.produtores'
@@ -191,6 +192,12 @@ const AuthenticatedPastasArquivosFolderIdRoute =
     path: '/pastas-arquivos/$folderId',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedOperacaoMetaVisaoGeralRoute =
+  AuthenticatedOperacaoMetaVisaoGeralRouteImport.update({
+    id: '/visao-geral',
+    path: '/visao-geral',
+    getParentRoute: () => AuthenticatedOperacaoMetaRoute,
+  } as any)
 const AuthenticatedOperacaoMetaTendenciasRoute =
   AuthenticatedOperacaoMetaTendenciasRouteImport.update({
     id: '/tendencias',
@@ -236,6 +243,7 @@ export interface FileRoutesByFullPath {
   '/operacao-meta/produtores': typeof AuthenticatedOperacaoMetaProdutoresRoute
   '/operacao-meta/relatorios': typeof AuthenticatedOperacaoMetaRelatoriosRoute
   '/operacao-meta/tendencias': typeof AuthenticatedOperacaoMetaTendenciasRoute
+  '/operacao-meta/visao-geral': typeof AuthenticatedOperacaoMetaVisaoGeralRoute
   '/pastas-arquivos/$folderId': typeof AuthenticatedPastasArquivosFolderIdRoute
   '/api/public/evolution-webhook': typeof ApiPublicEvolutionWebhookRoute
   '/api/public/trello-webhook': typeof ApiPublicTrelloWebhookRoute
@@ -267,6 +275,7 @@ export interface FileRoutesByTo {
   '/operacao-meta/produtores': typeof AuthenticatedOperacaoMetaProdutoresRoute
   '/operacao-meta/relatorios': typeof AuthenticatedOperacaoMetaRelatoriosRoute
   '/operacao-meta/tendencias': typeof AuthenticatedOperacaoMetaTendenciasRoute
+  '/operacao-meta/visao-geral': typeof AuthenticatedOperacaoMetaVisaoGeralRoute
   '/pastas-arquivos/$folderId': typeof AuthenticatedPastasArquivosFolderIdRoute
   '/api/public/evolution-webhook': typeof ApiPublicEvolutionWebhookRoute
   '/api/public/trello-webhook': typeof ApiPublicTrelloWebhookRoute
@@ -301,6 +310,7 @@ export interface FileRoutesById {
   '/_authenticated/operacao-meta/produtores': typeof AuthenticatedOperacaoMetaProdutoresRoute
   '/_authenticated/operacao-meta/relatorios': typeof AuthenticatedOperacaoMetaRelatoriosRoute
   '/_authenticated/operacao-meta/tendencias': typeof AuthenticatedOperacaoMetaTendenciasRoute
+  '/_authenticated/operacao-meta/visao-geral': typeof AuthenticatedOperacaoMetaVisaoGeralRoute
   '/_authenticated/pastas-arquivos/$folderId': typeof AuthenticatedPastasArquivosFolderIdRoute
   '/api/public/evolution-webhook': typeof ApiPublicEvolutionWebhookRoute
   '/api/public/trello-webhook': typeof ApiPublicTrelloWebhookRoute
@@ -335,6 +345,7 @@ export interface FileRouteTypes {
     | '/operacao-meta/produtores'
     | '/operacao-meta/relatorios'
     | '/operacao-meta/tendencias'
+    | '/operacao-meta/visao-geral'
     | '/pastas-arquivos/$folderId'
     | '/api/public/evolution-webhook'
     | '/api/public/trello-webhook'
@@ -366,6 +377,7 @@ export interface FileRouteTypes {
     | '/operacao-meta/produtores'
     | '/operacao-meta/relatorios'
     | '/operacao-meta/tendencias'
+    | '/operacao-meta/visao-geral'
     | '/pastas-arquivos/$folderId'
     | '/api/public/evolution-webhook'
     | '/api/public/trello-webhook'
@@ -399,6 +411,7 @@ export interface FileRouteTypes {
     | '/_authenticated/operacao-meta/produtores'
     | '/_authenticated/operacao-meta/relatorios'
     | '/_authenticated/operacao-meta/tendencias'
+    | '/_authenticated/operacao-meta/visao-geral'
     | '/_authenticated/pastas-arquivos/$folderId'
     | '/api/public/evolution-webhook'
     | '/api/public/trello-webhook'
@@ -613,6 +626,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedPastasArquivosFolderIdRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/operacao-meta/visao-geral': {
+      id: '/_authenticated/operacao-meta/visao-geral'
+      path: '/visao-geral'
+      fullPath: '/operacao-meta/visao-geral'
+      preLoaderRoute: typeof AuthenticatedOperacaoMetaVisaoGeralRouteImport
+      parentRoute: typeof AuthenticatedOperacaoMetaRoute
+    }
     '/_authenticated/operacao-meta/tendencias': {
       id: '/_authenticated/operacao-meta/tendencias'
       path: '/tendencias'
@@ -641,6 +661,7 @@ interface AuthenticatedOperacaoMetaRouteChildren {
   AuthenticatedOperacaoMetaProdutoresRoute: typeof AuthenticatedOperacaoMetaProdutoresRoute
   AuthenticatedOperacaoMetaRelatoriosRoute: typeof AuthenticatedOperacaoMetaRelatoriosRoute
   AuthenticatedOperacaoMetaTendenciasRoute: typeof AuthenticatedOperacaoMetaTendenciasRoute
+  AuthenticatedOperacaoMetaVisaoGeralRoute: typeof AuthenticatedOperacaoMetaVisaoGeralRoute
   AuthenticatedOperacaoMetaIndexRoute: typeof AuthenticatedOperacaoMetaIndexRoute
 }
 
@@ -652,6 +673,8 @@ const AuthenticatedOperacaoMetaRouteChildren: AuthenticatedOperacaoMetaRouteChil
       AuthenticatedOperacaoMetaRelatoriosRoute,
     AuthenticatedOperacaoMetaTendenciasRoute:
       AuthenticatedOperacaoMetaTendenciasRoute,
+    AuthenticatedOperacaoMetaVisaoGeralRoute:
+      AuthenticatedOperacaoMetaVisaoGeralRoute,
     AuthenticatedOperacaoMetaIndexRoute: AuthenticatedOperacaoMetaIndexRoute,
   }
 
