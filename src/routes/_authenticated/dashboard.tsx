@@ -362,7 +362,11 @@ function Dashboard() {
     const entregues = prontoList.length;
     const emProducao = emProducaoList.length;
     const segundosProntos = prontoList.reduce(
-      (acc, o) => acc + parseDuracaoSegundos(o.title ?? ""),
+      (acc, o) =>
+        acc +
+        (Number((o as any).video_duration_seconds) ||
+          Number((o as any).sales?.video_duration_seconds) ||
+          parseDuracaoSegundos(o.title ?? "")),
       0,
     );
     return {

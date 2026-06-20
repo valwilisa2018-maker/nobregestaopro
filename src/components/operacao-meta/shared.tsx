@@ -865,7 +865,12 @@ export function VisaoGeralView({
     for (const o of monthOrders) {
       if (!o.producer_id) continue;
       const cur = m.get(o.producer_id) ?? { pts: 0, videos: 0, sec: 0 };
-      cur.pts += computePts(o); cur.videos += 1; cur.sec += parseDuracaoSegundos(o.title ?? "");
+      cur.pts += computePts(o);
+      cur.videos += 1;
+      cur.sec +=
+        Number((o as any).video_duration_seconds) ||
+        Number((o as any).sales?.video_duration_seconds) ||
+        parseDuracaoSegundos(o.title ?? "");
       m.set(o.producer_id, cur);
     }
     return Array.from(m.entries()).map(([pid, v]) => {
