@@ -368,6 +368,21 @@ function Dashboard() {
     )
     .slice(0, 5);
 
+  // Ranking de "Em Produção" por produtor — reflete o Kanban real (estado atual)
+  const inProductionRanking = (producers.data ?? []).map((p: any) => {
+    const emProducao = ordersList.filter(
+      (o) =>
+        o.producer_id === p.id &&
+        o.kanban_columns &&
+        o.kanban_columns.is_done === false &&
+        o.kanban_columns.is_default !== true,
+    ).length;
+    return { id: p.id, name: p.name, emProducao };
+  })
+    .filter((p) => p.emProducao > 0)
+    .sort((a, b) => b.emProducao - a.emProducao);
+  const totalInProduction = inProductionRanking.reduce((a, p) => a + p.emProducao, 0);
+
   // Produtos / serviços mais vendidos (no escopo) — combina service_types + packages
   const productRanking = useMemo(() => {
     const map = new Map<string, { name: string; total: number; qtd: number }>();
