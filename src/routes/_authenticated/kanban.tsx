@@ -462,6 +462,11 @@ function KanbanPage() {
       customer_name: c.sales?.customers?.name ?? null,
       producer_id: c.producer_id ?? null,
       expected_delivery_date: c.expected_delivery_date ?? c.sales?.expected_delivery_date ?? null,
+      video_duration_seconds:
+        (c as any).video_duration_seconds ?? c.sales?.video_duration_seconds ?? null,
+      video_duration_input: fmtVideoDuration(
+        (c as any).video_duration_seconds ?? c.sales?.video_duration_seconds ?? null,
+      ),
     });
     setNewLabel("");
   };
