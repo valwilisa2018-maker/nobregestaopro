@@ -23,8 +23,6 @@ import { Copy, Link2, ExternalLink } from "lucide-react";
 import { QRCodeSVG } from "qrcode.react";
 import { autoLinkFolderFromUrl } from "@/lib/project-folders";
 import { PhoneInputBR } from "@/components/phone-input-br";
-import { waHref, formatPhoneBR } from "@/lib/phone";
-import { MessageCircle } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/sales")({
   component: SalesPage,
