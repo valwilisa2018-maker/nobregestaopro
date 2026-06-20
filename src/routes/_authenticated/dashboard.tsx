@@ -681,7 +681,8 @@ function Dashboard() {
                   <div>
                     <div className="font-medium leading-tight">{p.name}</div>
                     <div className="text-[11px] text-muted-foreground">
-                      {p.emProducao > 0 ? `${p.emProducao} em produção` : "—"}
+                      {p.emProducao} em produção
+                      {p.segundosProntos > 0 ? ` • ${formatDuracao(p.segundosProntos)} prontos` : ""}
                     </div>
                   </div>
                 </div>
