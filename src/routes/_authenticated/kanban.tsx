@@ -1328,6 +1328,18 @@ function KanbanPage() {
                 )}
               </div>
               <div>
+                <Label>Minutagem do vídeo (deste card)</Label>
+                <Input
+                  type="text"
+                  placeholder="Ex: 2:30, 1:02:30, 2min30s ou 150s"
+                  value={editing.video_duration_input ?? ""}
+                  onChange={(e) => setEditing({ ...editing, video_duration_input: e.target.value })}
+                />
+                <p className="text-xs text-muted-foreground mt-1 opacity-70">
+                  Cada vídeo do pacote pode ter sua própria minutagem. Deixe em branco para herdar da venda.
+                </p>
+              </div>
+              <div>
                 <Label>Link da pasta da plataforma</Label>
                 <Input
                   type="url"
