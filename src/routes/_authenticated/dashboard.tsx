@@ -341,6 +341,20 @@ function Dashboard() {
       const d = (o.delivered_at ?? "").slice(0, 10);
       return d && d >= scopeSince && d <= scopeUntil;
     });
+    // Entregues no DIA (hoje) — usado SEMPRE para o ranking, independente do filtro de escopo
+    const todayISO = startOf("day").slice(0, 10);
+    const entreguesHoje = ofProducer.filter((o) => {
+      if (o.kanban_columns?.is_done !== true) return false;
+      const d = (o.delivered_at ?? "").slice(0, 10);
+      return d === todayISO;
+    }).length;
+    // Entregues no MÊS corrente — mostrado como destaque/subtítulo
+    const monthISO = startOf("month").slice(0, 10);
+    const entreguesMes = ofProducer.filter((o) => {
+      if (o.kanban_columns?.is_done !== true) return false;
+      const d = (o.delivered_at ?? "").slice(0, 10);
+      return d >= monthISO;
+    }).length;
     // Em produção = colunas intermediárias do Kanban (exclui "Serviços a fazer" e colunas concluídas)
     const emProducaoList = ofProducer.filter(
       (o) => o.kanban_columns && o.kanban_columns.is_done === false && o.kanban_columns.is_default !== true,
@@ -355,14 +369,17 @@ function Dashboard() {
       id: p.id,
       name: p.name,
       entregues,
+      entreguesHoje,
+      entreguesMes,
       emProducao,
       segundosProntos,
       qtd: entregues + emProducao,
     };
-  }).filter((p) => p.entregues > 0 || p.emProducao > 0)
+  }).filter((p) => p.entreguesMes > 0 || p.entregues > 0 || p.emProducao > 0)
     .sort(
       (a, b) =>
-        b.entregues - a.entregues ||
+        b.entreguesHoje - a.entreguesHoje ||
+        b.entreguesMes - a.entreguesMes ||
         b.segundosProntos - a.segundosProntos ||
         b.qtd - a.qtd,
     )
