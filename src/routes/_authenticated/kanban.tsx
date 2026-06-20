@@ -355,7 +355,7 @@ function KanbanPage() {
       due_date: c.due_date ?? "", due_time: (c.due_time ?? "").slice(0, 5),
       color: c.color ?? "", labels: c.labels ?? [],
       google_drive_link:
-        c.google_drive_link ?? c.sales?.google_drive_link ?? c.trello_link ?? c.sales?.trello_link ?? null,
+        c.google_drive_link ?? c.sales?.google_drive_link ?? null,
       platform_link: c.platform_link ?? c.sales?.platform_link ?? null,
       sale_id: c.sale_id ?? null,
       customer_phone: c.sales?.customers?.phone ?? null,
@@ -797,7 +797,7 @@ function KanbanPage() {
                               </div>
                             )}
                             <CardLinkButtons
-                              driveLink={first.google_drive_link ?? first.sales?.google_drive_link ?? first.trello_link ?? first.sales?.trello_link ?? null}
+                              driveLink={first.google_drive_link ?? first.sales?.google_drive_link ?? null}
                               platformLink={first.platform_link ?? first.sales?.platform_link ?? null}
                             />
                           </CardContent>
@@ -882,7 +882,7 @@ function KanbanPage() {
                                 )}
                               </div>
                               <CardLinkButtons
-                                driveLink={c.google_drive_link ?? c.sales?.google_drive_link ?? c.trello_link ?? c.sales?.trello_link ?? null}
+                                driveLink={c.google_drive_link ?? c.sales?.google_drive_link ?? null}
                                 platformLink={c.platform_link ?? c.sales?.platform_link ?? null}
                               />
                             </CardContent>
@@ -1012,7 +1012,7 @@ function KanbanPage() {
                         )}
                       </div>
                       <CardLinkButtons
-                        driveLink={c.google_drive_link ?? c.sales?.google_drive_link ?? c.trello_link ?? c.sales?.trello_link ?? null}
+                        driveLink={c.google_drive_link ?? c.sales?.google_drive_link ?? null}
                         platformLink={c.platform_link ?? c.sales?.platform_link ?? null}
                       />
                     </CardContent>
