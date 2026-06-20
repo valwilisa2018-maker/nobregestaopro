@@ -180,10 +180,24 @@ function PastasArquivosPage() {
 
   async function deleteFolders(ids: string[]) {
     if (ids.length === 0) return;
-    if (!confirm(`Excluir ${ids.length} pasta(s)? Esta ação não pode ser desfeita.`)) return;
-    const { error } = await supabase.from("project_folders" as any).delete().in("id", ids);
-    if (error) { toast.error(error.message); return; }
-    toast.success(`${ids.length} pasta(s) excluída(s)`);
+    const ok = window.confirm(
+      `Tem certeza que deseja excluir ${ids.length} pasta(s)?\n\n` +
+      `Todos os arquivos e mensagens dentro dela serão removidos permanentemente.\n` +
+      `Esta ação NÃO pode ser desfeita.\n\nClique em OK para confirmar ou Cancelar para voltar.`
+    );
+    if (!ok) { toast.info("Exclusão cancelada"); return; }
+    const { data, error } = await supabase
+      .from("project_folders" as any)
+      .delete()
+      .in("id", ids)
+      .select("id");
+    if (error) { toast.error(`Falha ao excluir: ${error.message}`); return; }
+    const removed = (data as any[] | null)?.length ?? 0;
+    if (removed === 0) {
+      toast.error("Nenhuma pasta foi excluída. Você não tem permissão para remover estas pastas.");
+      return;
+    }
+    toast.success(`${removed} pasta(s) excluída(s) com sucesso`);
     setSelected(new Set());
     folders.refetch();
     counts.refetch();
