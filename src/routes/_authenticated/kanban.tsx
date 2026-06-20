@@ -1066,6 +1066,7 @@ function KanbanPage() {
                     </CardContent>
                   </Card>
                     </div>
+                    </div>
                   );
                 })}
               </div>
