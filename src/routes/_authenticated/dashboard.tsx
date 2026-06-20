@@ -341,7 +341,10 @@ function Dashboard() {
       const d = (o.delivered_at ?? "").slice(0, 10);
       return d && d >= scopeSince && d <= scopeUntil;
     });
-    const emProducaoList = ofProducer.filter((o) => o.kanban_columns?.is_done === false);
+    // Em produção = colunas intermediárias do Kanban (exclui "Serviços a fazer" e colunas concluídas)
+    const emProducaoList = ofProducer.filter(
+      (o) => o.kanban_columns && o.kanban_columns.is_done === false && o.kanban_columns.is_default !== true,
+    );
     const entregues = prontoList.length;
     const emProducao = emProducaoList.length;
     const segundosProntos = prontoList.reduce(
