@@ -146,7 +146,7 @@ function Dashboard() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("service_orders")
-        .select("id,title,column_id,delivered_at,sale_id,producer_id,created_at,kanban_columns(name,is_done,is_default,sort_order)");
+        .select("id,title,column_id,delivered_at,sale_id,producer_id,created_at,video_duration_seconds,kanban_columns(name,is_done,is_default,sort_order)");
       if (error) { toast.error("Erro ao carregar pedidos"); throw error; }
       return data ?? [];
     },
@@ -448,7 +448,8 @@ function Dashboard() {
     let mesQtd = 0;
     for (const o of ordersList) {
       if (!o.delivered_at) continue;
-      const dur = durBySale.get(o.sale_id) ?? 0;
+      // Prefere a minutagem específica do card; cai para a da venda.
+      const dur = Number(o.video_duration_seconds ?? 0) || (durBySale.get(o.sale_id) ?? 0);
       if (dur <= 0) continue;
       const d = o.delivered_at.slice(0, 10);
       if (d >= monthKey) { mesSegs += dur; mesQtd += 1; }
