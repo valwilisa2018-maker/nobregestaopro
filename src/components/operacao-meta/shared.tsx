@@ -106,6 +106,8 @@ export function formatDuracao(totalSeconds: number): string {
 
 export function useOmData() {
   const qc = useQueryClient();
+  // Auto-refresh à meia-noite — zera KPIs do "Hoje" sem reload
+  useMidnightRefresh();
   const producers = useQuery({
     queryKey: ["om-producers"],
     queryFn: async () =>
