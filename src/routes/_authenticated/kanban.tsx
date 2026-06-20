@@ -21,6 +21,37 @@ import { fmtDate } from "@/lib/format";
 import { formatCurrency } from "@/lib/auth";
 import { autoLinkFolderFromUrl } from "@/lib/project-folders";
 
+// Lembrete de baixa de pagamento — ao mover card(s) para a coluna "Serviços Entregues",
+// busca a venda relacionada e, se ainda houver saldo em aberto, mostra um toast com link
+// para a tela de Vendas pré-filtrada por aquele cliente.
+async function checkDeliveryPaymentReminder(cardIds: string[], columnName?: string | null) {
+  if (!columnName || !/entreg/i.test(columnName)) return;
+  if (cardIds.length === 0) return;
+  const { data: orders } = await supabase
+    .from("service_orders")
+    .select("id,sale_id,sales(id,customer_id,total_amount,paid_amount,payment_status,customers(name))")
+    .in("id", cardIds);
+  const seen = new Set<string>();
+  for (const o of (orders ?? []) as any[]) {
+    const sale = o.sales;
+    if (!sale || seen.has(sale.id)) continue;
+    seen.add(sale.id);
+    const pendente = Number(sale.total_amount ?? 0) - Number(sale.paid_amount ?? 0);
+    if (sale.payment_status === "pago_total" || pendente <= 0.0099) continue;
+    const nome = sale.customers?.name ?? "Cliente";
+    toast.warning(`Confirme a baixa do pagamento — ${nome}`, {
+      description: `Ainda falta receber ${formatCurrency(pendente)}. Você já deu baixa no valor restante?`,
+      duration: 12000,
+      action: {
+        label: "Abrir venda",
+        onClick: () => {
+          window.location.href = `/sales?customer=${encodeURIComponent(sale.customer_id)}`;
+        },
+      },
+    });
+  }
+}
+
 // Formata segundos em rótulo curto: 30s, 1min, 1min30s, 2min...
 function fmtVideoDuration(sec?: number | null): string {
   if (!sec || sec < 1) return "";
