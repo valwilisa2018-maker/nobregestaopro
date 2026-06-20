@@ -991,6 +991,7 @@ function KanbanPage() {
                       const waUrl = waHref(phone, `Olá ${c.sales?.customers?.name ?? ""}!`.trim());
                       if (!waUrl) return null;
                       return (
+                        <>
                         <a
                           href={waUrl}
                           target="_blank"
@@ -1024,6 +1025,7 @@ function KanbanPage() {
                         >
                           <Copy className="w-3 h-3" />
                         </button>
+                        </>
                       );
                     })()}
                     <Card draggable
