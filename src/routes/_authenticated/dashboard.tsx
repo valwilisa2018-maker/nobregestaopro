@@ -432,6 +432,31 @@ function Dashboard() {
   }, [ordersList]);
   const monthDeliveredTotal = monthDeliverySeries.reduce((a, d) => a + d.entregues, 0);
 
+  // Minutagem entregue: soma a duração (sales.video_duration_seconds) dos service_orders
+  // que já têm delivered_at, agrupando por hoje e pelo mês corrente.
+  const minutagemStats = useMemo(() => {
+    const durBySale = new Map<string, number>();
+    for (const s of (sales.data ?? []) as any[]) {
+      const dur = Number(s.video_duration_seconds ?? 0);
+      if (dur > 0) durBySale.set(s.id, dur);
+    }
+    const todayKey = startOf("day").slice(0, 10);
+    const monthKey = startOf("month").slice(0, 10);
+    let hojeSegs = 0;
+    let hojeQtd = 0;
+    let mesSegs = 0;
+    let mesQtd = 0;
+    for (const o of ordersList) {
+      if (!o.delivered_at) continue;
+      const dur = durBySale.get(o.sale_id) ?? 0;
+      if (dur <= 0) continue;
+      const d = o.delivered_at.slice(0, 10);
+      if (d >= monthKey) { mesSegs += dur; mesQtd += 1; }
+      if (d === todayKey) { hojeSegs += dur; hojeQtd += 1; }
+    }
+    return { hojeSegs, hojeQtd, mesSegs, mesQtd };
+  }, [sales.data, ordersList]);
+
   // Produtos / serviços mais vendidos (no escopo) — combina service_types + packages
   const productRanking = useMemo(() => {
     const map = new Map<string, { name: string; total: number; qtd: number }>();
