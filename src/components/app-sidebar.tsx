@@ -3,6 +3,7 @@ import {
   LayoutDashboard, ShoppingCart, KanbanSquare, Users, UserCheck, Briefcase,
   FileText, Settings, LogOut, ListTodo, Database, Sun, Moon, Link2, Wallet, DollarSign, Tv, AlertCircle,
   CreditCard, Sparkles, Clapperboard, FolderOpen, MessagesSquare, Smartphone,
+  ShieldCheck,
 } from "lucide-react";
 import logoUrl from "@/assets/logo.png";
 import {
@@ -50,6 +51,7 @@ const groups = [
     items: [
       { title: "Backup", url: "/backup", icon: Database },
       { title: "Conectar WhatsApp", url: "/whatsapp", icon: Smartphone },
+      { title: "Auditoria", url: "/auditoria", icon: ShieldCheck },
       { title: "Configurações", url: "/admin", icon: Settings },
     ],
   },

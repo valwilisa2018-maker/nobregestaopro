@@ -10,7 +10,8 @@
     "preview": "vite preview",
     "lint": "eslint .",
     "format": "prettier --write .",
-    "test": "vitest run"
+    "test": "vitest run",
+    "audit:routes": "node scripts/audit-routes.mjs"
   },
   "dependencies": {
     "@fontsource/barlow": "^5.2.8",
