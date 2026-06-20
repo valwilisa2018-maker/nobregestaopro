@@ -834,11 +834,11 @@ function KanbanPage() {
                           }
                         }}
                       >
-                        {(first.sales?.payment_status === "pago_parcial" || first.sales?.video_duration_seconds) && (
+                        {(first.sales?.payment_status === "pago_parcial" || (first as any).video_duration_seconds || first.sales?.video_duration_seconds) && (
                           <div className="flex justify-end gap-1 flex-wrap">
-                            {first.sales?.video_duration_seconds ? (
+                            {((first as any).video_duration_seconds || first.sales?.video_duration_seconds) ? (
                               <span className="text-[10px] font-bold px-2 py-0.5 rounded-md shadow-sm" style={{ background: "#3b82f6", color: "#fff" }}>
-                                🎬 {fmtVideoDuration(first.sales.video_duration_seconds)}
+                                🎬 {fmtVideoDuration((first as any).video_duration_seconds ?? first.sales?.video_duration_seconds)}
                               </span>
                             ) : null}
                             {first.sales?.payment_status === "pago_parcial" && (
