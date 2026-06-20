@@ -90,7 +90,10 @@ export const Route = createFileRoute("/api/public/trello-webhook")({
         // - "distribuicao_edicao": 1 ponto fixo × multiplicador.
         // - "alteracao" / "entregue": registrados para contagem, valem 0 pontos.
         const cardName: string = String(card.name ?? "").trim();
-        const cardKey = cardName.toLowerCase();
+        // Idempotência: usa o ID do card do Trello como chave única.
+        // Garante que cada card é contabilizado uma vez só, mesmo que dois
+        // cards diferentes tenham o mesmo título.
+        const cardKey = String(card.id);
 
         let pontos = 0;
         let duracaoSegundos = 0;
