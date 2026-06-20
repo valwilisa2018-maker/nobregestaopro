@@ -1034,6 +1034,7 @@ export type Database = {
           title: string
           trello_link: string | null
           updated_at: string
+          video_duration_seconds: number | null
         }
         Insert: {
           color?: string | null
@@ -1058,6 +1059,7 @@ export type Database = {
           title: string
           trello_link?: string | null
           updated_at?: string
+          video_duration_seconds?: number | null
         }
         Update: {
           color?: string | null
@@ -1082,6 +1084,7 @@ export type Database = {
           title?: string
           trello_link?: string | null
           updated_at?: string
+          video_duration_seconds?: number | null
         }
         Relationships: [
           {
