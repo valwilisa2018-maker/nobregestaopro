@@ -797,8 +797,8 @@ function KanbanPage() {
                               </div>
                             )}
                             <CardLinkButtons
-                              driveLink={first.sales?.google_drive_link ?? first.sales?.trello_link ?? first.trello_link ?? null}
-                              platformLink={first.sales?.platform_link ?? null}
+                              driveLink={first.google_drive_link ?? first.sales?.google_drive_link ?? first.trello_link ?? first.sales?.trello_link ?? null}
+                              platformLink={first.platform_link ?? first.sales?.platform_link ?? null}
                             />
                           </CardContent>
                         </Card>
@@ -882,8 +882,8 @@ function KanbanPage() {
                                 )}
                               </div>
                               <CardLinkButtons
-                                driveLink={c.sales?.google_drive_link ?? c.sales?.trello_link ?? c.trello_link ?? null}
-                                platformLink={c.sales?.platform_link ?? null}
+                                driveLink={c.google_drive_link ?? c.sales?.google_drive_link ?? c.trello_link ?? c.sales?.trello_link ?? null}
+                                platformLink={c.platform_link ?? c.sales?.platform_link ?? null}
                               />
                             </CardContent>
                           </Card>
@@ -1012,8 +1012,8 @@ function KanbanPage() {
                         )}
                       </div>
                       <CardLinkButtons
-                        driveLink={c.sales?.google_drive_link ?? c.sales?.trello_link ?? c.trello_link ?? null}
-                        platformLink={c.sales?.platform_link ?? null}
+                        driveLink={c.google_drive_link ?? c.sales?.google_drive_link ?? c.trello_link ?? c.sales?.trello_link ?? null}
+                        platformLink={c.platform_link ?? c.sales?.platform_link ?? null}
                       />
                     </CardContent>
                   </Card>
