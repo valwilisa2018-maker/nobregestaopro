@@ -332,7 +332,12 @@ function Dashboard() {
   // Minutagem é extraída do próprio nome do card (ex.: "2:30", "1min30s").
   const producerRanking = (producers.data ?? []).map((p: any) => {
     const ofProducer = ordersList.filter((o) => o.producer_id === p.id);
-    const prontoList = ofProducer.filter((o) => o.kanban_columns?.is_done === true);
+    // "Pronto/entregue" no período selecionado: filtra por delivered_at dentro do escopo
+    const prontoList = ofProducer.filter((o) => {
+      if (o.kanban_columns?.is_done !== true) return false;
+      const d = (o.delivered_at ?? "").slice(0, 10);
+      return d && d >= scopeSince && d <= scopeUntil;
+    });
     const emProducaoList = ofProducer.filter((o) => o.kanban_columns?.is_done === false);
     const entregues = prontoList.length;
     const emProducao = emProducaoList.length;
