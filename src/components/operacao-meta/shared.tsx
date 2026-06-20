@@ -684,7 +684,7 @@ export function DinamicaView({ delivered, producers, computePts, sumPts, prodOf,
 }
 
 /* ============================ TENDÊNCIAS ============================ */
-export function TendenciasView({ delivered, sumPts }: any) {
+export function TendenciasView({ delivered, sumPts, workdays = [1,2,3,4,5], holidays = [] }: any) {
   const days: { iso: string; label: string }[] = [];
   for (let i = 29; i >= 0; i--) {
     const d = new Date(); d.setDate(d.getDate() - i);
@@ -713,11 +713,13 @@ export function TendenciasView({ delivered, sumPts }: any) {
   const prev7Eff = prev7Proj > 0 ? Math.round((prev7Pts / prev7Proj) * 10) / 10 : 0;
   const diff = (a: number, b: number) => b === 0 ? "0%" : `${a >= b ? "+" : ""}${Math.round(((a - b) / b) * 100)}%`;
 
-  const monthDays = new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0).getDate();
-  const dayOfMonth = new Date().getDate();
+  // Projeção do mês usando DIAS ÚTEIS (não calendário) — não dilui o ritmo com fins de semana e feriados.
+  const workDaysTotal = workdaysInMonth(workdays, holidays, 0);
+  const workDaysSoFar = workingDaysElapsed(workdays, holidays, 0);
   const ms = monthStart(0);
   const monthPts = sumPts(delivered.filter((o: any) => String(o.delivered_at).slice(0, 10) >= ms));
-  const projection = dayOfMonth > 0 ? Math.round((monthPts / dayOfMonth) * monthDays) : 0;
+  const projection = workDaysSoFar > 0 ? Math.round((monthPts / workDaysSoFar) * workDaysTotal) : 0;
+  const workDaysRemaining = Math.max(0, workDaysTotal - workDaysSoFar);
 
   return (
     <div className="space-y-4">
@@ -725,7 +727,7 @@ export function TendenciasView({ delivered, sumPts }: any) {
         <TrendKpi label="Pontos vs Semana Anterior" value={diff(last7Pts, prev7Pts)} sub={`${last7Pts} vs ${prev7Pts}`} positive={last7Pts >= prev7Pts} />
         <TrendKpi label="Projetos vs Semana Anterior" value={diff(last7Proj, prev7Proj)} sub={`${last7Proj} vs ${prev7Proj}`} positive={last7Proj >= prev7Proj} />
         <TrendKpi label="Eficiência vs Semana Anterior" value={diff(last7Eff, prev7Eff)} sub={`${last7Eff} vs ${prev7Eff}`} positive={last7Eff >= prev7Eff} />
-        <TrendKpi label="Projeção do Mês" value={`${projection} pts`} sub={`${monthDays - dayOfMonth} dias restantes`} positive accent="text-emerald-500" />
+          <TrendKpi label="Projeção do Mês" value={`${projection} pts`} sub={`${workDaysRemaining} dias úteis restantes`} positive accent="text-emerald-500" />
       </div>
 
       <div className="grid lg:grid-cols-2 gap-3">
