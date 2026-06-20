@@ -10,6 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { MessagesSquare, Send, Paperclip, Mic, Square, Search, FileText, Copy, FolderPlus, FolderOpen, ScrollText } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { toast } from "sonner";
 import { detectCategory, uploadToFolder, getSignedUrl, type CategoryId } from "@/lib/project-folders";
 import { transcribeAudio } from "@/lib/ai-transcribe.functions";
@@ -547,34 +548,80 @@ function ChatOrganizador() {
                     if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendText(); }
                   }}
                 />
-                <div className="flex flex-col gap-1">
-                  <input ref={fileRef} type="file" multiple accept="image/*,video/*,audio/*,application/pdf,.pdf,.doc,.docx,.txt" className="hidden" onChange={(e) => sendFiles(e.target.files)} />
-                  <Button size="icon" variant="outline" onClick={() => fileRef.current?.click()} disabled={sending} title="Anexar arquivo (se não houver pasta ativa, será solicitado o nome)">
-                    <Paperclip className="w-4 h-4" />
-                  </Button>
-                  <Button size="icon" variant="outline" onClick={() => setRoteiroOpen(true)} disabled={sending} title="Escrever/Colar roteiro">
-                    <ScrollText className="w-4 h-4" />
-                  </Button>
-                  <div className={`relative ${highlightCreate ? "z-10" : ""}`}>
-                    {highlightCreate && (
-                      <>
-                        <span className="pointer-events-none absolute inset-0 rounded-md ring-2 ring-primary animate-ping" />
-                        <span className="pointer-events-none absolute -left-2 top-1/2 -translate-y-1/2 -translate-x-full whitespace-nowrap rounded-md bg-primary px-2 py-1 text-[11px] font-medium text-primary-foreground shadow-md">
-                          Clique aqui para criar a pasta
-                        </span>
-                      </>
-                    )}
-                    <Button size="icon" variant={highlightCreate ? "default" : "outline"} onClick={() => { setCreateOpen(true); setHighlightCreate(false); }} disabled={sending} title="Criar pasta" className={highlightCreate ? "ring-2 ring-primary" : ""}>
-                      <FolderPlus className="w-4 h-4" />
-                    </Button>
+                <TooltipProvider delayDuration={150}>
+                  <div className="flex flex-row flex-wrap gap-1 items-center">
+                    <input ref={fileRef} type="file" multiple accept="image/*,video/*,audio/*,application/pdf,.pdf,.doc,.docx,.txt" className="hidden" onChange={(e) => sendFiles(e.target.files)} />
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button size="icon" variant="outline" onClick={() => fileRef.current?.click()} disabled={sending}>
+                          <Paperclip className="w-4 h-4" />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent side="top">
+                        <p className="font-medium">Anexar arquivo</p>
+                        <p className="text-xs opacity-80">Envia arquivos para a pasta ativa (ou pede o nome).</p>
+                      </TooltipContent>
+                    </Tooltip>
+
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button size="icon" variant="outline" onClick={() => setRoteiroOpen(true)} disabled={sending}>
+                          <ScrollText className="w-4 h-4" />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent side="top">
+                        <p className="font-medium">Roteiro</p>
+                        <p className="text-xs opacity-80">Escreve ou cola um roteiro na pasta.</p>
+                      </TooltipContent>
+                    </Tooltip>
+
+                    <div className={`relative ${highlightCreate ? "z-10" : ""}`}>
+                      {highlightCreate && (
+                        <>
+                          <span className="pointer-events-none absolute inset-0 rounded-md ring-2 ring-primary animate-ping" />
+                          <span className="pointer-events-none absolute left-1/2 -top-2 -translate-x-1/2 -translate-y-full whitespace-nowrap rounded-md bg-primary px-2 py-1 text-[11px] font-medium text-primary-foreground shadow-md">
+                            Clique aqui para criar a pasta
+                          </span>
+                        </>
+                      )}
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button size="icon" variant={highlightCreate ? "default" : "outline"} onClick={() => { setCreateOpen(true); setHighlightCreate(false); }} disabled={sending} className={highlightCreate ? "ring-2 ring-primary" : ""}>
+                            <FolderPlus className="w-4 h-4" />
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent side="top">
+                          <p className="font-medium">Criar pasta</p>
+                          <p className="text-xs opacity-80">Cria uma nova pasta de projeto.</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </div>
+
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button size="icon" variant={recording ? "destructive" : "outline"} onClick={toggleRecord} disabled={sending && !recording}>
+                          {recording ? <Square className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent side="top">
+                        <p className="font-medium">{recording ? "Parar gravação" : "Gravar áudio"}</p>
+                        <p className="text-xs opacity-80">Diga "criar pasta NOME" para criar por voz.</p>
+                      </TooltipContent>
+                    </Tooltip>
+
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button size="icon" onClick={sendText} disabled={sending || !text.trim()}>
+                          <Send className="w-4 h-4" />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent side="top">
+                        <p className="font-medium">Enviar</p>
+                        <p className="text-xs opacity-80">Envia a mensagem digitada.</p>
+                      </TooltipContent>
+                    </Tooltip>
                   </div>
-                  <Button size="icon" variant={recording ? "destructive" : "outline"} onClick={toggleRecord} disabled={sending && !recording} title='Gravar áudio (diga "criar pasta NOME")'>
-                    {recording ? <Square className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
-                  </Button>
-                  <Button size="icon" onClick={sendText} disabled={sending || !text.trim()} title="Enviar">
-                    <Send className="w-4 h-4" />
-                  </Button>
-                </div>
+                </TooltipProvider>
               </div>
               <div className="text-[11px] text-muted-foreground text-center leading-relaxed">
                 <strong>Envie todos seus arquivos para criar a pasta.</strong> Depois de enviar, a pasta é criada automaticamente.
