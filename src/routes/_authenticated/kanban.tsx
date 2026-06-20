@@ -825,7 +825,15 @@ function KanbanPage() {
                               target="_blank"
                               rel="noreferrer"
                               onClick={(e) => e.stopPropagation()}
-                              title={`WhatsApp ${formatPhoneBR(phone)}`}
+                              onContextMenu={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                navigator.clipboard.writeText(formatPhoneBR(phone)).then(
+                                  () => toast.success(`Número copiado: ${formatPhoneBR(phone)}`),
+                                  () => toast.error("Não foi possível copiar")
+                                );
+                              }}
+                              title={`WhatsApp ${formatPhoneBR(phone)} — clique direito para copiar`}
                               className="absolute top-2 right-2 z-10 inline-flex items-center justify-center w-7 h-7 rounded-full bg-[#25D366] text-white shadow-md hover:scale-110 transition-transform"
                             >
                               <MessageCircle className="w-4 h-4" />
@@ -971,7 +979,15 @@ function KanbanPage() {
                           target="_blank"
                           rel="noreferrer"
                           onClick={(e) => e.stopPropagation()}
-                          title={`WhatsApp ${formatPhoneBR(phone)}`}
+                          onContextMenu={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            navigator.clipboard.writeText(formatPhoneBR(phone)).then(
+                              () => toast.success(`Número copiado: ${formatPhoneBR(phone)}`),
+                              () => toast.error("Não foi possível copiar")
+                            );
+                          }}
+                          title={`WhatsApp ${formatPhoneBR(phone)} — clique direito para copiar`}
                           className="absolute top-2 right-2 z-10 inline-flex items-center justify-center w-7 h-7 rounded-full bg-[#25D366] text-white shadow-md hover:scale-110 transition-transform"
                         >
                           <MessageCircle className="w-4 h-4" />
