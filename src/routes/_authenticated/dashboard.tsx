@@ -296,28 +296,36 @@ function Dashboard() {
     };
   }).filter((s) => s.qtd > 0).sort((a, b) => b.total - a.total).slice(0, 5);
 
-  // Ranking produtores (no escopo) — conta cada card que foi movido para
-  // "serviço pronto" dentro do período, usando delivered_at (gravado uma
-  // única vez na primeira vez que o card chega na coluna concluída).
-  // Assim, mover o mesmo card de volta para pronto NÃO recontabiliza.
+  // Ranking produtores — contagem EXATA pelo estado atual do Kanban.
+  // "Pronto" = card está hoje em uma coluna marcada como concluída (is_done).
+  // "Em produção" = card está hoje em uma coluna não concluída.
+  // Minutagem é extraída do próprio nome do card (ex.: "2:30", "1min30s").
   const producerRanking = (producers.data ?? []).map((p: any) => {
-    const entreguesList = ordersList.filter(
-      (o) => o.producer_id === p.id && inScope(o.delivered_at)
-    );
-    const emProducaoList = ordersList.filter(
-      (o) => o.producer_id === p.id && !o.delivered_at && !o.kanban_columns?.is_done
-    );
-    const entregues = entreguesList.length;
+    const ofProducer = ordersList.filter((o) => o.producer_id === p.id);
+    const prontoList = ofProducer.filter((o) => o.kanban_columns?.is_done === true);
+    const emProducaoList = ofProducer.filter((o) => o.kanban_columns?.is_done === false);
+    const entregues = prontoList.length;
     const emProducao = emProducaoList.length;
+    const segundosProntos = prontoList.reduce(
+      (acc, o) => acc + parseDuracaoSegundos(o.title ?? ""),
+      0,
+    );
     return {
       id: p.id,
       name: p.name,
       entregues,
       emProducao,
+      segundosProntos,
       qtd: entregues + emProducao,
     };
   }).filter((p) => p.entregues > 0 || p.emProducao > 0)
-    .sort((a, b) => b.entregues - a.entregues || b.qtd - a.qtd).slice(0, 5);
+    .sort(
+      (a, b) =>
+        b.entregues - a.entregues ||
+        b.segundosProntos - a.segundosProntos ||
+        b.qtd - a.qtd,
+    )
+    .slice(0, 5);
 
   // Produtos / serviços mais vendidos (no escopo) — combina service_types + packages
   const productRanking = useMemo(() => {
