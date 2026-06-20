@@ -335,13 +335,9 @@ function SalesPage() {
         return;
       }
     }
-    // At least one of the two links is required
+    // Links são opcionais; validar apenas formato quando preenchidos
     const gLink = form.google_drive_link.trim();
     const pLink = form.platform_link.trim();
-    if (!gLink && !pLink) {
-      toast.error("Informe o Link do Google Drive ou o Link da Plataforma (pelo menos um).");
-      return;
-    }
     if (gLink && !gLink.toLowerCase().startsWith("http")) {
       toast.error("Link do Google Drive inválido."); return;
     }
@@ -564,14 +560,6 @@ function SalesPage() {
       if (k === "trello_link") continue;
       if (!val) {
         toast.error(`Preencha o campo: ${label}`);
-        return;
-      }
-    }
-    {
-      const g = String(editing.google_drive_link ?? "").trim();
-      const p = String(editing.platform_link ?? "").trim();
-      if (!g && !p) {
-        toast.error("Informe o Link do Google Drive ou o Link da Plataforma (pelo menos um).");
         return;
       }
     }
@@ -903,23 +891,6 @@ function SalesPage() {
                     </SelectContent>
                   </Select>
                 </div>
-                 <div className="col-span-2">
-                   <Label>Link do Google Drive</Label>
-                  <div className="flex gap-2">
-                    <Input placeholder="https://drive.google.com/..." value={form.google_drive_link} onChange={(e) => set("google_drive_link", e.target.value)} />
-                    <Button type="button" variant="outline" onClick={() => window.open("https://drive.google.com/drive/u/0/home", "_blank", "noopener,noreferrer")}>Abrir Drive</Button>
-                  </div>
-                </div>
-                <div className="col-span-2">
-                   <Label>Link da Plataforma (pasta interna)</Label>
-                  <div className="flex gap-2">
-                    <Input placeholder="Cole aqui o link gerado no Chat Organizador" value={form.platform_link} onChange={(e) => set("platform_link", e.target.value)} />
-                    <Button type="button" variant="outline" asChild>
-                      <a href="/chat-organizador" target="_blank" rel="noreferrer">Abrir Chat</a>
-                    </Button>
-                  </div>
-                   <p className="text-[11px] text-muted-foreground mt-1">Informe pelo menos um dos dois links (Drive ou Plataforma). Não precisa preencher os dois.</p>
-                </div>
                 <div className="col-span-2">
                   <Label>Comprovante (imagem ou PDF) *</Label>
                   <Input type="file" accept="image/*,application/pdf" onChange={(e) => setReceiptFile(e.target.files?.[0] ?? null)} />
@@ -927,6 +898,23 @@ function SalesPage() {
                 </div>
                 <div className="col-span-2"><Label>Prazo de entrega *</Label><Input placeholder="Ex: 7 dias úteis" value={form.delivery_deadline || ""} onChange={(e) => set("delivery_deadline", e.target.value)} /></div>
                 <div className="col-span-2"><Label>Observações (opcional)</Label><Textarea value={form.notes || ""} onChange={(e) => set("notes", e.target.value)} /></div>
+                <div className="col-span-2">
+                  <Label>Link do Google Drive (opcional)</Label>
+                  <div className="flex gap-2">
+                    <Input placeholder="https://drive.google.com/..." value={form.google_drive_link} onChange={(e) => set("google_drive_link", e.target.value)} />
+                    <Button type="button" variant="outline" onClick={() => window.open("https://drive.google.com/drive/u/0/home", "_blank", "noopener,noreferrer")}>Abrir Drive</Button>
+                  </div>
+                </div>
+                <div className="col-span-2">
+                  <Label>Link da Plataforma (pasta interna) (opcional)</Label>
+                  <div className="flex gap-2">
+                    <Input placeholder="Cole aqui o link gerado no Chat Organizador" value={form.platform_link} onChange={(e) => set("platform_link", e.target.value)} />
+                    <Button type="button" variant="outline" asChild>
+                      <a href="/chat-organizador" target="_blank" rel="noreferrer">Abrir Chat</a>
+                    </Button>
+                  </div>
+                  <p className="text-[11px] text-muted-foreground mt-1">Opcional. Se quiser, informe um dos dois links (Drive ou Plataforma). Não precisa preencher os dois.</p>
+                </div>
               </div>
               <DialogFooter>
                 <Button onClick={submit} disabled={saving}>
@@ -1239,25 +1227,25 @@ function SalesPage() {
                   <SelectContent><SelectItem value="cliente_recuperacao">Cliente Recuperação</SelectItem><SelectItem value="trafego_pago">Tráfego Pago</SelectItem><SelectItem value="indicacao">Indicação</SelectItem><SelectItem value="organico">Orgânico / Redes Sociais</SelectItem><SelectItem value="cliente_antigo">Cliente Antigo</SelectItem><SelectItem value="prospeccao">Prospecção Ativa</SelectItem><SelectItem value="outros">Outros</SelectItem></SelectContent>
                 </Select>
               </div>
-               <div className="col-span-2">
-                 <Label>Link do Google Drive</Label>
+              <div className="col-span-2"><Label>Prazo de entrega *</Label><Input placeholder="Ex: 7 dias úteis" value={editing.delivery_deadline ?? ""} onChange={(e) => editSet("delivery_deadline", e.target.value)} /></div>
+              <div className="col-span-2"><Label>Observações (opcional)</Label><Textarea value={editing.notes ?? ""} onChange={(e) => editSet("notes", e.target.value)} /></div>
+              <div className="col-span-2">
+                <Label>Link do Google Drive (opcional)</Label>
                 <div className="flex gap-2">
                   <Input placeholder="https://drive.google.com/..." value={editing.google_drive_link ?? ""} onChange={(e) => editSet("google_drive_link", e.target.value)} />
                   <Button type="button" variant="outline" onClick={() => window.open("https://drive.google.com/drive/u/0/home", "_blank", "noopener,noreferrer")}>Abrir Drive</Button>
                 </div>
               </div>
               <div className="col-span-2">
-                 <Label>Link da Plataforma (pasta interna)</Label>
+                <Label>Link da Plataforma (pasta interna) (opcional)</Label>
                 <div className="flex gap-2">
                   <Input placeholder="Cole aqui o link gerado no Chat Organizador" value={editing.platform_link ?? ""} onChange={(e) => editSet("platform_link", e.target.value)} />
                   <Button type="button" variant="outline" asChild>
                     <a href="/chat-organizador" target="_blank" rel="noreferrer">Abrir Chat</a>
                   </Button>
                 </div>
-                 <p className="text-[11px] text-muted-foreground mt-1">Informe pelo menos um dos dois links (Drive ou Plataforma). Não precisa preencher os dois.</p>
+                <p className="text-[11px] text-muted-foreground mt-1">Opcional. Se quiser, informe um dos dois links (Drive ou Plataforma). Não precisa preencher os dois.</p>
               </div>
-              <div className="col-span-2"><Label>Prazo de entrega *</Label><Input placeholder="Ex: 7 dias úteis" value={editing.delivery_deadline ?? ""} onChange={(e) => editSet("delivery_deadline", e.target.value)} /></div>
-              <div className="col-span-2"><Label>Observações (opcional)</Label><Textarea value={editing.notes ?? ""} onChange={(e) => editSet("notes", e.target.value)} /></div>
             </div>
           )}
           <DialogFooter>
