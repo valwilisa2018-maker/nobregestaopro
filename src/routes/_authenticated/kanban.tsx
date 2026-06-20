@@ -185,7 +185,7 @@ function KanbanPage() {
       due_date: found.due_date ?? "", due_time: (found.due_time ?? "").slice(0, 5),
       color: found.color ?? "", labels: found.labels ?? [],
       google_drive_link:
-        (found as any).google_drive_link ?? found.sales?.google_drive_link ?? found.trello_link ?? found.sales?.trello_link ?? null,
+        (found as any).google_drive_link ?? found.sales?.google_drive_link ?? null,
       platform_link: (found as any).platform_link ?? found.sales?.platform_link ?? null,
       sale_id: found.sale_id ?? null,
       customer_phone: found.sales?.customers?.phone ?? null,
