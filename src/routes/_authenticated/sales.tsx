@@ -1125,40 +1125,12 @@ function SalesPage() {
             <div className="grid grid-cols-2 gap-3">
               <div className="col-span-2">
                 <Label>Nome do cliente *</Label>
-                <Input list="edit-customers-names" value={editing.customer_name ?? editing.customers?.name ?? ""} onChange={(e) => setEditing((prev: any) => ({ ...prev, customer_name: e.target.value }))} onBlur={(e) => {
-                  const val = e.target.value.trim().toLowerCase();
-                  if (!val) return;
-                  const match = (customersAll.data ?? []).find((c: any) => (c.name ?? "").toLowerCase() === val);
-                  if (match) {
-                    setEditing((prev: any) => ({
-                      ...prev,
-                      customer_name: match.name,
-                      company: match.company ?? prev.company,
-                      document: match.document ?? prev.document,
-                      phone: match.phone ?? prev.phone,
-                      email: match.email ?? prev.email,
-                    }));
-                  }
-                }} />
+                <Input list="edit-customers-names" value={editing.customer_name ?? editing.customers?.name ?? ""} onChange={(e) => setEditing((prev: any) => ({ ...prev, customer_name: e.target.value }))} />
                 <datalist id="edit-customers-names">{(customersAll.data ?? []).map((c: any) => (<option key={`en-${c.id}`} value={c.name} />))}</datalist>
               </div>
               <div>
                 <Label>Empresa {editing.with_invoice === "sim" ? "*" : "(Opcional)"}</Label>
-                <Input list="edit-customers-companies" value={editing.company ?? editing.customers?.company ?? ""} onChange={(e) => setEditing((prev: any) => ({ ...prev, company: e.target.value }))} onBlur={(e) => {
-                  const val = e.target.value.trim().toLowerCase();
-                  if (!val) return;
-                  const match = (customersAll.data ?? []).find((c: any) => (c.company ?? "").toLowerCase() === val);
-                  if (match) {
-                    setEditing((prev: any) => ({
-                      ...prev,
-                      customer_name: match.name ?? prev.customer_name,
-                      company: match.company,
-                      document: match.document ?? prev.document,
-                      phone: match.phone ?? prev.phone,
-                      email: match.email ?? prev.email,
-                    }));
-                  }
-                }} />
+                <Input list="edit-customers-companies" value={editing.company ?? editing.customers?.company ?? ""} onChange={(e) => setEditing((prev: any) => ({ ...prev, company: e.target.value }))} />
                 <datalist id="edit-customers-companies">{(customersAll.data ?? []).filter((c: any) => c.company).map((c: any) => (<option key={`ec-${c.id}`} value={c.company} />))}</datalist>
               </div>
               <div>
