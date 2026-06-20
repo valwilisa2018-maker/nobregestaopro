@@ -36,6 +36,36 @@ function startOf(period: "day" | "week" | "month" | "year") {
   return d.toISOString();
 }
 
+// Extrai a duração (em segundos) a partir do nome do card.
+// Aceita "2:30", "1:02:30", "150s", "2min", "2min30s" etc. Retorna 0 se nada confiável.
+function parseDuracaoSegundos(name: string): number {
+  if (!name) return 0;
+  const s = name.toLowerCase();
+  const mColon = s.match(/(?<![\d:])(\d{1,2})(?::(\d{1,2}))(?::(\d{1,2}))?(?![\d:])/);
+  if (mColon) {
+    const a = Number(mColon[1] || 0);
+    const b = Number(mColon[2] || 0);
+    const c = mColon[3] != null ? Number(mColon[3]) : null;
+    if (c != null) return a * 3600 + b * 60 + c;
+    return a * 60 + b;
+  }
+  const mUnits = s.match(/(\d+)\s*(?:min|m)\b(?:\s*(\d+)\s*s\b)?/);
+  if (mUnits) return Number(mUnits[1]) * 60 + Number(mUnits[2] || 0);
+  const mSec = s.match(/(\d+)\s*s\b/);
+  if (mSec) return Number(mSec[1]);
+  return 0;
+}
+
+function formatDuracao(totalSeconds: number): string {
+  if (!totalSeconds) return "0min";
+  const h = Math.floor(totalSeconds / 3600);
+  const m = Math.floor((totalSeconds % 3600) / 60);
+  const s = totalSeconds % 60;
+  if (h > 0) return `${h}h${m.toString().padStart(2, "0")}min`;
+  if (m > 0) return s > 0 ? `${m}min${s.toString().padStart(2, "0")}s` : `${m}min`;
+  return `${s}s`;
+}
+
 function Dashboard() {
   const navigate = useNavigate();
   // Filtros principais
@@ -112,7 +142,7 @@ function Dashboard() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("service_orders")
-        .select("id,column_id,delivered_at,sale_id,producer_id,created_at,kanban_columns(name,is_done,sort_order)");
+        .select("id,title,column_id,delivered_at,sale_id,producer_id,created_at,kanban_columns(name,is_done,sort_order)");
       if (error) { toast.error("Erro ao carregar pedidos"); throw error; }
       return data ?? [];
     },
@@ -296,28 +326,36 @@ function Dashboard() {
     };
   }).filter((s) => s.qtd > 0).sort((a, b) => b.total - a.total).slice(0, 5);
 
-  // Ranking produtores (no escopo) — conta cada card que foi movido para
-  // "serviço pronto" dentro do período, usando delivered_at (gravado uma
-  // única vez na primeira vez que o card chega na coluna concluída).
-  // Assim, mover o mesmo card de volta para pronto NÃO recontabiliza.
+  // Ranking produtores — contagem EXATA pelo estado atual do Kanban.
+  // "Pronto" = card está hoje em uma coluna marcada como concluída (is_done).
+  // "Em produção" = card está hoje em uma coluna não concluída.
+  // Minutagem é extraída do próprio nome do card (ex.: "2:30", "1min30s").
   const producerRanking = (producers.data ?? []).map((p: any) => {
-    const entreguesList = ordersList.filter(
-      (o) => o.producer_id === p.id && inScope(o.delivered_at)
-    );
-    const emProducaoList = ordersList.filter(
-      (o) => o.producer_id === p.id && !o.delivered_at && !o.kanban_columns?.is_done
-    );
-    const entregues = entreguesList.length;
+    const ofProducer = ordersList.filter((o) => o.producer_id === p.id);
+    const prontoList = ofProducer.filter((o) => o.kanban_columns?.is_done === true);
+    const emProducaoList = ofProducer.filter((o) => o.kanban_columns?.is_done === false);
+    const entregues = prontoList.length;
     const emProducao = emProducaoList.length;
+    const segundosProntos = prontoList.reduce(
+      (acc, o) => acc + parseDuracaoSegundos(o.title ?? ""),
+      0,
+    );
     return {
       id: p.id,
       name: p.name,
       entregues,
       emProducao,
+      segundosProntos,
       qtd: entregues + emProducao,
     };
   }).filter((p) => p.entregues > 0 || p.emProducao > 0)
-    .sort((a, b) => b.entregues - a.entregues || b.qtd - a.qtd).slice(0, 5);
+    .sort(
+      (a, b) =>
+        b.entregues - a.entregues ||
+        b.segundosProntos - a.segundosProntos ||
+        b.qtd - a.qtd,
+    )
+    .slice(0, 5);
 
   // Produtos / serviços mais vendidos (no escopo) — combina service_types + packages
   const productRanking = useMemo(() => {
@@ -643,7 +681,8 @@ function Dashboard() {
                   <div>
                     <div className="font-medium leading-tight">{p.name}</div>
                     <div className="text-[11px] text-muted-foreground">
-                      {p.emProducao > 0 ? `${p.emProducao} em produção` : "—"}
+                      {p.emProducao} em produção
+                      {p.segundosProntos > 0 ? ` • ${formatDuracao(p.segundosProntos)} prontos` : ""}
                     </div>
                   </div>
                 </div>
