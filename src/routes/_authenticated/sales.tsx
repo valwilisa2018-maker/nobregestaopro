@@ -750,6 +750,42 @@ function SalesPage() {
                   <Label>Nome do cliente *</Label>
                   <Input list="customers-names" value={form.customer_name || ""} onChange={(e) => autofillFromCustomer("customer_name", e.target.value)} />
                   <datalist id="customers-names">{(customersAll.data ?? []).map((c: any) => (<option key={`n-${c.id}`} value={c.name} />))}</datalist>
+                  {customerSuggestions.length > 0 && (
+                    <div className="mt-2 rounded-md border border-border bg-muted/40 p-2 text-xs space-y-1">
+                      <div className="text-muted-foreground">
+                        {linkedCustomerId
+                          ? "Usando dados de cliente já cadastrado:"
+                          : `Já existe ${customerSuggestions.length === 1 ? "um cliente" : `${customerSuggestions.length} clientes`} com esse nome. Selecione para reutilizar, ou continue digitando para criar um novo (homônimo).`}
+                      </div>
+                      <div className="flex flex-wrap gap-1">
+                        {customerSuggestions.map((c: any) => (
+                          <Button
+                            key={c.id}
+                            type="button"
+                            size="sm"
+                            variant={linkedCustomerId === c.id ? "default" : "outline"}
+                            className="h-7 text-xs"
+                            onClick={() => applyExistingCustomer(c)}
+                          >
+                            {c.name}
+                            {c.company ? ` — ${c.company}` : ""}
+                            {c.document ? ` (${c.document})` : ""}
+                          </Button>
+                        ))}
+                        {linkedCustomerId && (
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant="ghost"
+                            className="h-7 text-xs"
+                            onClick={() => setLinkedCustomerId(null)}
+                          >
+                            Criar como novo cliente
+                          </Button>
+                        )}
+                      </div>
+                    </div>
+                  )}
                 </div>
                 <div>
                   <Label>Empresa {form.with_invoice === "sim" ? "*" : "(Opcional)"}</Label>
