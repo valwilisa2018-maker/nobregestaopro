@@ -51,6 +51,8 @@ function ChatOrganizador() {
   const [pendingFiles, setPendingFiles] = useState<File[]>([]);
   const [roteiroOpen, setRoteiroOpen] = useState(false);
   const [roteiroText, setRoteiroText] = useState("");
+  const [createOpen, setCreateOpen] = useState(false);
+  const [createName, setCreateName] = useState("");
   const editorRef = useRef<HTMLDivElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
   const recRef = useRef<MediaRecorder | null>(null);
@@ -248,6 +250,29 @@ function ChatOrganizador() {
     );
     if (fileRef.current) fileRef.current.value = "";
     taRef.current?.focus();
+  }
+
+  async function handleCreateFromButton() {
+    const name = createName.trim();
+    if (!name) {
+      toast.error("Informe o nome da pasta");
+      return;
+    }
+    setSending(true);
+    try {
+      const created = await createFolderFromCommand(name);
+      if (pendingFiles.length) {
+        await uploadFilesToFolder(created.id, pendingFiles);
+        toast.success(`${pendingFiles.length} arquivo(s) enviados para a pasta`);
+      }
+      setCreateOpen(false);
+      setCreateName("");
+      resetChat();
+    } catch (e: any) {
+      toast.error(e?.message ?? "Erro ao criar pasta");
+    } finally {
+      setSending(false);
+    }
   }
 
   /** Convert Blob → base64 (no data URL prefix). */
@@ -511,6 +536,9 @@ function ChatOrganizador() {
                   <Button size="icon" variant="outline" onClick={() => setRoteiroOpen(true)} disabled={sending} title="Escrever/Colar roteiro">
                     <ScrollText className="w-4 h-4" />
                   </Button>
+                  <Button size="icon" variant="outline" onClick={() => setCreateOpen(true)} disabled={sending} title="Criar pasta">
+                    <FolderPlus className="w-4 h-4" />
+                  </Button>
                   <Button size="icon" variant={recording ? "destructive" : "outline"} onClick={toggleRecord} disabled={sending && !recording} title='Gravar áudio (diga "criar pasta NOME")'>
                     {recording ? <Square className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
                   </Button>
@@ -537,6 +565,34 @@ function ChatOrganizador() {
           sending={sending}
         />
       )}
+      <Dialog open={createOpen} onOpenChange={(o) => { setCreateOpen(o); if (!o) setCreateName(""); }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Criar pasta</DialogTitle>
+            <DialogDescription>
+              Qual o nome da pasta? O link será gerado e copiado automaticamente.
+              {pendingFiles.length > 0 && (
+                <> Os {pendingFiles.length} arquivo(s) na fila serão enviados para a nova pasta.</>
+              )}
+            </DialogDescription>
+          </DialogHeader>
+          <Input
+            autoFocus
+            value={createName}
+            onChange={(e) => setCreateName(e.target.value)}
+            placeholder="Ex.: Cliente João - Vídeo Institucional"
+            onKeyDown={(e) => {
+              if (e.key === "Enter") { e.preventDefault(); handleCreateFromButton(); }
+            }}
+          />
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setCreateOpen(false)} disabled={sending}>Cancelar</Button>
+            <Button onClick={handleCreateFromButton} disabled={sending || !createName.trim()}>
+              <FolderPlus className="w-4 h-4 mr-1" /> Criar pasta
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
