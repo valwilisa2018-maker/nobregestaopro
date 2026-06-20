@@ -796,33 +796,50 @@ export function TendenciasView({ delivered, sumPts }: any) {
 }
 
 /* ============================ PRODUTORES ============================ */
-export function ProdutoresView({ delivered, producers, computePts }: any) {
+export function ProdutoresView({
+  delivered, producers, inProductionNow, computePts, sumDuracao,
+  baseGoal = 6, workdays = [1,2,3,4,5], holidays = [],
+}: any) {
   const [search, setSearch] = useState("");
-  const [sortBy, setSortBy] = useState<"pontos" | "projetos" | "nome">("pontos");
+  const [sortBy, setSortBy] = useState<"pontos" | "videos" | "minutagem" | "nome">("videos");
+  const [selectedId, setSelectedId] = useState<string | null>(null);
 
   const ms = monthStart(0);
-  const days = (Date.now() - new Date(ms).getTime()) / 86400000;
+  const me = monthEnd(0);
+  const workDaysElapsed = workingDaysElapsed(workdays, holidays, 0);
 
   const list = useMemo(() => {
     return producers.map((p: any) => {
-      const orders = delivered.filter((o: any) => o.producer_id === p.id);
-      const monthOrders = orders.filter((o: any) => String(o.delivered_at).slice(0, 10) >= ms);
+      const all = delivered.filter((o: any) => o.producer_id === p.id);
+      const monthOrders = all.filter((o: any) => {
+        const d = String(o.delivered_at).slice(0, 10);
+        return d >= ms && d <= me;
+      });
       const pontos = monthOrders.reduce((a: number, o: any) => a + computePts(o), 0);
-      const projetos = monthOrders.length;
-      const alteracoes = monthOrders.filter((o: any) => o.updated_at && o.updated_at !== o.delivered_at).length;
-      const mediaDia = days > 0 ? Math.round((pontos / days) * 10) / 10 : 0;
-      const eficiencia = projetos > 0 ? Math.round(((projetos - alteracoes) / projetos) * 10) / 10 + 1 : 1;
-      const meta = 100;
-      const pctMeta = Math.min(100, Math.round((pontos / meta) * 100));
-      return { ...p, pontos: Math.round(pontos), projetos, mediaDia, eficiencia, pctMeta };
+      const videos = monthOrders.length;
+      const alteracoes = monthOrders.reduce((a: number, o: any) => a + Number(o.redo_count ?? 0), 0);
+      const segundos = sumDuracao(monthOrders);
+      const emProducao = inProductionNow.filter((o: any) => o.producer_id === p.id).length;
+      const dailyGoal = Number(p.daily_points_goal ?? baseGoal);
+      const monthGoal = dailyGoal * workDaysElapsed;
+      const pctMeta = monthGoal > 0 ? Math.min(999, Math.round((pontos / monthGoal) * 100)) : 0;
+      const bateu = pctMeta >= 100;
+      return {
+        ...p,
+        pontos: Math.round(pontos), videos, alteracoes, segundos,
+        emProducao, monthGoal, pctMeta, bateu, dailyGoal,
+      };
     })
     .filter((p: any) => p.name?.toLowerCase().includes(search.toLowerCase()))
     .sort((a: any, b: any) => {
       if (sortBy === "nome") return String(a.name).localeCompare(String(b.name));
-      if (sortBy === "projetos") return b.projetos - a.projetos;
+      if (sortBy === "videos") return b.videos - a.videos;
+      if (sortBy === "minutagem") return b.segundos - a.segundos;
       return b.pontos - a.pontos;
     });
-  }, [producers, delivered, search, sortBy, ms]);
+  }, [producers, delivered, inProductionNow, search, sortBy, ms, me, workDaysElapsed, baseGoal, sumDuracao, computePts]);
+
+  const selected = list.find((p: any) => p.id === selectedId);
 
   return (
     <div className="space-y-4">
@@ -831,8 +848,9 @@ export function ProdutoresView({ delivered, producers, computePts }: any) {
         <div className="flex items-center gap-2 ml-auto">
           <span className="text-xs text-muted-foreground">Ordenar por:</span>
           <select value={sortBy} onChange={(e) => setSortBy(e.target.value as any)} className="bg-background border border-border rounded-md px-2 py-1.5 text-sm">
+            <option value="videos">🎬 Vídeos prontos</option>
+            <option value="minutagem">⏱ Minutagem</option>
             <option value="pontos">🏆 Pontos</option>
-            <option value="projetos">📁 Projetos</option>
             <option value="nome">🔤 Nome</option>
           </select>
         </div>
@@ -840,35 +858,104 @@ export function ProdutoresView({ delivered, producers, computePts }: any) {
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
         {list.map((p: any) => (
-          <Card key={p.id} className="border-border/50 hover:border-rose-500/50 transition" style={{ boxShadow: "var(--shadow-card)" }}>
+          <Card
+            key={p.id}
+            onClick={() => setSelectedId(p.id)}
+            className={`cursor-pointer transition border ${
+              p.bateu
+                ? "border-amber-400/80 ring-2 ring-amber-400/40 hover:ring-amber-400/70"
+                : "border-border/50 hover:border-rose-500/50"
+            }`}
+            style={{ boxShadow: "var(--shadow-card)" }}
+          >
             <CardContent className="p-4">
               <div className="flex items-center gap-2">
                 <Avatar className="w-14 h-14 ring-2 ring-primary/30"><AvatarImage src={p.avatar_url} /><AvatarFallback>{initials(p.name)}</AvatarFallback></Avatar>
-                <div className="min-w-0">
+                <div className="min-w-0 flex-1">
                   <div className="font-bold uppercase text-sm truncate">{p.name}</div>
-                  <div className="text-[10px] text-muted-foreground">Produtor</div>
+                  <div className="text-[10px] text-muted-foreground">Meta diária: {p.dailyGoal} pts</div>
                 </div>
+                {p.bateu && (
+                  <span className="px-2 py-0.5 rounded-full bg-amber-400 text-amber-950 text-[10px] font-extrabold whitespace-nowrap">🏆 META</span>
+                )}
               </div>
               <div className="grid grid-cols-2 gap-2 mt-3">
-                <ProdCell label="🏆 Pontos" value={p.pontos} accent="text-rose-500" />
-                <ProdCell label="📁 Projetos" value={p.projetos} />
-                <ProdCell label="📈 Média/Dia" value={p.mediaDia} />
-                <ProdCell label="✨ Eficiência" value={p.eficiencia} />
+                <ProdCell label="🎬 Vídeos prontos" value={p.videos} accent="text-emerald-500" />
+                <ProdCell label="🟡 Em produção" value={p.emProducao} />
+                <ProdCell label="⏱ Minutagem" value={formatDuracao(p.segundos)} />
+                <ProdCell label="🔁 Alterações" value={p.alteracoes} />
               </div>
               <div className="mt-3">
                 <div className="flex items-center justify-between text-[10px] mb-1">
-                  <span className="text-muted-foreground">Meta Mensal (100 pts)</span>
-                  <span className="font-bold">{p.pctMeta}%</span>
+                  <span className="text-muted-foreground">Meta do mês ({p.monthGoal} pts)</span>
+                  <span className="font-bold">{p.pontos} pts • {p.pctMeta}%</span>
                 </div>
-                <div className="h-1.5 rounded-full bg-muted overflow-hidden">
-                  <div className="h-full" style={{ width: `${p.pctMeta}%`, background: p.pctMeta >= 100 ? "#10b981" : "#ef4444" }} />
+                <div className="h-2 rounded-full bg-muted overflow-hidden">
+                  <div className="h-full transition-all" style={{ width: `${Math.min(100, p.pctMeta)}%`, background: p.bateu ? "linear-gradient(90deg,#f59e0b,#fbbf24,#fde047)" : "#ef4444" }} />
                 </div>
               </div>
             </CardContent>
           </Card>
         ))}
+        {list.length === 0 && (
+          <div className="col-span-full text-center py-12 text-sm text-muted-foreground">Nenhum produtor encontrado.</div>
+        )}
       </div>
+
+      {selected && (
+        <ProducerAchievements producer={selected} delivered={delivered} onClose={() => setSelectedId(null)} />
+      )}
     </div>
+  );
+}
+
+function ProducerAchievements({ producer, delivered, onClose }: any) {
+  const orders = delivered.filter((o: any) => o.producer_id === producer.id);
+  const byDay = new Map<string, any[]>();
+  for (const o of orders) {
+    const d = String(o.delivered_at).slice(0, 10);
+    const arr = byDay.get(d) ?? []; arr.push(o); byDay.set(d, arr);
+  }
+  const totalDeliveries = orders.length;
+  const maxInDay = Math.max(0, ...Array.from(byDay.values()).map(a => a.length));
+  const perfectDays = Array.from(byDay.values()).filter(a => a.length >= 10 && a.every((o: any) => Number(o.redo_count ?? 0) === 0)).length;
+
+  const badges = [
+    { ok: producer.bateu, color: "#f59e0b", title: "Meta do Mês Batida", desc: "Atingiu 100% da meta mensal individual" },
+    { ok: totalDeliveries >= 50, color: "#8b5cf6", title: "Veterano", desc: "50+ vídeos entregues" },
+    { ok: maxInDay >= 10, color: "#3b82f6", title: "Maratonista", desc: "10+ vídeos entregues em um único dia" },
+    { ok: perfectDays >= 1, color: "#10b981", title: "Dia Perfeito", desc: "Um dia com 10+ entregas e zero alterações" },
+    { ok: producer.alteracoes === 0 && producer.videos > 0, color: "#22c55e", title: "Mão de Ouro", desc: "Sem alterações no mês" },
+    { ok: totalDeliveries >= 100, color: "#ef4444", title: "Lenda", desc: "100+ vídeos entregues no histórico" },
+  ];
+
+  return (
+    <Card className="border-amber-400/40" style={{ boxShadow: "var(--shadow-card)" }}>
+      <CardContent className="p-5">
+        <div className="flex items-center gap-3 mb-4">
+          <Avatar className="w-16 h-16 ring-2 ring-amber-400/50"><AvatarImage src={producer.avatar_url} /><AvatarFallback>{initials(producer.name)}</AvatarFallback></Avatar>
+          <div className="flex-1">
+            <div className="text-lg font-extrabold uppercase">{producer.name}</div>
+            <div className="text-xs text-muted-foreground">
+              {producer.videos} vídeos no mês • {formatDuracao(producer.segundos)} • {producer.pontos}/{producer.monthGoal} pts
+            </div>
+          </div>
+          <Button variant="ghost" size="sm" onClick={onClose}>Fechar</Button>
+        </div>
+        <SectionLabel icon={Award} iconClass="text-amber-500">Conquistas</SectionLabel>
+        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3 mt-3">
+          {badges.map((a, i) => (
+            <div key={i} className={`p-3 rounded-xl border ${a.ok ? "bg-card border-border/50" : "bg-muted/20 border-border/30 opacity-50"}`} style={{ borderLeft: `4px solid ${a.color}` }}>
+              <div className="flex items-center gap-2 mb-1">
+                <Award className="w-4 h-4" style={{ color: a.color }} />
+                <div className="font-bold text-sm">{a.title}</div>
+              </div>
+              <div className="text-[11px] text-muted-foreground">{a.desc}</div>
+            </div>
+          ))}
+        </div>
+      </CardContent>
+    </Card>
   );
 }
 
