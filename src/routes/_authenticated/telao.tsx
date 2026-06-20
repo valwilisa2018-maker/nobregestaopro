@@ -47,7 +47,7 @@ function getCtx(): AudioContext | null {
 }
 
 // Limite máximo de duração de qualquer som do telão (segundos)
-const MAX_SOUND_DURATION = 20;
+const MAX_SOUND_DURATION = 35;
 
 // Mantém referência aos contextos/sources ativos para impedir sobreposição
 const activeCtxs = new Set<AudioContext>();
