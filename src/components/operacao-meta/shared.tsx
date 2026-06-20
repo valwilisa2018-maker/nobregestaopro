@@ -1523,11 +1523,8 @@ function ProdCell({ label, value, accent = "" }: any) {
 }
 
 export const OM_MENU = [
-  { key: "diaria", label: "Análise Diária", path: "/operacao-meta/diaria", icon: BarChart3 },
-  { key: "mensal", label: "Análise Mensal", path: "/operacao-meta/mensal", icon: BarChart3 },
-  { key: "dinamica", label: "Dinâmica", path: "/operacao-meta/dinamica", icon: PartyPopper },
-  { key: "tendencias", label: "Tendências", path: "/operacao-meta/tendencias", icon: LineIcon },
+  { key: "visao-geral", label: "Visão Geral", path: "/operacao-meta/visao-geral", icon: BarChart3 },
   { key: "produtores", label: "Produtores", path: "/operacao-meta/produtores", icon: Users },
-  { key: "conquistas", label: "Conquistas", path: "/operacao-meta/conquistas", icon: Trophy },
+  { key: "tendencias", label: "Tendências", path: "/operacao-meta/tendencias", icon: LineIcon },
   { key: "relatorios", label: "Relatórios", path: "/operacao-meta/relatorios", icon: FileText },
 ] as const;
