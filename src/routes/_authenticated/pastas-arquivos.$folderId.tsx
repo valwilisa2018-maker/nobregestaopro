@@ -233,10 +233,23 @@ function FolderDetail() {
   }
 
   async function deleteSubfolder(id: string) {
-    if (!confirm("Excluir esta subpasta e todo seu conteúdo?")) return;
-    const { error } = await supabase.from("project_folders" as any).delete().eq("id", id);
-    if (error) { toast.error(error.message); return; }
-    toast.success("Pasta excluída");
+    const ok = window.confirm(
+      "Tem certeza que deseja excluir esta subpasta?\n\n" +
+      "Todos os arquivos e mensagens dentro dela serão removidos permanentemente.\n" +
+      "Esta ação NÃO pode ser desfeita.\n\nClique em OK para confirmar ou Cancelar para voltar."
+    );
+    if (!ok) { toast.info("Exclusão cancelada"); return; }
+    const { data, error } = await supabase
+      .from("project_folders" as any)
+      .delete()
+      .eq("id", id)
+      .select("id");
+    if (error) { toast.error(`Falha ao excluir: ${error.message}`); return; }
+    if (!data || (data as any[]).length === 0) {
+      toast.error("Não foi possível excluir. Você não tem permissão para remover esta pasta.");
+      return;
+    }
+    toast.success("Pasta excluída com sucesso");
     qc.invalidateQueries({ queryKey: ["project_folder_children", folderId] });
   }
 
@@ -345,14 +358,30 @@ function FolderDetail() {
   }
 
   async function deleteFile(id: string, path: string) {
-    if (!confirm("Excluir este arquivo?")) return;
-    await supabase.storage.from("project-files").remove([path]);
-    const { error } = await supabase.from("project_folder_files" as any).delete().eq("id", id);
-    if (error) toast.error(error.message);
-    else {
-      toast.success("Excluído");
-      qc.invalidateQueries({ queryKey: ["project_folder_files", folderId] });
+    const ok = window.confirm(
+      "Tem certeza que deseja excluir este arquivo?\n\n" +
+      "Esta ação NÃO pode ser desfeita.\n\nClique em OK para confirmar ou Cancelar para voltar."
+    );
+    if (!ok) { toast.info("Exclusão cancelada"); return; }
+    const { data, error } = await supabase
+      .from("project_folder_files" as any)
+      .delete()
+      .eq("id", id)
+      .select("id");
+    if (error) { toast.error(`Falha ao excluir: ${error.message}`); return; }
+    if (!data || (data as any[]).length === 0) {
+      toast.error("Não foi possível excluir. Você não tem permissão para remover este arquivo.");
+      return;
     }
+    // Remove o arquivo do storage só depois que a linha foi removida com sucesso
+    if (path) {
+      const { error: stErr } = await supabase.storage.from("project-files").remove([path]);
+      if (stErr) {
+        toast.warning("Registro excluído, mas houve um problema ao remover o arquivo do armazenamento.");
+      }
+    }
+    toast.success("Arquivo excluído com sucesso");
+    qc.invalidateQueries({ queryKey: ["project_folder_files", folderId] });
   }
 
   async function saveDrive() {
