@@ -820,6 +820,7 @@ export function VisaoGeralView({
   const yPts = sumPts(yOrders);
   const monthPts = sumPts(monthOrders);
   const monthSec = sumDuracao(monthOrders);
+  const todaySec = sumDuracao(todayOrders);
   const totalEmProducao = inProductionNow.length;
 
   // Meta diária (soma das metas individuais dos produtores ativos)
@@ -885,13 +886,21 @@ export function VisaoGeralView({
 
   return (
     <div className="space-y-4">
-      {/* Header KPIs do mês */}
+      {/* Header KPIs do dia (produção diária — como no Dashboard de vendedores) */}
       <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
-        <BigKpi label={`Vídeos prontos — ${monthLabel(ms)}`} value={String(monthOrders.length)} accent="text-emerald-500" />
-        <BigKpi label="Minutagem total" value={formatDuracao(monthSec)} accent="text-blue-500" />
+        <BigKpi label={`Vídeos prontos — hoje (${fmtBR(t)})`} value={String(todayOrders.length)} accent="text-emerald-500" />
+        <BigKpi label="Minutagem hoje" value={formatDuracao(todaySec)} accent="text-blue-500" />
         <BigKpi label="Em produção agora" value={String(totalEmProducao)} accent="text-amber-500" />
+        <BigKpi label="Pontos hoje" value={String(Math.round(todayPts))} accent="text-rose-500" />
+        <BigKpi label="Meta do dia" value={`${pctDia}%`} accent={pctDia >= 100 ? "text-emerald-500" : "text-rose-500"} />
+      </div>
+
+      {/* KPIs do mês (acumulado) */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        <BigKpi label={`Vídeos prontos — ${monthLabel(ms)}`} value={String(monthOrders.length)} accent="text-emerald-500" />
+        <BigKpi label="Minutagem do mês" value={formatDuracao(monthSec)} accent="text-blue-500" />
         <BigKpi label="Pontos do mês" value={String(Math.round(monthPts))} accent="text-rose-500" />
-        <BigKpi label="Meta da equipe" value={`${pctMes}%`} accent={pctMes >= 100 ? "text-emerald-500" : "text-rose-500"} />
+        <BigKpi label="Meta da equipe (mês)" value={`${pctMes}%`} accent={pctMes >= 100 ? "text-emerald-500" : "text-rose-500"} />
       </div>
 
       {/* Meta do dia */}
