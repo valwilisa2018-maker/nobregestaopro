@@ -5,6 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { StatCard } from "@/components/stat-card";
 import { TopVendorBadge } from "@/components/top-vendor-badge";
 import { useAuth } from "@/lib/auth";
+import { useMidnightRefresh } from "@/hooks/use-midnight-refresh";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
@@ -83,6 +84,9 @@ function Dashboard() {
     | null
   >(null);
   const qc = useQueryClient();
+
+  // Auto-refresh à meia-noite — zera KPIs do "Hoje" sem reload
+  useMidnightRefresh();
 
   // Tick a cada 60s — vira o dia/semana/mês automaticamente
   const [, setNowTick] = useState(() => Date.now());

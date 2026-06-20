@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { useTheme } from "@/hooks/use-theme";
+import { useMidnightRefresh } from "@/hooks/use-midnight-refresh";
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid,
   RadialBarChart, RadialBar, PolarAngleAxis, LineChart, Line, Area, AreaChart,
@@ -105,6 +106,8 @@ export function formatDuracao(totalSeconds: number): string {
 
 export function useOmData() {
   const qc = useQueryClient();
+  // Auto-refresh à meia-noite — zera KPIs do "Hoje" sem reload
+  useMidnightRefresh();
   const producers = useQuery({
     queryKey: ["om-producers"],
     queryFn: async () =>
