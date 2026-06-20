@@ -128,7 +128,7 @@ export function useOmData() {
         await supabase
           .from("service_orders")
           .select(
-              "id,title,producer_id,sale_id,column_id,delivered_at,updated_at,redo_count,last_redo_at,kanban_columns(name,is_done,is_default),sales(producer_id,service_type_id,package_id,video_duration_seconds,service_types(name,points,points_value),packages(name,points_value))",
+              "id,title,producer_id,sale_id,column_id,delivered_at,updated_at,redo_count,last_redo_at,video_duration_seconds,kanban_columns(name,is_done,is_default),sales(producer_id,service_type_id,package_id,video_duration_seconds,service_types(name,points,points_value),packages(name,points_value))",
           )
         ).data?.map((o: any) => ({
           ...o,
@@ -154,7 +154,8 @@ export function useOmData() {
   const computePts = (o: any) => {
     const sale: any = o.sales || {};
     const base = Number((sale.service_types?.points ?? sale.service_types?.points_value ?? sale.packages?.points_value) ?? 1);
-    const dur = Number(sale.video_duration_seconds ?? 0);
+    // Prefere a minutagem específica do card; cai pra venda quando não houver.
+    const dur = Number(o.video_duration_seconds ?? sale.video_duration_seconds ?? 0);
     // Vídeo: cada 30s = 1 ponto (30s=1, 60s=2, 90s=3, 120s=4...).
     // Sem duração (serviço que não é vídeo): usa a pontuação base do serviço.
     if (dur > 0) return Math.ceil(dur / 30);
@@ -181,7 +182,16 @@ export function useOmData() {
   const doneNow = allOrders.filter((o: any) => o.kanban_columns?.is_done === true);
 
   const sumPts = (arr: any[]) => arr.reduce((a, o) => a + computePts(o), 0);
-  const sumDuracao = (arr: any[]) => arr.reduce((a, o) => a + parseDuracaoSegundos(o.title ?? ""), 0);
+  // Prioridade: minutagem do card → minutagem da venda → parse do título (legado).
+  const sumDuracao = (arr: any[]) =>
+    arr.reduce(
+      (a, o) =>
+        a +
+        (Number(o.video_duration_seconds) ||
+          Number(o.sales?.video_duration_seconds) ||
+          parseDuracaoSegundos(o.title ?? "")),
+      0,
+    );
   const prodOf = (id: string) => (producers.data ?? []).find((p: any) => p.id === id) as any;
   const s = settings.data ?? { base_daily_goal: 6, workdays: [1,2,3,4,5], holidays: [] };
   return {

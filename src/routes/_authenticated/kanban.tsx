@@ -60,6 +60,28 @@ function fmtVideoDuration(sec?: number | null): string {
   return m === 0 ? `${s}s` : s === 0 ? `${m}min` : `${m}min${s}s`;
 }
 
+// Converte "2:30", "1:02:30", "150s", "2min30s", "2min", "150" para segundos.
+// Retorna null se a entrada estiver vazia, 0 se ilegível.
+function parseDurationInput(raw: string): number | null {
+  const s = (raw ?? "").trim().toLowerCase();
+  if (!s) return null;
+  const mColon = s.match(/^(\d{1,2})(?::(\d{1,2}))(?::(\d{1,2}))?$/);
+  if (mColon) {
+    const a = Number(mColon[1] || 0);
+    const b = Number(mColon[2] || 0);
+    const c = mColon[3] != null ? Number(mColon[3]) : null;
+    return c != null ? a * 3600 + b * 60 + c : a * 60 + b;
+  }
+  const mUnits = s.match(/(\d+)\s*(?:min|m)\b(?:\s*(\d+)\s*s\b)?/);
+  if (mUnits) return Number(mUnits[1]) * 60 + Number(mUnits[2] || 0);
+  const mSec = s.match(/^(\d+)\s*s?$/);
+  if (mSec) {
+    const n = Number(mSec[1]);
+    return n < 60 ? n : n; // "150" => 150 segundos
+  }
+  return 0;
+}
+
 export const Route = createFileRoute("/_authenticated/kanban")({
   component: KanbanPage,
   validateSearch: (s: Record<string, unknown>) => ({ card: typeof s.card === "string" ? s.card : undefined }),
@@ -113,6 +135,8 @@ type CardForm = {
   customer_name?: string | null;
   producer_id?: string | null;
   expected_delivery_date?: string | null;
+  video_duration_seconds?: number | null;
+  video_duration_input?: string;
 };
 
 const emptyForm = (column_id = ""): CardForm => ({
@@ -225,6 +249,11 @@ function KanbanPage() {
       customer_name: found.sales?.customers?.name ?? null,
       producer_id: found.producer_id ?? null,
       expected_delivery_date: found.expected_delivery_date ?? found.sales?.expected_delivery_date ?? null,
+      video_duration_seconds:
+        (found as any).video_duration_seconds ?? found.sales?.video_duration_seconds ?? null,
+      video_duration_input: fmtVideoDuration(
+        (found as any).video_duration_seconds ?? found.sales?.video_duration_seconds ?? null,
+      ),
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [cardParam, cards.data]);
@@ -433,6 +462,11 @@ function KanbanPage() {
       customer_name: c.sales?.customers?.name ?? null,
       producer_id: c.producer_id ?? null,
       expected_delivery_date: c.expected_delivery_date ?? c.sales?.expected_delivery_date ?? null,
+      video_duration_seconds:
+        (c as any).video_duration_seconds ?? c.sales?.video_duration_seconds ?? null,
+      video_duration_input: fmtVideoDuration(
+        (c as any).video_duration_seconds ?? c.sales?.video_duration_seconds ?? null,
+      ),
     });
     setNewLabel("");
   };
@@ -442,6 +476,12 @@ function KanbanPage() {
     if (!editing.title.trim()) { toast.error("Título é obrigatório"); return; }
     const driveRaw = editing.google_drive_link?.trim() || "";
     const platformRaw = editing.platform_link?.trim() || "";
+    const durRaw = editing.video_duration_input ?? "";
+    const durParsed = parseDurationInput(durRaw);
+    if (durRaw.trim() && durParsed === 0) {
+      toast.error("Minutagem inválida. Use 2:30, 1:02:30, 2min30s ou 150s.");
+      return;
+    }
     const isDrive = (u: string) => /(?:drive|docs)\.google\.com|^https?:\/\/[^/]*\.googleusercontent\.com/i.test(u);
     if (driveRaw && !isDrive(driveRaw)) {
       toast.error("O campo 'Link do projeto' deve ser um link do Google Drive (drive.google.com).");
@@ -464,6 +504,7 @@ function KanbanPage() {
       platform_link: platformRaw || null,
       producer_id: editing.producer_id || null,
       expected_delivery_date: editing.expected_delivery_date || null,
+      video_duration_seconds: durParsed,
     };
     try {
       if (editing.id) {
@@ -793,11 +834,11 @@ function KanbanPage() {
                           }
                         }}
                       >
-                        {(first.sales?.payment_status === "pago_parcial" || first.sales?.video_duration_seconds) && (
+                        {(first.sales?.payment_status === "pago_parcial" || (first as any).video_duration_seconds || first.sales?.video_duration_seconds) && (
                           <div className="flex justify-end gap-1 flex-wrap">
-                            {first.sales?.video_duration_seconds ? (
+                            {((first as any).video_duration_seconds || first.sales?.video_duration_seconds) ? (
                               <span className="text-[10px] font-bold px-2 py-0.5 rounded-md shadow-sm" style={{ background: "#3b82f6", color: "#fff" }}>
-                                🎬 {fmtVideoDuration(first.sales.video_duration_seconds)}
+                                🎬 {fmtVideoDuration((first as any).video_duration_seconds ?? first.sales?.video_duration_seconds)}
                               </span>
                             ) : null}
                             {first.sales?.payment_status === "pago_parcial" && (
@@ -1053,11 +1094,11 @@ function KanbanPage() {
                         }
                       }}
                     >
-                    {(c.sales?.payment_status === "pago_parcial" || c.sales?.video_duration_seconds) && (
+                    {(c.sales?.payment_status === "pago_parcial" || (c as any).video_duration_seconds || c.sales?.video_duration_seconds) && (
                       <div className="flex justify-end gap-1 flex-wrap">
-                        {c.sales?.video_duration_seconds ? (
+                        {((c as any).video_duration_seconds || c.sales?.video_duration_seconds) ? (
                           <span className="text-[10px] font-bold px-2 py-0.5 rounded-md shadow-sm" style={{ background: "#3b82f6", color: "#fff" }}>
-                            🎬 {fmtVideoDuration(c.sales.video_duration_seconds)}
+                            🎬 {fmtVideoDuration((c as any).video_duration_seconds ?? c.sales?.video_duration_seconds)}
                           </span>
                         ) : null}
                         {c.sales?.payment_status === "pago_parcial" && (
@@ -1285,6 +1326,18 @@ function KanbanPage() {
                     Abrir Google Drive
                   </a>
                 )}
+              </div>
+              <div>
+                <Label>Minutagem do vídeo (deste card)</Label>
+                <Input
+                  type="text"
+                  placeholder="Ex: 2:30, 1:02:30, 2min30s ou 150s"
+                  value={editing.video_duration_input ?? ""}
+                  onChange={(e) => setEditing({ ...editing, video_duration_input: e.target.value })}
+                />
+                <p className="text-xs text-muted-foreground mt-1 opacity-70">
+                  Cada vídeo do pacote pode ter sua própria minutagem. Deixe em branco para herdar da venda.
+                </p>
               </div>
               <div>
                 <Label>Link da pasta da plataforma</Label>
