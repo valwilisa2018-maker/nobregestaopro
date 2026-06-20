@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { useTheme } from "@/hooks/use-theme";
+import { useMidnightRefresh } from "@/hooks/use-midnight-refresh";
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid,
   RadialBarChart, RadialBar, PolarAngleAxis, LineChart, Line, Area, AreaChart,
