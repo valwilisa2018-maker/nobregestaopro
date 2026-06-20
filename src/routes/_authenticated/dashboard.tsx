@@ -17,7 +17,7 @@ import { formatCurrency } from "@/lib/auth";
 import { toast } from "sonner";
 import {
   DollarSign, TrendingUp, Calendar, Trophy, AlertCircle,
-  Package, FileText, FileCheck2, ListTodo, Truck, ShoppingCart, Users, Factory, Filter, X, Sparkles,
+  Package, FileText, FileCheck2, ListTodo, Truck, ShoppingCart, Users, Factory, Filter, X, Sparkles, Clock,
 } from "lucide-react";
 import {
   ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid,
@@ -123,7 +123,7 @@ function Dashboard() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("sales")
-        .select("id,total_amount,paid_amount,payment_status,created_at,sale_date,seller_id,producer_id,customer_id,service_type_id,package_id,service_quantity,is_payment_link");
+        .select("id,total_amount,paid_amount,payment_status,created_at,sale_date,seller_id,producer_id,customer_id,service_type_id,package_id,service_quantity,is_payment_link,video_duration_seconds");
       if (error) throw error;
       return data ?? [];
     },
@@ -432,6 +432,31 @@ function Dashboard() {
   }, [ordersList]);
   const monthDeliveredTotal = monthDeliverySeries.reduce((a, d) => a + d.entregues, 0);
 
+  // Minutagem entregue: soma a duração (sales.video_duration_seconds) dos service_orders
+  // que já têm delivered_at, agrupando por hoje e pelo mês corrente.
+  const minutagemStats = useMemo(() => {
+    const durBySale = new Map<string, number>();
+    for (const s of (sales.data ?? []) as any[]) {
+      const dur = Number(s.video_duration_seconds ?? 0);
+      if (dur > 0) durBySale.set(s.id, dur);
+    }
+    const todayKey = startOf("day").slice(0, 10);
+    const monthKey = startOf("month").slice(0, 10);
+    let hojeSegs = 0;
+    let hojeQtd = 0;
+    let mesSegs = 0;
+    let mesQtd = 0;
+    for (const o of ordersList) {
+      if (!o.delivered_at) continue;
+      const dur = durBySale.get(o.sale_id) ?? 0;
+      if (dur <= 0) continue;
+      const d = o.delivered_at.slice(0, 10);
+      if (d >= monthKey) { mesSegs += dur; mesQtd += 1; }
+      if (d === todayKey) { hojeSegs += dur; hojeQtd += 1; }
+    }
+    return { hojeSegs, hojeQtd, mesSegs, mesQtd };
+  }, [sales.data, ordersList]);
+
   // Produtos / serviços mais vendidos (no escopo) — combina service_types + packages
   const productRanking = useMemo(() => {
     const map = new Map<string, { name: string; total: number; qtd: number }>();
@@ -694,6 +719,24 @@ function Dashboard() {
           hint={`${totalRecordingStats.total - totalRecordingStats.delivered} aguardando`} 
         />
         <StatCard tone="violet" label="Notas emitidas" value={`${invIssued} / ${invList.length}`} icon={FileCheck2} hint={`${invPending} aguardando`} />
+      </div>
+
+      {/* Minutagem entregue (hoje / mês) */}
+      <div className="grid gap-4 grid-cols-2">
+        <StatCard
+          tone="info"
+          label="Minutagem entregue (Hoje)"
+          value={formatDuracao(minutagemStats.hojeSegs)}
+          icon={Clock}
+          hint={`${minutagemStats.hojeQtd} ${minutagemStats.hojeQtd === 1 ? "vídeo" : "vídeos"}`}
+        />
+        <StatCard
+          tone="primary"
+          label="Minutagem entregue (Mês)"
+          value={formatDuracao(minutagemStats.mesSegs)}
+          icon={Clock}
+          hint={`${minutagemStats.mesQtd} ${minutagemStats.mesQtd === 1 ? "vídeo" : "vídeos"}`}
+        />
       </div>
 
       {/* Rankings — Top Vendedores / Top Produtores (logo abaixo dos cards de produção) */}
