@@ -1077,7 +1077,7 @@ export function RelatoriosView({ delivered, producers, computePts, sumPts }: any
   });
   const pts = sumPts(orders);
   const proj = orders.length;
-  const alt = orders.filter((o: any) => o.updated_at && o.updated_at !== o.delivered_at).length;
+  const alt = orders.reduce((a: number, o: any) => a + Number(o.redo_count ?? 0), 0);
   const prods = new Set(orders.map((o: any) => o.producer_id).filter(Boolean));
 
   const perProducer = useMemo(() => {
@@ -1087,7 +1087,7 @@ export function RelatoriosView({ delivered, producers, computePts, sumPts }: any
       const prod = producers.find((p: any) => p.id === o.producer_id);
       const cur = m.get(o.producer_id) ?? { name: prod?.name ?? "—", pts: 0, proj: 0, alt: 0 };
       cur.pts += computePts(o); cur.proj += 1;
-      if (o.updated_at && o.updated_at !== o.delivered_at) cur.alt += 1;
+      cur.alt += Number(o.redo_count ?? 0);
       m.set(o.producer_id, cur);
     }
     return Array.from(m.values()).sort((a, b) => b.pts - a.pts);
