@@ -476,6 +476,12 @@ function KanbanPage() {
     if (!editing.title.trim()) { toast.error("Título é obrigatório"); return; }
     const driveRaw = editing.google_drive_link?.trim() || "";
     const platformRaw = editing.platform_link?.trim() || "";
+    const durRaw = editing.video_duration_input ?? "";
+    const durParsed = parseDurationInput(durRaw);
+    if (durRaw.trim() && durParsed === 0) {
+      toast.error("Minutagem inválida. Use 2:30, 1:02:30, 2min30s ou 150s.");
+      return;
+    }
     const isDrive = (u: string) => /(?:drive|docs)\.google\.com|^https?:\/\/[^/]*\.googleusercontent\.com/i.test(u);
     if (driveRaw && !isDrive(driveRaw)) {
       toast.error("O campo 'Link do projeto' deve ser um link do Google Drive (drive.google.com).");
@@ -498,6 +504,7 @@ function KanbanPage() {
       platform_link: platformRaw || null,
       producer_id: editing.producer_id || null,
       expected_delivery_date: editing.expected_delivery_date || null,
+      video_duration_seconds: durParsed,
     };
     try {
       if (editing.id) {
