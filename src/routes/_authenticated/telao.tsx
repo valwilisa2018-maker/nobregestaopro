@@ -37,7 +37,7 @@ const SALE_ROW_HEIGHT = 72;
 const SALE_SCROLL_DURATION_PER_ROW = 3.2;
 
 // ============ SOM ============
-type SoundId = "buzina" | "caixa" | "sino" | "custom" | "run-vine" | "danger-alarm" | "nobre";
+type SoundId = "buzina" | "caixa" | "sino" | "custom" | "run-vine" | "danger-alarm" | "nobre" | "gol-da-nobre";
 
 function getCtx(): AudioContext | null {
   try {
@@ -150,6 +150,9 @@ async function playSound(id: SoundId, vol = 1, customUrl?: string) {
     audioUrl = "/danger-alarm.mp3";
   } else if (id === "nobre") {
     audioUrl = "/nobre.mp3";
+  }
+  else if (id === "gol-da-nobre") {
+    audioUrl = "/gol-da-nobre.mp3";
   }
 
   if (audioUrl) {
@@ -721,6 +724,7 @@ function Telao() {
               <option value="run-vine" className="bg-[#1a1a1a]">Run (Vine)</option>
               <option value="danger-alarm" className="bg-[#1a1a1a]">Danger Alarm</option>
               <option value="nobre" className="bg-[#1a1a1a]">Nobre</option>
+              <option value="gol-da-nobre" className="bg-[#1a1a1a]">Gol da Nobre</option>
               <option value="custom" className="bg-[#1a1a1a]">Customizado</option>
             </select>
           </div>
@@ -756,6 +760,7 @@ function Telao() {
               { id: "run-vine", icon: Music, label: "Run" },
               { id: "danger-alarm", icon: Megaphone, label: "Danger" },
               { id: "nobre", icon: Music, label: "Nobre" },
+              { id: "gol-da-nobre", icon: Music, label: "Gol" },
             ] as { id: SoundId; icon: any; label: string }[]).map(({ id, icon: Icon, label }) => (
               <button
                 key={id}
