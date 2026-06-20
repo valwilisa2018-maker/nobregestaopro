@@ -43,9 +43,9 @@ async function checkDeliveryPaymentReminder(cardIds: string[], columnName?: stri
       description: `Ainda falta receber ${formatCurrency(pendente)}. Você já deu baixa no valor restante?`,
       duration: 12000,
       action: {
-        label: "Abrir venda",
+        label: "Valores pendentes",
         onClick: () => {
-          window.location.href = `/sales?customer=${encodeURIComponent(sale.customer_id)}`;
+          window.location.href = `/pending-payments`;
         },
       },
     });
