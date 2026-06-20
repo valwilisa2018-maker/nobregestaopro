@@ -85,6 +85,9 @@ function Dashboard() {
   >(null);
   const qc = useQueryClient();
 
+  // Auto-refresh à meia-noite — zera KPIs do "Hoje" sem reload
+  useMidnightRefresh();
+
   // Tick a cada 60s — vira o dia/semana/mês automaticamente
   const [, setNowTick] = useState(() => Date.now());
   useEffect(() => {
