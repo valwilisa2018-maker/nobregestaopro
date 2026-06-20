@@ -185,7 +185,7 @@ function KanbanPage() {
       due_date: found.due_date ?? "", due_time: (found.due_time ?? "").slice(0, 5),
       color: found.color ?? "", labels: found.labels ?? [],
       google_drive_link:
-        (found as any).google_drive_link ?? found.sales?.google_drive_link ?? found.trello_link ?? found.sales?.trello_link ?? null,
+        (found as any).google_drive_link ?? found.sales?.google_drive_link ?? null,
       platform_link: (found as any).platform_link ?? found.sales?.platform_link ?? null,
       sale_id: found.sale_id ?? null,
       customer_phone: found.sales?.customers?.phone ?? null,
@@ -355,7 +355,7 @@ function KanbanPage() {
       due_date: c.due_date ?? "", due_time: (c.due_time ?? "").slice(0, 5),
       color: c.color ?? "", labels: c.labels ?? [],
       google_drive_link:
-        c.google_drive_link ?? c.sales?.google_drive_link ?? c.trello_link ?? c.sales?.trello_link ?? null,
+        c.google_drive_link ?? c.sales?.google_drive_link ?? null,
       platform_link: c.platform_link ?? c.sales?.platform_link ?? null,
       sale_id: c.sale_id ?? null,
       customer_phone: c.sales?.customers?.phone ?? null,
@@ -369,6 +369,17 @@ function KanbanPage() {
   const saveCard = async () => {
     if (!editing) return;
     if (!editing.title.trim()) { toast.error("Título é obrigatório"); return; }
+    const driveRaw = editing.google_drive_link?.trim() || "";
+    const platformRaw = editing.platform_link?.trim() || "";
+    const isDrive = (u: string) => /(?:drive|docs)\.google\.com|^https?:\/\/[^/]*\.googleusercontent\.com/i.test(u);
+    if (driveRaw && !isDrive(driveRaw)) {
+      toast.error("O campo 'Link do projeto' deve ser um link do Google Drive (drive.google.com).");
+      return;
+    }
+    if (platformRaw && isDrive(platformRaw)) {
+      toast.error("Esse é um link do Google Drive. Cole-o no campo 'Link do projeto', não na Plataforma.");
+      return;
+    }
     setSaving(true);
     const payload: any = {
       column_id: editing.column_id,
@@ -378,8 +389,8 @@ function KanbanPage() {
       due_time: editing.due_time || null,
       color: editing.color || null,
       labels: editing.labels,
-      google_drive_link: editing.google_drive_link?.trim() || null,
-      platform_link: editing.platform_link?.trim() || null,
+      google_drive_link: driveRaw || null,
+      platform_link: platformRaw || null,
       producer_id: editing.producer_id || null,
       expected_delivery_date: editing.expected_delivery_date || null,
     };
@@ -797,7 +808,7 @@ function KanbanPage() {
                               </div>
                             )}
                             <CardLinkButtons
-                              driveLink={first.google_drive_link ?? first.sales?.google_drive_link ?? first.trello_link ?? first.sales?.trello_link ?? null}
+                              driveLink={first.google_drive_link ?? first.sales?.google_drive_link ?? null}
                               platformLink={first.platform_link ?? first.sales?.platform_link ?? null}
                             />
                           </CardContent>
@@ -882,7 +893,7 @@ function KanbanPage() {
                                 )}
                               </div>
                               <CardLinkButtons
-                                driveLink={c.google_drive_link ?? c.sales?.google_drive_link ?? c.trello_link ?? c.sales?.trello_link ?? null}
+                                driveLink={c.google_drive_link ?? c.sales?.google_drive_link ?? null}
                                 platformLink={c.platform_link ?? c.sales?.platform_link ?? null}
                               />
                             </CardContent>
@@ -1012,7 +1023,7 @@ function KanbanPage() {
                         )}
                       </div>
                       <CardLinkButtons
-                        driveLink={c.google_drive_link ?? c.sales?.google_drive_link ?? c.trello_link ?? c.sales?.trello_link ?? null}
+                        driveLink={c.google_drive_link ?? c.sales?.google_drive_link ?? null}
                         platformLink={c.platform_link ?? c.sales?.platform_link ?? null}
                       />
                     </CardContent>
