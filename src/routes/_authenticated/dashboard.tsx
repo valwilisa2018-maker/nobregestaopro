@@ -721,6 +721,24 @@ function Dashboard() {
         <StatCard tone="violet" label="Notas emitidas" value={`${invIssued} / ${invList.length}`} icon={FileCheck2} hint={`${invPending} aguardando`} />
       </div>
 
+      {/* Minutagem entregue (hoje / mês) */}
+      <div className="grid gap-4 grid-cols-2">
+        <StatCard
+          tone="info"
+          label="Minutagem entregue (Hoje)"
+          value={formatDuracao(minutagemStats.hojeSegs)}
+          icon={Clock}
+          hint={`${minutagemStats.hojeQtd} ${minutagemStats.hojeQtd === 1 ? "vídeo" : "vídeos"}`}
+        />
+        <StatCard
+          tone="primary"
+          label="Minutagem entregue (Mês)"
+          value={formatDuracao(minutagemStats.mesSegs)}
+          icon={Clock}
+          hint={`${minutagemStats.mesQtd} ${minutagemStats.mesQtd === 1 ? "vídeo" : "vídeos"}`}
+        />
+      </div>
+
       {/* Rankings — Top Vendedores / Top Produtores (logo abaixo dos cards de produção) */}
       <div className="grid gap-4 lg:grid-cols-2">
         <Card className="border-border/50" style={{ boxShadow: "var(--shadow-card)" }}>
