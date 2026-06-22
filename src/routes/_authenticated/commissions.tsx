@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Wallet, TrendingUp, DollarSign, Download } from "lucide-react";
 import { formatCurrency } from "@/lib/auth";
 import { Progress } from "@/components/ui/progress";
@@ -48,10 +49,15 @@ function CommissionsPage() {
     queryFn: async () => (await supabase.from("sellers").select("id,name,email,commission_rate,monthly_goal,active")).data ?? [],
   });
 
+  const producers = useQuery({
+    queryKey: ["commissions-producers"],
+    queryFn: async () => (await supabase.from("producers").select("id,name,email,commission_rate,active" as any)).data ?? [],
+  });
+
   const sales = useQuery({
     queryKey: ["commissions-sales", range?.from, range?.to],
     queryFn: async () => {
-      let q = supabase.from("sales").select("id,seller_id,total_amount,paid_amount,payment_status,sale_date,is_payment_link");
+      let q = supabase.from("sales").select("id,seller_id,producer_id,total_amount,paid_amount,payment_status,sale_date,is_payment_link");
       if (range) q = q.gte("sale_date", range.from).lte("sale_date", range.to);
       return (await q).data ?? [];
     },
@@ -90,6 +96,45 @@ function CommissionsPage() {
     return list.sort((a, b) => b.commissionPaid - a.commissionPaid);
   }, [sellers.data, sales.data]);
 
+  const producerRows = useMemo(() => {
+    const list = ((producers.data as any[]) ?? []).map((p: any) => {
+      const pSales = (sales.data ?? []).filter((v: any) => v.producer_id === p.id && !v.is_payment_link);
+      const totalSold = pSales.reduce((t: number, v: any) => t + Number(v.total_amount ?? 0), 0);
+      const totalPaid = pSales.reduce((t: number, v: any) => t + Number(v.paid_amount ?? 0), 0);
+      const pending = totalSold - totalPaid;
+      const rate = Number(p.commission_rate ?? 2);
+      const commissionPaid = (totalPaid * rate) / 100;
+      const commissionPending = (pending * rate) / 100;
+      const commissionTotal = commissionPaid + commissionPending;
+      return {
+        id: p.id,
+        name: p.name,
+        email: p.email,
+        rate,
+        salesCount: pSales.length,
+        totalSold,
+        totalPaid,
+        pending,
+        commissionPaid,
+        commissionPending,
+        commissionTotal,
+      };
+    });
+    return list.sort((a, b) => b.commissionPaid - a.commissionPaid);
+  }, [producers.data, sales.data]);
+
+  const producerTotals = useMemo(() => {
+    return producerRows.reduce(
+      (acc, r) => ({
+        sold: acc.sold + r.totalSold,
+        paid: acc.paid + r.totalPaid,
+        commPaid: acc.commPaid + r.commissionPaid,
+        commPending: acc.commPending + r.commissionPending,
+      }),
+      { sold: 0, paid: 0, commPaid: 0, commPending: 0 }
+    );
+  }, [producerRows]);
+
   const totals = useMemo(() => {
     return rows.reduce(
       (acc, r) => ({
@@ -110,6 +155,15 @@ function CommissionsPage() {
     toast.success("Comissão atualizada");
     qc.invalidateQueries({ queryKey: ["commissions-sellers"] });
     qc.invalidateQueries({ queryKey: ["admin-sellers"] });
+  };
+
+  const updateProducerRate = async (id: string, value: string) => {
+    const rate = Number(value);
+    if (isNaN(rate) || rate < 0 || rate > 100) { toast.error("Informe um percentual entre 0 e 100"); return; }
+    const { error } = await (supabase.from("producers") as any).update({ commission_rate: rate }).eq("id", id);
+    if (error) { toast.error(error.message); return; }
+    toast.success("Comissão atualizada");
+    qc.invalidateQueries({ queryKey: ["commissions-producers"] });
   };
 
   const exportCsv = () => {
@@ -158,6 +212,48 @@ function CommissionsPage() {
         <Button variant="outline" onClick={exportCsv}><Download className="w-4 h-4 mr-2" />Exportar</Button>
       </div>
 
+      <Card className="border-border/50" style={{ boxShadow: "var(--shadow-card)" }}>
+        <CardContent className="p-4 flex flex-wrap items-end gap-3">
+          <div className="space-y-1">
+            <Label className="text-xs">Período</Label>
+            <Select value={period} onValueChange={(v) => setPeriod(v as PeriodKey)}>
+              <SelectTrigger className="w-[200px]"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="this_month">Mês atual</SelectItem>
+                <SelectItem value="last_month">Mês passado</SelectItem>
+                <SelectItem value="this_year">Ano atual</SelectItem>
+                <SelectItem value="all">Todo período</SelectItem>
+                <SelectItem value="custom">Personalizado</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          {period === "custom" && (
+            <>
+              <div className="space-y-1">
+                <Label className="text-xs">De</Label>
+                <Input type="date" value={from} onChange={(e) => setFrom(e.target.value)} />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs">Até</Label>
+                <Input type="date" value={to} onChange={(e) => setTo(e.target.value)} />
+              </div>
+            </>
+          )}
+          {range && (
+            <Badge variant="secondary" className="ml-auto">
+              {range.from} → {range.to}
+            </Badge>
+          )}
+        </CardContent>
+      </Card>
+
+      <Tabs defaultValue="sellers" className="space-y-6">
+        <TabsList>
+          <TabsTrigger value="sellers">Vendedores</TabsTrigger>
+          <TabsTrigger value="producers">Produtores</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="sellers" className="space-y-6">
       <div className="grid gap-4 lg:grid-cols-3">
         <Card className="border-border/50 lg:col-span-2" style={{ boxShadow: "var(--shadow-card)" }}>
           <CardHeader><CardTitle className="text-base">Meta × Vendido × Pago × Comissão</CardTitle></CardHeader>
@@ -209,41 +305,6 @@ function CommissionsPage() {
           </CardContent>
         </Card>
       </div>
-
-      <Card className="border-border/50" style={{ boxShadow: "var(--shadow-card)" }}>
-        <CardContent className="p-4 flex flex-wrap items-end gap-3">
-          <div className="space-y-1">
-            <Label className="text-xs">Período</Label>
-            <Select value={period} onValueChange={(v) => setPeriod(v as PeriodKey)}>
-              <SelectTrigger className="w-[200px]"><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="this_month">Mês atual</SelectItem>
-                <SelectItem value="last_month">Mês passado</SelectItem>
-                <SelectItem value="this_year">Ano atual</SelectItem>
-                <SelectItem value="all">Todo período</SelectItem>
-                <SelectItem value="custom">Personalizado</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          {period === "custom" && (
-            <>
-              <div className="space-y-1">
-                <Label className="text-xs">De</Label>
-                <Input type="date" value={from} onChange={(e) => setFrom(e.target.value)} />
-              </div>
-              <div className="space-y-1">
-                <Label className="text-xs">Até</Label>
-                <Input type="date" value={to} onChange={(e) => setTo(e.target.value)} />
-              </div>
-            </>
-          )}
-          {range && (
-            <Badge variant="secondary" className="ml-auto">
-              {range.from} → {range.to}
-            </Badge>
-          )}
-        </CardContent>
-      </Card>
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         {cards.map((c) => {
@@ -320,6 +381,91 @@ function CommissionsPage() {
           </Table>
         </CardContent>
       </Card>
+        </TabsContent>
+
+        <TabsContent value="producers" className="space-y-6">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+            {[
+              { label: "Total vendido", value: producerTotals.sold, icon: TrendingUp },
+              { label: "Total pago", value: producerTotals.paid, icon: DollarSign },
+              { label: "Comissão paga", value: producerTotals.commPaid, icon: Wallet },
+              { label: "Comissão pendente", value: producerTotals.commPending, icon: Wallet },
+            ].map((c) => {
+              const Icon = c.icon;
+              return (
+                <Card key={c.label} className="border-border/50" style={{ boxShadow: "var(--shadow-card)" }}>
+                  <CardContent className="p-4 flex items-center justify-between">
+                    <div>
+                      <p className="text-xs uppercase tracking-wider text-muted-foreground font-medium">{c.label}</p>
+                      <p className="text-2xl font-bold tracking-tight">{formatCurrency(c.value)}</p>
+                    </div>
+                    <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-muted">
+                      <Icon className="w-5 h-5 text-primary" />
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </div>
+
+          <Card className="border-border/50" style={{ boxShadow: "var(--shadow-card)" }}>
+            <CardHeader><CardTitle className="text-base">Comissão por produtor</CardTitle></CardHeader>
+            <CardContent className="p-0">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Produtor</TableHead>
+                    <TableHead className="text-center">%</TableHead>
+                    <TableHead className="text-center">Vendas</TableHead>
+                    <TableHead className="text-right">Vendido</TableHead>
+                    <TableHead className="text-right">Pago</TableHead>
+                    <TableHead className="text-right">A receber</TableHead>
+                    <TableHead className="text-right">Comissão paga</TableHead>
+                    <TableHead className="text-right">Comissão pendente</TableHead>
+                    <TableHead className="text-right">Total</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {producerRows.map((r) => (
+                    <TableRow key={r.id}>
+                      <TableCell>
+                        <div className="font-medium">{r.name}</div>
+                        {r.email && <div className="text-xs text-muted-foreground">{r.email}</div>}
+                      </TableCell>
+                      <TableCell className="text-center">
+                        <div className="flex items-center justify-center gap-1">
+                          <Input
+                            type="number"
+                            step="0.1"
+                            min="0"
+                            max="100"
+                            defaultValue={r.rate}
+                            onBlur={(e) => {
+                              if (Number(e.target.value) !== r.rate) updateProducerRate(r.id, e.target.value);
+                            }}
+                            className="h-8 w-20 text-center"
+                          />
+                          <span className="text-xs text-muted-foreground">%</span>
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-center">{r.salesCount}</TableCell>
+                      <TableCell className="text-right">{formatCurrency(r.totalSold)}</TableCell>
+                      <TableCell className="text-right">{formatCurrency(r.totalPaid)}</TableCell>
+                      <TableCell className="text-right text-muted-foreground">{formatCurrency(r.pending)}</TableCell>
+                      <TableCell className="text-right font-semibold text-success">{formatCurrency(r.commissionPaid)}</TableCell>
+                      <TableCell className="text-right text-amber-500">{formatCurrency(r.commissionPending)}</TableCell>
+                      <TableCell className="text-right font-bold">{formatCurrency(r.commissionTotal)}</TableCell>
+                    </TableRow>
+                  ))}
+                  {producerRows.length === 0 && (
+                    <TableRow><TableCell colSpan={9} className="text-center text-muted-foreground py-8">Sem produtores cadastrados.</TableCell></TableRow>
+                  )}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }

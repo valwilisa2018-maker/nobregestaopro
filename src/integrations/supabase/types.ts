@@ -554,6 +554,7 @@ export type Database = {
           active: boolean
           avatar_url: string | null
           average_delivery_days: number | null
+          commission_rate: number
           created_at: string
           custom_kanban_columns: Json | null
           daily_points_goal: number
@@ -570,6 +571,7 @@ export type Database = {
           active?: boolean
           avatar_url?: string | null
           average_delivery_days?: number | null
+          commission_rate?: number
           created_at?: string
           custom_kanban_columns?: Json | null
           daily_points_goal?: number
@@ -586,6 +588,7 @@ export type Database = {
           active?: boolean
           avatar_url?: string | null
           average_delivery_days?: number | null
+          commission_rate?: number
           created_at?: string
           custom_kanban_columns?: Json | null
           daily_points_goal?: number
