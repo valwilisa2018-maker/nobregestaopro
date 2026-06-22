@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Wallet, TrendingUp, DollarSign, Download } from "lucide-react";
 import { formatCurrency } from "@/lib/auth";
 import { Progress } from "@/components/ui/progress";
