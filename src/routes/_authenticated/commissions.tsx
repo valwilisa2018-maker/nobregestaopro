@@ -49,10 +49,15 @@ function CommissionsPage() {
     queryFn: async () => (await supabase.from("sellers").select("id,name,email,commission_rate,monthly_goal,active")).data ?? [],
   });
 
+  const producers = useQuery({
+    queryKey: ["commissions-producers"],
+    queryFn: async () => (await supabase.from("producers").select("id,name,email,commission_rate,active" as any)).data ?? [],
+  });
+
   const sales = useQuery({
     queryKey: ["commissions-sales", range?.from, range?.to],
     queryFn: async () => {
-      let q = supabase.from("sales").select("id,seller_id,total_amount,paid_amount,payment_status,sale_date,is_payment_link");
+      let q = supabase.from("sales").select("id,seller_id,producer_id,total_amount,paid_amount,payment_status,sale_date,is_payment_link");
       if (range) q = q.gte("sale_date", range.from).lte("sale_date", range.to);
       return (await q).data ?? [];
     },
