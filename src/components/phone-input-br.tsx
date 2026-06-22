@@ -159,6 +159,7 @@ export const PhoneInputBR = forwardRef<HTMLInputElement, Props>(
             onChange={handleCountryChange}
             title={`${country.name} (+${country.dial})`}
             className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+            style={{ colorScheme: "light dark" }}
           >
             {COUNTRIES.map((c) => (
               <option key={c.code} value={c.code} className="bg-background text-foreground">
