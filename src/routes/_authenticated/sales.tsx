@@ -847,7 +847,7 @@ function SalesPage() {
                     value={form.producer_id || ""} 
                     onValueChange={(v) => set("producer_id", v)}
                     disabled={
-                      (serviceTypes.data?.find(st => st.id === form.service_type_id)?.name.toLowerCase().includes("pamela") ||
+                      (optionText(serviceTypes.data?.find(st => st.id === form.service_type_id)?.name, "").toLowerCase().includes("pamela") ||
                        optionText(serviceTypes.data?.find(st => st.id === form.service_type_id)?.name, "").toLowerCase().includes("ester") ||
                        optionText(sellers.data?.find(s => s.id === form.seller_id)?.name, "").toLowerCase().includes("pamela") ||
                        optionText(sellers.data?.find(s => s.id === form.seller_id)?.name, "").toLowerCase().includes("ester")) ?? false
