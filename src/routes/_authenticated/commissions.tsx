@@ -157,6 +157,15 @@ function CommissionsPage() {
     qc.invalidateQueries({ queryKey: ["admin-sellers"] });
   };
 
+  const updateProducerRate = async (id: string, value: string) => {
+    const rate = Number(value);
+    if (isNaN(rate) || rate < 0 || rate > 100) { toast.error("Informe um percentual entre 0 e 100"); return; }
+    const { error } = await (supabase.from("producers") as any).update({ commission_rate: rate }).eq("id", id);
+    if (error) { toast.error(error.message); return; }
+    toast.success("Comissão atualizada");
+    qc.invalidateQueries({ queryKey: ["commissions-producers"] });
+  };
+
   const exportCsv = () => {
     const head = ["Vendedor", "Comissão (%)", "Vendas", "Total vendido", "Total pago", "A receber", "Comissão paga", "Comissão pendente", "Comissão total"];
     const body = rows.map((r) => [
