@@ -861,7 +861,7 @@ function SalesPage() {
                   <Label>Tipo de serviço *</Label>
                   <Select value={form.service_type_id || ""} onValueChange={(v) => set("service_type_id", v)}>
                     <SelectTrigger><SelectValue placeholder="—" /></SelectTrigger>
-                    <SelectContent>{(serviceTypes.data ?? []).map((s: any) => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}</SelectContent>
+                    <SelectContent>{(serviceTypes.data ?? []).map((s: any) => optionValue(s.id) ? <SelectItem key={s.id} value={String(s.id)}>{optionText(s.name)}</SelectItem> : null)}</SelectContent>
                   </Select>
                 </div>
                 <div>
@@ -872,7 +872,7 @@ function SalesPage() {
                   }}>
                     <SelectTrigger><SelectValue placeholder="—" /></SelectTrigger>
                     <SelectContent>
-                      {(packages.data ?? []).length === 0 ? (<div className="px-3 py-4 text-xs text-muted-foreground">Nenhum pacote cadastrado.</div>) : (packages.data ?? []).map((p: any) => (<SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>))}
+                      {(packages.data ?? []).length === 0 ? (<div className="px-3 py-4 text-xs text-muted-foreground">Nenhum pacote cadastrado.</div>) : (packages.data ?? []).map((p: any) => optionValue(p.id) ? <SelectItem key={p.id} value={String(p.id)}>{optionText(p.name)}</SelectItem> : null)}
                     </SelectContent>
                   </Select>
                 </div>
@@ -1125,12 +1125,12 @@ function SalesPage() {
               <div className="col-span-2">
                 <Label>Nome do cliente *</Label>
                 <Input list="edit-customers-names" value={editing.customer_name ?? editing.customers?.name ?? ""} onChange={(e) => setEditing((prev: any) => ({ ...prev, customer_name: e.target.value }))} />
-                <datalist id="edit-customers-names">{(customersAll.data ?? []).map((c: any) => (<option key={`en-${c.id}`} value={c.name} />))}</datalist>
+              <datalist id="edit-customers-names">{(customersAll.data ?? []).map((c: any) => optionText(c.name, "")).filter(Boolean).map((name: string, index: number) => (<option key={`en-${index}-${name}`} value={name} />))}</datalist>
               </div>
               <div>
                 <Label>Empresa {editing.with_invoice === "sim" ? "*" : "(Opcional)"}</Label>
                 <Input list="edit-customers-companies" value={editing.company ?? editing.customers?.company ?? ""} onChange={(e) => setEditing((prev: any) => ({ ...prev, company: e.target.value }))} />
-                <datalist id="edit-customers-companies">{(customersAll.data ?? []).filter((c: any) => c.company).map((c: any) => (<option key={`ec-${c.id}`} value={c.company} />))}</datalist>
+                <datalist id="edit-customers-companies">{(customersAll.data ?? []).map((c: any) => optionText(c.company, "")).filter(Boolean).map((company: string, index: number) => (<option key={`ec-${index}-${company}`} value={company} />))}</datalist>
               </div>
               <div>
                 <Label>Com Nota? *</Label>
@@ -1178,7 +1178,7 @@ function SalesPage() {
                 <Label>Vendedor *</Label>
                 <Select value={editing.seller_id ?? ""} onValueChange={(v) => editSet("seller_id", v)}>
                   <SelectTrigger><SelectValue placeholder="—" /></SelectTrigger>
-                  <SelectContent>{(sellers.data ?? []).map((s: any) => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}</SelectContent>
+                  <SelectContent>{(sellers.data ?? []).map((s: any) => optionValue(s.id) ? <SelectItem key={s.id} value={String(s.id)}>{optionText(s.name)}</SelectItem> : null)}</SelectContent>
                 </Select>
               </div>
               <div>
@@ -1194,14 +1194,14 @@ function SalesPage() {
                   }
                 >
                   <SelectTrigger><SelectValue placeholder="—" /></SelectTrigger>
-                  <SelectContent>{(producers.data ?? []).map((p: any) => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}</SelectContent>
+                  <SelectContent>{(producers.data ?? []).map((p: any) => optionValue(p.id) ? <SelectItem key={p.id} value={String(p.id)}>{optionText(p.name)}</SelectItem> : null)}</SelectContent>
                 </Select>
               </div>
               <div>
                 <Label>Tipo de serviço *</Label>
                 <Select value={editing.service_type_id ?? ""} onValueChange={(v) => editSet("service_type_id", v)}>
                   <SelectTrigger><SelectValue placeholder="—" /></SelectTrigger>
-                  <SelectContent>{(serviceTypes.data ?? []).map((s: any) => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}</SelectContent>
+                  <SelectContent>{(serviceTypes.data ?? []).map((s: any) => optionValue(s.id) ? <SelectItem key={s.id} value={String(s.id)}>{optionText(s.name)}</SelectItem> : null)}</SelectContent>
                 </Select>
               </div>
               <div>
@@ -1211,7 +1211,7 @@ function SalesPage() {
                   setEditing((prev: any) => ({ ...prev, package_id: v, package_name: p?.name ?? prev.package_name }));
                 }}>
                   <SelectTrigger><SelectValue placeholder="—" /></SelectTrigger>
-                  <SelectContent>{(packages.data ?? []).length === 0 ? (<div className="px-3 py-4 text-xs text-muted-foreground">Nenhum pacote cadastrado.</div>) : (packages.data ?? []).map((p: any) => (<SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>))}</SelectContent>
+                  <SelectContent>{(packages.data ?? []).length === 0 ? (<div className="px-3 py-4 text-xs text-muted-foreground">Nenhum pacote cadastrado.</div>) : (packages.data ?? []).map((p: any) => optionValue(p.id) ? <SelectItem key={p.id} value={String(p.id)}>{optionText(p.name)}</SelectItem> : null)}</SelectContent>
                 </Select>
               </div>
               <div><Label>Qtd. serviços *</Label><Input type="number" min="1" value={editing.service_quantity ?? 1} onChange={(e) => editSet("service_quantity", e.target.value)} /></div>
