@@ -56,6 +56,16 @@ function isVideoService(serviceTypeName?: string, hasPackage?: boolean) {
   return videoKeywords.some((k) => n.includes(k));
 }
 
+function optionText(value: unknown, fallback = "—") {
+  const text = String(value ?? "").trim();
+  return text || fallback;
+}
+
+function optionValue(value: unknown) {
+  const text = String(value ?? "").trim();
+  return text || null;
+}
+
 // Opções: 30s, 1min, 1min30, 2min, ..., 10min
 const VIDEO_DURATION_OPTIONS: { value: number; label: string }[] = Array.from({ length: 20 }, (_, i) => {
   const sec = (i + 1) * 30;
@@ -252,8 +262,8 @@ function SalesPage() {
         const selectedServiceType = serviceTypes.data?.find(st => st.id === (k === "service_type_id" ? v : f.service_type_id));
         const selectedSeller = sellers.data?.find(s => s.id === (k === "seller_id" ? v : f.seller_id));
         
-        const serviceName = selectedServiceType?.name.toLowerCase() || "";
-        const sellerName = selectedSeller?.name.toLowerCase() || "";
+        const serviceName = optionText(selectedServiceType?.name, "").toLowerCase();
+        const sellerName = optionText(selectedSeller?.name, "").toLowerCase();
         
         if (serviceName.includes("pamela") || serviceName.includes("ester") || 
             sellerName.includes("pamela") || sellerName.includes("ester")) {
