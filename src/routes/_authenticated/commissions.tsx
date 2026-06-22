@@ -96,6 +96,45 @@ function CommissionsPage() {
     return list.sort((a, b) => b.commissionPaid - a.commissionPaid);
   }, [sellers.data, sales.data]);
 
+  const producerRows = useMemo(() => {
+    const list = ((producers.data as any[]) ?? []).map((p: any) => {
+      const pSales = (sales.data ?? []).filter((v: any) => v.producer_id === p.id && !v.is_payment_link);
+      const totalSold = pSales.reduce((t: number, v: any) => t + Number(v.total_amount ?? 0), 0);
+      const totalPaid = pSales.reduce((t: number, v: any) => t + Number(v.paid_amount ?? 0), 0);
+      const pending = totalSold - totalPaid;
+      const rate = Number(p.commission_rate ?? 2);
+      const commissionPaid = (totalPaid * rate) / 100;
+      const commissionPending = (pending * rate) / 100;
+      const commissionTotal = commissionPaid + commissionPending;
+      return {
+        id: p.id,
+        name: p.name,
+        email: p.email,
+        rate,
+        salesCount: pSales.length,
+        totalSold,
+        totalPaid,
+        pending,
+        commissionPaid,
+        commissionPending,
+        commissionTotal,
+      };
+    });
+    return list.sort((a, b) => b.commissionPaid - a.commissionPaid);
+  }, [producers.data, sales.data]);
+
+  const producerTotals = useMemo(() => {
+    return producerRows.reduce(
+      (acc, r) => ({
+        sold: acc.sold + r.totalSold,
+        paid: acc.paid + r.totalPaid,
+        commPaid: acc.commPaid + r.commissionPaid,
+        commPending: acc.commPending + r.commissionPending,
+      }),
+      { sold: 0, paid: 0, commPaid: 0, commPending: 0 }
+    );
+  }, [producerRows]);
+
   const totals = useMemo(() => {
     return rows.reduce(
       (acc, r) => ({
