@@ -533,8 +533,8 @@ function SalesPage() {
         const selectedServiceType = serviceTypes.data?.find(st => st.id === (k === "service_type_id" ? v : e.service_type_id));
         const selectedSeller = sellers.data?.find(s => s.id === (k === "seller_id" ? v : e.seller_id));
         
-        const serviceName = selectedServiceType?.name.toLowerCase() || "";
-        const sellerName = selectedSeller?.name.toLowerCase() || "";
+        const serviceName = optionText(selectedServiceType?.name, "").toLowerCase();
+        const sellerName = optionText(selectedSeller?.name, "").toLowerCase();
         
         if (serviceName.includes("pamela") || serviceName.includes("ester") || 
             sellerName.includes("pamela") || sellerName.includes("ester")) {
@@ -945,15 +945,15 @@ function SalesPage() {
           </div>
           <Select value={fSeller} onValueChange={setFSeller}>
             <SelectTrigger className="h-9"><SelectValue placeholder="Vendedor" /></SelectTrigger>
-            <SelectContent><SelectItem value="all">Todos vendedores</SelectItem>{(sellers.data ?? []).map((s: any) => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}</SelectContent>
+            <SelectContent><SelectItem value="all">Todos vendedores</SelectItem>{(sellers.data ?? []).map((s: any) => optionValue(s.id) ? <SelectItem key={s.id} value={String(s.id)}>{optionText(s.name)}</SelectItem> : null)}</SelectContent>
           </Select>
           <Select value={fProducer} onValueChange={setFProducer}>
             <SelectTrigger className="h-9"><SelectValue placeholder="Produtor" /></SelectTrigger>
-            <SelectContent><SelectItem value="all">Todos produtores</SelectItem>{(producers.data ?? []).map((p: any) => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}</SelectContent>
+            <SelectContent><SelectItem value="all">Todos produtores</SelectItem>{(producers.data ?? []).map((p: any) => optionValue(p.id) ? <SelectItem key={p.id} value={String(p.id)}>{optionText(p.name)}</SelectItem> : null)}</SelectContent>
           </Select>
           <Select value={fService} onValueChange={setFService}>
             <SelectTrigger className="h-9"><SelectValue placeholder="Serviço" /></SelectTrigger>
-            <SelectContent><SelectItem value="all">Todos serviços</SelectItem>{(serviceTypes.data ?? []).map((st: any) => <SelectItem key={st.id} value={st.id}>{st.name}</SelectItem>)}</SelectContent>
+            <SelectContent><SelectItem value="all">Todos serviços</SelectItem>{(serviceTypes.data ?? []).map((st: any) => optionValue(st.id) ? <SelectItem key={st.id} value={String(st.id)}>{optionText(st.name)}</SelectItem> : null)}</SelectContent>
           </Select>
           <Select value={fYear} onValueChange={setFYear}>
             <SelectTrigger className="h-9"><SelectValue placeholder="Ano" /></SelectTrigger>
@@ -1187,10 +1187,10 @@ function SalesPage() {
                   value={editing.producer_id ?? ""} 
                   onValueChange={(v) => editSet("producer_id", v)}
                   disabled={
-                    (serviceTypes.data?.find(st => st.id === editing.service_type_id)?.name.toLowerCase().includes("pamela") ||
-                     serviceTypes.data?.find(st => st.id === editing.service_type_id)?.name.toLowerCase().includes("ester") ||
-                     sellers.data?.find(s => s.id === editing.seller_id)?.name.toLowerCase().includes("pamela") ||
-                     sellers.data?.find(s => s.id === editing.seller_id)?.name.toLowerCase().includes("ester")) ?? false
+                    (optionText(serviceTypes.data?.find(st => st.id === editing.service_type_id)?.name, "").toLowerCase().includes("pamela") ||
+                     optionText(serviceTypes.data?.find(st => st.id === editing.service_type_id)?.name, "").toLowerCase().includes("ester") ||
+                     optionText(sellers.data?.find(s => s.id === editing.seller_id)?.name, "").toLowerCase().includes("pamela") ||
+                     optionText(sellers.data?.find(s => s.id === editing.seller_id)?.name, "").toLowerCase().includes("ester")) ?? false
                   }
                 >
                   <SelectTrigger><SelectValue placeholder="—" /></SelectTrigger>
