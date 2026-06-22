@@ -149,23 +149,16 @@ export const PhoneInputBR = forwardRef<HTMLInputElement, Props>(
 
     return (
       <div className={cn("flex items-stretch rounded-md border border-input bg-background focus-within:ring-1 focus-within:ring-ring overflow-hidden", className)}>
-        <label className="flex items-center gap-1 px-2 bg-muted/50 border-r border-input text-sm select-none cursor-pointer">
+        <div className="relative flex items-center gap-1 px-2 bg-muted/50 border-r border-input text-sm select-none">
           <span className="text-base leading-none">{country.flag}</span>
           <span className="text-muted-foreground">+{country.dial}</span>
-          <select
-            aria-label="Código do país"
-            value={country.code}
-            onChange={handleCountryChange}
-            className="absolute opacity-0 w-0 h-0 pointer-events-none"
-            tabIndex={-1}
-          />
-          {/* select visível sobreposto para captar clique */}
+          <span aria-hidden className="text-muted-foreground text-xs">▾</span>
           <select
             aria-label="Selecionar país"
             value={country.code}
             onChange={handleCountryChange}
-            className="ml-1 bg-transparent text-xs outline-none cursor-pointer max-w-[2.5rem]"
             title={`${country.name} (+${country.dial})`}
+            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
           >
             {COUNTRIES.map((c) => (
               <option key={c.code} value={c.code}>
@@ -173,7 +166,7 @@ export const PhoneInputBR = forwardRef<HTMLInputElement, Props>(
               </option>
             ))}
           </select>
-        </label>
+        </div>
         <Input
           ref={ref}
           type="tel"
