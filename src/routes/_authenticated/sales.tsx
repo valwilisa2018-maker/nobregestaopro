@@ -56,6 +56,16 @@ function isVideoService(serviceTypeName?: string, hasPackage?: boolean) {
   return videoKeywords.some((k) => n.includes(k));
 }
 
+function optionText(value: unknown, fallback = "—") {
+  const text = String(value ?? "").trim();
+  return text || fallback;
+}
+
+function optionValue(value: unknown) {
+  const text = String(value ?? "").trim();
+  return text || null;
+}
+
 // Opções: 30s, 1min, 1min30, 2min, ..., 10min
 const VIDEO_DURATION_OPTIONS: { value: number; label: string }[] = Array.from({ length: 20 }, (_, i) => {
   const sec = (i + 1) * 30;
@@ -252,8 +262,8 @@ function SalesPage() {
         const selectedServiceType = serviceTypes.data?.find(st => st.id === (k === "service_type_id" ? v : f.service_type_id));
         const selectedSeller = sellers.data?.find(s => s.id === (k === "seller_id" ? v : f.seller_id));
         
-        const serviceName = selectedServiceType?.name.toLowerCase() || "";
-        const sellerName = selectedSeller?.name.toLowerCase() || "";
+        const serviceName = optionText(selectedServiceType?.name, "").toLowerCase();
+        const sellerName = optionText(selectedSeller?.name, "").toLowerCase();
         
         if (serviceName.includes("pamela") || serviceName.includes("ester") || 
             sellerName.includes("pamela") || sellerName.includes("ester")) {
@@ -523,8 +533,8 @@ function SalesPage() {
         const selectedServiceType = serviceTypes.data?.find(st => st.id === (k === "service_type_id" ? v : e.service_type_id));
         const selectedSeller = sellers.data?.find(s => s.id === (k === "seller_id" ? v : e.seller_id));
         
-        const serviceName = selectedServiceType?.name.toLowerCase() || "";
-        const sellerName = selectedSeller?.name.toLowerCase() || "";
+        const serviceName = optionText(selectedServiceType?.name, "").toLowerCase();
+        const sellerName = optionText(selectedSeller?.name, "").toLowerCase();
         
         if (serviceName.includes("pamela") || serviceName.includes("ester") || 
             sellerName.includes("pamela") || sellerName.includes("ester")) {
@@ -738,7 +748,7 @@ function SalesPage() {
                 <div className="col-span-2">
                   <Label>Nome do cliente *</Label>
                   <Input list="customers-names" value={form.customer_name || ""} onChange={(e) => autofillFromCustomer("customer_name", e.target.value)} />
-                  <datalist id="customers-names">{(customersAll.data ?? []).map((c: any) => (<option key={`n-${c.id}`} value={c.name} />))}</datalist>
+                  <datalist id="customers-names">{(customersAll.data ?? []).map((c: any) => optionText(c.name, "")).filter(Boolean).map((name: string, index: number) => (<option key={`n-${index}-${name}`} value={name} />))}</datalist>
                   {customerSuggestions.length > 0 && (
                     <div className="mt-2 rounded-md border border-border bg-muted/40 p-2 text-xs space-y-1">
                       <div className="text-muted-foreground">
@@ -779,7 +789,7 @@ function SalesPage() {
                 <div>
                   <Label>Empresa {form.with_invoice === "sim" ? "*" : "(Opcional)"}</Label>
                   <Input list="customers-companies" value={form.company || ""} onChange={(e) => autofillFromCustomer("company", e.target.value)} />
-                  <datalist id="customers-companies">{(customersAll.data ?? []).filter((c: any) => c.company).map((c: any) => (<option key={`c-${c.id}`} value={c.company} />))}</datalist>
+                  <datalist id="customers-companies">{(customersAll.data ?? []).map((c: any) => optionText(c.company, "")).filter(Boolean).map((company: string, index: number) => (<option key={`c-${index}-${company}`} value={company} />))}</datalist>
                 </div>
                 <div>
                   <Label>Com Nota? *</Label>
@@ -828,7 +838,7 @@ function SalesPage() {
                   <Label>Vendedor *</Label>
                   <Select value={form.seller_id || ""} onValueChange={(v) => set("seller_id", v)}>
                     <SelectTrigger><SelectValue placeholder="—" /></SelectTrigger>
-                    <SelectContent>{(sellers.data ?? []).map((s: any) => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}</SelectContent>
+                    <SelectContent>{(sellers.data ?? []).map((s: any) => optionValue(s.id) ? <SelectItem key={s.id} value={String(s.id)}>{optionText(s.name)}</SelectItem> : null)}</SelectContent>
                   </Select>
                 </div>
                 <div>
@@ -837,21 +847,21 @@ function SalesPage() {
                     value={form.producer_id || ""} 
                     onValueChange={(v) => set("producer_id", v)}
                     disabled={
-                      (serviceTypes.data?.find(st => st.id === form.service_type_id)?.name.toLowerCase().includes("pamela") ||
-                       serviceTypes.data?.find(st => st.id === form.service_type_id)?.name.toLowerCase().includes("ester") ||
-                       sellers.data?.find(s => s.id === form.seller_id)?.name.toLowerCase().includes("pamela") ||
-                       sellers.data?.find(s => s.id === form.seller_id)?.name.toLowerCase().includes("ester")) ?? false
+                      (optionText(serviceTypes.data?.find(st => st.id === form.service_type_id)?.name, "").toLowerCase().includes("pamela") ||
+                       optionText(serviceTypes.data?.find(st => st.id === form.service_type_id)?.name, "").toLowerCase().includes("ester") ||
+                       optionText(sellers.data?.find(s => s.id === form.seller_id)?.name, "").toLowerCase().includes("pamela") ||
+                       optionText(sellers.data?.find(s => s.id === form.seller_id)?.name, "").toLowerCase().includes("ester")) ?? false
                     }
                   >
                     <SelectTrigger><SelectValue placeholder="—" /></SelectTrigger>
-                    <SelectContent>{(producers.data ?? []).map((p: any) => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}</SelectContent>
+                    <SelectContent>{(producers.data ?? []).map((p: any) => optionValue(p.id) ? <SelectItem key={p.id} value={String(p.id)}>{optionText(p.name)}</SelectItem> : null)}</SelectContent>
                   </Select>
                 </div>
                 <div>
                   <Label>Tipo de serviço *</Label>
                   <Select value={form.service_type_id || ""} onValueChange={(v) => set("service_type_id", v)}>
                     <SelectTrigger><SelectValue placeholder="—" /></SelectTrigger>
-                    <SelectContent>{(serviceTypes.data ?? []).map((s: any) => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}</SelectContent>
+                    <SelectContent>{(serviceTypes.data ?? []).map((s: any) => optionValue(s.id) ? <SelectItem key={s.id} value={String(s.id)}>{optionText(s.name)}</SelectItem> : null)}</SelectContent>
                   </Select>
                 </div>
                 <div>
@@ -862,7 +872,7 @@ function SalesPage() {
                   }}>
                     <SelectTrigger><SelectValue placeholder="—" /></SelectTrigger>
                     <SelectContent>
-                      {(packages.data ?? []).length === 0 ? (<div className="px-3 py-4 text-xs text-muted-foreground">Nenhum pacote cadastrado.</div>) : (packages.data ?? []).map((p: any) => (<SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>))}
+                      {(packages.data ?? []).length === 0 ? (<div className="px-3 py-4 text-xs text-muted-foreground">Nenhum pacote cadastrado.</div>) : (packages.data ?? []).map((p: any) => optionValue(p.id) ? <SelectItem key={p.id} value={String(p.id)}>{optionText(p.name)}</SelectItem> : null)}
                     </SelectContent>
                   </Select>
                 </div>
@@ -935,15 +945,15 @@ function SalesPage() {
           </div>
           <Select value={fSeller} onValueChange={setFSeller}>
             <SelectTrigger className="h-9"><SelectValue placeholder="Vendedor" /></SelectTrigger>
-            <SelectContent><SelectItem value="all">Todos vendedores</SelectItem>{(sellers.data ?? []).map((s: any) => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}</SelectContent>
+            <SelectContent><SelectItem value="all">Todos vendedores</SelectItem>{(sellers.data ?? []).map((s: any) => optionValue(s.id) ? <SelectItem key={s.id} value={String(s.id)}>{optionText(s.name)}</SelectItem> : null)}</SelectContent>
           </Select>
           <Select value={fProducer} onValueChange={setFProducer}>
             <SelectTrigger className="h-9"><SelectValue placeholder="Produtor" /></SelectTrigger>
-            <SelectContent><SelectItem value="all">Todos produtores</SelectItem>{(producers.data ?? []).map((p: any) => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}</SelectContent>
+            <SelectContent><SelectItem value="all">Todos produtores</SelectItem>{(producers.data ?? []).map((p: any) => optionValue(p.id) ? <SelectItem key={p.id} value={String(p.id)}>{optionText(p.name)}</SelectItem> : null)}</SelectContent>
           </Select>
           <Select value={fService} onValueChange={setFService}>
             <SelectTrigger className="h-9"><SelectValue placeholder="Serviço" /></SelectTrigger>
-            <SelectContent><SelectItem value="all">Todos serviços</SelectItem>{(serviceTypes.data ?? []).map((st: any) => <SelectItem key={st.id} value={st.id}>{st.name}</SelectItem>)}</SelectContent>
+            <SelectContent><SelectItem value="all">Todos serviços</SelectItem>{(serviceTypes.data ?? []).map((st: any) => optionValue(st.id) ? <SelectItem key={st.id} value={String(st.id)}>{optionText(st.name)}</SelectItem> : null)}</SelectContent>
           </Select>
           <Select value={fYear} onValueChange={setFYear}>
             <SelectTrigger className="h-9"><SelectValue placeholder="Ano" /></SelectTrigger>
@@ -1115,12 +1125,12 @@ function SalesPage() {
               <div className="col-span-2">
                 <Label>Nome do cliente *</Label>
                 <Input list="edit-customers-names" value={editing.customer_name ?? editing.customers?.name ?? ""} onChange={(e) => setEditing((prev: any) => ({ ...prev, customer_name: e.target.value }))} />
-                <datalist id="edit-customers-names">{(customersAll.data ?? []).map((c: any) => (<option key={`en-${c.id}`} value={c.name} />))}</datalist>
+              <datalist id="edit-customers-names">{(customersAll.data ?? []).map((c: any) => optionText(c.name, "")).filter(Boolean).map((name: string, index: number) => (<option key={`en-${index}-${name}`} value={name} />))}</datalist>
               </div>
               <div>
                 <Label>Empresa {editing.with_invoice === "sim" ? "*" : "(Opcional)"}</Label>
                 <Input list="edit-customers-companies" value={editing.company ?? editing.customers?.company ?? ""} onChange={(e) => setEditing((prev: any) => ({ ...prev, company: e.target.value }))} />
-                <datalist id="edit-customers-companies">{(customersAll.data ?? []).filter((c: any) => c.company).map((c: any) => (<option key={`ec-${c.id}`} value={c.company} />))}</datalist>
+                <datalist id="edit-customers-companies">{(customersAll.data ?? []).map((c: any) => optionText(c.company, "")).filter(Boolean).map((company: string, index: number) => (<option key={`ec-${index}-${company}`} value={company} />))}</datalist>
               </div>
               <div>
                 <Label>Com Nota? *</Label>
@@ -1168,7 +1178,7 @@ function SalesPage() {
                 <Label>Vendedor *</Label>
                 <Select value={editing.seller_id ?? ""} onValueChange={(v) => editSet("seller_id", v)}>
                   <SelectTrigger><SelectValue placeholder="—" /></SelectTrigger>
-                  <SelectContent>{(sellers.data ?? []).map((s: any) => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}</SelectContent>
+                  <SelectContent>{(sellers.data ?? []).map((s: any) => optionValue(s.id) ? <SelectItem key={s.id} value={String(s.id)}>{optionText(s.name)}</SelectItem> : null)}</SelectContent>
                 </Select>
               </div>
               <div>
@@ -1177,21 +1187,21 @@ function SalesPage() {
                   value={editing.producer_id ?? ""} 
                   onValueChange={(v) => editSet("producer_id", v)}
                   disabled={
-                    (serviceTypes.data?.find(st => st.id === editing.service_type_id)?.name.toLowerCase().includes("pamela") ||
-                     serviceTypes.data?.find(st => st.id === editing.service_type_id)?.name.toLowerCase().includes("ester") ||
-                     sellers.data?.find(s => s.id === editing.seller_id)?.name.toLowerCase().includes("pamela") ||
-                     sellers.data?.find(s => s.id === editing.seller_id)?.name.toLowerCase().includes("ester")) ?? false
+                    (optionText(serviceTypes.data?.find(st => st.id === editing.service_type_id)?.name, "").toLowerCase().includes("pamela") ||
+                     optionText(serviceTypes.data?.find(st => st.id === editing.service_type_id)?.name, "").toLowerCase().includes("ester") ||
+                     optionText(sellers.data?.find(s => s.id === editing.seller_id)?.name, "").toLowerCase().includes("pamela") ||
+                     optionText(sellers.data?.find(s => s.id === editing.seller_id)?.name, "").toLowerCase().includes("ester")) ?? false
                   }
                 >
                   <SelectTrigger><SelectValue placeholder="—" /></SelectTrigger>
-                  <SelectContent>{(producers.data ?? []).map((p: any) => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}</SelectContent>
+                  <SelectContent>{(producers.data ?? []).map((p: any) => optionValue(p.id) ? <SelectItem key={p.id} value={String(p.id)}>{optionText(p.name)}</SelectItem> : null)}</SelectContent>
                 </Select>
               </div>
               <div>
                 <Label>Tipo de serviço *</Label>
                 <Select value={editing.service_type_id ?? ""} onValueChange={(v) => editSet("service_type_id", v)}>
                   <SelectTrigger><SelectValue placeholder="—" /></SelectTrigger>
-                  <SelectContent>{(serviceTypes.data ?? []).map((s: any) => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}</SelectContent>
+                  <SelectContent>{(serviceTypes.data ?? []).map((s: any) => optionValue(s.id) ? <SelectItem key={s.id} value={String(s.id)}>{optionText(s.name)}</SelectItem> : null)}</SelectContent>
                 </Select>
               </div>
               <div>
@@ -1201,7 +1211,7 @@ function SalesPage() {
                   setEditing((prev: any) => ({ ...prev, package_id: v, package_name: p?.name ?? prev.package_name }));
                 }}>
                   <SelectTrigger><SelectValue placeholder="—" /></SelectTrigger>
-                  <SelectContent>{(packages.data ?? []).length === 0 ? (<div className="px-3 py-4 text-xs text-muted-foreground">Nenhum pacote cadastrado.</div>) : (packages.data ?? []).map((p: any) => (<SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>))}</SelectContent>
+                  <SelectContent>{(packages.data ?? []).length === 0 ? (<div className="px-3 py-4 text-xs text-muted-foreground">Nenhum pacote cadastrado.</div>) : (packages.data ?? []).map((p: any) => optionValue(p.id) ? <SelectItem key={p.id} value={String(p.id)}>{optionText(p.name)}</SelectItem> : null)}</SelectContent>
                 </Select>
               </div>
               <div><Label>Qtd. serviços *</Label><Input type="number" min="1" value={editing.service_quantity ?? 1} onChange={(e) => editSet("service_quantity", e.target.value)} /></div>
