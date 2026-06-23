@@ -418,8 +418,8 @@ function CommissionsPage() {
         <TabsContent value="producers" className="space-y-6">
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
             {[
-              { label: "Total vendido", value: producerTotals.sold, icon: TrendingUp },
-              { label: "Total pago", value: producerTotals.paid, icon: DollarSign },
+              { label: "Total entregue", value: producerTotals.sold, icon: TrendingUp },
+              { label: "Total entregue pago", value: producerTotals.paid, icon: DollarSign },
               { label: "Comissão paga", value: producerTotals.commPaid, icon: Wallet },
               { label: "Comissão pendente", value: producerTotals.commPending, icon: Wallet },
             ].map((c) => {
