@@ -335,6 +335,15 @@ function Dashboard() {
   // Minutagem é extraída do próprio nome do card (ex.: "2:30", "1min30s").
   const producerRanking = (producers.data ?? []).map((p: any) => {
     const ofProducer = ordersList.filter((o) => o.producer_id === p.id);
+    // Valor total produzido = soma proporcional do total_amount das vendas para cada serviço entregue por este produtor
+    const saleById = new Map(all.map((s: any) => [s.id, s]));
+    const valorTotal = ofProducer.reduce((acc, o) => {
+      if (!(o.delivered_at || o.kanban_columns?.is_done)) return acc;
+      const sale: any = saleById.get(o.sale_id);
+      if (!sale) return acc;
+      const qty = Math.max(Number(sale.service_quantity || 1), 1);
+      return acc + Number(sale.total_amount || 0) / qty;
+    }, 0);
     // "Pronto/entregue" no período selecionado: filtra por delivered_at dentro do escopo
     const prontoList = ofProducer.filter((o) => {
       if (o.kanban_columns?.is_done !== true) return false;
@@ -377,6 +386,7 @@ function Dashboard() {
       entreguesMes,
       emProducao,
       segundosProntos,
+      valorTotal,
       qtd: entregues + emProducao,
     };
   }).filter((p) => p.entreguesMes > 0 || p.entregues > 0 || p.emProducao > 0)
