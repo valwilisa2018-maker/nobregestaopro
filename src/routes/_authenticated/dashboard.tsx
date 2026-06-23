@@ -167,7 +167,7 @@ function Dashboard() {
   const producers = useQuery({
     queryKey: ["dash-producers"],
     queryFn: async () => {
-      const { data, error } = await supabase.from("producers").select("id,name,quality_score,average_delivery_days");
+      const { data, error } = await supabase.from("producers").select("id,name,quality_score,average_delivery_days,active").eq("active", true);
       if (error) { toast.error("Erro ao carregar produtores"); throw error; }
       return data ?? [];
     },
@@ -335,6 +335,15 @@ function Dashboard() {
   // Minutagem é extraída do próprio nome do card (ex.: "2:30", "1min30s").
   const producerRanking = (producers.data ?? []).map((p: any) => {
     const ofProducer = ordersList.filter((o) => o.producer_id === p.id);
+    // Valor total produzido = soma proporcional do total_amount das vendas para cada serviço entregue por este produtor
+    const saleById = new Map(all.map((s: any) => [s.id, s]));
+    const valorTotal = ofProducer.reduce((acc, o) => {
+      if (!(o.delivered_at || o.kanban_columns?.is_done)) return acc;
+      const sale: any = saleById.get(o.sale_id);
+      if (!sale) return acc;
+      const qty = Math.max(Number(sale.service_quantity || 1), 1);
+      return acc + Number(sale.total_amount || 0) / qty;
+    }, 0);
     // "Pronto/entregue" no período selecionado: filtra por delivered_at dentro do escopo
     const prontoList = ofProducer.filter((o) => {
       if (o.kanban_columns?.is_done !== true) return false;
@@ -377,6 +386,7 @@ function Dashboard() {
       entreguesMes,
       emProducao,
       segundosProntos,
+      valorTotal,
       qtd: entregues + emProducao,
     };
   }).filter((p) => p.entreguesMes > 0 || p.entregues > 0 || p.emProducao > 0)
@@ -788,6 +798,9 @@ function Dashboard() {
                     <div className="text-[11px] text-muted-foreground">
                       {p.entreguesMes} vídeo{p.entreguesMes === 1 ? "" : "s"} no mês
                       {p.segundosProntos > 0 ? ` • ${formatDuracao(p.segundosProntos)} prontos` : ""}
+                    </div>
+                    <div className="text-[11px] font-semibold text-emerald-500">
+                      Total produzido: {formatCurrency(p.valorTotal)}
                     </div>
                   </div>
                 </div>
