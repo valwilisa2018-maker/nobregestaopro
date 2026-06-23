@@ -448,8 +448,8 @@ function CommissionsPage() {
                   <TableRow>
                     <TableHead>Produtor</TableHead>
                     <TableHead className="text-center">%</TableHead>
-                    <TableHead className="text-center">Vendas</TableHead>
-                    <TableHead className="text-right">Vendido</TableHead>
+                    <TableHead className="text-center">Entregas</TableHead>
+                    <TableHead className="text-right">Entregue</TableHead>
                     <TableHead className="text-right">Pago</TableHead>
                     <TableHead className="text-right">A receber</TableHead>
                     <TableHead className="text-right">Comissão paga</TableHead>
