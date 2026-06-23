@@ -167,7 +167,7 @@ function Dashboard() {
   const producers = useQuery({
     queryKey: ["dash-producers"],
     queryFn: async () => {
-      const { data, error } = await supabase.from("producers").select("id,name,quality_score,average_delivery_days");
+      const { data, error } = await supabase.from("producers").select("id,name,quality_score,average_delivery_days,active").eq("active", true);
       if (error) { toast.error("Erro ao carregar produtores"); throw error; }
       return data ?? [];
     },
