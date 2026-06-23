@@ -799,6 +799,9 @@ function Dashboard() {
                       {p.entreguesMes} vídeo{p.entreguesMes === 1 ? "" : "s"} no mês
                       {p.segundosProntos > 0 ? ` • ${formatDuracao(p.segundosProntos)} prontos` : ""}
                     </div>
+                    <div className="text-[11px] font-semibold text-emerald-500">
+                      Total produzido: {formatCurrency(p.valorTotal)}
+                    </div>
                   </div>
                 </div>
                 <span className="font-semibold">{p.entreguesHoje} vídeo{p.entreguesHoje === 1 ? "" : "s"}</span>
