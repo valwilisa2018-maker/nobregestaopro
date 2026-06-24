@@ -1003,6 +1003,53 @@ function Telao() {
         </div>
       )}
 
+      {/* OVERLAY: novo recebimento - produtor + valor recebido */}
+      {bigReceipt && (
+        <div
+          className="fixed inset-0 z-[9999] flex flex-col items-center justify-center pointer-events-none"
+          style={{ background: "radial-gradient(circle at center, rgba(13,13,13,0.85) 0%, rgba(13,13,13,0.95) 70%)", backdropFilter: "blur(6px)" }}
+        >
+          <div
+            className="text-center px-8"
+            style={{ animation: "telao-big-in 0.7s cubic-bezier(.34,1.56,.64,1) 1" }}
+          >
+            <div
+              className="inline-block uppercase tracking-[0.4em] text-black bg-gradient-to-r from-emerald-300 to-emerald-500 px-6 py-2 rounded-full font-bold mb-6 shadow-[0_0_60px_rgba(52,211,153,0.6)]"
+              style={{ fontSize: "clamp(1.2rem, 3vw, 2.5rem)", animation: "telao-sub-bounce 0.6s ease-in-out infinite" }}
+            >
+              + Valor recebido!
+            </div>
+            <div
+              className="font-black telao-shine leading-none"
+              style={{
+                fontSize: "clamp(4rem, 14vw, 18rem)",
+                letterSpacing: "-0.04em",
+                animation: "telao-big-glow 1.2s ease-in-out infinite",
+              }}
+            >
+              {bigReceipt.name}
+            </div>
+            <div
+              className="mt-8 font-extrabold tabular-nums text-emerald-400 leading-none"
+              style={{
+                fontSize: "clamp(2.5rem, 9vw, 11rem)",
+                letterSpacing: "-0.03em",
+                textShadow: "0 0 40px rgba(52,211,153,0.7), 0 0 100px rgba(52,211,153,0.4)",
+                animation: "telao-pop 0.6s cubic-bezier(.34,1.56,.64,1) 1",
+              }}
+            >
+              {formatCurrency(bigReceipt.amount)}
+            </div>
+            <div
+              className="mt-6 uppercase tracking-[0.5em] text-emerald-300"
+              style={{ fontSize: "clamp(1rem, 2.2vw, 2rem)" }}
+            >
+              Pagamento confirmado
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* DASHBOARD GRID */}
       <div className="telao-dash-grid">
         {/* HERO HOJE — Faturamento */}
