@@ -274,6 +274,13 @@ function Telao() {
     if (bigSellerTimer.current) window.clearTimeout(bigSellerTimer.current);
     bigSellerTimer.current = window.setTimeout(() => setBigSeller(null), overlaySeconds * 1000);
   };
+  const [bigReceipt, setBigReceipt] = useState<{ name: string; amount: number } | null>(null);
+  const bigReceiptTimer = useRef<number | null>(null);
+  const showBigReceipt = (name: string, amount: number) => {
+    setBigReceipt({ name: name || "Produtor", amount: Number(amount) || 0 });
+    if (bigReceiptTimer.current) window.clearTimeout(bigReceiptTimer.current);
+    bigReceiptTimer.current = window.setTimeout(() => setBigReceipt(null), overlaySeconds * 1000);
+  };
   const rootRef = useRef<HTMLDivElement>(null);
   const [clock, setClock] = useState<string>(() => new Date().toLocaleTimeString("pt-BR"));
   useEffect(() => {
@@ -381,6 +388,22 @@ function Telao() {
     queryFn: async () => (await supabase.from("kanban_columns").select("id,is_done")).data ?? [],
     refetchInterval: 600000,
     refetchIntervalInBackground: false,
+  });
+
+  const receiptsQ = useQuery({
+    queryKey: ["telao-sale-receipts"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("sale_receipts")
+        .select("id,sale_id,amount,paid_at,created_at")
+        .order("created_at", { ascending: false })
+        .limit(500);
+      if (error) throw error;
+      return data ?? [];
+    },
+    refetchInterval: 60000,
+    refetchIntervalInBackground: false,
+    staleTime: 30_000,
   });
 
   const sales = salesQ.data ?? [];
@@ -618,6 +641,33 @@ function Telao() {
     return () => { supabase.removeChannel(channel); };
   }, [qc, soundEnabled, soundId, celebration.soundEnabled, celebration.confettiEnabled, celebration.volume]);
 
+  // Realtime: novo recebimento (sale_receipts INSERT) → overlay com produtor + valor recebido
+  useEffect(() => {
+    const channel = supabase
+      .channel("telao-sale-receipts")
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "sale_receipts" }, async (payload: any) => {
+        qc.invalidateQueries({ queryKey: ["telao-sale-receipts"] });
+        const row = payload?.new as { sale_id?: string; amount?: number } | undefined;
+        if (!row?.sale_id) return;
+        let sale = uniqueSales.find((s) => s.id === row.sale_id);
+        if (!sale) {
+          const { data } = await supabase
+            .from("sales")
+            .select("id,total_amount,created_at,sale_date,seller_id,producer_id,customer_id,payment_method,payment_status,service_type_id,package_id,created_by")
+            .eq("id", row.sale_id)
+            .maybeSingle();
+          if (data) sale = data as SaleRow;
+        }
+        const name = sale ? (producerNameOf(sale) !== "—" ? producerNameOf(sale) : cName(sale.customer_id)) : "Produtor";
+        if (celebration.confettiEnabled) fireConfetti();
+        if (soundEnabled && celebration.soundEnabled) playSound(soundId, celebration.volume / 100, celebration.customSoundUrl);
+        showBigReceipt(name, Number(row.amount || 0));
+      })
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [qc, uniqueSales, producers, profiles, customers, soundEnabled, soundId, celebration]);
+
   // Detecta crescimento por polling como fallback
   useEffect(() => {
     if (lastCount !== null && todaySales.length > lastCount) {
@@ -646,10 +696,25 @@ function Telao() {
   const totalSemana = sum(weekSales);
   const totalMes = sum(monthSales);
   const ticketMedio = todaySales.length ? totalHoje / todaySales.length : 0;
+
+  // Recebimentos de hoje (sale_receipts pagos hoje)
+  const receipts = receiptsQ.data ?? [];
+  const todayReceipts = useMemo(() => {
+    return receipts.filter((r: any) => {
+      const ref = r.paid_at ? new Date(r.paid_at + (r.paid_at.length === 10 ? "T12:00:00" : "")) : new Date(r.created_at);
+      return ref >= today0;
+    });
+  }, [receipts, today0]);
+  const totalRecebidoHoje = useMemo(
+    () => todayReceipts.reduce((a: number, r: any) => a + Number(r.amount || 0), 0),
+    [todayReceipts],
+  );
+
   const [heroBeat, setHeroBeat] = useState(0);
   const heroVal = useCountUp(totalHoje, 900, heroBeat);
   const ticketVal = useCountUp(ticketMedio, 900, heroBeat);
   const opVal = useCountUp(todaySales.length, 900, heroBeat);
+  const recebidoVal = useCountUp(totalRecebidoHoje, 900, heroBeat);
 
   // Loop 30s — realça e reconta os números do topo
   useEffect(() => {
@@ -938,6 +1003,53 @@ function Telao() {
         </div>
       )}
 
+      {/* OVERLAY: novo recebimento - produtor + valor recebido */}
+      {bigReceipt && (
+        <div
+          className="fixed inset-0 z-[9999] flex flex-col items-center justify-center pointer-events-none"
+          style={{ background: "radial-gradient(circle at center, rgba(13,13,13,0.85) 0%, rgba(13,13,13,0.95) 70%)", backdropFilter: "blur(6px)" }}
+        >
+          <div
+            className="text-center px-8"
+            style={{ animation: "telao-big-in 0.7s cubic-bezier(.34,1.56,.64,1) 1" }}
+          >
+            <div
+              className="inline-block uppercase tracking-[0.4em] text-black bg-gradient-to-r from-emerald-300 to-emerald-500 px-6 py-2 rounded-full font-bold mb-6 shadow-[0_0_60px_rgba(52,211,153,0.6)]"
+              style={{ fontSize: "clamp(1.2rem, 3vw, 2.5rem)", animation: "telao-sub-bounce 0.6s ease-in-out infinite" }}
+            >
+              + Valor recebido!
+            </div>
+            <div
+              className="font-black telao-shine leading-none"
+              style={{
+                fontSize: "clamp(4rem, 14vw, 18rem)",
+                letterSpacing: "-0.04em",
+                animation: "telao-big-glow 1.2s ease-in-out infinite",
+              }}
+            >
+              {bigReceipt.name}
+            </div>
+            <div
+              className="mt-8 font-extrabold tabular-nums text-emerald-400 leading-none"
+              style={{
+                fontSize: "clamp(2.5rem, 9vw, 11rem)",
+                letterSpacing: "-0.03em",
+                textShadow: "0 0 40px rgba(52,211,153,0.7), 0 0 100px rgba(52,211,153,0.4)",
+                animation: "telao-pop 0.6s cubic-bezier(.34,1.56,.64,1) 1",
+              }}
+            >
+              {formatCurrency(bigReceipt.amount)}
+            </div>
+            <div
+              className="mt-6 uppercase tracking-[0.5em] text-emerald-300"
+              style={{ fontSize: "clamp(1rem, 2.2vw, 2rem)" }}
+            >
+              Pagamento confirmado
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* DASHBOARD GRID */}
       <div className="telao-dash-grid">
         {/* HERO HOJE — Faturamento */}
@@ -970,6 +1082,12 @@ function Telao() {
                 <div className="text-[10px] uppercase tracking-widest text-[#c9a84c]/60">Operações</div>
                 <div style={{ fontFamily: '"Bebas Neue", sans-serif' }} className="text-4xl text-white tabular-nums">
                   {Math.round(opVal)}
+                </div>
+              </div>
+              <div className="text-center">
+                <div className="text-[10px] uppercase tracking-widest text-emerald-400/80">Recebidos · Hoje</div>
+                <div style={{ fontFamily: '"Bebas Neue", sans-serif' }} className="text-4xl text-emerald-400 tabular-nums">
+                  {formatCurrency(recebidoVal)}
                 </div>
               </div>
               <div className="text-right">
