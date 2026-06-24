@@ -1037,6 +1037,12 @@ function Telao() {
                   {Math.round(opVal)}
                 </div>
               </div>
+              <div className="text-center">
+                <div className="text-[10px] uppercase tracking-widest text-emerald-400/80">Recebidos · Hoje</div>
+                <div style={{ fontFamily: '"Bebas Neue", sans-serif' }} className="text-4xl text-emerald-400 tabular-nums">
+                  {formatCurrency(recebidoVal)}
+                </div>
+              </div>
               <div className="text-right">
                 <div className="text-[10px] uppercase tracking-widest text-[#c9a84c]/60">Ticket médio</div>
                 <div style={{ fontFamily: '"Bebas Neue", sans-serif' }} className="text-4xl text-white tabular-nums">
