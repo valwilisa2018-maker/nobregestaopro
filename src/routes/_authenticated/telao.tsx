@@ -669,10 +669,25 @@ function Telao() {
   const totalSemana = sum(weekSales);
   const totalMes = sum(monthSales);
   const ticketMedio = todaySales.length ? totalHoje / todaySales.length : 0;
+
+  // Recebimentos de hoje (sale_receipts pagos hoje)
+  const receipts = receiptsQ.data ?? [];
+  const todayReceipts = useMemo(() => {
+    return receipts.filter((r: any) => {
+      const ref = r.paid_at ? new Date(r.paid_at + (r.paid_at.length === 10 ? "T12:00:00" : "")) : new Date(r.created_at);
+      return ref >= today0;
+    });
+  }, [receipts, today0]);
+  const totalRecebidoHoje = useMemo(
+    () => todayReceipts.reduce((a: number, r: any) => a + Number(r.amount || 0), 0),
+    [todayReceipts],
+  );
+
   const [heroBeat, setHeroBeat] = useState(0);
   const heroVal = useCountUp(totalHoje, 900, heroBeat);
   const ticketVal = useCountUp(ticketMedio, 900, heroBeat);
   const opVal = useCountUp(todaySales.length, 900, heroBeat);
+  const recebidoVal = useCountUp(totalRecebidoHoje, 900, heroBeat);
 
   // Loop 30s — realça e reconta os números do topo
   useEffect(() => {
