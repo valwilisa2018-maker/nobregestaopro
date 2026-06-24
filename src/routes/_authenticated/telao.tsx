@@ -390,6 +390,22 @@ function Telao() {
     refetchIntervalInBackground: false,
   });
 
+  const receiptsQ = useQuery({
+    queryKey: ["telao-sale-receipts"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("sale_receipts")
+        .select("id,sale_id,amount,paid_at,created_at")
+        .order("created_at", { ascending: false })
+        .limit(500);
+      if (error) throw error;
+      return data ?? [];
+    },
+    refetchInterval: 60000,
+    refetchIntervalInBackground: false,
+    staleTime: 30_000,
+  });
+
   const sales = salesQ.data ?? [];
   const customers = customersQ.data ?? [];
   const sellers = sellersQ.data ?? [];
