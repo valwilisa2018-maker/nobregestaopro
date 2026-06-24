@@ -641,6 +641,33 @@ function Telao() {
     return () => { supabase.removeChannel(channel); };
   }, [qc, soundEnabled, soundId, celebration.soundEnabled, celebration.confettiEnabled, celebration.volume]);
 
+  // Realtime: novo recebimento (sale_receipts INSERT) → overlay com produtor + valor recebido
+  useEffect(() => {
+    const channel = supabase
+      .channel("telao-sale-receipts")
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "sale_receipts" }, async (payload: any) => {
+        qc.invalidateQueries({ queryKey: ["telao-sale-receipts"] });
+        const row = payload?.new as { sale_id?: string; amount?: number } | undefined;
+        if (!row?.sale_id) return;
+        let sale = uniqueSales.find((s) => s.id === row.sale_id);
+        if (!sale) {
+          const { data } = await supabase
+            .from("sales")
+            .select("id,total_amount,created_at,sale_date,seller_id,producer_id,customer_id,payment_method,payment_status,service_type_id,package_id,created_by")
+            .eq("id", row.sale_id)
+            .maybeSingle();
+          if (data) sale = data as SaleRow;
+        }
+        const name = sale ? (producerNameOf(sale) !== "—" ? producerNameOf(sale) : cName(sale.customer_id)) : "Produtor";
+        if (celebration.confettiEnabled) fireConfetti();
+        if (soundEnabled && celebration.soundEnabled) playSound(soundId, celebration.volume / 100, celebration.customSoundUrl);
+        showBigReceipt(name, Number(row.amount || 0));
+      })
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [qc, uniqueSales, producers, profiles, customers, soundEnabled, soundId, celebration]);
+
   // Detecta crescimento por polling como fallback
   useEffect(() => {
     if (lastCount !== null && todaySales.length > lastCount) {
