@@ -3,7 +3,7 @@ import { toast } from "sonner";
 import {
   Save, RotateCcw, Sliders, MessageSquare, Clock, Bell, Send, Hash,
   CalendarClock, AudioLines, Image as ImageIcon, PlayCircle, BookOpen, Loader2,
-  Plus, X, Play, Mic,
+  Plus, X, Play, Mic, Info, Trash2, ChevronDown, Upload, FileText,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
@@ -109,6 +109,7 @@ export function AgentEditor({ agent, onSaved, onCancel }: Props) {
     keywords?: { enabled?: boolean; mode?: string; list?: string[] };
     hours?: { enabled?: boolean; start?: string; end?: string; lunch?: boolean; days?: string[]; blockedDates?: string[] };
     audio?: { enabled?: boolean; provider?: "browser" | "elevenlabs"; replaceText?: boolean; autoReply?: boolean; mirrorFormat?: boolean; smartAudio?: boolean; smartAudioChars?: number; asTool?: boolean };
+    media?: { enabled?: boolean; items?: Array<{ id: string; name: string; size?: string; mode?: string; keywords?: string; description?: string }> };
   };
   const ext = (form.tools ?? {}) as Ext;
   function setExt<K extends keyof Ext>(k: K, v: Ext[K]) {
@@ -257,7 +258,7 @@ export function AgentEditor({ agent, onSaved, onCancel }: Props) {
         </Section>
 
         <Section id="s9" number={9} icon={<ImageIcon className="h-4 w-4" />} title="Mídia com IA">
-          <p className="text-sm text-muted-foreground">Análise de imagens, documentos e vídeos.</p>
+          <MediaSection ext={ext} setExt={setExt} onSave={save} saving={saving} />
         </Section>
 
         <Section id="s10" number={10} icon={<PlayCircle className="h-4 w-4" />} title="Testar IA">
