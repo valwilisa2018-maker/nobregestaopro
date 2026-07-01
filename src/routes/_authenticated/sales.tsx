@@ -1041,7 +1041,7 @@ function SalesPage() {
                   </Select>
                 </div>
                 <div className="col-span-2" data-sale-field="receipt">
-                  <Label>Comprovante (imagem ou PDF) {formNeedsReceipt ? "*" : "(opcional enquanto pendente)"}</Label>
+                  <Label>Comprovante (imagem ou PDF) {formReceiptRecommended ? "(recomendado)" : "(opcional enquanto pendente)"}</Label>
                   <Input type="file" accept="image/*,application/pdf" onChange={(e) => setReceiptFile(e.target.files?.[0] ?? null)} />
                   {receiptFile && <p className="text-xs text-muted-foreground mt-1">{receiptFile.name}</p>}
                 </div>
