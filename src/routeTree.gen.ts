@@ -35,6 +35,7 @@ import { Route as AuthenticatedAudiosRouteImport } from './routes/_authenticated
 import { Route as AuthenticatedApiRouteImport } from './routes/_authenticated/api'
 import { Route as AuthenticatedAiRouteImport } from './routes/_authenticated/ai'
 import { Route as AuthenticatedAgentsRouteImport } from './routes/_authenticated/agents'
+import { Route as ApiPublicEvolutionInstanceRouteImport } from './routes/api/public/evolution.$instance'
 
 const AuthRoute = AuthRouteImport.update({
   id: '/auth',
@@ -169,6 +170,12 @@ const AuthenticatedAgentsRoute = AuthenticatedAgentsRouteImport.update({
   path: '/agents',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
+const ApiPublicEvolutionInstanceRoute =
+  ApiPublicEvolutionInstanceRouteImport.update({
+    id: '/api/public/evolution/$instance',
+    path: '/api/public/evolution/$instance',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -196,6 +203,7 @@ export interface FileRoutesByFullPath {
   '/webhooks': typeof AuthenticatedWebhooksRoute
   '/whatsapp': typeof AuthenticatedWhatsappRoute
   '/white-label': typeof AuthenticatedWhiteLabelRoute
+  '/api/public/evolution/$instance': typeof ApiPublicEvolutionInstanceRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -223,6 +231,7 @@ export interface FileRoutesByTo {
   '/webhooks': typeof AuthenticatedWebhooksRoute
   '/whatsapp': typeof AuthenticatedWhatsappRoute
   '/white-label': typeof AuthenticatedWhiteLabelRoute
+  '/api/public/evolution/$instance': typeof ApiPublicEvolutionInstanceRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -252,6 +261,7 @@ export interface FileRoutesById {
   '/_authenticated/webhooks': typeof AuthenticatedWebhooksRoute
   '/_authenticated/whatsapp': typeof AuthenticatedWhatsappRoute
   '/_authenticated/white-label': typeof AuthenticatedWhiteLabelRoute
+  '/api/public/evolution/$instance': typeof ApiPublicEvolutionInstanceRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -281,6 +291,7 @@ export interface FileRouteTypes {
     | '/webhooks'
     | '/whatsapp'
     | '/white-label'
+    | '/api/public/evolution/$instance'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -308,6 +319,7 @@ export interface FileRouteTypes {
     | '/webhooks'
     | '/whatsapp'
     | '/white-label'
+    | '/api/public/evolution/$instance'
   id:
     | '__root__'
     | '/'
@@ -336,12 +348,14 @@ export interface FileRouteTypes {
     | '/_authenticated/webhooks'
     | '/_authenticated/whatsapp'
     | '/_authenticated/white-label'
+    | '/api/public/evolution/$instance'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AuthenticatedRoute: typeof AuthenticatedRouteWithChildren
   AuthRoute: typeof AuthRoute
+  ApiPublicEvolutionInstanceRoute: typeof ApiPublicEvolutionInstanceRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -528,6 +542,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAgentsRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
+    '/api/public/evolution/$instance': {
+      id: '/api/public/evolution/$instance'
+      path: '/api/public/evolution/$instance'
+      fullPath: '/api/public/evolution/$instance'
+      preLoaderRoute: typeof ApiPublicEvolutionInstanceRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -591,6 +612,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthenticatedRoute: AuthenticatedRouteWithChildren,
   AuthRoute: AuthRoute,
+  ApiPublicEvolutionInstanceRoute: ApiPublicEvolutionInstanceRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
