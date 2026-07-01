@@ -396,6 +396,41 @@ function SalesPage() {
       }
     }
     if (!receiptFile) { toast.error("Anexe o comprovante"); return; }
+    // Consistência de valores
+    const total = Number(form.total_amount);
+    const paid = Number(form.paid_amount || 0);
+    const qty = Number(form.service_quantity || 0);
+    if (!Number.isFinite(total) || total <= 0) {
+      toast.error("Valor total deve ser maior que zero."); return;
+    }
+    if (!Number.isFinite(paid) || paid < 0) {
+      toast.error("Valor pago inválido."); return;
+    }
+    if (paid > total) {
+      toast.error("Valor pago não pode ser maior que o valor total."); return;
+    }
+    if (form.payment_status === "pago" && paid < total) {
+      toast.error("Status 'Pago' exige valor pago igual ao total."); return;
+    }
+    if (form.payment_status === "parcial" && (paid <= 0 || paid >= total)) {
+      toast.error("Status 'Parcial' exige valor pago entre 0 e o total."); return;
+    }
+    if (form.payment_status === "pendente" && paid > 0) {
+      toast.error("Status 'Pendente' não pode ter valor pago."); return;
+    }
+    if (!Number.isFinite(qty) || qty < 1) {
+      toast.error("Quantidade de serviços deve ser ao menos 1."); return;
+    }
+    const phoneDigits = (form.phone || "").replace(/\D/g, "");
+    if (phoneDigits.length < 10) {
+      toast.error("Telefone inválido. Informe DDD + número."); return;
+    }
+    if (form.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email.trim())) {
+      toast.error("E-mail inválido."); return;
+    }
+    if (form.expected_delivery_date && form.sale_date && form.expected_delivery_date < form.sale_date) {
+      toast.error("Data de entrega não pode ser anterior à data da venda."); return;
+    }
     setSaving(true);
     try {
       const list = customersAll.data ?? [];
