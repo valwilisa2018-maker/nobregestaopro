@@ -110,6 +110,7 @@ export function AgentEditor({ agent, onSaved, onCancel }: Props) {
     hours?: { enabled?: boolean; start?: string; end?: string; lunch?: boolean; days?: string[]; blockedDates?: string[] };
     audio?: { enabled?: boolean; provider?: "browser" | "elevenlabs"; replaceText?: boolean; autoReply?: boolean; mirrorFormat?: boolean; smartAudio?: boolean; smartAudioChars?: number; asTool?: boolean };
     media?: { enabled?: boolean; items?: Array<{ id: string; name: string; size?: string; mode?: string; keywords?: string; description?: string }> };
+    conversation?: { keepUnread?: boolean; singleMessage?: boolean; includeContactName?: boolean; cancelOnNew?: boolean; stopAfterManual?: boolean };
   };
   const ext = (form.tools ?? {}) as Ext;
   function setExt<K extends keyof Ext>(k: K, v: Ext[K]) {
@@ -222,15 +223,7 @@ export function AgentEditor({ agent, onSaved, onCancel }: Props) {
         </Section>
 
         <Section id="s2" number={2} icon={<MessageSquare className="h-4 w-4" />} title="Conversas">
-          <div className="space-y-3">
-            <FieldRow label="Mensagem inicial"><Input value={form.initial_message ?? ""} onChange={(e) => set("initial_message", e.target.value)} /></FieldRow>
-            <FieldRow label="Idioma">
-              <Select value={form.language ?? "pt-BR"} onValueChange={(v) => set("language", v)}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>{["pt-BR", "en-US", "es-ES"].map((l) => <SelectItem key={l} value={l}>{l}</SelectItem>)}</SelectContent>
-              </Select>
-            </FieldRow>
-          </div>
+          <ConversationSection ext={ext} setExt={setExt} onSave={save} saving={saving} />
         </Section>
 
         <Section id="s3" number={3} icon={<Clock className="h-4 w-4" />} title="Tempo e Mensagens">
@@ -303,6 +296,7 @@ type ExtProps = {
     hours?: { enabled?: boolean; start?: string; end?: string; lunch?: boolean; days?: string[]; blockedDates?: string[] };
     audio?: { enabled?: boolean; provider?: "browser" | "elevenlabs"; replaceText?: boolean; autoReply?: boolean; mirrorFormat?: boolean; smartAudio?: boolean; smartAudioChars?: number; asTool?: boolean };
     media?: { enabled?: boolean; items?: Array<{ id: string; name: string; size?: string; mode?: string; keywords?: string; description?: string }> };
+    conversation?: { keepUnread?: boolean; singleMessage?: boolean; includeContactName?: boolean; cancelOnNew?: boolean; stopAfterManual?: boolean };
   };
   setExt: <K extends keyof ExtProps["ext"]>(k: K, v: ExtProps["ext"][K]) => void;
   onSave: () => void;
@@ -579,6 +573,20 @@ function AlertsSection({ ext, setExt, onSave, saving }: ExtProps) {
 }
 
 // ============ 5. Follow-Up ============
+function ConversationSection({ ext, setExt, onSave, saving }: ExtProps) {
+  const c = ext.conversation ?? {};
+  return (
+    <div className="space-y-3">
+      <ToggleRow label="Manter não lida ao responder" checked={!!c.keepUnread} onChange={(v) => setExt("conversation", { keepUnread: v })} />
+      <ToggleRow label="Enviar resposta em uma mensagem" checked={!!c.singleMessage} onChange={(v) => setExt("conversation", { singleMessage: v })} />
+      <ToggleRow label="Incluir nome do contato na resposta" checked={!!c.includeContactName} onChange={(v) => setExt("conversation", { includeContactName: v })} />
+      <ToggleRow label="Cancelar respostas ao receber nova mensagem" checked={!!c.cancelOnNew} onChange={(v) => setExt("conversation", { cancelOnNew: v })} />
+      <ToggleRow label="Não responder após mensagem manual" checked={!!c.stopAfterManual} onChange={(v) => setExt("conversation", { stopAfterManual: v })} />
+      <SaveBar onSave={onSave} saving={saving} />
+    </div>
+  );
+}
+
 function FollowUpSection({ ext, setExt, onSave, saving }: ExtProps) {
   const f = ext.followup ?? {};
   const count = f.count ?? 1;
