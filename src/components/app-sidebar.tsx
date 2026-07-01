@@ -45,14 +45,15 @@ const groups = [
     ],
   },
   {
-    label: "Sistema",
+    label: "Financeiro",
     items: [
-      { title: "Usuários", url: "/users", icon: UserCog },
-      { title: "Permissões", url: "/permissions", icon: ShieldCheck },
-      { title: "Assinaturas", url: "/billing", icon: CreditCard },
+      { title: "Meu Plano", url: "/billing", icon: CreditCard },
       { title: "Financeiro", url: "/billing", icon: DollarSign },
-      { title: "Segurança", url: "/permissions", icon: Shield },
-      { title: "White Label", url: "/white-label", icon: Palette },
+    ],
+  },
+  {
+    label: "Conta",
+    items: [
       { title: "Configurações", url: "/settings", icon: Settings },
       { title: "Perfil", url: "/settings", icon: User },
     ],
@@ -67,6 +68,10 @@ const adminGroup = {
     { title: "Instâncias", url: "/admin/instances", icon: Plug },
     { title: "Agentes (todos)", url: "/admin/agents", icon: Bot },
     { title: "Faturamento", url: "/admin/billing", icon: DollarSign },
+    { title: "Planos", url: "/admin/plans", icon: CreditCard },
+    { title: "Usuários", url: "/admin/users", icon: UserCog },
+    { title: "Permissões", url: "/admin/permissions", icon: ShieldCheck },
+    { title: "Segurança", url: "/admin/security", icon: Shield },
     { title: "White Label", url: "/white-label", icon: Palette },
   ],
 };
@@ -88,7 +93,7 @@ export function AppSidebar() {
     return () => { cancelled = true; };
   }, []);
 
-  const allGroups = isAdmin ? [adminGroup, ...groups] : groups;
+  const allGroups = isAdmin ? [...groups, adminGroup] : groups;
 
   return (
     <Sidebar collapsible="icon" className="border-r border-sidebar-border">
