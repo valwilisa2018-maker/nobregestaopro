@@ -276,6 +276,7 @@ function Telao() {
   };
   const [bigReceipt, setBigReceipt] = useState<{ name: string; amount: number } | null>(null);
   const bigReceiptTimer = useRef<number | null>(null);
+  const processedReceiptIdsRef = useRef<Set<string>>(new Set());
   const [pendenteFlash, setPendenteFlash] = useState(false);
   const showBigReceipt = (name: string, amount: number) => {
     setBigReceipt({ name: name || "Produtor", amount: Number(amount) || 0 });
