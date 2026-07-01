@@ -276,10 +276,13 @@ function Telao() {
   };
   const [bigReceipt, setBigReceipt] = useState<{ name: string; amount: number } | null>(null);
   const bigReceiptTimer = useRef<number | null>(null);
+  const [pendenteFlash, setPendenteFlash] = useState(false);
   const showBigReceipt = (name: string, amount: number) => {
     setBigReceipt({ name: name || "Produtor", amount: Number(amount) || 0 });
     if (bigReceiptTimer.current) window.clearTimeout(bigReceiptTimer.current);
     bigReceiptTimer.current = window.setTimeout(() => setBigReceipt(null), overlaySeconds * 1000);
+    setPendenteFlash(true);
+    window.setTimeout(() => setPendenteFlash(false), 2000);
   };
   const rootRef = useRef<HTMLDivElement>(null);
   const [clock, setClock] = useState<string>(() => new Date().toLocaleTimeString("pt-BR"));
