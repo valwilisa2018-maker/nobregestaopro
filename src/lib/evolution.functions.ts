@@ -62,3 +62,76 @@ export const disconnectInstance = createServerFn({ method: "POST" })
     await context.supabase.from("connections").update({ status: "offline", last_sync: new Date().toISOString() }).eq("id", c.id);
     return { ok: r.ok, raw: r.json };
   });
+
+const CreateInput = z.object({
+  name: z.string().min(1),
+  instanceName: z.string().min(1).regex(/^[a-zA-Z0-9_-]+$/, "Use apenas letras, números, _ e -"),
+  webhookBaseUrl: z.string().url().optional(),
+});
+
+export const createAndConnectInstance = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((i: unknown) => CreateInput.parse(i))
+  .handler(async ({ data, context }) => {
+    // Load global Evolution config from settings
+    const { data: setting } = await context.supabase
+      .from("settings").select("value").eq("key", "evolution_api").maybeSingle();
+    if (!setting?.value) throw new Error("Configure a Evolution API em Configurações antes de criar instâncias.");
+    let cfg: { url_api?: string; api_key?: string; webhook_base_url?: string } = {};
+    try { cfg = typeof setting.value === "string" ? JSON.parse(setting.value) : setting.value; } catch { throw new Error("Configuração da Evolution API inválida (JSON)."); }
+    if (!cfg.url_api || !cfg.api_key) throw new Error("URL da API e API Key são obrigatórias em Configurações.");
+
+    const webhookBase = cfg.webhook_base_url || data.webhookBaseUrl;
+    const webhookUrl = webhookBase ? `${webhookBase.replace(/\/+$/, "")}/api/public/evolution/${data.instanceName}` : undefined;
+
+    // Insert local connection row
+    const { data: conn, error: insErr } = await context.supabase.from("connections").insert({
+      user_id: context.userId,
+      name: data.name,
+      instance_name: data.instanceName,
+      provider: "evolution",
+      url_api: cfg.url_api,
+      api_key: cfg.api_key,
+      status: "connecting",
+    }).select("*").single();
+    if (insErr || !conn) throw new Error(insErr?.message ?? "Falha ao salvar conexão");
+
+    // Create on Evolution
+    const createRes = await evoFetch(`${baseUrl(cfg.url_api)}/instance/create`, cfg.api_key, {
+      method: "POST",
+      body: JSON.stringify({
+        instanceName: data.instanceName,
+        qrcode: true,
+        integration: "WHATSAPP-BAILEYS",
+        ...(webhookUrl ? {
+          webhook: {
+            url: webhookUrl,
+            byEvents: true,
+            base64: true,
+            events: ["MESSAGES_UPSERT", "CONNECTION_UPDATE", "QRCODE_UPDATED"],
+          },
+        } : {}),
+      }),
+    });
+
+    if (!createRes.ok) {
+      // rollback
+      await context.supabase.from("connections").delete().eq("id", conn.id);
+      throw new Error(createRes.json?.response?.message?.[0] ?? createRes.json?.message ?? "Falha ao criar instância na Evolution API");
+    }
+
+    const qr = createRes.json?.qrcode?.base64 || createRes.json?.base64 || null;
+
+    // Register local webhook record for tracking
+    if (webhookUrl) {
+      await context.supabase.from("webhooks").insert({
+        user_id: context.userId,
+        name: `WhatsApp · ${data.name}`,
+        url: webhookUrl,
+        event: "evolution:messages",
+        is_active: true,
+      });
+    }
+
+    return { connectionId: conn.id, qr, webhookUrl, raw: createRes.json };
+  });
