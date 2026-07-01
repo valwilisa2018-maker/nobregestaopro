@@ -296,6 +296,7 @@ type ExtProps = {
     hours?: { enabled?: boolean; start?: string; end?: string; lunch?: boolean; days?: string[]; blockedDates?: string[] };
     audio?: { enabled?: boolean; provider?: "browser" | "elevenlabs"; replaceText?: boolean; autoReply?: boolean; mirrorFormat?: boolean; smartAudio?: boolean; smartAudioChars?: number; asTool?: boolean };
     media?: { enabled?: boolean; items?: Array<{ id: string; name: string; size?: string; mode?: string; keywords?: string; description?: string }> };
+    conversation?: { keepUnread?: boolean; singleMessage?: boolean; includeContactName?: boolean; cancelOnNew?: boolean; stopAfterManual?: boolean };
   };
   setExt: <K extends keyof ExtProps["ext"]>(k: K, v: ExtProps["ext"][K]) => void;
   onSave: () => void;
