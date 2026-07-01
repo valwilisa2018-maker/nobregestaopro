@@ -10,7 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
-import { Plus, RefreshCw, Play, Power, Trash2, QrCode } from "lucide-react";
+import { Plus, RefreshCw, Play, Power, Trash2, QrCode, CheckCircle2, XCircle, Activity } from "lucide-react";
 import { toast } from "sonner";
 import { testConnection, connectInstance, disconnectInstance } from "@/lib/evolution.functions";
 
@@ -43,6 +43,13 @@ function ConnectionsPage() {
   const [open, setOpen] = useState(false);
   const [qr, setQr] = useState<{ open: boolean; data: string | null; name: string }>({ open: false, data: null, name: "" });
   const [form, setForm] = useState({ name: "", description: "", url_api: "", api_key: "", instance_name: "", notes: "" });
+
+  type Diag = { ok: boolean; action: string; message: string; details?: string; at: string };
+  const [diagnostics, setDiagnostics] = useState<Record<string, Diag>>({});
+  const [busy, setBusy] = useState<Record<string, string | null>>({});
+
+  const setDiag = (id: string, d: Diag) => setDiagnostics((prev) => ({ ...prev, [id]: d }));
+  const setBusyFor = (id: string, action: string | null) => setBusy((prev) => ({ ...prev, [id]: action }));
 
   const testFn = useServerFn(testConnection);
   const connectFn = useServerFn(connectInstance);
@@ -78,28 +85,43 @@ function ConnectionsPage() {
   };
 
   const doTest = async (c: Connection) => {
+    setBusyFor(c.id, "test");
     try {
       const r = await testFn({ data: { connectionId: c.id } });
+      setDiag(c.id, { ok: true, action: "Testar", message: `Estado: ${r.state}`, details: JSON.stringify(r, null, 2), at: new Date().toISOString() });
       toast.success(`Estado: ${r.state}`);
       load();
-    } catch (e: any) { toast.error(e.message); }
+    } catch (e: any) {
+      setDiag(c.id, { ok: false, action: "Testar", message: e?.message ?? "Falha ao testar", details: e?.stack, at: new Date().toISOString() });
+      toast.error(e.message);
+    } finally { setBusyFor(c.id, null); }
   };
 
   const doConnect = async (c: Connection) => {
+    setBusyFor(c.id, "connect");
     try {
       const r = await connectFn({ data: { connectionId: c.id } });
       if (r.qr) setQr({ open: true, data: r.qr, name: c.name });
       else toast.info("Sem QR retornado — verifique o estado.");
+      setDiag(c.id, { ok: true, action: "Conectar", message: r.qr ? "QR Code gerado" : "Sem QR retornado", details: JSON.stringify(r, null, 2), at: new Date().toISOString() });
       load();
-    } catch (e: any) { toast.error(e.message); }
+    } catch (e: any) {
+      setDiag(c.id, { ok: false, action: "Conectar", message: e?.message ?? "Falha ao conectar", details: e?.stack, at: new Date().toISOString() });
+      toast.error(e.message);
+    } finally { setBusyFor(c.id, null); }
   };
 
   const doDisconnect = async (c: Connection) => {
+    setBusyFor(c.id, "disconnect");
     try {
-      await disconnectFn({ data: { connectionId: c.id } });
+      const r = await disconnectFn({ data: { connectionId: c.id } });
+      setDiag(c.id, { ok: true, action: "Desconectar", message: "Desconectado", details: JSON.stringify(r, null, 2), at: new Date().toISOString() });
       toast.success("Desconectado");
       load();
-    } catch (e: any) { toast.error(e.message); }
+    } catch (e: any) {
+      setDiag(c.id, { ok: false, action: "Desconectar", message: e?.message ?? "Falha ao desconectar", details: e?.stack, at: new Date().toISOString() });
+      toast.error(e.message);
+    } finally { setBusyFor(c.id, null); }
   };
 
   return (
@@ -153,11 +175,46 @@ function ConnectionsPage() {
                   {c.last_sync && <div><span className="font-medium text-foreground">Sync:</span> {new Date(c.last_sync).toLocaleString()}</div>}
                 </div>
                 <div className="flex flex-wrap gap-2">
-                  <Button size="sm" variant="secondary" onClick={() => doTest(c)}><Play className="h-3.5 w-3.5 mr-1" />Testar</Button>
-                  <Button size="sm" onClick={() => doConnect(c)}><QrCode className="h-3.5 w-3.5 mr-1" />Conectar</Button>
-                  <Button size="sm" variant="outline" onClick={() => doConnect(c)}><RefreshCw className="h-3.5 w-3.5 mr-1" />Reconectar</Button>
-                  <Button size="sm" variant="outline" onClick={() => doDisconnect(c)}><Power className="h-3.5 w-3.5 mr-1" />Desconectar</Button>
+                  <Button size="sm" variant="secondary" disabled={!!busy[c.id]} onClick={() => doTest(c)}><Play className="h-3.5 w-3.5 mr-1" />Testar</Button>
+                  <Button size="sm" disabled={!!busy[c.id]} onClick={() => doConnect(c)}><QrCode className="h-3.5 w-3.5 mr-1" />Conectar</Button>
+                  <Button size="sm" variant="outline" disabled={!!busy[c.id]} onClick={() => doConnect(c)}><RefreshCw className="h-3.5 w-3.5 mr-1" />Reconectar</Button>
+                  <Button size="sm" variant="outline" disabled={!!busy[c.id]} onClick={() => doDisconnect(c)}><Power className="h-3.5 w-3.5 mr-1" />Desconectar</Button>
                   <Button size="sm" variant="ghost" onClick={() => remove(c.id)}><Trash2 className="h-3.5 w-3.5" /></Button>
+                </div>
+
+                <div className="rounded-md border bg-muted/30 p-2 text-xs">
+                  <div className="flex items-center gap-1.5 font-medium">
+                    <Activity className="h-3.5 w-3.5" />
+                    Diagnóstico
+                  </div>
+                  {busy[c.id] ? (
+                    <p className="mt-1 text-muted-foreground">Executando {busy[c.id]}…</p>
+                  ) : diagnostics[c.id] ? (
+                    <div className="mt-1 space-y-1">
+                      <div className="flex items-center gap-1.5">
+                        {diagnostics[c.id].ok ? (
+                          <CheckCircle2 className="h-3.5 w-3.5 text-green-600" />
+                        ) : (
+                          <XCircle className="h-3.5 w-3.5 text-red-600" />
+                        )}
+                        <span className="font-medium">{diagnostics[c.id].action}:</span>
+                        <span className={diagnostics[c.id].ok ? "text-green-700" : "text-red-700"}>
+                          {diagnostics[c.id].message}
+                        </span>
+                      </div>
+                      <div className="text-muted-foreground">
+                        {new Date(diagnostics[c.id].at).toLocaleString()}
+                      </div>
+                      {diagnostics[c.id].details && (
+                        <details>
+                          <summary className="cursor-pointer text-muted-foreground hover:text-foreground">Detalhes</summary>
+                          <pre className="mt-1 max-h-40 overflow-auto whitespace-pre-wrap rounded bg-background p-2 text-[10px]">{diagnostics[c.id].details}</pre>
+                        </details>
+                      )}
+                    </div>
+                  ) : (
+                    <p className="mt-1 text-muted-foreground">Nenhum teste executado ainda.</p>
+                  )}
                 </div>
               </CardContent>
             </Card>
