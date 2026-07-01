@@ -276,10 +276,13 @@ function Telao() {
   };
   const [bigReceipt, setBigReceipt] = useState<{ name: string; amount: number } | null>(null);
   const bigReceiptTimer = useRef<number | null>(null);
+  const [pendenteFlash, setPendenteFlash] = useState(false);
   const showBigReceipt = (name: string, amount: number) => {
     setBigReceipt({ name: name || "Produtor", amount: Number(amount) || 0 });
     if (bigReceiptTimer.current) window.clearTimeout(bigReceiptTimer.current);
     bigReceiptTimer.current = window.setTimeout(() => setBigReceipt(null), overlaySeconds * 1000);
+    setPendenteFlash(true);
+    window.setTimeout(() => setPendenteFlash(false), 2000);
   };
   const rootRef = useRef<HTMLDivElement>(null);
   const [clock, setClock] = useState<string>(() => new Date().toLocaleTimeString("pt-BR"));
@@ -666,7 +669,9 @@ function Telao() {
         }
         const name = sale ? (producerNameOf(sale) !== "—" ? producerNameOf(sale) : cName(sale.customer_id)) : "Produtor";
         if (celebration.confettiEnabled) fireConfetti();
-        if (soundEnabled && celebration.soundEnabled) playSound(soundId, celebration.volume / 100, celebration.customSoundUrl);
+        // Som fixo de "caixa registradora" (clin) toda vez que um recebimento é confirmado.
+        // Independente do som escolhido para novas vendas.
+        playSound("caixa", Math.max(0.5, (celebration.volume || 80) / 100));
         showBigReceipt(name, Number(row.amount || 0));
       })
       .subscribe();
@@ -1126,7 +1131,7 @@ function Telao() {
               </div>
               <div className="text-center">
                 <div className="text-[10px] uppercase tracking-widest text-emerald-400/80">Receb. pendentes · Hoje</div>
-                <div style={{ fontFamily: '"Bebas Neue", sans-serif' }} className="text-4xl text-emerald-400 tabular-nums">
+                <div style={{ fontFamily: '"Bebas Neue", sans-serif' }} className={`text-4xl text-emerald-400 tabular-nums ${pendenteFlash ? "telao-pop telao-pulse" : ""}`}>
                   {formatCurrency(pendenteVal)}
                 </div>
               </div>
