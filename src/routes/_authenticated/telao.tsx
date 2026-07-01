@@ -276,6 +276,15 @@ function rememberRealtimeEventOnce(store: Set<string>, key: string, max = 500) {
   return true;
 }
 
+function rememberRecentPaymentEvent(store: Set<string>, saleId: string | undefined, amount: number | undefined) {
+  if (!saleId) return true;
+  const key = `${saleId}:${Number(amount || 0).toFixed(2)}`;
+  if (store.has(key)) return false;
+  store.add(key);
+  window.setTimeout(() => store.delete(key), 15000);
+  return true;
+}
+
 // Hook count-up
 function useCountUp(target: number, duration = 900, replayKey: number = 0) {
   const [val, setVal] = useState(target);
@@ -322,6 +331,7 @@ function Telao() {
   const bigReceiptTimer = useRef<number | null>(null);
   const processedReceiptIdsRef = useRef<Set<string>>(new Set());
   const processedPaymentUpdateKeysRef = useRef<Set<string>>(new Set());
+  const recentPaymentEventKeysRef = useRef<Set<string>>(new Set());
   const [pendenteFlash, setPendenteFlash] = useState(false);
   const showBigReceipt = (name: string, amount: number) => {
     setBigReceipt({ name: name || "Produtor", amount: Number(amount) || 0 });
@@ -714,6 +724,7 @@ function Telao() {
 
         const key = `sale-paid-update:${next.id}:${paidBefore.toFixed(2)}:${paidAfter.toFixed(2)}`;
         if (!rememberRealtimeEventOnce(processedPaymentUpdateKeysRef.current, key)) return;
+        if (!rememberRecentPaymentEvent(recentPaymentEventKeysRef.current, next.id, diff)) return;
 
         const name = producerNameOf(next) !== "—" ? producerNameOf(next) : cName(next.customer_id);
         if (celebration.confettiEnabled) fireConfetti();
@@ -742,6 +753,7 @@ function Telao() {
         // Sinal inicial (na criação da venda) NÃO dispara overlay de "valor recebido" —
         // já é celebrado pelo overlay de nova venda (bigSeller).
         if ((row.notes || "").toLowerCase().includes("comprovante inicial")) return;
+        if (!rememberRecentPaymentEvent(recentPaymentEventKeysRef.current, row.sale_id, Number(row.amount || 0))) return;
         let sale = uniqueSales.find((s) => s.id === row.sale_id);
         if (!sale) {
           const { data } = await supabase
