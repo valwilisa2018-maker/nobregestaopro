@@ -657,7 +657,7 @@ function Telao() {
   }, [sales]);
 
   const todaySales = uniqueSales.filter((s) => {
-    const date = new Date(s.created_at);
+    const date = s.sale_date ? new Date(s.sale_date + 'T12:00:00') : new Date(s.created_at);
     return date >= today0;
   });
   const weekSales = uniqueSales.filter((s) => {
