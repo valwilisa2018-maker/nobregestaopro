@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Search, Loader2, History } from "lucide-react";
 import { toast } from "sonner";
 import { formatCurrency } from "@/lib/auth";
@@ -32,7 +33,7 @@ function PendingPaymentsPage() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("sales")
-        .select("id, sale_date, total_amount, paid_amount, payment_status, notes, receipt_url, customer:customers(id, name, company, phone, email)")
+        .select("id, sale_date, total_amount, paid_amount, payment_status, notes, receipt_url, seller_id, producer_id, customer:customers(id, name, company, phone, email), seller:sellers(id, name), producer:producers(id, name)")
         .in("payment_status", ["pendente", "pago_parcial"])
         .order("sale_date", { ascending: false });
       if (error) throw error;
@@ -40,18 +41,38 @@ function PendingPaymentsPage() {
     },
   });
 
+  const [sellerFilter, setSellerFilter] = useState<string>("all");
+  const [producerFilter, setProducerFilter] = useState<string>("all");
+  const [dateFrom, setDateFrom] = useState("");
+  const [dateTo, setDateTo] = useState("");
+
+  const sellersList = useMemo(() => {
+    const map = new Map<string, string>();
+    (q.data ?? []).forEach((s: any) => { if (s.seller?.id) map.set(s.seller.id, s.seller.name); });
+    return Array.from(map, ([id, name]) => ({ id, name })).sort((a, b) => a.name.localeCompare(b.name));
+  }, [q.data]);
+  const producersList = useMemo(() => {
+    const map = new Map<string, string>();
+    (q.data ?? []).forEach((s: any) => { if (s.producer?.id) map.set(s.producer.id, s.producer.name); });
+    return Array.from(map, ([id, name]) => ({ id, name })).sort((a, b) => a.name.localeCompare(b.name));
+  }, [q.data]);
+
   const rows = useMemo(() => {
     const term = search.trim().toLowerCase();
     return (q.data ?? []).filter((s: any) => {
       const remaining = Number(s.total_amount ?? 0) - Number(s.paid_amount ?? 0);
       if (remaining <= 0) return false;
+      if (sellerFilter !== "all" && s.seller?.id !== sellerFilter) return false;
+      if (producerFilter !== "all" && s.producer?.id !== producerFilter) return false;
+      if (dateFrom && s.sale_date < dateFrom) return false;
+      if (dateTo && s.sale_date > dateTo) return false;
       if (!term) return true;
       const c = s.customer ?? {};
-      return [c.name, c.company, c.phone, c.email].some((v) =>
+      return [c.name, c.company, c.phone, c.email, s.seller?.name, s.producer?.name].some((v) =>
         (v ?? "").toString().toLowerCase().includes(term),
       );
     });
-  }, [q.data, search]);
+  }, [q.data, search, sellerFilter, producerFilter, dateFrom, dateTo]);
 
   const totalPending = rows.reduce(
     (acc: number, s: any) => acc + (Number(s.total_amount ?? 0) - Number(s.paid_amount ?? 0)),
@@ -145,9 +166,29 @@ function PendingPaymentsPage() {
 
       <Card className="border-border/50">
         <CardContent className="p-4">
-          <div className="relative max-w-sm">
-            <Search className="w-4 h-4 absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground" />
-            <Input className="pl-8" placeholder="Buscar cliente..." value={search} onChange={(e) => setSearch(e.target.value)} />
+          <div className="grid grid-cols-1 md:grid-cols-5 gap-3">
+            <div className="relative md:col-span-2">
+              <Search className="w-4 h-4 absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground" />
+              <Input className="pl-8" placeholder="Buscar cliente, empresa, vendedor..." value={search} onChange={(e) => setSearch(e.target.value)} />
+            </div>
+            <Select value={sellerFilter} onValueChange={setSellerFilter}>
+              <SelectTrigger><SelectValue placeholder="Vendedor" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos vendedores</SelectItem>
+                {sellersList.map((s) => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
+              </SelectContent>
+            </Select>
+            <Select value={producerFilter} onValueChange={setProducerFilter}>
+              <SelectTrigger><SelectValue placeholder="Produtor" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos produtores</SelectItem>
+                {producersList.map((p) => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}
+              </SelectContent>
+            </Select>
+            <div className="flex gap-2">
+              <Input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} title="De" />
+              <Input type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)} title="Até" />
+            </div>
           </div>
         </CardContent>
       </Card>
@@ -160,6 +201,8 @@ function PendingPaymentsPage() {
                 <TableHead>Data</TableHead>
                 <TableHead>Cliente</TableHead>
                 <TableHead>Empresa</TableHead>
+                <TableHead>Vendedor</TableHead>
+                <TableHead>Produtor</TableHead>
                 <TableHead className="text-right">Total</TableHead>
                 <TableHead className="text-right">Pago</TableHead>
                 <TableHead className="text-right">Saldo</TableHead>
@@ -169,10 +212,10 @@ function PendingPaymentsPage() {
             </TableHeader>
             <TableBody>
               {q.isLoading && (
-                <TableRow><TableCell colSpan={8} className="text-center py-8"><Loader2 className="w-5 h-5 animate-spin inline" /></TableCell></TableRow>
+                <TableRow><TableCell colSpan={10} className="text-center py-8"><Loader2 className="w-5 h-5 animate-spin inline" /></TableCell></TableRow>
               )}
               {!q.isLoading && rows.length === 0 && (
-                <TableRow><TableCell colSpan={8} className="text-center text-muted-foreground py-8">Nenhum valor pendente</TableCell></TableRow>
+                <TableRow><TableCell colSpan={10} className="text-center text-muted-foreground py-8">Nenhum valor pendente</TableCell></TableRow>
               )}
               {rows.map((s: any) => {
                 const remaining = Number(s.total_amount ?? 0) - Number(s.paid_amount ?? 0);
@@ -181,6 +224,8 @@ function PendingPaymentsPage() {
                     <TableCell className="whitespace-nowrap">{fmtDate(s.sale_date)}</TableCell>
                     <TableCell className="font-medium">{s.customer?.name ?? "—"}</TableCell>
                     <TableCell>{s.customer?.company ?? "—"}</TableCell>
+                    <TableCell>{s.seller?.name ?? "—"}</TableCell>
+                    <TableCell>{s.producer?.name ?? "—"}</TableCell>
                     <TableCell className="text-right">{formatCurrency(s.total_amount)}</TableCell>
                     <TableCell className="text-right">{formatCurrency(s.paid_amount)}</TableCell>
                     <TableCell className="text-right font-semibold text-red-500">{formatCurrency(remaining)}</TableCell>
