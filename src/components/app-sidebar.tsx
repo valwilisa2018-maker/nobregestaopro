@@ -1,9 +1,10 @@
 import { Link, useRouterState } from "@tanstack/react-router";
+import { useEffect, useState } from "react";
 import {
   LayoutDashboard, Bot, BookOpen, Workflow,
   MessageCircle, Brain, Users, MessagesSquare, History, ScrollText,
   Settings, UserCog, ShieldCheck, DollarSign, Palette, Code2, Webhook, Puzzle, LogOut,
-  LineChart, Activity, CreditCard, Shield, User,
+  LineChart, Activity, CreditCard, Shield, User, Crown, Building2, Plug,
 } from "lucide-react";
 import {
   Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent, SidebarGroupLabel,
@@ -58,10 +59,36 @@ const groups = [
   },
 ];
 
+const adminGroup = {
+  label: "Admin",
+  items: [
+    { title: "Painel Admin", url: "/admin", icon: Crown },
+    { title: "Clientes", url: "/admin/clients", icon: Building2 },
+    { title: "Instâncias", url: "/admin/instances", icon: Plug },
+    { title: "Agentes (todos)", url: "/admin/agents", icon: Bot },
+    { title: "Faturamento", url: "/admin/billing", icon: DollarSign },
+    { title: "White Label", url: "/white-label", icon: Palette },
+  ],
+};
+
 export function AppSidebar() {
   const { state } = useSidebar();
   const collapsed = state === "collapsed";
   const pathname = useRouterState({ select: (r) => r.location.pathname });
+  const [isAdmin, setIsAdmin] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      const { data } = await supabase.rpc("has_role", { _user_id: user.id, _role: "admin" });
+      if (!cancelled) setIsAdmin(!!data);
+    })();
+    return () => { cancelled = true; };
+  }, []);
+
+  const allGroups = isAdmin ? [adminGroup, ...groups] : groups;
 
   return (
     <Sidebar collapsible="icon" className="border-r border-sidebar-border">
@@ -81,7 +108,7 @@ export function AppSidebar() {
         </div>
       </SidebarHeader>
       <SidebarContent>
-        {groups.map((g) => (
+        {allGroups.map((g) => (
           <SidebarGroup key={g.label}>
             {!collapsed && <SidebarGroupLabel>{g.label}</SidebarGroupLabel>}
             <SidebarGroupContent>
