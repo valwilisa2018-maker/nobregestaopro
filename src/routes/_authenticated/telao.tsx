@@ -669,7 +669,9 @@ function Telao() {
         }
         const name = sale ? (producerNameOf(sale) !== "—" ? producerNameOf(sale) : cName(sale.customer_id)) : "Produtor";
         if (celebration.confettiEnabled) fireConfetti();
-        if (soundEnabled && celebration.soundEnabled) playSound(soundId, celebration.volume / 100, celebration.customSoundUrl);
+        // Som fixo de "caixa registradora" (clin) toda vez que um recebimento é confirmado.
+        // Independente do som escolhido para novas vendas.
+        playSound("caixa", Math.max(0.5, (celebration.volume || 80) / 100));
         showBigReceipt(name, Number(row.amount || 0));
       })
       .subscribe();
