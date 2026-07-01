@@ -855,21 +855,20 @@ function Telao() {
     refetchIntervalInBackground: false,
     staleTime: 30_000,
   });
-  // Sinal · Hoje = apenas os "Comprovantes iniciais" (sinal na criação da venda) de hoje.
-  // Receb. pendentes · Hoje = qualquer OUTRO recebimento de hoje (inclusive de venda criada hoje).
-  // Assim evitamos dupla contagem quando uma venda de hoje recebe um valor adicional no mesmo dia.
+  // Sinal · Hoje = soma do paid_amount de TODAS as vendas criadas hoje
+  // (cobre parcial e total, mesmo sem comprovante anexado).
+  // Receb. pendentes · Hoje = recebimentos lançados hoje que NÃO são o sinal inicial
+  // da venda de hoje (evita dupla contagem).
   const isInitial = (r: any) => (r.notes || "").toLowerCase().includes("comprovante inicial");
   const totalSinalHoje = useMemo(
-    () => todayReceipts
-      .filter(isInitial)
-      .reduce((a: number, r: any) => a + Number(r.amount || 0), 0),
-    [todayReceipts],
+    () => todaySales.reduce((a: number, s: any) => a + Number(s.paid_amount || 0), 0),
+    [todaySales],
   );
   const totalPendenteHoje = useMemo(
     () => todayReceipts
-      .filter((r: any) => !isInitial(r))
+      .filter((r: any) => !(todaySaleIds.has(r.sale_id) && isInitial(r)))
       .reduce((a: number, r: any) => a + Number(r.amount || 0), 0),
-    [todayReceipts],
+    [todayReceipts, todaySaleIds],
   );
 
   const [heroBeat, setHeroBeat] = useState(0);
