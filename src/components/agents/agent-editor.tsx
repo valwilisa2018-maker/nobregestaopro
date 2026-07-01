@@ -3,7 +3,7 @@ import { toast } from "sonner";
 import {
   Save, RotateCcw, Sliders, MessageSquare, Clock, Bell, Send, Hash,
   CalendarClock, AudioLines, Image as ImageIcon, PlayCircle, BookOpen, Loader2,
-  Plus, X, Play, Mic,
+  Plus, X, Play, Mic, Info, Trash2, ChevronDown, Upload, FileText,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
@@ -109,6 +109,7 @@ export function AgentEditor({ agent, onSaved, onCancel }: Props) {
     keywords?: { enabled?: boolean; mode?: string; list?: string[] };
     hours?: { enabled?: boolean; start?: string; end?: string; lunch?: boolean; days?: string[]; blockedDates?: string[] };
     audio?: { enabled?: boolean; provider?: "browser" | "elevenlabs"; replaceText?: boolean; autoReply?: boolean; mirrorFormat?: boolean; smartAudio?: boolean; smartAudioChars?: number; asTool?: boolean };
+    media?: { enabled?: boolean; items?: Array<{ id: string; name: string; size?: string; mode?: string; keywords?: string; description?: string }> };
   };
   const ext = (form.tools ?? {}) as Ext;
   function setExt<K extends keyof Ext>(k: K, v: Ext[K]) {
@@ -257,7 +258,7 @@ export function AgentEditor({ agent, onSaved, onCancel }: Props) {
         </Section>
 
         <Section id="s9" number={9} icon={<ImageIcon className="h-4 w-4" />} title="Mídia com IA">
-          <p className="text-sm text-muted-foreground">Análise de imagens, documentos e vídeos.</p>
+          <MediaSection ext={ext} setExt={setExt} onSave={save} saving={saving} />
         </Section>
 
         <Section id="s10" number={10} icon={<PlayCircle className="h-4 w-4" />} title="Testar IA">
@@ -301,6 +302,7 @@ type ExtProps = {
     keywords?: { enabled?: boolean; mode?: string; list?: string[] };
     hours?: { enabled?: boolean; start?: string; end?: string; lunch?: boolean; days?: string[]; blockedDates?: string[] };
     audio?: { enabled?: boolean; provider?: "browser" | "elevenlabs"; replaceText?: boolean; autoReply?: boolean; mirrorFormat?: boolean; smartAudio?: boolean; smartAudioChars?: number; asTool?: boolean };
+    media?: { enabled?: boolean; items?: Array<{ id: string; name: string; size?: string; mode?: string; keywords?: string; description?: string }> };
   };
   setExt: <K extends keyof ExtProps["ext"]>(k: K, v: ExtProps["ext"][K]) => void;
   onSave: () => void;
@@ -362,6 +364,90 @@ function TimingSection({ ext, setExt, onSave, saving }: ExtProps) {
       <FieldRow label="Mensagem para tipos desconhecidos">
         <Input value={t.unknownMsg ?? "Desculpe! Eu ainda não sou capaz de entender esse tipo de mensagem"} onChange={(e) => setExt("timing", { unknownMsg: e.target.value })} />
       </FieldRow>
+      <SaveBar onSave={onSave} saving={saving} />
+    </div>
+  );
+}
+
+// ============ 9. Mídia com IA ============
+function MediaSection({ ext, setExt, onSave, saving }: ExtProps) {
+  const m = ext.media ?? {};
+  const items = m.items ?? [];
+  const [openId, setOpenId] = useState<string | null>(items[0]?.id ?? null);
+
+  const addItem = () => {
+    const id = crypto.randomUUID();
+    const it = { id, name: "Nova Mídia", size: "0MB", mode: "ai", keywords: "", description: "" };
+    setExt("media", { items: [...items, it] });
+    setOpenId(id);
+  };
+  const update = (id: string, patch: Partial<(typeof items)[number]>) =>
+    setExt("media", { items: items.map((x) => (x.id === id ? { ...x, ...patch } : x)) });
+  const remove = (id: string) => setExt("media", { items: items.filter((x) => x.id !== id) });
+
+  return (
+    <div className="space-y-4">
+      <ToggleRow label="Habilitar Mídia com IA" hint="Permite que a IA envie mídias cadastradas" checked={!!m.enabled} onChange={(v) => setExt("media", { enabled: v })} />
+
+      <div className="flex items-start gap-2 rounded-xl border border-border/50 bg-background/30 px-3 py-2.5 text-xs text-muted-foreground">
+        <Info className="h-4 w-4 flex-shrink-0 text-primary mt-0.5" />
+        <span>Envie imagens, vídeos, áudios e documentos que a IA poderá enviar automaticamente aos clientes. Configure o modo de disparo e palavras-chave para cada mídia.</span>
+      </div>
+
+      <button type="button" onClick={addItem} className="flex w-full items-center justify-center gap-2 rounded-xl border border-dashed border-primary/40 bg-primary/5 py-3 text-sm font-medium text-primary hover:bg-primary/10 transition">
+        <Plus className="h-4 w-4" /> Adicionar Mídia
+      </button>
+
+      {items.map((it) => {
+        const open = openId === it.id;
+        return (
+          <div key={it.id} className="rounded-xl border border-primary/30 bg-primary/[.03] overflow-hidden">
+            <button type="button" onClick={() => setOpenId(open ? null : it.id)} className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left">
+              <div className="flex items-center gap-3 min-w-0">
+                <div className="grid h-8 w-8 flex-shrink-0 place-items-center rounded-lg bg-primary/10 text-primary"><FileText className="h-4 w-4" /></div>
+                <span className="text-sm font-semibold truncate">{it.name}</span>
+              </div>
+              <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                <span>{it.size}</span>
+                <ChevronDown className={`h-4 w-4 transition ${open ? "rotate-180" : ""}`} />
+              </div>
+            </button>
+
+            {open && (
+              <div className="border-t border-border/40 p-4 space-y-3">
+                <div className="flex items-center gap-3 rounded-lg bg-background/40 p-3">
+                  <div className="grid h-10 w-10 place-items-center rounded-lg bg-muted/40"><Upload className="h-4 w-4 text-muted-foreground" /></div>
+                  <div className="flex-1 min-w-0">
+                    <div className="text-sm font-medium truncate">{it.name}</div>
+                    <div className="text-[11px] text-muted-foreground">{it.name} • {it.size}</div>
+                  </div>
+                  <button onClick={() => remove(it.id)} className="text-muted-foreground hover:text-destructive"><Trash2 className="h-4 w-4" /></button>
+                </div>
+                <div className="grid gap-3 md:grid-cols-2">
+                  <FieldRow label="Modo de disparo">
+                    <Select value={it.mode ?? "ai"} onValueChange={(v) => update(it.id, { mode: v })}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="ai">IA decide</SelectItem>
+                        <SelectItem value="keyword">Palavra-chave</SelectItem>
+                        <SelectItem value="prompt">Via prompt</SelectItem>
+                        <SelectItem value="all">Todas</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </FieldRow>
+                  <FieldRow label="Palavras-chave">
+                    <Input placeholder="cardápio, menu, preços" value={it.keywords ?? ""} onChange={(e) => update(it.id, { keywords: e.target.value })} />
+                  </FieldRow>
+                </div>
+                <FieldRow label="Descrição (para a IA)">
+                  <Input placeholder="Descreva o conteúdo para a IA saber quando enviar" value={it.description ?? ""} onChange={(e) => update(it.id, { description: e.target.value })} />
+                </FieldRow>
+              </div>
+            )}
+          </div>
+        );
+      })}
+
       <SaveBar onSave={onSave} saving={saving} />
     </div>
   );
