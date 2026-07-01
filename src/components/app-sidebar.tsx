@@ -9,6 +9,7 @@ import {
   SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarHeader, SidebarFooter, useSidebar,
 } from "@/components/ui/sidebar";
 import { supabase } from "@/integrations/supabase/client";
+import logoAsset from "@/assets/agent-ia-logo.png.asset.json";
 
 const groups = [
   {
@@ -60,8 +61,13 @@ export function AppSidebar() {
     <Sidebar collapsible="icon">
       <SidebarHeader className="p-4">
         <div className="flex items-center gap-2">
-          <div className="h-8 w-8 rounded-lg bg-primary flex items-center justify-center text-primary-foreground font-bold">IA</div>
-          {!collapsed && <span className="font-semibold">WhatsApp IA</span>}
+          <img src={logoAsset.url} alt="Agent IA" className="h-9 w-9 rounded-lg object-cover ring-1 ring-primary/30" />
+          {!collapsed && (
+            <div className="flex flex-col leading-tight">
+              <span className="font-bold tracking-wide">AGENT IA</span>
+              <span className="text-[10px] uppercase text-muted-foreground tracking-widest">Plataforma</span>
+            </div>
+          )}
         </div>
       </SidebarHeader>
       <SidebarContent>
