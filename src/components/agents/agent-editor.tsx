@@ -3,7 +3,7 @@ import { toast } from "sonner";
 import {
   Save, RotateCcw, Sliders, MessageSquare, Clock, Bell, Send, Hash,
   CalendarClock, AudioLines, Image as ImageIcon, PlayCircle, BookOpen, Loader2,
-  Plus, X, Play, Mic, Info, Trash2, ChevronDown, Upload, FileText,
+  Plus, X, Play, Mic, Info, Trash2, ChevronDown, Upload, FileText, Send as SendIcon, Bot,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
@@ -262,7 +262,7 @@ export function AgentEditor({ agent, onSaved, onCancel }: Props) {
         </Section>
 
         <Section id="s10" number={10} icon={<PlayCircle className="h-4 w-4" />} title="Testar IA">
-          <p className="text-sm text-muted-foreground">Playground para conversar com o agente.</p>
+          <TestSection form={form} setForm={setForm} />
         </Section>
       </Accordion>
     </div>
