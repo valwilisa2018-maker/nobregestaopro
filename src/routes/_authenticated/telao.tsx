@@ -779,10 +779,8 @@ function Telao() {
             .maybeSingle();
           if (data) sale = data as SaleRow;
         }
-        if (sale) {
-          const saleRef = sale.sale_date ? new Date(`${sale.sale_date}T12:00:00`) : new Date(sale.created_at);
-          if (saleRef >= today0) return;
-        }
+        // Observação: recebimentos do mesmo dia da venda também disparam o overlay do produtor.
+        // O "Comprovante inicial" já é filtrado acima para não duplicar com o overlay de nova venda.
         const name = sale ? (producerNameOf(sale) !== "—" ? producerNameOf(sale) : cName(sale.customer_id)) : "Produtor";
         if (celebration.confettiEnabled) fireConfetti();
         // Som fixo de "caixa registradora" (áudio real) toda vez que um recebimento é confirmado.
