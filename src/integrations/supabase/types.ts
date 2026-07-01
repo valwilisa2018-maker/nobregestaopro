@@ -14,7 +14,69 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      connections: {
+        Row: {
+          api_key: string
+          consumption: number
+          created_at: string
+          description: string | null
+          id: string
+          instance_name: string
+          last_sync: string | null
+          message_count: number
+          name: string
+          notes: string | null
+          phone_number: string | null
+          profile_name: string | null
+          profile_picture: string | null
+          provider: string
+          status: string
+          updated_at: string
+          url_api: string
+          user_id: string
+        }
+        Insert: {
+          api_key: string
+          consumption?: number
+          created_at?: string
+          description?: string | null
+          id?: string
+          instance_name: string
+          last_sync?: string | null
+          message_count?: number
+          name: string
+          notes?: string | null
+          phone_number?: string | null
+          profile_name?: string | null
+          profile_picture?: string | null
+          provider?: string
+          status?: string
+          updated_at?: string
+          url_api: string
+          user_id: string
+        }
+        Update: {
+          api_key?: string
+          consumption?: number
+          created_at?: string
+          description?: string | null
+          id?: string
+          instance_name?: string
+          last_sync?: string | null
+          message_count?: number
+          name?: string
+          notes?: string | null
+          phone_number?: string | null
+          profile_name?: string | null
+          profile_picture?: string | null
+          provider?: string
+          status?: string
+          updated_at?: string
+          url_api?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
