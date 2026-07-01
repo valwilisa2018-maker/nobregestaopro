@@ -849,13 +849,30 @@ function Telao() {
 
   const now = new Date();
 
-  const totalHoje = sum(todaySales);
+  // Fonte de verdade do topo do telão: sempre pela DATA DA VENDA.
+  // Faturamento = total_amount, Sinal = paid_amount, Vendas = quantidade do dia.
+  const dailyFinancialsQ = useQuery({
+    queryKey: ["telao-daily-financials", todayISO],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("v_daily_financials")
+        .select("sinal,total_vendido,vendas")
+        .eq("dia", todayISO)
+        .maybeSingle();
+      if (error) throw error;
+      return data as { sinal: number | string | null; total_vendido: number | string | null; vendas: number | null } | null;
+    },
+    refetchInterval: 60000,
+    refetchIntervalInBackground: false,
+    staleTime: 30_000,
+  });
+  const dailyFinancials = dailyFinancialsQ.data;
+  const vendasHoje = dailyFinancials ? Number(dailyFinancials.vendas || 0) : todaySales.length;
+  const totalHoje = dailyFinancials ? Number(dailyFinancials.total_vendido || 0) : sum(todaySales);
   const totalSemana = sum(weekSales);
   const totalMes = sum(monthSales);
-  const ticketMedio = todaySales.length ? totalHoje / todaySales.length : 0;
+  const ticketMedio = vendasHoje ? totalHoje / vendasHoje : 0;
 
-  // Fonte de verdade (backend): v_daily_financials.sinal = Σ sales.paid_amount do dia.
-  // Nunca depende de notes em sale_receipts.
   const receipts = receiptsQ.data ?? [];
   const todaySaleIds = useMemo(() => new Set(todaySales.map((s: any) => s.id)), [todaySales]);
   const todayReceipts = useMemo(() => {
@@ -864,29 +881,14 @@ function Telao() {
       return receiptDate === todayISO;
     });
   }, [receipts, todayISO]);
-  const sinalHojeQ = useQuery({
-    queryKey: ["telao-sinal-hoje", todayISO],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("v_daily_financials")
-        .select("sinal")
-        .eq("dia", todayISO)
-        .maybeSingle();
-      if (error) throw error;
-      return Number(data?.sinal ?? 0);
-    },
-    refetchInterval: 60000,
-    refetchIntervalInBackground: false,
-    staleTime: 30_000,
-  });
   // Sinal · Hoje = soma do paid_amount das vendas com DATA DA VENDA de hoje
   // (parcial conta só o pago; total conta o total pago).
   // Receb. pendentes · Hoje = recebimentos lançados hoje que NÃO são o sinal inicial
   // da venda de hoje (evita dupla contagem).
   const isInitial = (r: any) => (r.notes || "").toLowerCase().includes("comprovante inicial");
   const totalSinalHoje = useMemo(
-    () => todaySales.reduce((a: number, s: any) => a + Number(s.paid_amount || 0), 0),
-    [todaySales],
+    () => dailyFinancials ? Number(dailyFinancials.sinal || 0) : todaySales.reduce((a: number, s: any) => a + Number(s.paid_amount || 0), 0),
+    [dailyFinancials, todaySales],
   );
   const totalPendenteHoje = useMemo(
     () => todayReceipts
@@ -898,7 +900,7 @@ function Telao() {
   const [heroBeat, setHeroBeat] = useState(0);
   const heroVal = useCountUp(totalHoje, 900, heroBeat);
   const ticketVal = useCountUp(ticketMedio, 900, heroBeat);
-  const opVal = useCountUp(todaySales.length, 900, heroBeat);
+  const opVal = useCountUp(vendasHoje, 900, heroBeat);
   const sinalVal = useCountUp(totalSinalHoje, 900, heroBeat);
   const pendenteVal = useCountUp(totalPendenteHoje, 900, heroBeat);
 
