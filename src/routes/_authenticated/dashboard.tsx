@@ -338,10 +338,13 @@ function Dashboard() {
   // Minutagem é extraída do próprio nome do card (ex.: "2:30", "1min30s").
   const producerRanking = (producers.data ?? []).map((p: any) => {
     const ofProducer = ordersList.filter((o) => o.producer_id === p.id);
-    // Valor total produzido = soma proporcional do total_amount das vendas para cada serviço entregue por este produtor
+    // Valor total produzido no MÊS corrente (zera na virada do mês)
+    const monthISOStart = startOf("month").slice(0, 10);
     const saleById = new Map(all.map((s: any) => [s.id, s]));
     const valorTotal = ofProducer.reduce((acc, o) => {
       if (!(o.delivered_at || o.kanban_columns?.is_done)) return acc;
+      const d = (o.delivered_at ?? "").slice(0, 10);
+      if (!d || d < monthISOStart) return acc;
       const sale: any = saleById.get(o.sale_id);
       if (!sale) return acc;
       const qty = Math.max(Number(sale.service_quantity || 1), 1);
