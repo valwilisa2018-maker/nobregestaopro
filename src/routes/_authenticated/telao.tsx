@@ -649,12 +649,22 @@ function Telao() {
 
   // Realtime: novo recebimento (sale_receipts INSERT) → overlay com produtor + valor recebido
   useEffect(() => {
+    const processedReceiptIds = processedReceiptIdsRef.current;
     const channel = supabase
       .channel("telao-sale-receipts")
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "sale_receipts" }, async (payload: any) => {
         qc.invalidateQueries({ queryKey: ["telao-sale-receipts"] });
-        const row = payload?.new as { sale_id?: string; amount?: number; notes?: string } | undefined;
+        const row = payload?.new as { id?: string; sale_id?: string; amount?: number; notes?: string } | undefined;
         if (!row?.sale_id) return;
+        // Trava de idempotência: cada recebimento dispara som/overlay uma única vez.
+        if (row.id) {
+          if (processedReceiptIds.has(row.id)) return;
+          processedReceiptIds.add(row.id);
+          if (processedReceiptIds.size > 500) {
+            const first = processedReceiptIds.values().next().value;
+            if (first) processedReceiptIds.delete(first);
+          }
+        }
         // Sinal inicial (na criação da venda) NÃO dispara overlay de "valor recebido" —
         // já é celebrado pelo overlay de nova venda (bigSeller).
         if ((row.notes || "").toLowerCase().includes("comprovante inicial")) return;
