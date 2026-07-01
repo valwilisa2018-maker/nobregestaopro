@@ -859,7 +859,11 @@ function Telao() {
     ?? todaySales.reduce((a: number, s: any) => a + Number(s.paid_amount || 0), 0);
   const totalPendenteHoje = useMemo(
     () => todayReceipts
-      .filter((r: any) => !todaySaleIds.has(r.sale_id))
+      // Ignora apenas o "Comprovante inicial" (sinal registrado na criação da venda),
+      // que já é contabilizado em Sinal · Hoje. Qualquer outro recebimento entra aqui,
+      // mesmo que a venda seja do próprio dia.
+      .filter((r: any) => !(r.notes || "").toLowerCase().includes("comprovante inicial"))
+      .filter((r: any) => !todaySaleIds.has(r.sale_id) || true)
       .reduce((a: number, r: any) => a + Number(r.amount || 0), 0),
     [todayReceipts, todaySaleIds],
   );
