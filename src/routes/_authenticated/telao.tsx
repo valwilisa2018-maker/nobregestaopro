@@ -52,6 +52,33 @@ const MAX_SOUND_DURATION = 35;
 // Mantém referência aos contextos/sources ativos para impedir sobreposição
 const activeCtxs = new Set<AudioContext>();
 let activeSource: AudioBufferSourceNode | null = null;
+let sharedAudioCtx: AudioContext | null = null;
+
+function getSharedAudioCtx(): AudioContext | null {
+  try {
+    if (sharedAudioCtx && sharedAudioCtx.state !== "closed") return sharedAudioCtx;
+    const AC = (window.AudioContext || (window as any).webkitAudioContext);
+    sharedAudioCtx = new AC();
+    return sharedAudioCtx;
+  } catch { return null; }
+}
+
+async function unlockAudio() {
+  const ctx = getSharedAudioCtx();
+  if (!ctx) return false;
+  try {
+    if (ctx.state === "suspended") await ctx.resume();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    gain.gain.value = 0.0001;
+    osc.connect(gain).connect(ctx.destination);
+    osc.start();
+    osc.stop(ctx.currentTime + 0.03);
+    return true;
+  } catch {
+    return false;
+  }
+}
 
 function stopAllSounds() {
   if (activeSource) {
@@ -60,7 +87,9 @@ function stopAllSounds() {
     activeSource = null;
   }
   activeCtxs.forEach((c) => {
-    try { c.close(); } catch {}
+    if (c !== sharedAudioCtx) {
+      try { c.close(); } catch {}
+    }
   });
   activeCtxs.clear();
 }
@@ -69,7 +98,9 @@ function registerCtx(ctx: AudioContext, lifeMs: number) {
   activeCtxs.add(ctx);
   const cap = Math.min(lifeMs, MAX_SOUND_DURATION * 1000);
   setTimeout(() => {
-    try { ctx.close(); } catch {}
+    if (ctx !== sharedAudioCtx) {
+      try { ctx.close(); } catch {}
+    }
     activeCtxs.delete(ctx);
   }, cap);
 }
@@ -168,8 +199,9 @@ function playSino(ctx: AudioContext, vol = 1) {
 async function playSound(id: SoundId, vol = 1, customUrl?: string) {
   // Interrompe qualquer som anterior — evita sobreposição de áudios
   stopAllSounds();
-  const ctx = getCtx();
+  const ctx = getSharedAudioCtx() ?? getCtx();
   if (!ctx) return;
+  try { if (ctx.state === "suspended") await ctx.resume(); } catch {}
   
   let audioUrl = "";
   if (id === "custom" && customUrl) {
