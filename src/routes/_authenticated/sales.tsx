@@ -311,6 +311,16 @@ function SalesPage() {
       if (k === "service_type_id" || k === "seller_id") {
         checkInfluencer();
       }
+
+      // Evita bloqueio silencioso na geração da venda: para serviços de vídeo/pacote,
+      // já deixa a minutagem mínima selecionada. O vendedor ainda pode alterar para
+      // 1min, 2min etc. antes de salvar.
+      if (k === "service_type_id" || k === "package_id") {
+        const serviceType = serviceTypes.data?.find((st: any) => st.id === updatedForm.service_type_id);
+        if (isVideoService(serviceType?.name, !!updatedForm.package_id) && !updatedForm.video_duration_seconds) {
+          updatedForm.video_duration_seconds = "30";
+        }
+      }
       
       return updatedForm;
     });
