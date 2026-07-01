@@ -52,6 +52,33 @@ const MAX_SOUND_DURATION = 35;
 // Mantém referência aos contextos/sources ativos para impedir sobreposição
 const activeCtxs = new Set<AudioContext>();
 let activeSource: AudioBufferSourceNode | null = null;
+let sharedAudioCtx: AudioContext | null = null;
+
+function getSharedAudioCtx(): AudioContext | null {
+  try {
+    if (sharedAudioCtx && sharedAudioCtx.state !== "closed") return sharedAudioCtx;
+    const AC = (window.AudioContext || (window as any).webkitAudioContext);
+    sharedAudioCtx = new AC();
+    return sharedAudioCtx;
+  } catch { return null; }
+}
+
+async function unlockAudio() {
+  const ctx = getSharedAudioCtx();
+  if (!ctx) return false;
+  try {
+    if (ctx.state === "suspended") await ctx.resume();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    gain.gain.value = 0.0001;
+    osc.connect(gain).connect(ctx.destination);
+    osc.start();
+    osc.stop(ctx.currentTime + 0.03);
+    return true;
+  } catch {
+    return false;
+  }
+}
 
 function stopAllSounds() {
   if (activeSource) {
@@ -60,7 +87,9 @@ function stopAllSounds() {
     activeSource = null;
   }
   activeCtxs.forEach((c) => {
-    try { c.close(); } catch {}
+    if (c !== sharedAudioCtx) {
+      try { c.close(); } catch {}
+    }
   });
   activeCtxs.clear();
 }
@@ -69,7 +98,9 @@ function registerCtx(ctx: AudioContext, lifeMs: number) {
   activeCtxs.add(ctx);
   const cap = Math.min(lifeMs, MAX_SOUND_DURATION * 1000);
   setTimeout(() => {
-    try { ctx.close(); } catch {}
+    if (ctx !== sharedAudioCtx) {
+      try { ctx.close(); } catch {}
+    }
     activeCtxs.delete(ctx);
   }, cap);
 }
@@ -168,8 +199,9 @@ function playSino(ctx: AudioContext, vol = 1) {
 async function playSound(id: SoundId, vol = 1, customUrl?: string) {
   // Interrompe qualquer som anterior — evita sobreposição de áudios
   stopAllSounds();
-  const ctx = getCtx();
+  const ctx = getSharedAudioCtx() ?? getCtx();
   if (!ctx) return;
+  try { if (ctx.state === "suspended") await ctx.resume(); } catch {}
   
   let audioUrl = "";
   if (id === "custom" && customUrl) {
@@ -261,6 +293,7 @@ function Telao() {
   const [celebration, setCelebration] = useCelebrationSettings();
   const [overlaySeconds] = useBigSellerOverlaySeconds();
   const [soundEnabled, setSoundEnabled] = useState(false);
+  const [audioReady, setAudioReady] = useState(false);
   const [soundId, setSoundId] = useState<SoundId>(celebration.soundId as SoundId);
   const [customSoundUrl, setCustomSoundUrl] = useState(celebration.customSoundUrl || "");
   const [lastCount, setLastCount] = useState<number | null>(null);
@@ -286,6 +319,19 @@ function Telao() {
     window.setTimeout(() => setPendenteFlash(false), 2000);
   };
   const rootRef = useRef<HTMLDivElement>(null);
+  const enableSound = async () => {
+    const next = !soundEnabled;
+    setSoundEnabled(next);
+    setCelebration({ soundEnabled: next });
+    if (next) {
+      const ok = await unlockAudio();
+      setAudioReady(ok);
+      await playSound("caixa", Math.max(0.45, (celebration.volume || 80) / 100));
+    } else {
+      setAudioReady(false);
+      stopAllSounds();
+    }
+  };
   const [clock, setClock] = useState<string>(() => new Date().toLocaleTimeString("pt-BR"));
   useEffect(() => {
     const id = setInterval(() => setClock(new Date().toLocaleTimeString("pt-BR")), 1000);
@@ -851,11 +897,7 @@ function Telao() {
           </div>
           <div className="flex items-center gap-1 rounded border border-[#c9a84c]/30 bg-[#1a1a1a] overflow-hidden p-1 mr-2">
             <button
-              onClick={() => {
-                const newState = !soundEnabled;
-                setSoundEnabled(newState);
-                setCelebration({ soundEnabled: newState });
-              }}
+              onClick={enableSound}
               title={soundEnabled ? "Som Ativado" : "Som Desativado"}
               className={`h-8 w-8 grid place-items-center rounded transition ${
                 soundEnabled ? "bg-[#c9a84c] text-black" : "text-[#c9a84c] hover:bg-[#c9a84c]/10"
@@ -933,7 +975,7 @@ function Telao() {
             ))}
           </div>
           <button
-            onClick={() => { setSoundEnabled((v) => !v); if (!soundEnabled && celebration.soundEnabled) playSound(soundId, celebration.volume / 100); }}
+            onClick={enableSound}
             className={`h-10 w-10 grid place-items-center rounded border transition ${soundEnabled ? "bg-[#c9a84c] text-black border-[#c9a84c]" : "bg-[#1a1a1a] border-[#c9a84c]/30 text-[#c9a84c] hover:border-[#c9a84c]"}`}
             title={soundEnabled ? "Som ON" : "Ativar buzina"}
           >
@@ -948,6 +990,12 @@ function Telao() {
           </button>
         </div>
       </header>
+
+      {soundEnabled && !audioReady && (
+        <div className="mb-4 rounded border border-amber-400/40 bg-amber-400/10 px-4 py-2 text-sm text-amber-100">
+          Clique novamente no ícone de som se o navegador ainda não liberou o áudio.
+        </div>
+      )}
 
       {/* MARQUEE — últimas vendas rolando (abaixo do título) */}
       {marqueeSales.length > 0 && (
