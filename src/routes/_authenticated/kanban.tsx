@@ -1020,8 +1020,8 @@ function KanbanPage() {
                               )}
                               <div className="text-sm font-medium leading-tight">
                                 {c.title}
-                                {isOverdue(c.due_date, c.due_time) && !col.is_done && (
-                                  <div className="flex items-center gap-1 text-[10px] font-bold text-destructive uppercase animate-pulse">
+                                {isCardOverdue(c) && col.is_default && (
+                                  <div className="flex items-center gap-1 text-[11px] font-bold text-destructive uppercase animate-pulse">
                                     <AlertCircle className="w-3 h-3" /> Atrasado
                                   </div>
                                 )}
@@ -1202,8 +1202,8 @@ function KanbanPage() {
                       )}
                       <div className="text-sm font-medium leading-tight">
                         {c.title}
-                        {isOverdue(c.due_date, c.due_time) && !col.is_done && (
-                          <div className="flex items-center gap-1 text-[10px] font-bold text-destructive uppercase animate-pulse">
+                        {isCardOverdue(c) && col.is_default && (
+                          <div className="flex items-center gap-1 text-[11px] font-bold text-destructive uppercase animate-pulse">
                             <AlertCircle className="w-3 h-3" /> Atrasado
                           </div>
                         )}
