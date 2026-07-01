@@ -483,6 +483,7 @@ function TestSection({ form, setForm }: { form: AgentRow; setForm: React.Dispatc
           maxTokens: form.max_tokens ?? 2048,
           systemPrompt: form.system_prompt ?? "",
           messages: next,
+          providerId: form.ai_provider_id,
         },
       });
       setMessages([...next, { role: "assistant", content: res.text || "(sem resposta)" }]);
