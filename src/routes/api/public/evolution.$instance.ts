@@ -98,7 +98,8 @@ export const Route = createFileRoute("/api/public/evolution/$instance")({
 
             await supabaseAdmin.from("messages").insert({
               user_id: conn.user_id,
-              role: "assistant",
+              direction: "outbound",
+              type: "text",
               content: reply,
               metadata: { remoteJid, agent_id: agent.id },
             } as never);
