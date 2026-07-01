@@ -3,6 +3,7 @@ import { toast } from "sonner";
 import {
   Save, RotateCcw, Sliders, MessageSquare, Clock, Bell, Send, Hash,
   CalendarClock, AudioLines, Image as ImageIcon, PlayCircle, BookOpen, Loader2,
+  Plus, X, Play, Mic,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
@@ -99,6 +100,20 @@ export function AgentEditor({ agent, onSaved, onCancel }: Props) {
   const memMsgs = ((form.memory as { messages?: number } | null)?.messages ?? 20);
 
   function set<K extends keyof AgentRow>(k: K, v: AgentRow[K]) { setForm((f) => ({ ...f, [k]: v })); }
+
+  // Extended settings stored in the `tools` JSON column
+  type Ext = {
+    timing?: { preset?: string; timezone?: string; delayChar?: number; delayMax?: number; wait?: number; humanIntervention?: boolean; reactivation?: number; unknownMsg?: string };
+    alerts?: { whatsapp?: boolean; stopAfterHandoff?: boolean; stopAfterHours?: number; includeSummary?: boolean; customRules?: boolean };
+    followup?: { enabled?: boolean; aiGenerated?: boolean; count?: number; checkMin?: number; intervalHrs?: number; respectHours?: boolean; messages?: string[] };
+    keywords?: { enabled?: boolean; mode?: string; list?: string[] };
+    hours?: { enabled?: boolean; start?: string; end?: string; lunch?: boolean; days?: string[]; blockedDates?: string[] };
+    audio?: { enabled?: boolean; provider?: "browser" | "elevenlabs"; replaceText?: boolean; autoReply?: boolean; mirrorFormat?: boolean; smartAudio?: boolean; smartAudioChars?: number; asTool?: boolean };
+  };
+  const ext = (form.tools ?? {}) as Ext;
+  function setExt<K extends keyof Ext>(k: K, v: Ext[K]) {
+    setForm((f) => ({ ...f, tools: { ...(f.tools ?? {}), [k]: { ...((f.tools as Ext | null)?.[k] ?? {}), ...v } } }));
+  }
 
   async function save() {
     if (!user) return;
@@ -218,27 +233,27 @@ export function AgentEditor({ agent, onSaved, onCancel }: Props) {
         </Section>
 
         <Section id="s3" number={3} icon={<Clock className="h-4 w-4" />} title="Tempo e Mensagens">
-          <p className="text-sm text-muted-foreground">Delays entre mensagens, digitação humanizada e timers.</p>
+          <TimingSection ext={ext} setExt={setExt} onSave={save} saving={saving} />
         </Section>
 
         <Section id="s4" number={4} icon={<Bell className="h-4 w-4" />} title="Alertas">
-          <p className="text-sm text-muted-foreground">Notificações para eventos e transferências.</p>
+          <AlertsSection ext={ext} setExt={setExt} onSave={save} saving={saving} />
         </Section>
 
         <Section id="s5" number={5} icon={<Send className="h-4 w-4" />} title="Follow-Up">
-          <p className="text-sm text-muted-foreground">Sequências automáticas de retomada.</p>
+          <FollowUpSection ext={ext} setExt={setExt} onSave={save} saving={saving} />
         </Section>
 
         <Section id="s6" number={6} icon={<Hash className="h-4 w-4" />} title="Ativação por Palavra-chave">
-          <p className="text-sm text-muted-foreground">Palavras-chave que acionam o agente.</p>
+          <KeywordsSection ext={ext} setExt={setExt} onSave={save} saving={saving} />
         </Section>
 
         <Section id="s7" number={7} icon={<CalendarClock className="h-4 w-4" />} title="Horário de Funcionamento">
-          <p className="text-sm text-muted-foreground">Defina janelas de atendimento por dia.</p>
+          <HoursSection ext={ext} setExt={setExt} onSave={save} saving={saving} />
         </Section>
 
         <Section id="s8" number={8} icon={<AudioLines className="h-4 w-4" />} title="Áudio com IA">
-          <p className="text-sm text-muted-foreground">Transcrição e resposta em áudio.</p>
+          <AudioSection ext={ext} setExt={setExt} onSave={save} saving={saving} />
         </Section>
 
         <Section id="s9" number={9} icon={<ImageIcon className="h-4 w-4" />} title="Mídia com IA">
@@ -272,6 +287,282 @@ function FieldRow({ label, children }: { label: string; children: ReactNode }) {
     <div className="space-y-1.5">
       <Label className="text-xs uppercase tracking-wider text-muted-foreground">{label}</Label>
       {children}
+    </div>
+  );
+}
+
+// ============ Shared building blocks ============
+
+type ExtProps = {
+  ext: {
+    timing?: { preset?: string; timezone?: string; delayChar?: number; delayMax?: number; wait?: number; humanIntervention?: boolean; reactivation?: number; unknownMsg?: string };
+    alerts?: { whatsapp?: boolean; stopAfterHandoff?: boolean; stopAfterHours?: number; includeSummary?: boolean; customRules?: boolean };
+    followup?: { enabled?: boolean; aiGenerated?: boolean; count?: number; checkMin?: number; intervalHrs?: number; respectHours?: boolean; messages?: string[] };
+    keywords?: { enabled?: boolean; mode?: string; list?: string[] };
+    hours?: { enabled?: boolean; start?: string; end?: string; lunch?: boolean; days?: string[]; blockedDates?: string[] };
+    audio?: { enabled?: boolean; provider?: "browser" | "elevenlabs"; replaceText?: boolean; autoReply?: boolean; mirrorFormat?: boolean; smartAudio?: boolean; smartAudioChars?: number; asTool?: boolean };
+  };
+  setExt: <K extends keyof ExtProps["ext"]>(k: K, v: ExtProps["ext"][K]) => void;
+  onSave: () => void;
+  saving: boolean;
+};
+
+function SaveBar({ onSave, saving }: { onSave: () => void; saving: boolean }) {
+  return (
+    <Button onClick={onSave} disabled={saving} className="w-full mt-4 rounded-xl" style={{ background: "var(--gradient-primary)" }}>
+      {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />} Salvar
+    </Button>
+  );
+}
+
+function ToggleRow({ label, hint, checked, onChange, right }: { label: string; hint?: string; checked: boolean; onChange: (v: boolean) => void; right?: ReactNode }) {
+  return (
+    <div className="flex items-center justify-between gap-3 rounded-xl border border-border/50 bg-background/40 px-4 py-3">
+      <div className="min-w-0">
+        <div className="text-sm font-medium">{label}</div>
+        {hint && <div className="text-xs text-muted-foreground mt-0.5">{hint}</div>}
+      </div>
+      <div className="flex items-center gap-2">{right}<Switch checked={checked} onCheckedChange={onChange} /></div>
+    </div>
+  );
+}
+
+// ============ 3. Tempo e Mensagens ============
+function TimingSection({ ext, setExt, onSave, saving }: ExtProps) {
+  const t = ext.timing ?? {};
+  return (
+    <div className="space-y-4">
+      <div className="grid gap-4 md:grid-cols-2">
+        <FieldRow label="Preset de Timer">
+          <Select value={t.preset ?? "humanizado"} onValueChange={(v) => setExt("timing", { preset: v })}>
+            <SelectTrigger><SelectValue /></SelectTrigger>
+            <SelectContent>
+              {["instantaneo", "rapido", "humanizado", "lento"].map((p) => <SelectItem key={p} value={p}>{p[0].toUpperCase() + p.slice(1)}</SelectItem>)}
+            </SelectContent>
+          </Select>
+        </FieldRow>
+        <FieldRow label="Fuso Horário">
+          <Select value={t.timezone ?? "America/Sao_Paulo"} onValueChange={(v) => setExt("timing", { timezone: v })}>
+            <SelectTrigger><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="America/Sao_Paulo">Brasil - São Paulo (GMT-3)</SelectItem>
+              <SelectItem value="America/Manaus">Brasil - Manaus (GMT-4)</SelectItem>
+              <SelectItem value="UTC">UTC</SelectItem>
+            </SelectContent>
+          </Select>
+        </FieldRow>
+      </div>
+      <div className="grid gap-4 md:grid-cols-3">
+        <FieldRow label="Delay/char (ms)"><Input type="number" value={t.delayChar ?? 120} onChange={(e) => setExt("timing", { delayChar: Number(e.target.value) })} /></FieldRow>
+        <FieldRow label="Delay Máximo (ms)"><Input type="number" value={t.delayMax ?? 10000} onChange={(e) => setExt("timing", { delayMax: Number(e.target.value) })} /></FieldRow>
+        <FieldRow label="Aguardar (seg)"><Input type="number" value={t.wait ?? 7} onChange={(e) => setExt("timing", { wait: Number(e.target.value) })} /></FieldRow>
+      </div>
+      <ToggleRow label="Intervenção Humana" checked={!!t.humanIntervention} onChange={(v) => setExt("timing", { humanIntervention: v })} />
+      <FieldRow label="Reativação (hrs)"><Input className="max-w-[120px]" type="number" value={t.reactivation ?? 24} onChange={(e) => setExt("timing", { reactivation: Number(e.target.value) })} /></FieldRow>
+      <FieldRow label="Mensagem para tipos desconhecidos">
+        <Input value={t.unknownMsg ?? "Desculpe! Eu ainda não sou capaz de entender esse tipo de mensagem"} onChange={(e) => setExt("timing", { unknownMsg: e.target.value })} />
+      </FieldRow>
+      <SaveBar onSave={onSave} saving={saving} />
+    </div>
+  );
+}
+
+// ============ 4. Alertas ============
+function AlertsSection({ ext, setExt, onSave, saving }: ExtProps) {
+  const a = ext.alerts ?? {};
+  return (
+    <div className="space-y-3">
+      <ToggleRow label="Enviar alertas por WhatsApp" checked={!!a.whatsapp} onChange={(v) => setExt("alerts", { whatsapp: v })} />
+      <ToggleRow
+        label="Parar IA após pedir atendimento"
+        checked={!!a.stopAfterHandoff}
+        onChange={(v) => setExt("alerts", { stopAfterHandoff: v })}
+        right={
+          <Select value={String(a.stopAfterHours ?? 24)} onValueChange={(v) => setExt("alerts", { stopAfterHours: Number(v) })}>
+            <SelectTrigger className="h-7 w-[70px] text-xs"><SelectValue /></SelectTrigger>
+            <SelectContent>{[1, 6, 12, 24, 48].map((h) => <SelectItem key={h} value={String(h)}>{h}h</SelectItem>)}</SelectContent>
+          </Select>
+        }
+      />
+      <ToggleRow label="Incluir resumo da conversa" checked={!!a.includeSummary} onChange={(v) => setExt("alerts", { includeSummary: v })} />
+      <ToggleRow label="Regras customizadas" checked={!!a.customRules} onChange={(v) => setExt("alerts", { customRules: v })} />
+      <SaveBar onSave={onSave} saving={saving} />
+    </div>
+  );
+}
+
+// ============ 5. Follow-Up ============
+function FollowUpSection({ ext, setExt, onSave, saving }: ExtProps) {
+  const f = ext.followup ?? {};
+  const count = f.count ?? 1;
+  const messages = f.messages ?? ["Olá! Notei que não recebemos resposta. Posso ajudar com mais alguma coisa?"];
+  return (
+    <div className="space-y-3">
+      <ToggleRow label="Ativar Follow-Up" checked={!!f.enabled} onChange={(v) => setExt("followup", { enabled: v })} />
+      <ToggleRow label="Gerar mensagens por IA" checked={!!f.aiGenerated} onChange={(v) => setExt("followup", { aiGenerated: v })} />
+      <div className="grid gap-4 md:grid-cols-3">
+        <FieldRow label="Qtd mensagens">
+          <Select value={String(count)} onValueChange={(v) => setExt("followup", { count: Number(v) })}>
+            <SelectTrigger><SelectValue /></SelectTrigger>
+            <SelectContent>{[1, 2, 3, 4, 5].map((n) => <SelectItem key={n} value={String(n)}>{n}</SelectItem>)}</SelectContent>
+          </Select>
+        </FieldRow>
+        <FieldRow label="Verificação (min)"><Input type="number" value={f.checkMin ?? 10} onChange={(e) => setExt("followup", { checkMin: Number(e.target.value) })} /></FieldRow>
+        <FieldRow label="Intervalo (hrs)"><Input type="number" value={f.intervalHrs ?? 24} onChange={(e) => setExt("followup", { intervalHrs: Number(e.target.value) })} /></FieldRow>
+      </div>
+      <ToggleRow label="Respeitar horário comercial" checked={!!f.respectHours} onChange={(v) => setExt("followup", { respectHours: v })} />
+      {Array.from({ length: count }).map((_, i) => (
+        <div key={i} className="space-y-1.5">
+          <Label className="text-xs text-muted-foreground">Mensagem {i + 1}</Label>
+          <Textarea rows={2} value={messages[i] ?? ""} onChange={(e) => { const m = [...messages]; m[i] = e.target.value; setExt("followup", { messages: m }); }} />
+        </div>
+      ))}
+      <SaveBar onSave={onSave} saving={saving} />
+    </div>
+  );
+}
+
+// ============ 6. Palavra-chave ============
+function KeywordsSection({ ext, setExt, onSave, saving }: ExtProps) {
+  const k = ext.keywords ?? {};
+  const list = k.list ?? [];
+  const [input, setInput] = useState("");
+  const add = () => { if (!input.trim()) return; setExt("keywords", { list: [...list, input.trim()] }); setInput(""); };
+  return (
+    <div className="space-y-3">
+      <ToggleRow label="Ativar apenas com palavras-chave" hint="Quando ativado, o agente só responderá mensagens que contenham ou comecem com as palavras-chave." checked={!!k.enabled} onChange={(v) => setExt("keywords", { enabled: v })} />
+      <FieldRow label="Modo de Ativação">
+        <Select value={k.mode ?? "contains"} onValueChange={(v) => setExt("keywords", { mode: v })}>
+          <SelectTrigger><SelectValue /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="contains">Contém a palavra-chave</SelectItem>
+            <SelectItem value="starts">Começa com a palavra-chave</SelectItem>
+            <SelectItem value="exact">Igual à palavra-chave</SelectItem>
+          </SelectContent>
+        </Select>
+        <p className="text-[11px] text-muted-foreground mt-1">A IA responde se a mensagem contiver qualquer uma das palavras-chave em qualquer posição.</p>
+      </FieldRow>
+      <FieldRow label="Palavras-chave">
+        <div className="flex gap-2">
+          <Input placeholder="Digite uma palavra-chave..." value={input} onChange={(e) => setInput(e.target.value)} onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), add())} />
+          <Button type="button" onClick={add} size="icon" className="rounded-lg" style={{ background: "hsl(var(--primary) / .2)", color: "hsl(var(--primary))" }}><Plus className="h-4 w-4" /></Button>
+        </div>
+        {list.length === 0 ? (
+          <p className="text-[11px] italic text-muted-foreground mt-2">Nenhuma palavra-chave adicionada. Adicione pelo menos uma para o filtro funcionar.</p>
+        ) : (
+          <div className="flex flex-wrap gap-1.5 mt-2">
+            {list.map((w, i) => (
+              <span key={i} className="inline-flex items-center gap-1 rounded-full bg-primary/15 text-primary px-2.5 py-1 text-xs ring-1 ring-primary/30">
+                {w}<button onClick={() => setExt("keywords", { list: list.filter((_, j) => j !== i) })}><X className="h-3 w-3" /></button>
+              </span>
+            ))}
+          </div>
+        )}
+      </FieldRow>
+      <SaveBar onSave={onSave} saving={saving} />
+    </div>
+  );
+}
+
+// ============ 7. Horário ============
+const DAYS = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
+function HoursSection({ ext, setExt, onSave, saving }: ExtProps) {
+  const h = ext.hours ?? {};
+  const activeDays = h.days ?? ["Seg", "Ter", "Qua", "Qui", "Sex"];
+  const blocked = h.blockedDates ?? [];
+  const [dateInput, setDateInput] = useState("");
+  const toggleDay = (d: string) => setExt("hours", { days: activeDays.includes(d) ? activeDays.filter((x) => x !== d) : [...activeDays, d] });
+  return (
+    <div className="space-y-3">
+      <ToggleRow label="Ativar horário de funcionamento" hint="A IA só responde dentro do horário configurado" checked={!!h.enabled} onChange={(v) => setExt("hours", { enabled: v })} />
+      <div className="grid gap-4 md:grid-cols-2">
+        <FieldRow label="Início do atendimento"><Input type="time" value={h.start ?? "09:00"} onChange={(e) => setExt("hours", { start: e.target.value })} /></FieldRow>
+        <FieldRow label="Fim do atendimento"><Input type="time" value={h.end ?? "18:00"} onChange={(e) => setExt("hours", { end: e.target.value })} /></FieldRow>
+      </div>
+      <ToggleRow label="Intervalo / Almoço" hint="Pausa a IA durante o intervalo" checked={!!h.lunch} onChange={(v) => setExt("hours", { lunch: v })} />
+      <div className="space-y-2">
+        <Label className="text-xs uppercase tracking-wider text-muted-foreground">Dias de atendimento</Label>
+        <div className="flex flex-wrap gap-1.5">
+          {DAYS.map((d) => (
+            <button key={d} type="button" onClick={() => toggleDay(d)} className={`rounded-lg px-3 py-1.5 text-xs font-medium transition ${activeDays.includes(d) ? "bg-primary text-primary-foreground shadow-[0_0_12px_hsl(var(--primary)/.5)]" : "bg-muted/40 text-muted-foreground"}`}>{d}</button>
+          ))}
+        </div>
+      </div>
+      <FieldRow label="📅 Datas bloqueadas (feriados)">
+        <div className="flex gap-2">
+          <Input type="date" value={dateInput} onChange={(e) => setDateInput(e.target.value)} />
+          <Button type="button" size="icon" onClick={() => { if (!dateInput) return; setExt("hours", { blockedDates: [...blocked, dateInput] }); setDateInput(""); }} style={{ background: "hsl(var(--primary) / .2)", color: "hsl(var(--primary))" }}><Plus className="h-4 w-4" /></Button>
+        </div>
+        {blocked.length > 0 && (
+          <div className="flex flex-wrap gap-1.5 mt-2">
+            {blocked.map((d, i) => (
+              <span key={i} className="inline-flex items-center gap-1 rounded-full bg-primary/15 text-primary px-2.5 py-1 text-xs ring-1 ring-primary/30">
+                {d}<button onClick={() => setExt("hours", { blockedDates: blocked.filter((_, j) => j !== i) })}><X className="h-3 w-3" /></button>
+              </span>
+            ))}
+          </div>
+        )}
+        <p className="text-[11px] text-muted-foreground mt-1">Fora do horário configurado, a IA não responderá. Isso é sincronizado com a agenda e os agentes de IA automaticamente.</p>
+      </FieldRow>
+      <SaveBar onSave={onSave} saving={saving} />
+    </div>
+  );
+}
+
+// ============ 8. Áudio com IA ============
+function AudioSection({ ext, setExt, onSave, saving }: ExtProps) {
+  const a = ext.audio ?? {};
+  const provider = a.provider ?? "browser";
+  return (
+    <div className="space-y-4">
+      <ToggleRow label="Habilitar Áudio com IA" checked={!!a.enabled} onChange={(v) => setExt("audio", { enabled: v })} />
+      <div className="space-y-2">
+        <Label className="text-xs uppercase tracking-wider text-muted-foreground">Provedor de Voz</Label>
+        <div className="grid gap-3 md:grid-cols-2">
+          <button type="button" onClick={() => setExt("audio", { provider: "browser" })} className={`rounded-xl border p-4 text-left transition ${provider === "browser" ? "border-primary/60 bg-primary/5 ring-1 ring-primary/40" : "border-border/50 bg-background/30"}`}>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2"><Mic className="h-4 w-4 text-primary" /><span className="text-sm font-semibold">Vozes do Navegador</span></div>
+              <span className="rounded-full bg-primary/15 px-2 py-0.5 text-[10px] font-semibold text-primary">GRÁTIS</span>
+            </div>
+            <p className="text-xs text-muted-foreground mt-1">Vozes nativas do sistema, sem custo adicional</p>
+            {provider === "browser" && <span className="mt-2 inline-block text-[10px] text-primary">✓ ATIVO</span>}
+          </button>
+          <button type="button" onClick={() => setExt("audio", { provider: "elevenlabs" })} className={`rounded-xl border p-4 text-left transition ${provider === "elevenlabs" ? "border-primary/60 bg-primary/5 ring-1 ring-primary/40" : "border-border/50 bg-background/30"}`}>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2"><Mic className="h-4 w-4" /><span className="text-sm font-semibold">ElevenLabs</span></div>
+              <span className="rounded-full bg-amber-500/15 px-2 py-0.5 text-[10px] font-semibold text-amber-400">PREMIUM</span>
+            </div>
+            <p className="text-xs text-muted-foreground mt-1">Vozes ultra-realistas com clonagem de voz</p>
+          </button>
+        </div>
+      </div>
+      <ToggleRow label="Substituir Texto por Áudio" checked={!!a.replaceText} onChange={(v) => setExt("audio", { replaceText: v })} />
+      <ToggleRow label="Resposta Automática com Áudio" checked={!!a.autoReply} onChange={(v) => setExt("audio", { autoReply: v })} />
+      <ToggleRow label="Espelhar Formato do Cliente" hint="Responde com áudio quando recebe áudio, texto quando recebe texto" checked={!!a.mirrorFormat} onChange={(v) => setExt("audio", { mirrorFormat: v })} />
+      <ToggleRow
+        label="Áudio Inteligente"
+        hint="Bloco com +N chars vira áudio"
+        checked={!!a.smartAudio}
+        onChange={(v) => setExt("audio", { smartAudio: v })}
+        right={<Input type="number" className="h-7 w-[80px] text-xs" value={a.smartAudioChars ?? 200} onChange={(e) => setExt("audio", { smartAudioChars: Number(e.target.value) })} />}
+      />
+      <ToggleRow label="Áudio como Ferramenta" hint="A IA decide quando enviar áudio" checked={!!a.asTool} onChange={(v) => setExt("audio", { asTool: v })} />
+      {provider === "browser" && (
+        <div className="rounded-xl border border-border/50 bg-background/30 p-4 space-y-2">
+          <div className="flex items-center gap-2 text-sm font-semibold"><Mic className="h-4 w-4 text-primary" /> Configuração de Voz do Navegador</div>
+          <p className="text-xs text-muted-foreground">Vozes gratuitas do sistema, priorizando português brasileiro. Qualidade varia por dispositivo.</p>
+          {["Microsoft Daniel - Portuguese (Brazil)", "Microsoft Maria - Portuguese (Brazil)", "Google português do Brasil"].map((v) => (
+            <div key={v} className="flex items-center justify-between rounded-lg bg-muted/20 px-3 py-2">
+              <div>
+                <div className="text-xs font-medium">{v}</div>
+                <div className="text-[10px] text-muted-foreground">pt-BR</div>
+              </div>
+              <Button size="sm" variant="outline" className="h-7 text-xs rounded-full"><Play className="h-3 w-3" /> Ouvir</Button>
+            </div>
+          ))}
+        </div>
+      )}
+      <SaveBar onSave={onSave} saving={saving} />
     </div>
   );
 }
