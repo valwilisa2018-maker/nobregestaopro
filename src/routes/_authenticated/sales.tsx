@@ -345,6 +345,21 @@ function SalesPage() {
 
   const submit = async () => {
     if (saving) return; // Prevent double clicks
+    const failVal = (field: string, message: string) => {
+      toast.error(message);
+      // Não bloqueia: log assíncrono para rastrear falhas de validação.
+      logger.warn(`Validação falhou (${field}): ${message}`, {
+        context: "sales/submit/validation",
+        details: {
+          field,
+          message,
+          form: { ...form, phone: form.phone ? "***" : "", email: form.email ? "***" : "" },
+          has_receipt: !!receiptFile,
+          linked_customer_id: linkedCustomerId,
+        },
+        silent: true,
+      }).catch(() => {});
+    };
     const required: [string, string][] = [
       ["customer_name", "Nome do cliente"],
       ["phone", "Telefone"], ["total_amount", "Valor total"], ["paid_amount", "Valor pago"],
@@ -357,32 +372,29 @@ function SalesPage() {
 
     if (form.with_invoice === "sim") {
       if (!form.company.trim()) {
-        toast.error("Preencha o campo: Empresa (obrigatório para vendas com nota)");
-        return;
+        return failVal("company", "Preencha o campo: Empresa (obrigatório para vendas com nota)");
       }
     }
 
     if (form.with_invoice === "sim" && !form.document.trim()) {
-      toast.error("Preencha o campo: CPF/CNPJ (obrigatório para vendas com nota)");
-      return;
+      return failVal("document", "Preencha o campo: CPF/CNPJ (obrigatório para vendas com nota)");
     }
 
     for (const [k, label] of required) {
       const val = String((form as any)[k] ?? "").trim();
       if (k === "trello_link") continue;
       if (!val) {
-        toast.error(`Preencha o campo: ${label}`);
-        return;
+        return failVal(k, `Preencha o campo: ${label}`);
       }
     }
     // Links são opcionais; validar apenas formato quando preenchidos
     const gLink = form.google_drive_link.trim();
     const pLink = form.platform_link.trim();
     if (gLink && !gLink.toLowerCase().startsWith("http")) {
-      toast.error("Link do Google Drive inválido."); return;
+      return failVal("google_drive_link", "Link do Google Drive inválido.");
     }
     if (pLink && !pLink.toLowerCase().startsWith("http")) {
-      toast.error("Link da Plataforma inválido."); return;
+      return failVal("platform_link", "Link da Plataforma inválido.");
     }
     // Minutagem obrigatória para vídeos / pacotes
     {
@@ -390,46 +402,45 @@ function SalesPage() {
       if (isVideoService(stName, !!form.package_id)) {
         const dur = Number(form.video_duration_seconds);
         if (!dur || dur < 30 || dur % 30 !== 0) {
-          toast.error("Selecione a minutagem do vídeo (mínimo 30s).");
-          return;
+          return failVal("video_duration_seconds", "Selecione a minutagem do vídeo (mínimo 30s).");
         }
       }
     }
-    if (!receiptFile) { toast.error("Anexe o comprovante"); return; }
+    if (!receiptFile) return failVal("receipt", "Anexe o comprovante");
     // Consistência de valores
     const total = Number(form.total_amount);
     const paid = Number(form.paid_amount || 0);
     const qty = Number(form.service_quantity || 0);
     if (!Number.isFinite(total) || total <= 0) {
-      toast.error("Valor total deve ser maior que zero."); return;
+      return failVal("total_amount", "Valor total deve ser maior que zero.");
     }
     if (!Number.isFinite(paid) || paid < 0) {
-      toast.error("Valor pago inválido."); return;
+      return failVal("paid_amount", "Valor pago inválido.");
     }
     if (paid > total) {
-      toast.error("Valor pago não pode ser maior que o valor total."); return;
+      return failVal("paid_amount", "Valor pago não pode ser maior que o valor total.");
     }
     if (form.payment_status === "pago" && paid < total) {
-      toast.error("Status 'Pago' exige valor pago igual ao total."); return;
+      return failVal("payment_status", "Status 'Pago' exige valor pago igual ao total.");
     }
     if (form.payment_status === "parcial" && (paid <= 0 || paid >= total)) {
-      toast.error("Status 'Parcial' exige valor pago entre 0 e o total."); return;
+      return failVal("payment_status", "Status 'Parcial' exige valor pago entre 0 e o total.");
     }
     if (form.payment_status === "pendente" && paid > 0) {
-      toast.error("Status 'Pendente' não pode ter valor pago."); return;
+      return failVal("payment_status", "Status 'Pendente' não pode ter valor pago.");
     }
     if (!Number.isFinite(qty) || qty < 1) {
-      toast.error("Quantidade de serviços deve ser ao menos 1."); return;
+      return failVal("service_quantity", "Quantidade de serviços deve ser ao menos 1.");
     }
     const phoneDigits = (form.phone || "").replace(/\D/g, "");
     if (phoneDigits.length < 10) {
-      toast.error("Telefone inválido. Informe DDD + número."); return;
+      return failVal("phone", "Telefone inválido. Informe DDD + número.");
     }
     if (form.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email.trim())) {
-      toast.error("E-mail inválido."); return;
+      return failVal("email", "E-mail inválido.");
     }
     if (form.expected_delivery_date && form.sale_date && form.expected_delivery_date < form.sale_date) {
-      toast.error("Data de entrega não pode ser anterior à data da venda."); return;
+      return failVal("expected_delivery_date", "Data de entrega não pode ser anterior à data da venda.");
     }
     setSaving(true);
     try {
@@ -536,7 +547,19 @@ function SalesPage() {
       setLinkedCustomerId(null);
       await qc.invalidateQueries({ queryKey: ["sales-list"] });
     } catch (e: any) {
-      await logger.error(`Erro ao criar venda: ${e.message}`, { context: "sales/submit", details: { form, error: e } });
+      await logger.error(`Erro ao criar venda: ${e?.message ?? "desconhecido"}`, {
+        context: "sales/submit",
+        details: {
+          message: e?.message,
+          code: e?.code,
+          hint: e?.hint,
+          details: e?.details,
+          stack: e?.stack,
+          form: { ...form, phone: form.phone ? "***" : "", email: form.email ? "***" : "" },
+          has_receipt: !!receiptFile,
+          linked_customer_id: linkedCustomerId,
+        },
+      });
       toast.error(`Erro ao criar venda: ${e?.message ?? "tente novamente"}`);
     } finally { setSaving(false); }
   };
