@@ -572,6 +572,20 @@ function AlertsSection({ ext, setExt, onSave, saving }: ExtProps) {
 }
 
 // ============ 5. Follow-Up ============
+function ConversationSection({ ext, setExt, onSave, saving }: ExtProps) {
+  const c = ext.conversation ?? {};
+  return (
+    <div className="space-y-3">
+      <ToggleRow label="Manter não lida ao responder" checked={!!c.keepUnread} onChange={(v) => setExt("conversation", { keepUnread: v })} />
+      <ToggleRow label="Enviar resposta em uma mensagem" checked={!!c.singleMessage} onChange={(v) => setExt("conversation", { singleMessage: v })} />
+      <ToggleRow label="Incluir nome do contato na resposta" checked={!!c.includeContactName} onChange={(v) => setExt("conversation", { includeContactName: v })} />
+      <ToggleRow label="Cancelar respostas ao receber nova mensagem" checked={!!c.cancelOnNew} onChange={(v) => setExt("conversation", { cancelOnNew: v })} />
+      <ToggleRow label="Não responder após mensagem manual" checked={!!c.stopAfterManual} onChange={(v) => setExt("conversation", { stopAfterManual: v })} />
+      <SaveBar onSave={onSave} saving={saving} />
+    </div>
+  );
+}
+
 function FollowUpSection({ ext, setExt, onSave, saving }: ExtProps) {
   const f = ext.followup ?? {};
   const count = f.count ?? 1;
