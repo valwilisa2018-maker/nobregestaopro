@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useMemo, useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
@@ -35,6 +35,7 @@ const waLink = (phone?: string | null) => waHref(phone);
 
 function CustomersPage() {
   const { search: searchParam } = Route.useSearch();
+  const queryClient = useQueryClient();
   const [year, setYear] = useState<string>("all");
   const [month, setMonth] = useState<string>("all");
   const [period, setPeriod] = useState<string>("all");
@@ -65,7 +66,24 @@ function CustomersPage() {
       }
       return data ?? [];
     },
+    refetchOnMount: "always",
+    refetchOnWindowFocus: true,
+    staleTime: 0,
   });
+
+  // Refetch when receipts/sales change anywhere (e.g. valor recebido em pending-payments)
+  useEffect(() => {
+    const ch = supabase
+      .channel("customers-live")
+      .on("postgres_changes", { event: "*", schema: "public", table: "sale_receipts" }, () => {
+        queryClient.invalidateQueries({ queryKey: ["customers-all"] });
+      })
+      .on("postgres_changes", { event: "*", schema: "public", table: "sales" }, () => {
+        queryClient.invalidateQueries({ queryKey: ["customers-all"] });
+      })
+      .subscribe();
+    return () => { supabase.removeChannel(ch); };
+  }, [queryClient]);
 
   const sellers = useQuery({ queryKey: ["sellers-min"], queryFn: async () => {
     const { data, error } = await supabase.from("sellers").select("id, name");
