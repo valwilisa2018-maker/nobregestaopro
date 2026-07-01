@@ -1,9 +1,9 @@
 import { Link, useRouterState } from "@tanstack/react-router";
 import {
-  LayoutDashboard, Plug, Bot, BookOpen, Workflow, FileText, Wrench,
-  MessageCircle, AudioLines, Brain, Users, MessagesSquare, History, ScrollText,
+  LayoutDashboard, Bot, BookOpen, Workflow,
+  MessageCircle, Brain, Users, MessagesSquare, History, ScrollText,
   Settings, UserCog, ShieldCheck, DollarSign, Palette, Code2, Webhook, Puzzle, LogOut,
-  Boxes, LineChart, Activity, CreditCard, Shield, User,
+  LineChart, Activity, CreditCard, Shield, User,
 } from "lucide-react";
 import {
   Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent, SidebarGroupLabel,
@@ -20,7 +20,6 @@ const groups = [
       { title: "Agentes", url: "/agents", icon: Bot },
       { title: "Chats", url: "/conversations", icon: MessagesSquare },
       { title: "Base de Conhecimento", url: "/knowledge", icon: BookOpen },
-      { title: "Documentos", url: "/documents", icon: FileText },
     ],
   },
   {
@@ -28,12 +27,9 @@ const groups = [
     items: [
       { title: "Integrações", url: "/integrations", icon: Puzzle },
       { title: "APIs", url: "/api", icon: Code2 },
-      { title: "Ferramentas", url: "/tools", icon: Wrench },
-      { title: "MCP Servers", url: "/tools", icon: Boxes },
       { title: "Workflows", url: "/flows", icon: Workflow },
       { title: "Webhooks", url: "/webhooks", icon: Webhook },
       { title: "WhatsApp", url: "/whatsapp", icon: MessageCircle },
-      { title: "Conexões", url: "/connections", icon: Plug },
     ],
   },
   {
@@ -41,9 +37,7 @@ const groups = [
     items: [
       { title: "Analytics", url: "/history", icon: LineChart },
       { title: "Monitoramento", url: "/logs", icon: Activity },
-      { title: "IA", url: "/ai", icon: Brain },
       { title: "Prompts", url: "/prompt", icon: Brain },
-      { title: "Áudios", url: "/audios", icon: AudioLines },
       { title: "Clientes", url: "/clients", icon: Users },
       { title: "Histórico", url: "/history", icon: History },
       { title: "Logs", url: "/logs", icon: ScrollText },
