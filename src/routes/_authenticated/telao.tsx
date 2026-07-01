@@ -700,9 +700,12 @@ function Telao() {
   const totalMes = sum(monthSales);
   const ticketMedio = todaySales.length ? totalHoje / todaySales.length : 0;
 
-  // Recebimentos de hoje (sale_receipts pagos hoje) — separados em SINAL (na criação da venda)
-  // e PENDENTE (quitação posterior de valores em aberto).
+  // Recebimentos de hoje — fonte de verdade:
+  // SINAL = soma de sales.paid_amount das vendas criadas hoje (valor efetivamente informado na criação).
+  // PENDENTE = sale_receipts com paid_at = hoje cuja venda NÃO é de hoje (quitação posterior).
+  //           Se a venda também é de hoje, o recibo já está contabilizado no sinal via paid_amount.
   const receipts = receiptsQ.data ?? [];
+  const todaySaleIds = useMemo(() => new Set(todaySales.map((s: any) => s.id)), [todaySales]);
   const todayReceipts = useMemo(() => {
     return receipts.filter((r: any) => {
       const ref = r.paid_at ? new Date(r.paid_at + (r.paid_at.length === 10 ? "T12:00:00" : "")) : new Date(r.created_at);
@@ -711,12 +714,14 @@ function Telao() {
   }, [receipts, today0]);
   const isSinalReceipt = (r: any) => (r?.notes || "").toLowerCase().includes("comprovante inicial");
   const totalSinalHoje = useMemo(
-    () => todayReceipts.filter(isSinalReceipt).reduce((a: number, r: any) => a + Number(r.amount || 0), 0),
-    [todayReceipts],
+    () => todaySales.reduce((a: number, s: any) => a + Number(s.paid_amount || 0), 0),
+    [todaySales],
   );
   const totalPendenteHoje = useMemo(
-    () => todayReceipts.filter((r: any) => !isSinalReceipt(r)).reduce((a: number, r: any) => a + Number(r.amount || 0), 0),
-    [todayReceipts],
+    () => todayReceipts
+      .filter((r: any) => !isSinalReceipt(r) && !todaySaleIds.has(r.sale_id))
+      .reduce((a: number, r: any) => a + Number(r.amount || 0), 0),
+    [todayReceipts, todaySaleIds],
   );
 
   const [heroBeat, setHeroBeat] = useState(0);
