@@ -96,6 +96,12 @@ function optionValue(value: unknown) {
   return text || null;
 }
 
+function toCents(value: unknown): number {
+  const n = Number(value || 0);
+  if (!Number.isFinite(n)) return NaN;
+  return Math.round(n * 100);
+}
+
 // Opções: 30s, 1min, 1min30, 2min, ..., 10min
 const VIDEO_DURATION_OPTIONS: { value: number; label: string }[] = Array.from({ length: 20 }, (_, i) => {
   const sec = (i + 1) * 30;
@@ -343,10 +349,25 @@ function SalesPage() {
     setLinkedCustomerId(c.id);
   };
 
+  const selectedServiceName = useMemo(
+    () => serviceTypes.data?.find((st: any) => st.id === form.service_type_id)?.name,
+    [serviceTypes.data, form.service_type_id],
+  );
+  const formNeedsVideoDuration = isVideoService(selectedServiceName, !!form.package_id);
+  const formNeedsReceipt = form.payment_status !== "pendente" || Number(form.paid_amount || 0) > 0;
+
   const submit = async () => {
     if (saving) return; // Prevent double clicks
     const failVal = (field: string, message: string) => {
-      toast.error(message);
+      toast.error(message, { description: "Revise o campo destacado antes de confirmar a venda." });
+      if (typeof document !== "undefined") {
+        window.requestAnimationFrame(() => {
+          const target = document.querySelector(`[data-sale-field="${field}"]`) as HTMLElement | null;
+          target?.scrollIntoView({ block: "center", behavior: "smooth" });
+          const focusable = target?.querySelector("input, textarea, button, [role='combobox'], select") as HTMLElement | null;
+          focusable?.focus?.();
+        });
+      }
       // Não bloqueia: log assíncrono para rastrear falhas de validação.
       logger.warn(`Validação falhou (${field}): ${message}`, {
         context: "sales/submit/validation",
@@ -397,20 +418,18 @@ function SalesPage() {
       return failVal("platform_link", "Link da Plataforma inválido.");
     }
     // Minutagem obrigatória para vídeos / pacotes
-    {
-      const stName = serviceTypes.data?.find((st: any) => st.id === form.service_type_id)?.name;
-      if (isVideoService(stName, !!form.package_id)) {
-        const dur = Number(form.video_duration_seconds);
-        if (!dur || dur < 30 || dur % 30 !== 0) {
-          return failVal("video_duration_seconds", "Selecione a minutagem do vídeo (mínimo 30s).");
-        }
+    if (formNeedsVideoDuration) {
+      const dur = Number(form.video_duration_seconds);
+      if (!dur || dur < 30 || dur % 30 !== 0) {
+        return failVal("video_duration_seconds", "Selecione a minutagem do vídeo (mínimo 30s).");
       }
     }
-    if (!receiptFile) return failVal("receipt", "Anexe o comprovante");
     // Consistência de valores
     const total = Number(form.total_amount);
     const paid = Number(form.paid_amount || 0);
     const qty = Number(form.service_quantity || 0);
+    const totalCents = toCents(total);
+    const paidCents = toCents(paid);
     if (!Number.isFinite(total) || total <= 0) {
       return failVal("total_amount", "Valor total deve ser maior que zero.");
     }
@@ -420,15 +439,16 @@ function SalesPage() {
     if (paid > total) {
       return failVal("paid_amount", "Valor pago não pode ser maior que o valor total.");
     }
-    if (form.payment_status === "pago" && paid < total) {
-      return failVal("payment_status", "Status 'Pago' exige valor pago igual ao total.");
+    if (form.payment_status === "pago_total" && paidCents !== totalCents) {
+      return failVal("payment_status", "Status 'Pago total' exige valor pago igual ao total.");
     }
-    if (form.payment_status === "parcial" && (paid <= 0 || paid >= total)) {
-      return failVal("payment_status", "Status 'Parcial' exige valor pago entre 0 e o total.");
+    if (form.payment_status === "pago_parcial" && (paidCents <= 0 || paidCents >= totalCents)) {
+      return failVal("payment_status", "Status 'Pago parcial' exige valor pago entre 0 e o total.");
     }
-    if (form.payment_status === "pendente" && paid > 0) {
+    if (form.payment_status === "pendente" && paidCents > 0) {
       return failVal("payment_status", "Status 'Pendente' não pode ter valor pago.");
     }
+    if (formNeedsReceipt && !receiptFile) return failVal("receipt", "Anexe o comprovante do pagamento.");
     if (!Number.isFinite(qty) || qty < 1) {
       return failVal("service_quantity", "Quantidade de serviços deve ser ao menos 1.");
     }
