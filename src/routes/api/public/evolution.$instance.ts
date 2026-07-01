@@ -49,6 +49,15 @@ export const Route = createFileRoute("/api/public/evolution/$instance")({
               msg?.message?.imageMessage?.caption;
             if (fromMe || !remoteJid || !text) return Response.json({ ok: true, skipped: true });
 
+            // Persist inbound message
+            await supabaseAdmin.from("messages").insert({
+              user_id: conn.user_id,
+              direction: "inbound",
+              type: "text",
+              content: text,
+              metadata: { remoteJid, instance: conn.instance_name },
+            } as never);
+
             const { data: agent } = await supabaseAdmin
               .from("agents")
               .select("id,system_prompt,temperature,max_tokens,model,category,ai_provider_id,is_active")
