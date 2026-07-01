@@ -395,7 +395,7 @@ function Telao() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("sale_receipts")
-        .select("id,sale_id,amount,paid_at,created_at")
+        .select("id,sale_id,amount,paid_at,created_at,notes")
         .order("created_at", { ascending: false })
         .limit(500);
       if (error) throw error;
@@ -647,8 +647,11 @@ function Telao() {
       .channel("telao-sale-receipts")
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "sale_receipts" }, async (payload: any) => {
         qc.invalidateQueries({ queryKey: ["telao-sale-receipts"] });
-        const row = payload?.new as { sale_id?: string; amount?: number } | undefined;
+        const row = payload?.new as { sale_id?: string; amount?: number; notes?: string } | undefined;
         if (!row?.sale_id) return;
+        // Sinal inicial (na criação da venda) NÃO dispara overlay de "valor recebido" —
+        // já é celebrado pelo overlay de nova venda (bigSeller).
+        if ((row.notes || "").toLowerCase().includes("comprovante inicial")) return;
         let sale = uniqueSales.find((s) => s.id === row.sale_id);
         if (!sale) {
           const { data } = await supabase
@@ -697,7 +700,8 @@ function Telao() {
   const totalMes = sum(monthSales);
   const ticketMedio = todaySales.length ? totalHoje / todaySales.length : 0;
 
-  // Recebimentos de hoje (sale_receipts pagos hoje)
+  // Recebimentos de hoje (sale_receipts pagos hoje) — separados em SINAL (na criação da venda)
+  // e PENDENTE (quitação posterior de valores em aberto).
   const receipts = receiptsQ.data ?? [];
   const todayReceipts = useMemo(() => {
     return receipts.filter((r: any) => {
@@ -705,8 +709,13 @@ function Telao() {
       return ref >= today0;
     });
   }, [receipts, today0]);
-  const totalRecebidoHoje = useMemo(
-    () => todayReceipts.reduce((a: number, r: any) => a + Number(r.amount || 0), 0),
+  const isSinalReceipt = (r: any) => (r?.notes || "").toLowerCase().includes("comprovante inicial");
+  const totalSinalHoje = useMemo(
+    () => todayReceipts.filter(isSinalReceipt).reduce((a: number, r: any) => a + Number(r.amount || 0), 0),
+    [todayReceipts],
+  );
+  const totalPendenteHoje = useMemo(
+    () => todayReceipts.filter((r: any) => !isSinalReceipt(r)).reduce((a: number, r: any) => a + Number(r.amount || 0), 0),
     [todayReceipts],
   );
 
@@ -714,7 +723,8 @@ function Telao() {
   const heroVal = useCountUp(totalHoje, 900, heroBeat);
   const ticketVal = useCountUp(ticketMedio, 900, heroBeat);
   const opVal = useCountUp(todaySales.length, 900, heroBeat);
-  const recebidoVal = useCountUp(totalRecebidoHoje, 900, heroBeat);
+  const sinalVal = useCountUp(totalSinalHoje, 900, heroBeat);
+  const pendenteVal = useCountUp(totalPendenteHoje, 900, heroBeat);
 
   // Loop 30s — realça e reconta os números do topo
   useEffect(() => {
@@ -1071,11 +1081,22 @@ function Telao() {
                 <span className="inline-block w-2 h-2 rounded-full bg-emerald-400 animate-pulse" /> tempo real
               </span>
             </div>
-            <div
-              style={{ fontFamily: '"Bebas Neue", sans-serif', letterSpacing: "0.01em" }}
-              className="text-[clamp(3.5rem,9vw,8rem)] leading-none tabular-nums telao-shine"
-            >
-              {formatCurrency(heroVal)}
+            <div className="flex items-end gap-4 flex-wrap">
+              <div
+                style={{ fontFamily: '"Bebas Neue", sans-serif', letterSpacing: "0.01em" }}
+                className="text-[clamp(3.5rem,9vw,8rem)] leading-none tabular-nums telao-shine"
+              >
+                {formatCurrency(heroVal)}
+              </div>
+              <div className="pb-3">
+                <div className="text-[10px] uppercase tracking-widest text-emerald-400/80">Sinal · Hoje</div>
+                <div
+                  style={{ fontFamily: '"Bebas Neue", sans-serif' }}
+                  className="text-3xl md:text-4xl text-emerald-400 tabular-nums leading-none"
+                >
+                  {formatCurrency(sinalVal)}
+                </div>
+              </div>
             </div>
             <div className="mt-6 flex items-end justify-between border-t border-[#c9a84c]/15 pt-4">
               <div>
@@ -1085,9 +1106,9 @@ function Telao() {
                 </div>
               </div>
               <div className="text-center">
-                <div className="text-[10px] uppercase tracking-widest text-emerald-400/80">Recebidos · Hoje</div>
+                <div className="text-[10px] uppercase tracking-widest text-emerald-400/80">Receb. pendentes · Hoje</div>
                 <div style={{ fontFamily: '"Bebas Neue", sans-serif' }} className="text-4xl text-emerald-400 tabular-nums">
-                  {formatCurrency(recebidoVal)}
+                  {formatCurrency(pendenteVal)}
                 </div>
               </div>
               <div className="text-right">
