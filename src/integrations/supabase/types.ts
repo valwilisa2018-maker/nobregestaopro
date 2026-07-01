@@ -17,43 +17,112 @@ export type Database = {
       agents: {
         Row: {
           ai_provider_id: string | null
+          appearance: Json | null
+          avatar_url: string | null
+          category: string | null
           connection_id: string | null
           created_at: string
           description: string | null
+          frequency_penalty: number | null
           id: string
+          initial_message: string | null
+          integrations: Json | null
           is_active: boolean
+          knowledge: Json | null
+          language: string | null
+          max_tokens: number | null
+          memory: Json | null
+          model: string | null
           name: string
+          presence_penalty: number | null
+          primary_color: string | null
           role: string | null
+          secondary_color: string | null
+          security: Json | null
+          seed: number | null
+          stop_sequences: string[] | null
+          streaming: boolean | null
           system_prompt: string | null
           temperature: number
+          thinking_mode: boolean | null
+          timezone: string | null
+          tools: Json | null
+          top_k: number | null
+          top_p: number | null
           updated_at: string
           user_id: string
         }
         Insert: {
           ai_provider_id?: string | null
+          appearance?: Json | null
+          avatar_url?: string | null
+          category?: string | null
           connection_id?: string | null
           created_at?: string
           description?: string | null
+          frequency_penalty?: number | null
           id?: string
+          initial_message?: string | null
+          integrations?: Json | null
           is_active?: boolean
+          knowledge?: Json | null
+          language?: string | null
+          max_tokens?: number | null
+          memory?: Json | null
+          model?: string | null
           name: string
+          presence_penalty?: number | null
+          primary_color?: string | null
           role?: string | null
+          secondary_color?: string | null
+          security?: Json | null
+          seed?: number | null
+          stop_sequences?: string[] | null
+          streaming?: boolean | null
           system_prompt?: string | null
           temperature?: number
+          thinking_mode?: boolean | null
+          timezone?: string | null
+          tools?: Json | null
+          top_k?: number | null
+          top_p?: number | null
           updated_at?: string
           user_id: string
         }
         Update: {
           ai_provider_id?: string | null
+          appearance?: Json | null
+          avatar_url?: string | null
+          category?: string | null
           connection_id?: string | null
           created_at?: string
           description?: string | null
+          frequency_penalty?: number | null
           id?: string
+          initial_message?: string | null
+          integrations?: Json | null
           is_active?: boolean
+          knowledge?: Json | null
+          language?: string | null
+          max_tokens?: number | null
+          memory?: Json | null
+          model?: string | null
           name?: string
+          presence_penalty?: number | null
+          primary_color?: string | null
           role?: string | null
+          secondary_color?: string | null
+          security?: Json | null
+          seed?: number | null
+          stop_sequences?: string[] | null
+          streaming?: boolean | null
           system_prompt?: string | null
           temperature?: number
+          thinking_mode?: boolean | null
+          timezone?: string | null
+          tools?: Json | null
+          top_k?: number | null
+          top_p?: number | null
           updated_at?: string
           user_id?: string
         }
