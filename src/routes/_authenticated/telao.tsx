@@ -622,6 +622,7 @@ function Telao() {
       .channel("telao-sales")
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "sales" }, (payload: any) => {
         qc.invalidateQueries({ queryKey: ["telao-sales"] });
+        qc.invalidateQueries({ queryKey: ["telao-sinal-hoje"] });
         if (celebration.confettiEnabled) fireConfetti();
         if (soundEnabled && celebration.soundEnabled) playSound(soundId, celebration.volume / 100);
         setFlash(true);
@@ -633,9 +634,11 @@ function Telao() {
       })
       .on("postgres_changes", { event: "UPDATE", schema: "public", table: "sales" }, () => {
         qc.invalidateQueries({ queryKey: ["telao-sales"] });
+        qc.invalidateQueries({ queryKey: ["telao-sinal-hoje"] });
       })
       .on("postgres_changes", { event: "DELETE", schema: "public", table: "sales" }, () => {
         qc.invalidateQueries({ queryKey: ["telao-sales"] });
+        qc.invalidateQueries({ queryKey: ["telao-sinal-hoje"] });
       })
       .subscribe();
     return () => { supabase.removeChannel(channel); };
@@ -711,8 +714,12 @@ function Telao() {
     });
   }, [receipts, today0]);
   const todayISO = useMemo(() => {
-    const d = new Date();
-    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+    // Data de hoje no fuso America/Sao_Paulo (bate com a view v_daily_financials)
+    const parts = new Intl.DateTimeFormat("en-CA", {
+      timeZone: "America/Sao_Paulo",
+      year: "numeric", month: "2-digit", day: "2-digit",
+    }).format(new Date());
+    return parts; // YYYY-MM-DD
   }, []);
   const sinalHojeQ = useQuery({
     queryKey: ["telao-sinal-hoje", todayISO],
