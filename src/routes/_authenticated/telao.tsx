@@ -293,6 +293,7 @@ function Telao() {
   const [celebration, setCelebration] = useCelebrationSettings();
   const [overlaySeconds] = useBigSellerOverlaySeconds();
   const [soundEnabled, setSoundEnabled] = useState(false);
+  const [audioReady, setAudioReady] = useState(false);
   const [soundId, setSoundId] = useState<SoundId>(celebration.soundId as SoundId);
   const [customSoundUrl, setCustomSoundUrl] = useState(celebration.customSoundUrl || "");
   const [lastCount, setLastCount] = useState<number | null>(null);
@@ -318,6 +319,19 @@ function Telao() {
     window.setTimeout(() => setPendenteFlash(false), 2000);
   };
   const rootRef = useRef<HTMLDivElement>(null);
+  const enableSound = async () => {
+    const next = !soundEnabled;
+    setSoundEnabled(next);
+    setCelebration({ soundEnabled: next });
+    if (next) {
+      const ok = await unlockAudio();
+      setAudioReady(ok);
+      await playSound("caixa", Math.max(0.45, (celebration.volume || 80) / 100));
+    } else {
+      setAudioReady(false);
+      stopAllSounds();
+    }
+  };
   const [clock, setClock] = useState<string>(() => new Date().toLocaleTimeString("pt-BR"));
   useEffect(() => {
     const id = setInterval(() => setClock(new Date().toLocaleTimeString("pt-BR")), 1000);
@@ -883,11 +897,7 @@ function Telao() {
           </div>
           <div className="flex items-center gap-1 rounded border border-[#c9a84c]/30 bg-[#1a1a1a] overflow-hidden p-1 mr-2">
             <button
-              onClick={() => {
-                const newState = !soundEnabled;
-                setSoundEnabled(newState);
-                setCelebration({ soundEnabled: newState });
-              }}
+              onClick={enableSound}
               title={soundEnabled ? "Som Ativado" : "Som Desativado"}
               className={`h-8 w-8 grid place-items-center rounded transition ${
                 soundEnabled ? "bg-[#c9a84c] text-black" : "text-[#c9a84c] hover:bg-[#c9a84c]/10"
@@ -965,7 +975,7 @@ function Telao() {
             ))}
           </div>
           <button
-            onClick={() => { setSoundEnabled((v) => !v); if (!soundEnabled && celebration.soundEnabled) playSound(soundId, celebration.volume / 100); }}
+            onClick={enableSound}
             className={`h-10 w-10 grid place-items-center rounded border transition ${soundEnabled ? "bg-[#c9a84c] text-black border-[#c9a84c]" : "bg-[#1a1a1a] border-[#c9a84c]/30 text-[#c9a84c] hover:border-[#c9a84c]"}`}
             title={soundEnabled ? "Som ON" : "Ativar buzina"}
           >
@@ -980,6 +990,12 @@ function Telao() {
           </button>
         </div>
       </header>
+
+      {soundEnabled && !audioReady && (
+        <div className="mb-4 rounded border border-amber-400/40 bg-amber-400/10 px-4 py-2 text-sm text-amber-100">
+          Clique novamente no ícone de som se o navegador ainda não liberou o áudio.
+        </div>
+      )}
 
       {/* MARQUEE — últimas vendas rolando (abaixo do título) */}
       {marqueeSales.length > 0 && (
