@@ -1089,20 +1089,13 @@ function Telao() {
                 {formatCurrency(heroVal)}
               </div>
               <div className="pb-3">
-                <div className="text-[10px] uppercase tracking-widest text-emerald-400/80">Sinal · Hoje</div>
-                <div
-                  style={{ fontFamily: '"Bebas Neue", sans-serif' }}
-                  className="text-3xl md:text-4xl text-emerald-400 tabular-nums leading-none"
-                >
-                  {formatCurrency(sinalVal)}
-                </div>
               </div>
             </div>
             <div className="mt-6 flex items-end justify-between border-t border-[#c9a84c]/15 pt-4">
               <div>
-                <div className="text-[10px] uppercase tracking-widest text-[#c9a84c]/60">Operações</div>
-                <div style={{ fontFamily: '"Bebas Neue", sans-serif' }} className="text-4xl text-white tabular-nums">
-                  {Math.round(opVal)}
+                <div className="text-[10px] uppercase tracking-widest text-emerald-400/80">Sinal · Hoje</div>
+                <div style={{ fontFamily: '"Bebas Neue", sans-serif' }} className="text-4xl text-emerald-400 tabular-nums">
+                  {formatCurrency(sinalVal)}
                 </div>
               </div>
               <div className="text-center">
