@@ -736,13 +736,22 @@ function KanbanPage() {
             }
             return true;
           });
-          // Ordena pela posição manual (sort_order). Como `move` define
-          // sort_order = -Date.now() ao mover, os mais recentes ficam no topo
-          // (essencial para a coluna "Serviços Entregues").
-          colCards.sort((a: any, b: any) =>
-            (a.sort_order ?? 0) - (b.sort_order ?? 0) ||
-            new Date(a.created_at).getTime() - new Date(b.created_at).getTime(),
-          );
+          // Em colunas iniciais (backlog / "produção" padrão), ordena por data:
+          // as vendas mais antigas ficam no topo e as mais novas embaixo, conforme
+          // vão entrando. Nas demais colunas preserva a ordenação manual (sort_order).
+          if (col.is_default) {
+            colCards.sort((a: any, b: any) => {
+              const da = new Date(a.expected_delivery_date ?? a.sales?.expected_delivery_date ?? a.created_at).getTime();
+              const db = new Date(b.expected_delivery_date ?? b.sales?.expected_delivery_date ?? b.created_at).getTime();
+              return da - db
+                || new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+            });
+          } else {
+            colCards.sort((a: any, b: any) =>
+              (a.sort_order ?? 0) - (b.sort_order ?? 0) ||
+              new Date(a.created_at).getTime() - new Date(b.created_at).getTime(),
+            );
+          }
           // Group by sale_id (same customer/sale = same package). Cards without sale_id stay solo.
           const groupsMap = new Map<string, any[]>();
           const soloCards: any[] = [];
