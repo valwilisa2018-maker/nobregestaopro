@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { Settings } from "lucide-react";
-import { PageShell } from "@/components/page-shell";
+import { CrudResource } from "@/components/crud-resource";
 
 export const Route = createFileRoute("/_authenticated/settings")({
   head: () => ({ meta: [{ title: "Configurações — Plataforma IA WhatsApp" }] }),
@@ -9,10 +9,16 @@ export const Route = createFileRoute("/_authenticated/settings")({
 
 function Page() {
   return (
-    <PageShell
+    <CrudResource
+      table="settings"
       title="Configurações"
-      description="Preferências gerais da conta, fuso horário, idioma e comportamento padrão."
+      description="Preferências chave/valor."
+      singular="Configuração"
       icon={<Settings className="h-6 w-6" />}
+      fields={[
+    {name:"key", label:"Chave", type:"text", required:true},
+    {name:"value", label:"Valor (JSON)", type:"textarea"}
+      ]}
     />
   );
 }

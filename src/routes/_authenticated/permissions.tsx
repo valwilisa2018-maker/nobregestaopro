@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { ShieldCheck } from "lucide-react";
-import { PageShell } from "@/components/page-shell";
+import { CrudResource } from "@/components/crud-resource";
 
 export const Route = createFileRoute("/_authenticated/permissions")({
   head: () => ({ meta: [{ title: "Permissões — Plataforma IA WhatsApp" }] }),
@@ -9,10 +9,15 @@ export const Route = createFileRoute("/_authenticated/permissions")({
 
 function Page() {
   return (
-    <PageShell
+    <CrudResource
+      table="user_roles"
       title="Permissões"
-      description="Controle granular por papel: admin, supervisor, atendente e visualizador."
+      description="Papéis por usuário."
+      singular="Permissão"
       icon={<ShieldCheck className="h-6 w-6" />}
+      fields={[
+    {name:"role", label:"Papel", type:"select", required:true, options:[{value:"admin",label:"Admin"},{value:"supervisor",label:"Supervisor"},{value:"atendente",label:"Atendente"},{value:"viewer",label:"Viewer"}]}
+      ]}
     />
   );
 }

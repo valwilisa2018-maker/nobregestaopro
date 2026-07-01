@@ -1,18 +1,25 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { Brain } from "lucide-react";
-import { PageShell } from "@/components/page-shell";
+import { CrudResource } from "@/components/crud-resource";
 
 export const Route = createFileRoute("/_authenticated/prompt")({
-  head: () => ({ meta: [{ title: "Prompt Master — Plataforma IA WhatsApp" }] }),
+  head: () => ({ meta: [{ title: "Prompts — Plataforma IA WhatsApp" }] }),
   component: Page,
 });
 
 function Page() {
   return (
-    <PageShell
-      title="Prompt Master"
-      description="Editor central do prompt de sistema, personalidade e regras de negócio dos agentes."
+    <CrudResource
+      table="prompts"
+      title="Prompts"
+      description="Biblioteca de prompts reutilizáveis."
+      singular="Prompt"
       icon={<Brain className="h-6 w-6" />}
+      fields={[
+    {name:"name", label:"Nome", type:"text", required:true},
+    {name:"content", label:"Conteúdo", type:"textarea", required:true},
+    {name:"is_default", label:"Padrão", type:"boolean"}
+      ]}
     />
   );
 }
