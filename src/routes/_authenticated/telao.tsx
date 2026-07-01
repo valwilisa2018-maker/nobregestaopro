@@ -44,7 +44,22 @@ type SaleRow = {
   created_by: string | null;
 };
 
-function startOfDay() { const d = new Date(); d.setHours(0,0,0,0); return d; }
+// Sempre calcula "início do dia" no fuso America/Sao_Paulo,
+// para que a virada de meia-noite siga o horário do Brasil
+// independentemente do fuso do dispositivo/servidor.
+const BR_TZ = "America/Sao_Paulo";
+function nowInBrazil(): Date {
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone: BR_TZ,
+    year: "numeric", month: "2-digit", day: "2-digit",
+    hour: "2-digit", minute: "2-digit", second: "2-digit",
+    hour12: false,
+  }).formatToParts(new Date());
+  const g = (t: string) => Number(parts.find((p) => p.type === t)?.value || 0);
+  // Constrói uma Date local com os componentes de São Paulo
+  return new Date(g("year"), g("month") - 1, g("day"), g("hour") % 24, g("minute"), g("second"));
+}
+function startOfDay() { const d = nowInBrazil(); d.setHours(0,0,0,0); return d; }
 function startOfWeek() { const d = startOfDay(); d.setDate(d.getDate() - d.getDay()); return d; }
 function startOfMonth() { const d = startOfDay(); d.setDate(1); return d; }
 
