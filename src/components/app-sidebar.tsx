@@ -3,6 +3,7 @@ import {
   LayoutDashboard, Plug, Bot, Brain, BookOpen, Workflow, FileText, Wrench,
   MessageCircle, AudioLines, Sparkles, Users, MessagesSquare, History, ScrollText,
   Settings, UserCog, ShieldCheck, DollarSign, Palette, Code2, Webhook, Puzzle, LogOut,
+  Boxes, LineChart, Activity, CreditCard, Shield, User,
 } from "lucide-react";
 import {
   Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent, SidebarGroupLabel,
@@ -13,26 +14,37 @@ import logoAsset from "@/assets/agent-ia-logo.png.asset.json";
 
 const groups = [
   {
-    label: "Operação",
+    label: "Workspace",
     items: [
       { title: "Dashboard", url: "/dashboard", icon: LayoutDashboard },
-      { title: "Conexões", url: "/connections", icon: Plug },
       { title: "Agentes", url: "/agents", icon: Bot },
-      { title: "IA", url: "/ai", icon: Sparkles },
-      { title: "Conhecimento", url: "/knowledge", icon: BookOpen },
-      { title: "Fluxos", url: "/flows", icon: Workflow },
+      { title: "Chats", url: "/conversations", icon: MessagesSquare },
+      { title: "Base de Conhecimento", url: "/knowledge", icon: BookOpen },
       { title: "Documentos", url: "/documents", icon: FileText },
-      { title: "Ferramentas", url: "/tools", icon: Wrench },
     ],
   },
   {
-    label: "Comunicação",
+    label: "Automação",
     items: [
+      { title: "Integrações", url: "/integrations", icon: Puzzle },
+      { title: "APIs", url: "/api", icon: Code2 },
+      { title: "Ferramentas", url: "/tools", icon: Wrench },
+      { title: "MCP Servers", url: "/tools", icon: Boxes },
+      { title: "Workflows", url: "/flows", icon: Workflow },
+      { title: "Webhooks", url: "/webhooks", icon: Webhook },
       { title: "WhatsApp", url: "/whatsapp", icon: MessageCircle },
+      { title: "Conexões", url: "/connections", icon: Plug },
+    ],
+  },
+  {
+    label: "Insights",
+    items: [
+      { title: "Analytics", url: "/history", icon: LineChart },
+      { title: "Monitoramento", url: "/logs", icon: Activity },
+      { title: "IA", url: "/ai", icon: Sparkles },
+      { title: "Prompts", url: "/prompt", icon: Brain },
       { title: "Áudios", url: "/audios", icon: AudioLines },
-      { title: "Prompt", url: "/prompt", icon: Brain },
       { title: "Clientes", url: "/clients", icon: Users },
-      { title: "Conversas", url: "/conversations", icon: MessagesSquare },
       { title: "Histórico", url: "/history", icon: History },
       { title: "Logs", url: "/logs", icon: ScrollText },
     ],
@@ -40,14 +52,14 @@ const groups = [
   {
     label: "Sistema",
     items: [
-      { title: "Configurações", url: "/settings", icon: Settings },
       { title: "Usuários", url: "/users", icon: UserCog },
       { title: "Permissões", url: "/permissions", icon: ShieldCheck },
+      { title: "Assinaturas", url: "/billing", icon: CreditCard },
       { title: "Financeiro", url: "/billing", icon: DollarSign },
+      { title: "Segurança", url: "/permissions", icon: Shield },
       { title: "White Label", url: "/white-label", icon: Palette },
-      { title: "API", url: "/api", icon: Code2 },
-      { title: "Webhooks", url: "/webhooks", icon: Webhook },
-      { title: "Integrações", url: "/integrations", icon: Puzzle },
+      { title: "Configurações", url: "/settings", icon: Settings },
+      { title: "Perfil", url: "/settings", icon: User },
     ],
   },
 ];
@@ -58,14 +70,18 @@ export function AppSidebar() {
   const pathname = useRouterState({ select: (r) => r.location.pathname });
 
   return (
-    <Sidebar collapsible="icon">
-      <SidebarHeader className="p-4">
-        <div className="flex items-center gap-2">
-          <img src={logoAsset.url} alt="Agent IA" className="h-9 w-9 rounded-lg object-cover ring-1 ring-primary/30" />
+    <Sidebar collapsible="icon" className="border-r border-sidebar-border">
+      <SidebarHeader className="p-4 border-b border-sidebar-border/60">
+        <div className="flex items-center gap-2.5">
+          <div className="relative">
+            <img src={logoAsset.url} alt="Agent IA" className="h-9 w-9 rounded-xl object-cover ring-1 ring-primary/40" />
+            <div className="absolute inset-0 rounded-xl opacity-40 blur-md -z-10" style={{ background: "var(--gradient-primary)" }} />
+          </div>
           {!collapsed && (
-            <div className="flex flex-col leading-tight">
-              <span className="font-bold tracking-wide">AGENT IA</span>
-              <span className="text-[10px] uppercase text-muted-foreground tracking-widest">Plataforma</span>
+            <div className="flex flex-col leading-tight min-w-0">
+              <span className="font-black tracking-tight bg-clip-text text-transparent"
+                style={{ backgroundImage: "var(--gradient-primary)" }}>AGENT IA</span>
+              <span className="text-[10px] uppercase text-muted-foreground tracking-widest">Enterprise</span>
             </div>
           )}
         </div>
