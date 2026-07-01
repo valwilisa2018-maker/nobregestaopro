@@ -26,6 +26,36 @@ import { PhoneInputBR } from "@/components/phone-input-br";
 
 export const Route = createFileRoute("/_authenticated/sales")({
   component: SalesPage,
+  errorComponent: ({ error, reset }) => {
+    // Log to system_logs for post-mortem so we can inspect what actually failed.
+    if (typeof window !== "undefined") {
+      try {
+        logger.error(`Sales route crashed: ${error?.message ?? "unknown"}`, {
+          context: "sales/route-error",
+          details: { message: error?.message, stack: (error as any)?.stack },
+          silent: true,
+        });
+      } catch { /* noop */ }
+    }
+    return (
+      <div className="max-w-xl mx-auto mt-10 p-6 rounded-lg border border-destructive/30 bg-destructive/5 text-sm space-y-3">
+        <h2 className="text-lg font-semibold text-destructive">Erro ao abrir a página de Vendas</h2>
+        <p className="text-muted-foreground">Tente recarregar. Se persistir, envie o texto abaixo.</p>
+        <pre className="max-h-48 overflow-auto rounded bg-muted p-3 text-xs whitespace-pre-wrap break-words">
+          {error?.message ?? "Erro desconhecido"}
+        </pre>
+        <div className="flex gap-2">
+          <button
+            onClick={() => reset()}
+            className="rounded-md bg-primary px-4 py-2 text-primary-foreground text-sm"
+          >
+            Tentar novamente
+          </button>
+          <a href="/" className="rounded-md border px-4 py-2 text-sm">Ir para início</a>
+        </div>
+      </div>
+    );
+  },
 });
 
 // Detecta se o tipo de serviço selecionado é vídeo (qualquer nome contendo
