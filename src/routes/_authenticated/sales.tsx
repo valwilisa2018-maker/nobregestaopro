@@ -369,7 +369,7 @@ function SalesPage() {
     [serviceTypes.data, form.service_type_id],
   );
   const formNeedsVideoDuration = isVideoService(selectedServiceName, !!form.package_id);
-  const formNeedsReceipt = form.payment_status !== "pendente" || Number(form.paid_amount || 0) > 0;
+  const formReceiptRecommended = form.payment_status !== "pendente" || Number(form.paid_amount || 0) > 0;
 
   const submit = async () => {
     if (saving) return; // Prevent double clicks
@@ -463,7 +463,6 @@ function SalesPage() {
     if (form.payment_status === "pendente" && paidCents > 0) {
       return failVal("payment_status", "Status 'Pendente' não pode ter valor pago.");
     }
-    if (formNeedsReceipt && !receiptFile) return failVal("receipt", "Anexe o comprovante do pagamento.");
     if (!Number.isFinite(qty) || qty < 1) {
       return failVal("service_quantity", "Quantidade de serviços deve ser ao menos 1.");
     }
@@ -505,18 +504,6 @@ function SalesPage() {
 
       const { data: { user } } = await supabase.auth.getUser();
 
-      let receipt_url: string | null = null;
-      if (receiptFile) {
-        const ext = receiptFile.name.split(".").pop() || "bin";
-        const path = `${user?.id ?? "anon"}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
-        const { error: ue } = await supabase.storage.from("receipts").upload(path, receiptFile, {
-          contentType: receiptFile.type || undefined,
-          upsert: false,
-        });
-        if (ue) throw ue;
-        receipt_url = path;
-      }
-
       const { data: saleRow, error: se } = await supabase.from("sales").insert({
         customer_id: cust.id,
         total_amount: Number(form.total_amount),
@@ -534,7 +521,7 @@ function SalesPage() {
         google_drive_link: form.google_drive_link || null,
         platform_link: form.platform_link || null,
         lead_source: form.lead_source || null,
-        receipt_url,
+        receipt_url: null,
         sale_date: form.sale_date || new Date().toISOString().slice(0, 10),
         delivery_deadline: form.delivery_deadline,
         expected_delivery_date: form.expected_delivery_date,
@@ -544,16 +531,36 @@ function SalesPage() {
 
       if (se) throw se;
 
-      // Se houver comprovante, vincula
-      if (receipt_url && saleRow?.id) {
-        await supabase.from("sale_receipts").insert({
-          sale_id: saleRow.id,
-          file_path: receipt_url,
-          amount: Number(form.paid_amount || 0),
-          paid_at: form.sale_date || new Date().toISOString().slice(0, 10),
-          uploaded_by: user?.id ?? null,
-          notes: "Comprovante inicial",
-        });
+      // O comprovante não pode impedir a criação da venda. Primeiro salvamos a
+      // venda; se o upload/vínculo do arquivo falhar, registramos o erro e o
+      // usuário pode anexar o comprovante depois pela própria venda/financeiro.
+      if (receiptFile && saleRow?.id) {
+        try {
+          const ext = receiptFile.name.split(".").pop() || "bin";
+          const path = `${user?.id ?? "anon"}/${saleRow.id}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+          const { error: ue } = await supabase.storage.from("receipts").upload(path, receiptFile, {
+            contentType: receiptFile.type || undefined,
+            upsert: false,
+          });
+          if (ue) throw ue;
+          await supabase.from("sales").update({ receipt_url: path }).eq("id", saleRow.id);
+          const { error: receiptError } = await supabase.from("sale_receipts").insert({
+            sale_id: saleRow.id,
+            file_path: path,
+            amount: Number(form.paid_amount || 0),
+            paid_at: form.sale_date || new Date().toISOString().slice(0, 10),
+            uploaded_by: user?.id ?? null,
+            notes: "Comprovante inicial",
+          });
+          if (receiptError) throw receiptError;
+        } catch (receiptErr: any) {
+          logger.warn(`Venda criada, mas falhou ao anexar comprovante: ${receiptErr?.message ?? "desconhecido"}`, {
+            context: "sales/submit/receipt",
+            details: { sale_id: saleRow.id, message: receiptErr?.message, code: receiptErr?.code },
+            silent: true,
+          }).catch(() => {});
+          toast.warning("Venda criada, mas o comprovante não foi anexado. Você pode anexar depois.");
+        }
       }
 
       // Auto-vincular pasta da Plataforma (se o link colado for /pastas-arquivos/{id})
