@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { toast } from "sonner";
+import logoAsset from "@/assets/agent-ia-logo.png.asset.json";
 
 export const Route = createFileRoute("/auth")({
   head: () => ({ meta: [{ title: "Entrar — Plataforma IA WhatsApp" }] }),
@@ -55,9 +56,10 @@ function AuthPage() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-background px-4">
       <Card className="w-full max-w-md">
-        <CardHeader>
-          <CardTitle>Plataforma IA WhatsApp</CardTitle>
-          <CardDescription>Acesse seu painel de atendimento inteligente</CardDescription>
+        <CardHeader className="items-center text-center">
+          <img src={logoAsset.url} alt="Agent IA" className="h-20 w-20 rounded-2xl object-cover ring-1 ring-primary/30 mb-2" />
+          <CardTitle className="text-xl">AGENT IA</CardTitle>
+          <CardDescription>Plataforma inteligente de atendimento no WhatsApp</CardDescription>
         </CardHeader>
         <CardContent>
           <Tabs defaultValue="signin">
