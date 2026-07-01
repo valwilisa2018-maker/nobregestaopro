@@ -265,6 +265,17 @@ function fireConfetti() {
   }, 100);
 }
 
+function rememberRealtimeEventOnce(store: Set<string>, key: string, max = 500) {
+  if (!key) return true;
+  if (store.has(key)) return false;
+  store.add(key);
+  if (store.size > max) {
+    const first = store.values().next().value;
+    if (first) store.delete(first);
+  }
+  return true;
+}
+
 // Hook count-up
 function useCountUp(target: number, duration = 900, replayKey: number = 0) {
   const [val, setVal] = useState(target);
@@ -310,6 +321,7 @@ function Telao() {
   const [bigReceipt, setBigReceipt] = useState<{ name: string; amount: number } | null>(null);
   const bigReceiptTimer = useRef<number | null>(null);
   const processedReceiptIdsRef = useRef<Set<string>>(new Set());
+  const processedPaymentUpdateKeysRef = useRef<Set<string>>(new Set());
   const [pendenteFlash, setPendenteFlash] = useState(false);
   const showBigReceipt = (name: string, amount: number) => {
     setBigReceipt({ name: name || "Produtor", amount: Number(amount) || 0 });
@@ -682,9 +694,31 @@ function Telao() {
         const row = payload?.new as SaleRow | undefined;
         if (row) showBigSeller(sellerNameOf(row), Number(row.total_amount || 0));
       })
-      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "sales" }, () => {
+      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "sales" }, (payload: any) => {
         qc.invalidateQueries({ queryKey: ["telao-sales"] });
         qc.invalidateQueries({ queryKey: ["telao-sinal-hoje"] });
+        qc.invalidateQueries({ queryKey: ["telao-sale-receipts"] });
+
+        const next = payload?.new as SaleRow & { paid_amount?: number } | undefined;
+        const prev = payload?.old as (SaleRow & { paid_amount?: number }) | undefined;
+        if (!next?.id) return;
+
+        const paidBefore = Number(prev?.paid_amount ?? 0);
+        const paidAfter = Number(next.paid_amount ?? 0);
+        const diff = paidAfter - paidBefore;
+        if (diff <= 0.009) return;
+
+        const saleRef = next.sale_date ? new Date(`${next.sale_date}T12:00:00`) : new Date(next.created_at);
+        const isOlderPendingReceipt = saleRef < today0;
+        if (!isOlderPendingReceipt) return;
+
+        const key = `sale-paid-update:${next.id}:${paidBefore.toFixed(2)}:${paidAfter.toFixed(2)}`;
+        if (!rememberRealtimeEventOnce(processedPaymentUpdateKeysRef.current, key)) return;
+
+        const name = producerNameOf(next) !== "—" ? producerNameOf(next) : cName(next.customer_id);
+        if (celebration.confettiEnabled) fireConfetti();
+        playSound("caixa", Math.max(0.5, (celebration.volume || 80) / 100));
+        showBigReceipt(name, diff);
       })
       .on("postgres_changes", { event: "DELETE", schema: "public", table: "sales" }, () => {
         qc.invalidateQueries({ queryKey: ["telao-sales"] });
@@ -692,7 +726,7 @@ function Telao() {
       })
       .subscribe();
     return () => { supabase.removeChannel(channel); };
-  }, [qc, soundEnabled, soundId, celebration.soundEnabled, celebration.confettiEnabled, celebration.volume]);
+  }, [qc, soundEnabled, soundId, celebration.soundEnabled, celebration.confettiEnabled, celebration.volume, today0, producers, customers, profiles]);
 
   // Realtime: novo recebimento (sale_receipts INSERT) → overlay com produtor + valor recebido
   useEffect(() => {
@@ -704,14 +738,7 @@ function Telao() {
         const row = payload?.new as { id?: string; sale_id?: string; amount?: number; notes?: string } | undefined;
         if (!row?.sale_id) return;
         // Trava de idempotência: cada recebimento dispara som/overlay uma única vez.
-        if (row.id) {
-          if (processedReceiptIds.has(row.id)) return;
-          processedReceiptIds.add(row.id);
-          if (processedReceiptIds.size > 500) {
-            const first = processedReceiptIds.values().next().value;
-            if (first) processedReceiptIds.delete(first);
-          }
-        }
+        if (row.id && !rememberRealtimeEventOnce(processedReceiptIds, `receipt:${row.id}`)) return;
         // Sinal inicial (na criação da venda) NÃO dispara overlay de "valor recebido" —
         // já é celebrado pelo overlay de nova venda (bigSeller).
         if ((row.notes || "").toLowerCase().includes("comprovante inicial")) return;
