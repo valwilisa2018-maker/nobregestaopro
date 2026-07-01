@@ -233,79 +233,72 @@ function Page() {
 
       {/* Premium QR modal */}
       <Dialog open={qrModal.open} onOpenChange={(o) => setQrModal({ ...qrModal, open: o })}>
-        <DialogContent className="max-w-2xl overflow-hidden p-0">
-          <div className="relative bg-gradient-to-br from-primary/20 via-card to-accent/30 p-6">
-            <div className="absolute -right-16 -top-16 h-48 w-48 rounded-full bg-primary/20 blur-3xl" />
-            <div className="relative flex items-center gap-3">
-              <div className="grid h-11 w-11 place-items-center rounded-xl bg-primary/20 text-primary ring-1 ring-primary/40">
-                <ShieldCheck className="h-5 w-5" />
+        <DialogContent className="max-w-sm overflow-hidden p-0 border-border/60">
+          <div className="p-5 space-y-5">
+            <DialogHeader className="space-y-0">
+              <div className="flex items-center gap-3">
+                <div className="grid h-10 w-10 place-items-center rounded-xl bg-primary/15 text-primary ring-1 ring-primary/30">
+                  <MessageCircle className="h-5 w-5" />
+                </div>
+                <div className="text-left">
+                  <DialogTitle className="text-base">Conectar ao WhatsApp</DialogTitle>
+                  <DialogDescription className="text-xs">Sincronizar com seu dispositivo</DialogDescription>
+                </div>
               </div>
-              <div>
-                <DialogTitle className="text-xl">Conectar WhatsApp</DialogTitle>
-                <DialogDescription>Instância <b>{qrModal.name}</b> — escaneie o QR abaixo</DialogDescription>
-              </div>
-            </div>
-          </div>
+            </DialogHeader>
 
-          <div className="grid md:grid-cols-2 gap-6 p-6">
-            <div className="flex flex-col items-center justify-center gap-3">
-              <div className="rounded-2xl bg-white p-4 ring-1 ring-border shadow-lg">
-                {qrModal.qr ? (
+            <div className="text-center space-y-1">
+              <h3 className="font-semibold text-lg">Quase lá! 🚀</h3>
+              <p className="text-xs text-muted-foreground">Escaneie o QR Code para conectar ao WhatsApp</p>
+            </div>
+
+            <div className="rounded-2xl border-2 border-dashed border-primary/30 bg-primary/[0.03] p-6 flex flex-col items-center gap-4">
+              {qrModal.qr ? (
+                <div className="rounded-xl bg-white p-3 ring-1 ring-border">
                   <img
                     src={qrModal.qr.startsWith("data:") ? qrModal.qr : `data:image/png;base64,${qrModal.qr}`}
-                    alt="QR Code" className="h-56 w-56"
+                    alt="QR Code" className="h-44 w-44"
                   />
-                ) : (
-                  <div className="h-56 w-56 grid place-items-center text-muted-foreground">
-                    <Loader2 className="h-6 w-6 animate-spin" />
-                  </div>
-                )}
-              </div>
-              <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                <Wifi className="h-3.5 w-3.5 animate-pulse text-primary" />
-                Aguardando conexão…
-              </div>
+                </div>
+              ) : (
+                <>
+                  <QrCode className="h-20 w-20 text-primary/70" strokeWidth={1.2} />
+                  <Button
+                    onClick={() => qrModal.connectionId && reconnect({ id: qrModal.connectionId, name: qrModal.name } as Connection)}
+                    className="rounded-full px-6"
+                  >
+                    <QrCode className="h-4 w-4" /> Gerar QR Code
+                  </Button>
+                </>
+              )}
+              {qrModal.qr && (
+                <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                  <Wifi className="h-3.5 w-3.5 animate-pulse text-primary" />
+                  Aguardando conexão…
+                </div>
+              )}
             </div>
 
-            <div className="space-y-4">
-              <h3 className="font-semibold flex items-center gap-2">
-                <Smartphone className="h-4 w-4 text-primary" /> Como conectar
-              </h3>
-              <ol className="space-y-3 text-sm">
+            <div className="space-y-3">
+              <div className="flex items-center gap-2 text-sm font-medium text-primary">
+                <Plus className="h-4 w-4" /> Como conectar
+              </div>
+              <ol className="space-y-2.5 text-xs">
                 {[
                   "Abra o WhatsApp no seu celular",
-                  "Toque em Menu (⋮) ou Configurações",
-                  'Selecione "Aparelhos conectados"',
-                  'Toque em "Conectar um aparelho"',
-                  "Aponte a câmera para o QR Code ao lado",
+                  "Vá em Configurações → Dispositivos conectados",
+                  "Toque em Conectar um dispositivo e escaneie o código",
                 ].map((step, i) => (
-                  <li key={i} className="flex gap-3">
-                    <div className="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-primary/15 text-primary text-xs font-semibold ring-1 ring-primary/30">
+                  <li key={i} className="flex gap-2.5 items-start">
+                    <div className="grid h-5 w-5 shrink-0 place-items-center rounded-full bg-primary/15 text-primary text-[10px] font-bold ring-1 ring-primary/30">
                       {i + 1}
                     </div>
                     <span className="text-muted-foreground pt-0.5">{step}</span>
                   </li>
                 ))}
               </ol>
-              <div className="rounded-lg border border-primary/20 bg-primary/5 p-3 text-xs space-y-1.5">
-                <div className="flex items-center gap-1.5 font-medium text-primary">
-                  <ShieldCheck className="h-3.5 w-3.5" /> Webhook individual ativo
-                </div>
-                <p className="text-muted-foreground">Um endpoint dedicado foi criado para esta instância receber mensagens em tempo real.</p>
-              </div>
-              <div className="rounded-lg border bg-muted/30 p-3 text-xs flex items-start gap-2">
-                <CheckCircle2 className="h-4 w-4 text-emerald-500 shrink-0 mt-0.5" />
-                <p className="text-muted-foreground">Ao escanear, esta janela fecha automaticamente e a instância aparece como <b>Conectado</b>.</p>
-              </div>
             </div>
           </div>
-
-          <DialogFooter className="p-4 border-t bg-muted/20">
-            <Button variant="outline" onClick={() => qrModal.connectionId && reconnect({ id: qrModal.connectionId, name: qrModal.name } as Connection)}>
-              <RefreshCw className="h-4 w-4" /> Gerar novo QR
-            </Button>
-            <Button onClick={() => setQrModal({ open: false, qr: null, name: "", connectionId: null })}>Fechar</Button>
-          </DialogFooter>
         </DialogContent>
       </Dialog>
     </PageShell>
