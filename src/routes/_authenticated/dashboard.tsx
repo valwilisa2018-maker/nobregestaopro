@@ -70,8 +70,9 @@ function formatDuracao(totalSeconds: number): string {
 function Dashboard() {
   const navigate = useNavigate();
   // Filtros principais
-  const [scope, setScope] = useState<"day" | "week" | "month" | "year" | "custom">("day");
+  const [scope, setScope] = useState<"day" | "yesterday" | "week" | "month" | "year" | "custom">("day");
   const todayStr = new Date().toISOString().slice(0, 10);
+  const yesterdayStr = (() => { const d = new Date(); d.setDate(d.getDate() - 1); return d.toISOString().slice(0, 10); })();
   const [customFrom, setCustomFrom] = useState<string>(todayStr);
   const [customTo, setCustomTo] = useState<string>(todayStr);
   const { user } = useAuth();
@@ -257,14 +258,16 @@ function Dashboard() {
     month: { total: monthTotal, count: monthCount, goal: goalFor("monthly"), label: "Mês", icon: TrendingUp, since: startOf("month") },
     year: { total: yearTotal, count: all.filter((s) => (s.sale_date || s.created_at.slice(0, 10)) >= startOf("year").slice(0, 10)).length, goal: goalFor("yearly"), label: "Ano", icon: TrendingUp, since: startOf("year") },
   } as const;
-  const scopeSince = scope === "custom" ? customFrom : scopeMap[scope].since.slice(0, 10);
-  const scopeUntil = scope === "custom" ? customTo : "9999-12-31";
+  const scopeSince = scope === "custom" ? customFrom : scope === "yesterday" ? yesterdayStr : scopeMap[scope].since.slice(0, 10);
+  const scopeUntil = scope === "custom" ? customTo : scope === "yesterday" ? yesterdayStr : "9999-12-31";
   const inScope = (d?: string | null) => !!d && d.slice(0, 10) >= scopeSince && d.slice(0, 10) <= scopeUntil;
-  const customList = scope === "custom"
+  const rangeList = (scope === "custom" || scope === "yesterday")
     ? all.filter((s) => { const d = s.sale_date || s.created_at.slice(0, 10); return d >= scopeSince && d <= scopeUntil; })
     : [];
   const current = scope === "custom"
-    ? { total: customList.reduce((a, s) => a + Number(s.total_amount), 0), count: customList.length, goal: 0, label: `${customFrom} → ${customTo}`, icon: Calendar, since: customFrom + "T00:00:00.000Z" }
+    ? { total: rangeList.reduce((a, s) => a + Number(s.total_amount), 0), count: rangeList.length, goal: 0, label: `${customFrom} → ${customTo}`, icon: Calendar, since: customFrom + "T00:00:00.000Z" }
+    : scope === "yesterday"
+    ? { total: rangeList.reduce((a, s) => a + Number(s.total_amount), 0), count: rangeList.length, goal: goalFor("daily"), label: "Ontem", icon: Calendar, since: yesterdayStr + "T00:00:00.000Z" }
     : scopeMap[scope];
   const dayGoal = goalFor("daily");
   const dayPct = dayGoal ? Math.min(100, Math.round((dayTotal / dayGoal) * 100)) : 0;
@@ -555,6 +558,7 @@ function Dashboard() {
             size="sm"
           >
             <ToggleGroupItem value="day">Dia</ToggleGroupItem>
+            <ToggleGroupItem value="yesterday">Ontem</ToggleGroupItem>
             <ToggleGroupItem value="week">Semana</ToggleGroupItem>
             <ToggleGroupItem value="month">Mês</ToggleGroupItem>
             <ToggleGroupItem value="year">Ano</ToggleGroupItem>
