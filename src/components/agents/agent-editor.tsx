@@ -94,6 +94,7 @@ export function AgentEditor({ agent, onSaved, onCancel }: Props) {
   const [form, setForm] = useState<AgentRow>(() => agent ?? emptyAgent(user?.id ?? ""));
   const [saving, setSaving] = useState(false);
   const [instances, setInstances] = useState<Array<{ id: string; name: string; phone_number: string | null; status: string | null }>>([]);
+  const [providers, setProviders] = useState<Array<{ id: string; name: string; provider: string; model: string | null }>>([]);
 
   useEffect(() => { setForm(agent ?? emptyAgent(user?.id ?? "")); }, [agent, user?.id]);
 
@@ -106,6 +107,19 @@ export function AgentEditor({ agent, onSaved, onCancel }: Props) {
         .eq("user_id", user.id)
         .order("created_at", { ascending: false });
       setInstances(data ?? []);
+    })();
+  }, [user]);
+
+  useEffect(() => {
+    if (!user) return;
+    (async () => {
+      const { data } = await supabase
+        .from("ai_providers")
+        .select("id, name, provider, model")
+        .eq("user_id", user.id)
+        .eq("is_active", true)
+        .order("created_at", { ascending: false });
+      setProviders(data ?? []);
     })();
   }, [user]);
 
