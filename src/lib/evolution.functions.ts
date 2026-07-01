@@ -128,7 +128,7 @@ export const createAndConnectInstance = createServerFn({ method: "POST" })
         user_id: context.userId,
         name: `WhatsApp · ${data.name}`,
         url: webhookUrl,
-        event: "evolution:messages",
+        events: ["MESSAGES_UPSERT", "CONNECTION_UPDATE"],
         is_active: true,
       });
     }
