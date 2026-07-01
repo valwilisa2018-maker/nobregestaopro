@@ -1230,14 +1230,18 @@ function Telao() {
                 <span className="inline-block w-2 h-2 rounded-full bg-emerald-400 animate-pulse" /> tempo real
               </span>
             </div>
-            <div className="flex items-end gap-4 flex-wrap">
+            <div className="flex items-end gap-4 flex-wrap justify-between">
               <div
                 style={{ fontFamily: '"Bebas Neue", sans-serif', letterSpacing: "0.01em" }}
                 className="text-[clamp(3.5rem,9vw,8rem)] leading-none tabular-nums telao-shine"
               >
                 {formatCurrency(heroVal)}
               </div>
-              <div className="pb-3">
+              <div className="pb-3 text-right">
+                <div className="text-[10px] uppercase tracking-widest text-[#c9a84c]/60">Ticket médio</div>
+                <div style={{ fontFamily: '"Bebas Neue", sans-serif' }} className="text-4xl text-white tabular-nums">
+                  {formatCurrency(ticketVal)}
+                </div>
               </div>
             </div>
             <div className="mt-6 flex items-end justify-between border-t border-[#c9a84c]/15 pt-4">
@@ -1254,9 +1258,9 @@ function Telao() {
                 </div>
               </div>
               <div className="text-right">
-                <div className="text-[10px] uppercase tracking-widest text-[#c9a84c]/60">Ticket médio</div>
-                <div style={{ fontFamily: '"Bebas Neue", sans-serif' }} className="text-4xl text-white tabular-nums">
-                  {formatCurrency(ticketVal)}
+                <div className="text-[10px] uppercase tracking-widest text-emerald-400/80">Total · Hoje</div>
+                <div style={{ fontFamily: '"Bebas Neue", sans-serif' }} className={`text-4xl text-emerald-400 tabular-nums ${pendenteFlash ? "telao-pop telao-pulse" : ""}`}>
+                  {formatCurrency(sinalVal + pendenteVal)}
                 </div>
               </div>
             </div>
