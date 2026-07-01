@@ -32,6 +32,7 @@ export const Route = createFileRoute("/_authenticated/telao")({
 type SaleRow = {
   id: string;
   total_amount: number;
+  paid_amount: number;
   created_at: string;
   sale_date: string;
   seller_id: string | null;
@@ -62,6 +63,22 @@ function nowInBrazil(): Date {
 function startOfDay() { const d = nowInBrazil(); d.setHours(0,0,0,0); return d; }
 function startOfWeek() { const d = startOfDay(); d.setDate(d.getDate() - d.getDay()); return d; }
 function startOfMonth() { const d = startOfDay(); d.setDate(1); return d; }
+function dateKeyInBrazil(value: string | Date) {
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: BR_TZ,
+    year: "numeric", month: "2-digit", day: "2-digit",
+  }).format(new Date(value));
+}
+function dateOnlyKey(value: string | null | undefined) {
+  if (!value) return "";
+  return String(value).slice(0, 10);
+}
+function businessDateKey(row: Pick<SaleRow, "sale_date" | "created_at">) {
+  return dateOnlyKey(row.sale_date) || dateKeyInBrazil(row.created_at);
+}
+function middayFromDateKey(key: string) {
+  return new Date(`${key}T12:00:00`);
+}
 
 const VISIBLE_SALES_ROWS = 6;
 const SALE_ROW_HEIGHT = 72;
@@ -624,10 +641,11 @@ function Telao() {
   // Tick a cada 30s para detectar virada de dia/semana/mês e zerar contadores
   const [nowTick, setNowTick] = useState(() => Date.now());
   useEffect(() => {
-    const id = setInterval(() => setNowTick(Date.now()), 5 * 60_000);
+    const id = setInterval(() => setNowTick(Date.now()), 30_000);
     return () => clearInterval(id);
   }, []);
   const today0 = useMemo(() => startOfDay(), [nowTick]);
+  const todayISO = useMemo(() => dateKeyInBrazil(new Date()), [nowTick]);
   const week0 = useMemo(() => startOfWeek(), [nowTick]);
   const month0 = useMemo(() => startOfMonth(), [nowTick]);
 
@@ -657,15 +675,14 @@ function Telao() {
   }, [sales]);
 
   const todaySales = uniqueSales.filter((s) => {
-    const date = s.sale_date ? new Date(s.sale_date + 'T12:00:00') : new Date(s.created_at);
-    return date >= today0;
+    return businessDateKey(s) === todayISO;
   });
   const weekSales = uniqueSales.filter((s) => {
-    const date = s.sale_date ? new Date(s.sale_date + 'T12:00:00') : new Date(s.created_at);
+    const date = middayFromDateKey(businessDateKey(s));
     return date >= week0;
   });
   const monthSales = uniqueSales.filter((s) => {
-    const date = s.sale_date ? new Date(s.sale_date + 'T12:00:00') : new Date(s.created_at);
+    const date = middayFromDateKey(businessDateKey(s));
     return date >= month0;
   });
 
@@ -725,7 +742,7 @@ function Telao() {
       .channel("telao-sales")
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "sales" }, (payload: any) => {
         qc.invalidateQueries({ queryKey: ["telao-sales"] });
-        qc.invalidateQueries({ queryKey: ["telao-sinal-hoje"] });
+        qc.invalidateQueries({ queryKey: ["telao-daily-financials"] });
         if (celebration.confettiEnabled) fireConfetti();
         if (soundEnabled && celebration.soundEnabled) playSound(soundId, celebration.volume / 100);
         setFlash(true);
@@ -737,7 +754,7 @@ function Telao() {
       })
       .on("postgres_changes", { event: "UPDATE", schema: "public", table: "sales" }, (payload: any) => {
         qc.invalidateQueries({ queryKey: ["telao-sales"] });
-        qc.invalidateQueries({ queryKey: ["telao-sinal-hoje"] });
+        qc.invalidateQueries({ queryKey: ["telao-daily-financials"] });
         qc.invalidateQueries({ queryKey: ["telao-sale-receipts"] });
 
         const next = payload?.new as SaleRow & { paid_amount?: number } | undefined;
@@ -749,7 +766,7 @@ function Telao() {
         const diff = paidAfter - paidBefore;
         if (diff <= 0.009) return;
 
-        const saleRef = next.sale_date ? new Date(`${next.sale_date}T12:00:00`) : new Date(next.created_at);
+        const saleRef = middayFromDateKey(businessDateKey(next));
         const isOlderPendingReceipt = saleRef < today0;
         if (!isOlderPendingReceipt) return;
 
@@ -764,7 +781,7 @@ function Telao() {
       })
       .on("postgres_changes", { event: "DELETE", schema: "public", table: "sales" }, () => {
         qc.invalidateQueries({ queryKey: ["telao-sales"] });
-        qc.invalidateQueries({ queryKey: ["telao-sinal-hoje"] });
+        qc.invalidateQueries({ queryKey: ["telao-daily-financials"] });
       })
       .subscribe();
     return () => { supabase.removeChannel(channel); };
@@ -832,52 +849,46 @@ function Telao() {
 
   const now = new Date();
 
-  const totalHoje = sum(todaySales);
-  const totalSemana = sum(weekSales);
-  const totalMes = sum(monthSales);
-  const ticketMedio = todaySales.length ? totalHoje / todaySales.length : 0;
-
-  // Fonte de verdade (backend): v_daily_financials.sinal = Σ sales.paid_amount do dia.
-  // Nunca depende de notes em sale_receipts.
-  const receipts = receiptsQ.data ?? [];
-  const todaySaleIds = useMemo(() => new Set(todaySales.map((s: any) => s.id)), [todaySales]);
-  const todayReceipts = useMemo(() => {
-    return receipts.filter((r: any) => {
-      const ref = r.paid_at ? new Date(r.paid_at + (r.paid_at.length === 10 ? "T12:00:00" : "")) : new Date(r.created_at);
-      return ref >= today0;
-    });
-  }, [receipts, today0]);
-  const todayISO = useMemo(() => {
-    // Data de hoje no fuso America/Sao_Paulo (bate com a view v_daily_financials)
-    const parts = new Intl.DateTimeFormat("en-CA", {
-      timeZone: "America/Sao_Paulo",
-      year: "numeric", month: "2-digit", day: "2-digit",
-    }).format(new Date());
-    return parts; // YYYY-MM-DD
-  }, []);
-  const sinalHojeQ = useQuery({
-    queryKey: ["telao-sinal-hoje", todayISO],
+  // Fonte de verdade do topo do telão: sempre pela DATA DA VENDA.
+  // Faturamento = total_amount, Sinal = paid_amount, Vendas = quantidade do dia.
+  const dailyFinancialsQ = useQuery({
+    queryKey: ["telao-daily-financials", todayISO],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("v_daily_financials")
-        .select("sinal")
+        .select("sinal,total_vendido,vendas")
         .eq("dia", todayISO)
         .maybeSingle();
       if (error) throw error;
-      return Number(data?.sinal ?? 0);
+      return data as { sinal: number | string | null; total_vendido: number | string | null; vendas: number | null } | null;
     },
     refetchInterval: 60000,
     refetchIntervalInBackground: false,
     staleTime: 30_000,
   });
-  // Sinal · Hoje = soma do paid_amount de TODAS as vendas criadas hoje
-  // (cobre parcial e total, mesmo sem comprovante anexado).
+  const dailyFinancials = dailyFinancialsQ.data;
+  const vendasHoje = dailyFinancials ? Number(dailyFinancials.vendas || 0) : todaySales.length;
+  const totalHoje = dailyFinancials ? Number(dailyFinancials.total_vendido || 0) : sum(todaySales);
+  const totalSemana = sum(weekSales);
+  const totalMes = sum(monthSales);
+  const ticketMedio = vendasHoje ? totalHoje / vendasHoje : 0;
+
+  const receipts = receiptsQ.data ?? [];
+  const todaySaleIds = useMemo(() => new Set(todaySales.map((s: any) => s.id)), [todaySales]);
+  const todayReceipts = useMemo(() => {
+    return receipts.filter((r: any) => {
+      const receiptDate = dateOnlyKey(r.paid_at) || dateKeyInBrazil(r.created_at);
+      return receiptDate === todayISO;
+    });
+  }, [receipts, todayISO]);
+  // Sinal · Hoje = soma do paid_amount das vendas com DATA DA VENDA de hoje
+  // (parcial conta só o pago; total conta o total pago).
   // Receb. pendentes · Hoje = recebimentos lançados hoje que NÃO são o sinal inicial
   // da venda de hoje (evita dupla contagem).
   const isInitial = (r: any) => (r.notes || "").toLowerCase().includes("comprovante inicial");
   const totalSinalHoje = useMemo(
-    () => todaySales.reduce((a: number, s: any) => a + Number(s.paid_amount || 0), 0),
-    [todaySales],
+    () => dailyFinancials ? Number(dailyFinancials.sinal || 0) : todaySales.reduce((a: number, s: any) => a + Number(s.paid_amount || 0), 0),
+    [dailyFinancials, todaySales],
   );
   const totalPendenteHoje = useMemo(
     () => todayReceipts
@@ -889,7 +900,7 @@ function Telao() {
   const [heroBeat, setHeroBeat] = useState(0);
   const heroVal = useCountUp(totalHoje, 900, heroBeat);
   const ticketVal = useCountUp(ticketMedio, 900, heroBeat);
-  const opVal = useCountUp(todaySales.length, 900, heroBeat);
+  const opVal = useCountUp(vendasHoje, 900, heroBeat);
   const sinalVal = useCountUp(totalSinalHoje, 900, heroBeat);
   const pendenteVal = useCountUp(totalPendenteHoje, 900, heroBeat);
 
@@ -897,6 +908,7 @@ function Telao() {
   useEffect(() => {
     const i = setInterval(() => {
       qc.invalidateQueries({ queryKey: ["telao-sales"] });
+      qc.invalidateQueries({ queryKey: ["telao-daily-financials"] });
       setHeroBeat((n) => n + 1);
       setPulseHero(true);
       setTimeout(() => setPulseHero(false), 1600);
@@ -1303,7 +1315,7 @@ function Telao() {
               VENDAS DO DIA
             </h2>
             <span className="text-[10px] uppercase tracking-[0.3em] text-[#c9a84c]/70">
-              {todaySales.length} registros
+              {vendasHoje} registros
             </span>
           </div>
           <div
