@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Bot, Plus, Pencil, Trash2, Copy, Loader2, Sparkles } from "lucide-react";
+import { Bot, Plus, Pencil, Trash2, Copy, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
@@ -70,7 +70,7 @@ export function AgentsPage() {
         <Card className="border-dashed">
           <CardContent className="py-16 text-center space-y-3">
             <div className="mx-auto grid h-14 w-14 place-items-center rounded-full bg-primary/10 text-primary">
-              <Sparkles className="h-6 w-6" />
+              <Bot className="h-6 w-6" />
             </div>
             <h3 className="text-lg font-semibold">Nenhum agente ainda</h3>
             <p className="text-sm text-muted-foreground max-w-md mx-auto">Crie seu primeiro agente de IA e configure provedor, prompt, ferramentas e integrações.</p>

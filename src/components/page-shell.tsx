@@ -1,7 +1,7 @@
 import { type ReactNode } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Sparkles } from "lucide-react";
+import { LayoutGrid } from "lucide-react";
 
 interface PageShellProps {
   title: string;
@@ -27,7 +27,7 @@ export function PageShell({ title, description, icon, actions, children, status 
         <div className="relative flex flex-wrap items-start justify-between gap-4">
           <div className="flex items-start gap-4">
             <div className="grid h-12 w-12 place-items-center rounded-xl bg-primary/15 text-primary ring-1 ring-primary/30">
-              {icon ?? <Sparkles className="h-6 w-6" />}
+              {icon ?? <LayoutGrid className="h-6 w-6" />}
             </div>
             <div className="space-y-1">
               <div className="flex items-center gap-2">
@@ -44,7 +44,7 @@ export function PageShell({ title, description, icon, actions, children, status 
         <Card className="border-dashed">
           <CardContent className="py-16 text-center space-y-2">
             <div className="mx-auto grid h-14 w-14 place-items-center rounded-full bg-primary/10 text-primary">
-              <Sparkles className="h-6 w-6" />
+              <LayoutGrid className="h-6 w-6" />
             </div>
             <h3 className="text-lg font-semibold">Módulo em construção</h3>
             <p className="text-sm text-muted-foreground max-w-md mx-auto">

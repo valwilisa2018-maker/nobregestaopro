@@ -1,7 +1,7 @@
 import { Link, useRouterState } from "@tanstack/react-router";
 import {
-  LayoutDashboard, Plug, Bot, Brain, BookOpen, Workflow, FileText, Wrench,
-  MessageCircle, AudioLines, Sparkles, Users, MessagesSquare, History, ScrollText,
+  LayoutDashboard, Plug, Bot, BookOpen, Workflow, FileText, Wrench,
+  MessageCircle, AudioLines, Brain, Users, MessagesSquare, History, ScrollText,
   Settings, UserCog, ShieldCheck, DollarSign, Palette, Code2, Webhook, Puzzle, LogOut,
   Boxes, LineChart, Activity, CreditCard, Shield, User,
 } from "lucide-react";
@@ -41,7 +41,7 @@ const groups = [
     items: [
       { title: "Analytics", url: "/history", icon: LineChart },
       { title: "Monitoramento", url: "/logs", icon: Activity },
-      { title: "IA", url: "/ai", icon: Sparkles },
+      { title: "IA", url: "/ai", icon: Brain },
       { title: "Prompts", url: "/prompt", icon: Brain },
       { title: "Áudios", url: "/audios", icon: AudioLines },
       { title: "Clientes", url: "/clients", icon: Users },

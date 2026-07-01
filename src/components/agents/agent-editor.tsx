@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import {
   Bot, Save, TestTube2, Loader2, Upload, Download, Trash2, Copy,
-  Info, Cpu, KeyRound, Sparkles, Sliders, Wrench, Brain, BookOpen,
+  Info, Cpu, KeyRound, Sliders, Wrench, Brain, BookOpen,
   Shield, Plug, LineChart, Palette,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -205,7 +205,7 @@ export function AgentEditor({ open, onOpenChange, agent, onSaved }: Props) {
                 <TabsTrigger value="general"><Info className="h-3.5 w-3.5" /> Geral</TabsTrigger>
                 <TabsTrigger value="provider"><Cpu className="h-3.5 w-3.5" /> Provedor</TabsTrigger>
                 <TabsTrigger value="credentials"><KeyRound className="h-3.5 w-3.5" /> Credenciais</TabsTrigger>
-                <TabsTrigger value="model"><Sparkles className="h-3.5 w-3.5" /> Modelo</TabsTrigger>
+                <TabsTrigger value="model"><Sliders className="h-3.5 w-3.5" /> Modelo</TabsTrigger>
                 <TabsTrigger value="prompt"><Brain className="h-3.5 w-3.5" /> Prompt</TabsTrigger>
                 <TabsTrigger value="params"><Sliders className="h-3.5 w-3.5" /> Parâmetros</TabsTrigger>
                 <TabsTrigger value="tools"><Wrench className="h-3.5 w-3.5" /> Ferramentas</TabsTrigger>

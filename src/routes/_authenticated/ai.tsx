@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { Sparkles } from "lucide-react";
+import { Brain } from "lucide-react";
 import { CrudResource } from "@/components/crud-resource";
 
 export const Route = createFileRoute("/_authenticated/ai")({
@@ -14,7 +14,7 @@ function Page() {
       title="Provedores de IA"
       description="Conecte OpenAI, Gemini e outros."
       singular="Provedor"
-      icon={<Sparkles className="h-6 w-6" />}
+      icon={<Brain className="h-6 w-6" />}
       fields={[
     {name:"name", label:"Nome", type:"text", required:true},
     {name:"provider", label:"Provedor", type:"select", options:[{value:"openai",label:"OpenAI"},{value:"gemini",label:"Google Gemini"},{value:"anthropic",label:"Anthropic"},{value:"lovable",label:"Lovable AI"}]},
