@@ -1,25 +1,20 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { toast } from "sonner";
 import {
-  Bot, Save, TestTube2, Loader2, Upload, Download, Trash2, Copy,
-  Info, Cpu, KeyRound, Sliders, Wrench, Brain, BookOpen,
-  Shield, Plug, LineChart, Palette,
+  Save, RotateCcw, Sliders, MessageSquare, Clock, Bell, Send, Hash,
+  CalendarClock, AudioLines, Image as ImageIcon, PlayCircle, BookOpen, Loader2,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { Label } from "@/components/ui/label";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Button } from "@/components/ui/button";
-import { Switch } from "@/components/ui/switch";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
-import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
-import { ScrollArea } from "@/components/ui/scroll-area";
+import { Switch } from "@/components/ui/switch";
+import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { PROVIDERS, TOOL_CATALOG, INTEGRATION_CATALOG, type ProviderId, type ProviderSpec } from "./providers";
+import { PROVIDERS, type ProviderId } from "./providers";
 
 export interface AgentRow {
   id: string;
@@ -46,11 +41,11 @@ export interface AgentRow {
   stop_sequences: string[] | null;
   streaming: boolean | null;
   thinking_mode: boolean | null;
-  tools: Record<string, boolean> | null;
+  tools: Record<string, unknown> | null;
   memory: Record<string, unknown> | null;
   knowledge: unknown[] | null;
-  security: Record<string, boolean> | null;
-  integrations: Record<string, boolean> | null;
+  security: Record<string, unknown> | null;
+  integrations: Record<string, unknown> | null;
   appearance: Record<string, unknown> | null;
   initial_message: string | null;
   primary_color: string | null;
@@ -59,96 +54,67 @@ export interface AgentRow {
   updated_at?: string;
 }
 
-type ProviderRow = { id: string; name: string; provider: string; model: string | null; api_key: string | null; base_url: string | null };
+const DEFAULT_PROMPT = `Você é um atendente virtual especialista em vendas consultivas. Seu objetivo é atender cada cliente de forma humanizada, criar conexão genuína e conduzir naturalmente à conversão.
 
-const DEFAULT_PROMPT = `Você é um assistente profissional de atendimento. Seja claro, empático e objetivo. Sempre confirme entendimento antes de agir.`;
+## Sua Personalidade
+- Fale como um consultor de vendas experiente e amigável no WhatsApp.
+- Tom: confiante, empático, persuasivo e natural. Nunca robótico.
+- Crie conexão ANTES de vender. Escute, entenda a dor, depois apresente a solução.
 
-function empty(userId: string): AgentRow {
+## Regras de Comunicação
+1. Respostas CURTAS: máximo 2-3 frases por mensagem.
+2. Uma pergunta por vez.
+3. Sem listas, sem markdown, sem textão. Fale como gente.
+4. Emojis com moderação: 1-2 por mensagem.
+5. Português brasileiro natural e descontraído.
+6. Sempre termine com uma pergunta ou chamada para ação.`;
+
+export function emptyAgent(userId: string): AgentRow {
   return {
-    id: "", user_id: userId, name: "", description: "", role: "", system_prompt: DEFAULT_PROMPT,
+    id: "", user_id: userId, name: "Novo Agente", description: "", role: "", system_prompt: DEFAULT_PROMPT,
     temperature: 0.7, is_active: true, ai_provider_id: null, connection_id: null,
-    avatar_url: null, category: "atendimento", language: "pt-BR", timezone: "America/Sao_Paulo",
-    model: null, max_tokens: 2048, top_p: 1, top_k: null, seed: null,
+    avatar_url: null, category: "Gemini", language: "pt-BR", timezone: "America/Sao_Paulo",
+    model: "gemini-2.5-flash", max_tokens: 2048, top_p: 1, top_k: null, seed: null,
     frequency_penalty: 0, presence_penalty: 0, stop_sequences: [], streaming: true, thinking_mode: false,
-    tools: {}, memory: { conversation: true, long_term: false, user_profile: true, history: true, context_limit: 20, auto_clean: false },
-    knowledge: [], security: { hide_prompt: true, prompt_injection: true, jailbreak: true, encrypt_creds: true, permissions: false, audit: true, logs: true },
+    tools: {}, memory: { messages: 20 }, knowledge: [], security: {},
     integrations: {}, appearance: {}, initial_message: "Olá! Como posso ajudar hoje?",
-    primary_color: "#22c55e", secondary_color: "#000000",
+    primary_color: null, secondary_color: null,
   };
 }
 
 interface Props {
-  open: boolean;
-  onOpenChange: (v: boolean) => void;
   agent: AgentRow | null;
   onSaved: () => void;
+  onCancel: () => void;
 }
 
-export function AgentEditor({ open, onOpenChange, agent, onSaved }: Props) {
+export function AgentEditor({ agent, onSaved, onCancel }: Props) {
   const { user } = useAuth();
-  const [form, setForm] = useState<AgentRow>(() => (agent ?? empty(user?.id ?? "")));
-  const [providerId, setProviderId] = useState<ProviderId>("openai");
-  const [credentials, setCredentials] = useState({ api_key: "", base_url: "", org: "", project: "", version: "", region: "" });
-  const [providerRows, setProviderRows] = useState<ProviderRow[]>([]);
+  const [form, setForm] = useState<AgentRow>(() => agent ?? emptyAgent(user?.id ?? ""));
   const [saving, setSaving] = useState(false);
-  const [testing, setTesting] = useState(false);
 
-  const spec: ProviderSpec = useMemo(() => PROVIDERS.find(p => p.id === providerId) ?? PROVIDERS[0], [providerId]);
+  useEffect(() => { setForm(agent ?? emptyAgent(user?.id ?? "")); }, [agent, user?.id]);
 
-  useEffect(() => {
-    if (!open) return;
-    setForm(agent ? { ...empty(user?.id ?? ""), ...agent } : empty(user?.id ?? ""));
-    (async () => {
-      const { data } = await supabase.from("ai_providers").select("id,name,provider,model,api_key,base_url");
-      setProviderRows((data as ProviderRow[]) ?? []);
-      if (agent?.ai_provider_id) {
-        const row = (data as ProviderRow[] | null)?.find(r => r.id === agent.ai_provider_id);
-        if (row) {
-          setProviderId((row.provider as ProviderId) ?? "openai");
-          setCredentials(c => ({ ...c, api_key: row.api_key ?? "", base_url: row.base_url ?? "" }));
-        }
-      }
-    })();
-  }, [open, agent, user?.id]);
+  const spec = PROVIDERS.find((p) => p.id === (form.category?.toLowerCase() as ProviderId)) ?? PROVIDERS[1];
+  const memMsgs = ((form.memory as { messages?: number } | null)?.messages ?? 20);
 
-  function set<K extends keyof AgentRow>(k: K, v: AgentRow[K]) { setForm(f => ({ ...f, [k]: v })); }
-  function toggleMap(field: "tools" | "integrations" | "security", key: string) {
-    setForm(f => ({ ...f, [field]: { ...(f[field] ?? {}), [key]: !((f[field] as Record<string, boolean> | null) ?? {})[key] } }));
-  }
-
-  async function upsertProvider(): Promise<string | null> {
-    if (!user) return null;
-    const label = spec.label;
-    const payload = {
-      user_id: user.id, name: `${label} — ${form.name || "Agente"}`, provider: providerId,
-      model: form.model, api_key: credentials.api_key || null, base_url: credentials.base_url || null, is_active: true,
-    };
-    if (form.ai_provider_id) {
-      const { error } = await supabase.from("ai_providers").update(payload).eq("id", form.ai_provider_id);
-      if (error) { toast.error(error.message); return null; }
-      return form.ai_provider_id;
-    }
-    const { data, error } = await supabase.from("ai_providers").insert(payload).select("id").single();
-    if (error) { toast.error(error.message); return null; }
-    return data.id;
-  }
+  function set<K extends keyof AgentRow>(k: K, v: AgentRow[K]) { setForm((f) => ({ ...f, [k]: v })); }
 
   async function save() {
     if (!user) return;
     if (!form.name.trim()) return toast.error("Informe um nome");
     setSaving(true);
     try {
-      const provId = credentials.api_key || form.ai_provider_id ? await upsertProvider() : form.ai_provider_id;
-      const payload = { ...form, ai_provider_id: provId, user_id: user.id } as AgentRow;
-      const { id, created_at, updated_at, ...rest } = payload;
+      const { id, created_at, updated_at, ...rest } = form;
       void created_at; void updated_at;
+      const payload = { ...rest, user_id: user.id };
       if (agent?.id) {
-        const { error } = await supabase.from("agents").update(rest as never).eq("id", agent.id);
+        const { error } = await supabase.from("agents").update(payload as never).eq("id", agent.id);
         if (error) throw error;
         toast.success("Agente atualizado");
       } else {
         void id;
-        const { error } = await supabase.from("agents").insert(rest as never);
+        const { error } = await supabase.from("agents").insert(payload as never);
         if (error) throw error;
         toast.success("Agente criado");
       }
@@ -158,317 +124,154 @@ export function AgentEditor({ open, onOpenChange, agent, onSaved }: Props) {
     } finally { setSaving(false); }
   }
 
-  async function testConnection() {
-    setTesting(true);
-    await new Promise(r => setTimeout(r, 700));
-    if (!credentials.api_key && providerId !== "ollama") toast.error("API Key não informada");
-    else toast.success(`Conexão ${spec.label} OK`);
-    setTesting(false);
-  }
-
-  function exportJson() {
-    const blob = new Blob([JSON.stringify(form, null, 2)], { type: "application/json" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a"); a.href = url; a.download = `${form.name || "agente"}.json`; a.click();
-    URL.revokeObjectURL(url);
-  }
-
-  async function importJson(file: File) {
-    try {
-      const txt = await file.text();
-      const parsed = JSON.parse(txt);
-      setForm(f => ({ ...f, ...parsed, id: f.id, user_id: f.user_id }));
-      toast.success("Configuração importada");
-    } catch { toast.error("Arquivo inválido"); }
-  }
-
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-5xl p-0 overflow-hidden">
-        <DialogHeader className="p-6 pb-4 border-b bg-gradient-to-br from-card via-card to-primary/5">
-          <div className="flex items-center gap-3">
-            <div className="grid h-11 w-11 place-items-center rounded-xl bg-primary/15 text-primary ring-1 ring-primary/30">
-              <Bot className="h-5 w-5" />
-            </div>
-            <div className="flex-1 min-w-0">
-              <DialogTitle>{agent ? "Editar Agente" : "Novo Agente"}</DialogTitle>
-              <DialogDescription>Configuração completa: provedor, prompt, ferramentas, memória e integrações.</DialogDescription>
-            </div>
-            {form.name && <Badge variant="outline" className="bg-primary/10 text-primary border-primary/30">{form.name}</Badge>}
+    <div className="space-y-4">
+      {/* Header */}
+      <div className="flex items-start justify-between gap-4 rounded-2xl border border-border/60 bg-card/40 p-4">
+        <div>
+          <h2 className="text-lg font-bold">{form.name || "Novo Agente"}</h2>
+          <p className="text-xs text-muted-foreground">{form.category} — {form.model}</p>
+        </div>
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 text-xs">
+            <span className="text-muted-foreground">Ativo</span>
+            <Switch checked={form.is_active} onCheckedChange={(v) => set("is_active", v)} />
           </div>
-        </DialogHeader>
+          <Button variant="ghost" size="sm" onClick={onCancel}><RotateCcw className="h-4 w-4" /></Button>
+          <Button onClick={save} disabled={saving} className="rounded-xl" style={{ background: "var(--gradient-primary)", boxShadow: "var(--shadow-elegant)" }}>
+            {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />} Salvar Tudo
+          </Button>
+        </div>
+      </div>
 
-        <Tabs defaultValue="general" className="flex flex-col">
-          <div className="border-b px-4">
-            <ScrollArea className="w-full">
-              <TabsList className="h-11 bg-transparent gap-0.5 justify-start w-max">
-                <TabsTrigger value="general"><Info className="h-3.5 w-3.5" /> Geral</TabsTrigger>
-                <TabsTrigger value="provider"><Cpu className="h-3.5 w-3.5" /> Provedor</TabsTrigger>
-                <TabsTrigger value="credentials"><KeyRound className="h-3.5 w-3.5" /> Credenciais</TabsTrigger>
-                <TabsTrigger value="model"><Sliders className="h-3.5 w-3.5" /> Modelo</TabsTrigger>
-                <TabsTrigger value="prompt"><Brain className="h-3.5 w-3.5" /> Prompt</TabsTrigger>
-                <TabsTrigger value="params"><Sliders className="h-3.5 w-3.5" /> Parâmetros</TabsTrigger>
-                <TabsTrigger value="tools"><Wrench className="h-3.5 w-3.5" /> Ferramentas</TabsTrigger>
-                <TabsTrigger value="memory"><Brain className="h-3.5 w-3.5" /> Memória</TabsTrigger>
-                <TabsTrigger value="knowledge"><BookOpen className="h-3.5 w-3.5" /> Conhecimento</TabsTrigger>
-                <TabsTrigger value="security"><Shield className="h-3.5 w-3.5" /> Segurança</TabsTrigger>
-                <TabsTrigger value="integrations"><Plug className="h-3.5 w-3.5" /> Integrações</TabsTrigger>
-                <TabsTrigger value="monitoring"><LineChart className="h-3.5 w-3.5" /> Monitor</TabsTrigger>
-                <TabsTrigger value="appearance"><Palette className="h-3.5 w-3.5" /> Aparência</TabsTrigger>
-              </TabsList>
-            </ScrollArea>
-          </div>
-
-          <ScrollArea className="h-[62vh]">
-            <div className="p-6">
-              <TabsContent value="general" className="mt-0 space-y-4">
-                <div className="grid gap-4 sm:grid-cols-2">
-                  <Field label="Nome do Agente" required><Input value={form.name} onChange={e => set("name", e.target.value)} placeholder="Ex: Suporte Comercial" /></Field>
-                  <Field label="Categoria"><Input value={form.category ?? ""} onChange={e => set("category", e.target.value)} placeholder="atendimento, vendas..." /></Field>
-                  <Field label="Avatar (URL)"><Input value={form.avatar_url ?? ""} onChange={e => set("avatar_url", e.target.value)} placeholder="https://..." /></Field>
-                  <Field label="Função"><Input value={form.role ?? ""} onChange={e => set("role", e.target.value)} placeholder="Ex: SDR, Suporte N1" /></Field>
-                  <Field label="Idioma">
-                    <Select value={form.language ?? "pt-BR"} onValueChange={v => set("language", v)}>
-                      <SelectTrigger><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        {["pt-BR","en-US","es-ES","fr-FR","de-DE","it-IT"].map(l => <SelectItem key={l} value={l}>{l}</SelectItem>)}
-                      </SelectContent>
-                    </Select>
-                  </Field>
-                  <Field label="Fuso horário"><Input value={form.timezone ?? ""} onChange={e => set("timezone", e.target.value)} placeholder="America/Sao_Paulo" /></Field>
-                </div>
-                <Field label="Descrição"><Textarea rows={3} value={form.description ?? ""} onChange={e => set("description", e.target.value)} placeholder="Para que serve este agente?" /></Field>
-                <div className="flex items-center justify-between rounded-lg border p-3">
-                  <div><Label>Ativo</Label><p className="text-xs text-muted-foreground">Desativado, o agente não recebe mensagens.</p></div>
-                  <Switch checked={form.is_active} onCheckedChange={v => set("is_active", v)} />
-                </div>
-              </TabsContent>
-
-              <TabsContent value="provider" className="mt-0 space-y-4">
-                <Field label="Selecione o provedor">
-                  <div className="grid gap-2 sm:grid-cols-3 md:grid-cols-4">
-                    {PROVIDERS.map(p => (
-                      <button
-                        key={p.id} type="button" onClick={() => { setProviderId(p.id); set("model", p.models[0] ?? null); }}
-                        className={`text-left rounded-lg border p-3 text-sm transition-colors ${providerId === p.id ? "border-primary bg-primary/10 text-primary" : "hover:border-primary/50"}`}
-                      >
-                        <div className="font-medium truncate">{p.label}</div>
-                        <div className="text-xs text-muted-foreground truncate">{p.models[0] ?? "custom"}</div>
-                      </button>
-                    ))}
-                  </div>
-                </Field>
-                {providerRows.length > 0 && (
-                  <Field label="Ou reutilizar provedor salvo">
-                    <Select value={form.ai_provider_id ?? ""} onValueChange={v => set("ai_provider_id", v || null)}>
-                      <SelectTrigger><SelectValue placeholder="—" /></SelectTrigger>
-                      <SelectContent>
-                        {providerRows.map(p => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}
-                      </SelectContent>
-                    </Select>
-                  </Field>
-                )}
-              </TabsContent>
-
-              <TabsContent value="credentials" className="mt-0 space-y-4">
-                <div className="grid gap-4 sm:grid-cols-2">
-                  {spec.fields.apiKey && <Field label="API Key"><Input type="password" value={credentials.api_key} onChange={e => setCredentials(c => ({ ...c, api_key: e.target.value }))} placeholder="sk-..." /></Field>}
-                  {spec.fields.baseUrl && <Field label="Base URL"><Input value={credentials.base_url} onChange={e => setCredentials(c => ({ ...c, base_url: e.target.value }))} placeholder="https://..." /></Field>}
-                  {spec.fields.org && <Field label="Organization ID"><Input value={credentials.org} onChange={e => setCredentials(c => ({ ...c, org: e.target.value }))} /></Field>}
-                  {spec.fields.project && <Field label="Project ID"><Input value={credentials.project} onChange={e => setCredentials(c => ({ ...c, project: e.target.value }))} /></Field>}
-                  {spec.fields.version && <Field label="API Version"><Input value={credentials.version} onChange={e => setCredentials(c => ({ ...c, version: e.target.value }))} placeholder="2024-06-01" /></Field>}
-                  {spec.fields.region && <Field label="Região"><Input value={credentials.region} onChange={e => setCredentials(c => ({ ...c, region: e.target.value }))} placeholder="us-east-1" /></Field>}
-                </div>
-                <Button variant="outline" onClick={testConnection} disabled={testing}>
-                  {testing ? <Loader2 className="h-4 w-4 animate-spin" /> : <TestTube2 className="h-4 w-4" />} Testar Conexão
-                </Button>
-              </TabsContent>
-
-              <TabsContent value="model" className="mt-0 space-y-4">
-                <Field label={`Modelos disponíveis (${spec.label})`}>
-                  {spec.models.length > 0 ? (
-                    <Select value={form.model ?? ""} onValueChange={v => set("model", v)}>
-                      <SelectTrigger><SelectValue placeholder="Selecione o modelo" /></SelectTrigger>
-                      <SelectContent>
-                        {spec.models.map(m => <SelectItem key={m} value={m}>{m}</SelectItem>)}
-                      </SelectContent>
-                    </Select>
-                  ) : (
-                    <Input value={form.model ?? ""} onChange={e => set("model", e.target.value)} placeholder="nome-do-modelo" />
-                  )}
-                </Field>
-                <div className="text-xs text-muted-foreground">Digite manualmente se seu modelo não estiver na lista.</div>
-                <Field label="Modelo customizado"><Input value={form.model ?? ""} onChange={e => set("model", e.target.value)} placeholder="Ex: gpt-5.5, gemini-2.5-pro..." /></Field>
-              </TabsContent>
-
-              <TabsContent value="prompt" className="mt-0 space-y-2">
-                <div className="flex items-center justify-between">
-                  <Label>Prompt do sistema</Label>
-                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                    <span>{(form.system_prompt ?? "").length} caracteres</span>
-                    <Button size="sm" variant="ghost" onClick={() => set("system_prompt", DEFAULT_PROMPT)}>Restaurar padrão</Button>
-                  </div>
-                </div>
-                <Textarea rows={16} value={form.system_prompt ?? ""} onChange={e => set("system_prompt", e.target.value)} className="font-mono text-sm" placeholder="Defina o comportamento, tom e objetivos do agente..." />
-              </TabsContent>
-
-              <TabsContent value="params" className="mt-0 space-y-5">
-                {spec.params.temperature && <SliderField label="Temperature" value={form.temperature ?? 0.7} min={0} max={2} step={0.1} onChange={v => set("temperature", v)} />}
-                {spec.params.topP && <SliderField label="Top P" value={form.top_p ?? 1} min={0} max={1} step={0.05} onChange={v => set("top_p", v)} />}
-                {spec.params.topK && <NumberField label="Top K" value={form.top_k} onChange={v => set("top_k", v)} />}
-                {spec.params.maxTokens && <NumberField label="Max Tokens" value={form.max_tokens} onChange={v => set("max_tokens", v)} />}
-                {spec.params.seed && <NumberField label="Seed" value={form.seed} onChange={v => set("seed", v)} />}
-                {spec.params.freq && <SliderField label="Frequency Penalty" value={form.frequency_penalty ?? 0} min={-2} max={2} step={0.1} onChange={v => set("frequency_penalty", v)} />}
-                {spec.params.pres && <SliderField label="Presence Penalty" value={form.presence_penalty ?? 0} min={-2} max={2} step={0.1} onChange={v => set("presence_penalty", v)} />}
-                {spec.params.stop && (
-                  <Field label="Stop Sequences (separadas por vírgula)">
-                    <Input value={(form.stop_sequences ?? []).join(",")} onChange={e => set("stop_sequences", e.target.value.split(",").map(s => s.trim()).filter(Boolean))} placeholder="\\n\\n, ###" />
-                  </Field>
-                )}
-                <div className="grid gap-3 sm:grid-cols-2">
-                  {spec.params.streaming && <ToggleRow label="Streaming" checked={!!form.streaming} onChange={v => set("streaming", v)} />}
-                  {spec.params.thinking && <ToggleRow label="Thinking Mode" checked={!!form.thinking_mode} onChange={v => set("thinking_mode", v)} />}
-                </div>
-              </TabsContent>
-
-              <TabsContent value="tools" className="mt-0">
-                <div className="grid gap-2 sm:grid-cols-2 md:grid-cols-3">
-                  {TOOL_CATALOG.map(t => (
-                    <ToggleRow key={t.id} label={t.label} checked={!!(form.tools ?? {})[t.id]} onChange={() => toggleMap("tools", t.id)} />
-                  ))}
-                </div>
-              </TabsContent>
-
-              <TabsContent value="memory" className="mt-0 space-y-3">
-                {[
-                  ["conversation","Memória da conversa"],
-                  ["long_term","Memória de longo prazo"],
-                  ["user_profile","Perfil do usuário"],
-                  ["history","Histórico"],
-                  ["auto_clean","Limpeza automática"],
-                ].map(([k,label]) => (
-                  <ToggleRow key={k} label={label} checked={!!((form.memory ?? {}) as Record<string,unknown>)[k]}
-                    onChange={v => set("memory", { ...(form.memory ?? {}), [k]: v })} />
-                ))}
-                <Field label="Limite de contexto (mensagens)">
-                  <Input type="number" value={((form.memory ?? {}) as Record<string, unknown>).context_limit as number | undefined ?? 20}
-                    onChange={e => set("memory", { ...(form.memory ?? {}), context_limit: Number(e.target.value) })} />
-                </Field>
-              </TabsContent>
-
-              <TabsContent value="knowledge" className="mt-0 space-y-3">
-                <p className="text-sm text-muted-foreground">Vincule documentos da Base de Conhecimento (PDF, DOCX, CSV, URLs). Gerencie o conteúdo em <b>Base de Conhecimento</b>.</p>
-                <div className="rounded-lg border-dashed border p-6 text-center text-sm text-muted-foreground">
-                  <BookOpen className="h-6 w-6 mx-auto mb-2 text-primary" />
-                  {(form.knowledge ?? []).length} documento(s) vinculado(s)
-                </div>
-              </TabsContent>
-
-              <TabsContent value="security" className="mt-0 space-y-2">
-                {[
-                  ["hide_prompt","Ocultar Prompt"],
-                  ["prompt_injection","Bloquear Prompt Injection"],
-                  ["jailbreak","Detectar Jailbreak"],
-                  ["encrypt_creds","Criptografar Credenciais"],
-                  ["permissions","Controle de Permissões"],
-                  ["audit","Auditoria"],
-                  ["logs","Logs"],
-                ].map(([k,label]) => (
-                  <ToggleRow key={k} label={label} checked={!!(form.security ?? {})[k]} onChange={() => toggleMap("security", k)} />
-                ))}
-              </TabsContent>
-
-              <TabsContent value="integrations" className="mt-0">
-                <div className="grid gap-2 sm:grid-cols-2 md:grid-cols-3">
-                  {INTEGRATION_CATALOG.map(i => (
-                    <ToggleRow key={i.id} label={i.label} checked={!!(form.integrations ?? {})[i.id]} onChange={() => toggleMap("integrations", i.id)} />
-                  ))}
-                </div>
-              </TabsContent>
-
-              <TabsContent value="monitoring" className="mt-0">
-                <div className="grid gap-3 sm:grid-cols-2 md:grid-cols-3">
-                  {[
-                    ["Tokens consumidos","—"],["Custo estimado","US$ —"],["Tempo médio","—"],
-                    ["Requisições","0"],["Latência p95","—"],["Uso de ferramentas","—"],
-                  ].map(([k,v]) => (
-                    <div key={k} className="rounded-lg border p-4">
-                      <div className="text-xs text-muted-foreground">{k}</div>
-                      <div className="text-lg font-semibold text-primary">{v}</div>
-                    </div>
-                  ))}
-                </div>
-                <p className="text-xs text-muted-foreground mt-3">Métricas em tempo real aparecem após o agente receber conversas.</p>
-              </TabsContent>
-
-              <TabsContent value="appearance" className="mt-0 space-y-4">
-                <div className="grid gap-4 sm:grid-cols-2">
-                  <Field label="Cor Primária"><Input type="color" value={form.primary_color ?? "#22c55e"} onChange={e => set("primary_color", e.target.value)} /></Field>
-                  <Field label="Cor Secundária"><Input type="color" value={form.secondary_color ?? "#000000"} onChange={e => set("secondary_color", e.target.value)} /></Field>
-                </div>
-                <Field label="Mensagem inicial"><Textarea rows={2} value={form.initial_message ?? ""} onChange={e => set("initial_message", e.target.value)} /></Field>
-                <Field label="Placeholder do chat"><Input value={((form.appearance ?? {}) as Record<string,unknown>).placeholder as string | undefined ?? ""} onChange={e => set("appearance", { ...(form.appearance ?? {}), placeholder: e.target.value })} placeholder="Digite sua mensagem..." /></Field>
-                <Field label="Sugestões de perguntas (uma por linha)">
-                  <Textarea rows={3}
-                    value={(((form.appearance ?? {}) as Record<string, unknown>).suggestions as string[] | undefined ?? []).join("\n")}
-                    onChange={e => set("appearance", { ...(form.appearance ?? {}), suggestions: e.target.value.split("\n").map(s => s.trim()).filter(Boolean) })} />
-                </Field>
-              </TabsContent>
+      <Accordion type="single" collapsible defaultValue="s1" className="space-y-3">
+        <Section id="s1" number={1} icon={<Sliders className="h-4 w-4" />} title="Configuração do Modelo">
+          <div className="grid gap-4 md:grid-cols-2">
+            <div className="space-y-1.5">
+              <Label className="text-xs uppercase tracking-wider text-muted-foreground">Provedor</Label>
+              <Select value={(form.category ?? "gemini").toLowerCase()} onValueChange={(v) => { set("category", v); const p = PROVIDERS.find((x) => x.id === v); if (p) set("model", p.models[0] ?? null); }}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>{PROVIDERS.map((p) => <SelectItem key={p.id} value={p.id}>{p.label}</SelectItem>)}</SelectContent>
+              </Select>
             </div>
-          </ScrollArea>
-        </Tabs>
-
-        <DialogFooter className="p-4 border-t bg-muted/30 flex-row flex-wrap gap-2">
-          <div className="flex gap-2 mr-auto">
-            <Button variant="outline" size="sm" onClick={exportJson}><Download className="h-4 w-4" /> Exportar</Button>
-            <label>
-              <input type="file" accept="application/json" hidden onChange={e => { const f = e.target.files?.[0]; if (f) importJson(f); }} />
-              <Button variant="outline" size="sm" asChild><span><Upload className="h-4 w-4" /> Importar</span></Button>
-            </label>
-            {agent && <Button variant="outline" size="sm" onClick={() => { const c = { ...form, name: `${form.name} (cópia)` }; setForm({ ...c, id: "" }); toast.info("Salve para criar duplicata"); }}><Copy className="h-4 w-4" /> Duplicar</Button>}
+            <div className="space-y-1.5">
+              <Label className="text-xs uppercase tracking-wider text-muted-foreground">Modelo</Label>
+              {spec.models.length > 0 ? (
+                <Select value={form.model ?? ""} onValueChange={(v) => set("model", v)}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>{spec.models.map((m) => <SelectItem key={m} value={m}>{m}</SelectItem>)}</SelectContent>
+                </Select>
+              ) : (
+                <Input value={form.model ?? ""} onChange={(e) => set("model", e.target.value)} />
+              )}
+            </div>
           </div>
-          <Separator orientation="vertical" className="h-6" />
-          <Button variant="ghost" onClick={() => onOpenChange(false)}>Cancelar</Button>
-          <Button onClick={save} disabled={saving}>
+
+          <div className="grid gap-4 md:grid-cols-2 mt-4">
+            <div className="space-y-2">
+              <div className="flex justify-between text-xs"><span className="uppercase tracking-wider text-muted-foreground">Temperatura</span><span className="text-primary font-semibold">{form.temperature}</span></div>
+              <Slider value={[form.temperature]} min={0} max={2} step={0.1} onValueChange={([v]) => set("temperature", v)} />
+              <div className="flex justify-between text-[10px] text-muted-foreground"><span>Preciso</span><span>Criativo</span></div>
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs uppercase tracking-wider text-muted-foreground">Max Tokens</Label>
+              <Input type="number" value={form.max_tokens ?? 2048} onChange={(e) => set("max_tokens", Number(e.target.value))} />
+            </div>
+          </div>
+
+          <div className="space-y-2 mt-4">
+            <div className="flex justify-between text-xs">
+              <span className="uppercase tracking-wider text-muted-foreground flex items-center gap-1.5"><MessageSquare className="h-3.5 w-3.5 text-primary" /> Memória da IA</span>
+              <span className="text-primary font-semibold">{memMsgs} mensagens</span>
+            </div>
+            <Slider value={[memMsgs]} min={10} max={100} step={5} onValueChange={([v]) => set("memory", { ...(form.memory ?? {}), messages: v })} />
+            <div className="flex justify-between text-[10px] text-muted-foreground"><span>10 msgs</span><span>100 msgs</span></div>
+            <p className="text-[11px] text-muted-foreground">Quantas mensagens anteriores a IA lembra ao responder. Mais memória = respostas mais contextualizadas, mas mais lentas.</p>
+          </div>
+
+          <div className="space-y-2 mt-4">
+            <div className="flex items-center justify-between">
+              <Label className="text-xs uppercase tracking-wider text-muted-foreground">Prompt do Sistema</Label>
+              <div className="flex items-center gap-1">
+                <Button size="sm" variant="ghost" onClick={() => set("system_prompt", DEFAULT_PROMPT)} className="text-xs"><RotateCcw className="h-3 w-3" /> Restaurar Padrão</Button>
+                <Button size="sm" variant="ghost" className="text-xs text-primary"><BookOpen className="h-3 w-3" /> Biblioteca de Prompts</Button>
+              </div>
+            </div>
+            <Textarea rows={10} value={form.system_prompt ?? ""} onChange={(e) => set("system_prompt", e.target.value)} className="font-mono text-xs" />
+          </div>
+
+          <Button onClick={save} disabled={saving} className="w-full mt-4 rounded-xl" style={{ background: "var(--gradient-primary)" }}>
             {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />} Salvar
           </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+        </Section>
+
+        <Section id="s2" number={2} icon={<MessageSquare className="h-4 w-4" />} title="Conversas">
+          <div className="space-y-3">
+            <FieldRow label="Mensagem inicial"><Input value={form.initial_message ?? ""} onChange={(e) => set("initial_message", e.target.value)} /></FieldRow>
+            <FieldRow label="Idioma">
+              <Select value={form.language ?? "pt-BR"} onValueChange={(v) => set("language", v)}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>{["pt-BR", "en-US", "es-ES"].map((l) => <SelectItem key={l} value={l}>{l}</SelectItem>)}</SelectContent>
+              </Select>
+            </FieldRow>
+          </div>
+        </Section>
+
+        <Section id="s3" number={3} icon={<Clock className="h-4 w-4" />} title="Tempo e Mensagens">
+          <p className="text-sm text-muted-foreground">Delays entre mensagens, digitação humanizada e timers.</p>
+        </Section>
+
+        <Section id="s4" number={4} icon={<Bell className="h-4 w-4" />} title="Alertas">
+          <p className="text-sm text-muted-foreground">Notificações para eventos e transferências.</p>
+        </Section>
+
+        <Section id="s5" number={5} icon={<Send className="h-4 w-4" />} title="Follow-Up">
+          <p className="text-sm text-muted-foreground">Sequências automáticas de retomada.</p>
+        </Section>
+
+        <Section id="s6" number={6} icon={<Hash className="h-4 w-4" />} title="Ativação por Palavra-chave">
+          <p className="text-sm text-muted-foreground">Palavras-chave que acionam o agente.</p>
+        </Section>
+
+        <Section id="s7" number={7} icon={<CalendarClock className="h-4 w-4" />} title="Horário de Funcionamento">
+          <p className="text-sm text-muted-foreground">Defina janelas de atendimento por dia.</p>
+        </Section>
+
+        <Section id="s8" number={8} icon={<AudioLines className="h-4 w-4" />} title="Áudio com IA">
+          <p className="text-sm text-muted-foreground">Transcrição e resposta em áudio.</p>
+        </Section>
+
+        <Section id="s9" number={9} icon={<ImageIcon className="h-4 w-4" />} title="Mídia com IA">
+          <p className="text-sm text-muted-foreground">Análise de imagens, documentos e vídeos.</p>
+        </Section>
+
+        <Section id="s10" number={10} icon={<PlayCircle className="h-4 w-4" />} title="Testar IA">
+          <p className="text-sm text-muted-foreground">Playground para conversar com o agente.</p>
+        </Section>
+      </Accordion>
+    </div>
   );
 }
 
-function Field({ label, required, children }: { label: string; required?: boolean; children: React.ReactNode }) {
+function Section({ id, number, icon, title, children }: { id: string; number: number; icon: ReactNode; title: string; children: ReactNode }) {
+  return (
+    <AccordionItem value={id} className="rounded-2xl border border-border/60 bg-card/40 px-4 data-[state=open]:border-primary/40">
+      <AccordionTrigger className="hover:no-underline py-4">
+        <div className="flex items-center gap-3">
+          <div className="grid h-8 w-8 place-items-center rounded-lg bg-primary/15 text-primary ring-1 ring-primary/30">{icon}</div>
+          <span className="font-semibold">{number}. {title}</span>
+        </div>
+      </AccordionTrigger>
+      <AccordionContent className="pb-4">{children}</AccordionContent>
+    </AccordionItem>
+  );
+}
+
+function FieldRow({ label, children }: { label: string; children: ReactNode }) {
   return (
     <div className="space-y-1.5">
-      <Label>{label}{required && <span className="text-destructive"> *</span>}</Label>
+      <Label className="text-xs uppercase tracking-wider text-muted-foreground">{label}</Label>
       {children}
     </div>
-  );
-}
-
-function ToggleRow({ label, checked, onChange }: { label: string; checked: boolean; onChange: (v: boolean) => void }) {
-  return (
-    <div className="flex items-center justify-between rounded-lg border p-3">
-      <Label className="cursor-pointer">{label}</Label>
-      <Switch checked={checked} onCheckedChange={onChange} />
-    </div>
-  );
-}
-
-function SliderField({ label, value, min, max, step, onChange }: { label: string; value: number; min: number; max: number; step: number; onChange: (v: number) => void }) {
-  return (
-    <div className="space-y-2">
-      <div className="flex items-center justify-between"><Label>{label}</Label><Badge variant="outline">{value}</Badge></div>
-      <Slider value={[value]} min={min} max={max} step={step} onValueChange={v => onChange(v[0])} />
-    </div>
-  );
-}
-
-function NumberField({ label, value, onChange }: { label: string; value: number | null; onChange: (v: number | null) => void }) {
-  return (
-    <Field label={label}>
-      <Input type="number" value={value ?? ""} onChange={e => onChange(e.target.value === "" ? null : Number(e.target.value))} />
-    </Field>
   );
 }
