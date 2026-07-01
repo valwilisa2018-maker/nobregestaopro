@@ -96,6 +96,12 @@ function optionValue(value: unknown) {
   return text || null;
 }
 
+function toCents(value: unknown): number {
+  const n = Number(value || 0);
+  if (!Number.isFinite(n)) return NaN;
+  return Math.round(n * 100);
+}
+
 // Opções: 30s, 1min, 1min30, 2min, ..., 10min
 const VIDEO_DURATION_OPTIONS: { value: number; label: string }[] = Array.from({ length: 20 }, (_, i) => {
   const sec = (i + 1) * 30;
@@ -287,6 +293,11 @@ function SalesPage() {
         updatedForm.paid_amount = updatedForm.total_amount;
       }
 
+      // Se marcar como pendente, zera o valor pago para não cair em validação contraditória.
+      if (k === "payment_status" && v === "pendente") {
+        updatedForm.paid_amount = "0";
+      }
+
       // Auto-set producer for Pamela/Ester
       const checkInfluencer = () => {
         const selectedServiceType = serviceTypes.data?.find(st => st.id === (k === "service_type_id" ? v : f.service_type_id));
@@ -304,6 +315,16 @@ function SalesPage() {
 
       if (k === "service_type_id" || k === "seller_id") {
         checkInfluencer();
+      }
+
+      // Evita bloqueio silencioso na geração da venda: para serviços de vídeo/pacote,
+      // já deixa a minutagem mínima selecionada. O vendedor ainda pode alterar para
+      // 1min, 2min etc. antes de salvar.
+      if (k === "service_type_id" || k === "package_id") {
+        const serviceType = serviceTypes.data?.find((st: any) => st.id === updatedForm.service_type_id);
+        if (isVideoService(serviceType?.name, !!updatedForm.package_id) && !updatedForm.video_duration_seconds) {
+          updatedForm.video_duration_seconds = "30";
+        }
       }
       
       return updatedForm;
@@ -343,10 +364,25 @@ function SalesPage() {
     setLinkedCustomerId(c.id);
   };
 
+  const selectedServiceName = useMemo(
+    () => serviceTypes.data?.find((st: any) => st.id === form.service_type_id)?.name,
+    [serviceTypes.data, form.service_type_id],
+  );
+  const formNeedsVideoDuration = isVideoService(selectedServiceName, !!form.package_id);
+  const formReceiptRecommended = form.payment_status !== "pendente" || Number(form.paid_amount || 0) > 0;
+
   const submit = async () => {
     if (saving) return; // Prevent double clicks
     const failVal = (field: string, message: string) => {
-      toast.error(message);
+      toast.error(message, { description: "Revise o campo destacado antes de confirmar a venda." });
+      if (typeof document !== "undefined") {
+        window.requestAnimationFrame(() => {
+          const target = document.querySelector(`[data-sale-field="${field}"]`) as HTMLElement | null;
+          target?.scrollIntoView({ block: "center", behavior: "smooth" });
+          const focusable = target?.querySelector("input, textarea, button, [role='combobox'], select") as HTMLElement | null;
+          focusable?.focus?.();
+        });
+      }
       // Não bloqueia: log assíncrono para rastrear falhas de validação.
       logger.warn(`Validação falhou (${field}): ${message}`, {
         context: "sales/submit/validation",
@@ -397,20 +433,18 @@ function SalesPage() {
       return failVal("platform_link", "Link da Plataforma inválido.");
     }
     // Minutagem obrigatória para vídeos / pacotes
-    {
-      const stName = serviceTypes.data?.find((st: any) => st.id === form.service_type_id)?.name;
-      if (isVideoService(stName, !!form.package_id)) {
-        const dur = Number(form.video_duration_seconds);
-        if (!dur || dur < 30 || dur % 30 !== 0) {
-          return failVal("video_duration_seconds", "Selecione a minutagem do vídeo (mínimo 30s).");
-        }
+    if (formNeedsVideoDuration) {
+      const dur = Number(form.video_duration_seconds);
+      if (!dur || dur < 30 || dur % 30 !== 0) {
+        return failVal("video_duration_seconds", "Selecione a minutagem do vídeo (mínimo 30s).");
       }
     }
-    if (!receiptFile) return failVal("receipt", "Anexe o comprovante");
     // Consistência de valores
     const total = Number(form.total_amount);
     const paid = Number(form.paid_amount || 0);
     const qty = Number(form.service_quantity || 0);
+    const totalCents = toCents(total);
+    const paidCents = toCents(paid);
     if (!Number.isFinite(total) || total <= 0) {
       return failVal("total_amount", "Valor total deve ser maior que zero.");
     }
@@ -420,13 +454,13 @@ function SalesPage() {
     if (paid > total) {
       return failVal("paid_amount", "Valor pago não pode ser maior que o valor total.");
     }
-    if (form.payment_status === "pago" && paid < total) {
-      return failVal("payment_status", "Status 'Pago' exige valor pago igual ao total.");
+    if (form.payment_status === "pago_total" && paidCents !== totalCents) {
+      return failVal("payment_status", "Status 'Pago total' exige valor pago igual ao total.");
     }
-    if (form.payment_status === "parcial" && (paid <= 0 || paid >= total)) {
-      return failVal("payment_status", "Status 'Parcial' exige valor pago entre 0 e o total.");
+    if (form.payment_status === "pago_parcial" && (paidCents <= 0 || paidCents >= totalCents)) {
+      return failVal("payment_status", "Status 'Pago parcial' exige valor pago entre 0 e o total.");
     }
-    if (form.payment_status === "pendente" && paid > 0) {
+    if (form.payment_status === "pendente" && paidCents > 0) {
       return failVal("payment_status", "Status 'Pendente' não pode ter valor pago.");
     }
     if (!Number.isFinite(qty) || qty < 1) {
@@ -470,18 +504,6 @@ function SalesPage() {
 
       const { data: { user } } = await supabase.auth.getUser();
 
-      let receipt_url: string | null = null;
-      if (receiptFile) {
-        const ext = receiptFile.name.split(".").pop() || "bin";
-        const path = `${user?.id ?? "anon"}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
-        const { error: ue } = await supabase.storage.from("receipts").upload(path, receiptFile, {
-          contentType: receiptFile.type || undefined,
-          upsert: false,
-        });
-        if (ue) throw ue;
-        receipt_url = path;
-      }
-
       const { data: saleRow, error: se } = await supabase.from("sales").insert({
         customer_id: cust.id,
         total_amount: Number(form.total_amount),
@@ -499,7 +521,7 @@ function SalesPage() {
         google_drive_link: form.google_drive_link || null,
         platform_link: form.platform_link || null,
         lead_source: form.lead_source || null,
-        receipt_url,
+        receipt_url: null,
         sale_date: form.sale_date || new Date().toISOString().slice(0, 10),
         delivery_deadline: form.delivery_deadline,
         expected_delivery_date: form.expected_delivery_date,
@@ -509,16 +531,36 @@ function SalesPage() {
 
       if (se) throw se;
 
-      // Se houver comprovante, vincula
-      if (receipt_url && saleRow?.id) {
-        await supabase.from("sale_receipts").insert({
-          sale_id: saleRow.id,
-          file_path: receipt_url,
-          amount: Number(form.paid_amount || 0),
-          paid_at: form.sale_date || new Date().toISOString().slice(0, 10),
-          uploaded_by: user?.id ?? null,
-          notes: "Comprovante inicial",
-        });
+      // O comprovante não pode impedir a criação da venda. Primeiro salvamos a
+      // venda; se o upload/vínculo do arquivo falhar, registramos o erro e o
+      // usuário pode anexar o comprovante depois pela própria venda/financeiro.
+      if (receiptFile && saleRow?.id) {
+        try {
+          const ext = receiptFile.name.split(".").pop() || "bin";
+          const path = `${user?.id ?? "anon"}/${saleRow.id}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+          const { error: ue } = await supabase.storage.from("receipts").upload(path, receiptFile, {
+            contentType: receiptFile.type || undefined,
+            upsert: false,
+          });
+          if (ue) throw ue;
+          await supabase.from("sales").update({ receipt_url: path }).eq("id", saleRow.id);
+          const { error: receiptError } = await supabase.from("sale_receipts").insert({
+            sale_id: saleRow.id,
+            file_path: path,
+            amount: Number(form.paid_amount || 0),
+            paid_at: form.sale_date || new Date().toISOString().slice(0, 10),
+            uploaded_by: user?.id ?? null,
+            notes: "Comprovante inicial",
+          });
+          if (receiptError) throw receiptError;
+        } catch (receiptErr: any) {
+          logger.warn(`Venda criada, mas falhou ao anexar comprovante: ${receiptErr?.message ?? "desconhecido"}`, {
+            context: "sales/submit/receipt",
+            details: { sale_id: saleRow.id, message: receiptErr?.message, code: receiptErr?.code },
+            silent: true,
+          }).catch(() => {});
+          toast.warning("Venda criada, mas o comprovante não foi anexado. Você pode anexar depois.");
+        }
       }
 
       // Auto-vincular pasta da Plataforma (se o link colado for /pastas-arquivos/{id})
@@ -926,14 +968,14 @@ function SalesPage() {
                     </Select>
                   </div>
                 )}
-                <div>
+                <div data-sale-field="seller_id">
                   <Label>Vendedor *</Label>
                   <Select value={form.seller_id || ""} onValueChange={(v) => set("seller_id", v)}>
                     <SelectTrigger><SelectValue placeholder="—" /></SelectTrigger>
                     <SelectContent>{(sellers.data ?? []).map((s: any) => optionValue(s.id) ? <SelectItem key={s.id} value={String(s.id)}>{optionText(s.name)}</SelectItem> : null)}</SelectContent>
                   </Select>
                 </div>
-                <div>
+                <div data-sale-field="producer_id">
                   <Label>Produtor *</Label>
                   <Select 
                     value={form.producer_id || ""} 
@@ -949,18 +991,22 @@ function SalesPage() {
                     <SelectContent>{(producers.data ?? []).map((p: any) => optionValue(p.id) ? <SelectItem key={p.id} value={String(p.id)}>{optionText(p.name)}</SelectItem> : null)}</SelectContent>
                   </Select>
                 </div>
-                <div>
+                <div data-sale-field="service_type_id">
                   <Label>Tipo de serviço *</Label>
                   <Select value={form.service_type_id || ""} onValueChange={(v) => set("service_type_id", v)}>
                     <SelectTrigger><SelectValue placeholder="—" /></SelectTrigger>
                     <SelectContent>{(serviceTypes.data ?? []).map((s: any) => optionValue(s.id) ? <SelectItem key={s.id} value={String(s.id)}>{optionText(s.name)}</SelectItem> : null)}</SelectContent>
                   </Select>
+                  {!form.service_type_id && (
+                    <p className="mt-1 text-[11px] text-muted-foreground">Escolha o tipo de serviço antes de confirmar.</p>
+                  )}
                 </div>
                 <div>
                   <Label>Pacote (opcional)</Label>
                   <Select value={form.package_id || ""} onValueChange={(v) => {
                     const p = (packages.data ?? []).find((x: any) => x.id === v);
-                    setForm((f) => ({ ...f, package_id: v, package_name: p?.name ?? f.package_name }));
+                    set("package_id", v);
+                    setForm((f) => ({ ...f, package_name: p?.name ?? f.package_name }));
                   }}>
                     <SelectTrigger><SelectValue placeholder="—" /></SelectTrigger>
                     <SelectContent>
@@ -969,8 +1015,8 @@ function SalesPage() {
                   </Select>
                 </div>
                 <div><Label>Qtd. serviços *</Label><Input type="number" min="1" value={form.service_quantity || ""} onChange={(e) => set("service_quantity", e.target.value)} /></div>
-                {isVideoService(serviceTypes.data?.find((st: any) => st.id === form.service_type_id)?.name, !!form.package_id) && (
-                  <div>
+                {formNeedsVideoDuration && (
+                  <div data-sale-field="video_duration_seconds" className="rounded-md border border-amber-300/70 bg-amber-50/70 p-2 dark:bg-amber-950/20">
                     <Label>Minutagem do vídeo *</Label>
                     <Select value={form.video_duration_seconds || ""} onValueChange={(v) => set("video_duration_seconds", v)}>
                       <SelectTrigger><SelectValue placeholder="Selecione (mín. 30s)" /></SelectTrigger>
@@ -980,6 +1026,7 @@ function SalesPage() {
                         ))}
                       </SelectContent>
                     </Select>
+                    <p className="mt-1 text-[11px] text-amber-700 dark:text-amber-300">Obrigatório para vídeo/pacote. A pontuação é calculada por essa minutagem.</p>
                   </div>
                 )}
                 <div><Label>Data da venda *</Label><Input type="date" value={form.sale_date || ""} onChange={(e) => set("sale_date", e.target.value)} /></div>
@@ -993,8 +1040,8 @@ function SalesPage() {
                     </SelectContent>
                   </Select>
                 </div>
-                <div className="col-span-2">
-                  <Label>Comprovante (imagem ou PDF) *</Label>
+                <div className="col-span-2" data-sale-field="receipt">
+                  <Label>Comprovante (imagem ou PDF) {formReceiptRecommended ? "(recomendado)" : "(opcional enquanto pendente)"}</Label>
                   <Input type="file" accept="image/*,application/pdf" onChange={(e) => setReceiptFile(e.target.files?.[0] ?? null)} />
                   {receiptFile && <p className="text-xs text-muted-foreground mt-1">{receiptFile.name}</p>}
                 </div>
