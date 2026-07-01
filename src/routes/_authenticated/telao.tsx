@@ -8,6 +8,22 @@ import { Maximize2, Minimize2, Volume2, VolumeX, ArrowUpRight, Megaphone, Bell, 
 import confetti from "canvas-confetti";
 import { useCelebrationSettings, SoundId as SoundType } from "@/hooks/use-celebration-settings";
 import { useBigSellerOverlaySeconds } from "@/hooks/use-telao-settings";
+import caixaRegistradoraAsset from "@/assets/caixa-registradora.m4a.asset.json";
+
+// Som fixo (áudio real) para recebimentos pendentes confirmados
+let pendingReceiptAudio: HTMLAudioElement | null = null;
+function playPendingReceiptSound(volume: number) {
+  try {
+    if (typeof window === "undefined") return;
+    if (!pendingReceiptAudio) {
+      pendingReceiptAudio = new Audio(caixaRegistradoraAsset.url);
+      pendingReceiptAudio.preload = "auto";
+    }
+    pendingReceiptAudio.volume = Math.min(1, Math.max(0, volume));
+    pendingReceiptAudio.currentTime = 0;
+    void pendingReceiptAudio.play().catch(() => {});
+  } catch {}
+}
 
 export const Route = createFileRoute("/_authenticated/telao")({
   component: Telao,
@@ -728,7 +744,7 @@ function Telao() {
 
         const name = producerNameOf(next) !== "—" ? producerNameOf(next) : cName(next.customer_id);
         if (celebration.confettiEnabled) fireConfetti();
-        playSound("caixa", Math.max(0.5, (celebration.volume || 80) / 100));
+        playPendingReceiptSound(Math.max(0.5, (celebration.volume || 80) / 100));
         showBigReceipt(name, diff);
       })
       .on("postgres_changes", { event: "DELETE", schema: "public", table: "sales" }, () => {
@@ -769,9 +785,9 @@ function Telao() {
         }
         const name = sale ? (producerNameOf(sale) !== "—" ? producerNameOf(sale) : cName(sale.customer_id)) : "Produtor";
         if (celebration.confettiEnabled) fireConfetti();
-        // Som fixo de "caixa registradora" (clin) toda vez que um recebimento é confirmado.
+        // Som fixo de "caixa registradora" (áudio real) toda vez que um recebimento é confirmado.
         // Independente do som escolhido para novas vendas.
-        playSound("caixa", Math.max(0.5, (celebration.volume || 80) / 100));
+        playPendingReceiptSound(Math.max(0.5, (celebration.volume || 80) / 100));
         showBigReceipt(name, Number(row.amount || 0));
       })
       .subscribe();
