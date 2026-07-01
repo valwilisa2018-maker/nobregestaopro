@@ -1,6 +1,6 @@
 import { Link, useRouterState } from "@tanstack/react-router";
 import {
-  LayoutDashboard, Plug, Bot, Brain, BookOpen, Workflow, FileText, Wrench,
+  LayoutDashboard, Plug, Bot, BookOpen, Workflow, FileText, Wrench,
   MessageCircle, AudioLines, Brain, Users, MessagesSquare, History, ScrollText,
   Settings, UserCog, ShieldCheck, DollarSign, Palette, Code2, Webhook, Puzzle, LogOut,
   Boxes, LineChart, Activity, CreditCard, Shield, User,
