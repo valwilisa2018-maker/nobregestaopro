@@ -742,7 +742,7 @@ function Telao() {
       .channel("telao-sales")
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "sales" }, (payload: any) => {
         qc.invalidateQueries({ queryKey: ["telao-sales"] });
-        qc.invalidateQueries({ queryKey: ["telao-sinal-hoje"] });
+        qc.invalidateQueries({ queryKey: ["telao-daily-financials"] });
         if (celebration.confettiEnabled) fireConfetti();
         if (soundEnabled && celebration.soundEnabled) playSound(soundId, celebration.volume / 100);
         setFlash(true);
@@ -754,7 +754,7 @@ function Telao() {
       })
       .on("postgres_changes", { event: "UPDATE", schema: "public", table: "sales" }, (payload: any) => {
         qc.invalidateQueries({ queryKey: ["telao-sales"] });
-        qc.invalidateQueries({ queryKey: ["telao-sinal-hoje"] });
+        qc.invalidateQueries({ queryKey: ["telao-daily-financials"] });
         qc.invalidateQueries({ queryKey: ["telao-sale-receipts"] });
 
         const next = payload?.new as SaleRow & { paid_amount?: number } | undefined;
@@ -781,7 +781,7 @@ function Telao() {
       })
       .on("postgres_changes", { event: "DELETE", schema: "public", table: "sales" }, () => {
         qc.invalidateQueries({ queryKey: ["telao-sales"] });
-        qc.invalidateQueries({ queryKey: ["telao-sinal-hoje"] });
+        qc.invalidateQueries({ queryKey: ["telao-daily-financials"] });
       })
       .subscribe();
     return () => { supabase.removeChannel(channel); };
@@ -1314,7 +1314,7 @@ function Telao() {
               VENDAS DO DIA
             </h2>
             <span className="text-[10px] uppercase tracking-[0.3em] text-[#c9a84c]/70">
-              {todaySales.length} registros
+              {vendasHoje} registros
             </span>
           </div>
           <div
