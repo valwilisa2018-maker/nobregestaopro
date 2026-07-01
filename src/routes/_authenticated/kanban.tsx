@@ -119,6 +119,12 @@ const isOverdue = (date?: string | null, time?: string | null) => {
   return due < now;
 };
 
+// Considera atrasado quando venceu due_date OU expected_delivery_date.
+const isCardOverdue = (c: any) => {
+  const exp = c?.expected_delivery_date ?? c?.sales?.expected_delivery_date ?? null;
+  return isOverdue(c?.due_date, c?.due_time) || isOverdue(exp, null);
+};
+
 type CardForm = {
   id?: string;
   column_id: string;
