@@ -480,8 +480,12 @@ function SalesPage() {
     if (!confirm("Tem certeza que deseja excluir esta venda? Esta ação não pode ser desfeita.")) return;
     
     try {
-      const { error } = await supabase.from("sales").delete().eq("id", id);
+      const { data, error } = await supabase.from("sales").delete().eq("id", id).select("id");
       if (error) throw error;
+      if (!data || data.length === 0) {
+        toast.error("Você não tem permissão para excluir esta venda.");
+        return;
+      }
       toast.success("Venda excluída com sucesso");
       qc.invalidateQueries({ queryKey: ["sales-list"] });
     } catch (e: any) {
