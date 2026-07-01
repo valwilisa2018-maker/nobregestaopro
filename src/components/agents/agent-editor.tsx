@@ -369,6 +369,107 @@ function TimingSection({ ext, setExt, onSave, saving }: ExtProps) {
   );
 }
 
+// ============ 10. Testar IA ============
+function TestSection({ form, setForm }: { form: AgentRow; setForm: React.Dispatch<React.SetStateAction<AgentRow>> }) {
+  const spec = PROVIDERS.find((p) => p.id === (form.category?.toLowerCase() as ProviderId)) ?? PROVIDERS[1];
+  const [messages, setMessages] = useState<Array<{ role: "user" | "assistant"; content: string }>>([]);
+  const [input, setInput] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [showPrompt, setShowPrompt] = useState(false);
+
+  async function send() {
+    const text = input.trim();
+    if (!text || loading) return;
+    const next = [...messages, { role: "user" as const, content: text }];
+    setMessages(next);
+    setInput("");
+    setLoading(true);
+    try {
+      const { chatWithAgent } = await import("@/lib/agent-chat.functions");
+      const res = await chatWithAgent({
+        data: {
+          provider: (form.category ?? "gemini").toLowerCase(),
+          model: form.model ?? "gemini-2.5-flash",
+          temperature: form.temperature,
+          maxTokens: form.max_tokens ?? 2048,
+          systemPrompt: form.system_prompt ?? "",
+          messages: next,
+        },
+      });
+      setMessages([...next, { role: "assistant", content: res.text || "(sem resposta)" }]);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Erro ao chamar IA");
+      setMessages(next);
+    } finally { setLoading(false); }
+  }
+
+  const promptLen = (form.system_prompt ?? "").length;
+
+  return (
+    <div className="space-y-3">
+      <div className="flex items-start gap-2 rounded-xl border border-primary/30 bg-primary/[.05] px-3 py-2.5 text-xs text-muted-foreground">
+        <Info className="h-4 w-4 flex-shrink-0 text-primary mt-0.5" />
+        <span>Teste seu agente em tempo real com texto ou áudio. Selecione provedor e modelo abaixo para comparar rapidamente — essas alterações são apenas para teste.</span>
+      </div>
+
+      <div className="grid gap-3 md:grid-cols-4">
+        <FieldRow label="Provedor">
+          <Select value={(form.category ?? "gemini").toLowerCase()} onValueChange={(v) => { setForm((f) => ({ ...f, category: v, model: PROVIDERS.find((p) => p.id === v)?.models[0] ?? f.model })); }}>
+            <SelectTrigger><SelectValue /></SelectTrigger>
+            <SelectContent>{PROVIDERS.map((p) => <SelectItem key={p.id} value={p.id}>{p.label}</SelectItem>)}</SelectContent>
+          </Select>
+        </FieldRow>
+        <FieldRow label="Modelo">
+          {spec.models.length > 0 ? (
+            <Select value={form.model ?? ""} onValueChange={(v) => setForm((f) => ({ ...f, model: v }))}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>{spec.models.map((m) => <SelectItem key={m} value={m}>{m}</SelectItem>)}</SelectContent>
+            </Select>
+          ) : (
+            <Input value={form.model ?? ""} onChange={(e) => setForm((f) => ({ ...f, model: e.target.value }))} />
+          )}
+        </FieldRow>
+        <div className="space-y-1.5 md:col-span-1">
+          <div className="flex justify-between text-xs"><span className="uppercase tracking-wider text-muted-foreground">Temperatura ({form.temperature})</span></div>
+          <Slider value={[form.temperature]} min={0} max={2} step={0.1} onValueChange={([v]) => setForm((f) => ({ ...f, temperature: v }))} />
+        </div>
+        <FieldRow label="Max Tokens">
+          <Input type="number" value={form.max_tokens ?? 2048} onChange={(e) => setForm((f) => ({ ...f, max_tokens: Number(e.target.value) }))} />
+        </FieldRow>
+      </div>
+
+      <button type="button" onClick={() => setShowPrompt((s) => !s)} className="flex items-center gap-2 text-xs text-muted-foreground hover:text-foreground">
+        <ChevronDown className={`h-3.5 w-3.5 transition ${showPrompt ? "rotate-180" : "-rotate-90"}`} />
+        <FileText className="h-3.5 w-3.5" /> Prompt do sistema em uso ({promptLen} chars)
+      </button>
+      {showPrompt && <div className="rounded-lg border border-border/50 bg-background/40 p-3 text-[11px] whitespace-pre-wrap font-mono text-muted-foreground max-h-40 overflow-auto">{form.system_prompt}</div>}
+
+      <div className="min-h-[280px] rounded-xl border border-border/60 bg-background/30 p-4 overflow-y-auto max-h-[400px] space-y-3">
+        {messages.length === 0 ? (
+          <div className="flex flex-col items-center justify-center h-full py-16 text-center text-muted-foreground">
+            <div className="grid h-12 w-12 place-items-center rounded-xl bg-primary/10 text-primary mb-3"><Bot className="h-6 w-6" /></div>
+            <div className="text-sm">Envie uma mensagem ou áudio para testar</div>
+            <div className="text-[11px] mt-1">{form.category} — {form.model}</div>
+          </div>
+        ) : (
+          messages.map((m, i) => (
+            <div key={i} className={`flex ${m.role === "user" ? "justify-end" : "justify-start"}`}>
+              <div className={`max-w-[80%] rounded-2xl px-3 py-2 text-sm ${m.role === "user" ? "bg-primary text-primary-foreground" : "bg-muted/40 text-foreground"}`}>{m.content}</div>
+            </div>
+          ))
+        )}
+        {loading && <div className="text-xs text-muted-foreground animate-pulse">IA digitando...</div>}
+      </div>
+
+      <div className="flex items-center gap-2">
+        <Input placeholder="Digite ou grave um áudio..." value={input} onChange={(e) => setInput(e.target.value)} onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), send())} disabled={loading} />
+        <Button size="icon" variant="ghost" disabled><Mic className="h-4 w-4" /></Button>
+        <Button size="icon" onClick={send} disabled={loading || !input.trim()} style={{ background: "var(--gradient-primary)" }}><SendIcon className="h-4 w-4" /></Button>
+      </div>
+    </div>
+  );
+}
+
 // ============ 9. Mídia com IA ============
 function MediaSection({ ext, setExt, onSave, saving }: ExtProps) {
   const m = ext.media ?? {};
