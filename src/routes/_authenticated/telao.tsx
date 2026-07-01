@@ -409,7 +409,7 @@ function Telao() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("sales")
-        .select("id,total_amount,created_at,sale_date,seller_id,producer_id,customer_id,payment_method,payment_status,service_type_id,package_id,created_by")
+        .select("id,total_amount,paid_amount,created_at,sale_date,seller_id,producer_id,customer_id,payment_method,payment_status,service_type_id,package_id,created_by")
         .order("created_at", { ascending: false })
         .limit(500);
       if (error) throw error;
