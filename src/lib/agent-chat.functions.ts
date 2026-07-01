@@ -34,7 +34,7 @@ export const chatWithAgent = createServerFn({ method: "POST" })
         .eq("id", data.providerId)
         .maybeSingle();
       if (error || !p) throw new Error("Provedor não encontrado");
-      apiKey = p.api_key;
+      apiKey = p.api_key ?? "";
       if (p.base_url) endpoint = p.base_url.replace(/\/+$/, "") + "/chat/completions";
       // Custom providers use raw model id (no gateway prefix)
       modelId = data.model || p.model || modelId;
