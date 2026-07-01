@@ -119,6 +119,12 @@ const isOverdue = (date?: string | null, time?: string | null) => {
   return due < now;
 };
 
+// Considera atrasado quando venceu due_date OU expected_delivery_date.
+const isCardOverdue = (c: any) => {
+  const exp = c?.expected_delivery_date ?? c?.sales?.expected_delivery_date ?? null;
+  return isOverdue(c?.due_date, c?.due_time) || isOverdue(exp, null);
+};
+
 type CardForm = {
   id?: string;
   column_id: string;
@@ -730,13 +736,22 @@ function KanbanPage() {
             }
             return true;
           });
-          // Ordena pela posição manual (sort_order). Como `move` define
-          // sort_order = -Date.now() ao mover, os mais recentes ficam no topo
-          // (essencial para a coluna "Serviços Entregues").
-          colCards.sort((a: any, b: any) =>
-            (a.sort_order ?? 0) - (b.sort_order ?? 0) ||
-            new Date(a.created_at).getTime() - new Date(b.created_at).getTime(),
-          );
+          // Em colunas iniciais (backlog / "produção" padrão), ordena por data:
+          // as vendas mais antigas ficam no topo e as mais novas embaixo, conforme
+          // vão entrando. Nas demais colunas preserva a ordenação manual (sort_order).
+          if (col.is_default) {
+            colCards.sort((a: any, b: any) => {
+              const da = new Date(a.expected_delivery_date ?? a.sales?.expected_delivery_date ?? a.created_at).getTime();
+              const db = new Date(b.expected_delivery_date ?? b.sales?.expected_delivery_date ?? b.created_at).getTime();
+              return da - db
+                || new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+            });
+          } else {
+            colCards.sort((a: any, b: any) =>
+              (a.sort_order ?? 0) - (b.sort_order ?? 0) ||
+              new Date(a.created_at).getTime() - new Date(b.created_at).getTime(),
+            );
+          }
           // Group by sale_id (same customer/sale = same package). Cards without sale_id stay solo.
           const groupsMap = new Map<string, any[]>();
           const soloCards: any[] = [];
@@ -1005,8 +1020,8 @@ function KanbanPage() {
                               )}
                               <div className="text-sm font-medium leading-tight">
                                 {c.title}
-                                {isOverdue(c.due_date, c.due_time) && !col.is_done && (
-                                  <div className="flex items-center gap-1 text-[10px] font-bold text-destructive uppercase animate-pulse">
+                                {isCardOverdue(c) && col.is_default && (
+                                  <div className="flex items-center gap-1 text-[11px] font-bold text-destructive uppercase animate-pulse">
                                     <AlertCircle className="w-3 h-3" /> Atrasado
                                   </div>
                                 )}
@@ -1187,8 +1202,8 @@ function KanbanPage() {
                       )}
                       <div className="text-sm font-medium leading-tight">
                         {c.title}
-                        {isOverdue(c.due_date, c.due_time) && !col.is_done && (
-                          <div className="flex items-center gap-1 text-[10px] font-bold text-destructive uppercase animate-pulse">
+                        {isCardOverdue(c) && col.is_default && (
+                          <div className="flex items-center gap-1 text-[11px] font-bold text-destructive uppercase animate-pulse">
                             <AlertCircle className="w-3 h-3" /> Atrasado
                           </div>
                         )}
