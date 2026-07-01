@@ -4,7 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   Activity, MessageSquare, MessagesSquare, Timer, Coins, DollarSign, Plug, Bot,
-  Plus, Search, ArrowUpRight, Sparkles, Zap, Users, ScrollText,
+  Plus, Search, ArrowUpRight, Zap, Users, ScrollText,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 
@@ -37,7 +37,7 @@ function Dashboard() {
         <div className="relative grid grid-cols-[minmax(0,1fr)_auto] items-start gap-4 sm:flex sm:flex-wrap sm:justify-between">
           <div className="min-w-0 space-y-2">
             <Badge variant="outline" className="bg-primary/15 text-primary border-primary/40">
-              <Sparkles className="h-3 w-3" /> Plataforma IA Premium
+              <Zap className="h-3 w-3" /> Plataforma IA Premium
             </Badge>
             <h1 className="text-3xl md:text-4xl font-black tracking-tight bg-clip-text text-transparent"
               style={{ backgroundImage: "var(--gradient-primary)" }}>

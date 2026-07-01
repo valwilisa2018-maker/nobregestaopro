@@ -14,7 +14,7 @@ import {
 } from "@/components/ui/dialog";
 import {
   MessageCircle, Plus, QrCode, RefreshCw, Power, Trash2, Loader2, Smartphone,
-  CheckCircle2, Sparkles, ShieldCheck, Wifi,
+  CheckCircle2, ShieldCheck, Wifi,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Link } from "@tanstack/react-router";
@@ -238,7 +238,7 @@ function Page() {
             <div className="absolute -right-16 -top-16 h-48 w-48 rounded-full bg-primary/20 blur-3xl" />
             <div className="relative flex items-center gap-3">
               <div className="grid h-11 w-11 place-items-center rounded-xl bg-primary/20 text-primary ring-1 ring-primary/40">
-                <Sparkles className="h-5 w-5" />
+                <ShieldCheck className="h-5 w-5" />
               </div>
               <div>
                 <DialogTitle className="text-xl">Conectar WhatsApp</DialogTitle>
