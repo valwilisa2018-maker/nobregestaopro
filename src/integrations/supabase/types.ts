@@ -1292,10 +1292,28 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      v_daily_financials: {
+        Row: {
+          dia: string | null
+          saldo_em_aberto: number | null
+          sinal: number | null
+          total_vendido: number | null
+          vendas: number | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       admin_reset_platform: { Args: never; Returns: Json }
+      get_sinal_totals: {
+        Args: { _from: string; _to: string }
+        Returns: {
+          dia: string
+          sinal: number
+          total_vendido: number
+          vendas_count: number
+        }[]
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]

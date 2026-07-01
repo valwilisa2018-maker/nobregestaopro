@@ -700,10 +700,8 @@ function Telao() {
   const totalMes = sum(monthSales);
   const ticketMedio = todaySales.length ? totalHoje / todaySales.length : 0;
 
-  // Recebimentos de hoje — fonte de verdade:
-  // SINAL = soma de sales.paid_amount das vendas criadas hoje (valor efetivamente informado na criação).
-  // PENDENTE = sale_receipts com paid_at = hoje cuja venda NÃO é de hoje (quitação posterior).
-  //           Se a venda também é de hoje, o recibo já está contabilizado no sinal via paid_amount.
+  // Fonte de verdade (backend): v_daily_financials.sinal = Σ sales.paid_amount do dia.
+  // Nunca depende de notes em sale_receipts.
   const receipts = receiptsQ.data ?? [];
   const todaySaleIds = useMemo(() => new Set(todaySales.map((s: any) => s.id)), [todaySales]);
   const todayReceipts = useMemo(() => {
@@ -712,14 +710,30 @@ function Telao() {
       return ref >= today0;
     });
   }, [receipts, today0]);
-  const isSinalReceipt = (r: any) => (r?.notes || "").toLowerCase().includes("comprovante inicial");
-  const totalSinalHoje = useMemo(
-    () => todaySales.reduce((a: number, s: any) => a + Number(s.paid_amount || 0), 0),
-    [todaySales],
-  );
+  const todayISO = useMemo(() => {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  }, []);
+  const sinalHojeQ = useQuery({
+    queryKey: ["telao-sinal-hoje", todayISO],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("v_daily_financials")
+        .select("sinal")
+        .eq("dia", todayISO)
+        .maybeSingle();
+      if (error) throw error;
+      return Number(data?.sinal ?? 0);
+    },
+    refetchInterval: 60000,
+    refetchIntervalInBackground: false,
+    staleTime: 30_000,
+  });
+  const totalSinalHoje = sinalHojeQ.data
+    ?? todaySales.reduce((a: number, s: any) => a + Number(s.paid_amount || 0), 0);
   const totalPendenteHoje = useMemo(
     () => todayReceipts
-      .filter((r: any) => !isSinalReceipt(r) && !todaySaleIds.has(r.sale_id))
+      .filter((r: any) => !todaySaleIds.has(r.sale_id))
       .reduce((a: number, r: any) => a + Number(r.amount || 0), 0),
     [todayReceipts, todaySaleIds],
   );
