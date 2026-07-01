@@ -16,6 +16,18 @@ import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Button } from "@/components/ui/button";
 
+function formatLogContext(context: unknown) {
+  if (context == null || context === "") return "geral";
+  if (typeof context === "string") return context;
+
+  try {
+    const text = JSON.stringify(context);
+    return text.length > 90 ? `${text.slice(0, 90)}...` : text;
+  } catch {
+    return "contexto indisponível";
+  }
+}
+
 export function SystemHealthDashboard() {
   const { data: health, isLoading, refetch, isRefetching } = useQuery({
     queryKey: ["system-health"],
@@ -148,7 +160,7 @@ export function SystemHealthDashboard() {
                     <span className="text-sm font-medium">{log.message}</span>
                   </div>
                   <p className="text-xs text-muted-foreground font-mono">
-                    {log.context || "geral"} • {format(new Date(log.created_at), "dd/MM HH:mm:ss")}
+                    {formatLogContext(log.context)} • {format(new Date(log.created_at), "dd/MM HH:mm:ss")}
                   </p>
                 </div>
               </div>
