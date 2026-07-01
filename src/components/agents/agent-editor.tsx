@@ -93,8 +93,21 @@ export function AgentEditor({ agent, onSaved, onCancel }: Props) {
   const { user } = useAuth();
   const [form, setForm] = useState<AgentRow>(() => agent ?? emptyAgent(user?.id ?? ""));
   const [saving, setSaving] = useState(false);
+  const [instances, setInstances] = useState<Array<{ id: string; name: string; phone_number: string | null; status: string | null }>>([]);
 
   useEffect(() => { setForm(agent ?? emptyAgent(user?.id ?? "")); }, [agent, user?.id]);
+
+  useEffect(() => {
+    if (!user) return;
+    (async () => {
+      const { data } = await supabase
+        .from("connections")
+        .select("id, name, phone_number, status")
+        .eq("user_id", user.id)
+        .order("created_at", { ascending: false });
+      setInstances(data ?? []);
+    })();
+  }, [user]);
 
   const spec = PROVIDERS.find((p) => p.id === (form.category?.toLowerCase() as ProviderId)) ?? PROVIDERS[1];
   const memMsgs = ((form.memory as { messages?: number } | null)?.messages ?? 20);
@@ -163,6 +176,26 @@ export function AgentEditor({ agent, onSaved, onCancel }: Props) {
 
       <Accordion type="single" collapsible defaultValue="s1" className="space-y-3">
         <Section id="s1" number={1} icon={<Sliders className="h-4 w-4" />} title="Configuração do Modelo">
+          <div className="mb-4 space-y-1.5">
+            <Label className="text-xs uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+              <MessageSquare className="h-3.5 w-3.5 text-primary" /> Instância WhatsApp
+            </Label>
+            <Select value={form.connection_id ?? "none"} onValueChange={(v) => set("connection_id", v === "none" ? null : v)}>
+              <SelectTrigger><SelectValue placeholder="Selecione uma instância" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="none">Sem instância vinculada</SelectItem>
+                {instances.map((i) => (
+                  <SelectItem key={i.id} value={i.id}>
+                    {i.name} {i.phone_number ? `— ${i.phone_number}` : ""} {i.status ? `(${i.status})` : ""}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {instances.length === 0 && (
+              <p className="text-[11px] text-muted-foreground">Nenhuma instância. Crie uma em WhatsApp para vincular a este agente.</p>
+            )}
+          </div>
+
           <div className="grid gap-4 md:grid-cols-2">
             <div className="space-y-1.5">
               <Label className="text-xs uppercase tracking-wider text-muted-foreground">Provedor</Label>
