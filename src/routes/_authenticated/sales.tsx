@@ -946,14 +946,14 @@ function SalesPage() {
                     </Select>
                   </div>
                 )}
-                <div>
+                <div data-sale-field="seller_id">
                   <Label>Vendedor *</Label>
                   <Select value={form.seller_id || ""} onValueChange={(v) => set("seller_id", v)}>
                     <SelectTrigger><SelectValue placeholder="—" /></SelectTrigger>
                     <SelectContent>{(sellers.data ?? []).map((s: any) => optionValue(s.id) ? <SelectItem key={s.id} value={String(s.id)}>{optionText(s.name)}</SelectItem> : null)}</SelectContent>
                   </Select>
                 </div>
-                <div>
+                <div data-sale-field="producer_id">
                   <Label>Produtor *</Label>
                   <Select 
                     value={form.producer_id || ""} 
@@ -969,12 +969,15 @@ function SalesPage() {
                     <SelectContent>{(producers.data ?? []).map((p: any) => optionValue(p.id) ? <SelectItem key={p.id} value={String(p.id)}>{optionText(p.name)}</SelectItem> : null)}</SelectContent>
                   </Select>
                 </div>
-                <div>
+                <div data-sale-field="service_type_id">
                   <Label>Tipo de serviço *</Label>
                   <Select value={form.service_type_id || ""} onValueChange={(v) => set("service_type_id", v)}>
                     <SelectTrigger><SelectValue placeholder="—" /></SelectTrigger>
                     <SelectContent>{(serviceTypes.data ?? []).map((s: any) => optionValue(s.id) ? <SelectItem key={s.id} value={String(s.id)}>{optionText(s.name)}</SelectItem> : null)}</SelectContent>
                   </Select>
+                  {!form.service_type_id && (
+                    <p className="mt-1 text-[11px] text-muted-foreground">Escolha o tipo de serviço antes de confirmar.</p>
+                  )}
                 </div>
                 <div>
                   <Label>Pacote (opcional)</Label>
@@ -989,8 +992,8 @@ function SalesPage() {
                   </Select>
                 </div>
                 <div><Label>Qtd. serviços *</Label><Input type="number" min="1" value={form.service_quantity || ""} onChange={(e) => set("service_quantity", e.target.value)} /></div>
-                {isVideoService(serviceTypes.data?.find((st: any) => st.id === form.service_type_id)?.name, !!form.package_id) && (
-                  <div>
+                {formNeedsVideoDuration && (
+                  <div data-sale-field="video_duration_seconds" className="rounded-md border border-amber-300/70 bg-amber-50/70 p-2 dark:bg-amber-950/20">
                     <Label>Minutagem do vídeo *</Label>
                     <Select value={form.video_duration_seconds || ""} onValueChange={(v) => set("video_duration_seconds", v)}>
                       <SelectTrigger><SelectValue placeholder="Selecione (mín. 30s)" /></SelectTrigger>
@@ -1000,6 +1003,7 @@ function SalesPage() {
                         ))}
                       </SelectContent>
                     </Select>
+                    <p className="mt-1 text-[11px] text-amber-700 dark:text-amber-300">Obrigatório para vídeo/pacote. A pontuação é calculada por essa minutagem.</p>
                   </div>
                 )}
                 <div><Label>Data da venda *</Label><Input type="date" value={form.sale_date || ""} onChange={(e) => set("sale_date", e.target.value)} /></div>
@@ -1013,8 +1017,8 @@ function SalesPage() {
                     </SelectContent>
                   </Select>
                 </div>
-                <div className="col-span-2">
-                  <Label>Comprovante (imagem ou PDF) *</Label>
+                <div className="col-span-2" data-sale-field="receipt">
+                  <Label>Comprovante (imagem ou PDF) {formNeedsReceipt ? "*" : "(opcional enquanto pendente)"}</Label>
                   <Input type="file" accept="image/*,application/pdf" onChange={(e) => setReceiptFile(e.target.files?.[0] ?? null)} />
                   {receiptFile && <p className="text-xs text-muted-foreground mt-1">{receiptFile.name}</p>}
                 </div>
