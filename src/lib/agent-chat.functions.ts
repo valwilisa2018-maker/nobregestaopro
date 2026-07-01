@@ -8,6 +8,7 @@ const Input = z.object({
   maxTokens: z.number().int().positive().max(8192),
   systemPrompt: z.string(),
   messages: z.array(z.object({ role: z.enum(["user", "assistant"]), content: z.string() })),
+  providerId: z.string().uuid().nullable().optional(),
 });
 
 const PROVIDER_PREFIX: Record<string, string> = {
@@ -20,15 +21,30 @@ const PROVIDER_PREFIX: Record<string, string> = {
 export const chatWithAgent = createServerFn({ method: "POST" })
   .inputValidator((raw: unknown) => Input.parse(raw))
   .handler(async ({ data }) => {
-    const key = process.env.LOVABLE_API_KEY;
-    if (!key) throw new Error("LOVABLE_API_KEY não configurada");
-
+    let endpoint = "https://ai.gateway.lovable.dev/v1/chat/completions";
+    let apiKey = process.env.LOVABLE_API_KEY ?? "";
     const prefix = PROVIDER_PREFIX[data.provider.toLowerCase()] ?? "google/";
-    const modelId = data.model.includes("/") ? data.model : `${prefix}${data.model}`;
+    let modelId = data.model.includes("/") ? data.model : `${prefix}${data.model}`;
 
-    const res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    if (data.providerId) {
+      const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+      const { data: p, error } = await supabaseAdmin
+        .from("ai_providers")
+        .select("api_key, base_url, model, provider")
+        .eq("id", data.providerId)
+        .maybeSingle();
+      if (error || !p) throw new Error("Provedor não encontrado");
+      apiKey = p.api_key ?? "";
+      if (p.base_url) endpoint = p.base_url.replace(/\/+$/, "") + "/chat/completions";
+      // Custom providers use raw model id (no gateway prefix)
+      modelId = data.model || p.model || modelId;
+    }
+
+    if (!apiKey) throw new Error("Chave de API não configurada");
+
+    const res = await fetch(endpoint, {
       method: "POST",
-      headers: { "Content-Type": "application/json", Authorization: `Bearer ${key}` },
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${apiKey}` },
       body: JSON.stringify({
         model: modelId,
         temperature: data.temperature,
