@@ -622,6 +622,7 @@ function Telao() {
       .channel("telao-sales")
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "sales" }, (payload: any) => {
         qc.invalidateQueries({ queryKey: ["telao-sales"] });
+        qc.invalidateQueries({ queryKey: ["telao-sinal-hoje"] });
         if (celebration.confettiEnabled) fireConfetti();
         if (soundEnabled && celebration.soundEnabled) playSound(soundId, celebration.volume / 100);
         setFlash(true);
@@ -633,9 +634,11 @@ function Telao() {
       })
       .on("postgres_changes", { event: "UPDATE", schema: "public", table: "sales" }, () => {
         qc.invalidateQueries({ queryKey: ["telao-sales"] });
+        qc.invalidateQueries({ queryKey: ["telao-sinal-hoje"] });
       })
       .on("postgres_changes", { event: "DELETE", schema: "public", table: "sales" }, () => {
         qc.invalidateQueries({ queryKey: ["telao-sales"] });
+        qc.invalidateQueries({ queryKey: ["telao-sinal-hoje"] });
       })
       .subscribe();
     return () => { supabase.removeChannel(channel); };
