@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { Webhook } from "lucide-react";
-import { PageShell } from "@/components/page-shell";
+import { CrudResource } from "@/components/crud-resource";
 
 export const Route = createFileRoute("/_authenticated/webhooks")({
   head: () => ({ meta: [{ title: "Webhooks — Plataforma IA WhatsApp" }] }),
@@ -9,10 +9,18 @@ export const Route = createFileRoute("/_authenticated/webhooks")({
 
 function Page() {
   return (
-    <PageShell
+    <CrudResource
+      table="webhooks"
       title="Webhooks"
-      description="Configure webhooks de entrada e saída para eventos de conversas, mensagens e clientes."
+      description="Notificações de eventos."
+      singular="Webhook"
       icon={<Webhook className="h-6 w-6" />}
+      fields={[
+    {name:"name", label:"Nome", type:"text", required:true},
+    {name:"url", label:"URL", type:"url", required:true},
+    {name:"secret", label:"Secret", type:"password"},
+    {name:"is_active", label:"Ativo", type:"boolean"}
+      ]}
     />
   );
 }

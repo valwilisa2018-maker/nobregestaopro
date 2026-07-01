@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { UserCog } from "lucide-react";
-import { PageShell } from "@/components/page-shell";
+import { CrudResource } from "@/components/crud-resource";
 
 export const Route = createFileRoute("/_authenticated/users")({
   head: () => ({ meta: [{ title: "Usuários — Plataforma IA WhatsApp" }] }),
@@ -9,10 +9,17 @@ export const Route = createFileRoute("/_authenticated/users")({
 
 function Page() {
   return (
-    <PageShell
+    <CrudResource
+      table="profiles"
       title="Usuários"
-      description="Convide operadores, defina cargos e gerencie acesso à plataforma."
+      description="Perfis dos operadores."
+      singular="Perfil"
       icon={<UserCog className="h-6 w-6" />}
+      fields={[
+    {name:"full_name", label:"Nome completo", type:"text"},
+    {name:"phone", label:"Telefone", type:"text"},
+    {name:"avatar_url", label:"Avatar URL", type:"url"}
+      ]}
     />
   );
 }
