@@ -293,6 +293,11 @@ function SalesPage() {
         updatedForm.paid_amount = updatedForm.total_amount;
       }
 
+      // Se marcar como pendente, zera o valor pago para não cair em validação contraditória.
+      if (k === "payment_status" && v === "pendente") {
+        updatedForm.paid_amount = "0";
+      }
+
       // Auto-set producer for Pamela/Ester
       const checkInfluencer = () => {
         const selectedServiceType = serviceTypes.data?.find(st => st.id === (k === "service_type_id" ? v : f.service_type_id));
@@ -993,7 +998,8 @@ function SalesPage() {
                   <Label>Pacote (opcional)</Label>
                   <Select value={form.package_id || ""} onValueChange={(v) => {
                     const p = (packages.data ?? []).find((x: any) => x.id === v);
-                    setForm((f) => ({ ...f, package_id: v, package_name: p?.name ?? f.package_name }));
+                    set("package_id", v);
+                    setForm((f) => ({ ...f, package_name: p?.name ?? f.package_name }));
                   }}>
                     <SelectTrigger><SelectValue placeholder="—" /></SelectTrigger>
                     <SelectContent>
