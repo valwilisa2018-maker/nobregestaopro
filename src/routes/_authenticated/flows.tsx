@@ -1,8 +1,9 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useCallback, useMemo, useState, useEffect } from "react";
 import {
-  Workflow, Sparkles, Save, Trash2, Loader2, Plus, MessageSquare, GitBranch,
+  Workflow, Sparkles, Save, Trash2, Loader2, MessageSquare, GitBranch,
   Image as ImageIcon, Video, Music, HelpCircle, Play, Square, Webhook, Clock, User,
+  Keyboard, Mic, Tag, UserPlus, Calendar, Send, ArrowLeft,
 } from "lucide-react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
@@ -15,6 +16,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import {
   ReactFlow, ReactFlowProvider, Background, Controls, MiniMap, addEdge, useEdgesState,
   useNodesState, Handle, Position, type Node, type Edge, type Connection, type NodeProps,
@@ -29,7 +31,8 @@ export const Route = createFileRoute("/_authenticated/flows")({
 
 type NodeKind =
   | "START" | "MESSAGE" | "CONDITION" | "YESNO" | "IMAGE" | "VIDEO" | "AUDIO"
-  | "QUESTION" | "WAIT" | "WEBHOOK" | "HANDOFF" | "END";
+  | "QUESTION" | "WAIT" | "WEBHOOK" | "HANDOFF" | "END"
+  | "TYPING" | "RECORDING" | "TAGS" | "CAPTURE_NAME" | "SCHEDULE" | "BROADCAST";
 
 type BlockData = {
   label: string;
@@ -41,33 +44,47 @@ type BlockData = {
   seconds?: number;
 };
 
-const KIND_META: Record<NodeKind, { label: string; icon: React.ReactNode; color: string; outputs: string[] }> = {
-  START:     { label: "Início",       icon: <Play className="h-3.5 w-3.5" />,         color: "bg-emerald-500", outputs: ["out"] },
-  MESSAGE:   { label: "Mensagem",     icon: <MessageSquare className="h-3.5 w-3.5" />, color: "bg-blue-500",    outputs: ["out"] },
-  QUESTION:  { label: "Pergunta",     icon: <HelpCircle className="h-3.5 w-3.5" />,   color: "bg-indigo-500",  outputs: ["out"] },
-  CONDITION: { label: "Condição",     icon: <GitBranch className="h-3.5 w-3.5" />,    color: "bg-amber-500",   outputs: ["true", "false"] },
-  YESNO:     { label: "Sim / Não",    icon: <GitBranch className="h-3.5 w-3.5" />,    color: "bg-orange-500",  outputs: ["sim", "não"] },
-  IMAGE:     { label: "Imagem",       icon: <ImageIcon className="h-3.5 w-3.5" />,    color: "bg-pink-500",    outputs: ["out"] },
-  VIDEO:     { label: "Vídeo",        icon: <Video className="h-3.5 w-3.5" />,        color: "bg-rose-500",    outputs: ["out"] },
-  AUDIO:     { label: "Áudio",        icon: <Music className="h-3.5 w-3.5" />,        color: "bg-purple-500",  outputs: ["out"] },
-  WAIT:      { label: "Aguardar",     icon: <Clock className="h-3.5 w-3.5" />,        color: "bg-slate-500",   outputs: ["out"] },
-  WEBHOOK:   { label: "Webhook",      icon: <Webhook className="h-3.5 w-3.5" />,      color: "bg-cyan-600",    outputs: ["out"] },
-  HANDOFF:   { label: "Atendente",    icon: <User className="h-3.5 w-3.5" />,         color: "bg-fuchsia-600", outputs: ["out"] },
-  END:       { label: "Fim",          icon: <Square className="h-3.5 w-3.5" />,       color: "bg-neutral-700", outputs: [] },
+const KIND_META: Record<NodeKind, { label: string; sub: string; hint: string; icon: React.ReactNode; color: string; outputs: string[] }> = {
+  START:        { label: "Gatilho",       sub: "Inicia o fluxo",             hint: "Ponto de partida do fluxo. Define quando ele começa.", icon: <Play className="h-3.5 w-3.5" />,         color: "bg-emerald-500", outputs: ["out"] },
+  MESSAGE:      { label: "Mensagem",      sub: "Enviar texto",               hint: "Envia uma mensagem de texto ao contato. Ideal para saudações, informações e respostas automáticas.", icon: <MessageSquare className="h-3.5 w-3.5" />, color: "bg-blue-500", outputs: ["out"] },
+  CONDITION:    { label: "Condição",      sub: "Dividir fluxo",              hint: "Divide o fluxo em caminhos com base em uma condição.", icon: <GitBranch className="h-3.5 w-3.5" />,    color: "bg-amber-500",   outputs: ["true", "false"] },
+  WAIT:         { label: "Aguardar",      sub: "Tempo de espera",            hint: "Aguarda um tempo antes de seguir para o próximo bloco.", icon: <Clock className="h-3.5 w-3.5" />,        color: "bg-slate-500",   outputs: ["out"] },
+  VIDEO:        { label: "Vídeo",         sub: "Enviar vídeo",               hint: "Envia um arquivo de vídeo para o contato.", icon: <Video className="h-3.5 w-3.5" />,        color: "bg-rose-500",    outputs: ["out"] },
+  IMAGE:        { label: "Imagem",        sub: "Enviar imagem",              hint: "Envia uma imagem para o contato.", icon: <ImageIcon className="h-3.5 w-3.5" />,    color: "bg-pink-500",    outputs: ["out"] },
+  AUDIO:        { label: "Áudio",         sub: "Enviar áudio",               hint: "Envia um áudio para o contato.", icon: <Music className="h-3.5 w-3.5" />,        color: "bg-purple-500",  outputs: ["out"] },
+  TYPING:       { label: "Digitando",     sub: "Simular digitação",          hint: "Mostra 'digitando...' para simular uma resposta humana.", icon: <Keyboard className="h-3.5 w-3.5" />,     color: "bg-teal-500",    outputs: ["out"] },
+  RECORDING:    { label: "Gravando",      sub: "Simular gravação",           hint: "Mostra 'gravando áudio...' antes de enviar.", icon: <Mic className="h-3.5 w-3.5" />,          color: "bg-red-500",     outputs: ["out"] },
+  TAGS:         { label: "Etiquetas",     sub: "Atribuir tags ao contato",   hint: "Adiciona etiquetas ao contato para segmentação.", icon: <Tag className="h-3.5 w-3.5" />,          color: "bg-lime-500",    outputs: ["out"] },
+  QUESTION:     { label: "Resposta",      sub: "Aguardar resposta",          hint: "Aguarda o contato responder antes de continuar.", icon: <HelpCircle className="h-3.5 w-3.5" />,   color: "bg-indigo-500",  outputs: ["out"] },
+  CAPTURE_NAME: { label: "Capturar Nome", sub: "Pergunta e salva o nome",    hint: "Pergunta o nome do contato e salva na variável.", icon: <UserPlus className="h-3.5 w-3.5" />,     color: "bg-sky-500",     outputs: ["out"] },
+  SCHEDULE:     { label: "Agendamento",   sub: "Agendar reunião",            hint: "Cria um agendamento com o contato.", icon: <Calendar className="h-3.5 w-3.5" />,     color: "bg-yellow-500",  outputs: ["out"] },
+  BROADCAST:    { label: "Disparo",       sub: "Disparo em massa",           hint: "Envia mensagem para vários contatos.", icon: <Send className="h-3.5 w-3.5" />,         color: "bg-orange-500",  outputs: ["out"] },
+  YESNO:        { label: "Sim / Não",     sub: "Dividir por resposta",       hint: "Divide o fluxo com base em resposta sim/não.", icon: <GitBranch className="h-3.5 w-3.5" />,    color: "bg-amber-600",   outputs: ["sim", "não"] },
+  WEBHOOK:      { label: "Webhook",       sub: "Chamar API externa",         hint: "Faz uma requisição HTTP para um serviço externo.", icon: <Webhook className="h-3.5 w-3.5" />,      color: "bg-cyan-600",    outputs: ["out"] },
+  HANDOFF:      { label: "Atendente",     sub: "Transferir para humano",     hint: "Transfere a conversa para um atendente humano.", icon: <User className="h-3.5 w-3.5" />,         color: "bg-fuchsia-600", outputs: ["out"] },
+  END:          { label: "Fim",           sub: "Encerrar fluxo",             hint: "Finaliza o fluxo.", icon: <Square className="h-3.5 w-3.5" />,       color: "bg-neutral-700", outputs: [] },
 };
+
+const PALETTE_ORDER: NodeKind[] = [
+  "START", "MESSAGE", "CONDITION", "WAIT", "VIDEO", "IMAGE", "AUDIO",
+  "TYPING", "RECORDING", "TAGS", "QUESTION", "CAPTURE_NAME", "SCHEDULE",
+  "BROADCAST", "YESNO", "WEBHOOK", "HANDOFF", "END",
+];
 
 function BlockNode({ data, selected }: NodeProps) {
   const d = data as unknown as BlockData;
   const meta = KIND_META[d.kind];
-  const preview = d.text || d.url || d.condition || "";
+  const preview = d.text || d.url || d.condition || meta.sub;
   return (
-    <div className={`rounded-lg border bg-card shadow-sm min-w-[180px] ${selected ? "ring-2 ring-primary" : ""}`}>
+    <div className={`rounded-lg border border-emerald-500/40 bg-card shadow-md min-w-[180px] ${selected ? "ring-2 ring-primary" : ""}`}>
       {d.kind !== "START" && <Handle type="target" position={Position.Left} />}
-      <div className={`flex items-center gap-2 px-3 py-1.5 text-white text-xs font-medium rounded-t-lg ${meta.color}`}>
-        {meta.icon}<span>{meta.label}</span>
+      <div className="flex items-center gap-2 px-3 py-1.5 text-[10px] uppercase tracking-wide text-muted-foreground border-b border-border/50">
+        <span className={`h-4 w-4 rounded flex items-center justify-center text-white ${meta.color}`}>{meta.icon}</span>
+        <span>{meta.label}</span>
       </div>
-      <div className="px-3 py-2 text-xs text-foreground/80 min-h-[32px]">
-        {preview ? <div className="line-clamp-2">{preview}</div> : <div className="italic text-muted-foreground">clique para editar</div>}
+      <div className="px-3 py-2 min-h-[36px]">
+        <div className="text-xs font-semibold text-foreground line-clamp-1">{d.label}</div>
+        <div className="text-[11px] text-muted-foreground line-clamp-1">{preview}</div>
       </div>
       {meta.outputs.length === 1 && <Handle type="source" position={Position.Right} id={meta.outputs[0]} />}
       {meta.outputs.length > 1 && meta.outputs.map((o, i) => (
@@ -254,56 +271,77 @@ function Builder() {
     return () => window.removeEventListener("keydown", onKey);
   }, [selected]);
 
-  const kinds = useMemo(() => Object.keys(KIND_META) as NodeKind[], []);
+  const kinds = useMemo(() => PALETTE_ORDER, []);
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex flex-col gap-3">
       {/* Top bar */}
       <div className="flex flex-wrap items-center gap-2">
-        <Input className="max-w-[240px]" value={name} onChange={(e) => setName(e.target.value)} placeholder="Nome do fluxo" />
-        <Input className="max-w-[240px]" value={trigger} onChange={(e) => setTrigger(e.target.value)} placeholder="Gatilho (opcional)" />
-        <Button onClick={() => saveM.mutate()} disabled={saveM.isPending}>
-          {saveM.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />} Salvar
+        <Button variant="ghost" size="icon" onClick={() => { setFlowId(null); setNodes([{ id: "start", type: "block", position: { x: 80, y: 160 }, data: { kind: "START", label: "Início" } }]); setEdges([]); setName("Novo fluxo"); setTrigger(""); setSelected(null); }} aria-label="Voltar">
+          <ArrowLeft className="h-4 w-4" />
         </Button>
-        <Dialog open={aiOpen} onOpenChange={setAiOpen}>
-          <DialogTrigger asChild>
-            <Button variant="secondary"><Sparkles className="h-4 w-4" /> Gerar com IA</Button>
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader><DialogTitle>Gerar fluxo com IA</DialogTitle></DialogHeader>
-            <Textarea rows={5} value={aiPrompt} onChange={(e) => setAiPrompt(e.target.value)} placeholder="Ex.: Qualifica lead de imóvel, pede nome/cidade e envia para o corretor" />
-            <Button onClick={() => genM.mutate()} disabled={!aiPrompt.trim() || genM.isPending}>
-              {genM.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />} Gerar
-            </Button>
-          </DialogContent>
-        </Dialog>
-        <div className="ml-auto flex flex-wrap gap-1">
-          {TEMPLATES.map((t) => (
-            <Button key={t.name} size="sm" variant="outline" onClick={() => loadTemplate(t)}>{t.name}</Button>
-          ))}
+        <Input className="max-w-[280px]" value={name} onChange={(e) => setName(e.target.value)} placeholder="Nome do fluxo" />
+        <div className="ml-auto flex flex-wrap gap-2">
+          <Dialog open={aiOpen} onOpenChange={setAiOpen}>
+            <DialogTrigger asChild>
+              <Button variant="outline" size="sm"><Sparkles className="h-4 w-4" /> Gerar IA</Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader><DialogTitle>Gerar fluxo com IA</DialogTitle></DialogHeader>
+              <Textarea rows={5} value={aiPrompt} onChange={(e) => setAiPrompt(e.target.value)} placeholder="Ex.: Qualifica lead de imóvel, pede nome/cidade e envia para o corretor" />
+              <Button onClick={() => genM.mutate()} disabled={!aiPrompt.trim() || genM.isPending}>
+                {genM.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />} Gerar
+              </Button>
+            </DialogContent>
+          </Dialog>
+          <Button variant="outline" size="sm"><Send className="h-4 w-4" /> Disparo</Button>
+          <Button variant="outline" size="sm" disabled={!flowId} onClick={() => flowId && delM.mutate(flowId)}>
+            <Trash2 className="h-4 w-4" /> Excluir
+          </Button>
+          <Button size="sm" onClick={() => saveM.mutate()} disabled={saveM.isPending}>
+            {saveM.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />} Salvar Fluxo
+          </Button>
         </div>
       </div>
 
-      <div className="grid gap-4 lg:grid-cols-[200px_1fr_280px]">
+      <div className="grid gap-3 lg:grid-cols-[220px_1fr_280px]">
         {/* Palette */}
-        <Card className="lg:sticky lg:top-4 h-fit">
-          <CardHeader className="pb-2"><CardTitle className="text-sm">Blocos</CardTitle></CardHeader>
-          <CardContent className="grid grid-cols-2 gap-1.5 lg:grid-cols-1">
-            {kinds.map((k) => {
-              const m = KIND_META[k];
-              return (
-                <Button key={k} size="sm" variant="ghost" className="justify-start gap-2" onClick={() => addBlock(k)}>
-                  <span className={`h-5 w-5 rounded flex items-center justify-center text-white ${m.color}`}>{m.icon}</span>
-                  <span className="text-xs">{m.label}</span>
-                  <Plus className="h-3 w-3 ml-auto opacity-50" />
-                </Button>
-              );
-            })}
+        <Card className="h-[calc(100vh-220px)] overflow-hidden flex flex-col">
+          <CardHeader className="pb-2 shrink-0"><CardTitle className="text-[10px] uppercase tracking-widest text-muted-foreground">Blocos</CardTitle></CardHeader>
+          <CardContent className="flex-1 overflow-y-auto space-y-1 pr-2">
+            <TooltipProvider delayDuration={200}>
+              {kinds.map((k) => {
+                const m = KIND_META[k];
+                return (
+                  <Tooltip key={k}>
+                    <TooltipTrigger asChild>
+                      <button
+                        onClick={() => addBlock(k)}
+                        className="w-full flex items-center gap-3 px-2 py-2 rounded-md hover:bg-accent text-left transition"
+                      >
+                        <span className={`h-6 w-6 rounded flex items-center justify-center text-white shrink-0 ${m.color}`}>{m.icon}</span>
+                        <span className="flex flex-col min-w-0">
+                          <span className="text-xs font-medium truncate">{m.label}</span>
+                          <span className="text-[10px] text-muted-foreground truncate">{m.sub}</span>
+                        </span>
+                      </button>
+                    </TooltipTrigger>
+                    <TooltipContent side="right" className="max-w-[220px] text-xs">{m.hint}</TooltipContent>
+                  </Tooltip>
+                );
+              })}
+            </TooltipProvider>
+            <div className="pt-3 mt-2 border-t space-y-1">
+              <div className="text-[10px] uppercase tracking-widest text-muted-foreground px-2 pb-1">Modelos</div>
+              {TEMPLATES.map((t) => (
+                <Button key={t.name} size="sm" variant="ghost" className="w-full justify-start text-xs" onClick={() => loadTemplate(t)}>{t.name}</Button>
+              ))}
+            </div>
           </CardContent>
         </Card>
 
         {/* Canvas */}
-        <div className="h-[600px] rounded-lg border bg-background overflow-hidden">
+        <div className="h-[calc(100vh-220px)] rounded-lg border bg-background overflow-hidden">
           <ReactFlow
             nodes={nodes} edges={edges}
             onNodesChange={onNodesChange} onEdgesChange={onEdgesChange}
@@ -320,7 +358,7 @@ function Builder() {
         </div>
 
         {/* Inspector */}
-        <Card className="h-fit">
+        <Card className="h-[calc(100vh-220px)] overflow-y-auto">
           <CardHeader className="pb-2"><CardTitle className="text-sm">Propriedades</CardTitle></CardHeader>
           <CardContent className="space-y-3">
             {!selected ? (
