@@ -35,6 +35,7 @@ import { Route as AuthenticatedAudiosRouteImport } from './routes/_authenticated
 import { Route as AuthenticatedApiRouteImport } from './routes/_authenticated/api'
 import { Route as AuthenticatedAiRouteImport } from './routes/_authenticated/ai'
 import { Route as AuthenticatedAgentsRouteImport } from './routes/_authenticated/agents'
+import { Route as ApiPublicHooksFollowUpsRouteImport } from './routes/api/public/hooks/follow-ups'
 import { Route as ApiPublicEvolutionInstanceRouteImport } from './routes/api/public/evolution.$instance'
 
 const AuthRoute = AuthRouteImport.update({
@@ -170,6 +171,11 @@ const AuthenticatedAgentsRoute = AuthenticatedAgentsRouteImport.update({
   path: '/agents',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
+const ApiPublicHooksFollowUpsRoute = ApiPublicHooksFollowUpsRouteImport.update({
+  id: '/api/public/hooks/follow-ups',
+  path: '/api/public/hooks/follow-ups',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiPublicEvolutionInstanceRoute =
   ApiPublicEvolutionInstanceRouteImport.update({
     id: '/api/public/evolution/$instance',
@@ -204,6 +210,7 @@ export interface FileRoutesByFullPath {
   '/whatsapp': typeof AuthenticatedWhatsappRoute
   '/white-label': typeof AuthenticatedWhiteLabelRoute
   '/api/public/evolution/$instance': typeof ApiPublicEvolutionInstanceRoute
+  '/api/public/hooks/follow-ups': typeof ApiPublicHooksFollowUpsRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -232,6 +239,7 @@ export interface FileRoutesByTo {
   '/whatsapp': typeof AuthenticatedWhatsappRoute
   '/white-label': typeof AuthenticatedWhiteLabelRoute
   '/api/public/evolution/$instance': typeof ApiPublicEvolutionInstanceRoute
+  '/api/public/hooks/follow-ups': typeof ApiPublicHooksFollowUpsRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -262,6 +270,7 @@ export interface FileRoutesById {
   '/_authenticated/whatsapp': typeof AuthenticatedWhatsappRoute
   '/_authenticated/white-label': typeof AuthenticatedWhiteLabelRoute
   '/api/public/evolution/$instance': typeof ApiPublicEvolutionInstanceRoute
+  '/api/public/hooks/follow-ups': typeof ApiPublicHooksFollowUpsRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -292,6 +301,7 @@ export interface FileRouteTypes {
     | '/whatsapp'
     | '/white-label'
     | '/api/public/evolution/$instance'
+    | '/api/public/hooks/follow-ups'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -320,6 +330,7 @@ export interface FileRouteTypes {
     | '/whatsapp'
     | '/white-label'
     | '/api/public/evolution/$instance'
+    | '/api/public/hooks/follow-ups'
   id:
     | '__root__'
     | '/'
@@ -349,6 +360,7 @@ export interface FileRouteTypes {
     | '/_authenticated/whatsapp'
     | '/_authenticated/white-label'
     | '/api/public/evolution/$instance'
+    | '/api/public/hooks/follow-ups'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -356,6 +368,7 @@ export interface RootRouteChildren {
   AuthenticatedRoute: typeof AuthenticatedRouteWithChildren
   AuthRoute: typeof AuthRoute
   ApiPublicEvolutionInstanceRoute: typeof ApiPublicEvolutionInstanceRoute
+  ApiPublicHooksFollowUpsRoute: typeof ApiPublicHooksFollowUpsRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -542,6 +555,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAgentsRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
+    '/api/public/hooks/follow-ups': {
+      id: '/api/public/hooks/follow-ups'
+      path: '/api/public/hooks/follow-ups'
+      fullPath: '/api/public/hooks/follow-ups'
+      preLoaderRoute: typeof ApiPublicHooksFollowUpsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/evolution/$instance': {
       id: '/api/public/evolution/$instance'
       path: '/api/public/evolution/$instance'
@@ -613,6 +633,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthenticatedRoute: AuthenticatedRouteWithChildren,
   AuthRoute: AuthRoute,
   ApiPublicEvolutionInstanceRoute: ApiPublicEvolutionInstanceRoute,
+  ApiPublicHooksFollowUpsRoute: ApiPublicHooksFollowUpsRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

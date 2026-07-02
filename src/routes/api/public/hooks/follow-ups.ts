@@ -46,12 +46,14 @@ export const Route = createFileRoute("/api/public/hooks/follow-ups")({
             .order("created_at", { ascending: false })
             .limit(500);
 
-          const byJid = new Map<string, Array<{ direction: string | null; created_at: string; metadata: Record<string, unknown> | null }>>();
+          type Row = { direction: string | null; created_at: string; metadata: unknown };
+          const byJid = new Map<string, Row[]>();
           for (const m of msgs ?? []) {
-            const jid = (m.metadata as { remoteJid?: string } | null)?.remoteJid;
+            const meta = (m.metadata ?? null) as { remoteJid?: string } | null;
+            const jid = meta?.remoteJid;
             if (!jid) continue;
             if (!byJid.has(jid)) byJid.set(jid, []);
-            byJid.get(jid)!.push(m);
+            byJid.get(jid)!.push(m as Row);
           }
 
           for (const [jid, list] of byJid) {
