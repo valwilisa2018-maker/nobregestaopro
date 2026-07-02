@@ -71,6 +71,17 @@ export const Route = createFileRoute("/api/public/hooks/follow-ups")({
             const text = fu.messages[already % fu.messages.length];
             if (!text) continue;
 
+            // Quota gate per plan
+            const { data: quota } = await supabaseAdmin.rpc("consume_send_quota" as never, { _user_id: agent.user_id } as never);
+            const q = (quota ?? {}) as { allowed?: boolean; reason?: string };
+            if (q && q.allowed === false) {
+              await supabaseAdmin.from("logs").insert({
+                user_id: agent.user_id, level: "warn", source: "followups",
+                message: `quota exceeded: ${q.reason}`, metadata: q as never,
+              } as never);
+              continue;
+            }
+
             const send = await fetch(`${(conn.url_api ?? "").replace(/\/+$/, "")}/message/sendText/${conn.instance_name}`, {
               method: "POST",
               headers: { "Content-Type": "application/json", apikey: conn.api_key ?? "" },

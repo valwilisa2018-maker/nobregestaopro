@@ -708,6 +708,30 @@ export type Database = {
           },
         ]
       }
+      plans: {
+        Row: {
+          created_at: string
+          daily_limit: number
+          id: string
+          monthly_limit: number
+          name: string
+        }
+        Insert: {
+          created_at?: string
+          daily_limit?: number
+          id?: string
+          monthly_limit?: number
+          name: string
+        }
+        Update: {
+          created_at?: string
+          daily_limit?: number
+          id?: string
+          monthly_limit?: number
+          name?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -715,6 +739,7 @@ export type Database = {
           full_name: string | null
           id: string
           phone: string | null
+          plan_id: string | null
           updated_at: string
         }
         Insert: {
@@ -723,6 +748,7 @@ export type Database = {
           full_name?: string | null
           id: string
           phone?: string | null
+          plan_id?: string | null
           updated_at?: string
         }
         Update: {
@@ -731,9 +757,18 @@ export type Database = {
           full_name?: string | null
           id?: string
           phone?: string | null
+          plan_id?: string | null
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "profiles_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "plans"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       prompts: {
         Row: {
@@ -817,6 +852,33 @@ export type Database = {
           is_active?: boolean
           kind?: string
           name?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      usage_counters: {
+        Row: {
+          day: string
+          day_count: number
+          month: string
+          month_count: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          day?: string
+          day_count?: number
+          month?: string
+          month_count?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          day?: string
+          day_count?: number
+          month?: string
+          month_count?: number
           updated_at?: string
           user_id?: string
         }
@@ -917,6 +979,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      consume_send_quota: { Args: { _user_id: string }; Returns: Json }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
