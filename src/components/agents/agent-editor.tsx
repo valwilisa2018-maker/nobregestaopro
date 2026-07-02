@@ -136,7 +136,7 @@ export function AgentEditor({ agent, onSaved, onCancel }: Props) {
     keywords?: { enabled?: boolean; mode?: string; list?: string[] };
     hours?: { enabled?: boolean; start?: string; end?: string; lunch?: boolean; days?: string[]; blockedDates?: string[] };
     audio?: { enabled?: boolean; provider?: "browser" | "elevenlabs"; replaceText?: boolean; autoReply?: boolean; mirrorFormat?: boolean; smartAudio?: boolean; smartAudioChars?: number; asTool?: boolean };
-    media?: { enabled?: boolean; items?: Array<{ id: string; name: string; size?: string; mode?: string; keywords?: string; description?: string }> };
+    media?: { enabled?: boolean; items?: Array<{ id: string; name: string; size?: string; mode?: string; keywords?: string; description?: string; storage_path?: string; mime?: string; bytes?: number }> };
     conversation?: { keepUnread?: boolean; singleMessage?: boolean; includeContactName?: boolean; cancelOnNew?: boolean; stopAfterManual?: boolean };
   };
   const ext = (form.tools ?? {}) as Ext;
@@ -366,7 +366,7 @@ type ExtProps = {
     keywords?: { enabled?: boolean; mode?: string; list?: string[] };
     hours?: { enabled?: boolean; start?: string; end?: string; lunch?: boolean; days?: string[]; blockedDates?: string[] };
     audio?: { enabled?: boolean; provider?: "browser" | "elevenlabs"; replaceText?: boolean; autoReply?: boolean; mirrorFormat?: boolean; smartAudio?: boolean; smartAudioChars?: number; asTool?: boolean };
-    media?: { enabled?: boolean; items?: Array<{ id: string; name: string; size?: string; mode?: string; keywords?: string; description?: string }> };
+    media?: { enabled?: boolean; items?: Array<{ id: string; name: string; size?: string; mode?: string; keywords?: string; description?: string; storage_path?: string; mime?: string; bytes?: number }> };
     conversation?: { keepUnread?: boolean; singleMessage?: boolean; includeContactName?: boolean; cancelOnNew?: boolean; stopAfterManual?: boolean };
   };
   setExt: <K extends keyof ExtProps["ext"]>(k: K, v: ExtProps["ext"][K]) => void;
@@ -538,9 +538,11 @@ function TestSection({ form, setForm }: { form: AgentRow; setForm: React.Dispatc
 
 // ============ 9. Mídia com IA ============
 function MediaSection({ ext, setExt, onSave, saving }: ExtProps) {
+  const { user } = useAuth();
   const m = ext.media ?? {};
   const items = m.items ?? [];
   const [openId, setOpenId] = useState<string | null>(items[0]?.id ?? null);
+  const [uploadingId, setUploadingId] = useState<string | null>(null);
 
   const addItem = () => {
     const id = crypto.randomUUID();
@@ -551,6 +553,28 @@ function MediaSection({ ext, setExt, onSave, saving }: ExtProps) {
   const update = (id: string, patch: Partial<(typeof items)[number]>) =>
     setExt("media", { items: items.map((x) => (x.id === id ? { ...x, ...patch } : x)) });
   const remove = (id: string) => setExt("media", { items: items.filter((x) => x.id !== id) });
+
+  async function handleUpload(id: string, file: File) {
+    if (!user) return;
+    setUploadingId(id);
+    try {
+      const path = `${user.id}/${id}-${file.name.replace(/[^\w.\-]+/g, "_")}`;
+      const { error } = await supabase.storage.from("agent-media").upload(path, file, { upsert: true, contentType: file.type });
+      if (error) throw error;
+      update(id, {
+        name: file.name,
+        size: `${(file.size / (1024 * 1024)).toFixed(2)}MB`,
+        storage_path: path,
+        mime: file.type,
+        bytes: file.size,
+      });
+      toast.success("Mídia enviada");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Falha ao enviar");
+    } finally {
+      setUploadingId(null);
+    }
+  }
 
   return (
     <div className="space-y-4">
@@ -583,10 +607,15 @@ function MediaSection({ ext, setExt, onSave, saving }: ExtProps) {
             {open && (
               <div className="border-t border-border/40 p-4 space-y-3">
                 <div className="flex items-center gap-3 rounded-lg bg-background/40 p-3">
-                  <div className="grid h-10 w-10 place-items-center rounded-lg bg-muted/40"><Upload className="h-4 w-4 text-muted-foreground" /></div>
+                  <label className="grid h-10 w-10 cursor-pointer place-items-center rounded-lg bg-muted/40 hover:bg-muted/60">
+                    {uploadingId === it.id
+                      ? <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                      : <Upload className="h-4 w-4 text-muted-foreground" />}
+                    <input type="file" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) void handleUpload(it.id, f); e.target.value = ""; }} />
+                  </label>
                   <div className="flex-1 min-w-0">
                     <div className="text-sm font-medium truncate">{it.name}</div>
-                    <div className="text-[11px] text-muted-foreground">{it.name} • {it.size}</div>
+                    <div className="text-[11px] text-muted-foreground">{it.storage_path ? it.mime ?? "arquivo" : "sem arquivo"} • {it.size}</div>
                   </div>
                   <button onClick={() => remove(it.id)} className="text-muted-foreground hover:text-destructive"><Trash2 className="h-4 w-4" /></button>
                 </div>
