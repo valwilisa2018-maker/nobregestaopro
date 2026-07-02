@@ -98,11 +98,12 @@ export const Route = createFileRoute("/api/public/evolution/$instance")({
             const reply: string = aiJson?.choices?.[0]?.message?.content ?? "";
             if (!reply) return Response.json({ ok: true, empty: true });
 
-            // Send back via Evolution
+            // Send back via Evolution (number = digits only, no @s.whatsapp.net suffix)
+            const number = remoteJid.split("@")[0];
             await fetch(`${(conn.url_api ?? "").replace(/\/+$/, "")}/message/sendText/${conn.instance_name}`, {
               method: "POST",
               headers: { "Content-Type": "application/json", apikey: conn.api_key ?? "" },
-              body: JSON.stringify({ number: remoteJid, text: reply }),
+              body: JSON.stringify({ number, text: reply }),
             });
 
             await supabaseAdmin.from("messages").insert({
