@@ -39,6 +39,7 @@ import { Route as AuthenticatedApiRouteImport } from './routes/_authenticated/ap
 import { Route as AuthenticatedAiRouteImport } from './routes/_authenticated/ai'
 import { Route as AuthenticatedAgentsRouteImport } from './routes/_authenticated/agents'
 import { Route as ApiPublicHooksFollowUpsRouteImport } from './routes/api/public/hooks/follow-ups'
+import { Route as ApiPublicHooksBroadcastsRouteImport } from './routes/api/public/hooks/broadcasts'
 import { Route as ApiPublicEvolutionInstanceRouteImport } from './routes/api/public/evolution.$instance'
 
 const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
@@ -194,6 +195,12 @@ const ApiPublicHooksFollowUpsRoute = ApiPublicHooksFollowUpsRouteImport.update({
   path: '/api/public/hooks/follow-ups',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicHooksBroadcastsRoute =
+  ApiPublicHooksBroadcastsRouteImport.update({
+    id: '/api/public/hooks/broadcasts',
+    path: '/api/public/hooks/broadcasts',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicEvolutionInstanceRoute =
   ApiPublicEvolutionInstanceRouteImport.update({
     id: '/api/public/evolution/$instance',
@@ -231,6 +238,7 @@ export interface FileRoutesByFullPath {
   '/whatsapp': typeof AuthenticatedWhatsappRoute
   '/white-label': typeof AuthenticatedWhiteLabelRoute
   '/api/public/evolution/$instance': typeof ApiPublicEvolutionInstanceRoute
+  '/api/public/hooks/broadcasts': typeof ApiPublicHooksBroadcastsRoute
   '/api/public/hooks/follow-ups': typeof ApiPublicHooksFollowUpsRoute
 }
 export interface FileRoutesByTo {
@@ -263,6 +271,7 @@ export interface FileRoutesByTo {
   '/whatsapp': typeof AuthenticatedWhatsappRoute
   '/white-label': typeof AuthenticatedWhiteLabelRoute
   '/api/public/evolution/$instance': typeof ApiPublicEvolutionInstanceRoute
+  '/api/public/hooks/broadcasts': typeof ApiPublicHooksBroadcastsRoute
   '/api/public/hooks/follow-ups': typeof ApiPublicHooksFollowUpsRoute
 }
 export interface FileRoutesById {
@@ -297,6 +306,7 @@ export interface FileRoutesById {
   '/_authenticated/whatsapp': typeof AuthenticatedWhatsappRoute
   '/_authenticated/white-label': typeof AuthenticatedWhiteLabelRoute
   '/api/public/evolution/$instance': typeof ApiPublicEvolutionInstanceRoute
+  '/api/public/hooks/broadcasts': typeof ApiPublicHooksBroadcastsRoute
   '/api/public/hooks/follow-ups': typeof ApiPublicHooksFollowUpsRoute
 }
 export interface FileRouteTypes {
@@ -331,6 +341,7 @@ export interface FileRouteTypes {
     | '/whatsapp'
     | '/white-label'
     | '/api/public/evolution/$instance'
+    | '/api/public/hooks/broadcasts'
     | '/api/public/hooks/follow-ups'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -363,6 +374,7 @@ export interface FileRouteTypes {
     | '/whatsapp'
     | '/white-label'
     | '/api/public/evolution/$instance'
+    | '/api/public/hooks/broadcasts'
     | '/api/public/hooks/follow-ups'
   id:
     | '__root__'
@@ -396,6 +408,7 @@ export interface FileRouteTypes {
     | '/_authenticated/whatsapp'
     | '/_authenticated/white-label'
     | '/api/public/evolution/$instance'
+    | '/api/public/hooks/broadcasts'
     | '/api/public/hooks/follow-ups'
   fileRoutesById: FileRoutesById
 }
@@ -405,6 +418,7 @@ export interface RootRouteChildren {
   AuthRoute: typeof AuthRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   ApiPublicEvolutionInstanceRoute: typeof ApiPublicEvolutionInstanceRoute
+  ApiPublicHooksBroadcastsRoute: typeof ApiPublicHooksBroadcastsRoute
   ApiPublicHooksFollowUpsRoute: typeof ApiPublicHooksFollowUpsRoute
 }
 
@@ -620,6 +634,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicHooksFollowUpsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/hooks/broadcasts': {
+      id: '/api/public/hooks/broadcasts'
+      path: '/api/public/hooks/broadcasts'
+      fullPath: '/api/public/hooks/broadcasts'
+      preLoaderRoute: typeof ApiPublicHooksBroadcastsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/evolution/$instance': {
       id: '/api/public/evolution/$instance'
       path: '/api/public/evolution/$instance'
@@ -696,6 +717,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthRoute: AuthRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
   ApiPublicEvolutionInstanceRoute: ApiPublicEvolutionInstanceRoute,
+  ApiPublicHooksBroadcastsRoute: ApiPublicHooksBroadcastsRoute,
   ApiPublicHooksFollowUpsRoute: ApiPublicHooksFollowUpsRoute,
 }
 export const routeTree = rootRouteImport
