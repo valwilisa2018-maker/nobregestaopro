@@ -353,6 +353,7 @@ export type Database = {
           delay_seconds: number
           error_count: number
           finished_at: string | null
+          flow_id: string | null
           id: string
           media_type: string | null
           media_url: string | null
@@ -374,6 +375,7 @@ export type Database = {
           delay_seconds?: number
           error_count?: number
           finished_at?: string | null
+          flow_id?: string | null
           id?: string
           media_type?: string | null
           media_url?: string | null
@@ -395,6 +397,7 @@ export type Database = {
           delay_seconds?: number
           error_count?: number
           finished_at?: string | null
+          flow_id?: string | null
           id?: string
           media_type?: string | null
           media_url?: string | null
@@ -416,6 +419,13 @@ export type Database = {
             columns: ["connection_id"]
             isOneToOne: false
             referencedRelation: "connections"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "broadcasts_flow_id_fkey"
+            columns: ["flow_id"]
+            isOneToOne: false
+            referencedRelation: "flows"
             referencedColumns: ["id"]
           },
         ]
