@@ -323,7 +323,32 @@ function BroadcastsPage() {
             )}
 
             {(sourceType === "all" || sourceType === "segment") && (
-              <p className="text-sm text-muted-foreground">Todos os contatos ativos serão incluídos. Ajuste filtros na etapa de simulação.</p>
+              <p className="text-sm text-muted-foreground">Todos os contatos ativos serão incluídos.</p>
+            )}
+
+            {sourceType === "segment" && (
+              <div className="border rounded-lg p-4 space-y-3 bg-muted/20">
+                <div className="font-semibold text-sm flex items-center gap-2"><Filter className="h-4 w-4" /> Segmentação</div>
+                <div className="grid md:grid-cols-2 gap-3">
+                  <div>
+                    <Label className="text-xs">Cadastrados nos últimos (dias)</Label>
+                    <Input type="number" min={0} value={segDays} onChange={(e) => setSegDays(Number(e.target.value) || 0)} placeholder="0 = todos" />
+                  </div>
+                  <div>
+                    <Label className="text-xs">Excluir tags</Label>
+                    <div className="flex flex-wrap gap-2 mt-1">
+                      {(tags.data?.tags ?? []).length === 0 && <span className="text-xs text-muted-foreground">Nenhuma tag.</span>}
+                      {(tags.data?.tags ?? []).map((t) => {
+                        const on = segExcludeTags.includes(t);
+                        return (
+                          <button key={t} type="button" onClick={() => setSegExcludeTags((xs) => on ? xs.filter((x) => x !== t) : [...xs, t])}
+                            className={`px-2.5 py-1 rounded-full text-xs border ${on ? "bg-destructive text-destructive-foreground border-destructive" : "bg-muted"}`}>{on ? "− " : ""}{t}</button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </div>
+              </div>
             )}
           </div>
         )}
