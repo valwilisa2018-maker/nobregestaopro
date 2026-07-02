@@ -16,11 +16,7 @@ type Ext = {
 export const Route = createFileRoute("/api/public/hooks/follow-ups")({
   server: {
     handlers: {
-      POST: async () => {
-        // Auth: require shared secret so external callers can't spam follow-ups.
-        // (Runs inside the handler because `request` isn't destructured above.)
-        return await runFollowups(arguments[0]?.request as Request | undefined);
-      },
+      POST: async ({ request }) => runFollowups(request),
       GET: async () => Response.json({ ok: true, hint: "POST with Authorization: Bearer <FOLLOWUP_TRIGGER_SECRET> to trigger runner" }),
     },
   },
