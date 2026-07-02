@@ -403,8 +403,12 @@ export type Database = {
           client_id: string | null
           connection_id: string | null
           created_at: string
+          follow_up_paused: boolean
+          follow_up_step: number
           id: string
           last_message_at: string | null
+          metadata: Json
+          next_follow_up_at: string | null
           status: Database["public"]["Enums"]["conversation_status"]
           unread_count: number
           updated_at: string
@@ -415,8 +419,12 @@ export type Database = {
           client_id?: string | null
           connection_id?: string | null
           created_at?: string
+          follow_up_paused?: boolean
+          follow_up_step?: number
           id?: string
           last_message_at?: string | null
+          metadata?: Json
+          next_follow_up_at?: string | null
           status?: Database["public"]["Enums"]["conversation_status"]
           unread_count?: number
           updated_at?: string
@@ -427,8 +435,12 @@ export type Database = {
           client_id?: string | null
           connection_id?: string | null
           created_at?: string
+          follow_up_paused?: boolean
+          follow_up_step?: number
           id?: string
           last_message_at?: string | null
+          metadata?: Json
+          next_follow_up_at?: string | null
           status?: Database["public"]["Enums"]["conversation_status"]
           unread_count?: number
           updated_at?: string
@@ -734,6 +746,7 @@ export type Database = {
       }
       profiles: {
         Row: {
+          alert_phone: string | null
           avatar_url: string | null
           created_at: string
           full_name: string | null
@@ -743,6 +756,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          alert_phone?: string | null
           avatar_url?: string | null
           created_at?: string
           full_name?: string | null
@@ -752,6 +766,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          alert_phone?: string | null
           avatar_url?: string | null
           created_at?: string
           full_name?: string | null

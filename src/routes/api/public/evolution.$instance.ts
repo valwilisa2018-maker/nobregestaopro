@@ -1,5 +1,34 @@
 import { createFileRoute } from "@tanstack/react-router";
 
+type Ext = {
+  keywords?: { enabled?: boolean; mode?: string; list?: string[] };
+  hours?: {
+    enabled?: boolean; start?: string; end?: string;
+    lunch?: boolean; lunchStart?: string; lunchEnd?: string;
+    days?: string[]; blockedDates?: string[];
+  };
+  timing?: {
+    delayChar?: number; delayMax?: number; wait?: number;
+    humanIntervention?: boolean; reactivation?: number; unknownMsg?: string;
+  };
+  conversation?: {
+    keepUnread?: boolean; singleMessage?: boolean;
+    cancelOnNew?: boolean; stopAfterManual?: boolean;
+  };
+  alerts?: {
+    whatsapp?: boolean; stopAfterHandoff?: boolean;
+    stopAfterHours?: number; includeSummary?: boolean;
+  };
+};
+type ConvMeta = {
+  remoteJid?: string;
+  pending_until?: string;      // ISO
+  pending_texts?: string[];
+  agent_paused_until?: string; // ISO
+  last_manual_at?: string;     // ISO
+  handoff?: boolean;
+};
+
 export const Route = createFileRoute("/api/public/evolution/$instance")({
   server: {
     handlers: {
@@ -47,7 +76,7 @@ export const Route = createFileRoute("/api/public/evolution/$instance")({
               msg?.message?.conversation ??
               msg?.message?.extendedTextMessage?.text ??
               msg?.message?.imageMessage?.caption;
-            if (fromMe || !remoteJid || !text) return Response.json({ ok: true, skipped: true });
+            if (!remoteJid) return Response.json({ ok: true, skipped: true });
             // Ignore broadcasts, newsletters and groups (safe default)
             if (
               remoteJid.endsWith("@broadcast") ||
@@ -60,60 +89,151 @@ export const Route = createFileRoute("/api/public/evolution/$instance")({
             // full jid is safest (handles @lid and @s.whatsapp.net).
             const recipient = remoteJid.includes("@") ? remoteJid : `${remoteJid}@s.whatsapp.net`;
 
-            // Persist inbound message
+            const { data: agent } = await supabaseAdmin
+              .from("agents")
+              .select("id,system_prompt,temperature,max_tokens,model,category,ai_provider_id,is_active,tools,timezone,memory")
+              .eq("connection_id", conn.id).eq("is_active", true)
+              .maybeSingle();
+            const ext = ((agent?.tools ?? {}) as Ext);
+            const convo = agent
+              ? await getOrCreateConversation(supabaseAdmin, conn, agent.id, remoteJid)
+              : null;
+            const cmeta: ConvMeta = (convo?.metadata ?? {}) as ConvMeta;
+
+            // Outbound-from-operator (fromMe): mark manual takeover & pause agent
+            if (fromMe) {
+              if (agent && convo && (ext.conversation?.stopAfterManual || ext.timing?.humanIntervention)) {
+                const reactHrs = Math.max(0, Number(ext.timing?.reactivation ?? 0));
+                const until = reactHrs > 0
+                  ? new Date(Date.now() + reactHrs * 3600_000).toISOString()
+                  : new Date(Date.now() + 24 * 3600_000).toISOString();
+                await supabaseAdmin.from("conversations").update({
+                  metadata: { ...cmeta, last_manual_at: new Date().toISOString(), agent_paused_until: until },
+                  follow_up_paused: true,
+                } as never).eq("id", convo.id);
+              }
+              if (agent && convo && text) {
+                await supabaseAdmin.from("messages").insert({
+                  user_id: conn.user_id, conversation_id: convo.id,
+                  direction: "outbound", type: "text", content: text,
+                  metadata: { remoteJid, agent_id: agent.id, manual: true },
+                } as never);
+              }
+              return Response.json({ ok: true, manualOutbound: true });
+            }
+            if (!text) return Response.json({ ok: true, skipped: "no-text" });
+
+            // Persist inbound message (linked to conversation when we have one)
             await supabaseAdmin.from("messages").insert({
               user_id: conn.user_id,
+              conversation_id: convo?.id ?? null,
               direction: "inbound",
               type: "text",
               content: text,
               metadata: { remoteJid, instance: conn.instance_name },
             } as never);
-
-            const { data: agent } = await supabaseAdmin
-              .from("agents")
-              .select("id,system_prompt,temperature,max_tokens,model,category,ai_provider_id,is_active,tools,timezone")
-              .eq("connection_id", conn.id).eq("is_active", true)
-              .maybeSingle();
+            if (convo) {
+              await supabaseAdmin.from("conversations").update({
+                last_message_at: new Date().toISOString(),
+                unread_count: (convo.unread_count ?? 0) + 1,
+                follow_up_step: 0, next_follow_up_at: null, follow_up_paused: false,
+              } as never).eq("id", convo.id);
+            }
             if (!agent) return Response.json({ ok: true, noAgent: true });
 
-            const ext = (agent.tools ?? {}) as {
-              keywords?: { enabled?: boolean; mode?: string; list?: string[] };
-              hours?: { enabled?: boolean; start?: string; end?: string; days?: string[] };
-              timing?: { unknownMsg?: string };
-            };
+            // Agent paused by human intervention window?
+            if (cmeta.agent_paused_until && new Date(cmeta.agent_paused_until).getTime() > Date.now()) {
+              return Response.json({ ok: true, paused: true });
+            }
 
-            // Keyword activation gate
+            // Keyword activation gate (allow/block/regex)
             if (ext.keywords?.enabled && Array.isArray(ext.keywords.list) && ext.keywords.list.length) {
-              const t = text.toLowerCase();
-              const matched = ext.keywords.list.some((k) => k && t.includes(k.toLowerCase()));
-              const mode = ext.keywords.mode ?? "activate";
-              if ((mode === "activate" && !matched) || (mode === "ignore" && matched)) {
+              const mode = (ext.keywords.mode ?? "allow").toLowerCase();
+              const matched = ext.keywords.list.some((k) => {
+                if (!k) return false;
+                if (mode === "regex") { try { return new RegExp(k, "i").test(text); } catch { return false; } }
+                return text.toLowerCase().includes(k.toLowerCase());
+              });
+              if ((mode === "allow" && !matched) || (mode === "activate" && !matched) || (mode === "block" && matched) || (mode === "ignore" && matched)) {
+                await supabaseAdmin.from("logs").insert({
+                  user_id: conn.user_id, level: "info", source: `evolution:${instance}`,
+                  message: "blocked by keyword rule", metadata: { remoteJid, mode } as never,
+                } as never);
                 return Response.json({ ok: true, skippedByKeyword: true });
               }
             }
 
-            // Working hours gate
+            // Working hours gate (weekday + window + optional lunch + blockedDates)
             if (ext.hours?.enabled && ext.hours.start && ext.hours.end) {
               const tz = agent.timezone || "America/Sao_Paulo";
-              const fmt = new Intl.DateTimeFormat("en-GB", { timeZone: tz, hour: "2-digit", minute: "2-digit", weekday: "short", hour12: false });
+              const fmt = new Intl.DateTimeFormat("en-GB", { timeZone: tz, hour: "2-digit", minute: "2-digit", weekday: "short", year: "numeric", month: "2-digit", day: "2-digit", hour12: false });
               const parts = fmt.formatToParts(new Date());
-              const hh = parts.find((p) => p.type === "hour")?.value ?? "00";
-              const mm = parts.find((p) => p.type === "minute")?.value ?? "00";
-              const wd = (parts.find((p) => p.type === "weekday")?.value ?? "").toLowerCase();
-              const now = Number(hh) * 60 + Number(mm);
-              const [sh, sm] = ext.hours.start.split(":").map(Number);
-              const [eh, em] = ext.hours.end.split(":").map(Number);
-              const inHours = now >= sh * 60 + sm && now <= eh * 60 + em;
+              const get = (t: string) => parts.find((p) => p.type === t)?.value ?? "";
+              const nowMin = Number(get("hour")) * 60 + Number(get("minute"));
+              const wd = get("weekday").toLowerCase();
+              const iso = `${get("year")}-${get("month")}-${get("day")}`;
+              const toMin = (s: string) => { const [h, m] = s.split(":").map(Number); return h * 60 + (m || 0); };
+              const inHours = nowMin >= toMin(ext.hours.start) && nowMin <= toMin(ext.hours.end);
               const daysOk = !ext.hours.days?.length || ext.hours.days.map((d) => d.toLowerCase().slice(0, 3)).includes(wd);
-              if (!inHours || !daysOk) {
+              const inLunch = !!(ext.hours.lunch && ext.hours.lunchStart && ext.hours.lunchEnd &&
+                nowMin >= toMin(ext.hours.lunchStart) && nowMin <= toMin(ext.hours.lunchEnd));
+              const blocked = (ext.hours.blockedDates ?? []).includes(iso);
+              if (!inHours || !daysOk || inLunch || blocked) {
                 const away = ext.timing?.unknownMsg || "Estamos fora do horário de atendimento. Retornaremos em breve.";
-                await fetch(`${(conn.url_api ?? "").replace(/\/+$/, "")}/message/sendText/${conn.instance_name}`, {
-                  method: "POST",
-                  headers: { "Content-Type": "application/json", apikey: conn.api_key ?? "" },
-                  body: JSON.stringify({ number: recipient, text: away }),
-                });
+                await sendText(conn, recipient, away);
                 return Response.json({ ok: true, offHours: true });
               }
+            }
+
+            // Debounce (wait): join rapid-fire messages into a single reply
+            const waitSec = Math.max(0, Number(ext.timing?.wait ?? 0));
+            const singleMessage = !!ext.conversation?.singleMessage;
+            if (convo && (waitSec > 0 || singleMessage)) {
+              const pendingUntil = new Date(Date.now() + Math.max(waitSec, 3) * 1000).toISOString();
+              const pending = Array.isArray(cmeta.pending_texts) ? cmeta.pending_texts.slice(-10) : [];
+              pending.push(text);
+              await supabaseAdmin.from("conversations").update({
+                metadata: { ...cmeta, pending_until: pendingUntil, pending_texts: pending },
+              } as never).eq("id", convo.id);
+
+              await sleep(Math.min(Math.max(waitSec, 3), 20) * 1000);
+
+              const { data: fresh } = await supabaseAdmin.from("conversations")
+                .select("id,metadata").eq("id", convo.id).maybeSingle();
+              const fm = (fresh?.metadata ?? {}) as ConvMeta;
+              // If another message came in after us (pending_until moved forward), let that one respond
+              if (fm.pending_until && new Date(fm.pending_until).getTime() > new Date(pendingUntil).getTime() + 500) {
+                return Response.json({ ok: true, debounced: true });
+              }
+              // cancelOnNew: if newer inbound arrived while we waited, abort
+              if (ext.conversation?.cancelOnNew && (fm.pending_texts?.length ?? 0) > pending.length) {
+                return Response.json({ ok: true, cancelledByNewer: true });
+              }
+            }
+
+            // Compose full inbound text (single-message merge)
+            const { data: convFull } = convo
+              ? await supabaseAdmin.from("conversations").select("metadata").eq("id", convo.id).maybeSingle()
+              : { data: null };
+            const meta2 = (convFull?.metadata ?? {}) as ConvMeta;
+            const mergedInbound = singleMessage && meta2.pending_texts?.length
+              ? meta2.pending_texts.join("\n")
+              : text;
+
+            // Memory: last N messages of this conversation
+            const memN = Math.max(0, Math.min(100, Number((agent.memory as { messages?: number } | null)?.messages ?? 20)));
+            let history: Array<{ role: "user" | "assistant"; content: string }> = [];
+            if (convo && memN > 0) {
+              const { data: prev } = await supabaseAdmin
+                .from("messages")
+                .select("direction,content,created_at")
+                .eq("conversation_id", convo.id)
+                .order("created_at", { ascending: false })
+                .limit(memN);
+              history = ((prev ?? []) as Array<{ direction: string; content: string }>)
+                .reverse()
+                .filter((r) => r.content)
+                .map((r) => ({ role: r.direction === "outbound" ? "assistant" : "user", content: r.content }));
             }
 
             // Build endpoint + key
@@ -141,12 +261,14 @@ export const Route = createFileRoute("/api/public/evolution/$instance")({
                 max_tokens: agent.max_tokens ?? 2048,
                 messages: [
                   ...(agent.system_prompt ? [{ role: "system", content: agent.system_prompt }] : []),
-                  { role: "user", content: text },
+                  ...history,
+                  { role: "user", content: mergedInbound },
                 ],
               }),
             });
             const aiJson = await aiRes.json().catch(() => ({} as any));
-            const reply: string = aiJson?.choices?.[0]?.message?.content ?? "";
+            let reply: string = aiJson?.choices?.[0]?.message?.content ?? "";
+            if (!reply) reply = ext.timing?.unknownMsg ?? "";
             if (!reply) return Response.json({ ok: true, empty: true });
 
             // Enforce plan send quota (daily/monthly) before dispatch
@@ -157,30 +279,45 @@ export const Route = createFileRoute("/api/public/evolution/$instance")({
                 user_id: conn.user_id, level: "warn", source: `evolution:${instance}`,
                 message: `quota exceeded: ${q.reason}`, metadata: q as never,
               } as never);
+              await maybeAlert(supabaseAdmin, conn, agent, ext, `Cota atingida: ${q.reason}`);
               return Response.json({ ok: true, quotaBlocked: true, reason: q.reason });
             }
 
+            // Artificial "typing" delay: delayChar (ms/char) capped at delayMax (s), max 20s
+            const perChar = Math.max(0, Number(ext.timing?.delayChar ?? 0));
+            const maxDelay = Math.max(0, Number(ext.timing?.delayMax ?? 0));
+            if (perChar > 0) {
+              const ms = Math.min(reply.length * perChar, (maxDelay || 20) * 1000, 20_000);
+              if (ms > 0) await sleep(ms);
+            }
+
             // Send back via Evolution (full jid works for @s.whatsapp.net and @lid)
-            const sendRes = await fetch(`${(conn.url_api ?? "").replace(/\/+$/, "")}/message/sendText/${conn.instance_name}`, {
-              method: "POST",
-              headers: { "Content-Type": "application/json", apikey: conn.api_key ?? "" },
-              body: JSON.stringify({ number: recipient, text: reply }),
-            });
+            const sendRes = await sendText(conn, recipient, reply);
             if (!sendRes.ok) {
               const errText = await sendRes.text().catch(() => "");
               await supabaseAdmin.from("logs").insert({
                 user_id: conn.user_id, level: "error", source: `evolution:${instance}`,
                 message: `sendText failed ${sendRes.status}`, metadata: { recipient, body: errText.slice(0, 500) },
               } as never);
+              await maybeAlert(supabaseAdmin, conn, agent, ext, `Falha ao enviar (${sendRes.status})`);
             }
 
             await supabaseAdmin.from("messages").insert({
               user_id: conn.user_id,
+              conversation_id: convo?.id ?? null,
               direction: "outbound",
               type: "text",
               content: reply,
               metadata: { remoteJid, agent_id: agent.id },
             } as never);
+
+            // Clear debounce buffer and (optionally) unread badge
+            if (convo) {
+              const clearMeta: ConvMeta = { ...meta2, pending_texts: [], pending_until: undefined };
+              const patch: Record<string, unknown> = { metadata: clearMeta, last_message_at: new Date().toISOString() };
+              if (!ext.conversation?.keepUnread) patch.unread_count = 0;
+              await supabaseAdmin.from("conversations").update(patch as never).eq("id", convo.id);
+            }
           } catch (e) {
             await supabaseAdmin.from("logs").insert({
               user_id: conn.user_id, level: "error", source: `evolution:${instance}`,
@@ -196,3 +333,51 @@ export const Route = createFileRoute("/api/public/evolution/$instance")({
     },
   },
 });
+
+function sleep(ms: number) { return new Promise((r) => setTimeout(r, ms)); }
+
+async function sendText(conn: { url_api: string | null; api_key: string | null; instance_name: string | null }, number: string, text: string) {
+  return fetch(`${(conn.url_api ?? "").replace(/\/+$/, "")}/message/sendText/${conn.instance_name}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", apikey: conn.api_key ?? "" },
+    body: JSON.stringify({ number, text }),
+  });
+}
+
+async function getOrCreateConversation(
+  db: { from: (t: string) => any },
+  conn: { id: string; user_id: string },
+  agentId: string,
+  remoteJid: string,
+) {
+  const { data: existing } = await db.from("conversations")
+    .select("id,unread_count,metadata,follow_up_step,next_follow_up_at,follow_up_paused")
+    .eq("user_id", conn.user_id).eq("connection_id", conn.id)
+    .eq("metadata->>remoteJid", remoteJid).maybeSingle();
+  if (existing) return existing;
+  const { data: created } = await db.from("conversations").insert({
+    user_id: conn.user_id, connection_id: conn.id, agent_id: agentId, status: "open",
+    unread_count: 0, last_message_at: new Date().toISOString(),
+    metadata: { remoteJid } as never,
+  }).select("id,unread_count,metadata,follow_up_step,next_follow_up_at,follow_up_paused").maybeSingle();
+  return created;
+}
+
+async function maybeAlert(
+  db: { from: (t: string) => any },
+  conn: { user_id: string; url_api: string | null; api_key: string | null; instance_name: string | null },
+  agent: { id: string } | null,
+  ext: Ext,
+  message: string,
+) {
+  if (!ext.alerts?.whatsapp || !agent) return;
+  const { data: prof } = await db.from("profiles").select("alert_phone").eq("id", conn.user_id).maybeSingle();
+  const to = prof?.alert_phone;
+  if (!to) return;
+  const number = to.includes("@") ? to : `${to.replace(/\D/g, "")}@s.whatsapp.net`;
+  await sendText(conn, number, `⚠️ ${message}`);
+  await db.from("logs").insert({
+    user_id: conn.user_id, level: "warn", source: "alerts",
+    message, metadata: { agent_id: agent.id } as never,
+  });
+}
