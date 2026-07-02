@@ -352,6 +352,7 @@ function Builder() {
             fitView
           >
             <Background />
+            <MiniMap pannable zoomable position="bottom-right" className="!bg-background/80 border rounded-md" />
           </ReactFlow>
         </div>
 
