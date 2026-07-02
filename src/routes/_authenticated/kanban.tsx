@@ -1325,10 +1325,11 @@ function KanbanPage() {
                 <div className="col-span-2"><Label className="text-primary">Data de Entrega (Sincronizada da Venda)</Label><Input type="date" value={editing.expected_delivery_date || ""} onChange={(e) => setEditing({ ...editing, expected_delivery_date: e.target.value })} /></div>
               </div>
               <div>
-                <Label>Produtor</Label>
+                <Label>Produtor{!canTransferProducer && <span className="ml-2 text-xs text-muted-foreground">(somente admin pode alterar)</span>}</Label>
                 <Select
                   value={editing.producer_id || "_none"}
                   onValueChange={(v) => setEditing({ ...editing, producer_id: v === "_none" ? null : v })}
+                  disabled={!canTransferProducer}
                 >
                   <SelectTrigger><SelectValue placeholder="Selecionar produtor" /></SelectTrigger>
                   <SelectContent>
