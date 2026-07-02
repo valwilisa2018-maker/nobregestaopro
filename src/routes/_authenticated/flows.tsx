@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useCallback, useMemo, useState, useEffect } from "react";
 import {
-  Workflow, Sparkles, Save, Trash2, Loader2, MessageSquare, GitBranch,
+  Workflow, Sparkles, Bot, Save, Trash2, Loader2, MessageSquare, GitBranch,
   Image as ImageIcon, Video, Music, HelpCircle, Play, Square, Webhook, Clock, User,
   Keyboard, Mic, Tag, UserPlus, Calendar, Send, ArrowLeft,
 } from "lucide-react";
