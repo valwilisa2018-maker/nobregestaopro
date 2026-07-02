@@ -264,7 +264,7 @@ function Page() {
   );
 }
 
-function isAuthzLog(l: { source: string | null; message: string | null; metadata: Record<string, unknown> | null }) {
+function isAuthzLog(l: { source: string | null; message: string | null; metadata: unknown }) {
   const src = (l.source ?? "").toLowerCase();
   if (src.startsWith("supabase:") || src.startsWith("auth:") || src.startsWith("rls:")) return true;
   const hay = `${l.message ?? ""} ${JSON.stringify(l.metadata ?? {})}`.toLowerCase();
