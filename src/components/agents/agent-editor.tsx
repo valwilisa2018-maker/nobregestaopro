@@ -190,34 +190,10 @@ export function AgentEditor({ agent, onSaved, onCancel }: Props) {
 
       <Accordion type="single" collapsible defaultValue="s1" className="space-y-3">
         <Section id="s1" number={1} icon={<Sliders className="h-4 w-4" />} title="Configuração do Modelo">
-          <div className="grid gap-4 md:grid-cols-[96px_1fr] mb-4">
-            <div className="space-y-1.5">
-              <Label className="text-xs uppercase tracking-wider text-muted-foreground">Logo</Label>
-              <div className="grid h-24 w-24 place-items-center rounded-xl border border-border/60 bg-background/40 overflow-hidden">
-                {form.avatar_url ? (
-                  <img src={form.avatar_url} alt="" className="h-full w-full object-cover" />
-                ) : (
-                  <Bot className="h-8 w-8 text-muted-foreground" />
-                )}
-              </div>
-              <Input placeholder="URL do logo" value={form.avatar_url ?? ""} onChange={(e) => set("avatar_url", e.target.value || null)} className="text-[11px]" />
-            </div>
-            <div className="space-y-3">
-              <div className="grid gap-3 md:grid-cols-2">
-                <FieldRow label="Nome do Agente">
-                  <Input value={form.name} onChange={(e) => set("name", e.target.value)} />
-                </FieldRow>
-                <FieldRow label="Função / Papel">
-                  <Input placeholder="Ex: Vendedor consultivo" value={form.role ?? ""} onChange={(e) => set("role", e.target.value)} />
-                </FieldRow>
-              </div>
-              <FieldRow label="Descrição">
-                <Input placeholder="Curta descrição do agente" value={form.description ?? ""} onChange={(e) => set("description", e.target.value)} />
-              </FieldRow>
-              <FieldRow label="Mensagem Inicial">
-                <Input value={form.initial_message ?? ""} onChange={(e) => set("initial_message", e.target.value)} />
-              </FieldRow>
-            </div>
+          <div className="mb-4">
+            <FieldRow label="Nome do Agente">
+              <Input value={form.name} onChange={(e) => set("name", e.target.value)} />
+            </FieldRow>
           </div>
 
           <div className="mb-4 space-y-1.5">
