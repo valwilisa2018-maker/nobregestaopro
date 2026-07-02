@@ -380,13 +380,15 @@ function Builder() {
                   <Label className="text-xs">Rótulo</Label>
                   <Input value={selected.data.label} onChange={(e) => updateSelected({ label: e.target.value })} />
                 </div>
-                {["MESSAGE","QUESTION","YESNO","IMAGE","VIDEO","AUDIO","HANDOFF"].includes(selected.data.kind) && (
+                {["MESSAGE","QUESTION","YESNO","IMAGE","VIDEO","AUDIO","HANDOFF","TAGS","SCHEDULE","CAPTURE_NAME"].includes(selected.data.kind) && (
                   <div className="space-y-1">
-                    <Label className="text-xs">Texto</Label>
+                    <Label className="text-xs">
+                      {selected.data.kind === "TAGS" ? "Etiquetas (separadas por vírgula)" : "Texto"}
+                    </Label>
                     <Textarea rows={3} value={selected.data.text ?? ""} onChange={(e) => updateSelected({ text: e.target.value })} />
                   </div>
                 )}
-                {["IMAGE","VIDEO","AUDIO","WEBHOOK"].includes(selected.data.kind) && (
+                {["IMAGE","VIDEO","AUDIO","WEBHOOK","SCHEDULE"].includes(selected.data.kind) && (
                   <div className="space-y-1">
                     <Label className="text-xs">URL</Label>
                     <Input value={selected.data.url ?? ""} onChange={(e) => updateSelected({ url: e.target.value })} placeholder="https://..." />
@@ -398,13 +400,13 @@ function Builder() {
                     <Input value={selected.data.condition ?? ""} onChange={(e) => updateSelected({ condition: e.target.value })} placeholder="ex.: {{cidade}} == 'SP'" />
                   </div>
                 )}
-                {selected.data.kind === "QUESTION" && (
+                {(selected.data.kind === "QUESTION" || selected.data.kind === "YESNO") && (
                   <div className="space-y-1">
                     <Label className="text-xs">Salvar em variável</Label>
                     <Input value={selected.data.variable ?? ""} onChange={(e) => updateSelected({ variable: e.target.value })} placeholder="nome" />
                   </div>
                 )}
-                {selected.data.kind === "WAIT" && (
+                {["WAIT","TYPING","RECORDING"].includes(selected.data.kind) && (
                   <div className="space-y-1">
                     <Label className="text-xs">Segundos</Label>
                     <Input type="number" value={selected.data.seconds ?? 0} onChange={(e) => updateSelected({ seconds: Number(e.target.value) })} />

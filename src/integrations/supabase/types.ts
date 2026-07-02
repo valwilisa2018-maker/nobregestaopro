@@ -403,6 +403,7 @@ export type Database = {
           client_id: string | null
           connection_id: string | null
           created_at: string
+          flow_state: Json | null
           follow_up_paused: boolean
           follow_up_step: number
           id: string
@@ -419,6 +420,7 @@ export type Database = {
           client_id?: string | null
           connection_id?: string | null
           created_at?: string
+          flow_state?: Json | null
           follow_up_paused?: boolean
           follow_up_step?: number
           id?: string
@@ -435,6 +437,7 @@ export type Database = {
           client_id?: string | null
           connection_id?: string | null
           created_at?: string
+          flow_state?: Json | null
           follow_up_paused?: boolean
           follow_up_step?: number
           id?: string
@@ -532,6 +535,7 @@ export type Database = {
       }
       flows: {
         Row: {
+          connection_id: string | null
           created_at: string
           definition: Json
           description: string | null
@@ -539,10 +543,12 @@ export type Database = {
           is_active: boolean
           name: string
           trigger: string | null
+          trigger_keywords: string[] | null
           updated_at: string
           user_id: string
         }
         Insert: {
+          connection_id?: string | null
           created_at?: string
           definition?: Json
           description?: string | null
@@ -550,10 +556,12 @@ export type Database = {
           is_active?: boolean
           name: string
           trigger?: string | null
+          trigger_keywords?: string[] | null
           updated_at?: string
           user_id: string
         }
         Update: {
+          connection_id?: string | null
           created_at?: string
           definition?: Json
           description?: string | null
@@ -561,10 +569,19 @@ export type Database = {
           is_active?: boolean
           name?: string
           trigger?: string | null
+          trigger_keywords?: string[] | null
           updated_at?: string
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "flows_connection_id_fkey"
+            columns: ["connection_id"]
+            isOneToOne: false
+            referencedRelation: "connections"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       integrations: {
         Row: {
