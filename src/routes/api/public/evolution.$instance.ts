@@ -189,17 +189,21 @@ export const Route = createFileRoute("/api/public/evolution/$instance")({
             {
               const { data: flows } = await supabaseAdmin
                 .from("flows")
-                .select("id,definition,is_active,trigger_keywords,connection_id")
+                .select("id,definition,is_active,trigger,trigger_keywords,connection_id")
                 .eq("user_id", conn.user_id)
                 .eq("is_active", true);
-              const candidates = (flows ?? []) as Array<{ id: string; definition: any; trigger_keywords: string[] | null; connection_id: string | null }>;
+              const candidates = (flows ?? []) as Array<{ id: string; definition: any; trigger: string | null; trigger_keywords: string[] | null; connection_id: string | null }>;
               // Prefer flow already in progress; else match by connection + keyword; else first for this connection.
               const st = ((convo?.flow_state ?? {}) as { flow_id?: string; finished?: boolean });
               let active = st.flow_id && !st.finished ? candidates.find((f) => f.id === st.flow_id) : null;
               if (!active) {
                 const forConn = candidates.filter((f) => !f.connection_id || f.connection_id === conn.id);
-                active = forConn.find((f) => (f.trigger_keywords ?? []).some((k) => k && text!.toLowerCase().includes(k.toLowerCase())))
-                  ?? forConn.find((f) => (f.trigger_keywords ?? []).length === 0)
+                const kwList = (f: typeof forConn[number]) => [
+                  ...(f.trigger_keywords ?? []),
+                  ...(f.trigger ?? "").split(",").map((s) => s.trim()).filter(Boolean),
+                ];
+                active = forConn.find((f) => kwList(f).some((k) => k && text!.toLowerCase().includes(k.toLowerCase())))
+                  ?? forConn.find((f) => kwList(f).length === 0)
                   ?? null;
               }
               if (active && convo) {
