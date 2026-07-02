@@ -115,6 +115,7 @@ function Dashboard() {
       .on("postgres_changes", { event: "*", schema: "public", table: "sales" }, () => schedule("dash-sales"))
       .on("postgres_changes", { event: "*", schema: "public", table: "service_orders" }, () => schedule("dash-orders"))
       .on("postgres_changes", { event: "*", schema: "public", table: "invoices" }, () => schedule("dash-invoices"))
+      .on("postgres_changes", { event: "*", schema: "public", table: "sale_receipts" }, () => schedule("dash-receipts"))
       .subscribe();
     return () => { if (timer) clearTimeout(timer); supabase.removeChannel(ch); };
   }, [qc]);
