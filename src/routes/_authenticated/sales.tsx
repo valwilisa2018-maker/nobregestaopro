@@ -915,6 +915,18 @@ function SalesPage() {
 
   return (
     <div className="space-y-6">
+      <div
+        role="alert"
+        className="rounded-md border border-amber-400/70 bg-amber-50 dark:bg-amber-950/30 px-4 py-3 text-sm text-amber-900 dark:text-amber-200 flex items-start gap-2"
+      >
+        <span aria-hidden className="text-lg leading-none">⚠️</span>
+        <div>
+          <strong className="font-semibold">Atenção:</strong> confirme se a venda é{" "}
+          <strong>Parcial</strong> ou <strong>Total</strong> para o sistema marcar o pagamento
+          corretamente. Preencha <strong>todas as informações com cautela</strong> para evitar erros
+          no faturamento, comissão e Kanban.
+        </div>
+      </div>
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Vendas</h1>
