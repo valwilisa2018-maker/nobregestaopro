@@ -746,15 +746,6 @@ function Dashboard() {
         </Card>
       </div>
 
-      {/* KPIs principais */}
-      <div className="grid gap-4 grid-cols-2 lg:grid-cols-5">
-        <StatCard tone="info" label="Semana" value={formatCurrency(weekTotal)} icon={Calendar} hint={`${weekCount} vendas`} />
-        <StatCard tone="violet" label="Mês" value={formatCurrency(monthTotal)} icon={TrendingUp} hint={`${monthCount} vendas`} />
-        <StatCard tone="amber" label="Ticket médio" value={formatCurrency(ticketMedio)} icon={ShoppingCart} hint="no mês" />
-        <StatCard tone="warning" label="Ano" value={formatCurrency(yearTotal)} icon={Trophy} />
-        <StatCard tone="warning" label="Valores Pendentes" value={formatCurrency(pendingTotal)} icon={AlertCircle} hint={`${pendingCount} ${pendingCount === 1 ? "cliente" : "clientes"}`} />
-      </div>
-
       {/* Recebimentos no período selecionado */}
       <div className="grid gap-4 grid-cols-1 md:grid-cols-3">
         <StatCard
@@ -779,6 +770,15 @@ function Dashboard() {
           accent
           hint="Sinal + Recebimentos pendentes"
         />
+      </div>
+
+      {/* KPIs principais */}
+      <div className="grid gap-4 grid-cols-2 lg:grid-cols-5">
+        <StatCard tone="info" label="Semana" value={formatCurrency(weekTotal)} icon={Calendar} hint={`${weekCount} vendas`} />
+        <StatCard tone="violet" label="Mês" value={formatCurrency(monthTotal)} icon={TrendingUp} hint={`${monthCount} vendas`} />
+        <StatCard tone="amber" label="Ticket médio" value={formatCurrency(ticketMedio)} icon={ShoppingCart} hint="no mês" />
+        <StatCard tone="warning" label="Ano" value={formatCurrency(yearTotal)} icon={Trophy} />
+        <StatCard tone="warning" label="Valores Pendentes" value={formatCurrency(pendingTotal)} icon={AlertCircle} hint={`${pendingCount} ${pendingCount === 1 ? "cliente" : "clientes"}`} />
       </div>
 
       {/* Produção */}
