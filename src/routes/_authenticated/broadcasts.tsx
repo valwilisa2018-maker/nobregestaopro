@@ -368,6 +368,29 @@ function BroadcastsPage() {
               </label>
             </RadioGroup>
 
+            {mode === "sequential" && (
+              <div className="border rounded-lg p-4 space-y-3 bg-muted/20">
+                <div className="flex items-center justify-between">
+                  <div className="font-semibold text-sm flex items-center gap-2"><Clock className="h-4 w-4" /> Etapas da sequência</div>
+                  <Button size="sm" variant="outline" onClick={() => setSteps((s) => [...s, { delay_hours: 24, message: "" }])}><Plus className="h-3.5 w-3.5" /> Nova etapa</Button>
+                </div>
+                {steps.map((s, i) => (
+                  <div key={i} className="border rounded-md p-3 space-y-2 bg-background">
+                    <div className="flex items-center justify-between">
+                      <Badge variant="secondary">Etapa {i + 1}</Badge>
+                      <div className="flex items-center gap-2">
+                        <Label className="text-xs">Aguardar (horas)</Label>
+                        <Input type="number" min={0} value={s.delay_hours} onChange={(e) => setSteps((xs) => xs.map((x, j) => j === i ? { ...x, delay_hours: Number(e.target.value) || 0 } : x))} className="w-24 h-8" disabled={i === 0} />
+                        {steps.length > 1 && <Button size="sm" variant="ghost" onClick={() => setSteps((xs) => xs.filter((_, j) => j !== i))}><Trash2 className="h-3.5 w-3.5" /></Button>}
+                      </div>
+                    </div>
+                    <Textarea rows={3} value={s.message} onChange={(e) => setSteps((xs) => xs.map((x, j) => j === i ? { ...x, message: e.target.value } : x))} placeholder="Mensagem da etapa..." />
+                  </div>
+                ))}
+                <p className="text-xs text-muted-foreground">A etapa 1 dispara imediatamente. As próximas aguardam o tempo indicado desde o envio anterior.</p>
+              </div>
+            )}
+
             <div className="space-y-3">
               <Label>Velocidade (mensagens por minuto)</Label>
               <div className="flex flex-wrap gap-2">
@@ -488,7 +511,10 @@ function BroadcastsPage() {
                     return (
                       <tr key={b.id as string} className="border-t">
                         <td className="px-4 py-2 font-medium">{b.name as string}</td>
-                        <td className="px-4 py-2"><Badge variant="secondary" className="capitalize">{b.status as string}</Badge></td>
+                        <td className="px-4 py-2 space-x-1">
+                          <Badge variant="secondary" className="capitalize">{b.status as string}</Badge>
+                          {b.mode === "sequential" && <Badge variant="outline" className="text-[10px]">seq</Badge>}
+                        </td>
                         <td className="px-4 py-2 tabular-nums min-w-[180px]">
                           <div className="flex items-center gap-2">
                             <Progress value={pct} className="w-24" />
@@ -499,8 +525,9 @@ function BroadcastsPage() {
                         <td className="px-4 py-2 text-muted-foreground">{new Date(b.created_at as string).toLocaleString("pt-BR")}</td>
                         <td className="px-4 py-2">
                           <div className="flex gap-1">
+                            <Button size="sm" variant="ghost" onClick={() => openTimeline(b.id as string, b.name as string)}><Eye className="h-3.5 w-3.5" /></Button>
                             {b.status === "running" && <Button size="sm" variant="ghost" onClick={async () => { await pauseFn({ data: { id: b.id as string } }); qc.invalidateQueries({ queryKey: ["broadcasts"] }); }}><Pause className="h-3.5 w-3.5" /></Button>}
-                            {b.status === "paused" && <Button size="sm" variant="ghost" onClick={async () => { await resumeFn({ data: { id: b.id as string } }); void loop(b.id as string); qc.invalidateQueries({ queryKey: ["broadcasts"] }); }}><Play className="h-3.5 w-3.5" /></Button>}
+                            {b.status === "paused" && <Button size="sm" variant="ghost" onClick={async () => { await resumeFn({ data: { id: b.id as string } }); void (b.mode === "sequential" ? loopSeq(b.id as string) : loop(b.id as string)); qc.invalidateQueries({ queryKey: ["broadcasts"] }); }}><Play className="h-3.5 w-3.5" /></Button>}
                             {(b.status === "running" || b.status === "paused" || b.status === "scheduled") && <Button size="sm" variant="ghost" onClick={async () => { await cancelFn({ data: { id: b.id as string } }); qc.invalidateQueries({ queryKey: ["broadcasts"] }); }}><StopCircle className="h-3.5 w-3.5" /></Button>}
                             <Button size="sm" variant="ghost" onClick={async () => { const r = await dupFn({ data: { id: b.id as string } }); toast.success("Duplicada"); qc.invalidateQueries({ queryKey: ["broadcasts"] }); void r; }}><Copy className="h-3.5 w-3.5" /></Button>
                           </div>
@@ -514,6 +541,41 @@ function BroadcastsPage() {
           )}
         </CardContent>
       </Card>
+
+      <Dialog open={timelineOpen} onOpenChange={setTimelineOpen}>
+        <DialogContent className="max-w-3xl max-h-[85vh] overflow-y-auto">
+          <DialogHeader><DialogTitle>Timeline — {timelineTitle}</DialogTitle></DialogHeader>
+          {timelineRows.length === 0 ? (
+            <div className="text-sm text-muted-foreground p-4 text-center">Sem eventos ainda.</div>
+          ) : (
+            <div className="space-y-3">
+              {timelineRows.map((r) => (
+                <div key={r.id} className="border rounded-lg p-3">
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="text-sm font-medium tabular-nums">{r.phone}</div>
+                    <div className="flex items-center gap-2">
+                      <Badge variant="outline" className="text-[10px]">Etapa {(r.current_step ?? 0) + 1}</Badge>
+                      <Badge variant={r.status === "sent" ? "default" : r.status === "error" ? "destructive" : "secondary"} className="text-[10px] capitalize">{r.status}</Badge>
+                    </div>
+                  </div>
+                  {r.next_action_at && r.status === "pending" && (
+                    <div className="text-xs text-muted-foreground mb-1">Próximo envio: {new Date(r.next_action_at).toLocaleString("pt-BR")}</div>
+                  )}
+                  <div className="space-y-1">
+                    {(Array.isArray(r.timeline) ? r.timeline : []).map((ev: any, i: number) => (
+                      <div key={i} className="text-xs flex items-start gap-2 border-l-2 pl-2" style={{ borderColor: ev.status === "error" ? "hsl(var(--destructive))" : "hsl(var(--primary))" }}>
+                        <span className="text-muted-foreground shrink-0">{new Date(ev.at).toLocaleString("pt-BR")}</span>
+                        <span className="capitalize font-medium">Etapa {(ev.step ?? 0) + 1} · {ev.status}</span>
+                        {ev.error && <span className="text-destructive">— {ev.error}</span>}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
