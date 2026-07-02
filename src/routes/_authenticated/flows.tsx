@@ -271,56 +271,77 @@ function Builder() {
     return () => window.removeEventListener("keydown", onKey);
   }, [selected]);
 
-  const kinds = useMemo(() => Object.keys(KIND_META) as NodeKind[], []);
+  const kinds = useMemo(() => PALETTE_ORDER, []);
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex flex-col gap-3">
       {/* Top bar */}
       <div className="flex flex-wrap items-center gap-2">
-        <Input className="max-w-[240px]" value={name} onChange={(e) => setName(e.target.value)} placeholder="Nome do fluxo" />
-        <Input className="max-w-[240px]" value={trigger} onChange={(e) => setTrigger(e.target.value)} placeholder="Gatilho (opcional)" />
-        <Button onClick={() => saveM.mutate()} disabled={saveM.isPending}>
-          {saveM.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />} Salvar
+        <Button variant="ghost" size="icon" onClick={() => { setFlowId(null); setNodes([{ id: "start", type: "block", position: { x: 80, y: 160 }, data: { kind: "START", label: "Início" } }]); setEdges([]); setName("Novo fluxo"); setTrigger(""); setSelected(null); }} aria-label="Voltar">
+          <ArrowLeft className="h-4 w-4" />
         </Button>
-        <Dialog open={aiOpen} onOpenChange={setAiOpen}>
-          <DialogTrigger asChild>
-            <Button variant="secondary"><Sparkles className="h-4 w-4" /> Gerar com IA</Button>
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader><DialogTitle>Gerar fluxo com IA</DialogTitle></DialogHeader>
-            <Textarea rows={5} value={aiPrompt} onChange={(e) => setAiPrompt(e.target.value)} placeholder="Ex.: Qualifica lead de imóvel, pede nome/cidade e envia para o corretor" />
-            <Button onClick={() => genM.mutate()} disabled={!aiPrompt.trim() || genM.isPending}>
-              {genM.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />} Gerar
-            </Button>
-          </DialogContent>
-        </Dialog>
-        <div className="ml-auto flex flex-wrap gap-1">
-          {TEMPLATES.map((t) => (
-            <Button key={t.name} size="sm" variant="outline" onClick={() => loadTemplate(t)}>{t.name}</Button>
-          ))}
+        <Input className="max-w-[280px]" value={name} onChange={(e) => setName(e.target.value)} placeholder="Nome do fluxo" />
+        <div className="ml-auto flex flex-wrap gap-2">
+          <Dialog open={aiOpen} onOpenChange={setAiOpen}>
+            <DialogTrigger asChild>
+              <Button variant="outline" size="sm"><Sparkles className="h-4 w-4" /> Gerar IA</Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader><DialogTitle>Gerar fluxo com IA</DialogTitle></DialogHeader>
+              <Textarea rows={5} value={aiPrompt} onChange={(e) => setAiPrompt(e.target.value)} placeholder="Ex.: Qualifica lead de imóvel, pede nome/cidade e envia para o corretor" />
+              <Button onClick={() => genM.mutate()} disabled={!aiPrompt.trim() || genM.isPending}>
+                {genM.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />} Gerar
+              </Button>
+            </DialogContent>
+          </Dialog>
+          <Button variant="outline" size="sm"><Send className="h-4 w-4" /> Disparo</Button>
+          <Button variant="outline" size="sm" disabled={!flowId} onClick={() => flowId && delM.mutate(flowId)}>
+            <Trash2 className="h-4 w-4" /> Excluir
+          </Button>
+          <Button size="sm" onClick={() => saveM.mutate()} disabled={saveM.isPending}>
+            {saveM.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />} Salvar Fluxo
+          </Button>
         </div>
       </div>
 
-      <div className="grid gap-4 lg:grid-cols-[200px_1fr_280px]">
+      <div className="grid gap-3 lg:grid-cols-[220px_1fr_280px]">
         {/* Palette */}
-        <Card className="lg:sticky lg:top-4 h-fit">
-          <CardHeader className="pb-2"><CardTitle className="text-sm">Blocos</CardTitle></CardHeader>
-          <CardContent className="grid grid-cols-2 gap-1.5 lg:grid-cols-1">
-            {kinds.map((k) => {
-              const m = KIND_META[k];
-              return (
-                <Button key={k} size="sm" variant="ghost" className="justify-start gap-2" onClick={() => addBlock(k)}>
-                  <span className={`h-5 w-5 rounded flex items-center justify-center text-white ${m.color}`}>{m.icon}</span>
-                  <span className="text-xs">{m.label}</span>
-                  <Plus className="h-3 w-3 ml-auto opacity-50" />
-                </Button>
-              );
-            })}
+        <Card className="h-[calc(100vh-220px)] overflow-hidden flex flex-col">
+          <CardHeader className="pb-2 shrink-0"><CardTitle className="text-[10px] uppercase tracking-widest text-muted-foreground">Blocos</CardTitle></CardHeader>
+          <CardContent className="flex-1 overflow-y-auto space-y-1 pr-2">
+            <TooltipProvider delayDuration={200}>
+              {kinds.map((k) => {
+                const m = KIND_META[k];
+                return (
+                  <Tooltip key={k}>
+                    <TooltipTrigger asChild>
+                      <button
+                        onClick={() => addBlock(k)}
+                        className="w-full flex items-center gap-3 px-2 py-2 rounded-md hover:bg-accent text-left transition"
+                      >
+                        <span className={`h-6 w-6 rounded flex items-center justify-center text-white shrink-0 ${m.color}`}>{m.icon}</span>
+                        <span className="flex flex-col min-w-0">
+                          <span className="text-xs font-medium truncate">{m.label}</span>
+                          <span className="text-[10px] text-muted-foreground truncate">{m.sub}</span>
+                        </span>
+                      </button>
+                    </TooltipTrigger>
+                    <TooltipContent side="right" className="max-w-[220px] text-xs">{m.hint}</TooltipContent>
+                  </Tooltip>
+                );
+              })}
+            </TooltipProvider>
+            <div className="pt-3 mt-2 border-t space-y-1">
+              <div className="text-[10px] uppercase tracking-widest text-muted-foreground px-2 pb-1">Modelos</div>
+              {TEMPLATES.map((t) => (
+                <Button key={t.name} size="sm" variant="ghost" className="w-full justify-start text-xs" onClick={() => loadTemplate(t)}>{t.name}</Button>
+              ))}
+            </div>
           </CardContent>
         </Card>
 
         {/* Canvas */}
-        <div className="h-[600px] rounded-lg border bg-background overflow-hidden">
+        <div className="h-[calc(100vh-220px)] rounded-lg border bg-background overflow-hidden">
           <ReactFlow
             nodes={nodes} edges={edges}
             onNodesChange={onNodesChange} onEdgesChange={onEdgesChange}
@@ -337,7 +358,7 @@ function Builder() {
         </div>
 
         {/* Inspector */}
-        <Card className="h-fit">
+        <Card className="h-[calc(100vh-220px)] overflow-y-auto">
           <CardHeader className="pb-2"><CardTitle className="text-sm">Propriedades</CardTitle></CardHeader>
           <CardContent className="space-y-3">
             {!selected ? (
