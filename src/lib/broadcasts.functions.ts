@@ -240,6 +240,160 @@ export const runBroadcastBatch = createServerFn({ method: "POST" })
 
 const IdInput = z.object({ id: z.string().uuid() });
 
+// ============ Sequential broadcasts ============
+const StepInput = z.object({
+  step_order: z.number().int().min(0),
+  delay_hours: z.number().int().min(0).max(24 * 90),
+  message: z.string().min(1),
+  media_url: z.string().nullable().optional(),
+  media_type: z.string().nullable().optional(),
+});
+
+export const saveBroadcastSteps = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((raw: unknown) => z.object({
+    broadcast_id: z.string().uuid(),
+    steps: z.array(StepInput).min(1),
+  }).parse(raw))
+  .handler(async ({ data, context }) => {
+    const { error: derr } = await context.supabase.from("broadcast_steps")
+      .delete().eq("broadcast_id", data.broadcast_id).eq("user_id", context.userId);
+    if (derr) throw new Error(derr.message);
+    const rows = data.steps.map((s, i) => ({
+      broadcast_id: data.broadcast_id, user_id: context.userId,
+      step_order: i, delay_hours: s.delay_hours, message: s.message,
+      media_url: s.media_url ?? null, media_type: s.media_type ?? null,
+    }));
+    const { error } = await context.supabase.from("broadcast_steps").insert(rows as never);
+    if (error) throw new Error(error.message);
+    // recipients: set current_step=0, next_action_at=now for first step
+    const now = new Date().toISOString();
+    await context.supabase.from("broadcast_recipients").update({
+      current_step: 0, next_action_at: now,
+    } as never).eq("broadcast_id", data.broadcast_id).eq("status", "pending");
+    return { ok: true, count: rows.length };
+  });
+
+export const listBroadcastSteps = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((raw: unknown) => IdInput.parse(raw))
+  .handler(async ({ data, context }) => {
+    const { data: rows, error } = await context.supabase.from("broadcast_steps")
+      .select("id,step_order,delay_hours,message,media_url,media_type")
+      .eq("broadcast_id", data.id).eq("user_id", context.userId).order("step_order");
+    if (error) throw new Error(error.message);
+    return { steps: rows ?? [] };
+  });
+
+export const runSequentialBatch = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((raw: unknown) => z.object({ id: z.string().uuid(), batch: z.number().int().min(1).max(20).default(5) }).parse(raw))
+  .handler(async ({ data, context }) => {
+    const { data: b, error: berr } = await context.supabase.from("broadcasts")
+      .select("*").eq("id", data.id).eq("user_id", context.userId).maybeSingle();
+    if (berr || !b) throw new Error(berr?.message ?? "Não encontrado");
+    if (b.status === "paused" || b.status === "canceled" || b.status === "done") {
+      return { done: b.status === "done", paused: b.status === "paused", sent: b.sent_count, error: b.error_count, total: b.total };
+    }
+    const now = new Date();
+    if (!inWindow(now, b.window_start as string | null, b.window_end as string | null, (b.weekdays as number[]) ?? [])) {
+      return { done: false, waiting: true, sent: b.sent_count, error: b.error_count, total: b.total };
+    }
+
+    const { data: steps } = await context.supabase.from("broadcast_steps")
+      .select("step_order,delay_hours,message,media_url,media_type")
+      .eq("broadcast_id", b.id).order("step_order");
+    const stepList = steps ?? [];
+    if (stepList.length === 0) throw new Error("Sequência sem etapas");
+
+    // pending recipients whose next_action_at <= now
+    const { data: due } = await context.supabase.from("broadcast_recipients")
+      .select("id,phone,contact_id,current_step,timeline")
+      .eq("broadcast_id", b.id).eq("status", "pending")
+      .lte("next_action_at", now.toISOString())
+      .limit(data.batch);
+    const list = due ?? [];
+    if (list.length === 0) {
+      // check if any recipients still pending (with future next_action_at)
+      const { count } = await context.supabase.from("broadcast_recipients")
+        .select("id", { count: "exact", head: true })
+        .eq("broadcast_id", b.id).eq("status", "pending");
+      if (!count) {
+        await context.supabase.from("broadcasts").update({ status: "done", finished_at: now.toISOString() } as never).eq("id", b.id);
+        return { done: true, sent: b.sent_count, error: b.error_count, total: b.total };
+      }
+      return { done: false, waiting: true, sent: b.sent_count, error: b.error_count, total: b.total };
+    }
+
+    const { data: conn } = await context.supabase.from("connections")
+      .select("url_api,api_key,instance_name").eq("id", b.connection_id ?? "").maybeSingle();
+
+    let sent = b.sent_count as number;
+    let errored = b.error_count as number;
+
+    for (const r of list) {
+      const idx = r.current_step as number;
+      const step = stepList[idx];
+      if (!step) continue;
+      let contactName = "";
+      if (r.contact_id) {
+        const { data: c } = await context.supabase.from("contacts").select("name").eq("id", r.contact_id).maybeSingle();
+        contactName = (c?.name as string | null) ?? "";
+      }
+      const text = (step.message as string)
+        .replaceAll("{nome}", contactName || "cliente")
+        .replaceAll("{telefone}", r.phone as string);
+      const tl = Array.isArray(r.timeline) ? (r.timeline as any[]) : [];
+      try {
+        if (!conn?.url_api || !conn?.instance_name) throw new Error("Instância inválida");
+        const number = `${(r.phone as string).replace(/\D/g, "")}@s.whatsapp.net`;
+        const url = `${conn.url_api.replace(/\/+$/, "")}/message/sendText/${conn.instance_name}`;
+        const res = await fetch(url, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", apikey: conn.api_key ?? "" },
+          body: JSON.stringify({ number, text }),
+        });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        tl.push({ step: idx, at: new Date().toISOString(), status: "sent", message: text });
+        const nextIdx = idx + 1;
+        const finished = nextIdx >= stepList.length;
+        const nextAt = finished ? null
+          : new Date(Date.now() + (stepList[nextIdx].delay_hours as number) * 3600_000).toISOString();
+        await context.supabase.from("broadcast_recipients").update({
+          current_step: finished ? idx : nextIdx,
+          status: finished ? "sent" : "pending",
+          sent_at: finished ? new Date().toISOString() : null,
+          next_action_at: nextAt,
+          last_step_at: new Date().toISOString(),
+          timeline: tl as never,
+        } as never).eq("id", r.id);
+        if (finished) sent++;
+      } catch (e) {
+        tl.push({ step: idx, at: new Date().toISOString(), status: "error", error: e instanceof Error ? e.message : String(e) });
+        await context.supabase.from("broadcast_recipients").update({
+          status: "error", error: e instanceof Error ? e.message : String(e),
+          timeline: tl as never, last_step_at: new Date().toISOString(),
+        } as never).eq("id", r.id);
+        errored++;
+      }
+    }
+    await context.supabase.from("broadcasts").update({
+      sent_count: sent, error_count: errored,
+    } as never).eq("id", b.id);
+    return { done: false, sent, error: errored, total: b.total };
+  });
+
+export const listRecipientsTimeline = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((raw: unknown) => IdInput.parse(raw))
+  .handler(async ({ data, context }) => {
+    const { data: rows, error } = await context.supabase.from("broadcast_recipients")
+      .select("id,phone,status,current_step,next_action_at,last_step_at,error,timeline,contact_id")
+      .eq("broadcast_id", data.id).order("last_step_at", { ascending: false, nullsFirst: false }).limit(200);
+    if (error) throw new Error(error.message);
+    return { rows: rows ?? [] };
+  });
+
 export const pauseBroadcast = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((raw: unknown) => IdInput.parse(raw))

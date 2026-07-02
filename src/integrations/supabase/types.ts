@@ -300,36 +300,48 @@ export type Database = {
           broadcast_id: string
           contact_id: string | null
           created_at: string
+          current_step: number
           error: string | null
           id: string
+          last_step_at: string | null
+          next_action_at: string | null
           phone: string
           responded_at: string | null
           sent_at: string | null
           status: string
+          timeline: Json
           user_id: string
         }
         Insert: {
           broadcast_id: string
           contact_id?: string | null
           created_at?: string
+          current_step?: number
           error?: string | null
           id?: string
+          last_step_at?: string | null
+          next_action_at?: string | null
           phone: string
           responded_at?: string | null
           sent_at?: string | null
           status?: string
+          timeline?: Json
           user_id: string
         }
         Update: {
           broadcast_id?: string
           contact_id?: string | null
           created_at?: string
+          current_step?: number
           error?: string | null
           id?: string
+          last_step_at?: string | null
+          next_action_at?: string | null
           phone?: string
           responded_at?: string | null
           sent_at?: string | null
           status?: string
+          timeline?: Json
           user_id?: string
         }
         Relationships: [
@@ -345,6 +357,53 @@ export type Database = {
             columns: ["contact_id"]
             isOneToOne: false
             referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      broadcast_steps: {
+        Row: {
+          broadcast_id: string
+          created_at: string
+          delay_hours: number
+          id: string
+          media_type: string | null
+          media_url: string | null
+          message: string
+          step_order: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          broadcast_id: string
+          created_at?: string
+          delay_hours?: number
+          id?: string
+          media_type?: string | null
+          media_url?: string | null
+          message: string
+          step_order: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          broadcast_id?: string
+          created_at?: string
+          delay_hours?: number
+          id?: string
+          media_type?: string | null
+          media_url?: string | null
+          message?: string
+          step_order?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "broadcast_steps_broadcast_id_fkey"
+            columns: ["broadcast_id"]
+            isOneToOne: false
+            referencedRelation: "broadcasts"
             referencedColumns: ["id"]
           },
         ]
