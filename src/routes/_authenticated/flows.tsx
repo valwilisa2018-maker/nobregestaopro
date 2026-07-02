@@ -77,15 +77,15 @@ function BlockNode({ data, selected }: NodeProps) {
   const preview = d.text || d.url || d.condition || meta.sub;
   const invalid = (d as unknown as { _invalid?: boolean })._invalid;
   return (
-    <div className={`rounded-lg border bg-card shadow-md min-w-[180px] transition ${selected ? "ring-2 ring-primary" : ""} ${invalid ? "border-destructive ring-2 ring-destructive animate-pulse" : "border-emerald-500/40"}`}>
+    <div className={`rounded-lg border bg-card shadow-md w-[220px] max-w-[220px] transition ${selected ? "ring-2 ring-primary" : ""} ${invalid ? "border-destructive ring-2 ring-destructive animate-pulse" : "border-emerald-500/40"}`}>
       {d.kind !== "START" && <Handle type="target" position={Position.Left} />}
       <div className="flex items-center gap-2 px-3 py-1.5 text-[10px] uppercase tracking-wide text-muted-foreground border-b border-border/50">
         <span className={`h-4 w-4 rounded flex items-center justify-center text-white ${meta.color}`}>{meta.icon}</span>
         <span>{meta.label}</span>
       </div>
-      <div className="px-3 py-2 min-h-[36px]">
-        <div className="text-xs font-semibold text-foreground line-clamp-1">{d.label}</div>
-        <div className="text-[11px] text-muted-foreground line-clamp-1">{preview}</div>
+      <div className="px-3 py-2 min-h-[36px] overflow-hidden">
+        <div className="text-xs font-semibold text-foreground truncate">{d.label}</div>
+        <div className="text-[11px] text-muted-foreground truncate">{preview}</div>
       </div>
       {meta.outputs.length === 1 && <Handle type="source" position={Position.Right} id={meta.outputs[0]} />}
       {meta.outputs.length > 1 && meta.outputs.map((o, i) => (
