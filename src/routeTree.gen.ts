@@ -32,6 +32,7 @@ import { Route as AuthenticatedConversationsRouteImport } from './routes/_authen
 import { Route as AuthenticatedContactsRouteImport } from './routes/_authenticated/contacts'
 import { Route as AuthenticatedConnectionsRouteImport } from './routes/_authenticated/connections'
 import { Route as AuthenticatedClientsRouteImport } from './routes/_authenticated/clients'
+import { Route as AuthenticatedBroadcastsRouteImport } from './routes/_authenticated/broadcasts'
 import { Route as AuthenticatedBillingRouteImport } from './routes/_authenticated/billing'
 import { Route as AuthenticatedAudiosRouteImport } from './routes/_authenticated/audios'
 import { Route as AuthenticatedApiRouteImport } from './routes/_authenticated/api'
@@ -158,6 +159,11 @@ const AuthenticatedClientsRoute = AuthenticatedClientsRouteImport.update({
   path: '/clients',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
+const AuthenticatedBroadcastsRoute = AuthenticatedBroadcastsRouteImport.update({
+  id: '/broadcasts',
+  path: '/broadcasts',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
 const AuthenticatedBillingRoute = AuthenticatedBillingRouteImport.update({
   id: '/billing',
   path: '/billing',
@@ -204,6 +210,7 @@ export interface FileRoutesByFullPath {
   '/api': typeof AuthenticatedApiRoute
   '/audios': typeof AuthenticatedAudiosRoute
   '/billing': typeof AuthenticatedBillingRoute
+  '/broadcasts': typeof AuthenticatedBroadcastsRoute
   '/clients': typeof AuthenticatedClientsRoute
   '/connections': typeof AuthenticatedConnectionsRoute
   '/contacts': typeof AuthenticatedContactsRoute
@@ -235,6 +242,7 @@ export interface FileRoutesByTo {
   '/api': typeof AuthenticatedApiRoute
   '/audios': typeof AuthenticatedAudiosRoute
   '/billing': typeof AuthenticatedBillingRoute
+  '/broadcasts': typeof AuthenticatedBroadcastsRoute
   '/clients': typeof AuthenticatedClientsRoute
   '/connections': typeof AuthenticatedConnectionsRoute
   '/contacts': typeof AuthenticatedContactsRoute
@@ -268,6 +276,7 @@ export interface FileRoutesById {
   '/_authenticated/api': typeof AuthenticatedApiRoute
   '/_authenticated/audios': typeof AuthenticatedAudiosRoute
   '/_authenticated/billing': typeof AuthenticatedBillingRoute
+  '/_authenticated/broadcasts': typeof AuthenticatedBroadcastsRoute
   '/_authenticated/clients': typeof AuthenticatedClientsRoute
   '/_authenticated/connections': typeof AuthenticatedConnectionsRoute
   '/_authenticated/contacts': typeof AuthenticatedContactsRoute
@@ -301,6 +310,7 @@ export interface FileRouteTypes {
     | '/api'
     | '/audios'
     | '/billing'
+    | '/broadcasts'
     | '/clients'
     | '/connections'
     | '/contacts'
@@ -332,6 +342,7 @@ export interface FileRouteTypes {
     | '/api'
     | '/audios'
     | '/billing'
+    | '/broadcasts'
     | '/clients'
     | '/connections'
     | '/contacts'
@@ -364,6 +375,7 @@ export interface FileRouteTypes {
     | '/_authenticated/api'
     | '/_authenticated/audios'
     | '/_authenticated/billing'
+    | '/_authenticated/broadcasts'
     | '/_authenticated/clients'
     | '/_authenticated/connections'
     | '/_authenticated/contacts'
@@ -559,6 +571,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedClientsRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
+    '/_authenticated/broadcasts': {
+      id: '/_authenticated/broadcasts'
+      path: '/broadcasts'
+      fullPath: '/broadcasts'
+      preLoaderRoute: typeof AuthenticatedBroadcastsRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
     '/_authenticated/billing': {
       id: '/_authenticated/billing'
       path: '/billing'
@@ -617,6 +636,7 @@ interface AuthenticatedRouteChildren {
   AuthenticatedApiRoute: typeof AuthenticatedApiRoute
   AuthenticatedAudiosRoute: typeof AuthenticatedAudiosRoute
   AuthenticatedBillingRoute: typeof AuthenticatedBillingRoute
+  AuthenticatedBroadcastsRoute: typeof AuthenticatedBroadcastsRoute
   AuthenticatedClientsRoute: typeof AuthenticatedClientsRoute
   AuthenticatedConnectionsRoute: typeof AuthenticatedConnectionsRoute
   AuthenticatedContactsRoute: typeof AuthenticatedContactsRoute
@@ -644,6 +664,7 @@ const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedApiRoute: AuthenticatedApiRoute,
   AuthenticatedAudiosRoute: AuthenticatedAudiosRoute,
   AuthenticatedBillingRoute: AuthenticatedBillingRoute,
+  AuthenticatedBroadcastsRoute: AuthenticatedBroadcastsRoute,
   AuthenticatedClientsRoute: AuthenticatedClientsRoute,
   AuthenticatedConnectionsRoute: AuthenticatedConnectionsRoute,
   AuthenticatedContactsRoute: AuthenticatedContactsRoute,
