@@ -522,7 +522,44 @@ function BroadcastsPage() {
       <Card>
         <CardHeader className="pb-2"><CardTitle className="text-sm">Histórico</CardTitle></CardHeader>
         <CardContent className="p-0">
-          {(broadcasts.data?.rows ?? []).length === 0 ? (
+          {(() => {
+            const all = broadcasts.data?.rows ?? [];
+            const kpi = all.reduce((a, b) => {
+              a.total += (b.total as number) || 0;
+              a.sent += (b.sent_count as number) || 0;
+              a.error += (b.error_count as number) || 0;
+              a.responded += (b.responded_count as number) || 0;
+              if (b.status === "running") a.running++;
+              return a;
+            }, { total: 0, sent: 0, error: 0, responded: 0, running: 0 });
+            const delivery = kpi.total ? Math.round((kpi.sent / kpi.total) * 100) : 0;
+            return (
+              <div className="p-4 border-b bg-muted/20 grid grid-cols-2 md:grid-cols-6 gap-3">
+                <Stat label="Campanhas" value={all.length} />
+                <Stat label="Ativas" value={kpi.running} />
+                <Stat label="Enviados" value={kpi.sent} tone="ok" />
+                <Stat label="Falhas" value={kpi.error} tone="err" />
+                <Stat label="Respondidos" value={kpi.responded} />
+                <Stat label="Entrega %" value={`${delivery}%`} />
+              </div>
+            );
+          })()}
+          <div className="flex items-center gap-2 p-3 border-b">
+            <Filter className="h-4 w-4 text-muted-foreground" />
+            <Select value={statusFilter} onValueChange={setStatusFilter}>
+              <SelectTrigger className="w-48 h-8"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos os status</SelectItem>
+                <SelectItem value="running">Em execução</SelectItem>
+                <SelectItem value="scheduled">Agendadas</SelectItem>
+                <SelectItem value="paused">Pausadas</SelectItem>
+                <SelectItem value="done">Concluídas</SelectItem>
+                <SelectItem value="canceled">Canceladas</SelectItem>
+                <SelectItem value="draft">Rascunho</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          {(broadcasts.data?.rows ?? []).filter((b) => statusFilter === "all" || b.status === statusFilter).length === 0 ? (
             <div className="p-6 text-sm text-muted-foreground text-center">Nenhuma campanha ainda.</div>
           ) : (
             <div className="overflow-x-auto">
@@ -538,7 +575,7 @@ function BroadcastsPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {(broadcasts.data?.rows ?? []).map((b) => {
+                  {(broadcasts.data?.rows ?? []).filter((b) => statusFilter === "all" || b.status === statusFilter).map((b) => {
                     const total = (b.total as number) || 0;
                     const done = ((b.sent_count as number) || 0) + ((b.error_count as number) || 0);
                     const pct = total ? (done / total) * 100 : 0;
