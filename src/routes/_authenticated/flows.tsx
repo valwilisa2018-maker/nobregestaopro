@@ -75,8 +75,9 @@ function BlockNode({ data, selected }: NodeProps) {
   const d = data as unknown as BlockData;
   const meta = KIND_META[d.kind];
   const preview = d.text || d.url || d.condition || meta.sub;
+  const invalid = (d as unknown as { _invalid?: boolean })._invalid;
   return (
-    <div className={`rounded-lg border border-emerald-500/40 bg-card shadow-md min-w-[180px] ${selected ? "ring-2 ring-primary" : ""}`}>
+    <div className={`rounded-lg border bg-card shadow-md min-w-[180px] transition ${selected ? "ring-2 ring-primary" : ""} ${invalid ? "border-destructive ring-2 ring-destructive animate-pulse" : "border-emerald-500/40"}`}>
       {d.kind !== "START" && <Handle type="target" position={Position.Left} />}
       <div className="flex items-center gap-2 px-3 py-1.5 text-[10px] uppercase tracking-wide text-muted-foreground border-b border-border/50">
         <span className={`h-4 w-4 rounded flex items-center justify-center text-white ${meta.color}`}>{meta.icon}</span>
