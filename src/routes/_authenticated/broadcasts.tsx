@@ -616,11 +616,29 @@ function BroadcastsPage() {
       <Dialog open={timelineOpen} onOpenChange={setTimelineOpen}>
         <DialogContent className="max-w-3xl max-h-[85vh] overflow-y-auto">
           <DialogHeader><DialogTitle>Timeline — {timelineTitle}</DialogTitle></DialogHeader>
-          {timelineRows.length === 0 ? (
+          <div className="flex flex-wrap items-center gap-2 pb-2 border-b">
+            <Select value={timelineFilter} onValueChange={setTimelineFilter}>
+              <SelectTrigger className="w-40 h-8"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos</SelectItem>
+                <SelectItem value="sent">Enviados</SelectItem>
+                <SelectItem value="error">Falhas</SelectItem>
+                <SelectItem value="pending">Pendentes</SelectItem>
+              </SelectContent>
+            </Select>
+            <Input placeholder="Buscar telefone..." value={timelineSearch} onChange={(e) => setTimelineSearch(e.target.value)} className="h-8 max-w-xs" />
+            <div className="ml-auto text-xs text-muted-foreground">
+              {timelineRows.filter((r) => (timelineFilter === "all" || r.status === timelineFilter) && (!timelineSearch || String(r.phone).includes(timelineSearch))).length} destinatários
+            </div>
+            <Button size="sm" variant="outline" onClick={() => exportTimelineCSV(timelineRows, timelineTitle, timelineFilter, timelineSearch)}>
+              <Download className="h-3.5 w-3.5" /> CSV
+            </Button>
+          </div>
+          {timelineRows.filter((r) => (timelineFilter === "all" || r.status === timelineFilter) && (!timelineSearch || String(r.phone).includes(timelineSearch))).length === 0 ? (
             <div className="text-sm text-muted-foreground p-4 text-center">Sem eventos ainda.</div>
           ) : (
             <div className="space-y-3">
-              {timelineRows.map((r) => (
+              {timelineRows.filter((r) => (timelineFilter === "all" || r.status === timelineFilter) && (!timelineSearch || String(r.phone).includes(timelineSearch))).map((r) => (
                 <div key={r.id} className="border rounded-lg p-3">
                   <div className="flex items-center justify-between mb-2">
                     <div className="text-sm font-medium tabular-nums">{r.phone}</div>
