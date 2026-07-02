@@ -48,6 +48,17 @@ export const Route = createFileRoute("/api/public/evolution/$instance")({
               msg?.message?.extendedTextMessage?.text ??
               msg?.message?.imageMessage?.caption;
             if (fromMe || !remoteJid || !text) return Response.json({ ok: true, skipped: true });
+            // Ignore broadcasts, newsletters and groups (safe default)
+            if (
+              remoteJid.endsWith("@broadcast") ||
+              remoteJid.endsWith("@newsletter") ||
+              remoteJid.endsWith("@g.us")
+            ) {
+              return Response.json({ ok: true, skippedJid: remoteJid });
+            }
+            // Normalize recipient. Evolution accepts digits or full jid;
+            // full jid is safest (handles @lid and @s.whatsapp.net).
+            const recipient = remoteJid.includes("@") ? remoteJid : `${remoteJid}@s.whatsapp.net`;
 
             // Persist inbound message
             await supabaseAdmin.from("messages").insert({
@@ -99,7 +110,7 @@ export const Route = createFileRoute("/api/public/evolution/$instance")({
                 await fetch(`${(conn.url_api ?? "").replace(/\/+$/, "")}/message/sendText/${conn.instance_name}`, {
                   method: "POST",
                   headers: { "Content-Type": "application/json", apikey: conn.api_key ?? "" },
-                  body: JSON.stringify({ number: remoteJid.split("@")[0], text: away }),
+                  body: JSON.stringify({ number: recipient, text: away }),
                 });
                 return Response.json({ ok: true, offHours: true });
               }
@@ -138,13 +149,19 @@ export const Route = createFileRoute("/api/public/evolution/$instance")({
             const reply: string = aiJson?.choices?.[0]?.message?.content ?? "";
             if (!reply) return Response.json({ ok: true, empty: true });
 
-            // Send back via Evolution (number = digits only, no @s.whatsapp.net suffix)
-            const number = remoteJid.split("@")[0];
-            await fetch(`${(conn.url_api ?? "").replace(/\/+$/, "")}/message/sendText/${conn.instance_name}`, {
+            // Send back via Evolution (full jid works for @s.whatsapp.net and @lid)
+            const sendRes = await fetch(`${(conn.url_api ?? "").replace(/\/+$/, "")}/message/sendText/${conn.instance_name}`, {
               method: "POST",
               headers: { "Content-Type": "application/json", apikey: conn.api_key ?? "" },
-              body: JSON.stringify({ number, text: reply }),
+              body: JSON.stringify({ number: recipient, text: reply }),
             });
+            if (!sendRes.ok) {
+              const errText = await sendRes.text().catch(() => "");
+              await supabaseAdmin.from("logs").insert({
+                user_id: conn.user_id, level: "error", source: `evolution:${instance}`,
+                message: `sendText failed ${sendRes.status}`, metadata: { recipient, body: errText.slice(0, 500) },
+              } as never);
+            }
 
             await supabaseAdmin.from("messages").insert({
               user_id: conn.user_id,
