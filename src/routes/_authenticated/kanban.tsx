@@ -18,7 +18,7 @@ import { waHref, formatPhoneBR } from "@/lib/phone";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Search } from "lucide-react";
 import { fmtDate } from "@/lib/format";
-import { formatCurrency } from "@/lib/auth";
+import { formatCurrency, useAuth, isAdmin as isAdminRole } from "@/lib/auth";
 import { autoLinkFolderFromUrl } from "@/lib/project-folders";
 
 // Lembrete de baixa de pagamento — ao mover card(s) para a coluna "Serviços Entregues",
