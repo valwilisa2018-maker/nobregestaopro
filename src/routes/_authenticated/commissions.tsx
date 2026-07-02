@@ -75,6 +75,20 @@ function CommissionsPage() {
     },
   });
 
+  const deliveredSales = useQuery({
+    queryKey: ["commissions-delivered-sales", (deliveredOrders.data ?? []).map((o: any) => o.sale_id).sort().join(",")],
+    enabled: (deliveredOrders.data ?? []).length > 0,
+    queryFn: async () => {
+      const ids = Array.from(new Set((deliveredOrders.data ?? []).map((o: any) => o.sale_id).filter(Boolean)));
+      if (ids.length === 0) return [];
+      const { data } = await supabase
+        .from("sales")
+        .select("id,seller_id,producer_id,total_amount,paid_amount,payment_status,sale_date,is_payment_link")
+        .in("id", ids);
+      return data ?? [];
+    },
+  });
+
   const rows = useMemo(() => {
     const list = (sellers.data ?? []).map((s: any) => {
       const sellerSales = (sales.data ?? []).filter((v: any) => v.seller_id === s.id && !v.is_payment_link);
@@ -111,6 +125,7 @@ function CommissionsPage() {
   const producerRows = useMemo(() => {
     const salesById = new Map<string, any>();
     (sales.data ?? []).forEach((v: any) => salesById.set(v.id, v));
+    (deliveredSales.data ?? []).forEach((v: any) => salesById.set(v.id, v));
 
     const list = ((producers.data as any[]) ?? []).map((p: any) => {
       const pOrders = (deliveredOrders.data ?? []).filter((o: any) => o.producer_id === p.id);
@@ -153,7 +168,7 @@ function CommissionsPage() {
       };
     });
     return list.sort((a, b) => b.commissionPaid - a.commissionPaid);
-  }, [producers.data, sales.data, deliveredOrders.data]);
+  }, [producers.data, sales.data, deliveredOrders.data, deliveredSales.data]);
 
   const producerTotals = useMemo(() => {
     return producerRows.reduce(
