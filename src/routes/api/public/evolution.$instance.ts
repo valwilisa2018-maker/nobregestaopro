@@ -182,6 +182,57 @@ export const Route = createFileRoute("/api/public/evolution/$instance")({
               return Response.json({ ok: true, paused: true });
             }
 
+            // ------- FLOW ENGINE -------
+            // If this connection has an active flow (with a valid START node), run it
+            // instead of going straight to the AI. QUESTION/YESNO/CAPTURE_NAME pause
+            // the flow and the next inbound resumes it via `flow_state` on the conversation.
+            {
+              const { data: flows } = await supabaseAdmin
+                .from("flows")
+                .select("id,definition,is_active,trigger_keywords,connection_id")
+                .eq("user_id", conn.user_id)
+                .eq("is_active", true);
+              const candidates = (flows ?? []) as Array<{ id: string; definition: any; trigger_keywords: string[] | null; connection_id: string | null }>;
+              // Prefer flow already in progress; else match by connection + keyword; else first for this connection.
+              const st = ((convo?.flow_state ?? {}) as { flow_id?: string; finished?: boolean });
+              let active = st.flow_id && !st.finished ? candidates.find((f) => f.id === st.flow_id) : null;
+              if (!active) {
+                const forConn = candidates.filter((f) => !f.connection_id || f.connection_id === conn.id);
+                active = forConn.find((f) => (f.trigger_keywords ?? []).some((k) => k && text!.toLowerCase().includes(k.toLowerCase())))
+                  ?? forConn.find((f) => (f.trigger_keywords ?? []).length === 0)
+                  ?? null;
+              }
+              if (active && convo) {
+                try {
+                  const def = active.definition as { nodes?: any[]; edges?: any[] };
+                  if (Array.isArray(def?.nodes) && Array.isArray(def?.edges)) {
+                    const { runFlow } = await import("@/lib/flow-runner.server");
+                    const result = await runFlow({
+                      db: supabaseAdmin,
+                      conn: { id: conn.id, user_id: conn.user_id, url_api: conn.url_api, api_key: conn.api_key, instance_name: conn.instance_name },
+                      recipient,
+                      userText: text,
+                      def: { nodes: def.nodes, edges: def.edges },
+                      state: st,
+                      flowId: active.id,
+                    });
+                    await supabaseAdmin.from("conversations").update({
+                      flow_state: result.state as never,
+                      last_message_at: new Date().toISOString(),
+                    } as never).eq("id", convo.id);
+                    return Response.json({ ok: true, flow: active.id, waiting: !!result.waitingForUser, finished: !!result.finished, handedOff: !!result.handedOff });
+                  }
+                } catch (e) {
+                  await supabaseAdmin.from("logs").insert({
+                    user_id: conn.user_id, level: "error", source: `flow:${active.id}`,
+                    message: e instanceof Error ? e.message : "flow runtime error", metadata: {} as never,
+                  } as never);
+                  // fall through to AI as safety net
+                }
+              }
+            }
+            // ------- /FLOW ENGINE -------
+
             // Keyword activation gate (allow/block/regex)
             if (ext.keywords?.enabled && Array.isArray(ext.keywords.list) && ext.keywords.list.length) {
               const mode = (ext.keywords.mode ?? "allow").toLowerCase();
