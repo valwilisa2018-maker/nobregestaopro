@@ -302,13 +302,13 @@ function Builder() {
         <div className="ml-auto flex flex-wrap gap-2">
           <Dialog open={aiOpen} onOpenChange={setAiOpen}>
             <DialogTrigger asChild>
-              <Button variant="outline" size="sm"><Sparkles className="h-4 w-4" /> Gerar IA</Button>
+              <Button variant="outline" size="sm"><Bot className="h-4 w-4" /> Gerar IA</Button>
             </DialogTrigger>
             <DialogContent>
               <DialogHeader><DialogTitle>Gerar fluxo com IA</DialogTitle></DialogHeader>
               <Textarea rows={5} value={aiPrompt} onChange={(e) => setAiPrompt(e.target.value)} placeholder="Ex.: Qualifica lead de imóvel, pede nome/cidade e envia para o corretor" />
               <Button onClick={() => genM.mutate()} disabled={!aiPrompt.trim() || genM.isPending}>
-                {genM.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />} Gerar
+                {genM.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Bot className="h-4 w-4" />} Gerar
               </Button>
             </DialogContent>
           </Dialog>
