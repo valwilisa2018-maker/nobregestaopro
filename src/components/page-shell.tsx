@@ -46,7 +46,7 @@ export function PageShell({ title, description, icon, actions, children, status 
             <div className="mx-auto grid h-14 w-14 place-items-center rounded-full bg-primary/10 text-primary">
               <LayoutGrid className="h-6 w-6" />
             </div>
-            <h3 className="text-lg font-semibold">Módulo em construção</h3>
+            <h2 className="text-lg font-semibold">Módulo em construção</h2>
             <p className="text-sm text-muted-foreground max-w-md mx-auto">
               Este módulo faz parte da plataforma e será liberado em breve com todos os recursos premium de atendimento.
             </p>
