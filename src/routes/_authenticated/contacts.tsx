@@ -1,9 +1,9 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { useMemo, useState } from "react";
+import { useRef, useState } from "react";
 import { toast } from "sonner";
-import { Contact2, Loader2, Plus, Search, Trash2, UserPlus } from "lucide-react";
+import { Contact2, Download, FileSpreadsheet, FileText, Loader2, Plus, Search, Trash2, Upload, UserPlus } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -13,7 +13,9 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { listContacts, upsertContact, deleteContact } from "@/lib/contacts.functions";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { listContacts, upsertContact, deleteContact, bulkImportContacts, listAllContactsForExport } from "@/lib/contacts.functions";
+import { downloadTemplateCSV, downloadTemplateXLSX, exportContactsCSV, exportContactsPDF, exportContactsXLSX, parseContactsFile } from "@/lib/contacts-bulk";
 
 export const Route = createFileRoute("/_authenticated/contacts")({
   component: ContactsPage,
@@ -25,6 +27,8 @@ function ContactsPage() {
   const list = useServerFn(listContacts);
   const upsert = useServerFn(upsertContact);
   const del = useServerFn(deleteContact);
+  const bulk = useServerFn(bulkImportContacts);
+  const exportAll = useServerFn(listAllContactsForExport);
   const qc = useQueryClient();
 
   const [q, setQ] = useState("");
@@ -61,6 +65,34 @@ function ContactsPage() {
 
   const openNew = () => { setEditing({ id: null, name: "", phone: "", status: "active", notes: "" }); setOpen(true); };
 
+  const fileRef = useRef<HTMLInputElement>(null);
+  const [importing, setImporting] = useState(false);
+  const [exporting, setExporting] = useState<null | "xlsx" | "csv" | "pdf">(null);
+
+  const onImportFile = async (f: File) => {
+    setImporting(true);
+    try {
+      const rows = await parseContactsFile(f);
+      if (rows.length === 0) { toast.error("Nenhum contato válido no arquivo"); return; }
+      const res = await bulk({ data: { rows: rows.map((r) => ({ name: r.name, phone: r.phone, status: (r.status as never) ?? "active", notes: r.notes ?? null })) } });
+      toast.success(`${res.inserted} contato(s) importado(s)`);
+      qc.invalidateQueries({ queryKey: ["contacts"] });
+    } catch (e) { toast.error((e as Error).message); }
+    finally { setImporting(false); if (fileRef.current) fileRef.current.value = ""; }
+  };
+
+  const doExport = async (kind: "xlsx" | "csv" | "pdf") => {
+    setExporting(kind);
+    try {
+      const { rows } = await exportAll();
+      const mapped = rows.map((r: Record<string, unknown>) => ({ name: (r.name as string) ?? null, phone: r.phone as string, status: (r.status as string) ?? "active", notes: (r.notes as string) ?? null }));
+      if (kind === "xlsx") exportContactsXLSX(mapped);
+      else if (kind === "csv") exportContactsCSV(mapped);
+      else exportContactsPDF(mapped);
+    } catch (e) { toast.error((e as Error).message); }
+    finally { setExporting(null); }
+  };
+
   return (
     <div className="p-4 md:p-6 space-y-4">
       <div className="flex flex-wrap items-center gap-3">
@@ -87,6 +119,41 @@ function ContactsPage() {
               <SelectItem value="archived">Arquivados</SelectItem>
             </SelectContent>
           </Select>
+          <input ref={fileRef} type="file" accept=".csv,.xlsx,.xls" className="hidden"
+            onChange={(e) => { const f = e.target.files?.[0]; if (f) onImportFile(f); }} />
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" disabled={importing}>
+                {importing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />} Importar
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-64">
+              <DropdownMenuLabel>Importar contatos</DropdownMenuLabel>
+              <DropdownMenuItem onClick={() => fileRef.current?.click()}>
+                <FileSpreadsheet className="h-4 w-4" /> Enviar planilha (.xlsx / .csv)
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuLabel className="text-xs text-muted-foreground font-normal">Baixar modelo</DropdownMenuLabel>
+              <DropdownMenuItem onClick={() => downloadTemplateXLSX()}>
+                <Download className="h-4 w-4" /> Modelo Excel (.xlsx)
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => downloadTemplateCSV()}>
+                <Download className="h-4 w-4" /> Modelo CSV (.csv)
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" disabled={exporting !== null}>
+                {exporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />} Exportar
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={() => doExport("xlsx")}><FileSpreadsheet className="h-4 w-4" /> Excel (.xlsx)</DropdownMenuItem>
+              <DropdownMenuItem onClick={() => doExport("csv")}><FileSpreadsheet className="h-4 w-4" /> CSV (.csv)</DropdownMenuItem>
+              <DropdownMenuItem onClick={() => doExport("pdf")}><FileText className="h-4 w-4" /> PDF (.pdf)</DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
           <Button onClick={openNew}><UserPlus className="h-4 w-4" /> Novo contato</Button>
         </div>
       </div>
