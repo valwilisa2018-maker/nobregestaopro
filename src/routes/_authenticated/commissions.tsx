@@ -89,6 +89,19 @@ function CommissionsPage() {
     },
   });
 
+  const saleOrdersCount = useQuery({
+    queryKey: ["commissions-sale-orders-count", (deliveredOrders.data ?? []).map((o: any) => o.sale_id).sort().join(",")],
+    enabled: (deliveredOrders.data ?? []).length > 0,
+    queryFn: async () => {
+      const ids = Array.from(new Set((deliveredOrders.data ?? []).map((o: any) => o.sale_id).filter(Boolean)));
+      if (ids.length === 0) return new Map<string, number>();
+      const { data } = await supabase.from("service_orders").select("sale_id").in("sale_id", ids);
+      const m = new Map<string, number>();
+      (data ?? []).forEach((r: any) => m.set(r.sale_id, (m.get(r.sale_id) ?? 0) + 1));
+      return m;
+    },
+  });
+
   const rows = useMemo(() => {
     const list = (sellers.data ?? []).map((s: any) => {
       const sellerSales = (sales.data ?? []).filter((v: any) => v.seller_id === s.id && !v.is_payment_link);
@@ -129,20 +142,16 @@ function CommissionsPage() {
 
     const list = ((producers.data as any[]) ?? []).map((p: any) => {
       const pOrders = (deliveredOrders.data ?? []).filter((o: any) => o.producer_id === p.id);
-      // Valor entregue = soma do valor unitário de cada serviço entregue no Trello
       let totalDelivered = 0;
       let totalDeliveredPaid = 0;
       pOrders.forEach((o: any) => {
         const sale = salesById.get(o.sale_id);
         if (!sale || sale.is_payment_link) return;
-        const qty = 1; // valor por card entregue; service_orders já são 1 por serviço
         const totalAmount = Number(sale.total_amount ?? 0);
         const paidAmount = Number(sale.paid_amount ?? 0);
-        // proporcional ao número de cards da venda
-        const saleOrdersCount = (deliveredOrders.data ?? []).filter((x: any) => x.sale_id === o.sale_id).length || 1;
-        // usar count total de service_orders da venda seria mais correto; aproximamos por entregues
-        const unit = totalAmount / Math.max(saleOrdersCount, qty);
-        const unitPaid = paidAmount > 0 ? (paidAmount / Math.max(saleOrdersCount, qty)) : 0;
+        const total = (saleOrdersCount.data?.get(o.sale_id)) || 1;
+        const unit = totalAmount / total;
+        const unitPaid = paidAmount > 0 ? paidAmount / total : 0;
         totalDelivered += unit;
         totalDeliveredPaid += Math.min(unit, unitPaid);
       });
@@ -168,7 +177,7 @@ function CommissionsPage() {
       };
     });
     return list.sort((a, b) => b.commissionPaid - a.commissionPaid);
-  }, [producers.data, sales.data, deliveredOrders.data, deliveredSales.data]);
+  }, [producers.data, sales.data, deliveredOrders.data, deliveredSales.data, saleOrdersCount.data]);
 
   const producerTotals = useMemo(() => {
     return producerRows.reduce(
