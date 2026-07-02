@@ -341,7 +341,7 @@ function Builder() {
         </Card>
 
         {/* Canvas */}
-        <div className="h-[calc(100vh-220px)] rounded-lg border bg-background overflow-hidden">
+        <div className="h-[calc(100vh-140px)] rounded-lg border bg-background overflow-hidden">
           <ReactFlow
             nodes={nodes} edges={edges}
             onNodesChange={onNodesChange} onEdgesChange={onEdgesChange}
@@ -352,8 +352,6 @@ function Builder() {
             fitView
           >
             <Background />
-            <Controls />
-            <MiniMap pannable zoomable />
           </ReactFlow>
         </div>
 
