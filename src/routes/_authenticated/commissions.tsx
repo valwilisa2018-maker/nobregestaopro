@@ -111,6 +111,7 @@ function CommissionsPage() {
   const producerRows = useMemo(() => {
     const salesById = new Map<string, any>();
     (sales.data ?? []).forEach((v: any) => salesById.set(v.id, v));
+    (deliveredSales.data ?? []).forEach((v: any) => salesById.set(v.id, v));
 
     const list = ((producers.data as any[]) ?? []).map((p: any) => {
       const pOrders = (deliveredOrders.data ?? []).filter((o: any) => o.producer_id === p.id);
@@ -153,7 +154,7 @@ function CommissionsPage() {
       };
     });
     return list.sort((a, b) => b.commissionPaid - a.commissionPaid);
-  }, [producers.data, sales.data, deliveredOrders.data]);
+  }, [producers.data, sales.data, deliveredOrders.data, deliveredSales.data]);
 
   const producerTotals = useMemo(() => {
     return producerRows.reduce(
