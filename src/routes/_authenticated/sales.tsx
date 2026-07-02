@@ -23,6 +23,7 @@ import { Copy, Link2, ExternalLink } from "lucide-react";
 import { QRCodeSVG } from "qrcode.react";
 import { autoLinkFolderFromUrl } from "@/lib/project-folders";
 import { PhoneInputBR } from "@/components/phone-input-br";
+import { SafeSelect } from "@/components/safe-select";
 
 export const Route = createFileRoute("/_authenticated/sales")({
   component: SalesRouteBoundary,
@@ -983,13 +984,15 @@ function SalesPage() {
                 </div>
                 <div>
                   <Label>Com Nota? *</Label>
-                  <Select value={form.with_invoice || ""} onValueChange={(v) => set("with_invoice", v)}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="sim">Sim (Com Nota)</SelectItem>
-                      <SelectItem value="nao">Não (Sem Nota)</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  <SafeSelect
+                    ariaLabel="Com Nota"
+                    value={form.with_invoice || ""}
+                    onValueChange={(v) => set("with_invoice", v)}
+                    options={[
+                      { value: "sim", label: "Sim (Com Nota)" },
+                      { value: "nao", label: "Não (Sem Nota)" },
+                    ]}
+                  />
                 </div>
                 <div><Label>CPF/CNPJ {form.with_invoice === "sim" ? "*" : "(Opcional)"}</Label><Input value={form.document || ""} onChange={(e) => set("document", e.target.value)} /></div>
                 <div><Label>Telefone *</Label><PhoneInputBR value={form.phone || ""} onChange={(v) => set("phone", v)} /></div>
@@ -999,42 +1002,59 @@ function SalesPage() {
                 <div><Label>Valor pago *</Label><Input type="number" step="0.01" value={form.paid_amount || ""} onChange={(e) => set("paid_amount", e.target.value)} /></div>
                 <div>
                   <Label>Status pagamento *</Label>
-                  <Select value={form.payment_status || ""} onValueChange={(v) => set("payment_status", v)}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent><SelectItem value="pago_total">Pago total</SelectItem><SelectItem value="pago_parcial">Pago parcial</SelectItem><SelectItem value="pendente">Pendente</SelectItem></SelectContent>
-                  </Select>
+                  <SafeSelect
+                    ariaLabel="Status pagamento"
+                    value={form.payment_status || ""}
+                    onValueChange={(v) => set("payment_status", v)}
+                    options={[
+                      { value: "pago_total", label: "Pago total" },
+                      { value: "pago_parcial", label: "Pago parcial" },
+                      { value: "pendente", label: "Pendente" },
+                    ]}
+                  />
                 </div>
                 <div>
                   <Label>Forma de pagamento *</Label>
-                  <Select value={form.payment_method || ""} onValueChange={(v) => set("payment_method", v)}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent><SelectItem value="pix">Pix</SelectItem><SelectItem value="cartao">Cartão</SelectItem><SelectItem value="boleto">Boleto</SelectItem></SelectContent>
-                  </Select>
+                  <SafeSelect
+                    ariaLabel="Forma de pagamento"
+                    value={form.payment_method || ""}
+                    onValueChange={(v) => set("payment_method", v)}
+                    options={[
+                      { value: "pix", label: "Pix" },
+                      { value: "cartao", label: "Cartão" },
+                      { value: "boleto", label: "Boleto" },
+                    ]}
+                  />
                 </div>
                 {form.payment_method === "cartao" && (
                   <div>
                     <Label>Parcelas Máx. (Pagar.me)</Label>
-                    <Select value={form.installments || ""} onValueChange={(v) => set("installments", v)}>
-                      <SelectTrigger><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map(n => (
-                          <SelectItem key={n} value={String(n)}>{n}x</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    <SafeSelect
+                      ariaLabel="Parcelas máximas"
+                      value={form.installments || ""}
+                      onValueChange={(v) => set("installments", v)}
+                      options={[1,2,3,4,5,6,7,8,9,10,11,12].map((n) => ({ value: String(n), label: `${n}x` }))}
+                    />
                   </div>
                 )}
                 <div data-sale-field="seller_id">
                   <Label>Vendedor *</Label>
-                  <Select value={form.seller_id || ""} onValueChange={(v) => set("seller_id", v)}>
-                    <SelectTrigger><SelectValue placeholder="—" /></SelectTrigger>
-                    <SelectContent>{(sellers.data ?? []).map((s: any) => optionValue(s.id) ? <SelectItem key={s.id} value={String(s.id)}>{optionText(s.name)}</SelectItem> : null)}</SelectContent>
-                  </Select>
+                  <SafeSelect
+                    ariaLabel="Vendedor"
+                    placeholder="—"
+                    value={form.seller_id || ""}
+                    onValueChange={(v) => set("seller_id", v)}
+                    options={(sellers.data ?? [])
+                      .filter((s: any) => !!optionValue(s.id))
+                      .map((s: any) => ({ value: String(s.id), label: optionText(s.name) }))}
+                  />
                 </div>
                 <div data-sale-field="producer_id">
                   <Label>Produtor *</Label>
-                  <Select 
-                    value={form.producer_id || ""} 
+                  <SafeSelect
+                    ariaLabel="Produtor"
+                    placeholder="—"
+                    value={form.producer_id || ""}
                     onValueChange={(v) => set("producer_id", v)}
                     disabled={
                       (optionText(serviceTypes.data?.find(st => st.id === form.service_type_id)?.name, "").toLowerCase().includes("pamela") ||
@@ -1042,46 +1062,53 @@ function SalesPage() {
                        optionText(sellers.data?.find(s => s.id === form.seller_id)?.name, "").toLowerCase().includes("pamela") ||
                        optionText(sellers.data?.find(s => s.id === form.seller_id)?.name, "").toLowerCase().includes("ester")) ?? false
                     }
-                  >
-                    <SelectTrigger><SelectValue placeholder="—" /></SelectTrigger>
-                    <SelectContent>{(producers.data ?? []).map((p: any) => optionValue(p.id) ? <SelectItem key={p.id} value={String(p.id)}>{optionText(p.name)}</SelectItem> : null)}</SelectContent>
-                  </Select>
+                    options={(producers.data ?? [])
+                      .filter((p: any) => !!optionValue(p.id))
+                      .map((p: any) => ({ value: String(p.id), label: optionText(p.name) }))}
+                  />
                 </div>
                 <div data-sale-field="service_type_id">
                   <Label>Tipo de serviço *</Label>
-                  <Select value={form.service_type_id || ""} onValueChange={(v) => set("service_type_id", v)}>
-                    <SelectTrigger><SelectValue placeholder="—" /></SelectTrigger>
-                    <SelectContent>{(serviceTypes.data ?? []).map((s: any) => optionValue(s.id) ? <SelectItem key={s.id} value={String(s.id)}>{optionText(s.name)}</SelectItem> : null)}</SelectContent>
-                  </Select>
+                  <SafeSelect
+                    ariaLabel="Tipo de serviço"
+                    placeholder="—"
+                    value={form.service_type_id || ""}
+                    onValueChange={(v) => set("service_type_id", v)}
+                    options={(serviceTypes.data ?? [])
+                      .filter((s: any) => !!optionValue(s.id))
+                      .map((s: any) => ({ value: String(s.id), label: optionText(s.name) }))}
+                  />
                   {!form.service_type_id && (
                     <p className="mt-1 text-[11px] text-muted-foreground">Escolha o tipo de serviço antes de confirmar.</p>
                   )}
                 </div>
                 <div>
                   <Label>Pacote (opcional)</Label>
-                  <Select value={form.package_id || ""} onValueChange={(v) => {
-                    const p = (packages.data ?? []).find((x: any) => x.id === v);
-                    set("package_id", v);
-                    setForm((f) => ({ ...f, package_name: p?.name ?? f.package_name }));
-                  }}>
-                    <SelectTrigger><SelectValue placeholder="—" /></SelectTrigger>
-                    <SelectContent>
-                      {(packages.data ?? []).length === 0 ? (<div className="px-3 py-4 text-xs text-muted-foreground">Nenhum pacote cadastrado.</div>) : (packages.data ?? []).map((p: any) => optionValue(p.id) ? <SelectItem key={p.id} value={String(p.id)}>{optionText(p.name)}</SelectItem> : null)}
-                    </SelectContent>
-                  </Select>
+                  <SafeSelect
+                    ariaLabel="Pacote"
+                    placeholder="—"
+                    value={form.package_id || ""}
+                    onValueChange={(v) => {
+                      const p = (packages.data ?? []).find((x: any) => x.id === v);
+                      set("package_id", v);
+                      setForm((f) => ({ ...f, package_name: p?.name ?? f.package_name }));
+                    }}
+                    options={(packages.data ?? [])
+                      .filter((p: any) => !!optionValue(p.id))
+                      .map((p: any) => ({ value: String(p.id), label: optionText(p.name) }))}
+                  />
                 </div>
                 <div><Label>Qtd. serviços *</Label><Input type="number" min="1" value={form.service_quantity || ""} onChange={(e) => set("service_quantity", e.target.value)} /></div>
                 {formNeedsVideoDuration && (
                   <div data-sale-field="video_duration_seconds" className="rounded-md border border-amber-300/70 bg-amber-50/70 p-2 dark:bg-amber-950/20">
                     <Label>Minutagem do vídeo *</Label>
-                    <Select value={form.video_duration_seconds || ""} onValueChange={(v) => set("video_duration_seconds", v)}>
-                      <SelectTrigger><SelectValue placeholder="Selecione (mín. 30s)" /></SelectTrigger>
-                      <SelectContent>
-                        {VIDEO_DURATION_OPTIONS.map((o) => (
-                          <SelectItem key={o.value} value={String(o.value)}>{o.label}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    <SafeSelect
+                      ariaLabel="Minutagem do vídeo"
+                      placeholder="Selecione (mín. 30s)"
+                      value={form.video_duration_seconds || ""}
+                      onValueChange={(v) => set("video_duration_seconds", v)}
+                      options={VIDEO_DURATION_OPTIONS.map((o) => ({ value: String(o.value), label: o.label }))}
+                    />
                     <p className="mt-1 text-[11px] text-amber-700 dark:text-amber-300">Obrigatório para vídeo/pacote. A pontuação é calculada por essa minutagem.</p>
                   </div>
                 )}
@@ -1089,12 +1116,21 @@ function SalesPage() {
                 <div><Label>Data de entrega *</Label><Input type="date" value={form.expected_delivery_date || ""} onChange={(e) => set("expected_delivery_date", e.target.value)} /></div>
                 <div className="col-span-2">
                   <Label>Origem da venda *</Label>
-                  <Select value={form.lead_source || ""} onValueChange={(v) => set("lead_source", v)}>
-                    <SelectTrigger><SelectValue placeholder="Selecione a origem" /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="cliente_recuperacao">Cliente Recuperação</SelectItem><SelectItem value="trafego_pago">Tráfego Pago</SelectItem><SelectItem value="indicacao">Indicação</SelectItem><SelectItem value="organico">Orgânico / Redes Sociais</SelectItem><SelectItem value="cliente_antigo">Cliente Antigo</SelectItem><SelectItem value="prospeccao">Prospecção Ativa</SelectItem><SelectItem value="outros">Outros</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  <SafeSelect
+                    ariaLabel="Origem da venda"
+                    placeholder="Selecione a origem"
+                    value={form.lead_source || ""}
+                    onValueChange={(v) => set("lead_source", v)}
+                    options={[
+                      { value: "cliente_recuperacao", label: "Cliente Recuperação" },
+                      { value: "trafego_pago", label: "Tráfego Pago" },
+                      { value: "indicacao", label: "Indicação" },
+                      { value: "organico", label: "Orgânico / Redes Sociais" },
+                      { value: "cliente_antigo", label: "Cliente Antigo" },
+                      { value: "prospeccao", label: "Prospecção Ativa" },
+                      { value: "outros", label: "Outros" },
+                    ]}
+                  />
                 </div>
                 <div className="col-span-2" data-sale-field="receipt">
                   <Label>Comprovante (imagem ou PDF) {formReceiptRecommended ? "(recomendado)" : "(opcional enquanto pendente)"}</Label>
