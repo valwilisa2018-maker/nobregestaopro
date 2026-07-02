@@ -755,6 +755,32 @@ function Dashboard() {
         <StatCard tone="warning" label="Valores Pendentes" value={formatCurrency(pendingTotal)} icon={AlertCircle} hint={`${pendingCount} ${pendingCount === 1 ? "cliente" : "clientes"}`} />
       </div>
 
+      {/* Recebimentos no período selecionado */}
+      <div className="grid gap-4 grid-cols-1 md:grid-cols-3">
+        <StatCard
+          tone="success"
+          label={`Sinal · ${scopePeriodLabel}`}
+          value={formatCurrency(sinalScope)}
+          icon={DollarSign}
+          hint={`${scopeSalesList.length} ${scopeSalesList.length === 1 ? "venda" : "vendas"} no período`}
+        />
+        <StatCard
+          tone="info"
+          label={`Receb. pendentes · ${scopePeriodLabel}`}
+          value={formatCurrency(recebPendentesScope)}
+          icon={Clock}
+          hint={`${receiptsScope.length} ${receiptsScope.length === 1 ? "recebimento" : "recebimentos"} de vendas anteriores`}
+        />
+        <StatCard
+          tone="primary"
+          label={`Total · ${scopePeriodLabel}`}
+          value={formatCurrency(totalRecebidoScope)}
+          icon={TrendingUp}
+          accent
+          hint="Sinal + Recebimentos pendentes"
+        />
+      </div>
+
       {/* Produção */}
       <div className="grid gap-4 grid-cols-2 lg:grid-cols-5">
         <button
