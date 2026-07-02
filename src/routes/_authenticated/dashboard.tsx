@@ -288,6 +288,36 @@ function Dashboard() {
   const dayPct = dayGoal ? Math.min(100, Math.round((dayTotal / dayGoal) * 100)) : 0;
   const scopePct = current.goal ? Math.min(100, Math.round((current.total / current.goal) * 100)) : 0;
 
+  // Sinal / Recebimento Pendente / Total — respeitam o filtro de escopo (data/vendedor/serviço)
+  const scopeSalesList = useMemo(
+    () => all.filter((s) => inScope(s.sale_date || s.created_at)),
+    [all, scopeSince, scopeUntil],
+  );
+  const sinalScope = scopeSalesList.reduce((a, s) => a + Number(s.paid_amount ?? 0), 0);
+  const scopeSaleIdSet = useMemo(() => new Set(scopeSalesList.map((s) => s.id)), [scopeSalesList]);
+  const saleById = useMemo(() => new Map(all.map((s: any) => [s.id, s])), [all]);
+  const receiptsScope = (receipts.data ?? []).filter((r: any) => {
+    const dateKey = (r.paid_at || r.created_at || "").slice(0, 10);
+    if (!dateKey || dateKey < scopeSince || dateKey > scopeUntil) return false;
+    // Não conta o sinal (recebimento de venda do próprio escopo já entra em Sinal via paid_amount)
+    if (scopeSaleIdSet.has(r.sale_id)) return false;
+    // Respeita filtros de vendedor/serviço via venda pai
+    const sale: any = saleById.get(r.sale_id);
+    if (!sale) return false;
+    if (sellerFilter !== "all" && sale.seller_id !== sellerFilter) return false;
+    if (serviceFilter !== "all" && sale.service_type_id !== serviceFilter) return false;
+    return true;
+  });
+  const recebPendentesScope = receiptsScope.reduce((a: number, r: any) => a + Number(r.amount ?? 0), 0);
+  const totalRecebidoScope = sinalScope + recebPendentesScope;
+  const scopePeriodLabel =
+    scope === "day" ? "hoje"
+    : scope === "yesterday" ? "ontem"
+    : scope === "week" ? "na semana"
+    : scope === "month" ? "no mês"
+    : scope === "year" ? "no ano"
+    : `${customFrom} → ${customTo}`;
+
   const counts = {
     pago_total: all.filter((s) => s.payment_status === "pago_total" && inScope(s.sale_date || s.created_at)).length,
     pago_parcial: all.filter((s) => s.payment_status === "pago_parcial" && inScope(s.sale_date || s.created_at)).length,
