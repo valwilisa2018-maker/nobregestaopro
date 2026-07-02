@@ -75,6 +75,20 @@ function CommissionsPage() {
     },
   });
 
+  const deliveredSales = useQuery({
+    queryKey: ["commissions-delivered-sales", (deliveredOrders.data ?? []).map((o: any) => o.sale_id).sort().join(",")],
+    enabled: (deliveredOrders.data ?? []).length > 0,
+    queryFn: async () => {
+      const ids = Array.from(new Set((deliveredOrders.data ?? []).map((o: any) => o.sale_id).filter(Boolean)));
+      if (ids.length === 0) return [];
+      const { data } = await supabase
+        .from("sales")
+        .select("id,seller_id,producer_id,total_amount,paid_amount,payment_status,sale_date,is_payment_link")
+        .in("id", ids);
+      return data ?? [];
+    },
+  });
+
   const rows = useMemo(() => {
     const list = (sellers.data ?? []).map((s: any) => {
       const sellerSales = (sales.data ?? []).filter((v: any) => v.seller_id === s.id && !v.is_payment_link);
