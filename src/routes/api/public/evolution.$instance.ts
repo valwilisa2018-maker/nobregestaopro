@@ -149,6 +149,17 @@ export const Route = createFileRoute("/api/public/evolution/$instance")({
             const reply: string = aiJson?.choices?.[0]?.message?.content ?? "";
             if (!reply) return Response.json({ ok: true, empty: true });
 
+            // Enforce plan send quota (daily/monthly) before dispatch
+            const { data: quota } = await supabaseAdmin.rpc("consume_send_quota" as never, { _user_id: conn.user_id } as never);
+            const q = (quota ?? {}) as { allowed?: boolean; reason?: string; limit?: number; used?: number };
+            if (q && q.allowed === false) {
+              await supabaseAdmin.from("logs").insert({
+                user_id: conn.user_id, level: "warn", source: `evolution:${instance}`,
+                message: `quota exceeded: ${q.reason}`, metadata: q as never,
+              } as never);
+              return Response.json({ ok: true, quotaBlocked: true, reason: q.reason });
+            }
+
             // Send back via Evolution (full jid works for @s.whatsapp.net and @lid)
             const sendRes = await fetch(`${(conn.url_api ?? "").replace(/\/+$/, "")}/message/sendText/${conn.instance_name}`, {
               method: "POST",
