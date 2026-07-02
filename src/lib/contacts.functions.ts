@@ -65,3 +65,42 @@ export const deleteContact = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
     return { ok: true };
   });
+
+export const bulkImportContacts = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((raw: unknown) =>
+    z.object({
+      rows: z.array(z.object({
+        name: z.string().nullable().optional(),
+        phone: z.string().min(3),
+        status: z.enum(["active", "blocked", "archived"]).default("active"),
+        notes: z.string().nullable().optional(),
+      })).min(1).max(5000),
+    }).parse(raw),
+  )
+  .handler(async ({ data, context }) => {
+    const seen = new Set<string>();
+    const payload = data.rows
+      .map((r) => ({ ...r, phone: r.phone.replace(/\D/g, "") }))
+      .filter((r) => r.phone.length >= 8 && !seen.has(r.phone) && (seen.add(r.phone), true))
+      .map((r) => ({ user_id: context.userId, name: r.name ?? null, phone: r.phone, status: r.status, notes: r.notes ?? null }));
+    if (payload.length === 0) return { inserted: 0 };
+    const { error, count } = await context.supabase
+      .from("contacts")
+      .upsert(payload as never, { onConflict: "user_id,phone", count: "exact" } as never);
+    if (error) throw new Error(error.message);
+    return { inserted: count ?? payload.length };
+  });
+
+export const listAllContactsForExport = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { data, error } = await context.supabase
+      .from("contacts")
+      .select("name,phone,status,notes,created_at")
+      .eq("user_id", context.userId)
+      .order("created_at", { ascending: false })
+      .limit(50000);
+    if (error) throw new Error(error.message);
+    return { rows: data ?? [] };
+  });
