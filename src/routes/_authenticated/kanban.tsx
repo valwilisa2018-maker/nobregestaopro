@@ -18,7 +18,7 @@ import { waHref, formatPhoneBR } from "@/lib/phone";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Search } from "lucide-react";
 import { fmtDate } from "@/lib/format";
-import { formatCurrency } from "@/lib/auth";
+import { formatCurrency, useAuth, isAdmin as isAdminRole } from "@/lib/auth";
 import { autoLinkFolderFromUrl } from "@/lib/project-folders";
 
 // Lembrete de baixa de pagamento — ao mover card(s) para a coluna "Serviços Entregues",
@@ -181,6 +181,8 @@ function KanbanPage() {
   const [search, setSearch] = useState<string>("");
   const [editingColumn, setEditingColumn] = useState<{ id?: string, name: string, color: string, producer_id?: string | null } | null>(null);
   const [savingColumn, setSavingColumn] = useState(false);
+  const { roles } = useAuth();
+  const canTransferProducer = isAdminRole(roles);
 
   const producers = useQuery({
     queryKey: ["producers-select"],
@@ -428,6 +430,10 @@ function KanbanPage() {
   };
 
   const transferCard = async (cardId: string, producerId: string) => {
+    if (!canTransferProducer) {
+      toast.error("Apenas o admin pode transferir cards para outro produtor.");
+      return;
+    }
     const { error } = await supabase
       .from("service_orders")
       .update({ producer_id: producerId })
@@ -441,6 +447,10 @@ function KanbanPage() {
   };
 
   const transferMany = async (cardIds: string[], producerId: string) => {
+    if (!canTransferProducer) {
+      toast.error("Apenas o admin pode transferir cards para outro produtor.");
+      return;
+    }
     const { error } = await supabase
       .from("service_orders")
       .update({ producer_id: producerId })
@@ -508,10 +518,13 @@ function KanbanPage() {
       labels: editing.labels,
       google_drive_link: driveRaw || null,
       platform_link: platformRaw || null,
-      producer_id: editing.producer_id || null,
+      producer_id: canTransferProducer
+        ? (editing.producer_id || null)
+        : undefined,
       expected_delivery_date: editing.expected_delivery_date || null,
       video_duration_seconds: durParsed,
     };
+    if (payload.producer_id === undefined) delete payload.producer_id;
     try {
       if (editing.id) {
         const { error } = await supabase.from("service_orders").update(payload).eq("id", editing.id);
@@ -1312,10 +1325,11 @@ function KanbanPage() {
                 <div className="col-span-2"><Label className="text-primary">Data de Entrega (Sincronizada da Venda)</Label><Input type="date" value={editing.expected_delivery_date || ""} onChange={(e) => setEditing({ ...editing, expected_delivery_date: e.target.value })} /></div>
               </div>
               <div>
-                <Label>Produtor</Label>
+                <Label>Produtor{!canTransferProducer && <span className="ml-2 text-xs text-muted-foreground">(somente admin pode alterar)</span>}</Label>
                 <Select
                   value={editing.producer_id || "_none"}
                   onValueChange={(v) => setEditing({ ...editing, producer_id: v === "_none" ? null : v })}
+                  disabled={!canTransferProducer}
                 >
                   <SelectTrigger><SelectValue placeholder="Selecionar produtor" /></SelectTrigger>
                   <SelectContent>
