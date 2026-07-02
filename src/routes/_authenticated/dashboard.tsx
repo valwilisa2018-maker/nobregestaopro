@@ -185,6 +185,20 @@ function Dashboard() {
     staleTime: 60_000,
     refetchOnWindowFocus: false,
   });
+  const receipts = useQuery({
+    queryKey: ["dash-receipts"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("sale_receipts")
+        .select("id,sale_id,amount,paid_at,created_at")
+        .order("created_at", { ascending: false })
+        .limit(2000);
+      if (error) { toast.error("Erro ao carregar recebimentos"); throw error; }
+      return data ?? [];
+    },
+    staleTime: 60_000,
+    refetchOnWindowFocus: false,
+  });
   const serviceTypes = useQuery({
     queryKey: ["dash-service-types"],
     queryFn: async () => {
