@@ -3,7 +3,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
-import { ArrowLeft, ArrowRight, CheckCircle2, Clock, Copy, Eye, Loader2, Pause, Play, Plus, Rocket, Send, StopCircle, Trash2, Users } from "lucide-react";
+import { ArrowLeft, ArrowRight, CheckCircle2, Clock, Copy, Download, Eye, Filter, Loader2, Pause, Play, Plus, Rocket, Send, StopCircle, Trash2, Users } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -108,6 +108,13 @@ function BroadcastsPage() {
   const [stopOnReply, setStopOnReply] = useState(false);
   const [dailyLimit, setDailyLimit] = useState<number | null>(1000);
   const [delay, setDelay] = useState(5);
+  // Segmentation
+  const [segDays, setSegDays] = useState(0);
+  const [segExcludeTags, setSegExcludeTags] = useState<string[]>([]);
+  // History + timeline filters
+  const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [timelineFilter, setTimelineFilter] = useState<string>("all");
+  const [timelineSearch, setTimelineSearch] = useState("");
 
   const rows = contacts.data?.rows ?? [];
   const selectedIds = useMemo(() => Object.keys(selected).filter((k) => selected[k]), [selected]);
@@ -125,8 +132,9 @@ function BroadcastsPage() {
     preview({ data: {
       source_type: sourceType, source_value: selectedTags,
       contact_ids: selectedIds, dedupe, rate_per_min: rate, daily_limit: dailyLimit,
+      segment_created_days: segDays, segment_exclude_tags: segExcludeTags,
     } }).then(setSim).catch(() => setSim(null));
-  }, [step, sourceType, selectedTags, selectedIds, dedupe, rate, dailyLimit, preview]);
+  }, [step, sourceType, selectedTags, selectedIds, dedupe, rate, dailyLimit, segDays, segExcludeTags, preview]);
 
   const [runningId, setRunningId] = useState<string | null>(null);
   const [progress, setProgress] = useState<{ sent: number; error: number; total: number; responded: number } | null>(null);
@@ -145,6 +153,7 @@ function BroadcastsPage() {
       weekdays, ignore_holidays: ignoreHolidays, continue_next_day: continueNextDay,
       dedupe, ignore_responded: ignoreResponded, stop_on_reply: stopOnReply,
       daily_limit: dailyLimit, delay_seconds: delay,
+      segment_created_days: segDays, segment_exclude_tags: segExcludeTags,
     } }),
     onSuccess: async (res) => {
       toast.success("Campanha criada");
