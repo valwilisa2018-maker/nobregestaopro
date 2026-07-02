@@ -295,6 +295,131 @@ export type Database = {
         }
         Relationships: []
       }
+      broadcast_recipients: {
+        Row: {
+          broadcast_id: string
+          contact_id: string | null
+          created_at: string
+          error: string | null
+          id: string
+          phone: string
+          sent_at: string | null
+          status: string
+          user_id: string
+        }
+        Insert: {
+          broadcast_id: string
+          contact_id?: string | null
+          created_at?: string
+          error?: string | null
+          id?: string
+          phone: string
+          sent_at?: string | null
+          status?: string
+          user_id: string
+        }
+        Update: {
+          broadcast_id?: string
+          contact_id?: string | null
+          created_at?: string
+          error?: string | null
+          id?: string
+          phone?: string
+          sent_at?: string | null
+          status?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "broadcast_recipients_broadcast_id_fkey"
+            columns: ["broadcast_id"]
+            isOneToOne: false
+            referencedRelation: "broadcasts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "broadcast_recipients_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      broadcasts: {
+        Row: {
+          connection_id: string | null
+          created_at: string
+          delay_seconds: number
+          error_count: number
+          finished_at: string | null
+          id: string
+          media_type: string | null
+          media_url: string | null
+          message: string
+          mode: string
+          name: string
+          sent_count: number
+          sequence: Json | null
+          started_at: string | null
+          status: string
+          total: number
+          updated_at: string
+          user_id: string
+          weekdays: number[] | null
+        }
+        Insert: {
+          connection_id?: string | null
+          created_at?: string
+          delay_seconds?: number
+          error_count?: number
+          finished_at?: string | null
+          id?: string
+          media_type?: string | null
+          media_url?: string | null
+          message: string
+          mode?: string
+          name: string
+          sent_count?: number
+          sequence?: Json | null
+          started_at?: string | null
+          status?: string
+          total?: number
+          updated_at?: string
+          user_id: string
+          weekdays?: number[] | null
+        }
+        Update: {
+          connection_id?: string | null
+          created_at?: string
+          delay_seconds?: number
+          error_count?: number
+          finished_at?: string | null
+          id?: string
+          media_type?: string | null
+          media_url?: string | null
+          message?: string
+          mode?: string
+          name?: string
+          sent_count?: number
+          sequence?: Json | null
+          started_at?: string | null
+          status?: string
+          total?: number
+          updated_at?: string
+          user_id?: string
+          weekdays?: number[] | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "broadcasts_connection_id_fkey"
+            columns: ["connection_id"]
+            isOneToOne: false
+            referencedRelation: "connections"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       clients: {
         Row: {
           avatar_url: string | null
@@ -393,6 +518,48 @@ export type Database = {
           status?: string
           updated_at?: string
           url_api?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      contacts: {
+        Row: {
+          created_at: string
+          id: string
+          metadata: Json | null
+          name: string | null
+          notes: string | null
+          phone: string
+          source: string | null
+          status: string
+          tags: string[] | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          metadata?: Json | null
+          name?: string | null
+          notes?: string | null
+          phone: string
+          source?: string | null
+          status?: string
+          tags?: string[] | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          metadata?: Json | null
+          name?: string | null
+          notes?: string | null
+          phone?: string
+          source?: string | null
+          status?: string
+          tags?: string[] | null
+          updated_at?: string
           user_id?: string
         }
         Relationships: []

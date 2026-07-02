@@ -109,6 +109,21 @@ export const Route = createFileRoute("/api/public/evolution/$instance")({
             // full jid is safest (handles @lid and @s.whatsapp.net).
             const recipient = remoteJid.includes("@") ? remoteJid : `${remoteJid}@s.whatsapp.net`;
 
+            // Auto-save contact from incoming message
+            try {
+              const phone = remoteJid.split("@")[0]?.replace(/\D/g, "");
+              const pushName = (msg?.pushName ?? msg?.notifyName) as string | undefined;
+              if (phone) {
+                await supabaseAdmin.from("contacts").upsert({
+                  user_id: conn.user_id,
+                  phone,
+                  name: pushName ?? null,
+                  source: "whatsapp",
+                  status: "active",
+                } as never, { onConflict: "user_id,phone", ignoreDuplicates: false } as never);
+              }
+            } catch { /* non-blocking */ }
+
             const { data: agent } = await supabaseAdmin
               .from("agents")
               .select("id,system_prompt,temperature,max_tokens,model,category,ai_provider_id,is_active,tools,timezone,memory")
