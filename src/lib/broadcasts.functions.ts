@@ -5,6 +5,7 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 const CreateInput = z.object({
   name: z.string().min(1),
   message: z.string().min(1),
+  flow_id: z.string().uuid().nullable().optional(),
   media_url: z.string().nullable().optional(),
   media_type: z.string().nullable().optional(),
   connection_id: z.string().uuid().nullable().optional(),
@@ -28,6 +29,7 @@ export const createBroadcast = createServerFn({ method: "POST" })
     const { data: b, error: berr } = await context.supabase.from("broadcasts").insert({
       user_id: context.userId,
       connection_id: data.connection_id ?? null,
+      flow_id: data.flow_id ?? null,
       name: data.name, message: data.message,
       media_url: data.media_url ?? null, media_type: data.media_type ?? null,
       mode: data.mode, delay_seconds: data.delay_seconds,
