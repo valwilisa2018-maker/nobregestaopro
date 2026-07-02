@@ -16,8 +16,26 @@ type Ext = {
 export const Route = createFileRoute("/api/public/hooks/follow-ups")({
   server: {
     handlers: {
-      POST: async () => {
+      POST: async ({ request }) => runFollowups(request),
+      GET: async () => Response.json({ ok: true, hint: "POST with Authorization: Bearer <FOLLOWUP_TRIGGER_SECRET> to trigger runner" }),
+    },
+  },
+});
+
+async function runFollowups(request: Request | undefined) {
+  const auth = request?.headers.get("authorization") ?? "";
+  const token = auth.toLowerCase().startsWith("bearer ") ? auth.slice(7).trim() : "";
+  if (!token) return Response.json({ ok: false }, { status: 401 });
+
         const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+  const { data: cfg } = await supabaseAdmin
+    .from("internal_config" as never)
+    .select("value")
+    .eq("key", "followup_trigger_secret")
+    .maybeSingle<{ value: string }>();
+  const expected = cfg?.value ?? process.env.FOLLOWUP_TRIGGER_SECRET ?? "";
+  if (!expected || token !== expected) return Response.json({ ok: false }, { status: 401 });
 
         // Conversations due for follow-up
         const { data: convs } = await supabaseAdmin
@@ -116,11 +134,7 @@ export const Route = createFileRoute("/api/public/hooks/follow-ups")({
         }
 
         return Response.json({ ok: true, processed, sent });
-      },
-      GET: async () => Response.json({ ok: true, hint: "POST to trigger follow-up runner" }),
-    },
-  },
-});
+}
 
 function inWorkingHours(h: Ext["hours"], tz: string | null | undefined) {
   if (!h?.enabled || !h.start || !h.end) return true;

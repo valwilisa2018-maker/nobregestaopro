@@ -44,7 +44,8 @@ export const Route = createFileRoute("/api/public/evolution/$instance")({
       POST: async ({ request, params }) => {
         const instance = params.instance;
         let payload: any = null;
-        try { payload = await request.json(); } catch { payload = null; }
+        const rawBody = await request.text().catch(() => "");
+        try { payload = rawBody ? JSON.parse(rawBody) : null; } catch { payload = null; }
 
         const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
@@ -53,6 +54,14 @@ export const Route = createFileRoute("/api/public/evolution/$instance")({
           .from("connections").select("id,user_id,url_api,api_key,instance_name").eq("instance_name", instance).maybeSingle();
 
         if (!conn) return Response.json({ ok: false, reason: "instance not found" }, { status: 404 });
+
+        // Verify caller: Evolution forwards its instance apikey in the `apikey` header.
+        // Compare against the connection's stored api_key using a length-safe check.
+        const providedKey = request.headers.get("apikey") ?? request.headers.get("x-evolution-apikey") ?? "";
+        const expectedKey = conn.api_key ?? "";
+        if (!expectedKey || providedKey !== expectedKey) {
+          return Response.json({ ok: false, reason: "invalid signature" }, { status: 401 });
+        }
 
         // Log the raw event
         await supabaseAdmin.from("logs").insert({

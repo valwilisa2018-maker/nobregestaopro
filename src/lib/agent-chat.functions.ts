@@ -1,5 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
+import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
 const Input = z.object({
   provider: z.string(),
@@ -19,19 +20,21 @@ const PROVIDER_PREFIX: Record<string, string> = {
 };
 
 export const chatWithAgent = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
   .inputValidator((raw: unknown) => Input.parse(raw))
-  .handler(async ({ data }) => {
+  .handler(async ({ data, context }) => {
     let endpoint = "https://ai.gateway.lovable.dev/v1/chat/completions";
     let apiKey = process.env.LOVABLE_API_KEY ?? "";
     const prefix = PROVIDER_PREFIX[data.provider.toLowerCase()] ?? "google/";
     let modelId = data.model.includes("/") ? data.model : `${prefix}${data.model}`;
 
     if (data.providerId) {
-      const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-      const { data: p, error } = await supabaseAdmin
+      // Use user-scoped client so RLS enforces ownership of the provider row.
+      const { data: p, error } = await context.supabase
         .from("ai_providers")
         .select("api_key, base_url, model, provider")
         .eq("id", data.providerId)
+        .eq("user_id", context.userId)
         .maybeSingle();
       if (error || !p) throw new Error("Provedor não encontrado");
       apiKey = p.api_key ?? "";
