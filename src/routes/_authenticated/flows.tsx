@@ -352,7 +352,18 @@ function Builder() {
             fitView
           >
             <Background />
-            <MiniMap pannable zoomable position="bottom-right" className="!bg-background/80 border rounded-md" />
+            <MiniMap
+              pannable
+              zoomable
+              position="bottom-right"
+              maskColor="rgba(0,0,0,0.5)"
+              bgColor="hsl(var(--background))"
+              nodeColor={() => "hsl(var(--primary))"}
+              nodeStrokeColor="hsl(var(--primary))"
+              nodeStrokeWidth={3}
+              nodeBorderRadius={2}
+              style={{ border: "none" }}
+            />
           </ReactFlow>
         </div>
 
