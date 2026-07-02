@@ -181,6 +181,8 @@ function KanbanPage() {
   const [search, setSearch] = useState<string>("");
   const [editingColumn, setEditingColumn] = useState<{ id?: string, name: string, color: string, producer_id?: string | null } | null>(null);
   const [savingColumn, setSavingColumn] = useState(false);
+  const { roles } = useAuth();
+  const canTransferProducer = isAdminRole(roles);
 
   const producers = useQuery({
     queryKey: ["producers-select"],
@@ -428,6 +430,10 @@ function KanbanPage() {
   };
 
   const transferCard = async (cardId: string, producerId: string) => {
+    if (!canTransferProducer) {
+      toast.error("Apenas o admin pode transferir cards para outro produtor.");
+      return;
+    }
     const { error } = await supabase
       .from("service_orders")
       .update({ producer_id: producerId })
@@ -441,6 +447,10 @@ function KanbanPage() {
   };
 
   const transferMany = async (cardIds: string[], producerId: string) => {
+    if (!canTransferProducer) {
+      toast.error("Apenas o admin pode transferir cards para outro produtor.");
+      return;
+    }
     const { error } = await supabase
       .from("service_orders")
       .update({ producer_id: producerId })
