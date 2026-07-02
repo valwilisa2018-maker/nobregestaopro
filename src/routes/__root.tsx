@@ -90,6 +90,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
+      { name: "google", content: "notranslate" },
       { title: "Gestão Nobre MKT" },
       { name: "description", content: "Plataforma premium de gestão de vendas e produção" },
       { name: "author", content: "Gestão Nobre MKT" },
@@ -117,11 +118,11 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
 
 function RootShell({ children }: { children: ReactNode }) {
   return (
-    <html lang="en">
+    <html lang="pt-BR" translate="no" className="notranslate">
       <head>
         <HeadContent />
       </head>
-      <body>
+      <body translate="no" className="notranslate">
         {children}
         <Scripts />
       </body>
@@ -145,9 +146,11 @@ function RootComponent() {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <Outlet />
-      <Toaster richColors theme="dark" position="top-right" />
-      <UpdateBanner />
+      <div translate="no" className="notranslate">
+        <Outlet />
+        <Toaster richColors theme="dark" position="top-right" />
+        <UpdateBanner />
+      </div>
     </QueryClientProvider>
   );
 }

@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useState, useCallback, useMemo } from "react";
+import { useState, useCallback, useMemo, Component, type ErrorInfo, type ReactNode } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -25,7 +25,7 @@ import { autoLinkFolderFromUrl } from "@/lib/project-folders";
 import { PhoneInputBR } from "@/components/phone-input-br";
 
 export const Route = createFileRoute("/_authenticated/sales")({
-  component: SalesPage,
+  component: SalesRouteBoundary,
   errorComponent: ({ error, reset }) => {
     // Log to system_logs for post-mortem so we can inspect what actually failed.
     if (typeof window !== "undefined") {
@@ -57,6 +57,62 @@ export const Route = createFileRoute("/_authenticated/sales")({
     );
   },
 });
+
+type SalesBoundaryState = { key: number; error: Error | null };
+
+function isRecoverableDomError(error: unknown) {
+  const message = error instanceof Error ? error.message : String(error ?? "");
+  return (
+    message.includes("Failed to execute 'removeChild'") ||
+    message.includes("Failed to execute 'insertBefore'") ||
+    message.includes("The node to be removed is not a child of this node")
+  );
+}
+
+class SalesDomBoundary extends Component<{ children: ReactNode }, SalesBoundaryState> {
+  state: SalesBoundaryState = { key: 0, error: null };
+
+  static getDerivedStateFromError(error: Error): Partial<SalesBoundaryState> {
+    return { error };
+  }
+
+  componentDidCatch(error: Error, errorInfo: ErrorInfo) {
+    logger.error(`Sales UI crashed: ${error.message}`, {
+      context: "sales/ui-boundary",
+      details: { message: error.message, stack: error.stack, componentStack: errorInfo.componentStack },
+      silent: true,
+    }).catch(() => {});
+
+    if (isRecoverableDomError(error)) {
+      window.setTimeout(() => {
+        this.setState((state) => ({ key: state.key + 1, error: null }));
+      }, 0);
+    }
+  }
+
+  render() {
+    if (this.state.error) {
+      if (isRecoverableDomError(this.state.error)) {
+        return (
+          <div className="rounded-lg border border-border bg-card p-6 text-sm text-muted-foreground">
+            Reabrindo a área de vendas com segurança...
+          </div>
+        );
+      }
+      throw this.state.error;
+    }
+
+    return <div key={this.state.key}>{this.props.children}</div>;
+  }
+}
+
+function SalesRouteBoundary() {
+  return (
+    <SalesDomBoundary>
+      <SalesPage />
+    </SalesDomBoundary>
+  );
+}
 
 // Detecta se o tipo de serviço selecionado é vídeo (qualquer nome contendo
 // "video" / "vídeo") OU se a venda é de um pacote (pacotes são compostos
