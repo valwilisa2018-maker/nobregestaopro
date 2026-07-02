@@ -3,7 +3,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
-import { ArrowLeft, ArrowRight, CheckCircle2, Clock, Copy, Eye, Loader2, Pause, Play, Plus, Rocket, Send, StopCircle, Trash2, Users } from "lucide-react";
+import { ArrowLeft, ArrowRight, CheckCircle2, Clock, Copy, Download, Eye, Filter, Loader2, Pause, Play, Plus, Rocket, Send, StopCircle, Trash2, Users } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -108,6 +108,13 @@ function BroadcastsPage() {
   const [stopOnReply, setStopOnReply] = useState(false);
   const [dailyLimit, setDailyLimit] = useState<number | null>(1000);
   const [delay, setDelay] = useState(5);
+  // Segmentation
+  const [segDays, setSegDays] = useState(0);
+  const [segExcludeTags, setSegExcludeTags] = useState<string[]>([]);
+  // History + timeline filters
+  const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [timelineFilter, setTimelineFilter] = useState<string>("all");
+  const [timelineSearch, setTimelineSearch] = useState("");
 
   const rows = contacts.data?.rows ?? [];
   const selectedIds = useMemo(() => Object.keys(selected).filter((k) => selected[k]), [selected]);
@@ -125,8 +132,9 @@ function BroadcastsPage() {
     preview({ data: {
       source_type: sourceType, source_value: selectedTags,
       contact_ids: selectedIds, dedupe, rate_per_min: rate, daily_limit: dailyLimit,
+      segment_created_days: segDays, segment_exclude_tags: segExcludeTags,
     } }).then(setSim).catch(() => setSim(null));
-  }, [step, sourceType, selectedTags, selectedIds, dedupe, rate, dailyLimit, preview]);
+  }, [step, sourceType, selectedTags, selectedIds, dedupe, rate, dailyLimit, segDays, segExcludeTags, preview]);
 
   const [runningId, setRunningId] = useState<string | null>(null);
   const [progress, setProgress] = useState<{ sent: number; error: number; total: number; responded: number } | null>(null);
@@ -145,6 +153,7 @@ function BroadcastsPage() {
       weekdays, ignore_holidays: ignoreHolidays, continue_next_day: continueNextDay,
       dedupe, ignore_responded: ignoreResponded, stop_on_reply: stopOnReply,
       daily_limit: dailyLimit, delay_seconds: delay,
+      segment_created_days: segDays, segment_exclude_tags: segExcludeTags,
     } }),
     onSuccess: async (res) => {
       toast.success("Campanha criada");
@@ -314,7 +323,32 @@ function BroadcastsPage() {
             )}
 
             {(sourceType === "all" || sourceType === "segment") && (
-              <p className="text-sm text-muted-foreground">Todos os contatos ativos serão incluídos. Ajuste filtros na etapa de simulação.</p>
+              <p className="text-sm text-muted-foreground">Todos os contatos ativos serão incluídos.</p>
+            )}
+
+            {sourceType === "segment" && (
+              <div className="border rounded-lg p-4 space-y-3 bg-muted/20">
+                <div className="font-semibold text-sm flex items-center gap-2"><Filter className="h-4 w-4" /> Segmentação</div>
+                <div className="grid md:grid-cols-2 gap-3">
+                  <div>
+                    <Label className="text-xs">Cadastrados nos últimos (dias)</Label>
+                    <Input type="number" min={0} value={segDays} onChange={(e) => setSegDays(Number(e.target.value) || 0)} placeholder="0 = todos" />
+                  </div>
+                  <div>
+                    <Label className="text-xs">Excluir tags</Label>
+                    <div className="flex flex-wrap gap-2 mt-1">
+                      {(tags.data?.tags ?? []).length === 0 && <span className="text-xs text-muted-foreground">Nenhuma tag.</span>}
+                      {(tags.data?.tags ?? []).map((t) => {
+                        const on = segExcludeTags.includes(t);
+                        return (
+                          <button key={t} type="button" onClick={() => setSegExcludeTags((xs) => on ? xs.filter((x) => x !== t) : [...xs, t])}
+                            className={`px-2.5 py-1 rounded-full text-xs border ${on ? "bg-destructive text-destructive-foreground border-destructive" : "bg-muted"}`}>{on ? "− " : ""}{t}</button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </div>
+              </div>
             )}
           </div>
         )}
@@ -488,7 +522,44 @@ function BroadcastsPage() {
       <Card>
         <CardHeader className="pb-2"><CardTitle className="text-sm">Histórico</CardTitle></CardHeader>
         <CardContent className="p-0">
-          {(broadcasts.data?.rows ?? []).length === 0 ? (
+          {(() => {
+            const all = broadcasts.data?.rows ?? [];
+            const kpi = all.reduce((a, b) => {
+              a.total += (b.total as number) || 0;
+              a.sent += (b.sent_count as number) || 0;
+              a.error += (b.error_count as number) || 0;
+              a.responded += (b.responded_count as number) || 0;
+              if (b.status === "running") a.running++;
+              return a;
+            }, { total: 0, sent: 0, error: 0, responded: 0, running: 0 });
+            const delivery = kpi.total ? Math.round((kpi.sent / kpi.total) * 100) : 0;
+            return (
+              <div className="p-4 border-b bg-muted/20 grid grid-cols-2 md:grid-cols-6 gap-3">
+                <Stat label="Campanhas" value={all.length} />
+                <Stat label="Ativas" value={kpi.running} />
+                <Stat label="Enviados" value={kpi.sent} tone="ok" />
+                <Stat label="Falhas" value={kpi.error} tone="err" />
+                <Stat label="Respondidos" value={kpi.responded} />
+                <Stat label="Entrega %" value={`${delivery}%`} />
+              </div>
+            );
+          })()}
+          <div className="flex items-center gap-2 p-3 border-b">
+            <Filter className="h-4 w-4 text-muted-foreground" />
+            <Select value={statusFilter} onValueChange={setStatusFilter}>
+              <SelectTrigger className="w-48 h-8"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos os status</SelectItem>
+                <SelectItem value="running">Em execução</SelectItem>
+                <SelectItem value="scheduled">Agendadas</SelectItem>
+                <SelectItem value="paused">Pausadas</SelectItem>
+                <SelectItem value="done">Concluídas</SelectItem>
+                <SelectItem value="canceled">Canceladas</SelectItem>
+                <SelectItem value="draft">Rascunho</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          {(broadcasts.data?.rows ?? []).filter((b) => statusFilter === "all" || b.status === statusFilter).length === 0 ? (
             <div className="p-6 text-sm text-muted-foreground text-center">Nenhuma campanha ainda.</div>
           ) : (
             <div className="overflow-x-auto">
@@ -504,7 +575,7 @@ function BroadcastsPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {(broadcasts.data?.rows ?? []).map((b) => {
+                  {(broadcasts.data?.rows ?? []).filter((b) => statusFilter === "all" || b.status === statusFilter).map((b) => {
                     const total = (b.total as number) || 0;
                     const done = ((b.sent_count as number) || 0) + ((b.error_count as number) || 0);
                     const pct = total ? (done / total) * 100 : 0;
@@ -545,11 +616,29 @@ function BroadcastsPage() {
       <Dialog open={timelineOpen} onOpenChange={setTimelineOpen}>
         <DialogContent className="max-w-3xl max-h-[85vh] overflow-y-auto">
           <DialogHeader><DialogTitle>Timeline — {timelineTitle}</DialogTitle></DialogHeader>
-          {timelineRows.length === 0 ? (
+          <div className="flex flex-wrap items-center gap-2 pb-2 border-b">
+            <Select value={timelineFilter} onValueChange={setTimelineFilter}>
+              <SelectTrigger className="w-40 h-8"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos</SelectItem>
+                <SelectItem value="sent">Enviados</SelectItem>
+                <SelectItem value="error">Falhas</SelectItem>
+                <SelectItem value="pending">Pendentes</SelectItem>
+              </SelectContent>
+            </Select>
+            <Input placeholder="Buscar telefone..." value={timelineSearch} onChange={(e) => setTimelineSearch(e.target.value)} className="h-8 max-w-xs" />
+            <div className="ml-auto text-xs text-muted-foreground">
+              {timelineRows.filter((r) => (timelineFilter === "all" || r.status === timelineFilter) && (!timelineSearch || String(r.phone).includes(timelineSearch))).length} destinatários
+            </div>
+            <Button size="sm" variant="outline" onClick={() => exportTimelineCSV(timelineRows, timelineTitle, timelineFilter, timelineSearch)}>
+              <Download className="h-3.5 w-3.5" /> CSV
+            </Button>
+          </div>
+          {timelineRows.filter((r) => (timelineFilter === "all" || r.status === timelineFilter) && (!timelineSearch || String(r.phone).includes(timelineSearch))).length === 0 ? (
             <div className="text-sm text-muted-foreground p-4 text-center">Sem eventos ainda.</div>
           ) : (
             <div className="space-y-3">
-              {timelineRows.map((r) => (
+              {timelineRows.filter((r) => (timelineFilter === "all" || r.status === timelineFilter) && (!timelineSearch || String(r.phone).includes(timelineSearch))).map((r) => (
                 <div key={r.id} className="border rounded-lg p-3">
                   <div className="flex items-center justify-between mb-2">
                     <div className="text-sm font-medium tabular-nums">{r.phone}</div>
@@ -591,4 +680,20 @@ function Stat({ label, value, tone }: { label: string; value: number | string; t
 
 function Toggle({ label, v, set }: { label: string; v: boolean; set: (b: boolean) => void }) {
   return <label className="flex items-center gap-3 border rounded-lg p-3 cursor-pointer"><Switch checked={v} onCheckedChange={set} /><span className="text-sm">{label}</span></label>;
+}
+
+function exportTimelineCSV(rows: any[], title: string, statusFilter: string, search: string) {
+  const filtered = rows.filter((r) => (statusFilter === "all" || r.status === statusFilter) && (!search || String(r.phone).includes(search)));
+  const header = ["telefone", "status", "etapa_atual", "proximo_envio", "ultimo_evento", "erro", "eventos"];
+  const lines = filtered.map((r) => {
+    const events = Array.isArray(r.timeline) ? r.timeline.map((e: any) => `${e.at}|etapa ${(e.step ?? 0) + 1}|${e.status}${e.error ? "|" + e.error : ""}`).join(" ;; ") : "";
+    const vals = [r.phone ?? "", r.status ?? "", (r.current_step ?? 0) + 1, r.next_action_at ?? "", r.last_step_at ?? "", r.error ?? "", events];
+    return vals.map((v) => `"${String(v).replaceAll('"', '""')}"`).join(",");
+  });
+  const csv = [header.join(","), ...lines].join("\n");
+  const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url; a.download = `${title.replace(/\W+/g, "_") || "timeline"}.csv`;
+  a.click(); URL.revokeObjectURL(url);
 }
