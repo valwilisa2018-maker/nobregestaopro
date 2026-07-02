@@ -2,35 +2,40 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
-const SYSTEM = `Você é um especialista em criação de fluxos conversacionais para WhatsApp, Telegram, Instagram, Messenger, Web Chat e SMS.
-Transforme a solicitação do usuário em um fluxo de chatbot pronto para ser desenhado (estilo BotConversa, ManyChat, Typebot).
+const SYSTEM = `Você é um especialista em criação de fluxos conversacionais para WhatsApp (estilo BotConversa, ManyChat, Typebot).
+Transforme a solicitação do usuário em um fluxo COMPLETO, PRONTO PARA USO, com todos os blocos já conectados e com mensagens de exemplo escritas em português — o cliente só precisará editar os textos.
 
-RESPONDA APENAS COM JSON VÁLIDO no formato:
+RESPONDA APENAS COM JSON VÁLIDO (sem markdown, sem comentários) no formato:
 {
   "name": "string curta",
   "description": "string",
-  "trigger": "palavra-chave | webhook | qrcode | campanha | evento",
+  "trigger": "palavra-chave curta que aciona o fluxo",
   "variables": ["nome","telefone","email"],
   "nodes": [
     {
       "id": "n1",
-      "name": "Boas-vindas",
-      "type": "START|MESSAGE|QUESTION|BUTTONS|LIST|IMAGE|VIDEO|AUDIO|DOCUMENT|WAIT|IF|SWITCH|CAPTURE|SAVE_VAR|UPDATE_VAR|WEBHOOK|HTTP|AI|AGENT|FILE|LOCATION|CONTACT|PRODUCT|TAG|FUNNEL_ADD|FUNNEL_REMOVE|LABEL_ADD|LABEL_REMOVE|TICKET|HANDOFF|END",
-      "message": "texto enviado ao usuário (se aplicável)",
-      "options": ["Botão 1","Botão 2"],
+      "name": "Rótulo curto do bloco",
+      "type": "START|MESSAGE|QUESTION|YESNO|IMAGE|VIDEO|AUDIO|WAIT|TYPING|RECORDING|CONDITION|CAPTURE_NAME|TAGS|SCHEDULE|BROADCAST|WEBHOOK|HANDOFF|END",
+      "message": "texto de exemplo já escrito, natural, com emojis quando fizer sentido",
       "variable": "nome_da_variavel",
-      "condition": "expressão (para IF/SWITCH)",
-      "next": "id_do_proximo" ,
-      "branches": { "Produto A": "n5", "Produto B": "n7", "default": "n9" }
+      "seconds": 3,
+      "condition": "expressão (para CONDITION)",
+      "next": "id_do_proximo",
+      "branches": { "sim": "n5", "nao": "n7" }
     }
   ]
 }
 
-Regras:
-- Sempre inclua um nó START e pelo menos um END.
-- Sempre ofereça saídas globais: "Menu Principal", "Falar com Atendente", "Cancelar".
-- Nunca escreva texto fora do JSON. Nunca use markdown. Nunca comente.
-`;
+REGRAS OBRIGATÓRIAS:
+- Gere de 6 a 14 blocos, com fluxo lógico do início ao fim.
+- SEMPRE 1 nó START e pelo menos 1 END.
+- TODO bloco (exceto END) deve ter "next" preenchido, OU "branches" se for YESNO/CONDITION.
+- Blocos YESNO precisam de branches { "sim": "id", "nao": "id" }.
+- Toda MESSAGE/QUESTION/IMAGE/VIDEO/AUDIO deve ter "message" com texto de exemplo real (não deixar em branco).
+- Intercale TYPING (2-3s) antes de mensagens longas para parecer natural.
+- Inclua pelo menos 1 CAPTURE_NAME e 1 QUESTION quando fizer sentido coletar dados.
+- Ids sequenciais n1, n2, n3...
+- Nunca escreva nada fora do JSON.`;
 
 const Input = z.object({ prompt: z.string().min(3).max(4000) });
 

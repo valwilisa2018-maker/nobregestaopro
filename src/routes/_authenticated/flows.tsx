@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useCallback, useMemo, useState, useEffect } from "react";
 import {
-  Workflow, Sparkles, Save, Trash2, Loader2, MessageSquare, GitBranch,
+  Workflow, Sparkles, Bot, Save, Trash2, Loader2, MessageSquare, GitBranch,
   Image as ImageIcon, Video, Music, HelpCircle, Play, Square, Webhook, Clock, User,
   Keyboard, Mic, Tag, UserPlus, Calendar, Send, ArrowLeft,
 } from "lucide-react";
@@ -238,20 +238,38 @@ function Builder() {
         const src = parsed.nodes ?? [];
         const kindMap: Record<string, NodeKind> = {
           START: "START", END: "END", MESSAGE: "MESSAGE", QUESTION: "QUESTION",
-          IF: "CONDITION", SWITCH: "CONDITION", BUTTONS: "YESNO", LIST: "YESNO",
-          IMAGE: "IMAGE", VIDEO: "VIDEO", AUDIO: "AUDIO", WAIT: "WAIT",
+          IF: "CONDITION", SWITCH: "CONDITION", CONDITION: "CONDITION",
+          BUTTONS: "YESNO", LIST: "YESNO", YESNO: "YESNO",
+          IMAGE: "IMAGE", VIDEO: "VIDEO", AUDIO: "AUDIO",
+          WAIT: "WAIT", TYPING: "TYPING", RECORDING: "RECORDING",
           WEBHOOK: "WEBHOOK", HTTP: "WEBHOOK", HANDOFF: "HANDOFF",
+          CAPTURE: "CAPTURE_NAME", CAPTURE_NAME: "CAPTURE_NAME",
+          TAG: "TAGS", TAGS: "TAGS", LABEL_ADD: "TAGS",
+          SCHEDULE: "SCHEDULE", BROADCAST: "BROADCAST",
         };
         const newNodes: Node<BlockData>[] = src.map((n, i) => ({
           id: n.id, type: "block",
-          position: { x: 60 + (i % 4) * 240, y: 60 + Math.floor(i / 4) * 180 },
-          data: { kind: kindMap[n.type] ?? "MESSAGE", label: n.name ?? n.type, text: n.message },
+          position: { x: 60 + (i % 4) * 260, y: 60 + Math.floor(i / 4) * 200 },
+          data: {
+            kind: kindMap[n.type?.toUpperCase()] ?? "MESSAGE",
+            label: n.name ?? n.type,
+            text: n.message,
+          },
         }));
         const newEdges: Edge[] = [];
-        for (const n of src) {
-          if (n.next) newEdges.push({ id: `${n.id}-${n.next}`, source: n.id, target: n.next, animated: true });
+        const ids = new Set(src.map((n) => n.id));
+        for (let i = 0; i < src.length; i++) {
+          const n = src[i];
+          const hasBranches = n.branches && Object.keys(n.branches).length > 0;
+          if (n.next && ids.has(n.next)) {
+            newEdges.push({ id: `${n.id}-${n.next}`, source: n.id, target: n.next, animated: true });
+          } else if (!hasBranches && n.type !== "END" && i < src.length - 1) {
+            // auto-chain sequentially when AI omits `next`
+            const nxt = src[i + 1].id;
+            newEdges.push({ id: `${n.id}-${nxt}`, source: n.id, target: nxt, animated: true });
+          }
           if (n.branches) for (const [k, v] of Object.entries(n.branches)) {
-            newEdges.push({ id: `${n.id}-${k}-${v}`, source: n.id, target: v, label: k, animated: true });
+            if (ids.has(v)) newEdges.push({ id: `${n.id}-${k}-${v}`, source: n.id, target: v, label: k, animated: true });
           }
         }
         setNodes(newNodes); setEdges(newEdges); setFlowId(null); setAiOpen(false);
@@ -284,13 +302,13 @@ function Builder() {
         <div className="ml-auto flex flex-wrap gap-2">
           <Dialog open={aiOpen} onOpenChange={setAiOpen}>
             <DialogTrigger asChild>
-              <Button variant="outline" size="sm"><Sparkles className="h-4 w-4" /> Gerar IA</Button>
+              <Button variant="outline" size="sm"><Bot className="h-4 w-4" /> Gerar IA</Button>
             </DialogTrigger>
             <DialogContent>
               <DialogHeader><DialogTitle>Gerar fluxo com IA</DialogTitle></DialogHeader>
               <Textarea rows={5} value={aiPrompt} onChange={(e) => setAiPrompt(e.target.value)} placeholder="Ex.: Qualifica lead de imóvel, pede nome/cidade e envia para o corretor" />
               <Button onClick={() => genM.mutate()} disabled={!aiPrompt.trim() || genM.isPending}>
-                {genM.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />} Gerar
+                {genM.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Bot className="h-4 w-4" />} Gerar
               </Button>
             </DialogContent>
           </Dialog>
