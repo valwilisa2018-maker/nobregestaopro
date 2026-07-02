@@ -61,9 +61,8 @@ export const generateFlow = createServerFn({ method: "POST" })
     }
     const json = (await res.json()) as { choices?: Array<{ message?: { content?: string } }> };
     const raw = json.choices?.[0]?.message?.content ?? "{}";
-    let flow: Record<string, unknown>;
-    try { flow = JSON.parse(raw); } catch { throw new Error("Resposta inválida da IA"); }
-    return { flow };
+    try { JSON.parse(raw); } catch { throw new Error("Resposta inválida da IA"); }
+    return { flowJson: raw };
   });
 
 const SaveInput = z.object({
