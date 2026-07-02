@@ -19,6 +19,15 @@ type Ext = {
     whatsapp?: boolean; stopAfterHandoff?: boolean;
     stopAfterHours?: number; includeSummary?: boolean;
   };
+  audio?: {
+    enabled?: boolean; replaceText?: boolean; autoReply?: boolean;
+    mirrorFormat?: boolean; smartAudio?: boolean; smartAudioChars?: number;
+    voice?: string;
+  };
+  media?: {
+    enabled?: boolean;
+    items?: Array<{ id: string; name: string; mode?: string; keywords?: string; description?: string; storage_path?: string; mime?: string }>;
+  };
 };
 type ConvMeta = {
   remoteJid?: string;
@@ -72,10 +81,12 @@ export const Route = createFileRoute("/api/public/evolution/$instance")({
             const msg = Array.isArray(payload?.data) ? payload.data[0] : payload?.data;
             const fromMe = msg?.key?.fromMe;
             const remoteJid = msg?.key?.remoteJid as string | undefined;
-            const text: string | undefined =
+            let text: string | undefined =
               msg?.message?.conversation ??
               msg?.message?.extendedTextMessage?.text ??
               msg?.message?.imageMessage?.caption;
+            const audioMsg = msg?.message?.audioMessage;
+            let inputWasAudio = false;
             if (!remoteJid) return Response.json({ ok: true, skipped: true });
             // Ignore broadcasts, newsletters and groups (safe default)
             if (
@@ -95,6 +106,22 @@ export const Route = createFileRoute("/api/public/evolution/$instance")({
               .eq("connection_id", conn.id).eq("is_active", true)
               .maybeSingle();
             const ext = ((agent?.tools ?? {}) as Ext);
+
+            // Speech-to-text on inbound audio
+            if (!fromMe && !text && audioMsg && ext.audio?.enabled) {
+              try {
+                const b64 = await evolutionGetBase64(conn, msg);
+                if (b64) {
+                  const transcript = await sttViaLovable(b64);
+                  if (transcript) { text = transcript; inputWasAudio = true; }
+                }
+              } catch (e) {
+                await supabaseAdmin.from("logs").insert({
+                  user_id: conn.user_id, level: "warn", source: `evolution:${instance}`,
+                  message: "stt failed", metadata: { err: e instanceof Error ? e.message : String(e) } as never,
+                } as never);
+              }
+            }
             const convo = agent
               ? await getOrCreateConversation(supabaseAdmin, conn, agent.id, remoteJid)
               : null;
@@ -128,9 +155,9 @@ export const Route = createFileRoute("/api/public/evolution/$instance")({
               user_id: conn.user_id,
               conversation_id: convo?.id ?? null,
               direction: "inbound",
-              type: "text",
+              type: inputWasAudio ? "audio" : "text",
               content: text,
-              metadata: { remoteJid, instance: conn.instance_name },
+              metadata: { remoteJid, instance: conn.instance_name, transcribed: inputWasAudio },
             } as never);
             if (convo) {
               await supabaseAdmin.from("conversations").update({
@@ -291,24 +318,62 @@ export const Route = createFileRoute("/api/public/evolution/$instance")({
               if (ms > 0) await sleep(ms);
             }
 
-            // Send back via Evolution (full jid works for @s.whatsapp.net and @lid)
-            const sendRes = await sendText(conn, recipient, reply);
-            if (!sendRes.ok) {
+            // Media attachments (keyword-triggered) sent before/instead of text
+            let mediaSent = false;
+            if (ext.media?.enabled && Array.isArray(ext.media.items)) {
+              for (const it of ext.media.items) {
+                if (!it.storage_path) continue;
+                const shouldSend =
+                  it.mode === "all" ||
+                  (it.mode === "keyword" && (it.keywords ?? "").split(",").map((k) => k.trim().toLowerCase()).filter(Boolean).some((k) => text!.toLowerCase().includes(k))) ||
+                  (it.mode === "ai" && (it.description ?? "") && reply.toLowerCase().includes((it.description ?? "").toLowerCase().slice(0, 20)));
+                if (!shouldSend) continue;
+                const url = await signedMediaUrl(supabaseAdmin, it.storage_path);
+                if (!url) continue;
+                await sendMedia(conn, recipient, url, it.mime ?? "", it.name);
+                mediaSent = true;
+              }
+            }
+
+            // Decide audio vs text reply
+            const wantsAudio = !!ext.audio?.enabled && (
+              (ext.audio.mirrorFormat && inputWasAudio) ||
+              (ext.audio.smartAudio && reply.length >= Math.max(30, Number(ext.audio.smartAudioChars ?? 120)))
+            );
+            let sendRes: Response | null = null;
+            if (wantsAudio) {
+              try {
+                const audioB64 = await ttsViaLovable(reply, ext.audio?.voice);
+                if (audioB64) {
+                  sendRes = await sendAudio(conn, recipient, audioB64);
+                }
+              } catch (e) {
+                await supabaseAdmin.from("logs").insert({
+                  user_id: conn.user_id, level: "warn", source: `evolution:${instance}`,
+                  message: "tts failed", metadata: { err: e instanceof Error ? e.message : String(e) } as never,
+                } as never);
+              }
+            }
+            if (!wantsAudio || !ext.audio?.replaceText) {
+              if (!sendRes || !wantsAudio) sendRes = await sendText(conn, recipient, reply);
+            }
+            if (sendRes && !sendRes.ok) {
               const errText = await sendRes.text().catch(() => "");
               await supabaseAdmin.from("logs").insert({
                 user_id: conn.user_id, level: "error", source: `evolution:${instance}`,
-                message: `sendText failed ${sendRes.status}`, metadata: { recipient, body: errText.slice(0, 500) },
+                message: `send failed ${sendRes.status}`, metadata: { recipient, body: errText.slice(0, 500) },
               } as never);
               await maybeAlert(supabaseAdmin, conn, agent, ext, `Falha ao enviar (${sendRes.status})`);
             }
+            void mediaSent;
 
             await supabaseAdmin.from("messages").insert({
               user_id: conn.user_id,
               conversation_id: convo?.id ?? null,
               direction: "outbound",
-              type: "text",
+              type: wantsAudio ? "audio" : "text",
               content: reply,
-              metadata: { remoteJid, agent_id: agent.id },
+              metadata: { remoteJid, agent_id: agent.id, audio: wantsAudio, media_sent: mediaSent },
             } as never);
 
             // Clear debounce buffer and (optionally) unread badge
@@ -342,6 +407,71 @@ async function sendText(conn: { url_api: string | null; api_key: string | null; 
     headers: { "Content-Type": "application/json", apikey: conn.api_key ?? "" },
     body: JSON.stringify({ number, text }),
   });
+}
+
+async function sendAudio(conn: { url_api: string | null; api_key: string | null; instance_name: string | null }, number: string, audioBase64: string) {
+  return fetch(`${(conn.url_api ?? "").replace(/\/+$/, "")}/message/sendWhatsAppAudio/${conn.instance_name}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", apikey: conn.api_key ?? "" },
+    body: JSON.stringify({ number, audio: audioBase64 }),
+  });
+}
+
+async function sendMedia(
+  conn: { url_api: string | null; api_key: string | null; instance_name: string | null },
+  number: string, url: string, mime: string, fileName: string,
+) {
+  const mediatype = mime.startsWith("image/") ? "image" : mime.startsWith("video/") ? "video" : mime.startsWith("audio/") ? "audio" : "document";
+  return fetch(`${(conn.url_api ?? "").replace(/\/+$/, "")}/message/sendMedia/${conn.instance_name}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", apikey: conn.api_key ?? "" },
+    body: JSON.stringify({ number, mediatype, media: url, fileName, mimetype: mime }),
+  });
+}
+
+async function signedMediaUrl(db: { storage: { from: (b: string) => { createSignedUrl: (p: string, s: number) => Promise<{ data: { signedUrl: string } | null }> } } }, path: string) {
+  const { data } = await db.storage.from("agent-media").createSignedUrl(path, 60 * 10);
+  return data?.signedUrl ?? null;
+}
+
+async function evolutionGetBase64(conn: { url_api: string | null; api_key: string | null; instance_name: string | null }, message: unknown): Promise<string | null> {
+  const r = await fetch(`${(conn.url_api ?? "").replace(/\/+$/, "")}/chat/getBase64FromMediaMessage/${conn.instance_name}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", apikey: conn.api_key ?? "" },
+    body: JSON.stringify({ message, convertToMp3: true }),
+  });
+  if (!r.ok) return null;
+  const j = await r.json().catch(() => null) as { base64?: string } | null;
+  return j?.base64 ?? null;
+}
+
+async function sttViaLovable(audioBase64: string): Promise<string | null> {
+  const key = process.env.LOVABLE_API_KEY ?? "";
+  if (!key) return null;
+  const bin = Buffer.from(audioBase64, "base64");
+  const blob = new Blob([new Uint8Array(bin)], { type: "audio/mpeg" });
+  const fd = new FormData();
+  fd.append("file", blob, "audio.mp3");
+  fd.append("model", "openai/gpt-4o-mini-transcribe");
+  const r = await fetch("https://ai.gateway.lovable.dev/v1/audio/transcriptions", {
+    method: "POST", headers: { Authorization: `Bearer ${key}` }, body: fd,
+  });
+  if (!r.ok) return null;
+  const j = await r.json().catch(() => null) as { text?: string } | null;
+  return j?.text ?? null;
+}
+
+async function ttsViaLovable(text: string, voice?: string): Promise<string | null> {
+  const key = process.env.LOVABLE_API_KEY ?? "";
+  if (!key) return null;
+  const r = await fetch("https://ai.gateway.lovable.dev/v1/audio/speech", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${key}` },
+    body: JSON.stringify({ model: "openai/gpt-4o-mini-tts", input: text.slice(0, 3000), voice: voice || "alloy", response_format: "mp3" }),
+  });
+  if (!r.ok) return null;
+  const buf = await r.arrayBuffer();
+  return Buffer.from(buf).toString("base64");
 }
 
 async function getOrCreateConversation(
