@@ -17,6 +17,22 @@ export const Route = createFileRoute("/api/public/hooks/follow-ups")({
   server: {
     handlers: {
       POST: async () => {
+        // Auth: require shared secret so external callers can't spam follow-ups.
+        // (Runs inside the handler because `request` isn't destructured above.)
+        return await runFollowups(arguments[0]?.request as Request | undefined);
+      },
+      GET: async () => Response.json({ ok: true, hint: "POST with Authorization: Bearer <FOLLOWUP_TRIGGER_SECRET> to trigger runner" }),
+    },
+  },
+});
+
+async function runFollowups(request: Request | undefined) {
+  const expected = process.env.FOLLOWUP_TRIGGER_SECRET;
+  if (!expected) return Response.json({ ok: false, reason: "not configured" }, { status: 503 });
+  const auth = request?.headers.get("authorization") ?? "";
+  const token = auth.toLowerCase().startsWith("bearer ") ? auth.slice(7).trim() : "";
+  if (token !== expected) return Response.json({ ok: false }, { status: 401 });
+
         const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
         // Conversations due for follow-up
@@ -116,11 +132,7 @@ export const Route = createFileRoute("/api/public/hooks/follow-ups")({
         }
 
         return Response.json({ ok: true, processed, sent });
-      },
-      GET: async () => Response.json({ ok: true, hint: "POST to trigger follow-up runner" }),
-    },
-  },
-});
+}
 
 function inWorkingHours(h: Ext["hours"], tz: string | null | undefined) {
   if (!h?.enabled || !h.start || !h.end) return true;
