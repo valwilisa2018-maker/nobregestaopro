@@ -23,13 +23,19 @@ export const Route = createFileRoute("/api/public/hooks/follow-ups")({
 });
 
 async function runFollowups(request: Request | undefined) {
-  const expected = process.env.FOLLOWUP_TRIGGER_SECRET;
-  if (!expected) return Response.json({ ok: false, reason: "not configured" }, { status: 503 });
   const auth = request?.headers.get("authorization") ?? "";
   const token = auth.toLowerCase().startsWith("bearer ") ? auth.slice(7).trim() : "";
-  if (token !== expected) return Response.json({ ok: false }, { status: 401 });
+  if (!token) return Response.json({ ok: false }, { status: 401 });
 
         const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+  const { data: cfg } = await supabaseAdmin
+    .from("internal_config" as never)
+    .select("value")
+    .eq("key", "followup_trigger_secret")
+    .maybeSingle<{ value: string }>();
+  const expected = cfg?.value ?? process.env.FOLLOWUP_TRIGGER_SECRET ?? "";
+  if (!expected || token !== expected) return Response.json({ ok: false }, { status: 401 });
 
         // Conversations due for follow-up
         const { data: convs } = await supabaseAdmin
