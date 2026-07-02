@@ -2,53 +2,133 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
+const SourceType = z.enum(["list", "tag", "segment", "all"]);
+
 const CreateInput = z.object({
   name: z.string().min(1),
+  description: z.string().nullable().optional(),
   message: z.string().min(1),
   flow_id: z.string().uuid().nullable().optional(),
   media_url: z.string().nullable().optional(),
   media_type: z.string().nullable().optional(),
   connection_id: z.string().uuid().nullable().optional(),
-  mode: z.enum(["quick", "sequential"]),
+  mode: z.enum(["quick", "sequential"]).default("quick"),
+  // Source
+  source_type: SourceType.default("list"),
+  source_value: z.array(z.string()).default([]),
+  contact_ids: z.array(z.string().uuid()).default([]),
+  // Rate + humanization
+  rate_per_min: z.number().int().min(1).max(600).default(20),
+  humanize_min: z.number().int().min(0).max(600).default(5),
+  humanize_max: z.number().int().min(0).max(600).default(18),
+  // Window
+  window_start: z.string().regex(/^\d{2}:\d{2}$/).nullable().optional(),
+  window_end: z.string().regex(/^\d{2}:\d{2}$/).nullable().optional(),
+  weekdays: z.array(z.number().int().min(0).max(6)).default([0, 1, 2, 3, 4, 5, 6]),
+  ignore_holidays: z.boolean().default(false),
+  continue_next_day: z.boolean().default(true),
+  // Behavior
+  dedupe: z.boolean().default(true),
+  ignore_responded: z.boolean().default(false),
+  stop_on_reply: z.boolean().default(false),
+  daily_limit: z.number().int().min(0).nullable().optional(),
   delay_seconds: z.number().int().min(1).max(3600).default(5),
-  weekdays: z.array(z.number().int().min(0).max(6)).default([]),
-  contact_ids: z.array(z.string().uuid()).min(1),
 });
+
+export const listContactTags = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { data, error } = await context.supabase
+      .from("contacts").select("tags").eq("user_id", context.userId);
+    if (error) throw new Error(error.message);
+    const set = new Set<string>();
+    for (const r of data ?? []) for (const t of ((r.tags as string[]) ?? [])) if (t) set.add(t);
+    return { tags: [...set].sort() };
+  });
+
+async function resolveContacts(
+  supabase: any, userId: string,
+  sourceType: string, sourceValue: string[], contactIds: string[], dedupe: boolean,
+): Promise<Array<{ id: string; phone: string; name: string | null }>> {
+  let q = supabase.from("contacts").select("id,phone,name").eq("user_id", userId).eq("status", "active");
+  if (sourceType === "list") q = q.in("id", contactIds.length ? contactIds : ["00000000-0000-0000-0000-000000000000"]);
+  else if (sourceType === "tag") q = q.overlaps("tags", sourceValue.length ? sourceValue : ["__none__"]);
+  // "segment" / "all" → no extra filter
+  const { data, error } = await q;
+  if (error) throw new Error(error.message);
+  let rows = (data ?? []) as Array<{ id: string; phone: string; name: string | null }>;
+  if (dedupe) {
+    const seen = new Set<string>();
+    rows = rows.filter((r) => { const k = r.phone.replace(/\D/g, ""); if (seen.has(k)) return false; seen.add(k); return true; });
+  }
+  return rows;
+}
+
+export const previewBroadcast = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((raw: unknown) => z.object({
+    source_type: SourceType, source_value: z.array(z.string()).default([]),
+    contact_ids: z.array(z.string().uuid()).default([]),
+    dedupe: z.boolean().default(true),
+    rate_per_min: z.number().int().min(1).default(20),
+    daily_limit: z.number().int().min(0).nullable().optional(),
+  }).parse(raw))
+  .handler(async ({ data, context }) => {
+    const rows = await resolveContacts(context.supabase, context.userId, data.source_type, data.source_value, data.contact_ids, data.dedupe);
+    const total = rows.length;
+    const perHour = data.rate_per_min * 60;
+    const perDay = data.daily_limit && data.daily_limit > 0 ? Math.min(data.daily_limit, perHour * 24) : perHour * 24;
+    const days = perDay > 0 ? Math.ceil(total / perDay) : 0;
+    const finish = new Date(Date.now() + (total / Math.max(1, data.rate_per_min)) * 60000);
+    return { total, per_hour: perHour, per_day: perDay, days, finish_at: finish.toISOString() };
+  });
 
 export const createBroadcast = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((raw: unknown) => CreateInput.parse(raw))
   .handler(async ({ data, context }) => {
-    const { data: contacts, error: cerr } = await context.supabase
-      .from("contacts").select("id,phone,name")
-      .eq("user_id", context.userId).in("id", data.contact_ids);
-    if (cerr) throw new Error(cerr.message);
-    const list = contacts ?? [];
-    if (list.length === 0) throw new Error("Nenhum contato válido");
+    const rows = await resolveContacts(context.supabase, context.userId, data.source_type, data.source_value, data.contact_ids, data.dedupe);
+    if (rows.length === 0) throw new Error("Nenhum contato válido para a origem selecionada");
+
+    const delay = Math.max(1, Math.round(60 / Math.max(1, data.rate_per_min)));
+    const estMs = rows.length * delay * 1000;
+    const finish = new Date(Date.now() + estMs).toISOString();
 
     const { data: b, error: berr } = await context.supabase.from("broadcasts").insert({
       user_id: context.userId,
       connection_id: data.connection_id ?? null,
       flow_id: data.flow_id ?? null,
-      name: data.name, message: data.message,
+      name: data.name, description: data.description ?? null,
+      message: data.message,
       media_url: data.media_url ?? null, media_type: data.media_type ?? null,
-      mode: data.mode, delay_seconds: data.delay_seconds,
+      mode: data.mode, delay_seconds: delay,
       weekdays: data.weekdays,
+      source_type: data.source_type, source_value: data.source_value,
+      rate_per_min: data.rate_per_min,
+      humanize_min: data.humanize_min, humanize_max: Math.max(data.humanize_min, data.humanize_max),
+      window_start: data.window_start ?? null, window_end: data.window_end ?? null,
+      ignore_holidays: data.ignore_holidays, continue_next_day: data.continue_next_day,
+      dedupe: data.dedupe, ignore_responded: data.ignore_responded, stop_on_reply: data.stop_on_reply,
+      daily_limit: data.daily_limit ?? null,
       status: data.mode === "quick" ? "running" : "scheduled",
-      total: list.length,
+      total: rows.length,
       started_at: data.mode === "quick" ? new Date().toISOString() : null,
+      estimated_finish_at: finish,
     } as never).select("id").single();
     if (berr) throw new Error(berr.message);
     const broadcastId = b.id as string;
 
-    const recipients = list.map((c) => ({
+    const recipients = rows.map((c) => ({
       broadcast_id: broadcastId, user_id: context.userId,
       contact_id: c.id, phone: c.phone, status: "pending",
     }));
-    const { error: rerr } = await context.supabase.from("broadcast_recipients").insert(recipients as never);
-    if (rerr) throw new Error(rerr.message);
-
-    return { id: broadcastId, total: list.length };
+    // batch insert
+    for (let i = 0; i < recipients.length; i += 500) {
+      const chunk = recipients.slice(i, i + 500);
+      const { error } = await context.supabase.from("broadcast_recipients").insert(chunk as never);
+      if (error) throw new Error(error.message);
+    }
+    return { id: broadcastId, total: rows.length };
   });
 
 export const listBroadcasts = createServerFn({ method: "GET" })
@@ -56,43 +136,69 @@ export const listBroadcasts = createServerFn({ method: "GET" })
   .handler(async ({ context }) => {
     const { data, error } = await context.supabase
       .from("broadcasts")
-      .select("id,name,mode,status,total,sent_count,error_count,delay_seconds,created_at,started_at,finished_at")
+      .select("id,name,description,mode,status,total,sent_count,error_count,responded_count,delay_seconds,rate_per_min,estimated_finish_at,created_at,started_at,finished_at,paused_at")
       .eq("user_id", context.userId).order("created_at", { ascending: false }).limit(50);
     if (error) throw new Error(error.message);
     return { rows: data ?? [] };
   });
 
-/** Process up to `batch` pending recipients for one broadcast. */
+function inWindow(now: Date, ws: string | null, we: string | null, weekdays: number[]): boolean {
+  if (weekdays.length > 0 && !weekdays.includes(now.getDay())) return false;
+  if (!ws || !we) return true;
+  const [sh, sm] = ws.split(":").map(Number);
+  const [eh, em] = we.split(":").map(Number);
+  const mins = now.getHours() * 60 + now.getMinutes();
+  return mins >= sh * 60 + sm && mins <= eh * 60 + em;
+}
+
 export const runBroadcastBatch = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((raw: unknown) => z.object({ id: z.string().uuid(), batch: z.number().int().min(1).max(20).default(5) }).parse(raw))
   .handler(async ({ data, context }) => {
     const { data: b, error: berr } = await context.supabase.from("broadcasts")
-      .select("id,message,media_url,media_type,delay_seconds,connection_id,total,sent_count,error_count,status")
-      .eq("id", data.id).eq("user_id", context.userId).maybeSingle();
+      .select("*").eq("id", data.id).eq("user_id", context.userId).maybeSingle();
     if (berr || !b) throw new Error(berr?.message ?? "Não encontrado");
 
-    const { data: conn } = await context.supabase.from("connections")
-      .select("url_api,api_key,instance_name")
-      .eq("id", b.connection_id ?? "").maybeSingle();
+    // Status gates
+    if (b.status === "paused") return { done: false, paused: true, sent: b.sent_count, error: b.error_count, responded: b.responded_count, total: b.total };
+    if (b.status === "canceled" || b.status === "done") return { done: true, sent: b.sent_count, error: b.error_count, responded: b.responded_count, total: b.total };
 
+    const now = new Date();
+    if (!inWindow(now, b.window_start as string | null, b.window_end as string | null, (b.weekdays as number[]) ?? [])) {
+      if (!b.continue_next_day) {
+        await context.supabase.from("broadcasts").update({ status: "paused", paused_at: now.toISOString() } as never).eq("id", b.id);
+      }
+      return { done: false, waiting: true, sent: b.sent_count, error: b.error_count, responded: b.responded_count, total: b.total };
+    }
+
+    // Daily reset
+    const today = now.toISOString().slice(0, 10);
+    let sentToday = b.sent_today as number;
+    if (b.day_marker !== today) { sentToday = 0; }
+    const dLimit = (b.daily_limit as number | null) ?? 0;
+    if (dLimit > 0 && sentToday >= dLimit) {
+      return { done: false, dailyLimit: true, sent: b.sent_count, error: b.error_count, responded: b.responded_count, total: b.total };
+    }
+
+    const batchSize = dLimit > 0 ? Math.min(data.batch, dLimit - sentToday) : data.batch;
     const { data: pending } = await context.supabase.from("broadcast_recipients")
-      .select("id,phone,contact_id")
-      .eq("broadcast_id", b.id).eq("status", "pending")
-      .limit(data.batch);
+      .select("id,phone,contact_id").eq("broadcast_id", b.id).eq("status", "pending").limit(batchSize);
     const list = pending ?? [];
     if (list.length === 0) {
-      await context.supabase.from("broadcasts").update({
-        status: "done", finished_at: new Date().toISOString(),
-      } as never).eq("id", b.id);
-      return { done: true, sent: b.sent_count, error: b.error_count, total: b.total };
+      await context.supabase.from("broadcasts").update({ status: "done", finished_at: now.toISOString() } as never).eq("id", b.id);
+      return { done: true, sent: b.sent_count, error: b.error_count, responded: b.responded_count, total: b.total };
     }
+
+    const { data: conn } = await context.supabase.from("connections")
+      .select("url_api,api_key,instance_name").eq("id", b.connection_id ?? "").maybeSingle();
 
     let sent = b.sent_count as number;
     let errored = b.error_count as number;
+    const hmin = Math.max(0, b.humanize_min as number);
+    const hmax = Math.max(hmin, b.humanize_max as number);
+
     for (let i = 0; i < list.length; i++) {
       const r = list[i];
-      // Fetch contact name for variable substitution
       let contactName = "";
       if (r.contact_id) {
         const { data: c } = await context.supabase.from("contacts").select("name").eq("id", r.contact_id).maybeSingle();
@@ -114,30 +220,83 @@ export const runBroadcastBatch = createServerFn({ method: "POST" })
         await context.supabase.from("broadcast_recipients").update({
           status: "sent", sent_at: new Date().toISOString(),
         } as never).eq("id", r.id);
-        sent++;
+        sent++; sentToday++;
       } catch (e) {
         await context.supabase.from("broadcast_recipients").update({
           status: "error", error: e instanceof Error ? e.message : String(e),
         } as never).eq("id", r.id);
         errored++;
       }
-      // Delay between messages (skip after last in batch)
       if (i < list.length - 1) {
-        await new Promise((res) => setTimeout(res, Math.max(1, b.delay_seconds as number) * 1000));
+        const wait = hmax > 0 ? hmin + Math.floor(Math.random() * (hmax - hmin + 1)) : (b.delay_seconds as number);
+        await new Promise((res) => setTimeout(res, Math.max(1, wait) * 1000));
       }
     }
     await context.supabase.from("broadcasts").update({
-      sent_count: sent, error_count: errored,
+      sent_count: sent, error_count: errored, sent_today: sentToday, day_marker: today,
     } as never).eq("id", b.id);
-    return { done: false, sent, error: errored, total: b.total };
+    return { done: false, sent, error: errored, responded: b.responded_count, total: b.total };
+  });
+
+const IdInput = z.object({ id: z.string().uuid() });
+
+export const pauseBroadcast = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((raw: unknown) => IdInput.parse(raw))
+  .handler(async ({ data, context }) => {
+    const { error } = await context.supabase.from("broadcasts")
+      .update({ status: "paused", paused_at: new Date().toISOString() } as never)
+      .eq("id", data.id).eq("user_id", context.userId);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
+export const resumeBroadcast = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((raw: unknown) => IdInput.parse(raw))
+  .handler(async ({ data, context }) => {
+    const { error } = await context.supabase.from("broadcasts")
+      .update({ status: "running", paused_at: null } as never)
+      .eq("id", data.id).eq("user_id", context.userId);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
+export const cancelBroadcast = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((raw: unknown) => IdInput.parse(raw))
+  .handler(async ({ data, context }) => {
+    const { error } = await context.supabase.from("broadcasts")
+      .update({ status: "canceled", finished_at: new Date().toISOString() } as never)
+      .eq("id", data.id).eq("user_id", context.userId);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
+export const duplicateBroadcast = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((raw: unknown) => IdInput.parse(raw))
+  .handler(async ({ data, context }) => {
+    const { data: src, error } = await context.supabase.from("broadcasts")
+      .select("*").eq("id", data.id).eq("user_id", context.userId).maybeSingle();
+    if (error || !src) throw new Error(error?.message ?? "Não encontrado");
+    const clone = { ...src };
+    delete (clone as any).id; delete (clone as any).created_at; delete (clone as any).updated_at;
+    clone.name = `${src.name} (cópia)`;
+    clone.status = "draft"; clone.sent_count = 0; clone.error_count = 0; clone.responded_count = 0;
+    clone.sent_today = 0; clone.day_marker = null; clone.started_at = null; clone.finished_at = null; clone.paused_at = null;
+    clone.total = 0;
+    const { data: dup, error: derr } = await context.supabase.from("broadcasts").insert(clone as never).select("id").single();
+    if (derr) throw new Error(derr.message);
+    return { id: dup.id as string };
   });
 
 export const getBroadcast = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((raw: unknown) => z.object({ id: z.string().uuid() }).parse(raw))
+  .inputValidator((raw: unknown) => IdInput.parse(raw))
   .handler(async ({ data, context }) => {
     const { data: b, error } = await context.supabase.from("broadcasts")
-      .select("id,name,status,total,sent_count,error_count,mode,delay_seconds")
+      .select("id,name,status,total,sent_count,error_count,responded_count,mode,delay_seconds,rate_per_min")
       .eq("id", data.id).eq("user_id", context.userId).maybeSingle();
     if (error) throw new Error(error.message);
     return b;
