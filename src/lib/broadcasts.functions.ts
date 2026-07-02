@@ -33,6 +33,9 @@ const CreateInput = z.object({
   stop_on_reply: z.boolean().default(false),
   daily_limit: z.number().int().min(0).nullable().optional(),
   delay_seconds: z.number().int().min(1).max(3600).default(5),
+  // Segmentation (only used when source_type === 'segment')
+  segment_created_days: z.number().int().min(0).max(3650).default(0),
+  segment_exclude_tags: z.array(z.string()).default([]),
 });
 
 export const listContactTags = createServerFn({ method: "GET" })
@@ -49,14 +52,22 @@ export const listContactTags = createServerFn({ method: "GET" })
 async function resolveContacts(
   supabase: any, userId: string,
   sourceType: string, sourceValue: string[], contactIds: string[], dedupe: boolean,
+  segment?: { created_days?: number; exclude_tags?: string[] },
 ): Promise<Array<{ id: string; phone: string; name: string | null }>> {
-  let q = supabase.from("contacts").select("id,phone,name").eq("user_id", userId).eq("status", "active");
+  let q = supabase.from("contacts").select("id,phone,name,tags,created_at").eq("user_id", userId).eq("status", "active");
   if (sourceType === "list") q = q.in("id", contactIds.length ? contactIds : ["00000000-0000-0000-0000-000000000000"]);
   else if (sourceType === "tag") q = q.overlaps("tags", sourceValue.length ? sourceValue : ["__none__"]);
-  // "segment" / "all" → no extra filter
+  else if (sourceType === "segment" && segment?.created_days && segment.created_days > 0) {
+    const since = new Date(Date.now() - segment.created_days * 86400_000).toISOString();
+    q = q.gte("created_at", since);
+  }
   const { data, error } = await q;
   if (error) throw new Error(error.message);
-  let rows = (data ?? []) as Array<{ id: string; phone: string; name: string | null }>;
+  let rows = (data ?? []) as Array<{ id: string; phone: string; name: string | null; tags?: string[] }>;
+  if (sourceType === "segment" && segment?.exclude_tags && segment.exclude_tags.length > 0) {
+    const ex = new Set(segment.exclude_tags);
+    rows = rows.filter((r) => !(r.tags ?? []).some((t) => ex.has(t)));
+  }
   if (dedupe) {
     const seen = new Set<string>();
     rows = rows.filter((r) => { const k = r.phone.replace(/\D/g, ""); if (seen.has(k)) return false; seen.add(k); return true; });
@@ -72,9 +83,14 @@ export const previewBroadcast = createServerFn({ method: "POST" })
     dedupe: z.boolean().default(true),
     rate_per_min: z.number().int().min(1).default(20),
     daily_limit: z.number().int().min(0).nullable().optional(),
+    segment_created_days: z.number().int().min(0).default(0),
+    segment_exclude_tags: z.array(z.string()).default([]),
   }).parse(raw))
   .handler(async ({ data, context }) => {
-    const rows = await resolveContacts(context.supabase, context.userId, data.source_type, data.source_value, data.contact_ids, data.dedupe);
+    const rows = await resolveContacts(
+      context.supabase, context.userId, data.source_type, data.source_value, data.contact_ids, data.dedupe,
+      { created_days: data.segment_created_days, exclude_tags: data.segment_exclude_tags },
+    );
     const total = rows.length;
     const perHour = data.rate_per_min * 60;
     const perDay = data.daily_limit && data.daily_limit > 0 ? Math.min(data.daily_limit, perHour * 24) : perHour * 24;
@@ -87,7 +103,10 @@ export const createBroadcast = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((raw: unknown) => CreateInput.parse(raw))
   .handler(async ({ data, context }) => {
-    const rows = await resolveContacts(context.supabase, context.userId, data.source_type, data.source_value, data.contact_ids, data.dedupe);
+    const rows = await resolveContacts(
+      context.supabase, context.userId, data.source_type, data.source_value, data.contact_ids, data.dedupe,
+      { created_days: data.segment_created_days, exclude_tags: data.segment_exclude_tags },
+    );
     if (rows.length === 0) throw new Error("Nenhum contato válido para a origem selecionada");
 
     const delay = Math.max(1, Math.round(60 / Math.max(1, data.rate_per_min)));
