@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { MessagesSquare, RefreshCw } from "lucide-react";
+import { AlertTriangle, Check, CircleAlert, MessagesSquare, RefreshCw } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { PageShell } from "@/components/page-shell";
 import { supabase } from "@/integrations/supabase/client";
@@ -32,6 +32,14 @@ type Msg = {
   created_at: string;
   metadata: Record<string, unknown> | null;
 };
+type LogRow = {
+  id: string;
+  level: string | null;
+  source: string | null;
+  message: string | null;
+  created_at: string;
+  metadata: Record<string, unknown> | null;
+};
 
 const STATUSES = [
   { value: "all", label: "Todos status" },
@@ -46,6 +54,7 @@ function Page() {
   const [agents, setAgents] = useState<Array<{ id: string; name: string }>>([]);
   const [convs, setConvs] = useState<Conv[]>([]);
   const [msgs, setMsgs] = useState<Msg[]>([]);
+  const [logs, setLogs] = useState<LogRow[]>([]);
   const [selected, setSelected] = useState<Conv | null>(null);
   const [loading, setLoading] = useState(false);
   const [agentFilter, setAgentFilter] = useState("all");
@@ -77,7 +86,7 @@ function Page() {
   useEffect(() => { load(); /* eslint-disable-next-line */ }, [user, agentFilter, statusFilter, from, to]);
 
   useEffect(() => {
-    if (!selected) { setMsgs([]); return; }
+    if (!selected) { setMsgs([]); setLogs([]); return; }
     supabase.from("messages")
       .select("id,conversation_id,direction,type,content,created_at,metadata")
       .eq("conversation_id", selected.id)
@@ -85,6 +94,49 @@ function Page() {
       .limit(500)
       .then(({ data }) => setMsgs((data ?? []) as Msg[]));
   }, [selected]);
+
+  // Load evolution logs relevant to the selected conversation (matched by remoteJid)
+  useEffect(() => {
+    if (!selected || !user) { setLogs([]); return; }
+    (async () => {
+      const jids = Array.from(new Set(
+        msgs.map((m) => (m.metadata as { remoteJid?: string } | null)?.remoteJid).filter(Boolean) as string[],
+      ));
+      if (!jids.length) { setLogs([]); return; }
+      const { data } = await supabase
+        .from("logs")
+        .select("id,level,source,message,created_at,metadata")
+        .eq("user_id", user.id)
+        .like("source", "evolution:%")
+        .order("created_at", { ascending: false })
+        .limit(200);
+      const filtered = (data ?? []).filter((l) => {
+        const md = (l.metadata ?? {}) as { remoteJid?: string; recipient?: string };
+        return jids.some((j) => md.remoteJid === j || md.recipient === j || (md.recipient ?? "").startsWith(j.split("@")[0]));
+      });
+      setLogs(filtered as LogRow[]);
+    })();
+  }, [selected, msgs, user]);
+
+  // Map outbound msg → status by nearest error log (±60s on same jid)
+  const msgStatus = useMemo(() => {
+    const map = new Map<string, "sent" | "error">();
+    for (const m of msgs) {
+      if (m.direction !== "outbound") continue;
+      const jid = (m.metadata as { remoteJid?: string } | null)?.remoteJid;
+      const t = new Date(m.created_at).getTime();
+      const err = logs.find((l) => {
+        if (l.level !== "error" && l.level !== "warn") return false;
+        const lt = new Date(l.created_at).getTime();
+        if (Math.abs(lt - t) > 60_000) return false;
+        const md = (l.metadata ?? {}) as { remoteJid?: string; recipient?: string };
+        return !jid || md.remoteJid === jid || md.recipient === jid || (md.recipient ?? "").startsWith((jid ?? "").split("@")[0]);
+      });
+      map.set(m.id, err ? "error" : "sent");
+    }
+    return map;
+  }, [msgs, logs]);
+  const errorLogs = useMemo(() => logs.filter((l) => l.level === "error" || l.level === "warn"), [logs]);
 
   const agentName = useMemo(() => Object.fromEntries(agents.map((a) => [a.id, a.name])), [agents]);
 
@@ -153,17 +205,37 @@ function Page() {
               <div className="flex-1 overflow-y-auto p-4 space-y-2 max-h-[60vh]">
                 {msgs.map((m) => {
                   const out = m.direction === "outbound";
+                  const st = msgStatus.get(m.id);
                   return (
                     <div key={m.id} className={`flex ${out ? "justify-end" : "justify-start"}`}>
                       <div className={`max-w-[75%] rounded-2xl px-3 py-2 text-sm ${out ? "bg-primary text-primary-foreground" : "bg-accent/50"}`}>
                         <div className="whitespace-pre-wrap break-words">{m.content}</div>
-                        <div className="mt-1 text-[10px] opacity-70">{new Date(m.created_at).toLocaleString()}</div>
+                        <div className="mt-1 flex items-center gap-1.5 text-[10px] opacity-80">
+                          <span>{new Date(m.created_at).toLocaleString()}</span>
+                          {out && st === "sent" && (<><Check className="h-3 w-3" /><span>enviada</span></>)}
+                          {out && st === "error" && (<><CircleAlert className="h-3 w-3" /><span>falhou</span></>)}
+                        </div>
                       </div>
                     </div>
                   );
                 })}
                 {!msgs.length && <div className="text-center text-xs text-muted-foreground py-8">Sem mensagens</div>}
               </div>
+              {errorLogs.length > 0 && (
+                <div className="border-t border-border/60 bg-destructive/5 max-h-40 overflow-y-auto">
+                  <div className="px-4 py-2 text-xs font-semibold flex items-center gap-2 text-destructive">
+                    <AlertTriangle className="h-3.5 w-3.5" /> Erros de envio ({errorLogs.length})
+                  </div>
+                  <ul className="px-4 pb-3 space-y-1 text-[11px]">
+                    {errorLogs.slice(0, 20).map((l) => (
+                      <li key={l.id} className="flex gap-2">
+                        <span className="text-muted-foreground shrink-0">{new Date(l.created_at).toLocaleTimeString()}</span>
+                        <span className="truncate">{l.message}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
             </>
           )}
         </div>
