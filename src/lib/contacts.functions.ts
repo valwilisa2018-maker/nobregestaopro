@@ -9,7 +9,7 @@ export const listContacts = createServerFn({ method: "POST" })
       q: z.string().optional().default(""),
       status: z.string().optional().default("all"),
       page: z.number().int().min(1).default(1),
-      pageSize: z.number().int().min(1).max(200).default(20),
+      pageSize: z.number().int().min(1).max(1000).default(20),
     }).parse(raw ?? {}),
   )
   .handler(async ({ data, context }) => {
