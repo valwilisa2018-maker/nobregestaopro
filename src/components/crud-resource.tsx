@@ -161,10 +161,10 @@ export function CrudResource({
                         ))
                       )}
                       <td className="px-4 py-3 text-right space-x-1">
-                        <Button size="icon" variant="ghost" onClick={() => openEdit(row)}>
+                        <Button size="icon" variant="ghost" aria-label="Editar" onClick={() => openEdit(row)}>
                           <Pencil className="h-4 w-4" />
                         </Button>
-                        <Button size="icon" variant="ghost" onClick={() => remove(row)}>
+                        <Button size="icon" variant="ghost" aria-label="Excluir" onClick={() => remove(row)}>
                           <Trash2 className="h-4 w-4 text-destructive" />
                         </Button>
                       </td>

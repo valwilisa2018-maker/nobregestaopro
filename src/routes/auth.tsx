@@ -10,7 +10,16 @@ import { toast } from "sonner";
 import logoAsset from "@/assets/agent-ia-logo.png.asset.json";
 
 export const Route = createFileRoute("/auth")({
-  head: () => ({ meta: [{ title: "Entrar — Plataforma IA WhatsApp" }] }),
+  head: () => ({
+    meta: [
+      { title: "Entrar na Plataforma — Agent IA" },
+      { name: "description", content: "Acesse a Agent IA para gerenciar seus agentes de inteligência artificial no WhatsApp, conversas, follow-ups e integrações." },
+      { property: "og:title", content: "Entrar na Plataforma — Agent IA" },
+      { property: "og:description", content: "Acesse a Agent IA para gerenciar seus agentes de IA no WhatsApp." },
+      { property: "og:url", content: "https://agente-iapro.lovable.app/auth" },
+    ],
+    links: [{ rel: "canonical", href: "https://agente-iapro.lovable.app/auth" }],
+  }),
   component: AuthPage,
 });
 
@@ -58,6 +67,7 @@ function AuthPage() {
       <Card className="w-full max-w-md">
         <CardHeader className="items-center text-center">
           <img src={logoAsset.url} alt="Agent IA" className="h-20 w-20 rounded-2xl object-cover ring-1 ring-primary/30 mb-2" />
+          <h1 className="text-2xl font-bold tracking-tight">Entrar na Plataforma</h1>
           <CardTitle className="text-xl">AGENT IA</CardTitle>
           <CardDescription>Plataforma inteligente de atendimento no WhatsApp</CardDescription>
         </CardHeader>

@@ -77,23 +77,41 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Lovable App" },
-      { name: "description", content: "Spark Initiative is a project creation tool." },
-      { name: "author", content: "Lovable" },
-      { property: "og:title", content: "Lovable App" },
-      { property: "og:description", content: "Spark Initiative is a project creation tool." },
+      { title: "Agent IA — Plataforma de IA para WhatsApp" },
+      { name: "description", content: "Agent IA é a plataforma completa para criar, treinar e operar agentes de inteligência artificial no WhatsApp: atendimento 24/7, follow-up automático, áudio e mídia com IA." },
+      { property: "og:site_name", content: "Agent IA" },
+      { property: "og:title", content: "Agent IA — Plataforma de IA para WhatsApp" },
+      { property: "og:description", content: "Crie, treine e opere agentes de IA no WhatsApp com follow-up, áudio e mídia inteligentes." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
-      { name: "twitter:site", content: "@Lovable" },
-      { name: "twitter:title", content: "Lovable App" },
-      { name: "twitter:description", content: "Spark Initiative is a project creation tool." },
-      { property: "og:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/e4adf57f-3417-4cb3-a68a-4e5988c3145e/id-preview-f6d3af6a--9ffff757-914f-4be9-a6c5-3a128760b582.lovable.app-1782925217741.png" },
-      { name: "twitter:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/e4adf57f-3417-4cb3-a68a-4e5988c3145e/id-preview-f6d3af6a--9ffff757-914f-4be9-a6c5-3a128760b582.lovable.app-1782925217741.png" },
+      { name: "twitter:title", content: "Agent IA — Plataforma de IA para WhatsApp" },
+      { name: "twitter:description", content: "Crie, treine e opere agentes de IA no WhatsApp com follow-up, áudio e mídia inteligentes." },
     ],
     links: [
       {
         rel: "stylesheet",
         href: appCss,
+      },
+    ],
+    scripts: [
+      {
+        type: "application/ld+json",
+        children: JSON.stringify({
+          "@context": "https://schema.org",
+          "@graph": [
+            {
+              "@type": "Organization",
+              name: "Agent IA",
+              url: "https://agente-iapro.lovable.app",
+              logo: "https://agente-iapro.lovable.app/favicon.ico",
+            },
+            {
+              "@type": "WebSite",
+              name: "Agent IA",
+              url: "https://agente-iapro.lovable.app",
+            },
+          ],
+        }),
       },
     ],
   }),
