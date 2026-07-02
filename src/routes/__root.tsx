@@ -117,11 +117,11 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
 
 function RootShell({ children }: { children: ReactNode }) {
   return (
-    <html lang="en">
+    <html lang="pt-BR" translate="no" className="notranslate">
       <head>
         <HeadContent />
       </head>
-      <body>
+      <body translate="no" className="notranslate">
         {children}
         <Scripts />
       </body>
@@ -145,9 +145,11 @@ function RootComponent() {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <Outlet />
-      <Toaster richColors theme="dark" position="top-right" />
-      <UpdateBanner />
+      <div translate="no" className="notranslate">
+        <Outlet />
+        <Toaster richColors theme="dark" position="top-right" />
+        <UpdateBanner />
+      </div>
     </QueryClientProvider>
   );
 }
