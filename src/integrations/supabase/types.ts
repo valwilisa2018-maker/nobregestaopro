@@ -303,6 +303,7 @@ export type Database = {
           error: string | null
           id: string
           phone: string
+          responded_at: string | null
           sent_at: string | null
           status: string
           user_id: string
@@ -314,6 +315,7 @@ export type Database = {
           error?: string | null
           id?: string
           phone: string
+          responded_at?: string | null
           sent_at?: string | null
           status?: string
           user_id: string
@@ -325,6 +327,7 @@ export type Database = {
           error?: string | null
           id?: string
           phone?: string
+          responded_at?: string | null
           sent_at?: string | null
           status?: string
           user_id?: string
@@ -349,69 +352,126 @@ export type Database = {
       broadcasts: {
         Row: {
           connection_id: string | null
+          continue_next_day: boolean
           created_at: string
+          daily_limit: number | null
+          day_marker: string | null
+          dedupe: boolean
           delay_seconds: number
+          description: string | null
           error_count: number
+          estimated_finish_at: string | null
           finished_at: string | null
           flow_id: string | null
+          humanize_max: number
+          humanize_min: number
           id: string
+          ignore_holidays: boolean
+          ignore_responded: boolean
           media_type: string | null
           media_url: string | null
           message: string
           mode: string
           name: string
+          paused_at: string | null
+          rate_per_min: number
+          responded_count: number
           sent_count: number
+          sent_today: number
           sequence: Json | null
+          source_type: string
+          source_value: Json
           started_at: string | null
           status: string
+          stop_on_reply: boolean
           total: number
           updated_at: string
           user_id: string
           weekdays: number[] | null
+          window_end: string | null
+          window_start: string | null
         }
         Insert: {
           connection_id?: string | null
+          continue_next_day?: boolean
           created_at?: string
+          daily_limit?: number | null
+          day_marker?: string | null
+          dedupe?: boolean
           delay_seconds?: number
+          description?: string | null
           error_count?: number
+          estimated_finish_at?: string | null
           finished_at?: string | null
           flow_id?: string | null
+          humanize_max?: number
+          humanize_min?: number
           id?: string
+          ignore_holidays?: boolean
+          ignore_responded?: boolean
           media_type?: string | null
           media_url?: string | null
           message: string
           mode?: string
           name: string
+          paused_at?: string | null
+          rate_per_min?: number
+          responded_count?: number
           sent_count?: number
+          sent_today?: number
           sequence?: Json | null
+          source_type?: string
+          source_value?: Json
           started_at?: string | null
           status?: string
+          stop_on_reply?: boolean
           total?: number
           updated_at?: string
           user_id: string
           weekdays?: number[] | null
+          window_end?: string | null
+          window_start?: string | null
         }
         Update: {
           connection_id?: string | null
+          continue_next_day?: boolean
           created_at?: string
+          daily_limit?: number | null
+          day_marker?: string | null
+          dedupe?: boolean
           delay_seconds?: number
+          description?: string | null
           error_count?: number
+          estimated_finish_at?: string | null
           finished_at?: string | null
           flow_id?: string | null
+          humanize_max?: number
+          humanize_min?: number
           id?: string
+          ignore_holidays?: boolean
+          ignore_responded?: boolean
           media_type?: string | null
           media_url?: string | null
           message?: string
           mode?: string
           name?: string
+          paused_at?: string | null
+          rate_per_min?: number
+          responded_count?: number
           sent_count?: number
+          sent_today?: number
           sequence?: Json | null
+          source_type?: string
+          source_value?: Json
           started_at?: string | null
           status?: string
+          stop_on_reply?: boolean
           total?: number
           updated_at?: string
           user_id?: string
           weekdays?: number[] | null
+          window_end?: string | null
+          window_start?: string | null
         }
         Relationships: [
           {
