@@ -17,6 +17,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { supabase } from "@/integrations/supabase/client";
 import { listContacts } from "@/lib/contacts.functions";
 import { createBroadcast, listBroadcasts, runBroadcastBatch } from "@/lib/broadcasts.functions";
+import { listFlows } from "@/lib/flows.functions";
 
 export const Route = createFileRoute("/_authenticated/broadcasts")({
   component: BroadcastsPage,
@@ -31,6 +32,7 @@ function BroadcastsPage() {
   const create = useServerFn(createBroadcast);
   const run = useServerFn(runBroadcastBatch);
   const listB = useServerFn(listBroadcasts);
+  const listF = useServerFn(listFlows);
   const qc = useQueryClient();
 
   const contacts = useQuery({
@@ -38,6 +40,7 @@ function BroadcastsPage() {
     queryFn: () => list({ data: { q: "", status: "active", page: 1, pageSize: 200 } }),
   });
   const broadcasts = useQuery({ queryKey: ["broadcasts"], queryFn: () => listB() });
+  const flows = useQuery({ queryKey: ["flows-for-broadcast"], queryFn: () => listF() });
 
   // Connections
   const [connections, setConnections] = useState<Array<{ id: string; instance_name: string | null }>>([]);
@@ -52,6 +55,7 @@ function BroadcastsPage() {
   const [message, setMessage] = useState("Olá {nome}, tudo bem?");
   const [mediaUrl, setMediaUrl] = useState("");
   const [connectionId, setConnectionId] = useState<string>("");
+  const [flowId, setFlowId] = useState<string>("");
   const [mode, setMode] = useState<"quick" | "sequential">("quick");
   const [delay, setDelay] = useState(10);
   const [weekdays, setWeekdays] = useState<number[]>([1, 2, 3, 4, 5]);
@@ -73,7 +77,8 @@ function BroadcastsPage() {
   const createM = useMutation({
     mutationFn: async () => create({ data: {
       name, message, media_url: mediaUrl || null, media_type: mediaUrl ? "image" : null,
-      connection_id: connectionId || null, mode, delay_seconds: delay, weekdays,
+      connection_id: connectionId || null, flow_id: flowId || null,
+      mode, delay_seconds: delay, weekdays,
       contact_ids: selectedIds,
     } }),
     onSuccess: async (res) => {
@@ -202,6 +207,19 @@ function BroadcastsPage() {
                     ))}
                   </SelectContent>
                 </Select>
+              </div>
+              <div>
+                <Label>Fluxo de conversa (opcional)</Label>
+                <Select value={flowId || "__none__"} onValueChange={(v) => setFlowId(v === "__none__" ? "" : v)}>
+                  <SelectTrigger><SelectValue placeholder="Nenhum — enviar apenas a mensagem" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__none__">Nenhum — enviar apenas a mensagem</SelectItem>
+                    {(flows.data?.flows ?? []).map((f) => (
+                      <SelectItem key={f.id} value={f.id}>{f.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground mt-1">Ao selecionar um fluxo, cada contato entra automaticamente no fluxo salvo em Fluxos de Conversa.</p>
               </div>
             </div>
           )}

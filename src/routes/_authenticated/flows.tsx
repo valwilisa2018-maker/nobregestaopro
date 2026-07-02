@@ -75,8 +75,9 @@ function BlockNode({ data, selected }: NodeProps) {
   const d = data as unknown as BlockData;
   const meta = KIND_META[d.kind];
   const preview = d.text || d.url || d.condition || meta.sub;
+  const invalid = (d as unknown as { _invalid?: boolean })._invalid;
   return (
-    <div className={`rounded-lg border border-emerald-500/40 bg-card shadow-md min-w-[180px] ${selected ? "ring-2 ring-primary" : ""}`}>
+    <div className={`rounded-lg border bg-card shadow-md min-w-[180px] transition ${selected ? "ring-2 ring-primary" : ""} ${invalid ? "border-destructive ring-2 ring-destructive animate-pulse" : "border-emerald-500/40"}`}>
       {d.kind !== "START" && <Handle type="target" position={Position.Left} />}
       <div className="flex items-center gap-2 px-3 py-1.5 text-[10px] uppercase tracking-wide text-muted-foreground border-b border-border/50">
         <span className={`h-4 w-4 rounded flex items-center justify-center text-white ${meta.color}`}>{meta.icon}</span>
@@ -210,11 +211,34 @@ function Builder() {
   };
 
   const saveM = useMutation({
-    mutationFn: async () => save({ data: {
+    mutationFn: async () => {
+      // Validate: every node (except START) needs an incoming edge, every non-END needs outgoing edge / branches
+      const badIds = new Set<string>();
+      for (const n of nodes) {
+        const k = n.data.kind;
+        const hasIn = edges.some((e) => e.target === n.id);
+        const hasOut = edges.some((e) => e.source === n.id);
+        if (k !== "START" && !hasIn) badIds.add(n.id);
+        if (k !== "END" && !hasOut) badIds.add(n.id);
+      }
+      // Mark invalid nodes so they blink
+      setNodes((ns) => ns.map((n) => ({ ...n, data: { ...n.data, _invalid: badIds.has(n.id) } as BlockData })));
+      if (badIds.size > 0) {
+        // Auto-clear after 4s
+        setTimeout(() => {
+          setNodes((ns) => ns.map((n) => ({ ...n, data: { ...n.data, _invalid: false } as BlockData })));
+        }, 4000);
+        const names = nodes.filter((n) => badIds.has(n.id)).map((n) => n.data.label).slice(0, 3).join(", ");
+        throw new Error(`Existem ${badIds.size} bloco(s) desconectado(s): ${names}${badIds.size > 3 ? "…" : ""}. Conecte todos os blocos antes de salvar.`);
+      }
+      if (!nodes.some((n) => n.data.kind === "START")) throw new Error("O fluxo precisa de um bloco Gatilho (START).");
+      if (!nodes.some((n) => n.data.kind === "END")) throw new Error("O fluxo precisa de pelo menos um bloco Fim (END).");
+      return save({ data: {
       id: flowId, name, trigger,
       description: null,
       definition: { nodes, edges } as unknown as Record<string, unknown>,
-    } }),
+    } });
+    },
     onSuccess: (res) => { setFlowId(res.id); toast.success("Fluxo salvo"); qc.invalidateQueries({ queryKey: ["flows"] }); },
     onError: (e: Error) => toast.error(e.message),
   });
