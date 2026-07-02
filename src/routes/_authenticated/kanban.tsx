@@ -518,10 +518,13 @@ function KanbanPage() {
       labels: editing.labels,
       google_drive_link: driveRaw || null,
       platform_link: platformRaw || null,
-      producer_id: editing.producer_id || null,
+      producer_id: canTransferProducer
+        ? (editing.producer_id || null)
+        : undefined,
       expected_delivery_date: editing.expected_delivery_date || null,
       video_duration_seconds: durParsed,
     };
+    if (payload.producer_id === undefined) delete payload.producer_id;
     try {
       if (editing.id) {
         const { error } = await supabase.from("service_orders").update(payload).eq("id", editing.id);
