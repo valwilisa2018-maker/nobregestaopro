@@ -136,7 +136,7 @@ export function AgentEditor({ agent, onSaved, onCancel }: Props) {
     keywords?: { enabled?: boolean; mode?: string; list?: string[] };
     hours?: { enabled?: boolean; start?: string; end?: string; lunch?: boolean; days?: string[]; blockedDates?: string[] };
     audio?: { enabled?: boolean; provider?: "browser" | "elevenlabs"; replaceText?: boolean; autoReply?: boolean; mirrorFormat?: boolean; smartAudio?: boolean; smartAudioChars?: number; asTool?: boolean };
-    media?: { enabled?: boolean; items?: Array<{ id: string; name: string; size?: string; mode?: string; keywords?: string; description?: string }> };
+    media?: { enabled?: boolean; items?: Array<{ id: string; name: string; size?: string; mode?: string; keywords?: string; description?: string; storage_path?: string; mime?: string; bytes?: number }> };
     conversation?: { keepUnread?: boolean; singleMessage?: boolean; includeContactName?: boolean; cancelOnNew?: boolean; stopAfterManual?: boolean };
   };
   const ext = (form.tools ?? {}) as Ext;
