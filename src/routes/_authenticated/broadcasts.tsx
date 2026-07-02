@@ -3,7 +3,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
-import { ArrowLeft, ArrowRight, CheckCircle2, Clock, Copy, Loader2, Pause, Play, Rocket, Send, StopCircle, Users } from "lucide-react";
+import { ArrowLeft, ArrowRight, CheckCircle2, Clock, Copy, Eye, Loader2, Pause, Play, Plus, Rocket, Send, StopCircle, Trash2, Users } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -15,11 +15,13 @@ import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { listContacts } from "@/lib/contacts.functions";
 import {
   cancelBroadcast, createBroadcast, duplicateBroadcast, listBroadcasts, listContactTags,
   pauseBroadcast, previewBroadcast, resumeBroadcast, runBroadcastBatch,
+  saveBroadcastSteps, runSequentialBatch, listRecipientsTimeline,
 } from "@/lib/broadcasts.functions";
 import { listFlows } from "@/lib/flows.functions";
 
@@ -37,6 +39,9 @@ function BroadcastsPage() {
   const list = useServerFn(listContacts);
   const create = useServerFn(createBroadcast);
   const run = useServerFn(runBroadcastBatch);
+  const runSeq = useServerFn(runSequentialBatch);
+  const saveSteps = useServerFn(saveBroadcastSteps);
+  const timelineFn = useServerFn(listRecipientsTimeline);
   const listB = useServerFn(listBroadcasts);
   const listF = useServerFn(listFlows);
   const listT = useServerFn(listContactTags);
@@ -69,6 +74,18 @@ function BroadcastsPage() {
   const [connectionId, setConnectionId] = useState<string>("");
   const [flowId, setFlowId] = useState<string>("");
   const [mode, setMode] = useState<"quick" | "sequential">("quick");
+
+  // Sequential steps
+  type Step = { delay_hours: number; message: string; media_url?: string };
+  const [steps, setSteps] = useState<Step[]>([
+    { delay_hours: 0, message: "Olá {nome}, tudo bem?" },
+    { delay_hours: 24, message: "Passando pra saber se você viu minha mensagem." },
+  ]);
+
+  // Timeline dialog
+  const [timelineOpen, setTimelineOpen] = useState(false);
+  const [timelineRows, setTimelineRows] = useState<any[]>([]);
+  const [timelineTitle, setTimelineTitle] = useState("");
 
   // Source
   const [sourceType, setSourceType] = useState<"list" | "tag" | "segment" | "all">("list");
@@ -131,6 +148,13 @@ function BroadcastsPage() {
     } }),
     onSuccess: async (res) => {
       toast.success("Campanha criada");
+      if (mode === "sequential") {
+        try {
+          await saveSteps({ data: { broadcast_id: res.id, steps: steps.map((s, i) => ({ step_order: i, delay_hours: s.delay_hours, message: s.message, media_url: s.media_url ?? null })) } });
+          await resumeFn({ data: { id: res.id } });
+          void loopSeq(res.id);
+        } catch (e) { toast.error((e as Error).message); }
+      }
       qc.invalidateQueries({ queryKey: ["broadcasts"] });
       if (mode === "quick") {
         setRunningId(res.id);
@@ -142,6 +166,25 @@ function BroadcastsPage() {
     },
     onError: (e: Error) => toast.error(e.message),
   });
+
+  async function loopSeq(id: string) {
+    try {
+      for (;;) {
+        const r = await runSeq({ data: { id, batch: 5 } });
+        if (r.paused) { await new Promise((res) => setTimeout(res, 5000)); continue; }
+        if (r.done) break;
+        await new Promise((res) => setTimeout(res, r.waiting ? 15000 : 3000));
+      }
+      qc.invalidateQueries({ queryKey: ["broadcasts"] });
+    } catch (e) { toast.error((e as Error).message); }
+  }
+
+  async function openTimeline(id: string, name: string) {
+    setTimelineTitle(name);
+    setTimelineOpen(true);
+    const { rows } = await timelineFn({ data: { id } });
+    setTimelineRows(rows);
+  }
 
   async function loop(id: string) {
     try {
