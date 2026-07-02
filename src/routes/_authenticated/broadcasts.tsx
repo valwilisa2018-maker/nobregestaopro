@@ -681,3 +681,19 @@ function Stat({ label, value, tone }: { label: string; value: number | string; t
 function Toggle({ label, v, set }: { label: string; v: boolean; set: (b: boolean) => void }) {
   return <label className="flex items-center gap-3 border rounded-lg p-3 cursor-pointer"><Switch checked={v} onCheckedChange={set} /><span className="text-sm">{label}</span></label>;
 }
+
+function exportTimelineCSV(rows: any[], title: string, statusFilter: string, search: string) {
+  const filtered = rows.filter((r) => (statusFilter === "all" || r.status === statusFilter) && (!search || String(r.phone).includes(search)));
+  const header = ["telefone", "status", "etapa_atual", "proximo_envio", "ultimo_evento", "erro", "eventos"];
+  const lines = filtered.map((r) => {
+    const events = Array.isArray(r.timeline) ? r.timeline.map((e: any) => `${e.at}|etapa ${(e.step ?? 0) + 1}|${e.status}${e.error ? "|" + e.error : ""}`).join(" ;; ") : "";
+    const vals = [r.phone ?? "", r.status ?? "", (r.current_step ?? 0) + 1, r.next_action_at ?? "", r.last_step_at ?? "", r.error ?? "", events];
+    return vals.map((v) => `"${String(v).replaceAll('"', '""')}"`).join(",");
+  });
+  const csv = [header.join(","), ...lines].join("\n");
+  const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url; a.download = `${title.replace(/\W+/g, "_") || "timeline"}.csv`;
+  a.click(); URL.revokeObjectURL(url);
+}
