@@ -90,6 +90,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
+      { name: "google", content: "notranslate" },
       { title: "Gestão Nobre MKT" },
       { name: "description", content: "Plataforma premium de gestão de vendas e produção" },
       { name: "author", content: "Gestão Nobre MKT" },
