@@ -115,6 +115,7 @@ function Dashboard() {
       .on("postgres_changes", { event: "*", schema: "public", table: "sales" }, () => schedule("dash-sales"))
       .on("postgres_changes", { event: "*", schema: "public", table: "service_orders" }, () => schedule("dash-orders"))
       .on("postgres_changes", { event: "*", schema: "public", table: "invoices" }, () => schedule("dash-invoices"))
+      .on("postgres_changes", { event: "*", schema: "public", table: "sale_receipts" }, () => schedule("dash-receipts"))
       .subscribe();
     return () => { if (timer) clearTimeout(timer); supabase.removeChannel(ch); };
   }, [qc]);
@@ -180,6 +181,20 @@ function Dashboard() {
     queryFn: async () => {
       const { data, error } = await supabase.from("invoices").select("id,status,sale_id,amount,issued_at,created_at");
       if (error) { toast.error("Erro ao carregar faturas"); throw error; }
+      return data ?? [];
+    },
+    staleTime: 60_000,
+    refetchOnWindowFocus: false,
+  });
+  const receipts = useQuery({
+    queryKey: ["dash-receipts"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("sale_receipts")
+        .select("id,sale_id,amount,paid_at,created_at")
+        .order("created_at", { ascending: false })
+        .limit(2000);
+      if (error) { toast.error("Erro ao carregar recebimentos"); throw error; }
       return data ?? [];
     },
     staleTime: 60_000,
@@ -272,6 +287,36 @@ function Dashboard() {
   const dayGoal = goalFor("daily");
   const dayPct = dayGoal ? Math.min(100, Math.round((dayTotal / dayGoal) * 100)) : 0;
   const scopePct = current.goal ? Math.min(100, Math.round((current.total / current.goal) * 100)) : 0;
+
+  // Sinal / Recebimento Pendente / Total — respeitam o filtro de escopo (data/vendedor/serviço)
+  const scopeSalesList = useMemo(
+    () => all.filter((s) => inScope(s.sale_date || s.created_at)),
+    [all, scopeSince, scopeUntil],
+  );
+  const sinalScope = scopeSalesList.reduce((a, s) => a + Number(s.paid_amount ?? 0), 0);
+  const scopeSaleIdSet = useMemo(() => new Set(scopeSalesList.map((s) => s.id)), [scopeSalesList]);
+  const saleById = useMemo(() => new Map(all.map((s: any) => [s.id, s])), [all]);
+  const receiptsScope = (receipts.data ?? []).filter((r: any) => {
+    const dateKey = (r.paid_at || r.created_at || "").slice(0, 10);
+    if (!dateKey || dateKey < scopeSince || dateKey > scopeUntil) return false;
+    // Não conta o sinal (recebimento de venda do próprio escopo já entra em Sinal via paid_amount)
+    if (scopeSaleIdSet.has(r.sale_id)) return false;
+    // Respeita filtros de vendedor/serviço via venda pai
+    const sale: any = saleById.get(r.sale_id);
+    if (!sale) return false;
+    if (sellerFilter !== "all" && sale.seller_id !== sellerFilter) return false;
+    if (serviceFilter !== "all" && sale.service_type_id !== serviceFilter) return false;
+    return true;
+  });
+  const recebPendentesScope = receiptsScope.reduce((a: number, r: any) => a + Number(r.amount ?? 0), 0);
+  const totalRecebidoScope = sinalScope + recebPendentesScope;
+  const scopePeriodLabel =
+    scope === "day" ? "hoje"
+    : scope === "yesterday" ? "ontem"
+    : scope === "week" ? "na semana"
+    : scope === "month" ? "no mês"
+    : scope === "year" ? "no ano"
+    : `${customFrom} → ${customTo}`;
 
   const counts = {
     pago_total: all.filter((s) => s.payment_status === "pago_total" && inScope(s.sale_date || s.created_at)).length,
@@ -708,6 +753,32 @@ function Dashboard() {
         <StatCard tone="amber" label="Ticket médio" value={formatCurrency(ticketMedio)} icon={ShoppingCart} hint="no mês" />
         <StatCard tone="warning" label="Ano" value={formatCurrency(yearTotal)} icon={Trophy} />
         <StatCard tone="warning" label="Valores Pendentes" value={formatCurrency(pendingTotal)} icon={AlertCircle} hint={`${pendingCount} ${pendingCount === 1 ? "cliente" : "clientes"}`} />
+      </div>
+
+      {/* Recebimentos no período selecionado */}
+      <div className="grid gap-4 grid-cols-1 md:grid-cols-3">
+        <StatCard
+          tone="success"
+          label={`Sinal · ${scopePeriodLabel}`}
+          value={formatCurrency(sinalScope)}
+          icon={DollarSign}
+          hint={`${scopeSalesList.length} ${scopeSalesList.length === 1 ? "venda" : "vendas"} no período`}
+        />
+        <StatCard
+          tone="info"
+          label={`Receb. pendentes · ${scopePeriodLabel}`}
+          value={formatCurrency(recebPendentesScope)}
+          icon={Clock}
+          hint={`${receiptsScope.length} ${receiptsScope.length === 1 ? "recebimento" : "recebimentos"} de vendas anteriores`}
+        />
+        <StatCard
+          tone="primary"
+          label={`Total · ${scopePeriodLabel}`}
+          value={formatCurrency(totalRecebidoScope)}
+          icon={TrendingUp}
+          accent
+          hint="Sinal + Recebimentos pendentes"
+        />
       </div>
 
       {/* Produção */}
