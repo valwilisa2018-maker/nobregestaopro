@@ -904,6 +904,41 @@ function Telao() {
   const sinalVal = useCountUp(totalSinalHoje, 900, heroBeat);
   const pendenteVal = useCountUp(totalPendenteHoje, 900, heroBeat);
 
+  // Validação automática: confere se os totais da view (v_daily_financials,
+  // agrupada por sale_date em America/Sao_Paulo) batem com a soma calculada
+  // no cliente a partir de todaySales (mesmo filtro por sale_date/BR).
+  const validationMismatch = useMemo(() => {
+    if (!dailyFinancials) return null;
+    const eps = 0.01;
+    const clientFat = todaySales.reduce((a, s) => a + Number(s.total_amount || 0), 0);
+    const clientSinal = todaySales.reduce((a, s: any) => a + Number(s.paid_amount || 0), 0);
+    const clientPendente = todayReceipts
+      .filter((r: any) => !(todaySaleIds.has(r.sale_id) && isInitial(r)))
+      .reduce((a: number, r: any) => a + Number(r.amount || 0), 0);
+    const viewFat = Number(dailyFinancials.total_vendido || 0);
+    const viewSinal = Number(dailyFinancials.sinal || 0);
+    const viewVendas = Number(dailyFinancials.vendas || 0);
+    const issues: string[] = [];
+    if (Math.abs(viewFat - clientFat) > eps)
+      issues.push(`Faturamento view=${viewFat.toFixed(2)} client=${clientFat.toFixed(2)}`);
+    if (Math.abs(viewSinal - clientSinal) > eps)
+      issues.push(`Sinal view=${viewSinal.toFixed(2)} client=${clientSinal.toFixed(2)}`);
+    if (viewVendas !== todaySales.length)
+      issues.push(`Vendas view=${viewVendas} client=${todaySales.length}`);
+    return issues.length
+      ? { issues, clientPendente, viewPendente: totalPendenteHoje }
+      : null;
+  }, [dailyFinancials, todaySales, todayReceipts, todaySaleIds, totalPendenteHoje]);
+
+  useEffect(() => {
+    if (validationMismatch) {
+      console.warn(
+        "[telão] Divergência nos totais de hoje (sale_date/BR):",
+        validationMismatch.issues.join(" | "),
+      );
+    }
+  }, [validationMismatch]);
+
   // Loop 30s — realça e reconta os números do topo
   useEffect(() => {
     const i = setInterval(() => {
@@ -1258,8 +1293,16 @@ function Telao() {
           <div className="relative">
             <div className="flex items-center justify-between mb-6">
               <span className="text-xs uppercase tracking-[0.4em] text-[#c9a84c]">Faturamento · Hoje</span>
-              <span className="text-xs uppercase tracking-widest text-[#f0d78c]/60 flex items-center gap-1">
-                <span className="inline-block w-2 h-2 rounded-full bg-emerald-400 animate-pulse" /> tempo real
+              <span
+                className="text-xs uppercase tracking-widest text-[#f0d78c]/60 flex items-center gap-1"
+                title={validationMismatch ? validationMismatch.issues.join(" | ") : "Totais conferidos com sale_date (BR)"}
+              >
+                <span
+                  className={`inline-block w-2 h-2 rounded-full animate-pulse ${
+                    validationMismatch ? "bg-amber-400" : "bg-emerald-400"
+                  }`}
+                />
+                {validationMismatch ? "divergência" : "tempo real"}
               </span>
             </div>
             <div className="flex items-end gap-4 flex-wrap justify-between">
