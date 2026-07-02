@@ -60,10 +60,50 @@ export const Route = createFileRoute("/api/public/evolution/$instance")({
 
             const { data: agent } = await supabaseAdmin
               .from("agents")
-              .select("id,system_prompt,temperature,max_tokens,model,category,ai_provider_id,is_active")
+              .select("id,system_prompt,temperature,max_tokens,model,category,ai_provider_id,is_active,tools,timezone")
               .eq("connection_id", conn.id).eq("is_active", true)
               .maybeSingle();
             if (!agent) return Response.json({ ok: true, noAgent: true });
+
+            const ext = (agent.tools ?? {}) as {
+              keywords?: { enabled?: boolean; mode?: string; list?: string[] };
+              hours?: { enabled?: boolean; start?: string; end?: string; days?: string[] };
+              timing?: { unknownMsg?: string };
+            };
+
+            // Keyword activation gate
+            if (ext.keywords?.enabled && Array.isArray(ext.keywords.list) && ext.keywords.list.length) {
+              const t = text.toLowerCase();
+              const matched = ext.keywords.list.some((k) => k && t.includes(k.toLowerCase()));
+              const mode = ext.keywords.mode ?? "activate";
+              if ((mode === "activate" && !matched) || (mode === "ignore" && matched)) {
+                return Response.json({ ok: true, skippedByKeyword: true });
+              }
+            }
+
+            // Working hours gate
+            if (ext.hours?.enabled && ext.hours.start && ext.hours.end) {
+              const tz = agent.timezone || "America/Sao_Paulo";
+              const fmt = new Intl.DateTimeFormat("en-GB", { timeZone: tz, hour: "2-digit", minute: "2-digit", weekday: "short", hour12: false });
+              const parts = fmt.formatToParts(new Date());
+              const hh = parts.find((p) => p.type === "hour")?.value ?? "00";
+              const mm = parts.find((p) => p.type === "minute")?.value ?? "00";
+              const wd = (parts.find((p) => p.type === "weekday")?.value ?? "").toLowerCase();
+              const now = Number(hh) * 60 + Number(mm);
+              const [sh, sm] = ext.hours.start.split(":").map(Number);
+              const [eh, em] = ext.hours.end.split(":").map(Number);
+              const inHours = now >= sh * 60 + sm && now <= eh * 60 + em;
+              const daysOk = !ext.hours.days?.length || ext.hours.days.map((d) => d.toLowerCase().slice(0, 3)).includes(wd);
+              if (!inHours || !daysOk) {
+                const away = ext.timing?.unknownMsg || "Estamos fora do horário de atendimento. Retornaremos em breve.";
+                await fetch(`${(conn.url_api ?? "").replace(/\/+$/, "")}/message/sendText/${conn.instance_name}`, {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json", apikey: conn.api_key ?? "" },
+                  body: JSON.stringify({ number: remoteJid.split("@")[0], text: away }),
+                });
+                return Response.json({ ok: true, offHours: true });
+              }
+            }
 
             // Build endpoint + key
             let endpoint = "https://ai.gateway.lovable.dev/v1/chat/completions";
