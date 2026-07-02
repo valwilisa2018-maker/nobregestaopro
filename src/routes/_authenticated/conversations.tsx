@@ -107,12 +107,15 @@ function Page() {
         .from("logs")
         .select("id,level,source,message,created_at,metadata")
         .eq("user_id", user.id)
-        .like("source", "evolution:%")
+        .or("source.like.evolution:%,source.like.supabase:%,source.like.auth:%,source.like.rls:%")
         .order("created_at", { ascending: false })
         .limit(200);
       const filtered = (data ?? []).filter((l) => {
         const md = (l.metadata ?? {}) as { remoteJid?: string; recipient?: string };
-        return jids.some((j) => md.remoteJid === j || md.recipient === j || (md.recipient ?? "").startsWith(j.split("@")[0]));
+        const matchesJid = jids.some((j) => md.remoteJid === j || md.recipient === j || (md.recipient ?? "").startsWith(j.split("@")[0]));
+        const isAuth = isAuthzLog(l);
+        // Auth/RLS logs may not carry a jid — keep them for the selected conversation window
+        return matchesJid || isAuth;
       });
       setLogs(filtered as LogRow[]);
     })();
@@ -136,7 +139,8 @@ function Page() {
     }
     return map;
   }, [msgs, logs]);
-  const errorLogs = useMemo(() => logs.filter((l) => l.level === "error" || l.level === "warn"), [logs]);
+  const errorLogs = useMemo(() => logs.filter((l) => (l.level === "error" || l.level === "warn") && !isAuthzLog(l)), [logs]);
+  const authzLogs = useMemo(() => logs.filter((l) => (l.level === "error" || l.level === "warn") && isAuthzLog(l)), [logs]);
 
   const agentName = useMemo(() => Object.fromEntries(agents.map((a) => [a.id, a.name])), [agents]);
 
@@ -236,10 +240,33 @@ function Page() {
                   </ul>
                 </div>
               )}
+              {authzLogs.length > 0 && (
+                <div className="border-t border-border/60 bg-amber-500/5 max-h-40 overflow-y-auto">
+                  <div className="px-4 py-2 text-xs font-semibold flex items-center gap-2 text-amber-600">
+                    <AlertTriangle className="h-3.5 w-3.5" /> Erros de autorização (Supabase/RLS) ({authzLogs.length})
+                  </div>
+                  <ul className="px-4 pb-3 space-y-1 text-[11px]">
+                    {authzLogs.slice(0, 20).map((l) => (
+                      <li key={l.id} className="flex gap-2">
+                        <span className="text-muted-foreground shrink-0">{new Date(l.created_at).toLocaleTimeString()}</span>
+                        <span className="shrink-0 uppercase text-[9px] text-muted-foreground">{l.source}</span>
+                        <span className="truncate">{l.message}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
             </>
           )}
         </div>
       </div>
     </PageShell>
   );
+}
+
+function isAuthzLog(l: { source: string | null; message: string | null; metadata: unknown }) {
+  const src = (l.source ?? "").toLowerCase();
+  if (src.startsWith("supabase:") || src.startsWith("auth:") || src.startsWith("rls:")) return true;
+  const hay = `${l.message ?? ""} ${JSON.stringify(l.metadata ?? {})}`.toLowerCase();
+  return /(row-level security|rls|permission denied|unauthorized|jwt|policy|forbidden|42501|pgrst)/.test(hay);
 }
