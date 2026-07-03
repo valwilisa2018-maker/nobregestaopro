@@ -114,6 +114,30 @@ export const deleteInstance = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
+export const testWebhook = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((i: unknown) => IdInput.parse(i))
+  .handler(async ({ data, context }) => {
+    const c = await loadConnection(context.supabase, context.userId, data.connectionId);
+    // Build the same public webhook URL used at instance creation
+    const { data: setting } = await context.supabase
+      .from("settings").select("value").eq("key", "evolution_api").maybeSingle();
+    let cfg: { webhook_base_url?: string } = {};
+    try { cfg = typeof setting?.value === "string" ? JSON.parse(setting.value) : (setting?.value ?? {}); } catch { /* ignore */ }
+    const base = (cfg.webhook_base_url || "").replace(/\/+$/, "");
+    if (!base) throw new Error("Configure a URL base do webhook em Configurações → Evolution API.");
+    const url = `${base}/api/public/evolution/${c.instance_name}`;
+    const payload = { event: "test.webhook", data: { at: new Date().toISOString(), by: context.userId } };
+    const res = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", apikey: c.api_key },
+      body: JSON.stringify(payload),
+    });
+    const text = await res.text();
+    let json: any = null; try { json = text ? JSON.parse(text) : null; } catch { json = { raw: text }; }
+    return { ok: res.ok, status: res.status, url, response: json };
+  });
+
 const CreateInput = z.object({
   name: z.string().min(1),
   instanceName: z.string().min(1).regex(/^[a-zA-Z0-9_-]+$/, "Use apenas letras, números, _ e -"),
