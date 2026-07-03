@@ -59,8 +59,14 @@ export const Route = createFileRoute("/api/public/evolution/$instance")({
         // Compare against the connection's stored api_key using a length-safe check.
         const providedKey = request.headers.get("apikey") ?? request.headers.get("x-evolution-apikey") ?? "";
         const expectedKey = conn.api_key ?? "";
-        if (!expectedKey || providedKey !== expectedKey) {
+        if (!expectedKey || providedKey.length !== expectedKey.length) {
           return Response.json({ ok: false, reason: "invalid signature" }, { status: 401 });
+        }
+        // Constant-time compare
+        {
+          let diff = 0;
+          for (let i = 0; i < expectedKey.length; i++) diff |= providedKey.charCodeAt(i) ^ expectedKey.charCodeAt(i);
+          if (diff !== 0) return Response.json({ ok: false, reason: "invalid signature" }, { status: 401 });
         }
 
         // Log the raw event
@@ -174,15 +180,17 @@ export const Route = createFileRoute("/api/public/evolution/$instance")({
             }
             if (!text) return Response.json({ ok: true, skipped: "no-text" });
 
-            // Persist inbound message (linked to conversation when we have one)
-            await supabaseAdmin.from("messages").insert({
-              user_id: conn.user_id,
-              conversation_id: convo?.id ?? null,
-              direction: "inbound",
-              type: inputWasAudio ? "audio" : "text",
-              content: text,
-              metadata: { remoteJid, instance: conn.instance_name, transcribed: inputWasAudio },
-            } as never);
+            // Persist inbound message (only when we have a conversation — conversation_id is NOT NULL)
+            if (convo) {
+              await supabaseAdmin.from("messages").insert({
+                user_id: conn.user_id,
+                conversation_id: convo.id,
+                direction: "inbound",
+                type: inputWasAudio ? "audio" : "text",
+                content: text,
+                metadata: { remoteJid, instance: conn.instance_name, transcribed: inputWasAudio },
+              } as never);
+            }
             if (convo) {
               await supabaseAdmin.from("conversations").update({
                 last_message_at: new Date().toISOString(),
@@ -350,7 +358,10 @@ export const Route = createFileRoute("/api/public/evolution/$instance")({
             if (!modelId.includes("/")) modelId = (PREFIX[(agent.category ?? "gemini").toLowerCase()] ?? "google/") + modelId;
             if (agent.ai_provider_id) {
               const { data: p } = await supabaseAdmin
-                .from("ai_providers").select("api_key,base_url,model").eq("id", agent.ai_provider_id).maybeSingle();
+                .from("ai_providers").select("api_key,base_url,model")
+                .eq("id", agent.ai_provider_id)
+                .eq("user_id", conn.user_id)
+                .maybeSingle();
               if (p) {
                 apiKey = p.api_key ?? apiKey;
                 if (p.base_url) endpoint = p.base_url.replace(/\/+$/, "") + "/chat/completions";
@@ -391,9 +402,10 @@ export const Route = createFileRoute("/api/public/evolution/$instance")({
 
             // Artificial "typing" delay: delayChar (ms/char) capped at delayMax (s), max 20s
             const perChar = Math.max(0, Number(ext.timing?.delayChar ?? 0));
-            const maxDelay = Math.max(0, Number(ext.timing?.delayMax ?? 0));
+            // delayMax is stored/displayed in milliseconds (label "Delay Máximo (ms)")
+            const maxDelayMs = Math.max(0, Number(ext.timing?.delayMax ?? 0));
             if (perChar > 0) {
-              const ms = Math.min(reply.length * perChar, (maxDelay || 20) * 1000, 20_000);
+              const ms = Math.min(reply.length * perChar, maxDelayMs || 20_000, 20_000);
               if (ms > 0) await sleep(ms);
             }
 
@@ -446,14 +458,16 @@ export const Route = createFileRoute("/api/public/evolution/$instance")({
             }
             void mediaSent;
 
-            await supabaseAdmin.from("messages").insert({
-              user_id: conn.user_id,
-              conversation_id: convo?.id ?? null,
-              direction: "outbound",
-              type: wantsAudio ? "audio" : "text",
-              content: reply,
-              metadata: { remoteJid, agent_id: agent.id, audio: wantsAudio, media_sent: mediaSent },
-            } as never);
+            if (convo) {
+              await supabaseAdmin.from("messages").insert({
+                user_id: conn.user_id,
+                conversation_id: convo.id,
+                direction: "outbound",
+                type: wantsAudio ? "audio" : "text",
+                content: reply,
+                metadata: { remoteJid, agent_id: agent.id, audio: wantsAudio, media_sent: mediaSent },
+              } as never);
+            }
 
             // Clear debounce buffer and (optionally) unread badge
             if (convo) {
