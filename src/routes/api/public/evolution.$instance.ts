@@ -59,13 +59,13 @@ export const Route = createFileRoute("/api/public/evolution/$instance")({
         // Evolution v2 may send either the per-instance token (hash.apikey) or the
         // global AUTHENTICATION_API_KEY configured on the server — accept either.
         const providedKey = request.headers.get("apikey") ?? request.headers.get("x-evolution-apikey") ?? "";
-        const expectedKeys: string[] = [];
-        if (conn.api_key) expectedKeys.push(conn.api_key);
+        const instanceKey = conn.api_key ?? "";
+        let globalKey = "";
         try {
           const { data: setting } = await supabaseAdmin
             .from("settings").select("value").eq("key", "evolution_api").maybeSingle();
           const cfg = (typeof setting?.value === "string" ? JSON.parse(setting.value) : setting?.value) as { api_key?: string } | null;
-          if (cfg?.api_key) expectedKeys.push(cfg.api_key);
+          if (cfg?.api_key) globalKey = cfg.api_key;
         } catch { /* ignore */ }
         const safeEq = (a: string, b: string) => {
           if (!a || !b || a.length !== b.length) return false;
@@ -73,25 +73,45 @@ export const Route = createFileRoute("/api/public/evolution/$instance")({
           for (let i = 0; i < a.length; i++) diff |= a.charCodeAt(i) ^ b.charCodeAt(i);
           return diff === 0;
         };
-        if (!providedKey || !expectedKeys.some((k) => safeEq(providedKey, k))) {
+        const matchedInstance = !!instanceKey && safeEq(providedKey, instanceKey);
+        const matchedGlobal = !!globalKey && safeEq(providedKey, globalKey);
+        const matched: "instance" | "global" | "none" =
+          matchedInstance ? "instance" : matchedGlobal ? "global" : "none";
+        if (matched === "none") {
+          const diag = {
+            instance,
+            matched,
+            providedKeyLen: providedKey.length,
+            providedKeyPrefix: providedKey ? providedKey.slice(0, 6) : "",
+            instanceKeyLen: instanceKey.length,
+            instanceKeyPrefix: instanceKey ? instanceKey.slice(0, 6) : "",
+            globalKeyLen: globalKey.length,
+            globalKeyPrefix: globalKey ? globalKey.slice(0, 6) : "",
+          };
           try {
             await (supabaseAdmin.from("logs") as any).insert({
               user_id: conn.user_id,
               level: "warn",
               source: "evolution.webhook",
-              message: "invalid signature",
-              context: {
-                instance,
-                providedKeyLen: providedKey?.length ?? 0,
-                providedKeyPrefix: providedKey ? providedKey.slice(0, 4) : "",
-                expectedCount: expectedKeys.length,
-                expectedLens: expectedKeys.map((k) => k.length),
-                headers: Object.fromEntries(request.headers),
-              },
+              message: "invalid signature: apikey did not match instance or global",
+              context: { ...diag, headers: Object.fromEntries(request.headers) },
             });
           } catch { /* ignore */ }
-          return Response.json({ ok: false, reason: "invalid signature" }, { status: 401 });
+          return Response.json(
+            { ok: false, reason: "invalid signature", diag },
+            { status: 401 },
+          );
         }
+        // Successful match — record which key type authenticated the call.
+        try {
+          await (supabaseAdmin.from("logs") as any).insert({
+            user_id: conn.user_id,
+            level: "info",
+            source: "evolution.webhook",
+            message: `apikey matched: ${matched}`,
+            context: { instance, matched, providedKeyPrefix: providedKey.slice(0, 6) },
+          });
+        } catch { /* ignore */ }
 
         // Log the raw event
         await supabaseAdmin.from("logs").insert({
