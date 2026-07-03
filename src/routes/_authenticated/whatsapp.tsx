@@ -80,6 +80,12 @@ function Page() {
   };
   useEffect(() => { if (user) load(); }, [user]);
 
+  // Tick every second to refresh retry countdown UI
+  useEffect(() => {
+    const id = setInterval(() => setRetryTick((t) => t + 1), 1000);
+    return () => clearInterval(id);
+  }, []);
+
   // Continuous status sync + auto-reconnect with exponential backoff
   useEffect(() => {
     if (!user || items.length === 0) return;
