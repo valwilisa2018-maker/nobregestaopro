@@ -459,6 +459,20 @@ function Telao() {
     queryKey: ["telao-customers"],
     queryFn: async () => (await supabase.from("customers").select("id,name")).data ?? [],
     refetchInterval: 300000,
+  });
+
+  const goalsQ = useQuery({
+    queryKey: ["telao-goals"],
+    queryFn: async () => {
+      const { data } = await supabase.from("goals").select("period,target_amount").is("seller_id", null);
+      return data ?? [];
+    },
+    refetchInterval: 60000,
+    staleTime: 30_000,
+  });
+  const goalFor = (p: string) =>
+    Number((goalsQ.data ?? []).find((g: any) => g.period === p)?.target_amount ?? 0);
+  const _dummyClose = ({} as never);
     refetchIntervalInBackground: false,
   });
   const sellersQ = useQuery({
