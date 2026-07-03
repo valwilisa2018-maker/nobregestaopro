@@ -2,6 +2,17 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
+async function loadEvolutionCommandKey(supabase: any, fallback: string) {
+  const { data: setting } = await supabase
+    .from("settings").select("value").eq("key", "evolution_api").maybeSingle();
+  try {
+    const cfg = typeof setting?.value === "string" ? JSON.parse(setting.value) : setting?.value;
+    return cfg?.api_key || fallback;
+  } catch {
+    return fallback;
+  }
+}
+
 const SourceType = z.enum(["list", "tag", "segment", "all"]);
 
 const CreateInput = z.object({
@@ -210,6 +221,7 @@ export const runBroadcastBatch = createServerFn({ method: "POST" })
 
     const { data: conn } = await context.supabase.from("connections")
       .select("url_api,api_key,instance_name").eq("id", b.connection_id ?? "").maybeSingle();
+    const commandKey = await loadEvolutionCommandKey(context.supabase, conn?.api_key ?? "");
 
     let sent = b.sent_count as number;
     let errored = b.error_count as number;
@@ -232,7 +244,7 @@ export const runBroadcastBatch = createServerFn({ method: "POST" })
         const url = `${conn.url_api.replace(/\/+$/, "")}/message/sendText/${conn.instance_name}`;
         const res = await fetch(url, {
           method: "POST",
-          headers: { "Content-Type": "application/json", apikey: conn.api_key ?? "" },
+          headers: { "Content-Type": "application/json", apikey: commandKey },
           body: JSON.stringify({ number, text }),
         });
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
@@ -346,6 +358,7 @@ export const runSequentialBatch = createServerFn({ method: "POST" })
 
     const { data: conn } = await context.supabase.from("connections")
       .select("url_api,api_key,instance_name").eq("id", b.connection_id ?? "").maybeSingle();
+    const commandKey = await loadEvolutionCommandKey(context.supabase, conn?.api_key ?? "");
 
     let sent = b.sent_count as number;
     let errored = b.error_count as number;
@@ -369,7 +382,7 @@ export const runSequentialBatch = createServerFn({ method: "POST" })
         const url = `${conn.url_api.replace(/\/+$/, "")}/message/sendText/${conn.instance_name}`;
         const res = await fetch(url, {
           method: "POST",
-          headers: { "Content-Type": "application/json", apikey: conn.api_key ?? "" },
+          headers: { "Content-Type": "application/json", apikey: commandKey },
           body: JSON.stringify({ number, text }),
         });
         if (!res.ok) throw new Error(`HTTP ${res.status}`);

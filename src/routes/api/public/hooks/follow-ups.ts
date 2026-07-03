@@ -22,6 +22,17 @@ export const Route = createFileRoute("/api/public/hooks/follow-ups")({
   },
 });
 
+async function loadEvolutionCommandKey(db: { from: (table: string) => any }, fallback: string) {
+  const { data: setting } = await db
+    .from("settings").select("value").eq("key", "evolution_api").maybeSingle();
+  try {
+    const cfg = typeof setting?.value === "string" ? JSON.parse(setting.value) : setting?.value;
+    return cfg?.api_key || fallback;
+  } catch {
+    return fallback;
+  }
+}
+
 async function runFollowups(request: Request | undefined) {
   const auth = request?.headers.get("authorization") ?? "";
   const token = auth.toLowerCase().startsWith("bearer ") ? auth.slice(7).trim() : "";
@@ -79,6 +90,7 @@ async function runFollowups(request: Request | undefined) {
             .from("connections").select("id,url_api,api_key,instance_name,status")
             .eq("id", c.connection_id!).maybeSingle();
           if (!conn || conn.status !== "online") continue;
+          const commandKey = await loadEvolutionCommandKey(supabaseAdmin, conn.api_key ?? "");
 
           const remoteJid = (c.metadata as { remoteJid?: string } | null)?.remoteJid;
           if (!remoteJid) continue;
@@ -104,7 +116,7 @@ async function runFollowups(request: Request | undefined) {
 
           const send = await fetch(`${(conn.url_api ?? "").replace(/\/+$/, "")}/message/sendText/${conn.instance_name}`, {
             method: "POST",
-            headers: { "Content-Type": "application/json", apikey: conn.api_key ?? "" },
+            headers: { "Content-Type": "application/json", apikey: commandKey },
             body: JSON.stringify({ number: remoteJid, text }),
           });
           if (!send.ok) {
