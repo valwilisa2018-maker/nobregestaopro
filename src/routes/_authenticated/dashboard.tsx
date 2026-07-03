@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { StatCard } from "@/components/stat-card";
 import { TopVendorBadge } from "@/components/top-vendor-badge";
+import { GoalCelebration } from "@/components/goal-celebration";
 import { useAuth } from "@/lib/auth";
 import { useMidnightRefresh } from "@/hooks/use-midnight-refresh";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
