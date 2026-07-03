@@ -24,13 +24,14 @@ export function TabApiKeys() {
 
   async function load() {
     setLoading(true);
-    const { data } = await supabase.from("ai_providers").select("provider,api_key");
+    if (!user) { setLoading(false); return; }
+    const { data } = await supabase.from("ai_providers").select("provider,api_key").eq("user_id", user.id);
     const map: Record<string, string> = {};
     (data ?? []).forEach((r: { provider: string; api_key: string | null }) => { if (r.api_key) map[r.provider] = r.api_key; });
     setValues(map);
     setLoading(false);
   }
-  useEffect(() => { load(); }, []);
+  useEffect(() => { load(); /* eslint-disable-next-line */ }, [user]);
 
   async function save() {
     if (!user) return;
@@ -39,7 +40,13 @@ export function TabApiKeys() {
       for (const row of ROWS) {
         const v = values[row.provider]?.trim();
         if (!v) continue;
-        const { data: existing } = await supabase.from("ai_providers").select("id").eq("provider", row.provider).maybeSingle();
+        const { data: existing } = await supabase
+          .from("ai_providers")
+          .select("id")
+          .eq("provider", row.provider)
+          .eq("user_id", user.id)
+          .limit(1)
+          .maybeSingle();
         if (existing?.id) {
           await supabase.from("ai_providers").update({ api_key: v, is_active: true }).eq("id", existing.id);
         } else {
@@ -47,6 +54,7 @@ export function TabApiKeys() {
         }
       }
       toast.success("Chaves salvas");
+      await load();
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Erro ao salvar");
     } finally { setSaving(false); }
