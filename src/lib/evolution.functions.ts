@@ -63,6 +63,19 @@ export const disconnectInstance = createServerFn({ method: "POST" })
     return { ok: r.ok, raw: r.json };
   });
 
+export const deleteInstance = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((i: unknown) => IdInput.parse(i))
+  .handler(async ({ data, context }) => {
+    const c = await loadConnection(context.supabase, context.userId, data.connectionId);
+    // Best-effort: logout then delete on Evolution before dropping the local row
+    try { await evoFetch(`${baseUrl(c.url_api)}/instance/logout/${c.instance_name}`, c.api_key, { method: "DELETE" }); } catch { /* ignore */ }
+    try { await evoFetch(`${baseUrl(c.url_api)}/instance/delete/${c.instance_name}`, c.api_key, { method: "DELETE" }); } catch { /* ignore */ }
+    const { error } = await context.supabase.from("connections").delete().eq("id", c.id);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
 const CreateInput = z.object({
   name: z.string().min(1),
   instanceName: z.string().min(1).regex(/^[a-zA-Z0-9_-]+$/, "Use apenas letras, números, _ e -"),

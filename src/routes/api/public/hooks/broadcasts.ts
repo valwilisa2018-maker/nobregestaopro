@@ -62,7 +62,15 @@ async function runBroadcasts(request: Request | undefined) {
         const idx = r.current_step as number;
         const step = stepList[idx];
         if (!step) continue;
-        const text = (step.message as string).replaceAll("{telefone}", r.phone as string).replaceAll("{nome}", "cliente");
+        let contactName = "cliente";
+        if (r.contact_id) {
+          const { data: ct } = await supabaseAdmin.from("contacts")
+            .select("name").eq("id", r.contact_id as string).maybeSingle();
+          if (ct?.name) contactName = ct.name;
+        }
+        const text = (step.message as string)
+          .replaceAll("{telefone}", r.phone as string)
+          .replaceAll("{nome}", contactName);
         const tl = Array.isArray(r.timeline) ? (r.timeline as any[]) : [];
         try {
           const number = `${(r.phone as string).replace(/\D/g, "")}@s.whatsapp.net`;
@@ -112,7 +120,15 @@ async function runBroadcasts(request: Request | undefined) {
       let sent = b.sent_count as number;
       let errored = b.error_count as number;
       for (const r of list) {
-        const text = (b.message as string).replaceAll("{telefone}", r.phone as string).replaceAll("{nome}", "cliente");
+        let contactName = "cliente";
+        if (r.contact_id) {
+          const { data: ct } = await supabaseAdmin.from("contacts")
+            .select("name").eq("id", r.contact_id as string).maybeSingle();
+          if (ct?.name) contactName = ct.name;
+        }
+        const text = (b.message as string)
+          .replaceAll("{telefone}", r.phone as string)
+          .replaceAll("{nome}", contactName);
         try {
           const number = `${(r.phone as string).replace(/\D/g, "")}@s.whatsapp.net`;
           const url = `${conn.url_api.replace(/\/+$/, "")}/message/sendText/${conn.instance_name}`;

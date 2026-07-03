@@ -14,9 +14,14 @@ const Input = z.object({
 
 const PROVIDER_PREFIX: Record<string, string> = {
   gemini: "google/",
+  google: "google/",
   openai: "openai/",
   deepseek: "openai/",
   grok: "openai/",
+  anthropic: "anthropic/",
+  claude: "anthropic/",
+  ollama: "",
+  custom: "",
 };
 
 export const chatWithAgent = createServerFn({ method: "POST" })
@@ -25,7 +30,7 @@ export const chatWithAgent = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     let endpoint = "https://ai.gateway.lovable.dev/v1/chat/completions";
     let apiKey = process.env.LOVABLE_API_KEY ?? "";
-    const prefix = PROVIDER_PREFIX[data.provider.toLowerCase()] ?? "google/";
+    const prefix = PROVIDER_PREFIX[data.provider.toLowerCase()] ?? "";
     let modelId = data.model.includes("/") ? data.model : `${prefix}${data.model}`;
 
     if (data.providerId) {
