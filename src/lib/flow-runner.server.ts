@@ -150,9 +150,12 @@ export async function runFlow(args: {
     state.current_node = nextNode(def, start.id, "out");
   }
 
-  // Cap iterations to prevent infinite loops in bad flows.
+  // Cap iterations AND wall-clock to prevent handler timeouts on
+  // TYPING/RECORDING/WAIT nodes chained together.
   let hops = 0;
+  const deadline = Date.now() + 25_000;
   while (state.current_node && hops++ < 40) {
+    if (Date.now() > deadline) break;
     const node = def.nodes.find((n) => n.id === state.current_node);
     if (!node) break;
     const vars = state.variables ?? {};
@@ -220,13 +223,22 @@ export async function runFlow(args: {
       return { state, waitingForUser: true };
     }
     if (kind === "TAGS") {
-      // Persist tags to conversation metadata (via db call from caller side is complex
-      // → we do it here through the passed db handle)
       const tags = (node.data.text ?? "").split(",").map((s) => s.trim()).filter(Boolean);
       if (tags.length) {
-        await args.db.from("conversations").update({
-          tags,
-        } as never).eq("connection_id", conn.id).eq("metadata->>remoteJid", recipient);
+        // Merge into conversations.metadata.tags (schema has no top-level tags column)
+        const { data: existing } = await args.db.from("conversations")
+          .select("id,metadata")
+          .eq("connection_id", conn.id)
+          .eq("metadata->>remoteJid", recipient)
+          .maybeSingle();
+        if (existing) {
+          const prev = (existing.metadata ?? {}) as Record<string, unknown>;
+          const prevTags = Array.isArray((prev as { tags?: unknown[] }).tags) ? ((prev as { tags: string[] }).tags) : [];
+          const merged = Array.from(new Set([...prevTags, ...tags]));
+          await args.db.from("conversations").update({
+            metadata: { ...prev, tags: merged },
+          } as never).eq("id", existing.id);
+        }
       }
       state.current_node = nextNode(def, node.id, "out");
       continue;
@@ -262,11 +274,19 @@ export async function runFlow(args: {
     if (kind === "HANDOFF") {
       const t = interpolate(node.data.text || "Vou transferir você para um atendente.", vars);
       await sendText(conn, recipient, t);
-      // Mark conversation for human handoff and pause the agent for 24h
-      await args.db.from("conversations").update({
-        metadata: { remoteJid: recipient, handoff: true, agent_paused_until: new Date(Date.now() + 24 * 3600_000).toISOString() },
-        follow_up_paused: true,
-      } as never).eq("connection_id", conn.id).eq("metadata->>remoteJid", recipient);
+      // Merge (do not clobber) conversation metadata; pause agent 24h.
+      const { data: existing } = await args.db.from("conversations")
+        .select("id,metadata")
+        .eq("connection_id", conn.id)
+        .eq("metadata->>remoteJid", recipient)
+        .maybeSingle();
+      if (existing) {
+        const prev = (existing.metadata ?? {}) as Record<string, unknown>;
+        await args.db.from("conversations").update({
+          metadata: { ...prev, remoteJid: recipient, handoff: true, agent_paused_until: new Date(Date.now() + 24 * 3600_000).toISOString() },
+          follow_up_paused: true,
+        } as never).eq("id", existing.id);
+      }
       state.finished = true;
       state.current_node = null;
       return { state, handedOff: true, finished: true };
