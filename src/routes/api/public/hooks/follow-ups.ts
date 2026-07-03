@@ -44,6 +44,7 @@ async function runFollowups(request: Request | undefined) {
           .eq("follow_up_paused", false)
           .not("agent_id", "is", null)
           .not("connection_id", "is", null)
+          .not("last_message_at", "is", null)
           .or(`next_follow_up_at.lte.${new Date().toISOString()},next_follow_up_at.is.null`)
           .limit(200);
 
