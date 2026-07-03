@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import confetti from "canvas-confetti";
-import caixaAsset from "@/assets/caixa-registradora.m4a.asset.json";
+import { playCelebrationSound, type SoundId } from "@/lib/celebration-sound";
+import { useCelebrationSettings } from "@/hooks/use-celebration-settings";
 
 export type GoalItem = {
   key: string;         // stable id: "daily" | "weekly" | "monthly" | ...
@@ -38,17 +39,10 @@ function fireFireworks(duration = 4000) {
   });
 }
 
-function playCelebrationSound() {
-  try {
-    const audio = new Audio(caixaAsset.url);
-    audio.volume = 0.9;
-    void audio.play().catch(() => {});
-  } catch {}
-}
-
 export function GoalCelebration({ items }: { items: GoalItem[] }) {
   const firedRef = useRef<Set<string>>(new Set());
   const [banner, setBanner] = useState<{ label: string; id: number } | null>(null);
+  const [celebration] = useCelebrationSettings();
 
   useEffect(() => {
     for (const item of items) {
@@ -62,7 +56,13 @@ export function GoalCelebration({ items }: { items: GoalItem[] }) {
         window.localStorage.setItem(sk, "1");
       } catch {}
       fireFireworks();
-      playCelebrationSound();
+      if (celebration.soundEnabled) {
+        void playCelebrationSound(
+          (celebration.soundId as SoundId) || "buzina",
+          Math.min(1, Math.max(0, (celebration.volume ?? 80) / 100)),
+          celebration.customSoundUrl,
+        );
+      }
       const id = Date.now();
       setBanner({ label: item.label, id });
       window.setTimeout(() => {
