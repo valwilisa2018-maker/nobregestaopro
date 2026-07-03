@@ -366,6 +366,12 @@ function Page() {
                   <Button size="sm" variant="outline" onClick={() => disconnect(c)} disabled={!!busy[c.id]}>
                     <Power className="h-3.5 w-3.5" />
                   </Button>
+                  {c.status === "online" && (
+                    <Button size="sm" variant="outline" onClick={() => sendTest(c)} disabled={!!busy[c.id]}>
+                      {busy[c.id] === "test-msg" ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Send className="h-3.5 w-3.5" />}
+                      Enviar teste
+                    </Button>
+                  )}
                   <Button size="sm" variant="ghost" onClick={() => remove(c)}>
                     <Trash2 className="h-3.5 w-3.5 text-destructive" />
                   </Button>
