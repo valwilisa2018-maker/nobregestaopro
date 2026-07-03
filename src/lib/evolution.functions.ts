@@ -92,10 +92,18 @@ export const sendTestMessage = createServerFn({ method: "POST" })
       body: JSON.stringify({ number: raw, text, delay: 500 }),
     });
     if (!r.ok) {
+      const pick = (v: any): string => {
+        if (v == null) return "";
+        if (typeof v === "string") return v;
+        if (Array.isArray(v)) return v.map(pick).filter(Boolean).join(" | ");
+        if (typeof v === "object") return v.message || v.error || v.exception || JSON.stringify(v);
+        return String(v);
+      };
       const msg =
-        (Array.isArray(r.json?.response?.message) ? r.json.response.message[0] : r.json?.response?.message) ||
-        (Array.isArray(r.json?.message) ? r.json.message[0] : r.json?.message) ||
-        JSON.stringify(r.json).slice(0, 300);
+        pick(r.json?.response?.message) ||
+        pick(r.json?.message) ||
+        pick(r.json?.error) ||
+        JSON.stringify(r.json ?? {}).slice(0, 500);
       throw new Error(`Evolution ${r.status}: ${msg}`);
     }
     return { ok: true, to: raw, text, raw: r.json };
