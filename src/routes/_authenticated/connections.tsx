@@ -10,9 +10,9 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
-import { Plus, RefreshCw, Play, Power, Trash2, QrCode, CheckCircle2, XCircle, Activity } from "lucide-react";
+import { Plus, RefreshCw, Play, Power, Trash2, QrCode, CheckCircle2, XCircle, Activity, Webhook } from "lucide-react";
 import { toast } from "sonner";
-import { testConnection, connectInstance, disconnectInstance } from "@/lib/evolution.functions";
+import { testConnection, connectInstance, disconnectInstance, testWebhook } from "@/lib/evolution.functions";
 import { AdminGuard } from "@/components/admin-guard";
 
 export const Route = createFileRoute("/_authenticated/connections")({
@@ -55,6 +55,7 @@ function ConnectionsPage() {
   const testFn = useServerFn(testConnection);
   const connectFn = useServerFn(connectInstance);
   const disconnectFn = useServerFn(disconnectInstance);
+  const testWebhookFn = useServerFn(testWebhook);
 
   const load = async () => {
     setLoading(true);
@@ -125,6 +126,18 @@ function ConnectionsPage() {
     } finally { setBusyFor(c.id, null); }
   };
 
+  const doTestWebhook = async (c: Connection) => {
+    setBusyFor(c.id, "webhook");
+    try {
+      const r = await testWebhookFn({ data: { connectionId: c.id } });
+      setDiag(c.id, { ok: r.ok, action: "Testar webhook", message: `HTTP ${r.status} · ${r.url}`, details: JSON.stringify(r, null, 2), at: new Date().toISOString() });
+      r.ok ? toast.success(`Webhook OK (${r.status})`) : toast.error(`Webhook falhou (${r.status})`);
+    } catch (e: any) {
+      setDiag(c.id, { ok: false, action: "Testar webhook", message: e?.message ?? "Falha", details: e?.stack, at: new Date().toISOString() });
+      toast.error(e.message);
+    } finally { setBusyFor(c.id, null); }
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -180,6 +193,7 @@ function ConnectionsPage() {
                   <Button size="sm" disabled={!!busy[c.id]} onClick={() => doConnect(c)}><QrCode className="h-3.5 w-3.5 mr-1" />Conectar</Button>
                   <Button size="sm" variant="outline" disabled={!!busy[c.id]} onClick={() => doConnect(c)}><RefreshCw className="h-3.5 w-3.5 mr-1" />Reconectar</Button>
                   <Button size="sm" variant="outline" disabled={!!busy[c.id]} onClick={() => doDisconnect(c)}><Power className="h-3.5 w-3.5 mr-1" />Desconectar</Button>
+                  <Button size="sm" variant="outline" disabled={!!busy[c.id]} onClick={() => doTestWebhook(c)}><Webhook className="h-3.5 w-3.5 mr-1" />Testar webhook</Button>
                   <Button size="sm" variant="ghost" onClick={() => remove(c.id)}><Trash2 className="h-3.5 w-3.5" /></Button>
                 </div>
 
