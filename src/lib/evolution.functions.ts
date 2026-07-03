@@ -16,7 +16,9 @@ async function loadConnection(supabase: any, userId: string, id: string) {
 }
 
 function baseUrl(url: string) {
-  return url.replace(/\/+$/, "");
+  let u = url.trim().replace(/\/+$/, "");
+  if (!/^https?:\/\//i.test(u)) u = `https://${u}`;
+  return u;
 }
 
 async function evoFetch(url: string, apiKey: string, init?: RequestInit) {
