@@ -587,6 +587,14 @@ function Dashboard() {
 
   return (
     <div className="space-y-6 animate-fade-in">
+      <GoalCelebration
+        items={[
+          { key: "daily", current: dayTotal, goal: goalFor("daily"), label: "Meta diária", periodStamp: startOf("day").slice(0, 10) },
+          { key: "weekly", current: weekTotal, goal: goalFor("weekly"), label: "Meta semanal", periodStamp: startOf("week").slice(0, 10) },
+          { key: "monthly", current: monthTotal, goal: goalFor("monthly"), label: "Meta mensal", periodStamp: startOf("month").slice(0, 7) },
+          { key: "yearly", current: yearTotal, goal: goalFor("yearly"), label: "Meta anual", periodStamp: startOf("year").slice(0, 4) },
+        ]}
+      />
       <div>
         <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
         <p className="text-muted-foreground">Visão geral de vendas, produção e faturamento — atualizado em tempo real</p>
