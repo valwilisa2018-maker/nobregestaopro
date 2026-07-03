@@ -282,7 +282,7 @@ export const Route = createFileRoute("/api/public/evolution/$instance")({
                     const { runFlow } = await import("@/lib/flow-runner.server");
                     const result = await runFlow({
                       db: supabaseAdmin,
-                      conn: { id: conn.id, user_id: conn.user_id, url_api: conn.url_api, api_key: conn.api_key, instance_name: conn.instance_name },
+                      conn: { id: conn.id, user_id: conn.user_id, url_api: conn.url_api, api_key: commandConn.api_key, instance_name: conn.instance_name },
                       recipient,
                       userText: text,
                       def: { nodes: def.nodes, edges: def.edges },
@@ -340,7 +340,7 @@ export const Route = createFileRoute("/api/public/evolution/$instance")({
               const blocked = (ext.hours.blockedDates ?? []).includes(iso);
               if (!inHours || !daysOk || inLunch || blocked) {
                 const away = ext.timing?.unknownMsg || "Estamos fora do horário de atendimento. Retornaremos em breve.";
-                await sendText(conn, recipient, away);
+                await sendText(commandConn, recipient, away);
                 return Response.json({ ok: true, offHours: true });
               }
             }
@@ -442,7 +442,7 @@ export const Route = createFileRoute("/api/public/evolution/$instance")({
                 user_id: conn.user_id, level: "warn", source: `evolution:${instance}`,
                 message: `quota exceeded: ${q.reason}`, metadata: q as never,
               } as never);
-              await maybeAlert(supabaseAdmin, conn, agent, ext, `Cota atingida: ${q.reason}`);
+              await maybeAlert(supabaseAdmin, commandConn, agent, ext, `Cota atingida: ${q.reason}`);
               return Response.json({ ok: true, quotaBlocked: true, reason: q.reason });
             }
 
