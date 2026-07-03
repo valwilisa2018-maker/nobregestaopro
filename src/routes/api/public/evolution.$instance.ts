@@ -94,7 +94,7 @@ export const Route = createFileRoute("/api/public/evolution/$instance")({
               level: "warn",
               source: "evolution.webhook",
               message: "invalid signature: apikey did not match instance or global",
-              context: { ...diag, headers: Object.fromEntries(request.headers) },
+              metadata: { ...diag, headers: Object.fromEntries(request.headers) },
             });
           } catch { /* ignore */ }
           return Response.json(
@@ -109,7 +109,7 @@ export const Route = createFileRoute("/api/public/evolution/$instance")({
             level: "info",
             source: "evolution.webhook",
             message: `apikey matched: ${matched}`,
-            context: { instance, matched, providedKeyPrefix: providedKey.slice(0, 6) },
+            metadata: { instance, matched, providedKeyPrefix: providedKey.slice(0, 6) },
           });
         } catch { /* ignore */ }
 
