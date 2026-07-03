@@ -9,6 +9,7 @@ import confetti from "canvas-confetti";
 import { useCelebrationSettings, SoundId as SoundType } from "@/hooks/use-celebration-settings";
 import { useBigSellerOverlaySeconds } from "@/hooks/use-telao-settings";
 import caixaRegistradoraAsset from "@/assets/caixa-registradora.m4a.asset.json";
+import { GoalCelebration } from "@/components/goal-celebration";
 
 // Som fixo (áudio real) para recebimentos pendentes confirmados
 let pendingReceiptAudio: HTMLAudioElement | null = null;
