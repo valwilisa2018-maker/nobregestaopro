@@ -327,14 +327,23 @@ function Page() {
               ) : (
                 <>
                   <QrCode className="h-20 w-20 text-primary/70" strokeWidth={1.2} />
-                  <Button
-                    onClick={() => qrModal.connectionId && reconnect({ id: qrModal.connectionId, name: qrModal.name } as Connection)}
-                    className="rounded-full px-6"
-                  >
-                    <QrCode className="h-4 w-4" /> Gerar QR Code
-                  </Button>
                 </>
               )}
+              <Button
+                variant={qrModal.qr ? "outline" : "default"}
+                onClick={async () => {
+                  if (!qrModal.connectionId) return;
+                  setQrModal((m) => ({ ...m, qr: null }));
+                  try {
+                    const r = await connectFn({ data: { connectionId: qrModal.connectionId } });
+                    setQrModal((m) => ({ ...m, qr: r.qr }));
+                    if (!r.qr) toast.error("QR ainda não disponível — tente novamente");
+                  } catch (e: any) { toast.error(e.message ?? "Falha ao gerar QR"); }
+                }}
+                className="rounded-full px-6"
+              >
+                <RefreshCw className="h-4 w-4" /> {qrModal.qr ? "Atualizar QR" : "Gerar QR Code"}
+              </Button>
               {qrModal.qr && (
                 <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
                   <Wifi className="h-3.5 w-3.5 animate-pulse text-primary" />
