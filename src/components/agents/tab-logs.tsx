@@ -23,13 +23,13 @@ export function TabLogs() {
       if (r.api_key) map[r.provider.toLowerCase()] = true;
     });
     setKeys(map);
-    const { data: cs } = await supabase.from("conversations").select("status,ai_enabled");
+    const { data: cs } = await supabase.from("conversations").select("status,agent_id,follow_up_paused");
     const c = { waiting: 0, active: 0, done: 0, ai: 0 };
-    (cs ?? []).forEach((r: { status: string | null; ai_enabled: boolean | null }) => {
+    (cs ?? []).forEach((r: { status: string | null; agent_id: string | null; follow_up_paused: boolean | null }) => {
       if (r.status === "waiting") c.waiting++;
-      else if (r.status === "active" || r.status === "in_progress") c.active++;
-      else if (r.status === "closed" || r.status === "finished") c.done++;
-      if (r.ai_enabled) c.ai++;
+      else if (r.status === "active") c.active++;
+      else if (r.status === "closed") c.done++;
+      if (r.agent_id && !r.follow_up_paused) c.ai++;
     });
     setConvs(c);
     const { data: lg, error } = await supabase
