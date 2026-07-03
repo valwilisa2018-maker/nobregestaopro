@@ -192,18 +192,35 @@ function MessagesPage() {
       icon={<MessageCircle className="h-6 w-6" />}
       status="ativo"
     >
-      <div className="grid grid-cols-1 md:grid-cols-[360px_1fr] gap-0 rounded-2xl border border-border/60 overflow-hidden shadow-xl h-[80vh]">
+      <TooltipProvider delayDuration={200}>
+      <div
+        className={`grid grid-cols-1 gap-0 rounded-2xl border border-border/60 overflow-hidden shadow-xl h-[80vh] transition-all duration-300 ${
+          sidebarCollapsed ? "md:grid-cols-[64px_1fr]" : "md:grid-cols-[360px_1fr]"
+        }`}
+      >
         {/* Contacts */}
         <aside
-          className={`${selected ? "hidden md:flex" : "flex"} flex-col bg-white border-r border-black/10`}
+          className={`${selected ? "hidden md:flex" : "flex"} flex-col bg-white border-r border-black/10 transition-all duration-300 overflow-hidden`}
         >
-          <div className="px-4 py-3 flex items-center gap-3" style={{ background: WA.headerDark, color: "white" }}>
-            <div className="h-10 w-10 rounded-full grid place-items-center bg-white/20 font-semibold">
+          <div className="px-3 py-3 flex items-center gap-2" style={{ background: WA.headerDark, color: "white" }}>
+            <div className="h-10 w-10 rounded-full grid place-items-center bg-white/20 font-semibold shrink-0">
               {(user?.email ?? "U").slice(0, 1).toUpperCase()}
             </div>
-            <div className="text-sm font-semibold">Conversas</div>
+            {!sidebarCollapsed && <div className="text-sm font-semibold flex-1 truncate">Conversas</div>}
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  onClick={() => setSidebarCollapsed((v) => !v)}
+                  className="hidden md:grid h-8 w-8 place-items-center rounded-full text-white/90 hover:bg-white/15 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/60 transition"
+                  aria-label={sidebarCollapsed ? "Expandir" : "Recolher"}
+                >
+                  {sidebarCollapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
+                </button>
+              </TooltipTrigger>
+              <TooltipContent side="right">{sidebarCollapsed ? "Expandir lista" : "Recolher lista"}</TooltipContent>
+            </Tooltip>
           </div>
-          <div className="p-2 bg-[#F6F6F6]">
+          {!sidebarCollapsed && <div className="p-2 bg-[#F6F6F6]">
             <div className="relative">
               <Search className="absolute left-3 top-2.5 h-4 w-4 text-gray-500" />
               <Input
@@ -213,7 +230,7 @@ function MessagesPage() {
                 className="pl-9 bg-white border-transparent rounded-full h-9 text-sm text-gray-800 placeholder:text-gray-500"
               />
             </div>
-          </div>
+          </div>}
           <div className="flex-1 overflow-y-auto bg-white">
             {filtered.map((c) => {
               const active = selected?.id === c.id;
@@ -221,21 +238,22 @@ function MessagesPage() {
                 <button
                   key={c.id}
                   onClick={() => setSelected(c)}
-                  className={`w-full flex items-center gap-3 px-3 py-3 text-left border-b border-black/5 hover:bg-gray-50 transition ${active ? "bg-gray-100" : ""}`}
+                  className={`w-full flex items-center gap-3 px-3 py-3 text-left border-b border-black/5 hover:bg-gray-50 focus:outline-none focus-visible:bg-gray-100 transition ${active ? "bg-gray-100" : ""} ${sidebarCollapsed ? "justify-center" : ""}`}
+                  title={sidebarCollapsed ? (c.name || c.phone) : undefined}
                 >
                   <div className="h-12 w-12 rounded-full grid place-items-center text-sm font-semibold text-white shrink-0" style={{ background: WA.headerTeal }}>
                     {initials(c.name, c.phone)}
                   </div>
-                  <div className="min-w-0 flex-1">
+                  {!sidebarCollapsed && <div className="min-w-0 flex-1">
                     <div className="flex items-center justify-between gap-2">
                       <div className="text-sm font-medium truncate text-gray-900">{c.name || c.phone}</div>
                     </div>
                     <div className="text-xs text-gray-500 truncate">{c.phone}</div>
-                  </div>
+                  </div>}
                 </button>
               );
             })}
-            {!filtered.length && <div className="p-6 text-center text-xs text-gray-500">Nenhum contato</div>}
+            {!filtered.length && !sidebarCollapsed && <div className="p-6 text-center text-xs text-gray-500">Nenhum contato</div>}
           </div>
         </aside>
 
@@ -316,7 +334,7 @@ function MessagesPage() {
                   <>
                     <Popover>
                       <PopoverTrigger asChild>
-                        <button className="p-2 text-gray-500 hover:text-gray-700 transition" aria-label="Figurinhas">
+                        <button className="p-2 text-gray-500 hover:text-gray-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 rounded-full transition" aria-label="Figurinhas">
                           <Smile className="h-6 w-6" />
                         </button>
                       </PopoverTrigger>
@@ -335,34 +353,90 @@ function MessagesPage() {
                         </div>
                       </PopoverContent>
                     </Popover>
-                    <textarea
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <button
+                          onClick={() => fileInputRef.current?.click()}
+                          className="p-2 text-gray-500 hover:text-gray-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 rounded-full transition"
+                          aria-label="Anexar arquivo"
+                        >
+                          <Paperclip className="h-6 w-6" />
+                        </button>
+                      </TooltipTrigger>
+                      <TooltipContent side="top">Anexar arquivo</TooltipContent>
+                    </Tooltip>
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept="image/*,application/pdf,.doc,.docx,.txt"
+                      className="hidden"
+                      onChange={(e) => {
+                        const f = e.target.files?.[0];
+                        if (f) setAttachment({ file: f, url: URL.createObjectURL(f) });
+                        e.target.value = "";
+                      }}
+                    />
+                    <div className="flex-1 flex flex-col gap-1">
+                      {attachment && (
+                        <div className="flex items-center gap-2 bg-white rounded-lg px-3 py-2 shadow-sm text-sm">
+                          {attachment.file.type.startsWith("image/") ? (
+                            <img src={attachment.url} alt="" className="h-10 w-10 object-cover rounded" />
+                          ) : (
+                            <FileText className="h-8 w-8 text-gray-500" />
+                          )}
+                          <div className="min-w-0 flex-1">
+                            <div className="truncate text-gray-800">{attachment.file.name}</div>
+                            <div className="text-[11px] text-gray-500">{Math.round(attachment.file.size / 1024)} KB</div>
+                          </div>
+                          <button
+                            onClick={() => { URL.revokeObjectURL(attachment.url); setAttachment(null); }}
+                            className="p-1 rounded-full hover:bg-gray-100 text-gray-500"
+                            aria-label="Remover anexo"
+                          >
+                            <X className="h-4 w-4" />
+                          </button>
+                        </div>
+                      )}
+                      <textarea
                       value={text}
                       onChange={(e) => setText(e.target.value)}
                       onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSendText(); } }}
                       placeholder="Digite uma mensagem"
                       rows={1}
-                      className="flex-1 resize-none rounded-full bg-white px-4 py-2.5 text-sm text-gray-800 outline-none max-h-32 shadow-sm placeholder:text-gray-500"
-                    />
+                      className="w-full resize-none rounded-full bg-white px-4 py-2.5 text-sm text-gray-800 outline-none focus:ring-2 focus:ring-emerald-500/40 max-h-32 shadow-sm placeholder:text-gray-500"
+                      />
+                    </div>
                   </>
                 )}
                 {recording ? (
-                  <Button size="icon" onClick={stopRecording} className="rounded-full h-11 w-11 text-white hover:opacity-90" style={{ background: "#DC2626" }}>
-                    <Square className="h-5 w-5" />
-                  </Button>
-                ) : text.trim() ? (
-                  <Button size="icon" onClick={handleSendText} disabled={sending} className="rounded-full h-11 w-11 text-white hover:opacity-90" style={{ background: WA.accent }}>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button size="icon" onClick={stopRecording} className="rounded-full h-11 w-11 text-white hover:opacity-90" style={{ background: "#DC2626" }}>
+                        <Square className="h-5 w-5" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent side="top">Parar gravação</TooltipContent>
+                  </Tooltip>
+                ) : text.trim() || attachment ? (
+                  <Button size="icon" onClick={() => { if (attachment) { setMsgs((p) => [...p, { id: `local-${Date.now()}`, direction: "outbound", type: attachment.file.type.startsWith("image/") ? "image" : "file", content: attachment.file.name, media_url: attachment.url, created_at: new Date().toISOString(), metadata: null }]); setAttachment(null); } if (text.trim()) handleSendText(); }} disabled={sending} className="rounded-full h-11 w-11 text-white hover:opacity-90" style={{ background: WA.accent }}>
                     {sending ? <Loader2 className="h-5 w-5 animate-spin" /> : <Send className="h-5 w-5" />}
                   </Button>
                 ) : (
-                  <Button size="icon" onClick={startRecording} disabled={sending} className="rounded-full h-11 w-11 text-white hover:opacity-90" style={{ background: WA.headerTeal }}>
-                    {sending ? <Loader2 className="h-5 w-5 animate-spin" /> : <Mic className="h-5 w-5" />}
-                  </Button>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button size="icon" onClick={startRecording} disabled={sending} className="rounded-full h-11 w-11 text-white hover:opacity-90" style={{ background: WA.headerTeal }}>
+                        {sending ? <Loader2 className="h-5 w-5 animate-spin" /> : <Mic className="h-5 w-5" />}
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent side="top">Gravar áudio</TooltipContent>
+                  </Tooltip>
                 )}
               </div>
             </>
           )}
         </section>
       </div>
+      </TooltipProvider>
     </PageShell>
   );
 }
