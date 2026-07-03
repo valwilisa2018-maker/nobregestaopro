@@ -459,8 +459,8 @@ function Telao() {
     queryKey: ["telao-customers"],
     queryFn: async () => (await supabase.from("customers").select("id,name")).data ?? [],
     refetchInterval: 300000,
+    refetchIntervalInBackground: false,
   });
-
   const goalsQ = useQuery({
     queryKey: ["telao-goals"],
     queryFn: async () => {
@@ -472,9 +472,6 @@ function Telao() {
   });
   const goalFor = (p: string) =>
     Number((goalsQ.data ?? []).find((g: any) => g.period === p)?.target_amount ?? 0);
-  const _dummyClose = ({} as never);
-    refetchIntervalInBackground: false,
-  });
   const sellersQ = useQuery({
     queryKey: ["telao-sellers"],
     queryFn: async () => (await supabase.from("sellers").select("id,name,user_id")).data ?? [],
