@@ -292,6 +292,14 @@ function parseEvoError(json: any, status: number) {
     if (typeof v === "object") return v.message || v.error || v.exception || JSON.stringify(v);
     return String(v);
   };
+  // Número não registrado no WhatsApp
+  const notExists =
+    json?.exists === false ||
+    (Array.isArray(json?.response?.message) && json.response.message.some((m: any) => m?.exists === false));
+  if (notExists) {
+    const num = json?.number || json?.response?.message?.[0]?.number || "";
+    return `Este número${num ? ` (${num})` : ""} não está registrado no WhatsApp.`;
+  }
   return `Evolution ${status}: ${
     pick(json?.response?.message) || pick(json?.message) || pick(json?.error) || JSON.stringify(json ?? {}).slice(0, 400)
   }`;
