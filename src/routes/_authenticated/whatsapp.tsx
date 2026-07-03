@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
@@ -58,6 +58,11 @@ function Page() {
     open: false, qr: null, name: "", connectionId: null,
   });
   const [busy, setBusy] = useState<Record<string, string | null>>({});
+  // Per-connection reconnect state: attempts + next allowed retry timestamp
+  const retryRef = useRef<Record<string, { attempts: number; nextAt: number; inFlight: boolean }>>({});
+  const [retryTick, setRetryTick] = useState(0); // force re-render for feedback
+  const MAX_ATTEMPTS = 6;
+  const BASE_DELAY = 5000; // 5s, doubles up to ~5min
 
   const createFn = useServerFn(createAndConnectInstance);
   const connectFn = useServerFn(connectInstance);
@@ -75,7 +80,7 @@ function Page() {
   };
   useEffect(() => { if (user) load(); }, [user]);
 
-  // Continuous status sync + auto-reconnect for offline instances
+  // Continuous status sync + auto-reconnect with exponential backoff
   useEffect(() => {
     if (!user || items.length === 0) return;
     let cancelled = false;
@@ -84,17 +89,44 @@ function Page() {
         try {
           const r = await testFn({ data: { connectionId: c.id } });
           if (cancelled) return;
-          if (r.status !== c.status) {
+          const prevStatus = c.status;
+          if (r.status !== prevStatus) {
             setItems((prev) => prev.map((x) => x.id === c.id ? { ...x, status: r.status } : x));
-            if (r.status === "online" && c.status !== "online") toast.success(`${c.name}: WhatsApp conectado`);
-            if (r.status === "offline" && c.status === "online") {
-              toast.error(`${c.name}: WhatsApp desconectado — tentando reconectar…`);
-              try { await connectFn({ data: { connectionId: c.id } }); } catch { /* ignore */ }
+          }
+          const st = retryRef.current[c.id] ?? { attempts: 0, nextAt: 0, inFlight: false };
+          if (r.status === "online") {
+            if (st.attempts > 0 || prevStatus !== "online") {
+              retryRef.current[c.id] = { attempts: 0, nextAt: 0, inFlight: false };
+              setRetryTick((t) => t + 1);
+              if (prevStatus !== "online") toast.success(`${c.name}: WhatsApp conectado`);
+            }
+          } else if (r.status === "offline") {
+            if (prevStatus === "online") toast.error(`${c.name}: WhatsApp desconectado`);
+            const now = Date.now();
+            if (!st.inFlight && st.attempts < MAX_ATTEMPTS && now >= st.nextAt) {
+              st.inFlight = true;
+              retryRef.current[c.id] = st;
+              setRetryTick((t) => t + 1);
+              try {
+                await connectFn({ data: { connectionId: c.id } });
+                st.attempts += 1;
+                st.nextAt = Date.now() + BASE_DELAY * Math.pow(2, st.attempts - 1);
+                toast.message(`${c.name}: reconectando… (${st.attempts}/${MAX_ATTEMPTS})`);
+              } catch { /* ignore */ }
+              finally {
+                st.inFlight = false;
+                retryRef.current[c.id] = st;
+                setRetryTick((t) => t + 1);
+                if (st.attempts >= MAX_ATTEMPTS) {
+                  toast.error(`${c.name}: falha após ${MAX_ATTEMPTS} tentativas. Reconecte manualmente.`);
+                }
+              }
             }
           }
         } catch { /* ignore */ }
       }
     };
+    tick();
     const id = setInterval(tick, 10000);
     return () => { cancelled = true; clearInterval(id); };
   }, [user, items]);
