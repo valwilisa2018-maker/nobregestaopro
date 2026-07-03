@@ -36,8 +36,6 @@ const groups = [
   {
     label: "Insights",
     items: [
-      { title: "Analytics", url: "/history", icon: LineChart },
-      { title: "Monitoramento", url: "/logs", icon: Activity },
       { title: "Prompts", url: "/prompt", icon: Brain },
       { title: "Clientes", url: "/clients", icon: Users },
       { title: "Histórico", url: "/history", icon: History },
@@ -48,14 +46,12 @@ const groups = [
     label: "Financeiro",
     items: [
       { title: "Meu Plano", url: "/billing", icon: CreditCard },
-      { title: "Financeiro", url: "/billing", icon: DollarSign },
     ],
   },
   {
     label: "Conta",
     items: [
       { title: "Configurações", url: "/settings", icon: Settings },
-      { title: "Perfil", url: "/settings", icon: User },
     ],
   },
 ];
@@ -63,15 +59,11 @@ const groups = [
 const adminGroup = {
   label: "Admin",
   items: [
-    { title: "Painel Admin", url: "/admin", icon: Crown },
-    { title: "Clientes", url: "/admin/clients", icon: Building2 },
-    { title: "Instâncias", url: "/admin/instances", icon: Plug },
-    { title: "Agentes (todos)", url: "/admin/agents", icon: Bot },
-    { title: "Faturamento", url: "/admin/billing", icon: DollarSign },
-    { title: "Planos", url: "/admin/plans", icon: CreditCard },
-    { title: "Usuários", url: "/admin/users", icon: UserCog },
-    { title: "Permissões", url: "/admin/permissions", icon: ShieldCheck },
-    { title: "Segurança", url: "/admin/security", icon: Shield },
+    { title: "Usuários", url: "/users", icon: UserCog },
+    { title: "Permissões", url: "/permissions", icon: ShieldCheck },
+    { title: "Conexões", url: "/connections", icon: Plug },
+    { title: "Webhooks", url: "/webhooks", icon: Puzzle },
+    { title: "API Keys", url: "/api", icon: Shield },
     { title: "White Label", url: "/white-label", icon: Palette },
   ],
 };
