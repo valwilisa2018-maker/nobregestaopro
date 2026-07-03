@@ -9,6 +9,7 @@ import confetti from "canvas-confetti";
 import { useCelebrationSettings, SoundId as SoundType } from "@/hooks/use-celebration-settings";
 import { useBigSellerOverlaySeconds } from "@/hooks/use-telao-settings";
 import caixaRegistradoraAsset from "@/assets/caixa-registradora.m4a.asset.json";
+import { GoalCelebration } from "@/components/goal-celebration";
 
 // Som fixo (áudio real) para recebimentos pendentes confirmados
 let pendingReceiptAudio: HTMLAudioElement | null = null;
@@ -460,6 +461,17 @@ function Telao() {
     refetchInterval: 300000,
     refetchIntervalInBackground: false,
   });
+  const goalsQ = useQuery({
+    queryKey: ["telao-goals"],
+    queryFn: async () => {
+      const { data } = await supabase.from("goals").select("period,target_amount").is("seller_id", null);
+      return data ?? [];
+    },
+    refetchInterval: 60000,
+    staleTime: 30_000,
+  });
+  const goalFor = (p: string) =>
+    Number((goalsQ.data ?? []).find((g: any) => g.period === p)?.target_amount ?? 0);
   const sellersQ = useQuery({
     queryKey: ["telao-sellers"],
     queryFn: async () => (await supabase.from("sellers").select("id,name,user_id")).data ?? [],
@@ -972,6 +984,13 @@ function Telao() {
       }}
       className={`min-h-screen p-6 transition-all ${flash ? "ring-4 ring-[#c9a84c]/60" : ""}`}
     >
+      <GoalCelebration
+        items={[
+          { key: "daily", current: totalHoje, goal: goalFor("daily"), label: "Meta diária", periodStamp: todayISO },
+          { key: "weekly", current: totalSemana, goal: goalFor("weekly"), label: "Meta semanal", periodStamp: week0.toISOString().slice(0, 10) },
+          { key: "monthly", current: totalMes, goal: goalFor("monthly"), label: "Meta mensal", periodStamp: month0.toISOString().slice(0, 7) },
+        ]}
+      />
       {/* keyframes locais */}
       <style>{`
         @keyframes telao-pulse-gold { 0%,100% { box-shadow: 0 0 0 0 rgba(201,168,76,0); } 50% { box-shadow: 0 0 80px 8px rgba(240,215,140,0.45); } }
