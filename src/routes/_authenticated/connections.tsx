@@ -13,10 +13,11 @@ import { Badge } from "@/components/ui/badge";
 import { Plus, RefreshCw, Play, Power, Trash2, QrCode, CheckCircle2, XCircle, Activity } from "lucide-react";
 import { toast } from "sonner";
 import { testConnection, connectInstance, disconnectInstance } from "@/lib/evolution.functions";
+import { AdminGuard } from "@/components/admin-guard";
 
 export const Route = createFileRoute("/_authenticated/connections")({
   head: () => ({ meta: [{ title: "Conexões — Plataforma IA WhatsApp" }] }),
-  component: ConnectionsPage,
+  component: () => <AdminGuard><ConnectionsPage /></AdminGuard>,
 });
 
 type Connection = {
