@@ -305,6 +305,30 @@ function Page() {
               <CardContent className="space-y-3">
                 {c.phone_number && <div className="text-xs text-muted-foreground">📱 {c.phone_number}</div>}
                 {c.last_sync && <div className="text-xs text-muted-foreground">Última sync: {new Date(c.last_sync).toLocaleString()}</div>}
+                {c.status === "offline" && (() => {
+                  const st = retryRef.current[c.id];
+                  if (!st || st.attempts === 0) return null;
+                  const maxed = st.attempts >= MAX_ATTEMPTS;
+                  const secs = Math.max(0, Math.ceil((st.nextAt - Date.now()) / 1000));
+                  return (
+                    <div className={`flex items-center gap-2 text-xs ${maxed ? "text-destructive" : "text-amber-500"}`}>
+                      {st.inFlight ? <Loader2 className="h-3 w-3 animate-spin" /> : <RefreshCw className="h-3 w-3" />}
+                      {maxed
+                        ? `Falhou após ${MAX_ATTEMPTS} tentativas`
+                        : st.inFlight
+                          ? `Reconectando… (${st.attempts}/${MAX_ATTEMPTS})`
+                          : `Próxima tentativa em ${secs}s (${st.attempts}/${MAX_ATTEMPTS})`}
+                      {maxed && (
+                        <button
+                          className="underline"
+                          onClick={() => { retryRef.current[c.id] = { attempts: 0, nextAt: 0, inFlight: false }; setRetryTick((t) => t + 1); }}
+                        >
+                          Resetar
+                        </button>
+                      )}
+                    </div>
+                  );
+                })()}
                 <div className="flex flex-wrap gap-2">
                   {c.status !== "online" && (
                     <Button size="sm" className="bg-[#25D366] hover:bg-[#1ebe5b] text-white" onClick={() => reconnect(c)} disabled={!!busy[c.id]}>
