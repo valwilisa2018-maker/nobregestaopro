@@ -74,6 +74,22 @@ export const Route = createFileRoute("/api/public/evolution/$instance")({
           return diff === 0;
         };
         if (!providedKey || !expectedKeys.some((k) => safeEq(providedKey, k))) {
+          try {
+            await supabaseAdmin.from("logs").insert({
+              user_id: conn.user_id,
+              level: "warn",
+              source: "evolution.webhook",
+              message: "invalid signature",
+              context: ({
+                instance,
+                providedKeyLen: providedKey?.length ?? 0,
+                providedKeyPrefix: providedKey ? providedKey.slice(0, 4) : "",
+                expectedCount: expectedKeys.length,
+                expectedLens: expectedKeys.map((k) => k.length),
+                headers: Object.fromEntries(request.headers),
+              } as any),
+            } as any);
+          } catch { /* ignore */ }
           return Response.json({ ok: false, reason: "invalid signature" }, { status: 401 });
         }
 
