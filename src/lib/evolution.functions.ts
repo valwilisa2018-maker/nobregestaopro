@@ -73,6 +73,28 @@ export const disconnectInstance = createServerFn({ method: "POST" })
     return { ok: r.ok, raw: r.json };
   });
 
+const SendTestInput = z.object({
+  connectionId: z.string().uuid(),
+  number: z.string().min(8).optional(),
+  text: z.string().min(1).max(500).optional(),
+});
+
+export const sendTestMessage = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((i: unknown) => SendTestInput.parse(i))
+  .handler(async ({ data, context }) => {
+    const c = await loadConnection(context.supabase, context.userId, data.connectionId);
+    const raw = (data.number ?? c.phone_number ?? "").toString().replace(/\D+/g, "");
+    if (!raw) throw new Error("Informe um número de destino (a instância ainda não tem número conectado).");
+    const text = data.text ?? "oi";
+    const r = await evoFetch(`${baseUrl(c.url_api)}/message/sendText/${c.instance_name}`, c.api_key, {
+      method: "POST",
+      body: JSON.stringify({ number: raw, text, options: { delay: 500, presence: "composing" } }),
+    });
+    if (!r.ok) throw new Error(r.json?.response?.message?.[0] ?? r.json?.message ?? "Falha ao enviar mensagem de teste");
+    return { ok: true, to: raw, text, raw: r.json };
+  });
+
 export const deleteInstance = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((i: unknown) => IdInput.parse(i))
