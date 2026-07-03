@@ -64,6 +64,9 @@ function MessagesPage() {
   const [recTime, setRecTime] = useState(0);
   const recRef = useRef<{ mr: MediaRecorder; chunks: BlobPart[]; stream: MediaStream } | null>(null);
   const scrollRef = useRef<HTMLDivElement | null>(null);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [attachment, setAttachment] = useState<{ file: File; url: string } | null>(null);
   const sendText = useServerFn(sendChatText);
   const sendAudio = useServerFn(sendChatAudio);
 
