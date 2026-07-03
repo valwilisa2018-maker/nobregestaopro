@@ -11,6 +11,7 @@ import { sendChatText, sendChatAudio } from "@/lib/evolution.functions";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/messages")({
+  ssr: false,
   head: () => ({ meta: [{ title: "Mensagens — Agent IA" }] }),
   component: MessagesPage,
 });
