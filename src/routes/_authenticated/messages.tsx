@@ -296,6 +296,8 @@ function MessagesPage() {
                 {msgs.map((m) => {
                   const out = m.direction === "outbound";
                   const isAudio = m.type === "audio" || (m.metadata as { audio?: boolean } | null)?.audio;
+                  const isImage = m.type === "image" && !!m.media_url;
+                  const isFile = m.type === "file" && !!m.media_url;
                   return (
                     <div key={m.id} className={`flex ${out ? "justify-end" : "justify-start"}`}>
                       <div
@@ -306,6 +308,12 @@ function MessagesPage() {
                           m.media_url
                             ? <AudioPlayer src={m.media_url} />
                             : <div className="flex items-center gap-2 text-gray-600"><Mic className="h-4 w-4" /><span>Mensagem de voz</span></div>
+                        ) : isImage ? (
+                          <img src={m.media_url!} alt={m.content ?? ""} className="rounded-md max-h-64 object-cover" />
+                        ) : isFile ? (
+                          <a href={m.media_url!} target="_blank" rel="noreferrer" className="flex items-center gap-2 text-gray-800">
+                            <FileText className="h-5 w-5" /><span className="underline truncate max-w-[220px]">{m.content}</span>
+                          </a>
                         ) : (
                           <div className="whitespace-pre-wrap break-words pr-14">{m.content}</div>
                         )}
