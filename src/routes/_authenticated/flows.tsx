@@ -341,14 +341,15 @@ function Builder() {
             value={flowId ?? "__new__"}
             onValueChange={(v) => {
               if (v === "__new__") return;
-              const f = (flowsQ.data ?? []).find((x: { id: string }) => x.id === v);
+              const list = Array.isArray(flowsQ.data) ? flowsQ.data : (flowsQ.data?.flows ?? []);
+              const f = list.find((x: { id: string }) => x.id === v);
               if (f) openFlow(f as Parameters<typeof openFlow>[0]);
             }}
           >
             <SelectTrigger className="h-9 w-[220px]"><SelectValue placeholder="Fluxos salvos" /></SelectTrigger>
             <SelectContent>
               <SelectItem value="__new__">Fluxos salvos</SelectItem>
-              {(flowsQ.data ?? []).map((f: { id: string; name: string }) => (
+              {(Array.isArray(flowsQ.data) ? flowsQ.data : (flowsQ.data?.flows ?? [])).map((f: { id: string; name: string }) => (
                 <SelectItem key={f.id} value={f.id}>{f.name}</SelectItem>
               ))}
             </SelectContent>
