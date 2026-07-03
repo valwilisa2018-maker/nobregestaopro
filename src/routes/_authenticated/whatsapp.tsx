@@ -14,7 +14,7 @@ import {
 } from "@/components/ui/dialog";
 import {
   MessageCircle, Plus, QrCode, RefreshCw, Power, Trash2, Loader2, Smartphone,
-  CheckCircle2, ShieldCheck, Wifi,
+  Wifi, AlertTriangle,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Link } from "@tanstack/react-router";
@@ -34,12 +34,17 @@ type Connection = {
 
 function statusBadge(s: string) {
   const map: Record<string, string> = {
-    online: "bg-emerald-500/15 text-emerald-500 border-emerald-500/30",
+    online: "bg-[#25D366]/15 text-[#25D366] border-[#25D366]/40",
     connecting: "bg-amber-500/15 text-amber-500 border-amber-500/30",
     offline: "bg-muted text-muted-foreground border-border",
   };
   const label = s === "online" ? "Conectado" : s === "connecting" ? "Aguardando" : "Desconectado";
-  return <Badge variant="outline" className={map[s] ?? map.offline}>{label}</Badge>;
+  return (
+    <Badge variant="outline" className={`gap-1.5 ${map[s] ?? map.offline}`}>
+      <span className={`h-1.5 w-1.5 rounded-full ${s === "online" ? "bg-[#25D366] animate-pulse" : s === "connecting" ? "bg-amber-500 animate-pulse" : "bg-muted-foreground"}`} />
+      {label}
+    </Badge>
+  );
 }
 
 function Page() {
@@ -69,6 +74,30 @@ function Page() {
     setLoading(false);
   };
   useEffect(() => { if (user) load(); }, [user]);
+
+  // Continuous status sync + auto-reconnect for offline instances
+  useEffect(() => {
+    if (!user || items.length === 0) return;
+    let cancelled = false;
+    const tick = async () => {
+      for (const c of items) {
+        try {
+          const r = await testFn({ data: { connectionId: c.id } });
+          if (cancelled) return;
+          if (r.status !== c.status) {
+            setItems((prev) => prev.map((x) => x.id === c.id ? { ...x, status: r.status } : x));
+            if (r.status === "online" && c.status !== "online") toast.success(`${c.name}: WhatsApp conectado`);
+            if (r.status === "offline" && c.status === "online") {
+              toast.error(`${c.name}: WhatsApp desconectado — tentando reconectar…`);
+              try { await connectFn({ data: { connectionId: c.id } }); } catch { /* ignore */ }
+            }
+          }
+        } catch { /* ignore */ }
+      }
+    };
+    const id = setInterval(tick, 10000);
+    return () => { cancelled = true; clearInterval(id); };
+  }, [user, items]);
 
   // Poll QR modal status
   useEffect(() => {
@@ -162,7 +191,7 @@ function Page() {
       actions={
         <Dialog open={openNew} onOpenChange={setOpenNew}>
           <DialogTrigger asChild>
-            <Button><Plus className="h-4 w-4" /> Nova instância</Button>
+            <Button className="bg-[#25D366] hover:bg-[#1ebe5b] text-white"><Plus className="h-4 w-4" /> Nova instância</Button>
           </DialogTrigger>
           <DialogContent>
             <DialogHeader>
@@ -199,6 +228,16 @@ function Page() {
         </Dialog>
       }
     >
+      {items.some((c) => c.status === "offline") && (
+        <Card className="border-destructive/40 bg-destructive/5 mb-4">
+          <CardContent className="py-3 flex items-center gap-3 text-sm">
+            <AlertTriangle className="h-4 w-4 text-destructive shrink-0" />
+            <span className="text-destructive-foreground/90">
+              Algumas instâncias estão desconectadas. Tentativa automática de reconexão em andamento.
+            </span>
+          </CardContent>
+        </Card>
+      )}
       {loading ? (
         <div className="p-12 flex justify-center"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>
       ) : items.length === 0 ? (
@@ -216,11 +255,11 @@ function Page() {
       ) : (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           {items.map((c) => (
-            <Card key={c.id} className="group hover:border-primary/40 transition-colors">
+            <Card key={c.id} className={`group transition-colors ${c.status === "online" ? "border-[#25D366]/40 bg-[#25D366]/[0.03]" : "hover:border-primary/40"}`}>
               <CardHeader>
                 <div className="flex items-start justify-between gap-2">
                   <div className="flex items-center gap-3">
-                    <div className="grid h-10 w-10 place-items-center rounded-lg bg-primary/15 text-primary ring-1 ring-primary/30">
+                    <div className={`grid h-10 w-10 place-items-center rounded-lg ring-1 ${c.status === "online" ? "bg-[#25D366]/15 text-[#25D366] ring-[#25D366]/40" : "bg-primary/15 text-primary ring-primary/30"}`}>
                       <MessageCircle className="h-5 w-5" />
                     </div>
                     <div>
@@ -235,9 +274,11 @@ function Page() {
                 {c.phone_number && <div className="text-xs text-muted-foreground">📱 {c.phone_number}</div>}
                 {c.last_sync && <div className="text-xs text-muted-foreground">Última sync: {new Date(c.last_sync).toLocaleString()}</div>}
                 <div className="flex flex-wrap gap-2">
-                  <Button size="sm" onClick={() => reconnect(c)} disabled={!!busy[c.id]}>
-                    <QrCode className="h-3.5 w-3.5" /> QR
-                  </Button>
+                  {c.status !== "online" && (
+                    <Button size="sm" className="bg-[#25D366] hover:bg-[#1ebe5b] text-white" onClick={() => reconnect(c)} disabled={!!busy[c.id]}>
+                      <QrCode className="h-3.5 w-3.5" /> QR
+                    </Button>
+                  )}
                   <Button size="sm" variant="outline" onClick={() => reconnect(c)} disabled={!!busy[c.id]}>
                     <RefreshCw className="h-3.5 w-3.5" /> Reconectar
                   </Button>
