@@ -50,9 +50,17 @@ export const connectInstance = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const c = await loadConnection(context.supabase, context.userId, data.connectionId);
     const r = await evoFetch(`${baseUrl(c.url_api)}/instance/connect/${c.instance_name}`, c.api_key);
-    const qr = r.json?.base64 || r.json?.qrcode?.base64 || r.json?.code || null;
+    const j = r.json ?? {};
+    const qr =
+      j.base64 ||
+      j.qrcode?.base64 ||
+      j.qrcode?.code ||
+      j.qr?.base64 ||
+      j.qr ||
+      j.code ||
+      null;
     await context.supabase.from("connections").update({ status: "connecting", last_sync: new Date().toISOString() }).eq("id", c.id);
-    return { ok: r.ok, qr, raw: r.json };
+    return { ok: r.ok, qr, pairingCode: j.pairingCode ?? null, raw: r.json };
   });
 
 export const disconnectInstance = createServerFn({ method: "POST" })
@@ -135,7 +143,15 @@ export const createAndConnectInstance = createServerFn({ method: "POST" })
       throw new Error(createRes.json?.response?.message?.[0] ?? createRes.json?.message ?? "Falha ao criar instância na Evolution API");
     }
 
-    const qr = createRes.json?.qrcode?.base64 || createRes.json?.base64 || null;
+    const cj = createRes.json ?? {};
+    const qr =
+      cj.qrcode?.base64 ||
+      cj.base64 ||
+      cj.qrcode?.code ||
+      cj.qr?.base64 ||
+      cj.qr ||
+      cj.code ||
+      null;
 
     // Register local webhook record for tracking
     if (webhookUrl) {
