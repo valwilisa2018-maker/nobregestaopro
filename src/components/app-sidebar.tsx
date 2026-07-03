@@ -20,6 +20,7 @@ const groups = [
       { title: "Dashboard", url: "/dashboard", icon: LayoutDashboard },
       { title: "Agentes", url: "/agents", icon: Bot },
       { title: "Chats", url: "/conversations", icon: MessagesSquare },
+      { title: "Mensagens", url: "/messages", icon: MessageCircle },
       { title: "Base de Conhecimento", url: "/knowledge", icon: BookOpen },
     ],
   },
