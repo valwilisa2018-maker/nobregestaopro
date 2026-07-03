@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { ShieldCheck } from "lucide-react";
 import { CrudResource } from "@/components/crud-resource";
+import { AdminGuard } from "@/components/admin-guard";
 
 export const Route = createFileRoute("/_authenticated/permissions")({
   head: () => ({ meta: [{ title: "Permissões — Plataforma IA WhatsApp" }] }),
@@ -9,6 +10,7 @@ export const Route = createFileRoute("/_authenticated/permissions")({
 
 function Page() {
   return (
+    <AdminGuard>
     <CrudResource
       table="user_roles"
       title="Permissões"
@@ -19,5 +21,6 @@ function Page() {
     {name:"role", label:"Papel", type:"select", required:true, options:[{value:"admin",label:"Admin"},{value:"supervisor",label:"Supervisor"},{value:"atendente",label:"Atendente"},{value:"viewer",label:"Viewer"}]}
       ]}
     />
+    </AdminGuard>
   );
 }
