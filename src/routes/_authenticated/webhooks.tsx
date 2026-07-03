@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { Webhook } from "lucide-react";
 import { CrudResource } from "@/components/crud-resource";
+import { AdminGuard } from "@/components/admin-guard";
 
 export const Route = createFileRoute("/_authenticated/webhooks")({
   head: () => ({ meta: [{ title: "Webhooks — Plataforma IA WhatsApp" }] }),
@@ -9,6 +10,7 @@ export const Route = createFileRoute("/_authenticated/webhooks")({
 
 function Page() {
   return (
+    <AdminGuard>
     <CrudResource
       table="webhooks"
       title="Webhooks"
@@ -22,5 +24,6 @@ function Page() {
     {name:"is_active", label:"Ativo", type:"boolean"}
       ]}
     />
+    </AdminGuard>
   );
 }
