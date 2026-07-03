@@ -56,17 +56,25 @@ export const Route = createFileRoute("/api/public/evolution/$instance")({
         if (!conn) return Response.json({ ok: false, reason: "instance not found" }, { status: 404 });
 
         // Verify caller: Evolution forwards its instance apikey in the `apikey` header.
-        // Compare against the connection's stored api_key using a length-safe check.
+        // Evolution v2 may send either the per-instance token (hash.apikey) or the
+        // global AUTHENTICATION_API_KEY configured on the server — accept either.
         const providedKey = request.headers.get("apikey") ?? request.headers.get("x-evolution-apikey") ?? "";
-        const expectedKey = conn.api_key ?? "";
-        if (!expectedKey || providedKey.length !== expectedKey.length) {
-          return Response.json({ ok: false, reason: "invalid signature" }, { status: 401 });
-        }
-        // Constant-time compare
-        {
+        const expectedKeys: string[] = [];
+        if (conn.api_key) expectedKeys.push(conn.api_key);
+        try {
+          const { data: setting } = await supabaseAdmin
+            .from("settings").select("value").eq("key", "evolution_api").maybeSingle();
+          const cfg = (typeof setting?.value === "string" ? JSON.parse(setting.value) : setting?.value) as { api_key?: string } | null;
+          if (cfg?.api_key) expectedKeys.push(cfg.api_key);
+        } catch { /* ignore */ }
+        const safeEq = (a: string, b: string) => {
+          if (!a || !b || a.length !== b.length) return false;
           let diff = 0;
-          for (let i = 0; i < expectedKey.length; i++) diff |= providedKey.charCodeAt(i) ^ expectedKey.charCodeAt(i);
-          if (diff !== 0) return Response.json({ ok: false, reason: "invalid signature" }, { status: 401 });
+          for (let i = 0; i < a.length; i++) diff |= a.charCodeAt(i) ^ b.charCodeAt(i);
+          return diff === 0;
+        };
+        if (!providedKey || !expectedKeys.some((k) => safeEq(providedKey, k))) {
+          return Response.json({ ok: false, reason: "invalid signature" }, { status: 401 });
         }
 
         // Log the raw event
