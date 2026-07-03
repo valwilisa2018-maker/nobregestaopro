@@ -250,3 +250,116 @@ export const createAndConnectInstance = createServerFn({ method: "POST" })
 
     return { connectionId: conn.id, qr, webhookUrl, raw: createRes.json };
   });
+
+// ============================================================
+// Chat send helpers (used by /messages WhatsApp-like page)
+// ============================================================
+
+async function pickActiveConnection(supabase: any, userId: string) {
+  const { data: conns } = await supabase
+    .from("connections")
+    .select("*")
+    .eq("user_id", userId)
+    .order("status", { ascending: true })
+    .order("last_sync", { ascending: false, nullsFirst: false })
+    .limit(10);
+  if (!conns?.length) throw new Error("Nenhuma conexão WhatsApp encontrada.");
+  return conns.find((c: any) => c.status === "online") ?? conns[0];
+}
+
+async function getOrCreateConversationForJid(
+  supabase: any, userId: string, connectionId: string, remoteJid: string,
+) {
+  const { data: existing } = await supabase.from("conversations")
+    .select("id")
+    .eq("user_id", userId).eq("connection_id", connectionId)
+    .eq("metadata->>remoteJid", remoteJid).maybeSingle();
+  if (existing) return existing.id as string;
+  const { data: created, error } = await supabase.from("conversations").insert({
+    user_id: userId, connection_id: connectionId, status: "open",
+    unread_count: 0, last_message_at: new Date().toISOString(),
+    metadata: { remoteJid } as never,
+  }).select("id").single();
+  if (error || !created) throw new Error(error?.message ?? "Falha ao criar conversa");
+  return created.id as string;
+}
+
+function parseEvoError(json: any, status: number) {
+  const pick = (v: any): string => {
+    if (v == null) return "";
+    if (typeof v === "string") return v;
+    if (Array.isArray(v)) return v.map(pick).filter(Boolean).join(" | ");
+    if (typeof v === "object") return v.message || v.error || v.exception || JSON.stringify(v);
+    return String(v);
+  };
+  return `Evolution ${status}: ${
+    pick(json?.response?.message) || pick(json?.message) || pick(json?.error) || JSON.stringify(json ?? {}).slice(0, 400)
+  }`;
+}
+
+const SendChatTextInput = z.object({
+  contactId: z.string().uuid(),
+  text: z.string().min(1).max(4096),
+});
+
+export const sendChatText = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((i: unknown) => SendChatTextInput.parse(i))
+  .handler(async ({ data, context }) => {
+    const { data: contact } = await context.supabase.from("contacts")
+      .select("*").eq("id", data.contactId).eq("user_id", context.userId).single();
+    if (!contact) throw new Error("Contato não encontrado");
+    const conn = await pickActiveConnection(context.supabase, context.userId);
+    const apiKey = await loadEvolutionCommandKey(context.supabase, conn.api_key);
+    const number = String(contact.phone).replace(/\D+/g, "");
+    const remoteJid = `${number}@s.whatsapp.net`;
+    const r = await evoFetch(`${baseUrl(conn.url_api)}/message/sendText/${conn.instance_name}`, apiKey, {
+      method: "POST",
+      body: JSON.stringify({ number, text: data.text }),
+    });
+    if (!r.ok) throw new Error(parseEvoError(r.json, r.status));
+    const convoId = await getOrCreateConversationForJid(context.supabase, context.userId, conn.id, remoteJid);
+    await context.supabase.from("messages").insert({
+      user_id: context.userId, conversation_id: convoId,
+      direction: "outbound", type: "text", content: data.text,
+      metadata: { remoteJid, manual: true } as never,
+    });
+    await context.supabase.from("conversations").update({
+      last_message_at: new Date().toISOString(),
+    }).eq("id", convoId);
+    return { ok: true, conversationId: convoId };
+  });
+
+const SendChatAudioInput = z.object({
+  contactId: z.string().uuid(),
+  audioBase64: z.string().min(10),
+});
+
+export const sendChatAudio = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((i: unknown) => SendChatAudioInput.parse(i))
+  .handler(async ({ data, context }) => {
+    const { data: contact } = await context.supabase.from("contacts")
+      .select("*").eq("id", data.contactId).eq("user_id", context.userId).single();
+    if (!contact) throw new Error("Contato não encontrado");
+    const conn = await pickActiveConnection(context.supabase, context.userId);
+    const apiKey = await loadEvolutionCommandKey(context.supabase, conn.api_key);
+    const number = String(contact.phone).replace(/\D+/g, "");
+    const remoteJid = `${number}@s.whatsapp.net`;
+    const audio = data.audioBase64.replace(/^data:[^;]+;base64,/, "");
+    const r = await evoFetch(`${baseUrl(conn.url_api)}/message/sendWhatsAppAudio/${conn.instance_name}`, apiKey, {
+      method: "POST",
+      body: JSON.stringify({ number, audio, encoding: true }),
+    });
+    if (!r.ok) throw new Error(parseEvoError(r.json, r.status));
+    const convoId = await getOrCreateConversationForJid(context.supabase, context.userId, conn.id, remoteJid);
+    await context.supabase.from("messages").insert({
+      user_id: context.userId, conversation_id: convoId,
+      direction: "outbound", type: "audio", content: "[áudio]",
+      metadata: { remoteJid, manual: true, audio: true } as never,
+    });
+    await context.supabase.from("conversations").update({
+      last_message_at: new Date().toISOString(),
+    }).eq("id", convoId);
+    return { ok: true, conversationId: convoId };
+  });
