@@ -89,9 +89,15 @@ export const sendTestMessage = createServerFn({ method: "POST" })
     const text = data.text ?? "oi";
     const r = await evoFetch(`${baseUrl(c.url_api)}/message/sendText/${c.instance_name}`, c.api_key, {
       method: "POST",
-      body: JSON.stringify({ number: raw, text, options: { delay: 500, presence: "composing" } }),
+      body: JSON.stringify({ number: raw, text, delay: 500 }),
     });
-    if (!r.ok) throw new Error(r.json?.response?.message?.[0] ?? r.json?.message ?? "Falha ao enviar mensagem de teste");
+    if (!r.ok) {
+      const msg =
+        (Array.isArray(r.json?.response?.message) ? r.json.response.message[0] : r.json?.response?.message) ||
+        (Array.isArray(r.json?.message) ? r.json.message[0] : r.json?.message) ||
+        JSON.stringify(r.json).slice(0, 300);
+      throw new Error(`Evolution ${r.status}: ${msg}`);
+    }
     return { ok: true, to: raw, text, raw: r.json };
   });
 
