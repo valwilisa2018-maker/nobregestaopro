@@ -14,12 +14,12 @@ import {
 } from "@/components/ui/dialog";
 import {
   MessageCircle, Plus, QrCode, RefreshCw, Power, Trash2, Loader2, Smartphone,
-  Wifi, AlertTriangle,
+  Wifi, AlertTriangle, Send,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Link } from "@tanstack/react-router";
 import {
-  createAndConnectInstance, connectInstance, disconnectInstance, testConnection, deleteInstance,
+  createAndConnectInstance, connectInstance, disconnectInstance, testConnection, deleteInstance, sendTestMessage,
 } from "@/lib/evolution.functions";
 
 export const Route = createFileRoute("/_authenticated/whatsapp")({
@@ -68,6 +68,7 @@ function Page() {
   const connectFn = useServerFn(connectInstance);
   const disconnectFn = useServerFn(disconnectInstance);
   const testFn = useServerFn(testConnection);
+  const sendTestFn = useServerFn(sendTestMessage);
   const deleteFn = useServerFn(deleteInstance);
 
   const load = async () => {
@@ -220,6 +221,24 @@ function Page() {
     }
   };
 
+  const sendTest = async (c: Connection) => {
+    const suggested = c.phone_number ?? "";
+    const number = window.prompt(
+      `Enviar "oi" para qual número? (formato internacional, ex.: 5511999998888)`,
+      suggested,
+    );
+    if (!number) return;
+    setBusy((b) => ({ ...b, [c.id]: "test-msg" }));
+    try {
+      await sendTestFn({ data: { connectionId: c.id, number, text: "oi" } });
+      toast.success(`Mensagem enviada para ${number}. Aguarde a resposta do agente…`);
+    } catch (e: any) {
+      toast.error(e?.message ?? "Falha ao enviar teste");
+    } finally {
+      setBusy((b) => ({ ...b, [c.id]: null }));
+    }
+  };
+
   return (
     <PageShell
       title="WhatsApp"
@@ -347,6 +366,12 @@ function Page() {
                   <Button size="sm" variant="outline" onClick={() => disconnect(c)} disabled={!!busy[c.id]}>
                     <Power className="h-3.5 w-3.5" />
                   </Button>
+                  {c.status === "online" && (
+                    <Button size="sm" variant="outline" onClick={() => sendTest(c)} disabled={!!busy[c.id]}>
+                      {busy[c.id] === "test-msg" ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Send className="h-3.5 w-3.5" />}
+                      Enviar teste
+                    </Button>
+                  )}
                   <Button size="sm" variant="ghost" onClick={() => remove(c)}>
                     <Trash2 className="h-3.5 w-3.5 text-destructive" />
                   </Button>
