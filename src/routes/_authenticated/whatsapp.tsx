@@ -19,7 +19,7 @@ import {
 import { toast } from "sonner";
 import { Link } from "@tanstack/react-router";
 import {
-  createAndConnectInstance, connectInstance, disconnectInstance, testConnection,
+  createAndConnectInstance, connectInstance, disconnectInstance, testConnection, deleteInstance,
 } from "@/lib/evolution.functions";
 
 export const Route = createFileRoute("/_authenticated/whatsapp")({
@@ -58,6 +58,7 @@ function Page() {
   const connectFn = useServerFn(connectInstance);
   const disconnectFn = useServerFn(disconnectInstance);
   const testFn = useServerFn(testConnection);
+  const deleteFn = useServerFn(deleteInstance);
 
   const load = async () => {
     setLoading(true);
@@ -125,9 +126,16 @@ function Page() {
 
   const remove = async (c: Connection) => {
     if (!confirm(`Excluir instância "${c.name}"?`)) return;
-    const { error } = await supabase.from("connections").delete().eq("id", c.id);
-    if (error) return toast.error(error.message);
-    toast.success("Removida"); load();
+    setBusy((b) => ({ ...b, [c.id]: "delete" }));
+    try {
+      await deleteFn({ data: { connectionId: c.id } });
+      toast.success("Removida");
+      load();
+    } catch (e: any) {
+      toast.error(e?.message ?? "Falha ao remover");
+    } finally {
+      setBusy((b) => ({ ...b, [c.id]: null }));
+    }
   };
 
   return (
