@@ -17,6 +17,7 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   ReactFlow, ReactFlowProvider, Background, Controls, MiniMap, addEdge, useEdgesState,
   useNodesState, Handle, Position, type Node, type Edge, type Connection, type NodeProps,
@@ -336,7 +337,23 @@ function Builder() {
               </Button>
             </DialogContent>
           </Dialog>
-          <Button variant="outline" size="sm"><Send className="h-4 w-4" /> Disparo</Button>
+          <Select
+            value={flowId ?? "__new__"}
+            onValueChange={(v) => {
+              if (v === "__new__") return;
+              const list = Array.isArray(flowsQ.data) ? flowsQ.data : (flowsQ.data?.flows ?? []);
+              const f = list.find((x: { id: string }) => x.id === v);
+              if (f) openFlow(f as Parameters<typeof openFlow>[0]);
+            }}
+          >
+            <SelectTrigger className="h-9 w-[220px]"><SelectValue placeholder="Fluxos salvos" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="__new__">Fluxos salvos</SelectItem>
+              {(Array.isArray(flowsQ.data) ? flowsQ.data : (flowsQ.data?.flows ?? [])).map((f: { id: string; name: string }) => (
+                <SelectItem key={f.id} value={f.id}>{f.name}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
           <Button variant="outline" size="sm" disabled={!flowId} onClick={() => flowId && delM.mutate(flowId)}>
             <Trash2 className="h-4 w-4" /> Excluir
           </Button>
