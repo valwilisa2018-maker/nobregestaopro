@@ -1,0 +1,1 @@
+UPDATE public.connections SET api_key = '146C923C-2D28-4D4B-84E0-B2AA26DAE7B4' WHERE instance_name = 'willian';

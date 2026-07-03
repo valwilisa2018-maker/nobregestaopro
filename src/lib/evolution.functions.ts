@@ -129,7 +129,7 @@ export const createAndConnectInstance = createServerFn({ method: "POST" })
         ...(webhookUrl ? {
           webhook: {
             url: webhookUrl,
-            byEvents: true,
+            byEvents: false,
             base64: true,
             events: ["MESSAGES_UPSERT", "CONNECTION_UPDATE", "QRCODE_UPDATED"],
           },
@@ -144,6 +144,14 @@ export const createAndConnectInstance = createServerFn({ method: "POST" })
     }
 
     const cj = createRes.json ?? {};
+    // Evolution returns a per-instance token in `hash.apikey` (or `hash`).
+    // That is the key it sends in the `apikey` header of every webhook —
+    // store it so our webhook signature check accepts inbound events.
+    const instanceApiKey: string =
+      cj.hash?.apikey || cj.hash?.apiKey || (typeof cj.hash === "string" ? cj.hash : "") || cfg.api_key;
+    if (instanceApiKey && instanceApiKey !== cfg.api_key) {
+      await context.supabase.from("connections").update({ api_key: instanceApiKey }).eq("id", conn.id);
+    }
     const qr =
       cj.qrcode?.base64 ||
       cj.base64 ||
