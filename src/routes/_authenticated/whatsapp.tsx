@@ -86,6 +86,21 @@ function Page() {
     return () => clearInterval(id);
   }, [qrModal.open, qrModal.connectionId]);
 
+  // Auto-fetch QR when modal opens without one
+  useEffect(() => {
+    if (!qrModal.open || !qrModal.connectionId || qrModal.qr) return;
+    let cancelled = false;
+    const fetchQr = async () => {
+      try {
+        const r = await connectFn({ data: { connectionId: qrModal.connectionId! } });
+        if (!cancelled && r.qr) setQrModal((m) => ({ ...m, qr: r.qr }));
+      } catch { /* ignore */ }
+    };
+    fetchQr();
+    const id = setInterval(fetchQr, 5000);
+    return () => { cancelled = true; clearInterval(id); };
+  }, [qrModal.open, qrModal.connectionId, qrModal.qr]);
+
   const create = async (e: React.FormEvent) => {
     e.preventDefault();
     setCreating(true);
