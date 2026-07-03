@@ -32,12 +32,24 @@ async function evoFetch(url: string, apiKey: string, init?: RequestInit) {
   return { ok: res.ok, status: res.status, json };
 }
 
+async function loadEvolutionCommandKey(supabase: any, fallback: string) {
+  const { data: setting } = await supabase
+    .from("settings").select("value").eq("key", "evolution_api").maybeSingle();
+  try {
+    const cfg = typeof setting?.value === "string" ? JSON.parse(setting.value) : setting?.value;
+    return cfg?.api_key || fallback;
+  } catch {
+    return fallback;
+  }
+}
+
 export const testConnection = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((i: unknown) => IdInput.parse(i))
   .handler(async ({ data, context }) => {
     const c = await loadConnection(context.supabase, context.userId, data.connectionId);
-    const r = await evoFetch(`${baseUrl(c.url_api)}/instance/connectionState/${c.instance_name}`, c.api_key);
+    const apiKey = await loadEvolutionCommandKey(context.supabase, c.api_key);
+    const r = await evoFetch(`${baseUrl(c.url_api)}/instance/connectionState/${c.instance_name}`, apiKey);
     const state = r.json?.instance?.state ?? r.json?.state ?? (r.ok ? "unknown" : "error");
     const status = state === "open" ? "online" : state === "connecting" ? "connecting" : "offline";
     await context.supabase.from("connections").update({ status, last_sync: new Date().toISOString() }).eq("id", c.id);
@@ -49,7 +61,8 @@ export const connectInstance = createServerFn({ method: "POST" })
   .inputValidator((i: unknown) => IdInput.parse(i))
   .handler(async ({ data, context }) => {
     const c = await loadConnection(context.supabase, context.userId, data.connectionId);
-    const r = await evoFetch(`${baseUrl(c.url_api)}/instance/connect/${c.instance_name}`, c.api_key);
+    const apiKey = await loadEvolutionCommandKey(context.supabase, c.api_key);
+    const r = await evoFetch(`${baseUrl(c.url_api)}/instance/connect/${c.instance_name}`, apiKey);
     const j = r.json ?? {};
     const qr =
       j.base64 ||
@@ -68,7 +81,8 @@ export const disconnectInstance = createServerFn({ method: "POST" })
   .inputValidator((i: unknown) => IdInput.parse(i))
   .handler(async ({ data, context }) => {
     const c = await loadConnection(context.supabase, context.userId, data.connectionId);
-    const r = await evoFetch(`${baseUrl(c.url_api)}/instance/logout/${c.instance_name}`, c.api_key, { method: "DELETE" });
+    const apiKey = await loadEvolutionCommandKey(context.supabase, c.api_key);
+    const r = await evoFetch(`${baseUrl(c.url_api)}/instance/logout/${c.instance_name}`, apiKey, { method: "DELETE" });
     await context.supabase.from("connections").update({ status: "offline", last_sync: new Date().toISOString() }).eq("id", c.id);
     return { ok: r.ok, raw: r.json };
   });
@@ -87,7 +101,8 @@ export const sendTestMessage = createServerFn({ method: "POST" })
     const raw = (data.number ?? c.phone_number ?? "").toString().replace(/\D+/g, "");
     if (!raw) throw new Error("Informe um número de destino (a instância ainda não tem número conectado).");
     const text = data.text ?? "oi";
-    const r = await evoFetch(`${baseUrl(c.url_api)}/message/sendText/${c.instance_name}`, c.api_key, {
+    const apiKey = await loadEvolutionCommandKey(context.supabase, c.api_key);
+    const r = await evoFetch(`${baseUrl(c.url_api)}/message/sendText/${c.instance_name}`, apiKey, {
       method: "POST",
       body: JSON.stringify({ number: raw, text, delay: 500 }),
     });
@@ -115,8 +130,9 @@ export const deleteInstance = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const c = await loadConnection(context.supabase, context.userId, data.connectionId);
     // Best-effort: logout then delete on Evolution before dropping the local row
-    try { await evoFetch(`${baseUrl(c.url_api)}/instance/logout/${c.instance_name}`, c.api_key, { method: "DELETE" }); } catch { /* ignore */ }
-    try { await evoFetch(`${baseUrl(c.url_api)}/instance/delete/${c.instance_name}`, c.api_key, { method: "DELETE" }); } catch { /* ignore */ }
+    const apiKey = await loadEvolutionCommandKey(context.supabase, c.api_key);
+    try { await evoFetch(`${baseUrl(c.url_api)}/instance/logout/${c.instance_name}`, apiKey, { method: "DELETE" }); } catch { /* ignore */ }
+    try { await evoFetch(`${baseUrl(c.url_api)}/instance/delete/${c.instance_name}`, apiKey, { method: "DELETE" }); } catch { /* ignore */ }
     const { error } = await context.supabase.from("connections").delete().eq("id", c.id);
     if (error) throw new Error(error.message);
     return { ok: true };

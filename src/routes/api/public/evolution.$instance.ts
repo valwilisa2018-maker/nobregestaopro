@@ -113,6 +113,8 @@ export const Route = createFileRoute("/api/public/evolution/$instance")({
           });
         } catch { /* ignore */ }
 
+        const commandConn = { ...conn, api_key: globalKey || conn.api_key };
+
         // Log the raw event
         await supabaseAdmin.from("logs").insert({
           user_id: conn.user_id,
@@ -184,7 +186,7 @@ export const Route = createFileRoute("/api/public/evolution/$instance")({
             // Speech-to-text on inbound audio
             if (!fromMe && !text && audioMsg && ext.audio?.enabled) {
               try {
-                const b64 = await evolutionGetBase64(conn, msg);
+                const b64 = await evolutionGetBase64(commandConn, msg);
                 if (b64) {
                   const transcript = await sttViaLovable(b64);
                   if (transcript) { text = transcript; inputWasAudio = true; }
@@ -280,7 +282,7 @@ export const Route = createFileRoute("/api/public/evolution/$instance")({
                     const { runFlow } = await import("@/lib/flow-runner.server");
                     const result = await runFlow({
                       db: supabaseAdmin,
-                      conn: { id: conn.id, user_id: conn.user_id, url_api: conn.url_api, api_key: conn.api_key, instance_name: conn.instance_name },
+                      conn: { id: conn.id, user_id: conn.user_id, url_api: conn.url_api, api_key: commandConn.api_key, instance_name: conn.instance_name },
                       recipient,
                       userText: text,
                       def: { nodes: def.nodes, edges: def.edges },
@@ -338,7 +340,7 @@ export const Route = createFileRoute("/api/public/evolution/$instance")({
               const blocked = (ext.hours.blockedDates ?? []).includes(iso);
               if (!inHours || !daysOk || inLunch || blocked) {
                 const away = ext.timing?.unknownMsg || "Estamos fora do horário de atendimento. Retornaremos em breve.";
-                await sendText(conn, recipient, away);
+                await sendText(commandConn, recipient, away);
                 return Response.json({ ok: true, offHours: true });
               }
             }
@@ -440,7 +442,7 @@ export const Route = createFileRoute("/api/public/evolution/$instance")({
                 user_id: conn.user_id, level: "warn", source: `evolution:${instance}`,
                 message: `quota exceeded: ${q.reason}`, metadata: q as never,
               } as never);
-              await maybeAlert(supabaseAdmin, conn, agent, ext, `Cota atingida: ${q.reason}`);
+              await maybeAlert(supabaseAdmin, commandConn, agent, ext, `Cota atingida: ${q.reason}`);
               return Response.json({ ok: true, quotaBlocked: true, reason: q.reason });
             }
 
@@ -465,7 +467,7 @@ export const Route = createFileRoute("/api/public/evolution/$instance")({
                 if (!shouldSend) continue;
                 const url = await signedMediaUrl(supabaseAdmin, it.storage_path);
                 if (!url) continue;
-                await sendMedia(conn, recipient, url, it.mime ?? "", it.name);
+                await sendMedia(commandConn, recipient, url, it.mime ?? "", it.name);
                 mediaSent = true;
               }
             }
@@ -480,7 +482,7 @@ export const Route = createFileRoute("/api/public/evolution/$instance")({
               try {
                 const audioB64 = await ttsViaLovable(reply, ext.audio?.voice);
                 if (audioB64) {
-                  sendRes = await sendAudio(conn, recipient, audioB64);
+                  sendRes = await sendAudio(commandConn, recipient, audioB64);
                 }
               } catch (e) {
                 await supabaseAdmin.from("logs").insert({
@@ -490,7 +492,7 @@ export const Route = createFileRoute("/api/public/evolution/$instance")({
               }
             }
             if (!wantsAudio || !ext.audio?.replaceText) {
-              if (!sendRes || !wantsAudio) sendRes = await sendText(conn, recipient, reply);
+              if (!sendRes || !wantsAudio) sendRes = await sendText(commandConn, recipient, reply);
             }
             if (sendRes && !sendRes.ok) {
               const errText = await sendRes.text().catch(() => "");
@@ -498,7 +500,7 @@ export const Route = createFileRoute("/api/public/evolution/$instance")({
                 user_id: conn.user_id, level: "error", source: `evolution:${instance}`,
                 message: `send failed ${sendRes.status}`, metadata: { recipient, body: errText.slice(0, 500) },
               } as never);
-              await maybeAlert(supabaseAdmin, conn, agent, ext, `Falha ao enviar (${sendRes.status})`);
+              await maybeAlert(supabaseAdmin, commandConn, agent, ext, `Falha ao enviar (${sendRes.status})`);
             }
             void mediaSent;
 

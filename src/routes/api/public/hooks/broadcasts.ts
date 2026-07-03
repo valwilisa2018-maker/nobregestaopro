@@ -9,6 +9,17 @@ export const Route = createFileRoute("/api/public/hooks/broadcasts")({
   },
 });
 
+async function loadEvolutionCommandKey(db: { from: (table: string) => any }, fallback: string) {
+  const { data: setting } = await db
+    .from("settings").select("value").eq("key", "evolution_api").maybeSingle();
+  try {
+    const cfg = typeof setting?.value === "string" ? JSON.parse(setting.value) : setting?.value;
+    return cfg?.api_key || fallback;
+  } catch {
+    return fallback;
+  }
+}
+
 function inWindow(now: Date, ws: string | null, we: string | null, weekdays: number[]): boolean {
   if (weekdays && weekdays.length > 0 && !weekdays.includes(now.getDay())) return false;
   if (!ws || !we) return true;
@@ -46,6 +57,7 @@ async function runBroadcasts(request: Request | undefined) {
     const { data: conn } = await supabaseAdmin.from("connections")
       .select("url_api,api_key,instance_name").eq("id", b.connection_id ?? "").maybeSingle();
     if (!conn?.url_api || !conn?.instance_name) continue;
+    const commandKey = await loadEvolutionCommandKey(supabaseAdmin, conn.api_key ?? "");
 
     if (b.mode === "sequential") {
       const { data: steps } = await supabaseAdmin.from("broadcast_steps")
@@ -77,7 +89,7 @@ async function runBroadcasts(request: Request | undefined) {
           const url = `${conn.url_api.replace(/\/+$/, "")}/message/sendText/${conn.instance_name}`;
           const res = await fetch(url, {
             method: "POST",
-            headers: { "Content-Type": "application/json", apikey: conn.api_key ?? "" },
+            headers: { "Content-Type": "application/json", apikey: commandKey },
             body: JSON.stringify({ number, text }),
           });
           if (!res.ok) throw new Error(`HTTP ${res.status}`);
@@ -134,7 +146,7 @@ async function runBroadcasts(request: Request | undefined) {
           const url = `${conn.url_api.replace(/\/+$/, "")}/message/sendText/${conn.instance_name}`;
           const res = await fetch(url, {
             method: "POST",
-            headers: { "Content-Type": "application/json", apikey: conn.api_key ?? "" },
+            headers: { "Content-Type": "application/json", apikey: commandKey },
             body: JSON.stringify({ number, text }),
           });
           if (!res.ok) throw new Error(`HTTP ${res.status}`);
