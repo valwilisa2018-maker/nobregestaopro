@@ -159,8 +159,9 @@ function MessagesPage() {
         const b64 = await blobToBase64(blob);
         setSending(true);
         try {
-          await sendAudio({ data: { contactId: selected.id, audioBase64: b64 } });
-          await loadMessages();
+          const res = await sendAudio({ data: { contactId: selected.id, audioBase64: b64 } });
+          if (res && "ok" in res && res.ok === false) toast.error(res.error);
+          else await loadMessages();
         } catch (e) {
           toast.error(e instanceof Error ? e.message : "Falha ao enviar áudio");
         } finally {

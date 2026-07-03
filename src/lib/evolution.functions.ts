@@ -325,7 +325,7 @@ export const sendChatText = createServerFn({ method: "POST" })
       method: "POST",
       body: JSON.stringify({ number, text: data.text }),
     });
-    if (!r.ok) throw new Error(parseEvoError(r.json, r.status));
+    if (!r.ok) return { ok: false as const, error: parseEvoError(r.json, r.status) };
     const convoId = await getOrCreateConversationForJid(context.supabase, context.userId, conn.id, remoteJid);
     await context.supabase.from("messages").insert({
       user_id: context.userId, conversation_id: convoId,
@@ -359,7 +359,7 @@ export const sendChatAudio = createServerFn({ method: "POST" })
       method: "POST",
       body: JSON.stringify({ number, audio, encoding: true }),
     });
-    if (!r.ok) throw new Error(parseEvoError(r.json, r.status));
+    if (!r.ok) return { ok: false as const, error: parseEvoError(r.json, r.status) };
     const convoId = await getOrCreateConversationForJid(context.supabase, context.userId, conn.id, remoteJid);
     await context.supabase.from("messages").insert({
       user_id: context.userId, conversation_id: convoId,
