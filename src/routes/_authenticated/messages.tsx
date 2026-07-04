@@ -136,7 +136,17 @@ function MessagesPage() {
     if (typeof window === "undefined") return new Set();
     try { return new Set(JSON.parse(localStorage.getItem("wa-fav") ?? "[]")); } catch { return new Set(); }
   });
-  const [unreadMap, setUnreadMap] = useState<Record<string, number>>({});
+  const [unreadMap, setUnreadMap] = useState<Record<string, number>>(() => {
+    if (typeof window === "undefined") return {};
+    try { return JSON.parse(localStorage.getItem("wa-unread") ?? "{}"); } catch { return {}; }
+  });
+  const unreadMapRef = useRef<Record<string, number>>({});
+  useEffect(() => {
+    unreadMapRef.current = unreadMap;
+    if (typeof window !== "undefined") {
+      try { localStorage.setItem("wa-unread", JSON.stringify(unreadMap)); } catch { /* quota */ }
+    }
+  }, [unreadMap]);
   const [pinned, setPinned] = useState<Set<string>>(() => {
     if (typeof window === "undefined") return new Set();
     try { return new Set(JSON.parse(localStorage.getItem("wa-pin") ?? "[]")); } catch { return new Set(); }
@@ -172,6 +182,18 @@ function MessagesPage() {
   const [agentPaused, setAgentPaused] = useState<boolean>(false);
   const selectedRef = useRef<Contact | null>(null);
   useEffect(() => { selectedRef.current = selected; }, [selected]);
+  const contactsRef = useRef<Contact[]>([]);
+  useEffect(() => { contactsRef.current = contacts; }, [contacts]);
+  // Clear unread badge when opening a conversation
+  useEffect(() => {
+    if (!selected) return;
+    setUnreadMap((prev) => {
+      if (!prev[selected.id]) return prev;
+      const next = { ...prev };
+      delete next[selected.id];
+      return next;
+    });
+  }, [selected?.id]);
   const messageLoadSeqRef = useRef(0);
   const conversationIdsRef = useRef<string[]>([]);
   const messagesCacheRef = useRef<Map<string, Msg[]>>(new Map());
@@ -680,6 +702,15 @@ function MessagesPage() {
         const row = payload.new as (Msg & { conversation_id?: string }) | null;
         if (!row) return;
         if (row.direction === "inbound") playBell();
+        // Bump unread badge for any inbound message that isn't for the currently open conversation.
+        if (row.direction === "inbound") {
+          const remote = (row.metadata as { remoteJid?: string } | null)?.remoteJid ?? "";
+          const digits = remote.replace(/\D+/g, "");
+          const match = contactsRef.current.find((c) => c.phone.replace(/\D+/g, "") === digits);
+          if (match && selectedRef.current?.id !== match.id) {
+            setUnreadMap((prev) => ({ ...prev, [match.id]: (prev[match.id] ?? 0) + 1 }));
+          }
+        }
         // Try to append immediately if the message belongs to the currently open thread.
         if (selected) {
           const phone = selected.phone.replace(/\D+/g, "");
@@ -1103,13 +1134,24 @@ function MessagesPage() {
                     {!sidebarCollapsed && (
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-1.5">
-                          <div className="text-sm font-medium truncate text-gray-900">{c.name || c.phone}</div>
+                          <div className="text-sm font-medium truncate text-gray-900 flex-1">{c.name || c.phone}</div>
                           {isPin && <Pin className="h-3.5 w-3.5 text-emerald-600 shrink-0" />}
                           {isFav && <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400 shrink-0" />}
                           {isArch && <Archive className="h-3.5 w-3.5 text-gray-400 shrink-0" />}
                           {label && <span className="h-2.5 w-2.5 rounded-full shrink-0" style={{ background: label }} />}
                         </div>
-                        <div className="text-xs text-gray-500 truncate">{c.phone}</div>
+                        <div className="flex items-center gap-2">
+                          <div className="text-xs text-gray-500 truncate flex-1">{c.phone}</div>
+                          {(unreadMap[c.id] ?? 0) > 0 && (
+                            <span
+                              className="shrink-0 min-w-[20px] h-5 px-1.5 rounded-full text-[11px] font-semibold text-white grid place-items-center"
+                              style={{ background: WA.headerTeal }}
+                              aria-label={`${unreadMap[c.id]} mensagens não lidas`}
+                            >
+                              {unreadMap[c.id] > 99 ? "99+" : unreadMap[c.id]}
+                            </span>
+                          )}
+                        </div>
                       </div>
                     )}
                   </button>
