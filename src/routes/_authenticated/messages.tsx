@@ -131,7 +131,7 @@ function MessagesPage() {
   // Ensure webhook includes PRESENCE_UPDATE (best-effort, one shot)
   useEffect(() => {
     if (!user) return;
-    ensureWebhook({ data: undefined as never }).catch(() => {});
+    (ensureWebhook as unknown as () => Promise<unknown>)().catch(() => {});
   }, [user, ensureWebhook]);
 
   // Subscribe to remote presence for the selected contact
