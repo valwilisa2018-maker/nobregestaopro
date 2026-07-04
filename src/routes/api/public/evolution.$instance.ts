@@ -684,24 +684,40 @@ export const Route = createFileRoute("/api/public/evolution/$instance")({
             if (!wantsAudio || !ext.audio?.replaceText) {
               if (!sendRes || !wantsAudio) sendRes = await sendText(commandConn, recipient, reply);
             }
+            let sendJson: any = null;
+            let sendBody = "";
+            if (sendRes) {
+              sendBody = await sendRes.text().catch(() => "");
+              try { sendJson = sendBody ? JSON.parse(sendBody) : null; } catch { sendJson = null; }
+            }
             if (sendRes && !sendRes.ok) {
-              const errText = await sendRes.text().catch(() => "");
               await supabaseAdmin.from("logs").insert({
                 user_id: conn.user_id, level: "error", source: `evolution:${instance}`,
-                message: `send failed ${sendRes.status}`, metadata: { recipient, body: errText.slice(0, 500) },
+                message: `send failed ${sendRes.status}`, metadata: { recipient, body: sendBody.slice(0, 500) },
               } as never);
               await maybeAlert(supabaseAdmin, commandConn, agent, ext, `Falha ao enviar (${sendRes.status})`);
             }
             void mediaSent;
 
             if (convo) {
+              const evoId = findEvoId(sendJson);
+              const status = normalizeEvoStatus(sendJson?.status ?? sendJson?.ack ?? sendJson?.messageStatus) ?? (sendRes?.ok ? "sent" : null);
               await supabaseAdmin.from("messages").insert({
                 user_id: conn.user_id,
                 conversation_id: convo.id,
                 direction: "outbound",
                 type: wantsAudio ? "audio" : "text",
                 content: reply,
-                metadata: { remoteJid, agent_id: agent.id, audio: wantsAudio, media_sent: mediaSent },
+                metadata: {
+                  remoteJid,
+                  agent_id: agent.id,
+                  audio: wantsAudio,
+                  media_sent: mediaSent,
+                  pending: false,
+                  sent: !!sendRes?.ok,
+                  ...(evoId ? { evoId } : {}),
+                  ...(status ? { status } : {}),
+                },
               } as never);
             }
 
