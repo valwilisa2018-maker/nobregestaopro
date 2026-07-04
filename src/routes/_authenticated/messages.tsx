@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Mic, Search, Send, Square, MessageCircle, Check, CheckCheck, Loader2, ArrowLeft, Smile, Play, Pause, Paperclip, ChevronLeft, ChevronRight, X, FileText, Image as ImageIcon, Video, Music, File as FileIcon, MoreVertical, Star, Archive, ArchiveRestore, Pin, PinOff, Tag } from "lucide-react";
+import { Mic, Search, Send, Square, MessageCircle, Check, CheckCheck, Loader2, ArrowLeft, Smile, Play, Pause, Paperclip, ChevronLeft, ChevronRight, X, FileText, Image as ImageIcon, Video, Music, File as FileIcon, MoreVertical, Star, Archive, ArchiveRestore, Pin, PinOff, Tag, Info, Save } from "lucide-react";
 import { PageShell } from "@/components/page-shell";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
@@ -90,6 +90,36 @@ function MessagesPage() {
   const sendMedia = useServerFn(sendChatMedia);
   const fetchAvatar = useServerFn(getProfilePicture);
   const [avatars, setAvatars] = useState<Record<string, string | null>>({});
+  const [lightbox, setLightbox] = useState<{ type: "image" | "video"; src: string } | null>(null);
+  const [infoOpen, setInfoOpen] = useState(false);
+  const [editName, setEditName] = useState("");
+  const [editPhone, setEditPhone] = useState("");
+  const [savingContact, setSavingContact] = useState(false);
+
+  useEffect(() => {
+    if (!selected) return;
+    setEditName(selected.name ?? "");
+    setEditPhone(selected.phone ?? "");
+  }, [selected]);
+
+  async function saveContact() {
+    if (!selected || savingContact) return;
+    setSavingContact(true);
+    try {
+      const { error } = await supabase.from("contacts")
+        .update({ name: editName.trim() || null, phone: editPhone.trim() })
+        .eq("id", selected.id);
+      if (error) throw error;
+      const updated = { ...selected, name: editName.trim() || null, phone: editPhone.trim() };
+      setSelected(updated);
+      setContacts((prev) => prev.map((c) => (c.id === updated.id ? updated : c)));
+      toast.success("Contato atualizado");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Falha ao salvar");
+    } finally {
+      setSavingContact(false);
+    }
+  }
 
   // Load contacts
   const loadContacts = useCallback(async () => {
