@@ -86,7 +86,8 @@ function MessagesPage() {
   const [sending, setSending] = useState(false);
   const [recording, setRecording] = useState(false);
   const [recTime, setRecTime] = useState(0);
-  const recRef = useRef<{ mr: MediaRecorder; chunks: BlobPart[]; stream: MediaStream } | null>(null);
+  const recRef = useRef<{ mr: MediaRecorder; chunks: BlobPart[]; stream: MediaStream; cancelled?: boolean; audioCtx?: AudioContext; raf?: number } | null>(null);
+  const [recLevels, setRecLevels] = useState<number[]>(() => Array(24).fill(0.15));
   const scrollRef = useRef<HTMLDivElement | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
@@ -520,6 +521,11 @@ function MessagesPage() {
       mr.ondataavailable = (e) => { if (e.data.size) chunks.push(e.data); };
       mr.onstop = async () => {
         stream.getTracks().forEach((t) => t.stop());
+        // Cleanup analyser loop
+        if (recRef.current?.raf) cancelAnimationFrame(recRef.current.raf);
+        recRef.current?.audioCtx?.close().catch(() => {});
+        setRecLevels(Array(24).fill(0.15));
+        if (recRef.current?.cancelled) { recRef.current = null; return; }
         const blob = new Blob(chunks, { type: "audio/webm" });
         const localUrl = URL.createObjectURL(blob);
         const tmpId = `tmp-${Date.now()}`;
@@ -546,7 +552,27 @@ function MessagesPage() {
         }
       };
       mr.start();
-      recRef.current = { mr, chunks, stream };
+      // Simple soundwave via WebAudio analyser
+      const audioCtx = new (window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext)();
+      const source = audioCtx.createMediaStreamSource(stream);
+      const analyser = audioCtx.createAnalyser();
+      analyser.fftSize = 64;
+      source.connect(analyser);
+      const buf = new Uint8Array(analyser.frequencyBinCount);
+      const tick = () => {
+        analyser.getByteFrequencyData(buf);
+        const bars = 24;
+        const step = Math.max(1, Math.floor(buf.length / bars));
+        const levels: number[] = [];
+        for (let i = 0; i < bars; i++) {
+          const v = buf[i * step] ?? 0;
+          levels.push(Math.max(0.15, v / 255));
+        }
+        setRecLevels(levels);
+        recRef.current!.raf = requestAnimationFrame(tick);
+      };
+      recRef.current = { mr, chunks, stream, audioCtx };
+      recRef.current.raf = requestAnimationFrame(tick);
       setRecording(true);
       setRecTime(0);
     } catch (e) {
@@ -555,6 +581,13 @@ function MessagesPage() {
   }
   function stopRecording() {
     recRef.current?.mr.stop();
+    setRecording(false);
+    if (selected) pushPresence({ data: { contactId: selected.id, presence: "paused" } }).catch(() => {});
+  }
+  function cancelRecording() {
+    if (!recRef.current) return;
+    recRef.current.cancelled = true;
+    try { recRef.current.mr.stop(); } catch { /* noop */ }
     setRecording(false);
     if (selected) pushPresence({ data: { contactId: selected.id, presence: "paused" } }).catch(() => {});
   }
@@ -910,10 +943,31 @@ function MessagesPage() {
 
               <div className="px-3 py-2 flex items-end gap-2" style={{ background: "#F0F2F5" }}>
                 {recording ? (
-                  <div className="flex-1 flex items-center gap-3 px-4 py-2.5 rounded-full bg-white text-red-600 text-sm shadow-sm">
-                    <span className="h-2.5 w-2.5 rounded-full bg-red-500 animate-pulse" />
-                    Gravando… {Math.floor(recTime / 60)}:{String(recTime % 60).padStart(2, "0")}
-                  </div>
+                  <>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button size="icon" onClick={cancelRecording} variant="ghost" className="rounded-full h-11 w-11 text-red-600 hover:bg-red-50" aria-label="Cancelar gravação">
+                          <X className="h-5 w-5" />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent side="top">Cancelar</TooltipContent>
+                    </Tooltip>
+                    <div className="flex-1 flex items-center gap-3 px-4 py-2 rounded-full bg-white shadow-sm">
+                      <Mic className="h-4 w-4 text-red-500 animate-pulse shrink-0" />
+                      <div className="flex-1 flex items-center gap-[2px] h-6">
+                        {recLevels.map((lv, i) => (
+                          <div
+                            key={i}
+                            className="flex-1 rounded-sm transition-[height] duration-75"
+                            style={{ height: `${Math.round(lv * 100)}%`, background: WA.accent, minHeight: 3 }}
+                          />
+                        ))}
+                      </div>
+                      <span className="text-xs font-mono text-gray-600 tabular-nums shrink-0">
+                        {Math.floor(recTime / 60)}:{String(recTime % 60).padStart(2, "0")}
+                      </span>
+                    </div>
+                  </>
                 ) : (
                   <>
                     <Popover>
