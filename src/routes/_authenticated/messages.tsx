@@ -293,7 +293,10 @@ function MessagesPage() {
     }));
     setMsgs(hydrated);
   }, [user, selected]);
-  useEffect(() => { loadMessages(); }, [loadMessages]);
+  useEffect(() => {
+    setMsgs([]); // clear instantly on contact switch, then load
+    loadMessages();
+  }, [loadMessages]);
 
   // Realtime refresh on new messages
   useEffect(() => {
