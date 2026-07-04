@@ -1826,6 +1826,7 @@ function MessagesPage() {
                 {dedupedMsgs.map((m) => {
                   const out = m.direction === "outbound";
                   const isAudio = m.type === "audio" || (m.metadata as { audio?: boolean } | null)?.audio;
+                  const isSticker = m.type === "sticker";
                   const isImage = m.type === "image" && !!m.media_url;
                   const isVideo = m.type === "video" && !!m.media_url;
                   const isFile = (m.type === "file" || m.type === "document") && !!m.media_url;
@@ -1899,7 +1900,7 @@ function MessagesPage() {
                           m.media_url
                             ? (
                               <div className="relative pr-8">
-                                <AudioPlayer src={m.media_url} />
+                                <AudioPlayer src={m.media_url} id={m.id} />
                                 <button
                                   type="button"
                                   onClick={(e) => { e.stopPropagation(); downloadFile(m.media_url!, `audio-${m.id}.ogg`); }}
@@ -1910,7 +1911,29 @@ function MessagesPage() {
                                 </button>
                               </div>
                             )
-                            : <div className="flex items-center gap-2 text-gray-600"><Mic className="h-4 w-4" /><span>Mensagem de voz</span></div>
+                            : <MediaMissing kind="audio" onRetry={() => loadMessagesRef.current?.()} />
+                        ) : isSticker ? (
+                          m.media_url ? (
+                            <div className="relative pr-7">
+                              <button
+                                onClick={() => !(m.metadata as { pending?: boolean } | null)?.pending && setLightbox({ type: "image", src: m.media_url! })}
+                                className="block focus:outline-none"
+                              >
+                                <img
+                                  src={m.media_url!}
+                                  alt={m.content ?? "Figurinha"}
+                                  className={`max-h-36 max-w-36 object-contain ${(m.metadata as { pending?: boolean } | null)?.pending ? "opacity-70" : "cursor-zoom-in"}`}
+                                />
+                              </button>
+                              {(m.metadata as { pending?: boolean } | null)?.pending ? (
+                                <div className="absolute inset-0 grid place-items-center rounded-md bg-black/10">
+                                  <Loader2 className="h-6 w-6 text-gray-700 animate-spin" />
+                                </div>
+                              ) : (
+                                <DownloadBtn url={m.media_url!} filename={`figurinha-${m.id}.webp`} />
+                              )}
+                            </div>
+                          ) : <MediaMissing kind="sticker" onRetry={() => loadMessagesRef.current?.()} />
                         ) : isImage ? (
                           <div className="relative">
                             <button onClick={() => !(m.metadata as { pending?: boolean } | null)?.pending && setLightbox({ type: "image", src: m.media_url! })} className="block focus:outline-none">
@@ -1944,10 +1967,10 @@ function MessagesPage() {
                             )}
                           </div>
                         ) : isFile ? (() => {
-                          const meta = (m.metadata ?? {}) as { pending?: boolean; fileName?: string; fileSize?: number; mimeType?: string };
+                          const meta = (m.metadata ?? {}) as { pending?: boolean; fileName?: string; fileSize?: number; mimeType?: string; mime?: string };
                           const name = meta.fileName || (m.content ?? "") || `arquivo-${m.id}`;
                           const ext = (name.split(".").pop() || "").toLowerCase();
-                          const isPdf = ext === "pdf" || meta.mimeType === "application/pdf";
+                          const isPdf = ext === "pdf" || meta.mimeType === "application/pdf" || meta.mime === "application/pdf";
                           const sizeLabel = typeof meta.fileSize === "number"
                             ? (meta.fileSize < 1024 * 1024
                                 ? `${(meta.fileSize / 1024).toFixed(0)} KB`

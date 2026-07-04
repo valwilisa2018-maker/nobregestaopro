@@ -563,6 +563,7 @@ export const Route = createFileRoute("/api/public/evolution/$instance")({
                 unread_count: (convo.unread_count ?? 0) + 1,
               } as never).eq("id", convo.id);
             }
+            if (alreadySavedInbound) return Response.json({ ok: true, duplicate: true });
             // Allow AI to process pure media (image/pdf) without caption
             if (!text && !mediaB64) return Response.json({ ok: true, skipped: "no-text" });
             if (!text) text = mediaCaption ?? "";
