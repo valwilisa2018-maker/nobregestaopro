@@ -1259,6 +1259,25 @@ function MessagesPage() {
           </div>
         </DialogContent>
       </Dialog>
+      <Dialog open={!!deleteConfirm} onOpenChange={(o) => { if (!o) setDeleteConfirm(null); }}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Excluir mensagem?</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-gray-600">Escolha como deseja excluir esta mensagem.</p>
+          <div className="flex flex-col gap-2 pt-2">
+            {deleteConfirm && deleteConfirm.direction === "outbound" && (deleteConfirm.metadata as { evoId?: string } | null)?.evoId && (
+              <Button variant="destructive" onClick={() => performDelete(deleteConfirm, true)}>
+                Excluir para todos
+              </Button>
+            )}
+            <Button variant="outline" onClick={() => deleteConfirm && performDelete(deleteConfirm, false)}>
+              Excluir para mim
+            </Button>
+            <Button variant="ghost" onClick={() => setDeleteConfirm(null)}>Cancelar</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
       </TooltipProvider>
     </div>
   );
