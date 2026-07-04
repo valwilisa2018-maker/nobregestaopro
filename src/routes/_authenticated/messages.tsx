@@ -923,6 +923,18 @@ function MessagesPage() {
                 <button className="md:hidden p-1 -ml-1" onClick={() => setSelected(null)}>
                   <ArrowLeft className="h-5 w-5" />
                 </button>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <button
+                      onClick={() => setSidebarCollapsed((v) => !v)}
+                      className="hidden md:grid h-9 w-9 -ml-1 place-items-center rounded-full bg-white/15 hover:bg-white/25 text-white transition focus:outline-none focus-visible:ring-2 focus-visible:ring-white/70"
+                      aria-label={sidebarCollapsed ? "Expandir lista de conversas" : "Recolher lista de conversas"}
+                    >
+                      {sidebarCollapsed ? <ChevronRight className="h-5 w-5" /> : <ChevronLeft className="h-5 w-5" />}
+                    </button>
+                  </TooltipTrigger>
+                  <TooltipContent side="bottom">{sidebarCollapsed ? "Expandir lista" : "Recolher lista"}</TooltipContent>
+                </Tooltip>
                 {avatars[selected.id] ? (
                   <button onClick={() => setLightbox({ type: "image", src: avatars[selected.id]! })} className="shrink-0 focus:outline-none">
                     <img src={avatars[selected.id]!} alt="" className="h-10 w-10 rounded-full object-cover hover:opacity-90" />
