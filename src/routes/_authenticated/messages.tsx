@@ -127,6 +127,9 @@ function MessagesPage() {
   const cameraInputRef = useRef<HTMLInputElement | null>(null);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [attachment, setAttachment] = useState<{ file: File; url: string } | null>(null);
+  const [uploadQueue, setUploadQueue] = useState<Array<{ id: string; name: string; size: number; url: string; kind: "image" | "video" | "audio" | "pdf" | "file"; status: "uploading" | "done" | "failed"; error?: string }>>([]);
+  const [dragActive, setDragActive] = useState(false);
+  const dragDepthRef = useRef(0);
   const [filterMode, setFilterMode] = useState<"all" | "unread" | "favorites" | "groups" | "archived">("all");
   const [archived, setArchived] = useState<Set<string>>(() => {
     if (typeof window === "undefined") return new Set();
@@ -892,50 +895,80 @@ function MessagesPage() {
 
   async function handleSendAttachment() {
     if (!selected || !attachment) return;
+    const file = attachment.file;
+    const url = attachment.url;
+    const caption = text.trim() || undefined;
+    const quotedMessageId = replyTo?.id;
+    const quotedSnapshot = replyTo ? { quotedId: replyTo.id, quotedText: (replyTo.content ?? "").slice(0, 200), quotedType: replyTo.type, quotedDirection: replyTo.direction } : undefined;
+    // Free the composer immediately — the upload continues in the background.
+    setText("");
+    setAttachment(null);
+    setReplyTo(null);
+    sendOneFile(file, caption, { objectUrl: url, quotedMessageId, quotedSnapshot });
+  }
+
+  function fileKind(file: File): "image" | "video" | "audio" | "pdf" | "file" {
+    const t = file.type;
+    if (t.startsWith("image/")) return "image";
+    if (t.startsWith("video/")) return "video";
+    if (t.startsWith("audio/")) return "audio";
+    if (t === "application/pdf" || file.name.toLowerCase().endsWith(".pdf")) return "pdf";
+    return "file";
+  }
+
+  function formatBytes(n: number) {
+    if (n < 1024) return `${n} B`;
+    if (n < 1024 * 1024) return `${(n / 1024).toFixed(1)} KB`;
+    return `${(n / 1024 / 1024).toFixed(1)} MB`;
+  }
+
+  async function sendOneFile(
+    file: File,
+    caption?: string,
+    opts?: { objectUrl?: string; quotedMessageId?: string; quotedSnapshot?: Record<string, unknown> },
+  ) {
+    if (!selected) return;
     const MAX = 15 * 1024 * 1024; // 15 MB
-    if (attachment.file.size > MAX) {
-      toast.error(`Arquivo muito grande (máx. 15 MB). Este tem ${(attachment.file.size / 1024 / 1024).toFixed(1)} MB.`);
+    const url = opts?.objectUrl ?? URL.createObjectURL(file);
+    const kind = fileKind(file);
+    const qid = `up-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+    setUploadQueue((q) => [...q, { id: qid, name: file.name, size: file.size, url, kind, status: "uploading" }]);
+    if (file.size > MAX) {
+      const err = `Máx. 15 MB (este tem ${(file.size / 1024 / 1024).toFixed(1)} MB)`;
+      setUploadQueue((q) => q.map((x) => (x.id === qid ? { ...x, status: "failed", error: err } : x)));
+      toast.error(`${file.name}: arquivo muito grande. ${err}`);
       return;
     }
-    const file = attachment.file;
     const mime = file.type || "application/octet-stream";
-    const optimisticType = mime.startsWith("image/") ? "image" : mime.startsWith("video/") ? "video" : mime.startsWith("audio/") ? "audio" : "document";
-    const quotedMessageId = replyTo?.id;
-    const tmpId = `tmp-${Date.now()}`;
-    const optimistic: Msg = {
+    const optimisticType = kind === "pdf" || kind === "file" ? "document" : kind;
+    const tmpId = `tmp-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+    const contactId = selected.id;
+    setMsgs((prev) => [...prev, {
       id: tmpId,
       direction: "outbound",
       type: optimisticType,
-      content: text.trim() || file.name,
-      media_url: attachment.url,
+      content: caption || file.name,
+      media_url: url,
       created_at: new Date().toISOString(),
-      metadata: { pending: true, fileName: file.name, ...(quotedMessageId ? { quotedId: quotedMessageId, quotedText: (replyTo?.content ?? "").slice(0, 200), quotedType: replyTo?.type, quotedDirection: replyTo?.direction } : {}) },
-    };
-    setMsgs((prev) => [...prev, optimistic]);
-    setReplyTo(null);
-    const caption = text.trim() || undefined;
-    const contactId = selected.id;
-    // Free the composer immediately — the upload continues in the background,
-    // progress is reflected on the media bubble itself (pending tick).
-    setText("");
-    setAttachment(null);
-    (async () => {
-      try {
-        const b64 = await blobToBase64(file);
-        const res = await sendMedia({ data: {
-          contactId, base64: b64, mime,
-          fileName: file.name, caption, quotedMessageId,
-        }});
-        if (res && "ok" in res && res.ok === false) {
-          toast.error(res.error);
-          setMsgs((prev) => prev.map((m) => m.id === tmpId ? { ...m, metadata: { ...(m.metadata ?? {}), pending: false, failed: true } } : m));
-        }
-        // Real INSERT via realtime reconciles the tmp row — no reload needed.
-      } catch (e) {
-        toast.error(e instanceof Error ? e.message : "Falha ao enviar arquivo");
-        setMsgs((prev) => prev.map((m) => m.id === tmpId ? { ...m, metadata: { ...(m.metadata ?? {}), pending: false, failed: true } } : m));
+      metadata: { pending: true, fileName: file.name, ...(opts?.quotedSnapshot ?? {}) },
+    }]);
+    try {
+      const b64 = await blobToBase64(file);
+      const res = await sendMedia({ data: { contactId, base64: b64, mime, fileName: file.name, caption, quotedMessageId: opts?.quotedMessageId } });
+      if (res && "ok" in res && res.ok === false) {
+        setMsgs((prev) => prev.map((m) => (m.id === tmpId ? { ...m, metadata: { ...(m.metadata ?? {}), pending: false, failed: true } } : m)));
+        setUploadQueue((q) => q.map((x) => (x.id === qid ? { ...x, status: "failed", error: res.error } : x)));
+        toast.error(`${file.name}: ${res.error}`);
+        return;
       }
-    })();
+      setUploadQueue((q) => q.map((x) => (x.id === qid ? { ...x, status: "done" } : x)));
+      window.setTimeout(() => setUploadQueue((q) => q.filter((x) => x.id !== qid)), 1500);
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : "Falha ao enviar";
+      setMsgs((prev) => prev.map((m) => (m.id === tmpId ? { ...m, metadata: { ...(m.metadata ?? {}), pending: false, failed: true } } : m)));
+      setUploadQueue((q) => q.map((x) => (x.id === qid ? { ...x, status: "failed", error: msg } : x)));
+      toast.error(`${file.name}: ${msg}`);
+    }
   }
 
   // Fetch avatar for the selected contact
