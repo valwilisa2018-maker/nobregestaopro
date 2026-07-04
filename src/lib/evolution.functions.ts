@@ -357,6 +357,7 @@ function parseEvoError(json: any, status: number) {
 const SendChatTextInput = z.object({
   contactId: z.string().uuid(),
   text: z.string().min(1).max(4096),
+  quotedMessageId: z.string().uuid().optional(),
 });
 
 export const sendChatText = createServerFn({ method: "POST" })
@@ -371,17 +372,18 @@ export const sendChatText = createServerFn({ method: "POST" })
     const number = String(contact.phone).replace(/\D+/g, "");
     const remoteJid = `${number}@s.whatsapp.net`;
     const convoId = await getOrCreateConversationForJid(context.supabase, context.userId, conn.id, remoteJid);
+    const quoted = await buildQuoted(context.supabase, context.userId, data.quotedMessageId);
     const { data: saved } = await context.supabase.from("messages").insert({
       user_id: context.userId, conversation_id: convoId,
       direction: "outbound", type: "text", content: data.text,
-      metadata: { remoteJid, manual: true, pending: true } as never,
+      metadata: { remoteJid, manual: true, pending: true, ...(quoted.meta ?? {}) } as never,
     }).select("id,metadata").single();
     await context.supabase.from("conversations").update({
       last_message_at: new Date().toISOString(),
     }).eq("id", convoId);
     const r = await evoFetch(`${baseUrl(conn.url_api)}/message/sendText/${conn.instance_name}`, apiKey, {
       method: "POST",
-      body: JSON.stringify({ number, text: data.text }),
+      body: JSON.stringify({ number, text: data.text, ...(quoted.evo ? { quoted: quoted.evo } : {}) }),
     });
     if (!r.ok) {
       const error = parseEvoError(r.json, r.status);
@@ -401,6 +403,7 @@ const SendChatMediaInput = z.object({
   mime: z.string().min(3),
   fileName: z.string().min(1),
   caption: z.string().max(1024).optional(),
+  quotedMessageId: z.string().uuid().optional(),
 });
 
 export const sendChatMedia = createServerFn({ method: "POST" })
@@ -418,13 +421,14 @@ export const sendChatMedia = createServerFn({ method: "POST" })
     const mediatype = mediaMessageType(data.mime);
     const convoId = await getOrCreateConversationForJid(context.supabase, context.userId, conn.id, remoteJid);
     const stored = await saveMediaToStorage(context.supabase, context.userId, convoId, b64, data.mime, data.fileName);
+    const quoted = await buildQuoted(context.supabase, context.userId, data.quotedMessageId);
     const { data: saved } = await context.supabase.from("messages").insert({
       user_id: context.userId, conversation_id: convoId,
       direction: "outbound",
       type: mediatype,
       content: data.caption ?? data.fileName,
       media_url: stored.url,
-      metadata: { remoteJid, manual: true, fileName: data.fileName, mime: data.mime, storagePath: stored.path, pending: true } as never,
+      metadata: { remoteJid, manual: true, fileName: data.fileName, mime: data.mime, storagePath: stored.path, pending: true, ...(quoted.meta ?? {}) } as never,
     }).select("id,metadata").single();
     await context.supabase.from("conversations").update({
       last_message_at: new Date().toISOString(),
@@ -434,6 +438,7 @@ export const sendChatMedia = createServerFn({ method: "POST" })
       body: JSON.stringify({
         number, mediatype, media: b64, mimetype: data.mime,
         fileName: data.fileName, caption: data.caption ?? "",
+        ...(quoted.evo ? { quoted: quoted.evo } : {}),
       }),
     });
     if (!r.ok) {
