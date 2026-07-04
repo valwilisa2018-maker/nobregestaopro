@@ -76,6 +76,34 @@ function initials(name: string | null, phone: string) {
   return src.replace(/\D/g, "").slice(-2) || src.slice(0, 2).toUpperCase();
 }
 
+async function downloadFile(url: string, filename: string) {
+  try {
+    const r = await fetch(url);
+    if (!r.ok) throw new Error("fail");
+    const blob = await r.blob();
+    const bu = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = bu; a.download = filename;
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    setTimeout(() => URL.revokeObjectURL(bu), 1000);
+  } catch {
+    window.open(url, "_blank");
+  }
+}
+
+function DownloadBtn({ url, filename, dark = false }: { url: string; filename: string; dark?: boolean }) {
+  return (
+    <button
+      type="button"
+      onClick={(e) => { e.stopPropagation(); downloadFile(url, filename); }}
+      title="Baixar"
+      className={`absolute top-1 right-1 z-10 grid place-items-center h-6 w-6 rounded-full backdrop-blur transition ${dark ? "bg-black/50 hover:bg-black/70 text-white" : "bg-white/85 hover:bg-white text-gray-700"}`}
+    >
+      <Download className="h-3.5 w-3.5" />
+    </button>
+  );
+}
+
 function MessagesPage() {
   const { user } = useAuth();
   const [contacts, setContacts] = useState<Contact[]>([]);
