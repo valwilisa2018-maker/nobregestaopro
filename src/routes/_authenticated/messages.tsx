@@ -67,7 +67,11 @@ function MessagesPage() {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [attachment, setAttachment] = useState<{ file: File; url: string } | null>(null);
-  const [filterMode, setFilterMode] = useState<"all" | "unread" | "favorites" | "groups">("all");
+  const [filterMode, setFilterMode] = useState<"all" | "unread" | "favorites" | "groups" | "archived">("all");
+  const [archived, setArchived] = useState<Set<string>>(() => {
+    if (typeof window === "undefined") return new Set();
+    try { return new Set(JSON.parse(localStorage.getItem("wa-arch") ?? "[]")); } catch { return new Set(); }
+  });
   const [favorites, setFavorites] = useState<Set<string>>(() => {
     if (typeof window === "undefined") return new Set();
     try { return new Set(JSON.parse(localStorage.getItem("wa-fav") ?? "[]")); } catch { return new Set(); }
@@ -94,12 +98,14 @@ function MessagesPage() {
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
     let list = contacts;
+    if (filterMode === "archived") list = list.filter((c) => archived.has(c.id));
+    else list = list.filter((c) => !archived.has(c.id));
     if (filterMode === "unread") list = list.filter((c) => (unreadMap[c.id] ?? 0) > 0);
     else if (filterMode === "favorites") list = list.filter((c) => favorites.has(c.id));
     else if (filterMode === "groups") list = list.filter((c) => c.phone.includes("@g.us"));
     if (q) list = list.filter((c) => (c.name ?? "").toLowerCase().includes(q) || c.phone.includes(q));
     return list;
-  }, [contacts, search, filterMode, favorites, unreadMap]);
+  }, [contacts, search, filterMode, favorites, unreadMap, archived]);
   const unreadTotal = useMemo(
     () => Object.values(unreadMap).reduce((a, b) => a + b, 0),
     [unreadMap],
