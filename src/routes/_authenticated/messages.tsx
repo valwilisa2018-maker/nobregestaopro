@@ -293,7 +293,10 @@ function MessagesPage() {
     }));
     setMsgs(hydrated);
   }, [user, selected]);
-  useEffect(() => { loadMessages(); }, [loadMessages]);
+  useEffect(() => {
+    setMsgs([]); // clear instantly on contact switch, then load
+    loadMessages();
+  }, [loadMessages]);
 
   // Realtime refresh on new messages
   useEffect(() => {
@@ -327,7 +330,7 @@ function MessagesPage() {
   }, [msgs, selected?.id]);
 
   async function handleSendText() {
-    if (!selected || !text.trim() || sending) return;
+    if (!selected || !text.trim()) return;
     const body = text.trim();
     const optimistic: Msg = {
       id: `tmp-${Date.now()}`,
@@ -338,23 +341,19 @@ function MessagesPage() {
       created_at: new Date().toISOString(),
       metadata: { pending: true },
     };
-    setSending(true);
     setText("");
     setMsgs((prev) => [...prev, optimistic]);
-    try {
-      const res = await sendText({ data: { contactId: selected.id, text: body } });
-      if (res && "ok" in res && res.ok === false) toast.error(res.error);
-      await loadMessages();
-    } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Falha ao enviar");
-      setText(body);
-    } finally {
-      setSending(false);
-    }
+    const contactId = selected.id;
+    sendText({ data: { contactId, text: body } })
+      .then((res) => {
+        if (res && "ok" in res && res.ok === false) toast.error(res.error);
+        loadMessages();
+      })
+      .catch((e) => toast.error(e instanceof Error ? e.message : "Falha ao enviar"));
   }
 
   async function sendSticker(emoji: string) {
-    if (!selected || sending) return;
+    if (!selected) return;
     const optimistic: Msg = {
       id: `tmp-${Date.now()}`,
       direction: "outbound",
@@ -364,17 +363,14 @@ function MessagesPage() {
       created_at: new Date().toISOString(),
       metadata: { pending: true },
     };
-    setSending(true);
     setMsgs((prev) => [...prev, optimistic]);
-    try {
-      const res = await sendText({ data: { contactId: selected.id, text: emoji } });
-      if (res && "ok" in res && res.ok === false) toast.error(res.error);
-      await loadMessages();
-    } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Falha ao enviar");
-    } finally {
-      setSending(false);
-    }
+    const contactId = selected.id;
+    sendText({ data: { contactId, text: emoji } })
+      .then((res) => {
+        if (res && "ok" in res && res.ok === false) toast.error(res.error);
+        loadMessages();
+      })
+      .catch((e) => toast.error(e instanceof Error ? e.message : "Falha ao enviar"));
   }
 
   async function handleSendAttachment() {
