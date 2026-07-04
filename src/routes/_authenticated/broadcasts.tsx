@@ -359,12 +359,18 @@ function BroadcastsPage() {
               <div><Label>Nome da campanha</Label><Input value={name} onChange={(e) => setName(e.target.value)} /></div>
               <div><Label>Descrição (opcional)</Label><Input value={description} onChange={(e) => setDescription(e.target.value)} /></div>
             </div>
-            <div>
-              <Label>Mensagem</Label>
-              <Textarea rows={6} value={message} onChange={(e) => setMessage(e.target.value)} placeholder="Olá {nome}..." />
-              <p className="text-xs text-muted-foreground mt-1">Variáveis: <code>{"{nome}"}</code>, <code>{"{telefone}"}</code></p>
-            </div>
-            <div><Label>URL da mídia (opcional)</Label><Input value={mediaUrl} onChange={(e) => setMediaUrl(e.target.value)} placeholder="https://..." /></div>
+            {!flowId && (
+              <div>
+                <Label>Mensagem</Label>
+                <Textarea rows={6} value={message} onChange={(e) => setMessage(e.target.value)} placeholder="Olá {nome}..." />
+                <p className="text-xs text-muted-foreground mt-1">Variáveis: <code>{"{nome}"}</code>, <code>{"{telefone}"}</code></p>
+              </div>
+            )}
+            {flowId && (
+              <div className="border rounded-lg p-3 bg-primary/5 text-sm text-muted-foreground">
+                Um fluxo foi selecionado — o conteúdo (mensagens, mídias, etc.) será enviado pelo fluxo. O campo de mensagem foi desativado.
+              </div>
+            )}
             <div className="grid md:grid-cols-2 gap-3">
               <div>
                 <Label>Instância WhatsApp</Label>
@@ -378,7 +384,7 @@ function BroadcastsPage() {
                 <Select value={flowId || "__none__"} onValueChange={(v) => setFlowId(v === "__none__" ? "" : v)}>
                   <SelectTrigger><SelectValue placeholder="Nenhum" /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="__none__">Nenhum — apenas mensagem</SelectItem>
+                    <SelectItem value="__none__">Nenhum — enviar mensagem</SelectItem>
                     {(flows.data?.flows ?? []).map((f) => <SelectItem key={f.id} value={f.id}>{f.name}</SelectItem>)}
                   </SelectContent>
                 </Select>
