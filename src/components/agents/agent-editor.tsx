@@ -529,13 +529,19 @@ function TestSection({ form, setForm }: { form: AgentRow; setForm: React.Dispatc
     setLoading(true);
     try {
       const { chatWithAgent } = await import("@/lib/agent-chat.functions");
+      const kbEnabled = ((form.memory as { knowledgeEnabled?: boolean } | null)?.knowledgeEnabled ?? true);
+      const kbItems = ((form.knowledge as Array<{ title?: string; content?: string; enabled?: boolean }> | null) ?? [])
+        .filter((k) => (k.enabled ?? true) && (k.content ?? "").trim());
+      const kbText = kbEnabled && kbItems.length
+        ? "\n\n## Base de Conhecimento\n" + kbItems.map((k) => `### ${k.title ?? "Item"}\n${k.content}`).join("\n\n")
+        : "";
       const res = await chatWithAgent({
         data: {
           provider: (form.category ?? "gemini").toLowerCase(),
           model: form.model ?? "gemini-2.5-flash",
           temperature: form.temperature,
           maxTokens: form.max_tokens ?? 2048,
-          systemPrompt: form.system_prompt ?? "",
+          systemPrompt: (form.system_prompt ?? "") + kbText,
           messages: next,
           providerId: form.ai_provider_id,
         },
