@@ -1152,24 +1152,48 @@ export type Database = {
       plans: {
         Row: {
           created_at: string
+          currency: string
           daily_limit: number
+          description: string | null
+          features: Json
+          highlight: boolean
           id: string
+          is_active: boolean
           monthly_limit: number
           name: string
+          price_cents: number
+          sort_order: number
+          tokens_included: number
         }
         Insert: {
           created_at?: string
+          currency?: string
           daily_limit?: number
+          description?: string | null
+          features?: Json
+          highlight?: boolean
           id?: string
+          is_active?: boolean
           monthly_limit?: number
           name: string
+          price_cents?: number
+          sort_order?: number
+          tokens_included?: number
         }
         Update: {
           created_at?: string
+          currency?: string
           daily_limit?: number
+          description?: string | null
+          features?: Json
+          highlight?: boolean
           id?: string
+          is_active?: boolean
           monthly_limit?: number
           name?: string
+          price_cents?: number
+          sort_order?: number
+          tokens_included?: number
         }
         Relationships: []
       }
