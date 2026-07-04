@@ -353,6 +353,7 @@ function MessagesPage() {
   // Subscribe to remote presence for the selected contact
   useEffect(() => {
     setRemotePresence(null);
+    if (remotePresenceTimerRef.current) { clearTimeout(remotePresenceTimerRef.current); remotePresenceTimerRef.current = null; }
     if (!user || !selected) return;
     const jids = new Set(jidVariants(selected.phone));
     const lidJids = (selected.metadata as { lidJids?: unknown } | null)?.lidJids;
@@ -365,16 +366,24 @@ function MessagesPage() {
         const recentOneToOneLid = !exact && row.jid.endsWith("@lid") && row.updated_at && Date.now() - new Date(row.updated_at).getTime() < 8000;
         if (!exact && !recentOneToOneLid) return;
         const p = row.presence ?? "available";
+        if (remotePresenceTimerRef.current) { clearTimeout(remotePresenceTimerRef.current); remotePresenceTimerRef.current = null; }
         if (p === "composing" || p === "recording") {
           setRemotePresence(p);
-          // auto-clear after 6s if no new update arrives
-          setTimeout(() => setRemotePresence((cur) => (cur === p ? null : cur)), 6000);
+          // Auto-clear only if no new update arrives. Recording holds longer since audio can be long.
+          const ttl = p === "recording" ? 15000 : 8000;
+          remotePresenceTimerRef.current = setTimeout(() => {
+            setRemotePresence((cur) => (cur === p ? null : cur));
+          }, ttl);
         } else {
-          setRemotePresence(null);
+          // Hold the current indicator briefly to avoid flicker between composing bursts.
+          remotePresenceTimerRef.current = setTimeout(() => setRemotePresence(null), 1500);
         }
       })
       .subscribe();
-    return () => { supabase.removeChannel(ch); };
+    return () => {
+      supabase.removeChannel(ch);
+      if (remotePresenceTimerRef.current) { clearTimeout(remotePresenceTimerRef.current); remotePresenceTimerRef.current = null; }
+    };
   }, [user, selected]);
 
   // Send "composing" while typing (throttled), "paused" when idle
