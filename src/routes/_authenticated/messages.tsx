@@ -171,6 +171,43 @@ function MessagesPage() {
   const messageLoadSeqRef = useRef(0);
   const conversationIdsRef = useRef<string[]>([]);
   const messagesCacheRef = useRef<Map<string, Msg[]>>(new Map());
+  const conversationIdsCacheRef = useRef<Map<string, string[]>>(new Map());
+  // Hydrate persistent caches so messages appear instantly on reload / repeat opens
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    try {
+      const raw = localStorage.getItem("wa-msg-cache");
+      if (raw) {
+        const obj = JSON.parse(raw) as Record<string, Msg[]>;
+        for (const [k, v] of Object.entries(obj)) messagesCacheRef.current.set(k, v);
+      }
+      const rawIds = localStorage.getItem("wa-conv-cache");
+      if (rawIds) {
+        const obj = JSON.parse(rawIds) as Record<string, string[]>;
+        for (const [k, v] of Object.entries(obj)) conversationIdsCacheRef.current.set(k, v);
+      }
+    } catch { /* ignore */ }
+  }, []);
+  const persistMsgCache = useCallback((contactId: string, rows: Msg[]) => {
+    messagesCacheRef.current.set(contactId, rows);
+    if (typeof window === "undefined") return;
+    try {
+      const obj: Record<string, Msg[]> = {};
+      // Cap: only persist last 40 msgs per contact and last 30 contacts to keep storage small
+      const entries = [...messagesCacheRef.current.entries()].slice(-30);
+      for (const [k, v] of entries) obj[k] = v.slice(-40);
+      localStorage.setItem("wa-msg-cache", JSON.stringify(obj));
+    } catch { /* quota */ }
+  }, []);
+  const persistConvCache = useCallback((contactId: string, ids: string[]) => {
+    conversationIdsCacheRef.current.set(contactId, ids);
+    if (typeof window === "undefined") return;
+    try {
+      const obj: Record<string, string[]> = {};
+      for (const [k, v] of conversationIdsCacheRef.current.entries()) obj[k] = v;
+      localStorage.setItem("wa-conv-cache", JSON.stringify(obj));
+    } catch { /* quota */ }
+  }, []);
   const signedUrlCacheRef = useRef<Map<string, string>>(new Map());
   const prependScrollRef = useRef(false);
   const [editPhone, setEditPhone] = useState("");
@@ -457,36 +494,62 @@ function MessagesPage() {
     const reqId = selected.id;
     const seq = ++messageLoadSeqRef.current;
     const cached = messagesCacheRef.current.get(reqId);
+    const cachedIds = conversationIdsCacheRef.current.get(reqId);
     setMessagesLoading(!cached?.length);
     setHasOlder(false);
-    conversationIdsRef.current = [];
+    conversationIdsRef.current = cachedIds ?? [];
     if (cached) setMsgs(cached);
 
-    const convs = await findConversationRows(selected);
+    // Fast path: if we have cached conversation IDs, fetch messages immediately in parallel
+    // with re-resolving conversation rows. This eliminates the round-trip delay on repeat opens.
+    const fetchMessagesFor = async (ids: string[]) => {
+      if (!ids.length) return [] as Msg[];
+      const { data } = await supabase.from("messages")
+        .select("id,direction,type,content,media_url,created_at,metadata")
+        .in("conversation_id", ids)
+        .order("created_at", { ascending: false })
+        .limit(MESSAGE_PAGE_SIZE + 1);
+      return (data ?? []) as Msg[];
+    };
+
+    const fastMsgsPromise = cachedIds?.length ? fetchMessagesFor(cachedIds) : Promise.resolve<Msg[] | null>(null);
+
+    const [convs, fastData] = await Promise.all([
+      findConversationRows(selected),
+      fastMsgsPromise,
+    ]);
+
+    // Apply fast path result first (if any) so UI updates ASAP
+    if (fastData && selectedRef.current?.id === reqId && messageLoadSeqRef.current === seq) {
+      const rows = fastData.slice(0, MESSAGE_PAGE_SIZE).reverse();
+      setHasOlder(fastData.length > MESSAGE_PAGE_SIZE);
+      setMsgs(rows);
+      persistMsgCache(reqId, rows);
+      setMessagesLoading(false);
+      hydrateSignedUrls(rows, reqId);
+    }
+
     if (selectedRef.current?.id !== reqId) return;
     const matched = convs ?? [];
     const ids = matched.map((c) => c.id);
     conversationIdsRef.current = ids;
+    persistConvCache(reqId, ids);
     const primary = matched[0] ?? null;
     setConvoId(primary?.id ?? null);
     const pausedUntil = (primary?.metadata as { agent_paused_until?: string } | null)?.agent_paused_until ?? null;
     setAgentPaused(!!pausedUntil && new Date(pausedUntil).getTime() > Date.now());
     if (!ids.length) {
-      messagesCacheRef.current.set(reqId, []);
-      setMsgs([]);
+      // Don't wipe cached messages if lookup temporarily fails; only clear if we truly have nothing
+      if (!cached?.length && !fastData?.length) setMsgs([]);
       setMessagesLoading(false);
       return;
     }
-    const { data } = await supabase.from("messages")
-      .select("id,direction,type,content,media_url,created_at,metadata")
-      .in("conversation_id", ids)
-      .order("created_at", { ascending: false })
-      .limit(MESSAGE_PAGE_SIZE + 1);
+    const data = await fetchMessagesFor(ids);
     if (selectedRef.current?.id !== reqId || messageLoadSeqRef.current !== seq) return;
-    const rows = ((data ?? []) as Msg[]).slice(0, MESSAGE_PAGE_SIZE).reverse();
-    setHasOlder((data ?? []).length > MESSAGE_PAGE_SIZE);
+    const rows = data.slice(0, MESSAGE_PAGE_SIZE).reverse();
+    setHasOlder(data.length > MESSAGE_PAGE_SIZE);
     setMsgs(rows);
-    messagesCacheRef.current.set(reqId, rows);
+    persistMsgCache(reqId, rows);
     setMessagesLoading(false);
     hydrateSignedUrls(rows, reqId);
   }, [user, selected, hydrateSignedUrls]);
