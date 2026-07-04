@@ -219,6 +219,27 @@ export const Route = createFileRoute("/api/public/evolution/$instance")({
           try {
             const arr = Array.isArray(payload?.data) ? payload.data : [payload?.data];
             for (const u of arr) {
+              // --- Edit detection (Baileys protocolMessage type=14 / editedMessage) ---
+              const editedText = extractEditedText(u);
+              if (editedText !== null) {
+                const originalEvoId = extractEditedTargetId(u) ?? findEvoId(u);
+                if (originalEvoId) {
+                  const { data: erows } = await supabaseAdmin.from("messages")
+                    .select("id,metadata,content")
+                    .eq("user_id", conn.user_id)
+                    .eq("metadata->>evoId", originalEvoId)
+                    .limit(1);
+                  const erow = erows?.[0];
+                  if (erow) {
+                    const emeta = (erow.metadata && typeof erow.metadata === "object") ? erow.metadata as Record<string, unknown> : {};
+                    await supabaseAdmin.from("messages").update({
+                      content: editedText,
+                      metadata: { ...emeta, edited: true, editedAt: new Date().toISOString() } as never,
+                    }).eq("id", erow.id);
+                  }
+                }
+                continue;
+              }
               const evoId = findEvoId(u);
               const remoteJid = u?.key?.remoteJid ?? u?.remoteJid ?? u?.jid;
               const rawStatus =
