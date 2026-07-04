@@ -1150,25 +1150,34 @@ function MessagesPage() {
                   <>
                     <Popover>
                       <PopoverTrigger asChild>
-                        <button className="p-2 text-gray-500 hover:text-gray-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 rounded-full transition" aria-label="Figurinhas">
+                        <button className="p-2 text-gray-500 hover:text-gray-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 rounded-full transition" aria-label="Emojis">
                           <Smile className="h-6 w-6" />
                         </button>
                       </PopoverTrigger>
-                      <PopoverContent side="top" align="start" className="w-80 p-2">
-                        <div className="text-xs text-muted-foreground px-1 pb-2">Figurinhas</div>
-                        <div className="grid grid-cols-8 gap-1 max-h-64 overflow-y-auto">
-                          {STICKERS.map((s) => (
-                            <button
-                              key={s}
-                              onClick={() => sendSticker(s)}
-                              className="text-2xl rounded hover:bg-accent transition p-1"
-                            >
-                              {s}
-                            </button>
-                          ))}
-                        </div>
+                      <PopoverContent side="top" align="start" className="p-0 border-0 w-auto">
+                        <EmojiPicker
+                          onEmojiClick={(e) => setText((t) => t + e.emoji)}
+                          emojiStyle={EmojiStyle.NATIVE}
+                          theme={Theme.LIGHT}
+                          searchPlaceholder="Buscar emoji"
+                          width={340}
+                          height={420}
+                          previewConfig={{ showPreview: false }}
+                        />
                       </PopoverContent>
                     </Popover>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <button
+                          onClick={toggleAgent}
+                          className={`p-2 rounded-full transition focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 ${agentPaused ? "text-gray-400 hover:text-gray-600" : "text-emerald-600 hover:text-emerald-700"}`}
+                          aria-label={agentPaused ? "Ativar IA" : "Desativar IA"}
+                        >
+                          {agentPaused ? <BotOff className="h-6 w-6" /> : <Bot className="h-6 w-6" />}
+                        </button>
+                      </TooltipTrigger>
+                      <TooltipContent side="top">{agentPaused ? "IA desativada — clique para ativar" : "IA ativa — clique para desativar"}</TooltipContent>
+                    </Tooltip>
                     <Popover>
                       <PopoverTrigger asChild>
                         <button
