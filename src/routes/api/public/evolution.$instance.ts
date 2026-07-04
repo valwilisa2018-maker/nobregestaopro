@@ -74,13 +74,13 @@ export const Route = createFileRoute("/api/public/evolution/$instance")({
           for (let i = 0; i < a.length; i++) diff |= a.charCodeAt(i) ^ b.charCodeAt(i);
           return diff === 0;
         };
+        const webhookSecret = process.env.FOLLOWUP_TRIGGER_SECRET ?? "";
         const matchedInstance = !!instanceKey && safeEq(providedKey, instanceKey);
         const matchedGlobal = !!globalKey && safeEq(providedKey, globalKey);
+        const matchedSecret = !!webhookSecret && safeEq(providedKey, webhookSecret);
         const event = payload?.event;
-        const looksLikeEvolution = event === "messages.upsert" || event === "MESSAGES_UPSERT" || event === "connection.update" || event === "CONNECTION_UPDATE";
-        const unsignedEvolution = !providedKey && looksLikeEvolution && (payload?.instance === instance || payload?.data?.instance === instance || payload?.data?.instanceName === instance || !payload?.instance);
-        const matched: "instance" | "global" | "unsigned" | "none" =
-          matchedInstance ? "instance" : matchedGlobal ? "global" : unsignedEvolution ? "unsigned" : "none";
+        const matched: "instance" | "global" | "secret" | "none" =
+          matchedInstance ? "instance" : matchedGlobal ? "global" : matchedSecret ? "secret" : "none";
         if (matched === "none") {
           const diag = {
             instance,
@@ -118,7 +118,6 @@ export const Route = createFileRoute("/api/public/evolution/$instance")({
         } catch { /* ignore */ }
 
         const commandConn = { ...conn, api_key: globalKey || conn.api_key };
-        const allowAutomation = matched !== "unsigned";
 
         // Log the raw event
         await supabaseAdmin.from("logs").insert({
@@ -283,7 +282,7 @@ export const Route = createFileRoute("/api/public/evolution/$instance")({
                 follow_up_step: 0, next_follow_up_at: null, follow_up_paused: false,
               } as never).eq("id", convo.id);
             }
-            if (!agent || !allowAutomation) return Response.json({ ok: true, noAgent: !agent, automationSkipped: !allowAutomation });
+            if (!agent) return Response.json({ ok: true, noAgent: true });
 
             // Agent paused by human intervention window?
             if (cmeta.agent_paused_until && new Date(cmeta.agent_paused_until).getTime() > Date.now()) {

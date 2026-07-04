@@ -181,7 +181,8 @@ export const createAndConnectInstance = createServerFn({ method: "POST" })
     if (!cfg.url_api || !cfg.api_key) throw new Error("URL da API e API Key são obrigatórias em Configurações.");
 
     const webhookBase = cfg.webhook_base_url || data.webhookBaseUrl;
-    const webhookUrl = webhookBase ? `${webhookBase.replace(/\/+$/, "")}/api/public/evolution/${data.instanceName}` : undefined;
+    const webhookSecret = process.env.FOLLOWUP_TRIGGER_SECRET ?? "";
+    const webhookUrl = webhookBase ? `${webhookBase.replace(/\/+$/, "")}/api/public/evolution/${data.instanceName}${webhookSecret ? `?token=${encodeURIComponent(webhookSecret)}` : ""}` : undefined;
 
     // Insert local connection row
     const { data: conn, error: insErr } = await context.supabase.from("connections").insert({
