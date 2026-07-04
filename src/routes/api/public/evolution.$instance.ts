@@ -953,15 +953,23 @@ async function signedMediaUrl(db: { storage: { from: (b: string) => { createSign
   return data?.signedUrl ?? null;
 }
 
-async function evolutionGetBase64(conn: { url_api: string | null; api_key: string | null; instance_name: string | null }, message: unknown): Promise<string | null> {
+async function evolutionGetBase64(conn: { url_api: string | null; api_key: string | null; instance_name: string | null }, message: unknown, convertToMp3 = false): Promise<string | null> {
   const r = await fetch(`${normalizeBaseUrl(conn.url_api ?? "")}/chat/getBase64FromMediaMessage/${conn.instance_name}`, {
     method: "POST",
     headers: { "Content-Type": "application/json", apikey: conn.api_key ?? "" },
-    body: JSON.stringify({ message, convertToMp3: true }),
+    body: JSON.stringify({ message, convertToMp3 }),
   });
   if (!r.ok) return null;
   const j = await r.json().catch(() => null) as unknown;
   return findBase64(j);
+}
+
+function mediaLabel(kind: "image" | "video" | "audio" | "document" | "sticker") {
+  return kind === "audio" ? "[áudio]"
+    : kind === "video" ? "[vídeo]"
+      : kind === "image" ? "[imagem]"
+        : kind === "sticker" ? "[figurinha]"
+          : "[arquivo]";
 }
 
 function normalizeBaseUrl(url: string) {
