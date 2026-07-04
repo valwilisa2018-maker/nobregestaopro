@@ -487,12 +487,16 @@ function MessagesPage() {
     if (!user) return;
     (async () => {
       const { data } = await supabase.from("connections")
-        .select("id,name,instance_name,profile_name,status")
+        .select("id,name,instance_name,profile_name,profile_picture,phone_number,status")
         .eq("user_id", user.id)
         .order("created_at", { ascending: true });
       setInstances((data ?? []).map((c) => ({
         id: c.id, name: c.name, instance_name: c.instance_name, profile_name: c.profile_name,
+        profile_picture: c.profile_picture, phone_number: c.phone_number,
       })));
+      const map: Record<string, string | null> = {};
+      for (const c of data ?? []) map[c.id] = c.profile_picture ?? null;
+      setInstanceProfilePic(map);
     })();
   }, [user]);
   useEffect(() => {
