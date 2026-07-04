@@ -31,7 +31,7 @@ const groups = [
       { title: "Contatos", url: "/contacts", icon: Contact2 },
       { title: "Workflows", url: "/flows", icon: Workflow },
       { title: "Disparo em Massa", url: "/broadcasts", icon: Send },
-      { title: "WhatsApp", url: "/whatsapp", icon: MessageCircle },
+      { title: "Conexão WhatsApp", url: "/whatsapp", icon: MessageCircle },
     ],
   },
   {

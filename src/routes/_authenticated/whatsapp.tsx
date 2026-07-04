@@ -23,7 +23,7 @@ import {
 } from "@/lib/evolution.functions";
 
 export const Route = createFileRoute("/_authenticated/whatsapp")({
-  head: () => ({ meta: [{ title: "WhatsApp — Plataforma IA" }] }),
+  head: () => ({ meta: [{ title: "Conexão WhatsApp — Plataforma IA" }] }),
   component: Page,
 });
 
@@ -146,7 +146,8 @@ function Page() {
         const r = await testFn({ data: { connectionId: qrModal.connectionId! } });
         if (r.status === "online") {
           toast.success("WhatsApp conectado!");
-          setQrModal({ open: false, qr: null, name: "", connectionId: null });
+          // Keep modal open on success so the user sees the premium confirmation
+          // (phone number, actions). It can be closed manually.
           load();
         }
       } catch { /* ignore */ }
@@ -157,6 +158,9 @@ function Page() {
   // Auto-fetch QR when modal opens without one
   useEffect(() => {
     if (!qrModal.open || !qrModal.connectionId || qrModal.qr) return;
+    // Do not fetch a QR when the connection is already online — modal shows success state
+    const current = items.find((x) => x.id === qrModal.connectionId);
+    if (current?.status === "online") return;
     let cancelled = false;
     const fetchQr = async () => {
       try {
@@ -167,7 +171,7 @@ function Page() {
     fetchQr();
     const id = setInterval(fetchQr, 5000);
     return () => { cancelled = true; clearInterval(id); };
-  }, [qrModal.open, qrModal.connectionId, qrModal.qr]);
+  }, [qrModal.open, qrModal.connectionId, qrModal.qr, items]);
 
   const create = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -241,8 +245,8 @@ function Page() {
 
   return (
     <PageShell
-      title="WhatsApp"
-      description="Crie uma nova instância, escaneie o QR Code e comece a atender."
+      title="Conexão WhatsApp"
+      description="Conecte, gerencie e reconecte seus números do WhatsApp."
       icon={<MessageCircle className="h-6 w-6" />}
       status="ativo"
       actions={
@@ -382,83 +386,154 @@ function Page() {
         </div>
       )}
 
-      {/* Premium QR modal */}
+      {/* Premium connection modal */}
       <Dialog open={qrModal.open} onOpenChange={(o) => setQrModal({ ...qrModal, open: o })}>
-        <DialogContent className="max-w-sm overflow-hidden p-0 border-border/60">
-          <div className="p-5 space-y-5">
-            <DialogHeader className="space-y-0">
-              <div className="flex items-center gap-3">
-                <div className="grid h-10 w-10 place-items-center rounded-xl bg-primary/15 text-primary ring-1 ring-primary/30">
-                  <MessageCircle className="h-5 w-5" />
-                </div>
-                <div className="text-left">
-                  <DialogTitle className="text-base">Conectar ao WhatsApp</DialogTitle>
-                  <DialogDescription className="text-xs">Sincronizar com seu dispositivo</DialogDescription>
-                </div>
-              </div>
-            </DialogHeader>
-
-            <div className="text-center space-y-1">
-              <h3 className="font-semibold text-lg">Quase lá! 🚀</h3>
-              <p className="text-xs text-muted-foreground">Escaneie o QR Code para conectar ao WhatsApp</p>
-            </div>
-
-            <div className="rounded-2xl border-2 border-dashed border-primary/30 bg-primary/[0.03] p-6 flex flex-col items-center gap-4">
-              {qrModal.qr ? (
-                <div className="rounded-xl bg-white p-3 ring-1 ring-border">
-                  <img
-                    src={qrModal.qr.startsWith("data:") ? qrModal.qr : `data:image/png;base64,${qrModal.qr}`}
-                    alt="QR Code" className="h-44 w-44"
-                  />
-                </div>
-              ) : (
-                <>
-                  <QrCode className="h-20 w-20 text-primary/70" strokeWidth={1.2} />
-                </>
-              )}
-              <Button
-                variant={qrModal.qr ? "outline" : "default"}
-                onClick={async () => {
-                  if (!qrModal.connectionId) return;
-                  setQrModal((m) => ({ ...m, qr: null }));
-                  try {
-                    const r = await connectFn({ data: { connectionId: qrModal.connectionId } });
-                    setQrModal((m) => ({ ...m, qr: r.qr }));
-                    if (!r.qr) toast.error("QR ainda não disponível — tente novamente");
-                  } catch (e: any) { toast.error(e.message ?? "Falha ao gerar QR"); }
-                }}
-                className="rounded-full px-6"
-              >
-                <RefreshCw className="h-4 w-4" /> {qrModal.qr ? "Atualizar QR" : "Gerar QR Code"}
-              </Button>
-              {qrModal.qr && (
-                <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                  <Wifi className="h-3.5 w-3.5 animate-pulse text-primary" />
-                  Aguardando conexão…
-                </div>
-              )}
-            </div>
-
-            <div className="space-y-3">
-              <div className="flex items-center gap-2 text-sm font-medium text-primary">
-                <Plus className="h-4 w-4" /> Como conectar
-              </div>
-              <ol className="space-y-2.5 text-xs">
-                {[
-                  "Abra o WhatsApp no seu celular",
-                  "Vá em Configurações → Dispositivos conectados",
-                  "Toque em Conectar um dispositivo e escaneie o código",
-                ].map((step, i) => (
-                  <li key={i} className="flex gap-2.5 items-start">
-                    <div className="grid h-5 w-5 shrink-0 place-items-center rounded-full bg-primary/15 text-primary text-[10px] font-bold ring-1 ring-primary/30">
-                      {i + 1}
+        <DialogContent className="max-w-md overflow-hidden p-0 border-border/60">
+          {(() => {
+            const current = items.find((x) => x.id === qrModal.connectionId);
+            const online = current?.status === "online";
+            return (
+              <>
+                {/* Header with gradient */}
+                <div
+                  className="relative px-6 pt-6 pb-8"
+                  style={{
+                    background: online
+                      ? "linear-gradient(135deg, #25D366 0%, #128C7E 100%)"
+                      : "linear-gradient(135deg, hsl(var(--primary)) 0%, hsl(var(--primary) / 0.75) 100%)",
+                  }}
+                >
+                  <div className="absolute inset-0 opacity-20 pointer-events-none"
+                    style={{ backgroundImage: "radial-gradient(circle at 30% 20%, rgba(255,255,255,0.35), transparent 50%)" }} />
+                  <DialogHeader className="relative space-y-0">
+                    <div className="flex items-center gap-3">
+                      <div className="grid h-11 w-11 place-items-center rounded-2xl bg-white/20 backdrop-blur ring-1 ring-white/30 text-white">
+                        <MessageCircle className="h-5 w-5" />
+                      </div>
+                      <div className="text-left text-white">
+                        <DialogTitle className="text-base font-semibold">
+                          {online ? "WhatsApp conectado" : "Conectar WhatsApp"}
+                        </DialogTitle>
+                        <DialogDescription className="text-xs text-white/80">
+                          {qrModal.name || (online ? "Instância pronta para atender" : "Sincronizar com seu dispositivo")}
+                        </DialogDescription>
+                      </div>
                     </div>
-                    <span className="text-muted-foreground pt-0.5">{step}</span>
-                  </li>
-                ))}
-              </ol>
-            </div>
-          </div>
+                  </DialogHeader>
+                  {online && current?.phone_number && (
+                    <div className="relative mt-5 flex items-end gap-3 text-white">
+                      <div>
+                        <div className="text-[10px] uppercase tracking-widest opacity-80">Número conectado</div>
+                        <div className="mt-0.5 font-mono text-xl font-semibold">+{current.phone_number}</div>
+                        {current.profile_name && (
+                          <div className="text-xs opacity-90">{current.profile_name}</div>
+                        )}
+                      </div>
+                      <div className="ml-auto flex items-center gap-1.5 rounded-full bg-white/20 px-2.5 py-1 text-[11px] backdrop-blur">
+                        <span className="h-1.5 w-1.5 rounded-full bg-white animate-pulse" /> Online
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                <div className="p-5 space-y-5">
+                  {online ? (
+                    <>
+                      <div className="rounded-2xl border border-[#25D366]/30 bg-[#25D366]/[0.05] p-4 flex items-center gap-3">
+                        <div className="grid h-10 w-10 place-items-center rounded-full bg-[#25D366] text-white">
+                          <Wifi className="h-5 w-5" />
+                        </div>
+                        <div className="text-sm">
+                          <div className="font-medium">Tudo pronto! 🎉</div>
+                          <div className="text-xs text-muted-foreground">Seu número já pode enviar e receber mensagens.</div>
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-2 gap-2">
+                        <Button
+                          variant="outline"
+                          onClick={async () => {
+                            if (!current) return;
+                            await reconnect(current);
+                          }}
+                          disabled={!!busy[current?.id ?? ""]}
+                        >
+                          <RefreshCw className="h-4 w-4" /> Reconectar
+                        </Button>
+                        <Button
+                          variant="outline"
+                          className="text-destructive hover:text-destructive"
+                          onClick={async () => {
+                            if (!current) return;
+                            await disconnect(current);
+                            setQrModal({ open: false, qr: null, name: "", connectionId: null });
+                          }}
+                          disabled={!!busy[current?.id ?? ""]}
+                        >
+                          <Power className="h-4 w-4" /> Desconectar
+                        </Button>
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <div className="rounded-2xl border-2 border-dashed border-primary/30 bg-primary/[0.03] p-6 flex flex-col items-center gap-4">
+                        {qrModal.qr ? (
+                          <div className="rounded-xl bg-white p-3 ring-1 ring-border shadow-lg">
+                            <img
+                              src={qrModal.qr.startsWith("data:") ? qrModal.qr : `data:image/png;base64,${qrModal.qr}`}
+                              alt="QR Code" className="h-48 w-48"
+                            />
+                          </div>
+                        ) : (
+                          <QrCode className="h-20 w-20 text-primary/70" strokeWidth={1.2} />
+                        )}
+                        <Button
+                          variant={qrModal.qr ? "outline" : "default"}
+                          onClick={async () => {
+                            if (!qrModal.connectionId) return;
+                            setQrModal((m) => ({ ...m, qr: null }));
+                            try {
+                              const r = await connectFn({ data: { connectionId: qrModal.connectionId } });
+                              setQrModal((m) => ({ ...m, qr: r.qr }));
+                              if (!r.qr) toast.error("QR ainda não disponível — tente novamente");
+                            } catch (e: any) { toast.error(e.message ?? "Falha ao gerar QR"); }
+                          }}
+                          className="rounded-full px-6"
+                        >
+                          <RefreshCw className="h-4 w-4" /> {qrModal.qr ? "Atualizar QR" : "Gerar QR Code"}
+                        </Button>
+                        {qrModal.qr && (
+                          <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                            <Wifi className="h-3.5 w-3.5 animate-pulse text-primary" />
+                            Aguardando conexão…
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="space-y-3">
+                        <div className="flex items-center gap-2 text-sm font-medium text-primary">
+                          <Plus className="h-4 w-4" /> Como conectar
+                        </div>
+                        <ol className="space-y-2.5 text-xs">
+                          {[
+                            "Abra o WhatsApp no seu celular",
+                            "Vá em Configurações → Dispositivos conectados",
+                            "Toque em Conectar um dispositivo e escaneie o código",
+                          ].map((step, i) => (
+                            <li key={i} className="flex gap-2.5 items-start">
+                              <div className="grid h-5 w-5 shrink-0 place-items-center rounded-full bg-primary/15 text-primary text-[10px] font-bold ring-1 ring-primary/30">
+                                {i + 1}
+                              </div>
+                              <span className="text-muted-foreground pt-0.5">{step}</span>
+                            </li>
+                          ))}
+                        </ol>
+                      </div>
+                    </>
+                  )}
+                </div>
+              </>
+            );
+          })()}
         </DialogContent>
       </Dialog>
     </PageShell>
