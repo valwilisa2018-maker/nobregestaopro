@@ -473,6 +473,7 @@ export const getProfilePicture = createServerFn({ method: "POST" })
 const SendChatAudioInput = z.object({
   contactId: z.string().uuid(),
   audioBase64: z.string().min(10),
+  quotedMessageId: z.string().uuid().optional(),
 });
 
 export const sendChatAudio = createServerFn({ method: "POST" })
@@ -489,18 +490,19 @@ export const sendChatAudio = createServerFn({ method: "POST" })
     const audio = data.audioBase64.replace(/^data:[^;]+;base64,/, "");
     const convoId = await getOrCreateConversationForJid(context.supabase, context.userId, conn.id, remoteJid);
     const stored = await saveMediaToStorage(context.supabase, context.userId, convoId, audio, "audio/webm", "audio.webm");
+    const quoted = await buildQuoted(context.supabase, context.userId, data.quotedMessageId);
     const { data: saved } = await context.supabase.from("messages").insert({
       user_id: context.userId, conversation_id: convoId,
       direction: "outbound", type: "audio", content: "[áudio]",
       media_url: stored.url,
-      metadata: { remoteJid, manual: true, audio: true, mime: "audio/webm", storagePath: stored.path, pending: true } as never,
+      metadata: { remoteJid, manual: true, audio: true, mime: "audio/webm", storagePath: stored.path, pending: true, ...(quoted.meta ?? {}) } as never,
     }).select("id,metadata").single();
     await context.supabase.from("conversations").update({
       last_message_at: new Date().toISOString(),
     }).eq("id", convoId);
     const r = await evoFetch(`${baseUrl(conn.url_api)}/message/sendWhatsAppAudio/${conn.instance_name}`, apiKey, {
       method: "POST",
-      body: JSON.stringify({ number, audio, encoding: true }),
+      body: JSON.stringify({ number, audio, encoding: true, ...(quoted.evo ? { quoted: quoted.evo } : {}) }),
     });
     if (!r.ok) {
       const error = parseEvoError(r.json, r.status);
