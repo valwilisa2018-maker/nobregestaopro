@@ -23,7 +23,7 @@ import {
 } from "@/lib/evolution.functions";
 
 export const Route = createFileRoute("/_authenticated/whatsapp")({
-  head: () => ({ meta: [{ title: "WhatsApp — Plataforma IA" }] }),
+  head: () => ({ meta: [{ title: "Conexão WhatsApp — Plataforma IA" }] }),
   component: Page,
 });
 
@@ -146,7 +146,8 @@ function Page() {
         const r = await testFn({ data: { connectionId: qrModal.connectionId! } });
         if (r.status === "online") {
           toast.success("WhatsApp conectado!");
-          setQrModal({ open: false, qr: null, name: "", connectionId: null });
+          // Keep modal open on success so the user sees the premium confirmation
+          // (phone number, actions). It can be closed manually.
           load();
         }
       } catch { /* ignore */ }
@@ -157,6 +158,9 @@ function Page() {
   // Auto-fetch QR when modal opens without one
   useEffect(() => {
     if (!qrModal.open || !qrModal.connectionId || qrModal.qr) return;
+    // Do not fetch a QR when the connection is already online — modal shows success state
+    const current = items.find((x) => x.id === qrModal.connectionId);
+    if (current?.status === "online") return;
     let cancelled = false;
     const fetchQr = async () => {
       try {
@@ -167,7 +171,7 @@ function Page() {
     fetchQr();
     const id = setInterval(fetchQr, 5000);
     return () => { cancelled = true; clearInterval(id); };
-  }, [qrModal.open, qrModal.connectionId, qrModal.qr]);
+  }, [qrModal.open, qrModal.connectionId, qrModal.qr, items]);
 
   const create = async (e: React.FormEvent) => {
     e.preventDefault();
