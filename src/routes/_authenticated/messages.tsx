@@ -389,12 +389,15 @@ function MessagesPage() {
     const jids = new Set([jidFromPhone(selected.phone), ...jidVariants(selected.phone)]);
     const { data: convs } = await supabase.from("conversations")
       .select("id,metadata").eq("user_id", user.id).limit(1000);
-    const ids = (convs ?? [])
-      .filter((c) => {
-        const remote = (c.metadata as { remoteJid?: string } | null)?.remoteJid ?? "";
-        return jids.has(remote) || (!!phone && remote.startsWith(`${phone}@`));
-      })
-      .map((c) => c.id);
+    const matched = (convs ?? []).filter((c) => {
+      const remote = (c.metadata as { remoteJid?: string } | null)?.remoteJid ?? "";
+      return jids.has(remote) || (!!phone && remote.startsWith(`${phone}@`));
+    });
+    const ids = matched.map((c) => c.id);
+    const primary = matched[0] ?? null;
+    setConvoId(primary?.id ?? null);
+    const pausedUntil = (primary?.metadata as { agent_paused_until?: string } | null)?.agent_paused_until ?? null;
+    setAgentPaused(!!pausedUntil && new Date(pausedUntil).getTime() > Date.now());
     if (!ids.length) { setMsgs([]); return; }
     const { data } = await supabase.from("messages")
       .select("id,direction,type,content,media_url,created_at,metadata")
