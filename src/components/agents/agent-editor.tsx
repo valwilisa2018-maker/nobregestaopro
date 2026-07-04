@@ -535,13 +535,30 @@ function TestSection({ form, setForm }: { form: AgentRow; setForm: React.Dispatc
       const kbText = kbEnabled && kbItems.length
         ? "\n\n## Base de Conhecimento\n" + kbItems.map((k) => `### ${k.title ?? "Item"}\n${k.content}`).join("\n\n")
         : "";
+      // Contexto da Agenda — permite ao agente checar conflitos ao propor horários
+      let agendaText = "";
+      try {
+        const raw = localStorage.getItem("calendar.events.v1");
+        const list = raw ? (JSON.parse(raw) as Array<{ title: string; start: string; end: string; calendar: string }>) : [];
+        const now = Date.now();
+        const upcoming = list
+          .filter((e) => new Date(e.end).getTime() >= now)
+          .sort((a, b) => +new Date(a.start) - +new Date(b.start))
+          .slice(0, 50);
+        const fmt = (iso: string) => new Date(iso).toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" });
+        agendaText = "\n\n## Agenda (fuso America/Sao_Paulo)\n" +
+          "Antes de confirmar qualquer agendamento, verifique conflitos nesta lista. Se o horário solicitado colidir com um evento abaixo, avise o usuário e sugira o próximo horário livre.\n" +
+          (upcoming.length
+            ? upcoming.map((e) => `- ${fmt(e.start)} → ${fmt(e.end)} · ${e.title} [${e.calendar}]`).join("\n")
+            : "- (nenhum evento futuro)");
+      } catch { /* ignore */ }
       const res = await chatWithAgent({
         data: {
           provider: (form.category ?? "gemini").toLowerCase(),
           model: form.model ?? "gemini-2.5-flash",
           temperature: form.temperature,
           maxTokens: form.max_tokens ?? 2048,
-          systemPrompt: (form.system_prompt ?? "") + kbText,
+          systemPrompt: (form.system_prompt ?? "") + kbText + agendaText,
           messages: next,
           providerId: form.ai_provider_id,
         },
