@@ -42,6 +42,7 @@ const groups = [
       { title: "Clientes", url: "/clients", icon: Users },
       { title: "Histórico", url: "/history", icon: History },
       { title: "Logs", url: "/logs", icon: ScrollText },
+      { title: "Debug de Fluxo", url: "/flow-debug", icon: Bug },
     ],
   },
   {
