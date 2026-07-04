@@ -787,7 +787,7 @@ function MessagesPage() {
         </aside>
 
         {/* Chat area */}
-        <section className={`${selected ? "flex" : "hidden md:flex"} flex-col min-w-0`} style={{ background: WA.chatBg }}>
+        <section className={`${selected ? "flex" : "hidden md:flex"} flex-col min-w-0 min-h-0 overflow-hidden h-full`} style={{ background: WA.chatBg }}>
           {!selected ? (
             <div className="flex-1 grid place-items-center text-center px-6" style={{ background: "#F0F2F5" }}>
               <div>
