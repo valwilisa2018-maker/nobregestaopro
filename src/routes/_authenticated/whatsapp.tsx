@@ -314,75 +314,123 @@ function Page() {
           </CardContent>
         </Card>
       ) : (
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {items.map((c) => (
-            <Card key={c.id} className={`group transition-colors ${c.status === "online" ? "border-[#25D366]/40 bg-[#25D366]/[0.03]" : "hover:border-primary/40"}`}>
-              <CardHeader>
-                <div className="flex items-start justify-between gap-2">
-                  <div className="flex items-center gap-3">
-                    <div className={`grid h-10 w-10 place-items-center rounded-lg ring-1 ${c.status === "online" ? "bg-[#25D366]/15 text-[#25D366] ring-[#25D366]/40" : "bg-primary/15 text-primary ring-primary/30"}`}>
-                      <MessageCircle className="h-5 w-5" />
+        <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-3">
+          {items.map((c) => {
+            const online = c.status === "online";
+            const phoneFmt = c.phone_number ? (c.phone_number.startsWith("+") ? c.phone_number : `+${c.phone_number}`) : null;
+            return (
+              <div
+                key={c.id}
+                className="group relative overflow-hidden rounded-2xl border border-border/60 bg-card p-6 shadow-2xl transition-all hover:-translate-y-0.5 hover:border-[#25D366]/40 hover:shadow-[0_20px_60px_-20px_rgba(37,211,102,0.35)]"
+              >
+                {/* Ambient glow */}
+                <div className={`pointer-events-none absolute -top-16 -right-16 h-40 w-40 rounded-full blur-3xl transition-opacity ${online ? "bg-[#25D366]/20 opacity-100" : "bg-primary/10 opacity-60"}`} />
+
+                {/* Header */}
+                <div className="relative mb-5 flex items-start justify-between gap-3">
+                  <div className="flex min-w-0 items-center gap-3">
+                    <div className={`grid h-12 w-12 shrink-0 place-items-center rounded-xl border ${online ? "bg-[#25D366]/10 border-[#25D366]/25 text-[#25D366]" : "bg-primary/10 border-primary/20 text-primary"}`}>
+                      <MessageCircle className="h-6 w-6" />
                     </div>
-                    <div>
-                      <CardTitle className="text-base">{c.name}</CardTitle>
-                      <CardDescription className="font-mono text-xs">{c.instance_name}</CardDescription>
+                    <div className="min-w-0">
+                      <h3 className="truncate text-base font-semibold leading-tight text-foreground">{c.name}</h3>
+                      {phoneFmt ? (
+                        <p className="truncate font-mono text-sm text-muted-foreground">{phoneFmt}</p>
+                      ) : (
+                        <p className="truncate text-xs text-muted-foreground">{c.instance_name}</p>
+                      )}
                     </div>
                   </div>
-                  {statusBadge(c.status)}
+                  <span className={`inline-flex shrink-0 items-center gap-1.5 rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider ${online ? "border-[#25D366]/30 bg-[#25D366]/10 text-[#25D366]" : "border-border bg-muted/40 text-muted-foreground"}`}>
+                    <span className={`relative flex h-1.5 w-1.5`}>
+                      {online && <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#25D366] opacity-75" />}
+                      <span className={`relative inline-flex h-1.5 w-1.5 rounded-full ${online ? "bg-[#25D366]" : "bg-muted-foreground"}`} />
+                    </span>
+                    {online ? "Conectado" : c.status === "connecting" ? "Conectando" : "Offline"}
+                  </span>
                 </div>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                {c.phone_number && <div className="text-xs text-muted-foreground">📱 {c.phone_number}</div>}
-                {c.last_sync && <div className="text-xs text-muted-foreground">Última sync: {new Date(c.last_sync).toLocaleString()}</div>}
+
+                {/* Divider with sync info */}
+                <div className="relative mb-5 flex items-center gap-2">
+                  <div className="h-px flex-1 bg-border/70" />
+                  <p className="text-[10px] font-medium uppercase tracking-widest text-muted-foreground">
+                    {c.last_sync ? `Última sync: ${new Date(c.last_sync).toLocaleString("pt-BR")}` : `Instância: ${c.instance_name}`}
+                  </p>
+                  <div className="h-px flex-1 bg-border/70" />
+                </div>
+
+                {/* Retry state */}
                 {c.status === "offline" && (() => {
                   const st = retryRef.current[c.id];
                   if (!st || st.attempts === 0) return null;
                   const maxed = st.attempts >= MAX_ATTEMPTS;
                   const secs = Math.max(0, Math.ceil((st.nextAt - Date.now()) / 1000));
                   return (
-                    <div className={`flex items-center gap-2 text-xs ${maxed ? "text-destructive" : "text-amber-500"}`}>
+                    <div className={`mb-4 flex items-center gap-2 rounded-lg border px-3 py-2 text-xs ${maxed ? "border-destructive/30 bg-destructive/10 text-destructive" : "border-amber-500/30 bg-amber-500/10 text-amber-500"}`}>
                       {st.inFlight ? <Loader2 className="h-3 w-3 animate-spin" /> : <RefreshCw className="h-3 w-3" />}
-                      {maxed
-                        ? `Falhou após ${MAX_ATTEMPTS} tentativas`
-                        : st.inFlight
-                          ? `Reconectando… (${st.attempts}/${MAX_ATTEMPTS})`
-                          : `Próxima tentativa em ${secs}s (${st.attempts}/${MAX_ATTEMPTS})`}
+                      {maxed ? `Falhou após ${MAX_ATTEMPTS} tentativas` : st.inFlight ? `Reconectando… (${st.attempts}/${MAX_ATTEMPTS})` : `Próxima tentativa em ${secs}s (${st.attempts}/${MAX_ATTEMPTS})`}
                       {maxed && (
-                        <button
-                          className="underline"
-                          onClick={() => { retryRef.current[c.id] = { attempts: 0, nextAt: 0, inFlight: false }; setRetryTick((t) => t + 1); }}
-                        >
-                          Resetar
-                        </button>
+                        <button className="ml-auto underline" onClick={() => { retryRef.current[c.id] = { attempts: 0, nextAt: 0, inFlight: false }; setRetryTick((t) => t + 1); }}>Resetar</button>
                       )}
                     </div>
                   );
                 })()}
-                <div className="flex flex-wrap gap-2">
-                  {c.status !== "online" && (
-                    <Button size="sm" className="bg-[#25D366] hover:bg-[#1ebe5b] text-white" onClick={() => reconnect(c)} disabled={!!busy[c.id]}>
-                      <QrCode className="h-3.5 w-3.5" /> QR
-                    </Button>
+
+                {/* Actions grid */}
+                <div className="relative grid grid-cols-2 gap-2.5">
+                  {!online && (
+                    <button
+                      onClick={() => reconnect(c)}
+                      disabled={!!busy[c.id]}
+                      className="col-span-2 flex items-center justify-center gap-2 rounded-xl bg-[#25D366] px-4 py-2.5 text-sm font-semibold text-white transition-all hover:bg-[#1ebe5b] disabled:opacity-60"
+                    >
+                      <QrCode className="h-4 w-4" /> Conectar via QR
+                    </button>
                   )}
-                  <Button size="sm" variant="outline" onClick={() => reconnect(c)} disabled={!!busy[c.id]}>
-                    <RefreshCw className="h-3.5 w-3.5" /> Reconectar
-                  </Button>
-                  <Button size="sm" variant="outline" onClick={() => disconnect(c)} disabled={!!busy[c.id]}>
-                    <Power className="h-3.5 w-3.5" />
-                  </Button>
-                  {c.status === "online" && (
-                    <Button size="sm" variant="outline" onClick={() => sendTest(c)} disabled={!!busy[c.id]}>
-                      {busy[c.id] === "test-msg" ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Send className="h-3.5 w-3.5" />}
+                  <button
+                    onClick={() => reconnect(c)}
+                    disabled={!!busy[c.id]}
+                    className="flex items-center justify-center gap-2 rounded-xl border border-border/60 bg-muted/40 px-4 py-2.5 text-sm font-medium text-foreground transition-all hover:bg-muted disabled:opacity-60"
+                  >
+                    <RefreshCw className="h-4 w-4" /> Reconectar
+                  </button>
+                  {online ? (
+                    <button
+                      onClick={() => sendTest(c)}
+                      disabled={!!busy[c.id]}
+                      className="flex items-center justify-center gap-2 rounded-xl border border-border/60 bg-muted/40 px-4 py-2.5 text-sm font-medium text-foreground transition-all hover:bg-muted disabled:opacity-60"
+                    >
+                      {busy[c.id] === "test-msg" ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4 text-[#25D366]" />}
                       Enviar teste
-                    </Button>
+                    </button>
+                  ) : (
+                    <button
+                      onClick={() => disconnect(c)}
+                      disabled={!!busy[c.id]}
+                      className="flex items-center justify-center gap-2 rounded-xl border border-border/60 bg-muted/40 px-4 py-2.5 text-sm font-medium text-foreground transition-all hover:bg-muted disabled:opacity-60"
+                    >
+                      <Power className="h-4 w-4" /> Desligar
+                    </button>
                   )}
-                  <Button size="sm" variant="ghost" onClick={() => remove(c)}>
-                    <Trash2 className="h-3.5 w-3.5 text-destructive" />
-                  </Button>
+                  {online && (
+                    <button
+                      onClick={() => disconnect(c)}
+                      disabled={!!busy[c.id]}
+                      className="flex items-center justify-center gap-2 rounded-xl border border-border/60 bg-muted/40 px-4 py-2.5 text-sm font-medium text-foreground transition-all hover:bg-muted disabled:opacity-60"
+                    >
+                      <Power className="h-4 w-4" /> Desligar
+                    </button>
+                  )}
+                  <button
+                    onClick={() => remove(c)}
+                    className="flex items-center justify-center gap-2 rounded-xl border border-destructive/25 bg-destructive/10 px-4 py-2.5 text-sm font-medium text-destructive transition-all hover:bg-destructive/20"
+                  >
+                    <Trash2 className="h-4 w-4" /> Excluir
+                  </button>
                 </div>
-              </CardContent>
-            </Card>
-          ))}
+              </div>
+            );
+          })}
         </div>
       )}
 
