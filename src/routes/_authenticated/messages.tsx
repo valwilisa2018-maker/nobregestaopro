@@ -1086,6 +1086,8 @@ function MessagesPage() {
         toast.error(`${file.name}: ${res.error}`);
         return;
       }
+      const serverMsg = (res as { message?: Msg | null } | null)?.message;
+      if (serverMsg) mergeMessageIntoThread({ ...serverMsg, media_url: serverMsg.media_url || url }, tmpId, contactId);
       setUploadQueue((q) => q.map((x) => (x.id === qid ? { ...x, status: "done" } : x)));
       window.setTimeout(() => setUploadQueue((q) => q.filter((x) => x.id !== qid)), 1500);
     } catch (e) {
@@ -1158,7 +1160,9 @@ function MessagesPage() {
             toast.error(res.error);
             setMsgs((prev) => prev.map((m) => m.id === tmpId ? { ...m, metadata: { ...(m.metadata ?? {}), pending: false, failed: true } } : m));
           } else {
-            await loadMessages();
+            const serverMsg = (res as { message?: Msg | null } | null)?.message;
+            if (serverMsg) mergeMessageIntoThread({ ...serverMsg, media_url: serverMsg.media_url || localUrl }, tmpId, selected.id);
+            window.setTimeout(() => loadMessagesRef.current?.(), 1200);
             URL.revokeObjectURL(localUrl);
           }
         } catch (e) {
