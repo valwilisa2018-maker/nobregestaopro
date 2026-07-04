@@ -375,7 +375,7 @@ export const sendChatMedia = createServerFn({ method: "POST" })
     await context.supabase.from("messages").insert({
       user_id: context.userId, conversation_id: convoId,
       direction: "outbound",
-      type: mediatype === "document" ? "file" : mediatype,
+      type: mediatype,
       content: data.caption ?? data.fileName,
       media_url: `data:${data.mime};base64,${b64}`,
       metadata: { remoteJid, manual: true, fileName: data.fileName } as never,
