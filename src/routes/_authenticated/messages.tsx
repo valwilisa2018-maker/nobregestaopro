@@ -215,7 +215,6 @@ function MessagesPage() {
       .then((r) => setAvatars((prev) => ({ ...prev, [selected.id]: r.url })))
       .catch(() => setAvatars((prev) => ({ ...prev, [selected.id]: null })));
   }, [selected, fetchAvatar, avatars]);
-  }
 
   async function startRecording() {
     if (!selected) return;
