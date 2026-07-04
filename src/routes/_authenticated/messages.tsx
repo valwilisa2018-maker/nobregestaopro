@@ -268,6 +268,33 @@ function MessagesPage() {
   // Auto-retry registry for failed text/sticker sends
   const retryRegistry = useRef<Map<string, { contactId: string; body: string }>>(new Map());
   const pendingReceiptRef = useRef<Map<string, Record<string, unknown>>>(new Map());
+  const loadMessagesRef = useRef<(() => void) | null>(null);
+
+  function mergeMessageIntoThread(incoming: Msg, replaceTmpId?: string, contactId?: string) {
+    const targetId = contactId ?? selectedRef.current?.id;
+    setMsgs((prev) => {
+      const evoId = (incoming.metadata as { evoId?: unknown } | null)?.evoId;
+      let idx = prev.findIndex((m) => {
+        if (m.id === incoming.id || (replaceTmpId && m.id === replaceTmpId)) return true;
+        const meta = (m.metadata ?? {}) as { evoId?: unknown };
+        return !!evoId && meta.evoId === evoId;
+      });
+      if (idx === -1 && !incoming.id.startsWith("tmp-")) {
+        const incomingTs = new Date(incoming.created_at).getTime();
+        idx = prev.findIndex((m) => {
+          if (!m.id.startsWith("tmp-")) return false;
+          if (m.direction !== incoming.direction || (m.type || "text") !== (incoming.type || "text")) return false;
+          if ((m.content ?? "") !== (incoming.content ?? "")) return false;
+          const mts = new Date(m.created_at).getTime();
+          return Number.isFinite(incomingTs) && Number.isFinite(mts) && Math.abs(incomingTs - mts) < 180_000;
+        });
+      }
+      const next = idx === -1 ? [...prev, incoming] : prev.map((m, i) => (i === idx ? incoming : m));
+      next.sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+      if (targetId) persistMsgCache(targetId, next);
+      return next;
+    });
+  }
 
   const attemptSendText = useCallback((tmpId: string, contactId: string, body: string, attempt = 0, quotedMessageId?: string) => {
     const MAX = 3;
@@ -275,8 +302,8 @@ function MessagesPage() {
       .then((res) => {
         if (res && "ok" in res && res.ok === false) throw new Error(res.error || "send failed");
         retryRegistry.current.delete(tmpId);
-        // Do not reload here — the Realtime INSERT reconciles the tmp row with the real one.
-        // Reloading caused duplicates/flicker when INSERT arrived before/after the refetch.
+        const serverMsg = (res as { message?: Msg | null } | null)?.message;
+        if (serverMsg) mergeMessageIntoThread(serverMsg, tmpId, contactId);
       })
       .catch((e) => {
         if (attempt < MAX) {
@@ -579,12 +606,14 @@ function MessagesPage() {
         const prev = out[prevIdx];
         const prevTs = new Date(prev.created_at).getTime() || 0;
         if (Math.abs(ts - prevTs) < 120_000) {
-          // Prefer the non-tmp (server) row
-          if (prev.id.startsWith("tmp-") && !m.id.startsWith("tmp-")) {
+          const hasTmp = prev.id.startsWith("tmp-") || m.id.startsWith("tmp-");
+          // Collapse optimistic tmp/real pairs only. Real audios often share
+          // the same "[áudio]" content label and must all stay visible.
+          if (hasTmp && prev.id.startsWith("tmp-") && !m.id.startsWith("tmp-")) {
             out[prevIdx] = m;
             bySig.set(sig, prevIdx);
           }
-          continue;
+          if (hasTmp || (m.type || "text") === "text") continue;
         }
       }
       bySig.set(sig, out.length);
@@ -723,6 +752,8 @@ function MessagesPage() {
     loadMessages();
   }, [loadMessages]);
 
+  useEffect(() => { loadMessagesRef.current = () => { void loadMessages(); }; }, [loadMessages]);
+
   const loadOlderMessages = useCallback(async () => {
     if (!user || !selected || olderLoading || messagesLoading || !hasOlder) return;
     const ids = conversationIdsRef.current;
@@ -839,6 +870,7 @@ function MessagesPage() {
               persistMsgCache(selectedRef.current?.id ?? openContact.id, next);
               return next;
             });
+            window.setTimeout(() => loadMessagesRef.current?.(), 600);
             return;
           }
         }
@@ -906,6 +938,16 @@ function MessagesPage() {
     // change (via loadMessages) tore down the channel and dropped INSERTs that
     // arrived during the gap — causing sent messages/audios to "disappear".
   }, [user]);
+
+  // Safety net: if the browser misses a realtime event while the tab/network hiccups,
+  // reconcile the open thread from the database without clearing the current view.
+  useEffect(() => {
+    if (!user || !selected) return;
+    const interval = window.setInterval(() => {
+      if (document.visibilityState === "visible") loadMessagesRef.current?.();
+    }, 8000);
+    return () => window.clearInterval(interval);
+  }, [user, selected?.id]);
 
   // Scroll to bottom when the thread changes or a new message is appended,
   // not on every metadata patch (status ticks). Prevents jitter/disappearing effect.
@@ -1055,6 +1097,8 @@ function MessagesPage() {
         toast.error(`${file.name}: ${res.error}`);
         return;
       }
+      const serverMsg = (res as { message?: Msg | null } | null)?.message;
+      if (serverMsg) mergeMessageIntoThread({ ...serverMsg, media_url: serverMsg.media_url || url }, tmpId, contactId);
       setUploadQueue((q) => q.map((x) => (x.id === qid ? { ...x, status: "done" } : x)));
       window.setTimeout(() => setUploadQueue((q) => q.filter((x) => x.id !== qid)), 1500);
     } catch (e) {
@@ -1127,7 +1171,9 @@ function MessagesPage() {
             toast.error(res.error);
             setMsgs((prev) => prev.map((m) => m.id === tmpId ? { ...m, metadata: { ...(m.metadata ?? {}), pending: false, failed: true } } : m));
           } else {
-            await loadMessages();
+            const serverMsg = (res as { message?: Msg | null } | null)?.message;
+            if (serverMsg) mergeMessageIntoThread({ ...serverMsg, media_url: serverMsg.media_url || localUrl }, tmpId, selected.id);
+            window.setTimeout(() => loadMessagesRef.current?.(), 1200);
             URL.revokeObjectURL(localUrl);
           }
         } catch (e) {

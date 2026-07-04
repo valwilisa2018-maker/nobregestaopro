@@ -437,6 +437,9 @@ export const Route = createFileRoute("/api/public/evolution/$instance")({
             // even when there is no agent bound to this connection.
             const convo = await getOrCreateConversation(supabaseAdmin, conn, agent?.id ?? null, remoteJid);
             const cmeta: ConvMeta = (convo?.metadata ?? {}) as ConvMeta;
+            const imageMsg = bodyMsg?.imageMessage;
+            const videoMsg = bodyMsg?.videoMessage;
+            const docMsg = bodyMsg?.documentMessage ?? bodyMsg?.documentWithCaptionMessage?.message?.documentMessage;
 
             // Outbound-from-operator (fromMe): mark manual takeover & pause agent
             if (fromMe) {
@@ -450,19 +453,61 @@ export const Route = createFileRoute("/api/public/evolution/$instance")({
                   follow_up_paused: true,
                 } as never).eq("id", convo.id);
               }
-              if (convo && text) {
+              let mediaKind: "image" | "video" | "audio" | "document" | null = null;
+              let mediaCaption: string | null = null;
+              if (imageMsg) { mediaKind = "image"; mediaCaption = imageMsg.caption ?? null; }
+              else if (videoMsg) { mediaKind = "video"; mediaCaption = videoMsg.caption ?? null; }
+              else if (audioMsg) { mediaKind = "audio"; }
+              else if (docMsg) { mediaKind = "document"; mediaCaption = docMsg.caption ?? docMsg.fileName ?? null; }
+              const evoId = msg?.key?.id ?? null;
+              let alreadySaved = false;
+              if (evoId) {
+                const { data: existing } = await supabaseAdmin.from("messages")
+                  .select("id")
+                  .eq("user_id", conn.user_id)
+                  .eq("metadata->>evoId", evoId)
+                  .limit(1);
+                alreadySaved = !!existing?.length;
+              }
+              if (convo && !alreadySaved && mediaKind) {
+                let mediaUrl: string | null = null;
+                let mediaPath: string | null = null;
+                let mediaMime: string | null = null;
+                try {
+                  const b64 = findBase64(msg) ?? await evolutionGetBase64(commandConn, msg);
+                  if (b64) {
+                    mediaMime = imageMsg?.mimetype ?? videoMsg?.mimetype ?? audioMsg?.mimetype ?? docMsg?.mimetype ?? "application/octet-stream";
+                    const saved = await saveMediaToStorage(
+                      supabaseAdmin,
+                      conn.user_id,
+                      convo.id,
+                      b64,
+                      mediaMime ?? "application/octet-stream",
+                      docMsg?.fileName ?? `${mediaKind}-${evoId ?? Date.now()}`,
+                    );
+                    mediaUrl = saved.url;
+                    mediaPath = saved.path;
+                  }
+                } catch { /* keep metadata-only media bubble */ }
+                await supabaseAdmin.from("messages").insert({
+                  user_id: conn.user_id, conversation_id: convo.id,
+                  direction: "outbound", type: mediaKind,
+                  content: mediaCaption ?? (mediaKind === "audio" ? "[áudio]" : mediaKind === "video" ? "[vídeo]" : mediaKind === "image" ? "[imagem]" : "[arquivo]"),
+                  media_url: mediaUrl,
+                  metadata: { remoteJid, instance: conn.instance_name, storagePath: mediaPath, mime: mediaMime, evoId, fromMe: true, manual: true, pending: false, sent: true, status: "sent" } as never,
+                } as never);
+                await supabaseAdmin.from("conversations").update({ last_message_at: new Date().toISOString() } as never).eq("id", convo.id);
+              } else if (convo && !alreadySaved && text) {
                 await supabaseAdmin.from("messages").insert({
                   user_id: conn.user_id, conversation_id: convo.id,
                   direction: "outbound", type: "text", content: text,
-                  metadata: { remoteJid, agent_id: agent?.id ?? null, manual: true, evoId: msg?.key?.id ?? null, fromMe: true },
+                  metadata: { remoteJid, agent_id: agent?.id ?? null, manual: true, evoId, fromMe: true, pending: false, sent: true, status: "sent" },
                 } as never);
+                await supabaseAdmin.from("conversations").update({ last_message_at: new Date().toISOString() } as never).eq("id", convo.id);
               }
               return Response.json({ ok: true, manualOutbound: true });
             }
             // Detect and persist inbound media (image/video/audio/document)
-            const imageMsg = bodyMsg?.imageMessage;
-            const videoMsg = bodyMsg?.videoMessage;
-            const docMsg = bodyMsg?.documentMessage ?? bodyMsg?.documentWithCaptionMessage?.message?.documentMessage;
             let mediaKind: "image" | "video" | "audio" | "document" | null = null;
             let mediaUrl: string | null = null;
             let mediaCaption: string | null = null;
