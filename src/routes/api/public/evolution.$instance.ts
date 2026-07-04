@@ -198,9 +198,9 @@ export const Route = createFileRoute("/api/public/evolution/$instance")({
                 } as never);
               }
             }
-            const convo = agent
-              ? await getOrCreateConversation(supabaseAdmin, conn, agent.id, remoteJid)
-              : null;
+            // Always persist inbound so the operator can chat manually,
+            // even when there is no agent bound to this connection.
+            const convo = await getOrCreateConversation(supabaseAdmin, conn, agent?.id ?? null, remoteJid);
             const cmeta: ConvMeta = (convo?.metadata ?? {}) as ConvMeta;
 
             // Outbound-from-operator (fromMe): mark manual takeover & pause agent
@@ -215,16 +215,47 @@ export const Route = createFileRoute("/api/public/evolution/$instance")({
                   follow_up_paused: true,
                 } as never).eq("id", convo.id);
               }
-              if (agent && convo && text) {
+              if (convo && text) {
                 await supabaseAdmin.from("messages").insert({
                   user_id: conn.user_id, conversation_id: convo.id,
                   direction: "outbound", type: "text", content: text,
-                  metadata: { remoteJid, agent_id: agent.id, manual: true },
+                  metadata: { remoteJid, agent_id: agent?.id ?? null, manual: true },
                 } as never);
               }
               return Response.json({ ok: true, manualOutbound: true });
             }
-            if (!text) return Response.json({ ok: true, skipped: "no-text" });
+            // Detect and persist inbound media (image/video/audio/document)
+            const imageMsg = msg?.message?.imageMessage;
+            const videoMsg = msg?.message?.videoMessage;
+            const docMsg = msg?.message?.documentMessage ?? msg?.message?.documentWithCaptionMessage?.message?.documentMessage;
+            let mediaKind: "image" | "video" | "audio" | "file" | null = null;
+            let mediaUrl: string | null = null;
+            let mediaCaption: string | null = null;
+            if (imageMsg) { mediaKind = "image"; mediaCaption = imageMsg.caption ?? null; }
+            else if (videoMsg) { mediaKind = "video"; mediaCaption = videoMsg.caption ?? null; }
+            else if (audioMsg && !inputWasAudio) { mediaKind = "audio"; }
+            else if (docMsg) { mediaKind = "file"; mediaCaption = docMsg.fileName ?? null; }
+            if (mediaKind && convo) {
+              try {
+                const b64 = await evolutionGetBase64(commandConn, msg);
+                if (b64) {
+                  const mime = imageMsg?.mimetype ?? videoMsg?.mimetype ?? audioMsg?.mimetype ?? docMsg?.mimetype ?? "application/octet-stream";
+                  mediaUrl = `data:${mime};base64,${b64}`;
+                }
+              } catch { /* ignore */ }
+              await supabaseAdmin.from("messages").insert({
+                user_id: conn.user_id, conversation_id: convo.id,
+                direction: "inbound", type: mediaKind,
+                content: mediaCaption ?? (mediaKind === "audio" ? "[áudio]" : mediaKind === "video" ? "[vídeo]" : mediaKind === "image" ? "[imagem]" : "[arquivo]"),
+                media_url: mediaUrl,
+                metadata: { remoteJid, instance: conn.instance_name } as never,
+              } as never);
+              await supabaseAdmin.from("conversations").update({
+                last_message_at: new Date().toISOString(),
+                unread_count: (convo.unread_count ?? 0) + 1,
+              } as never).eq("id", convo.id);
+            }
+            if (!text) return Response.json({ ok: true, skipped: mediaKind ? "media-only" : "no-text" });
 
             // Persist inbound message (only when we have a conversation — conversation_id is NOT NULL)
             if (convo) {
