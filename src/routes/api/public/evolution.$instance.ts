@@ -58,7 +58,8 @@ export const Route = createFileRoute("/api/public/evolution/$instance")({
         // Verify caller: Evolution forwards its instance apikey in the `apikey` header.
         // Evolution v2 may send either the per-instance token (hash.apikey) or the
         // global AUTHENTICATION_API_KEY configured on the server — accept either.
-        const providedKey = request.headers.get("apikey") ?? request.headers.get("x-evolution-apikey") ?? "";
+        const url = new URL(request.url);
+        const providedKey = request.headers.get("apikey") ?? request.headers.get("x-evolution-apikey") ?? url.searchParams.get("apikey") ?? url.searchParams.get("token") ?? "";
         const instanceKey = conn.api_key ?? "";
         let globalKey = "";
         try {
@@ -73,10 +74,13 @@ export const Route = createFileRoute("/api/public/evolution/$instance")({
           for (let i = 0; i < a.length; i++) diff |= a.charCodeAt(i) ^ b.charCodeAt(i);
           return diff === 0;
         };
+        const webhookSecret = process.env.FOLLOWUP_TRIGGER_SECRET ?? "";
         const matchedInstance = !!instanceKey && safeEq(providedKey, instanceKey);
         const matchedGlobal = !!globalKey && safeEq(providedKey, globalKey);
-        const matched: "instance" | "global" | "none" =
-          matchedInstance ? "instance" : matchedGlobal ? "global" : "none";
+        const matchedSecret = !!webhookSecret && safeEq(providedKey, webhookSecret);
+        const event = payload?.event;
+        const matched: "instance" | "global" | "secret" | "none" =
+          matchedInstance ? "instance" : matchedGlobal ? "global" : matchedSecret ? "secret" : "none";
         if (matched === "none") {
           const diag = {
             instance,
@@ -125,7 +129,6 @@ export const Route = createFileRoute("/api/public/evolution/$instance")({
         } as never);
 
         // Handle connection state updates
-        const event = payload?.event;
         if (event === "connection.update" || event === "CONNECTION_UPDATE") {
           const state = payload?.data?.state;
           const status = state === "open" ? "online" : state === "connecting" ? "connecting" : "offline";
@@ -142,11 +145,15 @@ export const Route = createFileRoute("/api/public/evolution/$instance")({
             const msg = Array.isArray(payload?.data) ? payload.data[0] : payload?.data;
             const fromMe = msg?.key?.fromMe;
             const remoteJid = msg?.key?.remoteJid as string | undefined;
+            const bodyMsg = unwrapMessage(msg?.message);
             let text: string | undefined =
-              msg?.message?.conversation ??
-              msg?.message?.extendedTextMessage?.text ??
-              msg?.message?.imageMessage?.caption;
-            const audioMsg = msg?.message?.audioMessage;
+              bodyMsg?.conversation ??
+              bodyMsg?.extendedTextMessage?.text ??
+              bodyMsg?.imageMessage?.caption ??
+              bodyMsg?.videoMessage?.caption ??
+              bodyMsg?.documentMessage?.caption ??
+              bodyMsg?.documentWithCaptionMessage?.message?.documentMessage?.caption;
+            const audioMsg = bodyMsg?.audioMessage;
             let inputWasAudio = false;
             if (!remoteJid) return Response.json({ ok: true, skipped: true });
             // Ignore broadcasts, newsletters and groups (safe default)
@@ -225,9 +232,9 @@ export const Route = createFileRoute("/api/public/evolution/$instance")({
               return Response.json({ ok: true, manualOutbound: true });
             }
             // Detect and persist inbound media (image/video/audio/document)
-            const imageMsg = msg?.message?.imageMessage;
-            const videoMsg = msg?.message?.videoMessage;
-            const docMsg = msg?.message?.documentMessage ?? msg?.message?.documentWithCaptionMessage?.message?.documentMessage;
+            const imageMsg = bodyMsg?.imageMessage;
+            const videoMsg = bodyMsg?.videoMessage;
+            const docMsg = bodyMsg?.documentMessage ?? bodyMsg?.documentWithCaptionMessage?.message?.documentMessage;
             let mediaKind: "image" | "video" | "audio" | "file" | null = null;
             let mediaUrl: string | null = null;
             let mediaCaption: string | null = null;
@@ -237,10 +244,10 @@ export const Route = createFileRoute("/api/public/evolution/$instance")({
             else if (docMsg) { mediaKind = "file"; mediaCaption = docMsg.fileName ?? null; }
             if (mediaKind && convo) {
               try {
-                const b64 = await evolutionGetBase64(commandConn, msg);
+                const b64 = findBase64(msg) ?? await evolutionGetBase64(commandConn, msg);
                 if (b64) {
                   const mime = imageMsg?.mimetype ?? videoMsg?.mimetype ?? audioMsg?.mimetype ?? docMsg?.mimetype ?? "application/octet-stream";
-                  mediaUrl = `data:${mime};base64,${b64}`;
+                  mediaUrl = `data:${mime};base64,${stripDataUri(b64)}`;
                 }
               } catch { /* ignore */ }
               await supabaseAdmin.from("messages").insert({
@@ -611,8 +618,54 @@ async function evolutionGetBase64(conn: { url_api: string | null; api_key: strin
     body: JSON.stringify({ message, convertToMp3: true }),
   });
   if (!r.ok) return null;
-  const j = await r.json().catch(() => null) as { base64?: string } | null;
-  return j?.base64 ?? null;
+  const j = await r.json().catch(() => null) as unknown;
+  return findBase64(j);
+}
+
+function unwrapMessage(message: any): any {
+  let current = message;
+  for (let i = 0; i < 5; i++) {
+    const next =
+      current?.ephemeralMessage?.message ??
+      current?.viewOnceMessage?.message ??
+      current?.viewOnceMessageV2?.message ??
+      current?.documentWithCaptionMessage?.message;
+    if (!next || next === current) break;
+    current = next;
+  }
+  return current;
+}
+
+function stripDataUri(value: string) {
+  return value.replace(/^data:[^;]+;base64,/, "");
+}
+
+function findBase64(value: unknown, depth = 0): string | null {
+  if (!value || depth > 6) return null;
+  if (typeof value === "string") {
+    const clean = stripDataUri(value.trim());
+    if (clean.length > 100 && /^[A-Za-z0-9+/=\r\n]+$/.test(clean)) return clean.replace(/\s/g, "");
+    return null;
+  }
+  if (Array.isArray(value)) {
+    for (const item of value) {
+      const found = findBase64(item, depth + 1);
+      if (found) return found;
+    }
+    return null;
+  }
+  if (typeof value === "object") {
+    const record = value as Record<string, unknown>;
+    for (const key of ["base64", "media", "file", "buffer"]) {
+      const found = findBase64(record[key], depth + 1);
+      if (found) return found;
+    }
+    for (const nested of Object.values(record)) {
+      const found = findBase64(nested, depth + 1);
+      if (found) return found;
+    }
+  }
+  return null;
 }
 
 async function sttViaLovable(audioBase64: string): Promise<string | null> {

@@ -176,9 +176,19 @@ function MessagesPage() {
     const ch = supabase.channel("messages-live")
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "messages", filter: `user_id=eq.${user.id}` }, () => {
         loadMessages();
-      }).subscribe();
+      })
+      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "messages", filter: `user_id=eq.${user.id}` }, () => {
+        loadMessages();
+      })
+      .on("postgres_changes", { event: "*", schema: "public", table: "contacts", filter: `user_id=eq.${user.id}` }, () => {
+        loadContacts();
+      })
+      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "conversations", filter: `user_id=eq.${user.id}` }, () => {
+        loadMessages();
+      })
+      .subscribe();
     return () => { supabase.removeChannel(ch); };
-  }, [user, loadMessages]);
+  }, [user, loadMessages, loadContacts]);
 
   useEffect(() => {
     const el = scrollRef.current;
@@ -192,10 +202,21 @@ function MessagesPage() {
   async function handleSendText() {
     if (!selected || !text.trim() || sending) return;
     const body = text.trim();
+    const optimistic: Msg = {
+      id: `tmp-${Date.now()}`,
+      direction: "outbound",
+      type: "text",
+      content: body,
+      media_url: null,
+      created_at: new Date().toISOString(),
+      metadata: { pending: true },
+    };
     setSending(true);
     setText("");
+    setMsgs((prev) => [...prev, optimistic]);
     try {
-      await sendText({ data: { contactId: selected.id, text: body } });
+      const res = await sendText({ data: { contactId: selected.id, text: body } });
+      if (res && "ok" in res && res.ok === false) toast.error(res.error);
       await loadMessages();
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Falha ao enviar");
@@ -207,9 +228,20 @@ function MessagesPage() {
 
   async function sendSticker(emoji: string) {
     if (!selected || sending) return;
+    const optimistic: Msg = {
+      id: `tmp-${Date.now()}`,
+      direction: "outbound",
+      type: "text",
+      content: emoji,
+      media_url: null,
+      created_at: new Date().toISOString(),
+      metadata: { pending: true },
+    };
     setSending(true);
+    setMsgs((prev) => [...prev, optimistic]);
     try {
-      await sendText({ data: { contactId: selected.id, text: emoji } });
+      const res = await sendText({ data: { contactId: selected.id, text: emoji } });
+      if (res && "ok" in res && res.ok === false) toast.error(res.error);
       await loadMessages();
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Falha ao enviar");
@@ -222,10 +254,22 @@ function MessagesPage() {
     if (!selected || !attachment || sending) return;
     setSending(true);
     const file = attachment.file;
+    const mime = file.type || "application/octet-stream";
+    const optimisticType = mime.startsWith("image/") ? "image" : mime.startsWith("video/") ? "video" : mime.startsWith("audio/") ? "audio" : "document";
+    const optimistic: Msg = {
+      id: `tmp-${Date.now()}`,
+      direction: "outbound",
+      type: optimisticType,
+      content: text.trim() || file.name,
+      media_url: attachment.url,
+      created_at: new Date().toISOString(),
+      metadata: { pending: true, fileName: file.name },
+    };
+    setMsgs((prev) => [...prev, optimistic]);
     try {
       const b64 = await blobToBase64(file);
       const res = await sendMedia({ data: {
-        contactId: selected.id, base64: b64, mime: file.type || "application/octet-stream",
+        contactId: selected.id, base64: b64, mime,
         fileName: file.name, caption: text.trim() || undefined,
       }});
       if (res && "ok" in res && res.ok === false) toast.error(res.error);
@@ -699,7 +743,7 @@ function MessagesPage() {
                       <textarea
                       value={text}
                       onChange={(e) => setText(e.target.value)}
-                      onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSendText(); } }}
+                      onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); if (attachment) handleSendAttachment(); else handleSendText(); } }}
                       placeholder="Digite uma mensagem"
                       rows={1}
                       className="w-full resize-none rounded-full bg-white px-4 py-2.5 text-sm text-gray-800 outline-none focus:ring-2 focus:ring-emerald-500/40 max-h-32 shadow-sm placeholder:text-gray-500"

@@ -181,7 +181,8 @@ export const createAndConnectInstance = createServerFn({ method: "POST" })
     if (!cfg.url_api || !cfg.api_key) throw new Error("URL da API e API Key são obrigatórias em Configurações.");
 
     const webhookBase = cfg.webhook_base_url || data.webhookBaseUrl;
-    const webhookUrl = webhookBase ? `${webhookBase.replace(/\/+$/, "")}/api/public/evolution/${data.instanceName}` : undefined;
+    const webhookSecret = process.env.FOLLOWUP_TRIGGER_SECRET ?? "";
+    const webhookUrl = webhookBase ? `${webhookBase.replace(/\/+$/, "")}/api/public/evolution/${data.instanceName}${webhookSecret ? `?token=${encodeURIComponent(webhookSecret)}` : ""}` : undefined;
 
     // Insert local connection row
     const { data: conn, error: insErr } = await context.supabase.from("connections").insert({
@@ -321,20 +322,25 @@ export const sendChatText = createServerFn({ method: "POST" })
     const apiKey = await loadEvolutionCommandKey(context.supabase, conn.api_key);
     const number = String(contact.phone).replace(/\D+/g, "");
     const remoteJid = `${number}@s.whatsapp.net`;
+    const convoId = await getOrCreateConversationForJid(context.supabase, context.userId, conn.id, remoteJid);
+    const { data: saved } = await context.supabase.from("messages").insert({
+      user_id: context.userId, conversation_id: convoId,
+      direction: "outbound", type: "text", content: data.text,
+      metadata: { remoteJid, manual: true, pending: true } as never,
+    }).select("id,metadata").single();
+    await context.supabase.from("conversations").update({
+      last_message_at: new Date().toISOString(),
+    }).eq("id", convoId);
     const r = await evoFetch(`${baseUrl(conn.url_api)}/message/sendText/${conn.instance_name}`, apiKey, {
       method: "POST",
       body: JSON.stringify({ number, text: data.text }),
     });
-    if (!r.ok) return { ok: false as const, error: parseEvoError(r.json, r.status) };
-    const convoId = await getOrCreateConversationForJid(context.supabase, context.userId, conn.id, remoteJid);
-    await context.supabase.from("messages").insert({
-      user_id: context.userId, conversation_id: convoId,
-      direction: "outbound", type: "text", content: data.text,
-      metadata: { remoteJid, manual: true } as never,
-    });
-    await context.supabase.from("conversations").update({
-      last_message_at: new Date().toISOString(),
-    }).eq("id", convoId);
+    if (!r.ok) {
+      const error = parseEvoError(r.json, r.status);
+      if (saved?.id) await context.supabase.from("messages").update({ metadata: { ...metadataObject(saved.metadata), pending: false, failed: true, error } as never }).eq("id", saved.id);
+      return { ok: false as const, error, conversationId: convoId };
+    }
+    if (saved?.id) await context.supabase.from("messages").update({ metadata: { ...metadataObject(saved.metadata), pending: false, sent: true } as never }).eq("id", saved.id);
     return { ok: true, conversationId: convoId };
   });
 
@@ -363,6 +369,18 @@ export const sendChatMedia = createServerFn({ method: "POST" })
     const mediatype = data.mime.startsWith("image/") ? "image"
       : data.mime.startsWith("video/") ? "video"
       : data.mime.startsWith("audio/") ? "audio" : "document";
+    const convoId = await getOrCreateConversationForJid(context.supabase, context.userId, conn.id, remoteJid);
+    const { data: saved } = await context.supabase.from("messages").insert({
+      user_id: context.userId, conversation_id: convoId,
+      direction: "outbound",
+      type: mediatype,
+      content: data.caption ?? data.fileName,
+      media_url: `data:${data.mime};base64,${b64}`,
+      metadata: { remoteJid, manual: true, fileName: data.fileName, pending: true } as never,
+    }).select("id,metadata").single();
+    await context.supabase.from("conversations").update({
+      last_message_at: new Date().toISOString(),
+    }).eq("id", convoId);
     const r = await evoFetch(`${baseUrl(conn.url_api)}/message/sendMedia/${conn.instance_name}`, apiKey, {
       method: "POST",
       body: JSON.stringify({
@@ -370,19 +388,12 @@ export const sendChatMedia = createServerFn({ method: "POST" })
         fileName: data.fileName, caption: data.caption ?? "",
       }),
     });
-    if (!r.ok) return { ok: false as const, error: parseEvoError(r.json, r.status) };
-    const convoId = await getOrCreateConversationForJid(context.supabase, context.userId, conn.id, remoteJid);
-    await context.supabase.from("messages").insert({
-      user_id: context.userId, conversation_id: convoId,
-      direction: "outbound",
-      type: mediatype,
-      content: data.caption ?? data.fileName,
-      media_url: `data:${data.mime};base64,${b64}`,
-      metadata: { remoteJid, manual: true, fileName: data.fileName } as never,
-    });
-    await context.supabase.from("conversations").update({
-      last_message_at: new Date().toISOString(),
-    }).eq("id", convoId);
+    if (!r.ok) {
+      const error = parseEvoError(r.json, r.status);
+      if (saved?.id) await context.supabase.from("messages").update({ metadata: { ...metadataObject(saved.metadata), pending: false, failed: true, error } as never }).eq("id", saved.id);
+      return { ok: false as const, error, conversationId: convoId };
+    }
+    if (saved?.id) await context.supabase.from("messages").update({ metadata: { ...metadataObject(saved.metadata), pending: false, sent: true } as never }).eq("id", saved.id);
     return { ok: true as const, conversationId: convoId };
   });
 
@@ -422,19 +433,29 @@ export const sendChatAudio = createServerFn({ method: "POST" })
     const number = String(contact.phone).replace(/\D+/g, "");
     const remoteJid = `${number}@s.whatsapp.net`;
     const audio = data.audioBase64.replace(/^data:[^;]+;base64,/, "");
+    const convoId = await getOrCreateConversationForJid(context.supabase, context.userId, conn.id, remoteJid);
+    const { data: saved } = await context.supabase.from("messages").insert({
+      user_id: context.userId, conversation_id: convoId,
+      direction: "outbound", type: "audio", content: "[áudio]",
+      media_url: `data:audio/webm;base64,${audio}`,
+      metadata: { remoteJid, manual: true, audio: true, pending: true } as never,
+    }).select("id,metadata").single();
+    await context.supabase.from("conversations").update({
+      last_message_at: new Date().toISOString(),
+    }).eq("id", convoId);
     const r = await evoFetch(`${baseUrl(conn.url_api)}/message/sendWhatsAppAudio/${conn.instance_name}`, apiKey, {
       method: "POST",
       body: JSON.stringify({ number, audio, encoding: true }),
     });
-    if (!r.ok) return { ok: false as const, error: parseEvoError(r.json, r.status) };
-    const convoId = await getOrCreateConversationForJid(context.supabase, context.userId, conn.id, remoteJid);
-    await context.supabase.from("messages").insert({
-      user_id: context.userId, conversation_id: convoId,
-      direction: "outbound", type: "audio", content: "[áudio]",
-      metadata: { remoteJid, manual: true, audio: true } as never,
-    });
-    await context.supabase.from("conversations").update({
-      last_message_at: new Date().toISOString(),
-    }).eq("id", convoId);
+    if (!r.ok) {
+      const error = parseEvoError(r.json, r.status);
+      if (saved?.id) await context.supabase.from("messages").update({ metadata: { ...metadataObject(saved.metadata), pending: false, failed: true, error } as never }).eq("id", saved.id);
+      return { ok: false as const, error, conversationId: convoId };
+    }
+    if (saved?.id) await context.supabase.from("messages").update({ metadata: { ...metadataObject(saved.metadata), pending: false, sent: true } as never }).eq("id", saved.id);
     return { ok: true, conversationId: convoId };
   });
+
+function metadataObject(value: unknown): Record<string, unknown> {
+  return value && typeof value === "object" && !Array.isArray(value) ? value as Record<string, unknown> : {};
+}
