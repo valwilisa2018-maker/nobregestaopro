@@ -943,10 +943,31 @@ function MessagesPage() {
 
               <div className="px-3 py-2 flex items-end gap-2" style={{ background: "#F0F2F5" }}>
                 {recording ? (
-                  <div className="flex-1 flex items-center gap-3 px-4 py-2.5 rounded-full bg-white text-red-600 text-sm shadow-sm">
-                    <span className="h-2.5 w-2.5 rounded-full bg-red-500 animate-pulse" />
-                    Gravando… {Math.floor(recTime / 60)}:{String(recTime % 60).padStart(2, "0")}
-                  </div>
+                  <>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button size="icon" onClick={cancelRecording} variant="ghost" className="rounded-full h-11 w-11 text-red-600 hover:bg-red-50" aria-label="Cancelar gravação">
+                          <X className="h-5 w-5" />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent side="top">Cancelar</TooltipContent>
+                    </Tooltip>
+                    <div className="flex-1 flex items-center gap-3 px-4 py-2 rounded-full bg-white shadow-sm">
+                      <Mic className="h-4 w-4 text-red-500 animate-pulse shrink-0" />
+                      <div className="flex-1 flex items-center gap-[2px] h-6">
+                        {recLevels.map((lv, i) => (
+                          <div
+                            key={i}
+                            className="flex-1 rounded-sm transition-[height] duration-75"
+                            style={{ height: `${Math.round(lv * 100)}%`, background: WA.accent, minHeight: 3 }}
+                          />
+                        ))}
+                      </div>
+                      <span className="text-xs font-mono text-gray-600 tabular-nums shrink-0">
+                        {Math.floor(recTime / 60)}:{String(recTime % 60).padStart(2, "0")}
+                      </span>
+                    </div>
+                  </>
                 ) : (
                   <>
                     <Popover>
