@@ -29,7 +29,7 @@ function AuthedLayout() {
           <header className="h-12 flex items-center border-b px-2 gap-2">
             <SidebarTrigger />
           </header>
-          <main className="flex-1 p-6 bg-muted/20">
+          <main className="flex-1 p-3 sm:p-6 bg-muted/20 min-w-0">
             <Outlet />
           </main>
         </div>
