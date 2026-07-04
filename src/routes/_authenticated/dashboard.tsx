@@ -24,6 +24,7 @@ const startOfMonth = () => { const d = new Date(); return new Date(d.getFullYear
 
 type ConvRow = { id: string; status: string; last_message_at: string | null; unread_count: number; created_at: string };
 type LogRow = { id: string; level: string; source: string | null; message: string; created_at: string };
+type BillingRow = { kind: string; quantity: number | string | null; amount: number | string | null };
 
 function Dashboard() {
   const { user } = useAuth();
@@ -37,7 +38,7 @@ function Dashboard() {
       const month = startOfMonth();
       const [
         agentsActive, agentsTotal, convsToday, msgsToday, contactsTotal,
-        billing, usage, recentConvs, recentLogs, avgTime,
+        billing, usage, recentConvs, recentLogs,
       ] = await Promise.all([
         supabase.from("agents").select("id", { count: "exact", head: true }).eq("user_id", uid!).eq("is_active", true),
         supabase.from("agents").select("id", { count: "exact", head: true }).eq("user_id", uid!),
@@ -48,13 +49,13 @@ function Dashboard() {
         supabase.from("usage_counters").select("day_count, month_count").eq("user_id", uid!).maybeSingle(),
         supabase.from("conversations").select("id, status, last_message_at, unread_count, created_at").eq("user_id", uid!).order("last_message_at", { ascending: false, nullsFirst: false }).limit(6),
         supabase.from("logs").select("id, level, source, message, created_at").eq("user_id", uid!).order("created_at", { ascending: false }).limit(6),
-        supabase.rpc("noop_avg_response", {}).then(() => null).catch(() => null),
       ]);
 
-      const tokens = (billing.data ?? [])
+      const billingRows = (billing.data ?? []) as BillingRow[];
+      const tokens = billingRows
         .filter((r) => /token/i.test(r.kind))
         .reduce((s, r) => s + Number(r.quantity || 0), 0);
-      const cost = (billing.data ?? []).reduce((s, r) => s + Number(r.amount || 0), 0);
+      const cost = billingRows.reduce((s, r) => s + Number(r.amount || 0), 0);
 
       return {
         tokens,
@@ -68,7 +69,6 @@ function Dashboard() {
         contactsTotal: contactsTotal.count ?? 0,
         recentConvs: (recentConvs.data ?? []) as ConvRow[],
         recentLogs: (recentLogs.data ?? []) as LogRow[],
-        avgTime: avgTime as string | null,
       };
     },
   });
