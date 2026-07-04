@@ -743,7 +743,7 @@ function MessagesPage() {
                       <textarea
                       value={text}
                       onChange={(e) => setText(e.target.value)}
-                      onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSendText(); } }}
+                      onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); if (attachment) handleSendAttachment(); else handleSendText(); } }}
                       placeholder="Digite uma mensagem"
                       rows={1}
                       className="w-full resize-none rounded-full bg-white px-4 py-2.5 text-sm text-gray-800 outline-none focus:ring-2 focus:ring-emerald-500/40 max-h-32 shadow-sm placeholder:text-gray-500"
