@@ -1011,20 +1011,47 @@ function MessagesPage() {
                         })()}
                         {isAudio ? (
                           m.media_url
-                            ? <AudioPlayer src={m.media_url} />
+                            ? (
+                              <div className="relative pr-8">
+                                <AudioPlayer src={m.media_url} />
+                                <button
+                                  type="button"
+                                  onClick={(e) => { e.stopPropagation(); downloadFile(m.media_url!, `audio-${m.id}.ogg`); }}
+                                  title="Baixar áudio"
+                                  className="absolute top-1/2 -translate-y-1/2 right-1 grid place-items-center h-6 w-6 rounded-full bg-black/10 hover:bg-black/20 text-gray-700"
+                                >
+                                  <Download className="h-3.5 w-3.5" />
+                                </button>
+                              </div>
+                            )
                             : <div className="flex items-center gap-2 text-gray-600"><Mic className="h-4 w-4" /><span>Mensagem de voz</span></div>
                         ) : isImage ? (
-                          <button onClick={() => setLightbox({ type: "image", src: m.media_url! })} className="block focus:outline-none">
-                            <img src={m.media_url!} alt={m.content ?? ""} className="rounded-md max-h-64 object-cover cursor-zoom-in" />
-                          </button>
+                          <div className="relative">
+                            <button onClick={() => setLightbox({ type: "image", src: m.media_url! })} className="block focus:outline-none">
+                              <img src={m.media_url!} alt={m.content ?? ""} className="rounded-md max-h-64 object-cover cursor-zoom-in" />
+                            </button>
+                            <DownloadBtn url={m.media_url!} filename={`image-${m.id}.jpg`} />
+                          </div>
                         ) : isVideo ? (
-                          <button onClick={() => setLightbox({ type: "video", src: m.media_url! })} className="block focus:outline-none">
-                            <video src={m.media_url!} className="rounded-md max-h-64 bg-black cursor-zoom-in pointer-events-none" />
-                          </button>
+                          <div className="relative">
+                            <button onClick={() => setLightbox({ type: "video", src: m.media_url! })} className="block focus:outline-none">
+                              <video src={m.media_url!} className="rounded-md max-h-64 bg-black cursor-zoom-in pointer-events-none" />
+                            </button>
+                            <DownloadBtn url={m.media_url!} filename={`video-${m.id}.mp4`} dark />
+                          </div>
                         ) : isFile ? (
-                          <a href={m.media_url!} target="_blank" rel="noreferrer" className="flex items-center gap-2 text-gray-800">
-                            <FileText className="h-5 w-5" /><span className="underline truncate max-w-[220px]">{m.content}</span>
-                          </a>
+                          <div className="flex items-center gap-2 text-gray-800">
+                            <FileText className="h-5 w-5 shrink-0" />
+                            <a href={m.media_url!} target="_blank" rel="noreferrer" className="underline truncate max-w-[200px]">{m.content}</a>
+                            <button
+                              type="button"
+                              onClick={(e) => { e.stopPropagation(); downloadFile(m.media_url!, m.content || `file-${m.id}`); }}
+                              title="Baixar arquivo"
+                              className="ml-auto grid place-items-center h-6 w-6 rounded-full bg-black/10 hover:bg-black/20 text-gray-700"
+                            >
+                              <Download className="h-3.5 w-3.5" />
+                            </button>
+                          </div>
                         ) : (
                           <div className="whitespace-pre-wrap break-words pr-14">{m.content}</div>
                         )}
