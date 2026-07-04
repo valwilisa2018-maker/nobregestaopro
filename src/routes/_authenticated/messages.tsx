@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Mic, Search, Send, Square, MessageCircle, Check, CheckCheck, Loader2, ArrowLeft, Smile, Play, Pause, Paperclip, ChevronLeft, ChevronRight, X, FileText, Image as ImageIcon, Video, Music, File as FileIcon, MoreVertical, Star, Archive, ArchiveRestore, Pin, PinOff, Tag, Info, Save } from "lucide-react";
+import { Mic, Search, Send, Square, MessageCircle, Check, CheckCheck, Loader2, ArrowLeft, Smile, Play, Pause, Paperclip, ChevronLeft, ChevronRight, X, FileText, Image as ImageIcon, Video, Music, File as FileIcon, MoreVertical, Star, Archive, ArchiveRestore, Pin, PinOff, Tag, Info, Save, Bell, BellOff } from "lucide-react";
 import { PageShell } from "@/components/page-shell";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
@@ -116,6 +116,38 @@ function MessagesPage() {
   const [editName, setEditName] = useState("");
   const [editPhone, setEditPhone] = useState("");
   const [savingContact, setSavingContact] = useState(false);
+  const [soundOn, setSoundOn] = useState<boolean>(() => {
+    if (typeof window === "undefined") return true;
+    return localStorage.getItem("wa-sound") !== "0";
+  });
+  const soundOnRef = useRef(soundOn);
+  useEffect(() => { soundOnRef.current = soundOn; }, [soundOn]);
+  useEffect(() => {
+    try { localStorage.setItem("wa-sound", soundOn ? "1" : "0"); } catch { /* ignore */ }
+  }, [soundOn]);
+
+  function playBell() {
+    if (!soundOnRef.current || typeof window === "undefined") return;
+    try {
+      const AC = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
+      const ctx = new AC();
+      const now = ctx.currentTime;
+      const tones = [880, 1320];
+      tones.forEach((freq, i) => {
+        const o = ctx.createOscillator();
+        const g = ctx.createGain();
+        o.type = "sine";
+        o.frequency.value = freq;
+        g.gain.setValueAtTime(0.0001, now + i * 0.15);
+        g.gain.exponentialRampToValueAtTime(0.25, now + i * 0.15 + 0.02);
+        g.gain.exponentialRampToValueAtTime(0.0001, now + i * 0.15 + 0.35);
+        o.connect(g).connect(ctx.destination);
+        o.start(now + i * 0.15);
+        o.stop(now + i * 0.15 + 0.4);
+      });
+      setTimeout(() => ctx.close().catch(() => {}), 900);
+    } catch { /* ignore */ }
+  }
 
   useEffect(() => {
     if (!selected) return;
@@ -218,8 +250,10 @@ function MessagesPage() {
   useEffect(() => {
     if (!user) return;
     const ch = supabase.channel("messages-live")
-      .on("postgres_changes", { event: "INSERT", schema: "public", table: "messages", filter: `user_id=eq.${user.id}` }, () => {
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "messages", filter: `user_id=eq.${user.id}` }, (payload) => {
         loadMessages();
+        const row = payload.new as { direction?: string } | null;
+        if (row?.direction === "inbound") playBell();
       })
       .on("postgres_changes", { event: "UPDATE", schema: "public", table: "messages", filter: `user_id=eq.${user.id}` }, () => {
         loadMessages();
@@ -296,6 +330,11 @@ function MessagesPage() {
 
   async function handleSendAttachment() {
     if (!selected || !attachment || sending) return;
+    const MAX = 15 * 1024 * 1024; // 15 MB
+    if (attachment.file.size > MAX) {
+      toast.error(`Arquivo muito grande (máx. 15 MB). Este tem ${(attachment.file.size / 1024 / 1024).toFixed(1)} MB.`);
+      return;
+    }
     setSending(true);
     const file = attachment.file;
     const mime = file.type || "application/octet-stream";
@@ -620,6 +659,18 @@ function MessagesPage() {
                     </button>
                   </TooltipTrigger>
                   <TooltipContent side="bottom">Dados do contato</TooltipContent>
+                </Tooltip>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <button
+                      onClick={() => { setSoundOn((v) => !v); if (!soundOn) playBell(); }}
+                      className="p-2 rounded-full hover:bg-white/15 transition"
+                      aria-label={soundOn ? "Desligar som" : "Ligar som"}
+                    >
+                      {soundOn ? <Bell className="h-5 w-5" /> : <BellOff className="h-5 w-5" />}
+                    </button>
+                  </TooltipTrigger>
+                  <TooltipContent side="bottom">{soundOn ? "Desligar som de notificação" : "Ligar som de notificação"}</TooltipContent>
                 </Tooltip>
               </header>
 
