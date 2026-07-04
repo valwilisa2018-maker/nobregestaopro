@@ -114,7 +114,7 @@ async function runFollowups(request: Request | undefined) {
             continue;
           }
 
-          const send = await fetch(`${(conn.url_api ?? "").replace(/\/+$/, "")}/message/sendText/${conn.instance_name}`, {
+          const send = await fetch(`${/^https?:\/\//i.test((conn.url_api??"").trim())?(conn.url_api??"").trim().replace(/\/+$/,""):"https://"+(conn.url_api??"").trim().replace(/\/+$/,"")}/message/sendText/${conn.instance_name}`, {
             method: "POST",
             headers: { "Content-Type": "application/json", apikey: commandKey },
             body: JSON.stringify({ number: remoteJid, text }),
