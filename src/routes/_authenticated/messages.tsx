@@ -2428,9 +2428,28 @@ function fmtTime(s: number) {
   return `${m}:${String(r).padStart(2, "0")}`;
 }
 
-function AudioPlayer({ src }: { src: string }) {
+function MediaMissing({ kind, onRetry }: { kind: "audio" | "sticker"; onRetry: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={(e) => { e.stopPropagation(); onRetry(); }}
+      className="flex items-center gap-2 rounded-lg bg-black/5 px-2.5 py-2 text-gray-600 hover:bg-black/10 transition"
+      title="Tentar carregar mídia"
+    >
+      {kind === "audio" ? <Mic className="h-4 w-4" /> : <ImageIcon className="h-4 w-4" />}
+      <span>{kind === "audio" ? "Mensagem de voz" : "Figurinha"}</span>
+      <RefreshCw className="h-3.5 w-3.5" />
+    </button>
+  );
+}
+
+let activeAudioElement: HTMLAudioElement | null = null;
+
+function AudioPlayer({ src, id }: { src: string; id: string }) {
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const [playing, setPlaying] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [failed, setFailed] = useState(false);
   const [cur, setCur] = useState(0);
   const [dur, setDur] = useState(0);
 
@@ -2439,38 +2458,63 @@ function AudioPlayer({ src }: { src: string }) {
     if (!a) return;
     const onTime = () => setCur(a.currentTime);
     const onMeta = () => setDur(a.duration || 0);
-    const onEnd = () => setPlaying(false);
+    const onEnd = () => { setPlaying(false); if (activeAudioElement === a) activeAudioElement = null; };
+    const onPause = () => setPlaying(false);
+    const onCanPlay = () => { setLoading(false); setFailed(false); setDur(a.duration || 0); };
+    const onError = () => { setLoading(false); setFailed(true); setPlaying(false); };
     a.addEventListener("timeupdate", onTime);
     a.addEventListener("loadedmetadata", onMeta);
     a.addEventListener("ended", onEnd);
+    a.addEventListener("pause", onPause);
+    a.addEventListener("canplay", onCanPlay);
+    a.addEventListener("error", onError);
     return () => {
+      if (activeAudioElement === a) activeAudioElement = null;
+      a.pause();
       a.removeEventListener("timeupdate", onTime);
       a.removeEventListener("loadedmetadata", onMeta);
       a.removeEventListener("ended", onEnd);
+      a.removeEventListener("pause", onPause);
+      a.removeEventListener("canplay", onCanPlay);
+      a.removeEventListener("error", onError);
     };
-  }, []);
+  }, [src]);
+
+  useEffect(() => {
+    setPlaying(false);
+    setLoading(false);
+    setFailed(false);
+    setCur(0);
+    setDur(0);
+  }, [src]);
 
   function toggle() {
     const a = audioRef.current;
     if (!a) return;
-    if (playing) { a.pause(); setPlaying(false); }
-    else { a.play(); setPlaying(true); }
+    if (playing) { a.pause(); setPlaying(false); return; }
+    if (activeAudioElement && activeAudioElement !== a) activeAudioElement.pause();
+    activeAudioElement = a;
+    setLoading(true);
+    setFailed(false);
+    a.play()
+      .then(() => { setPlaying(true); setLoading(false); })
+      .catch(() => { setPlaying(false); setLoading(false); setFailed(true); });
   }
 
   const pct = dur > 0 ? (cur / dur) * 100 : 0;
 
   return (
     <div className="flex items-center gap-2 min-w-[220px] py-1">
-      <button onClick={toggle} className="h-9 w-9 grid place-items-center rounded-full text-white shrink-0" style={{ background: WA.headerTeal }}>
-        {playing ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4 ml-0.5" />}
+      <button onClick={toggle} className="h-9 w-9 grid place-items-center rounded-full text-white shrink-0" style={{ background: failed ? "#ef4444" : WA.headerTeal }} aria-label={playing ? "Pausar áudio" : "Tocar áudio"}>
+        {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : playing ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4 ml-0.5" />}
       </button>
       <div className="flex-1">
         <div className="h-1 bg-gray-300 rounded-full overflow-hidden">
           <div className="h-full transition-all" style={{ width: `${pct}%`, background: WA.headerTeal }} />
         </div>
-        <div className="text-[10px] text-gray-500 mt-1">{fmtTime(playing || cur > 0 ? cur : dur)}</div>
+        <div className="text-[10px] text-gray-500 mt-1">{failed ? "toque para tentar novamente" : fmtTime(playing || cur > 0 ? cur : dur)}</div>
       </div>
-      <audio ref={audioRef} src={src} preload="metadata" className="hidden" />
+      <audio ref={audioRef} src={src} preload="metadata" className="hidden" data-audio-id={id} />
     </div>
   );
 }
