@@ -161,6 +161,8 @@ function MessagesPage() {
   const [editName, setEditName] = useState("");
   const [convoId, setConvoId] = useState<string | null>(null);
   const [agentPaused, setAgentPaused] = useState<boolean>(false);
+  const selectedRef = useRef<Contact | null>(null);
+  useEffect(() => { selectedRef.current = selected; }, [selected]);
   const [editPhone, setEditPhone] = useState("");
   const [savingContact, setSavingContact] = useState(false);
   const [soundOn, setSoundOn] = useState<boolean>(() => {
