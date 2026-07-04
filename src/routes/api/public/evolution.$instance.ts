@@ -696,7 +696,16 @@ export const Route = createFileRoute("/api/public/evolution/$instance")({
                 temperature: Number(agent.temperature ?? 0.7),
                 max_tokens: agent.max_tokens ?? 2048,
                 messages: [
-                  ...(agent.system_prompt ? [{ role: "system", content: agent.system_prompt }] : []),
+                  ...(() => {
+                    const kbEnabled = ((agent.memory as { knowledgeEnabled?: boolean } | null)?.knowledgeEnabled ?? true);
+                    const items = (agent.knowledge as Array<{ title?: string; content?: string; enabled?: boolean }> | null) ?? [];
+                    const kb = kbEnabled ? items.filter((k) => (k.enabled ?? true) && (k.content ?? "").trim()) : [];
+                    const kbText = kb.length
+                      ? "\n\n## Base de Conhecimento\n" + kb.map((k) => `### ${k.title ?? "Item"}\n${k.content}`).join("\n\n")
+                      : "";
+                    const sys = (agent.system_prompt ?? "") + kbText;
+                    return sys.trim() ? [{ role: "system", content: sys }] : [];
+                  })(),
                   ...history,
                   { role: "user", content: mergedInbound },
                 ],
