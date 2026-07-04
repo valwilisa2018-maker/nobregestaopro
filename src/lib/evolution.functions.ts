@@ -617,6 +617,53 @@ const ForwardChatMessageInput = z.object({
   targetContactId: z.string().uuid(),
 });
 
+// ===================== Edit message =====================
+const EditChatMessageInput = z.object({
+  messageId: z.string().uuid(),
+  text: z.string().min(1).max(4096),
+});
+
+export const editChatMessage = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((i: unknown) => EditChatMessageInput.parse(i))
+  .handler(async ({ data, context }) => {
+    const { data: m } = await context.supabase.from("messages")
+      .select("id,direction,type,metadata,content")
+      .eq("id", data.messageId).eq("user_id", context.userId).maybeSingle();
+    if (!m) throw new Error("Mensagem não encontrada");
+    if (m.direction !== "outbound") throw new Error("Só é possível editar mensagens enviadas por você");
+    if (m.type !== "text") throw new Error("Só é possível editar mensagens de texto");
+    const meta = metadataObject(m.metadata);
+    const evoId = meta.evoId as string | undefined;
+    const remoteJid = meta.remoteJid as string | undefined;
+    if (evoId && remoteJid) {
+      try {
+        const conn = await pickActiveConnection(context.supabase, context.userId);
+        const apiKey = await loadEvolutionCommandKey(context.supabase, conn.api_key);
+        const number = String(remoteJid).replace(/@.*/, "");
+        const r = await evoFetch(`${baseUrl(conn.url_api)}/chat/updateMessage/${conn.instance_name}`, apiKey, {
+          method: "POST",
+          body: JSON.stringify({
+            number,
+            key: { id: evoId, remoteJid, fromMe: true },
+            text: data.text,
+          }),
+        });
+        if (!r.ok) {
+          const error = parseEvoError(r.json, r.status);
+          return { ok: false as const, error };
+        }
+      } catch (e) {
+        return { ok: false as const, error: e instanceof Error ? e.message : "Falha ao editar no WhatsApp" };
+      }
+    }
+    await context.supabase.from("messages").update({
+      content: data.text,
+      metadata: { ...meta, edited: true, editedAt: new Date().toISOString() } as never,
+    }).eq("id", data.messageId);
+    return { ok: true as const };
+  });
+
 export const forwardChatMessage = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((i: unknown) => ForwardChatMessageInput.parse(i))
