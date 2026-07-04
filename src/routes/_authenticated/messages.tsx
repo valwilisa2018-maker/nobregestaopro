@@ -1932,56 +1932,8 @@ function MessagesPage() {
                 )}
               </div>
 
-              {uploadQueue.length > 0 && (
-                <div className="px-3 pt-2 pb-1 space-y-1.5" style={{ background: "#F0F2F5" }}>
-                  {uploadQueue.map((u) => (
-                    <div key={u.id} className="flex items-center gap-2 bg-white rounded-lg px-2 py-1.5 shadow-sm text-sm transition-opacity duration-300">
-                      {u.kind === "image" ? (
-                        <img src={u.url} alt="" className="h-10 w-10 rounded object-cover" />
-                      ) : u.kind === "video" ? (
-                        <video src={u.url} className="h-10 w-10 rounded object-cover bg-black" muted />
-                      ) : u.kind === "audio" ? (
-                        <div className="h-10 w-10 rounded grid place-items-center bg-orange-100 text-orange-600"><Music className="h-5 w-5" /></div>
-                      ) : u.kind === "pdf" ? (
-                        <div className="h-10 w-10 rounded grid place-items-center bg-red-100 text-red-600"><FileText className="h-5 w-5" /></div>
-                      ) : (
-                        <div className="h-10 w-10 rounded grid place-items-center bg-sky-100 text-sky-600"><FileIcon className="h-5 w-5" /></div>
-                      )}
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-center gap-2">
-                          <div className="truncate text-gray-800 flex-1">{u.name}</div>
-                          <div className="text-[11px] text-gray-500 shrink-0 tabular-nums">{formatBytes(u.size)}</div>
-                        </div>
-                        <div className="mt-1 h-1 w-full rounded-full bg-gray-200 overflow-hidden">
-                          {u.status === "uploading" ? (
-                            <div className="h-full w-1/3 bg-blue-500 animate-[upload-slide_1.2s_ease-in-out_infinite]" style={{ animation: "upload-slide 1.2s ease-in-out infinite" }} />
-                          ) : u.status === "done" ? (
-                            <div className="h-full w-full bg-emerald-500 transition-all" />
-                          ) : (
-                            <div className="h-full w-full bg-red-500" />
-                          )}
-                        </div>
-                        {u.status === "failed" && u.error && (
-                          <div className="mt-0.5 text-[11px] text-red-600 truncate">{u.error}</div>
-                        )}
-                      </div>
-                      {u.status === "uploading" ? (
-                        <Loader2 className="h-4 w-4 text-blue-500 animate-spin shrink-0" />
-                      ) : u.status === "done" ? (
-                        <Check className="h-4 w-4 text-emerald-600 shrink-0" />
-                      ) : (
-                        <button
-                          onClick={() => setUploadQueue((q) => q.filter((x) => x.id !== u.id))}
-                          className="p-1 rounded-full hover:bg-gray-100 text-gray-500"
-                          aria-label="Remover"
-                        >
-                          <X className="h-4 w-4" />
-                        </button>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              )}
+              {/* Upload progress is shown inline on the message bubble (WhatsApp-style),
+                  so we intentionally do not render a separate upload queue bar here. */}
               <div className="px-3 py-2 flex items-end gap-2" style={{ background: "#F0F2F5" }}>
                 {recording ? (
                   <>
