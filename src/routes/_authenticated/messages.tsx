@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Mic, Search, Send, Square, MessageCircle, Check, CheckCheck, Loader2, ArrowLeft, Smile, Play, Pause, Paperclip, ChevronLeft, ChevronRight, X, FileText, Image as ImageIcon, Video, Music, File as FileIcon, MoreVertical, Star, Archive, ArchiveRestore, Pin, PinOff, Tag, Info, Save, Bell, BellOff, Trash2, Forward, ChevronDown } from "lucide-react";
+import { Mic, Search, Send, Square, MessageCircle, Check, CheckCheck, Loader2, ArrowLeft, Smile, Play, Pause, Paperclip, ChevronLeft, ChevronRight, X, FileText, Image as ImageIcon, Video, Music, File as FileIcon, MoreVertical, Star, Archive, ArchiveRestore, Pin, PinOff, Tag, Info, Save, Bell, BellOff, Trash2, Forward, ChevronDown, Reply, CornerUpLeft } from "lucide-react";
 import { PageShell } from "@/components/page-shell";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
@@ -11,7 +11,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useServerFn } from "@tanstack/react-start";
-import { sendChatText, sendChatAudio, sendChatMedia, getProfilePicture, sendPresence, ensurePresenceWebhook } from "@/lib/evolution.functions";
+import { sendChatText, sendChatAudio, sendChatMedia, getProfilePicture, sendPresence, ensurePresenceWebhook, deleteChatMessage, forwardChatMessage } from "@/lib/evolution.functions";
 import { toast } from "sonner";
 import notificationSound from "@/assets/notification.mp3.asset.json";
 
@@ -116,6 +116,12 @@ function MessagesPage() {
   const fetchAvatar = useServerFn(getProfilePicture);
   const pushPresence = useServerFn(sendPresence);
   const ensureWebhook = useServerFn(ensurePresenceWebhook);
+  const deleteMsgFn = useServerFn(deleteChatMessage);
+  const forwardMsgFn = useServerFn(forwardChatMessage);
+  const [replyTo, setReplyTo] = useState<Msg | null>(null);
+  const [deleteConfirm, setDeleteConfirm] = useState<Msg | null>(null);
+  const replyToRef = useRef<Msg | null>(null);
+  useEffect(() => { replyToRef.current = replyTo; }, [replyTo]);
   const [avatars, setAvatars] = useState<Record<string, string | null>>({});
   const [remotePresence, setRemotePresence] = useState<string | null>(null);
   const presenceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -134,9 +140,9 @@ function MessagesPage() {
   // Auto-retry registry for failed text/sticker sends
   const retryRegistry = useRef<Map<string, { contactId: string; body: string }>>(new Map());
 
-  const attemptSendText = useCallback((tmpId: string, contactId: string, body: string, attempt = 0) => {
+  const attemptSendText = useCallback((tmpId: string, contactId: string, body: string, attempt = 0, quotedMessageId?: string) => {
     const MAX = 3;
-    sendText({ data: { contactId, text: body } })
+    sendText({ data: { contactId, text: body, quotedMessageId } })
       .then((res) => {
         if (res && "ok" in res && res.ok === false) throw new Error(res.error || "send failed");
         retryRegistry.current.delete(tmpId);
@@ -145,7 +151,7 @@ function MessagesPage() {
       .catch((e) => {
         if (attempt < MAX) {
           const delay = 1000 * Math.pow(2, attempt); // 1s, 2s, 4s
-          setTimeout(() => attemptSendText(tmpId, contactId, body, attempt + 1), delay);
+          setTimeout(() => attemptSendText(tmpId, contactId, body, attempt + 1, quotedMessageId), delay);
         } else {
           retryRegistry.current.set(tmpId, { contactId, body });
           setMsgs((prev) => prev.map((m) => m.id === tmpId ? { ...m, metadata: { ...(m.metadata ?? {}), pending: false, failed: true } } : m));
@@ -175,30 +181,36 @@ function MessagesPage() {
     });
   }, []);
 
-  const deleteMessage = useCallback(async (m: Msg) => {
-    if (!confirm("Excluir esta mensagem?")) return;
+  const performDelete = useCallback(async (m: Msg, forEveryone: boolean) => {
+    setDeleteConfirm(null);
     setMsgs((prev) => prev.filter((x) => x.id !== m.id));
     if (m.id.startsWith("tmp-")) return;
-    const { error } = await supabase.from("messages").delete().eq("id", m.id);
-    if (error) { toast.error("Falha ao excluir"); loadMessages(); }
-  }, []);
+    try {
+      await deleteMsgFn({ data: { messageId: m.id, forEveryone } });
+      toast.success(forEveryone ? "Excluída para todos" : "Excluída para mim");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Falha ao excluir");
+      loadMessages();
+    }
+  }, [deleteMsgFn]);
 
   // Forward dialog
   const [forwardMsg, setForwardMsg] = useState<Msg | null>(null);
   const [forwardSearch, setForwardSearch] = useState("");
-  const doForward = useCallback((target: Contact) => {
+  const doForward = useCallback(async (target: Contact) => {
     if (!forwardMsg) return;
-    const body = forwardMsg.content ?? "";
-    if (!body.trim()) { toast.error("Só é possível encaminhar texto por enquanto"); setForwardMsg(null); return; }
-    const tmpId = `tmp-${Date.now()}`;
-    if (target.id === selected?.id) {
-      setMsgs((prev) => [...prev, { id: tmpId, direction: "outbound", type: "text", content: body, media_url: null, created_at: new Date().toISOString(), metadata: { pending: true } }]);
-    }
-    attemptSendText(tmpId, target.id, body, 0);
-    toast.success(`Encaminhada para ${target.name || target.phone}`);
+    const src = forwardMsg;
     setForwardMsg(null);
     setForwardSearch("");
-  }, [forwardMsg, selected, attemptSendText]);
+    try {
+      const res = await forwardMsgFn({ data: { messageId: src.id, targetContactId: target.id } });
+      if (res && "ok" in res && res.ok === false) throw new Error((res as { error?: string }).error || "Falha ao encaminhar");
+      toast.success(`Encaminhada para ${target.name || target.phone}`);
+      if (target.id === selected?.id) await loadMessages();
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Falha ao encaminhar");
+    }
+  }, [forwardMsg, selected, forwardMsgFn]);
 
   // Ensure webhook includes PRESENCE_UPDATE (best-effort, one shot)
   useEffect(() => {
@@ -415,6 +427,7 @@ function MessagesPage() {
     if (!selected || !text.trim()) return;
     const body = text.trim();
     const tmpId = `tmp-${Date.now()}`;
+    const quotedMessageId = replyTo?.id;
     const optimistic: Msg = {
       id: tmpId,
       direction: "outbound",
@@ -422,12 +435,13 @@ function MessagesPage() {
       content: body,
       media_url: null,
       created_at: new Date().toISOString(),
-      metadata: { pending: true },
+      metadata: quotedMessageId ? { pending: true, quotedId: quotedMessageId, quotedText: (replyTo?.content ?? "").slice(0, 200), quotedType: replyTo?.type, quotedDirection: replyTo?.direction } : { pending: true },
     };
     setText("");
+    setReplyTo(null);
     setMsgs((prev) => [...prev, optimistic]);
     const contactId = selected.id;
-    attemptSendText(tmpId, contactId, body, 0);
+    attemptSendText(tmpId, contactId, body, 0, quotedMessageId);
   }
 
   async function sendSticker(emoji: string) {
@@ -458,6 +472,7 @@ function MessagesPage() {
     const file = attachment.file;
     const mime = file.type || "application/octet-stream";
     const optimisticType = mime.startsWith("image/") ? "image" : mime.startsWith("video/") ? "video" : mime.startsWith("audio/") ? "audio" : "document";
+    const quotedMessageId = replyTo?.id;
     const optimistic: Msg = {
       id: `tmp-${Date.now()}`,
       direction: "outbound",
@@ -465,14 +480,15 @@ function MessagesPage() {
       content: text.trim() || file.name,
       media_url: attachment.url,
       created_at: new Date().toISOString(),
-      metadata: { pending: true, fileName: file.name },
+      metadata: { pending: true, fileName: file.name, ...(quotedMessageId ? { quotedId: quotedMessageId, quotedText: (replyTo?.content ?? "").slice(0, 200), quotedType: replyTo?.type, quotedDirection: replyTo?.direction } : {}) },
     };
     setMsgs((prev) => [...prev, optimistic]);
+    setReplyTo(null);
     try {
       const b64 = await blobToBase64(file);
       const res = await sendMedia({ data: {
         contactId: selected.id, base64: b64, mime,
-        fileName: file.name, caption: text.trim() || undefined,
+        fileName: file.name, caption: text.trim() || undefined, quotedMessageId,
       }});
       if (res && "ok" in res && res.ok === false) toast.error(res.error);
       else { setText(""); setAttachment(null); }
@@ -529,16 +545,19 @@ function MessagesPage() {
         const blob = new Blob(chunks, { type: "audio/webm" });
         const localUrl = URL.createObjectURL(blob);
         const tmpId = `tmp-${Date.now()}`;
+        const quotedMessageId = replyToRef.current?.id;
+        const q = replyToRef.current;
         // Optimistic bubble so the user sees the audio right away
         setMsgs((prev) => [...prev, {
           id: tmpId, direction: "outbound", type: "audio",
           content: "[áudio]", media_url: localUrl,
           created_at: new Date().toISOString(),
-          metadata: { audio: true, pending: true },
+          metadata: { audio: true, pending: true, ...(quotedMessageId ? { quotedId: quotedMessageId, quotedText: (q?.content ?? "").slice(0, 200), quotedType: q?.type, quotedDirection: q?.direction } : {}) },
         }]);
+        setReplyTo(null);
         try {
           const b64 = await blobToBase64(blob);
-          const res = await sendAudio({ data: { contactId: selected.id, audioBase64: b64 } });
+          const res = await sendAudio({ data: { contactId: selected.id, audioBase64: b64, quotedMessageId } });
           if (res && "ok" in res && res.ok === false) {
             toast.error(res.error);
             setMsgs((prev) => prev.map((m) => m.id === tmpId ? { ...m, metadata: { ...(m.metadata ?? {}), pending: false, failed: true } } : m));
@@ -863,7 +882,7 @@ function MessagesPage() {
                   const isVideo = m.type === "video" && !!m.media_url;
                   const isFile = (m.type === "file" || m.type === "document") && !!m.media_url;
                   return (
-                    <div key={m.id} className={`group flex ${out ? "justify-end" : "justify-start"}`}>
+                    <div key={m.id} data-msg-id={m.id} className={`group flex ${out ? "justify-end" : "justify-start"}`}>
                       <div
                         className={`relative max-w-[75%] rounded-lg px-2.5 py-1.5 shadow-sm text-sm text-gray-800`}
                         style={{ background: out ? WA.outBubble : WA.inBubble }}
@@ -877,20 +896,45 @@ function MessagesPage() {
                               <ChevronDown className="h-3.5 w-3.5 text-gray-600" />
                             </button>
                           </DropdownMenuTrigger>
-                          <DropdownMenuContent align={out ? "end" : "start"} className="w-44">
-                            <DropdownMenuItem onClick={() => toggleStar(m.id)}>
-                              <Star className={`h-4 w-4 mr-2 ${starred.has(m.id) ? "fill-yellow-400 text-yellow-500" : ""}`} />
-                              {starred.has(m.id) ? "Desmarcar" : "Marcar"}
+                          <DropdownMenuContent align={out ? "end" : "start"} className="w-48">
+                            <DropdownMenuItem onClick={() => setReplyTo(m)}>
+                              <Reply className="h-4 w-4 mr-2" /> Marcar (responder)
                             </DropdownMenuItem>
                             <DropdownMenuItem onClick={() => setForwardMsg(m)}>
                               <Forward className="h-4 w-4 mr-2" /> Encaminhar
                             </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => toggleStar(m.id)}>
+                              <Star className={`h-4 w-4 mr-2 ${starred.has(m.id) ? "fill-yellow-400 text-yellow-500" : ""}`} />
+                              {starred.has(m.id) ? "Desfavoritar" : "Favoritar"}
+                            </DropdownMenuItem>
                             <DropdownMenuSeparator />
-                            <DropdownMenuItem onClick={() => deleteMessage(m)} className="text-red-600 focus:text-red-600">
-                              <Trash2 className="h-4 w-4 mr-2" /> Excluir
+                            <DropdownMenuItem onClick={() => setDeleteConfirm(m)} className="text-red-600 focus:text-red-600">
+                              <Trash2 className="h-4 w-4 mr-2" /> Excluir…
                             </DropdownMenuItem>
                           </DropdownMenuContent>
                         </DropdownMenu>
+                        {(() => {
+                          const q = (m.metadata ?? {}) as { quotedId?: string; quotedText?: string; quotedType?: string };
+                          if (!q.quotedId) return null;
+                          const label = q.quotedType === "audio" ? "🎤 Mensagem de voz"
+                            : q.quotedType === "image" ? "🖼️ Imagem"
+                            : q.quotedType === "video" ? "🎬 Vídeo"
+                            : q.quotedType === "document" ? "📄 Arquivo"
+                            : (q.quotedText || "Mensagem");
+                          return (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const el = scrollRef.current?.querySelector(`[data-msg-id="${q.quotedId}"]`) as HTMLElement | null;
+                                if (el) { el.scrollIntoView({ behavior: "smooth", block: "center" }); el.classList.add("ring-2","ring-emerald-400"); setTimeout(() => el.classList.remove("ring-2","ring-emerald-400"), 1400); }
+                              }}
+                              className="mb-1 w-full text-left rounded border-l-4 border-emerald-500 bg-black/5 px-2 py-1 text-xs text-gray-700 hover:bg-black/10 transition"
+                            >
+                              <div className="font-medium text-emerald-700 text-[11px]">Resposta</div>
+                              <div className="truncate">{label}</div>
+                            </button>
+                          );
+                        })()}
                         {isAudio ? (
                           m.media_url
                             ? <AudioPlayer src={m.media_url} />
@@ -1035,6 +1079,26 @@ function MessagesPage() {
                       }}
                     />
                     <div className="flex-1 flex flex-col gap-1">
+                       {replyTo && (
+                         <div className="flex items-stretch gap-2 bg-white rounded-lg px-2 py-1.5 shadow-sm text-sm">
+                           <div className="w-1 rounded bg-emerald-500" />
+                           <div className="min-w-0 flex-1">
+                             <div className="text-[11px] font-medium text-emerald-700">
+                               Respondendo {replyTo.direction === "outbound" ? "você" : (selected?.name || selected?.phone || "contato")}
+                             </div>
+                             <div className="truncate text-gray-700">
+                               {replyTo.type === "audio" ? "🎤 Mensagem de voz"
+                                 : replyTo.type === "image" ? "🖼️ Imagem"
+                                 : replyTo.type === "video" ? "🎬 Vídeo"
+                                 : replyTo.type === "document" ? "📄 Arquivo"
+                                 : (replyTo.content || "")}
+                             </div>
+                           </div>
+                           <button onClick={() => setReplyTo(null)} className="p-1 rounded-full hover:bg-gray-100 text-gray-500" aria-label="Cancelar resposta">
+                             <X className="h-4 w-4" />
+                           </button>
+                         </div>
+                       )}
                        {attachment && (() => {
                          const t = attachment.file.type;
                          const isImg = t.startsWith("image/");
@@ -1192,6 +1256,25 @@ function MessagesPage() {
                   </div>
                 </button>
               ))}
+          </div>
+        </DialogContent>
+      </Dialog>
+      <Dialog open={!!deleteConfirm} onOpenChange={(o) => { if (!o) setDeleteConfirm(null); }}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Excluir mensagem?</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-gray-600">Escolha como deseja excluir esta mensagem.</p>
+          <div className="flex flex-col gap-2 pt-2">
+            {deleteConfirm && deleteConfirm.direction === "outbound" && (deleteConfirm.metadata as { evoId?: string } | null)?.evoId && (
+              <Button variant="destructive" onClick={() => performDelete(deleteConfirm, true)}>
+                Excluir para todos
+              </Button>
+            )}
+            <Button variant="outline" onClick={() => deleteConfirm && performDelete(deleteConfirm, false)}>
+              Excluir para mim
+            </Button>
+            <Button variant="ghost" onClick={() => setDeleteConfirm(null)}>Cancelar</Button>
           </div>
         </DialogContent>
       </Dialog>
