@@ -882,7 +882,7 @@ function MessagesPage() {
                   const isVideo = m.type === "video" && !!m.media_url;
                   const isFile = (m.type === "file" || m.type === "document") && !!m.media_url;
                   return (
-                    <div key={m.id} className={`group flex ${out ? "justify-end" : "justify-start"}`}>
+                    <div key={m.id} data-msg-id={m.id} className={`group flex ${out ? "justify-end" : "justify-start"}`}>
                       <div
                         className={`relative max-w-[75%] rounded-lg px-2.5 py-1.5 shadow-sm text-sm text-gray-800`}
                         style={{ background: out ? WA.outBubble : WA.inBubble }}
@@ -913,6 +913,28 @@ function MessagesPage() {
                             </DropdownMenuItem>
                           </DropdownMenuContent>
                         </DropdownMenu>
+                        {(() => {
+                          const q = (m.metadata ?? {}) as { quotedId?: string; quotedText?: string; quotedType?: string };
+                          if (!q.quotedId) return null;
+                          const label = q.quotedType === "audio" ? "🎤 Mensagem de voz"
+                            : q.quotedType === "image" ? "🖼️ Imagem"
+                            : q.quotedType === "video" ? "🎬 Vídeo"
+                            : q.quotedType === "document" ? "📄 Arquivo"
+                            : (q.quotedText || "Mensagem");
+                          return (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const el = scrollRef.current?.querySelector(`[data-msg-id="${q.quotedId}"]`) as HTMLElement | null;
+                                if (el) { el.scrollIntoView({ behavior: "smooth", block: "center" }); el.classList.add("ring-2","ring-emerald-400"); setTimeout(() => el.classList.remove("ring-2","ring-emerald-400"), 1400); }
+                              }}
+                              className="mb-1 w-full text-left rounded border-l-4 border-emerald-500 bg-black/5 px-2 py-1 text-xs text-gray-700 hover:bg-black/10 transition"
+                            >
+                              <div className="font-medium text-emerald-700 text-[11px]">Resposta</div>
+                              <div className="truncate">{label}</div>
+                            </button>
+                          );
+                        })()}
                         {isAudio ? (
                           m.media_url
                             ? <AudioPlayer src={m.media_url} />
