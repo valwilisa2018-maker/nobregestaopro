@@ -128,6 +128,35 @@ function MessagesPage() {
   });
   const soundOnRef = useRef(soundOn);
   useEffect(() => { soundOnRef.current = soundOn; }, [soundOn]);
+  // Auto-retry registry for failed text/sticker sends
+  const retryRegistry = useRef<Map<string, { contactId: string; body: string }>>(new Map());
+
+  const attemptSendText = useCallback((tmpId: string, contactId: string, body: string, attempt = 0) => {
+    const MAX = 3;
+    sendText({ data: { contactId, text: body } })
+      .then((res) => {
+        if (res && "ok" in res && res.ok === false) throw new Error(res.error || "send failed");
+        retryRegistry.current.delete(tmpId);
+        loadMessages();
+      })
+      .catch((e) => {
+        if (attempt < MAX) {
+          const delay = 1000 * Math.pow(2, attempt); // 1s, 2s, 4s
+          setTimeout(() => attemptSendText(tmpId, contactId, body, attempt + 1), delay);
+        } else {
+          retryRegistry.current.set(tmpId, { contactId, body });
+          setMsgs((prev) => prev.map((m) => m.id === tmpId ? { ...m, metadata: { ...(m.metadata ?? {}), pending: false, failed: true } } : m));
+          toast.error(e instanceof Error ? e.message : "Falha ao enviar — toque em ! para tentar novamente");
+        }
+      });
+  }, [sendText]);
+
+  const retryFailed = useCallback((tmpId: string) => {
+    const payload = retryRegistry.current.get(tmpId);
+    if (!payload) { loadMessages(); return; }
+    setMsgs((prev) => prev.map((m) => m.id === tmpId ? { ...m, metadata: { ...(m.metadata ?? {}), failed: false, pending: true } } : m));
+    attemptSendText(tmpId, payload.contactId, payload.body, 0);
+  }, [attemptSendText]);
 
   // Ensure webhook includes PRESENCE_UPDATE (best-effort, one shot)
   useEffect(() => {
@@ -319,8 +348,9 @@ function MessagesPage() {
   async function handleSendText() {
     if (!selected || !text.trim()) return;
     const body = text.trim();
+    const tmpId = `tmp-${Date.now()}`;
     const optimistic: Msg = {
-      id: `tmp-${Date.now()}`,
+      id: tmpId,
       direction: "outbound",
       type: "text",
       content: body,
@@ -331,18 +361,14 @@ function MessagesPage() {
     setText("");
     setMsgs((prev) => [...prev, optimistic]);
     const contactId = selected.id;
-    sendText({ data: { contactId, text: body } })
-      .then((res) => {
-        if (res && "ok" in res && res.ok === false) toast.error(res.error);
-        loadMessages();
-      })
-      .catch((e) => toast.error(e instanceof Error ? e.message : "Falha ao enviar"));
+    attemptSendText(tmpId, contactId, body, 0);
   }
 
   async function sendSticker(emoji: string) {
     if (!selected) return;
+    const tmpId = `tmp-${Date.now()}`;
     const optimistic: Msg = {
-      id: `tmp-${Date.now()}`,
+      id: tmpId,
       direction: "outbound",
       type: "text",
       content: emoji,
@@ -352,12 +378,7 @@ function MessagesPage() {
     };
     setMsgs((prev) => [...prev, optimistic]);
     const contactId = selected.id;
-    sendText({ data: { contactId, text: emoji } })
-      .then((res) => {
-        if (res && "ok" in res && res.ok === false) toast.error(res.error);
-        loadMessages();
-      })
-      .catch((e) => toast.error(e instanceof Error ? e.message : "Falha ao enviar"));
+    attemptSendText(tmpId, contactId, emoji, 0);
   }
 
   async function handleSendAttachment() {
@@ -760,7 +781,14 @@ function MessagesPage() {
                           <span>{new Date(m.created_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</span>
                           {out && (() => {
                             const meta = (m.metadata ?? {}) as { status?: string; pending?: boolean; failed?: boolean };
-                            if (meta.failed) return <span className="text-red-500">!</span>;
+                            if (meta.failed) return (
+                              <button
+                                type="button"
+                                onClick={() => retryFailed(m.id)}
+                                className="text-red-500 font-bold hover:underline"
+                                title="Tentar novamente"
+                              >!</button>
+                            );
                             if (meta.pending || !meta.status) return <Check className="h-3.5 w-3.5 text-gray-400" />;
                             if (meta.status === "sent") return <Check className="h-3.5 w-3.5 text-gray-500" />;
                             if (meta.status === "delivered") return <CheckCheck className="h-3.5 w-3.5 text-gray-500" />;
