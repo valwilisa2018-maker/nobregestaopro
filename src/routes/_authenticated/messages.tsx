@@ -11,6 +11,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { useServerFn } from "@tanstack/react-start";
 import { sendChatText, sendChatAudio, sendChatMedia, getProfilePicture, sendPresence, ensurePresenceWebhook } from "@/lib/evolution.functions";
 import { toast } from "sonner";
+import notificationSound from "@/assets/notification.mp3.asset.json";
 
 export const Route = createFileRoute("/_authenticated/messages")({
   ssr: false,
@@ -178,23 +179,9 @@ function MessagesPage() {
   function playBell() {
     if (!soundOnRef.current || typeof window === "undefined") return;
     try {
-      const AC = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
-      const ctx = new AC();
-      const now = ctx.currentTime;
-      const tones = [880, 1320];
-      tones.forEach((freq, i) => {
-        const o = ctx.createOscillator();
-        const g = ctx.createGain();
-        o.type = "sine";
-        o.frequency.value = freq;
-        g.gain.setValueAtTime(0.0001, now + i * 0.15);
-        g.gain.exponentialRampToValueAtTime(0.25, now + i * 0.15 + 0.02);
-        g.gain.exponentialRampToValueAtTime(0.0001, now + i * 0.15 + 0.35);
-        o.connect(g).connect(ctx.destination);
-        o.start(now + i * 0.15);
-        o.stop(now + i * 0.15 + 0.4);
-      });
-      setTimeout(() => ctx.close().catch(() => {}), 900);
+      const a = new Audio(notificationSound.url);
+      a.volume = 0.9;
+      void a.play().catch(() => {});
     } catch { /* ignore */ }
   }
 
