@@ -794,11 +794,34 @@ function MessagesPage() {
                   const isVideo = m.type === "video" && !!m.media_url;
                   const isFile = (m.type === "file" || m.type === "document") && !!m.media_url;
                   return (
-                    <div key={m.id} className={`flex ${out ? "justify-end" : "justify-start"}`}>
+                    <div key={m.id} className={`group flex ${out ? "justify-end" : "justify-start"}`}>
                       <div
-                        className={`max-w-[75%] rounded-lg px-2.5 py-1.5 shadow-sm text-sm text-gray-800`}
+                        className={`relative max-w-[75%] rounded-lg px-2.5 py-1.5 shadow-sm text-sm text-gray-800`}
                         style={{ background: out ? WA.outBubble : WA.inBubble }}
                       >
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <button
+                              className="absolute top-0.5 right-0.5 p-0.5 rounded-full opacity-0 group-hover:opacity-100 hover:bg-black/10 transition"
+                              aria-label="Opções da mensagem"
+                            >
+                              <ChevronDown className="h-3.5 w-3.5 text-gray-600" />
+                            </button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align={out ? "end" : "start"} className="w-44">
+                            <DropdownMenuItem onClick={() => toggleStar(m.id)}>
+                              <Star className={`h-4 w-4 mr-2 ${starred.has(m.id) ? "fill-yellow-400 text-yellow-500" : ""}`} />
+                              {starred.has(m.id) ? "Desmarcar" : "Marcar"}
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => setForwardMsg(m)}>
+                              <Forward className="h-4 w-4 mr-2" /> Encaminhar
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem onClick={() => deleteMessage(m)} className="text-red-600 focus:text-red-600">
+                              <Trash2 className="h-4 w-4 mr-2" /> Excluir
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
                         {isAudio ? (
                           m.media_url
                             ? <AudioPlayer src={m.media_url} />
@@ -819,6 +842,7 @@ function MessagesPage() {
                           <div className="whitespace-pre-wrap break-words pr-14">{m.content}</div>
                         )}
                         <div className="mt-0.5 flex items-center justify-end gap-1 text-[10px] text-gray-500">
+                          {starred.has(m.id) && <Star className="h-3 w-3 fill-yellow-400 text-yellow-500" />}
                           <span>{new Date(m.created_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</span>
                           {out && (() => {
                             const meta = (m.metadata ?? {}) as { status?: string; pending?: boolean; failed?: boolean };
