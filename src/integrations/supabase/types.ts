@@ -1075,6 +1075,27 @@ export type Database = {
         }
         Relationships: []
       }
+      presence: {
+        Row: {
+          jid: string
+          presence: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          jid: string
+          presence: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          jid?: string
+          presence?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           alert_phone: string | null
