@@ -531,7 +531,7 @@ function BroadcastsPage() {
             </div>
             <div className="border rounded-lg p-4 bg-muted/30">
               <div className="text-xs uppercase text-muted-foreground mb-1">Prévia</div>
-              <div className="text-sm whitespace-pre-wrap">{message}</div>
+              <div className="text-sm whitespace-pre-wrap">{flowId ? "Enviando via fluxo selecionado." : message}</div>
             </div>
             {!connectionId && <p className="text-sm text-destructive">Selecione uma instância WhatsApp na etapa 2.</p>}
           </div>
