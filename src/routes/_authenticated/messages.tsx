@@ -385,10 +385,12 @@ function MessagesPage() {
   // Load messages for selected contact (match conversation by remoteJid)
   const loadMessages = useCallback(async () => {
     if (!user || !selected) { setMsgs([]); return; }
+    const reqId = selected.id;
     const phone = selected.phone.replace(/\D+/g, "");
     const jids = new Set([jidFromPhone(selected.phone), ...jidVariants(selected.phone)]);
     const { data: convs } = await supabase.from("conversations")
       .select("id,metadata").eq("user_id", user.id).limit(1000);
+    if (selectedRef.current?.id !== reqId) return;
     const matched = (convs ?? []).filter((c) => {
       const remote = (c.metadata as { remoteJid?: string } | null)?.remoteJid ?? "";
       return jids.has(remote) || (!!phone && remote.startsWith(`${phone}@`));
@@ -404,14 +406,22 @@ function MessagesPage() {
       .in("conversation_id", ids)
       .order("created_at", { ascending: true })
       .limit(500);
+    if (selectedRef.current?.id !== reqId) return;
     const rows = (data ?? []) as Msg[];
-    const hydrated = await Promise.all(rows.map(async (m) => {
-      const path = storagePathFrom(m);
-      if (!path) return m;
-      const { data: signed } = await supabase.storage.from("agent-media").createSignedUrl(path, 60 * 60 * 24);
-      return signed?.signedUrl ? { ...m, media_url: signed.signedUrl } : m;
-    }));
-    setMsgs(hydrated);
+    // Render immediately; hydrate signed URLs in background so UI stays snappy.
+    setMsgs(rows);
+    (async () => {
+      const patches = await Promise.all(rows.map(async (m) => {
+        const path = storagePathFrom(m);
+        if (!path) return null;
+        const { data: signed } = await supabase.storage.from("agent-media").createSignedUrl(path, 60 * 60 * 24);
+        return signed?.signedUrl ? { id: m.id, url: signed.signedUrl } : null;
+      }));
+      if (selectedRef.current?.id !== reqId) return;
+      const map = new Map(patches.filter(Boolean).map((p) => [p!.id, p!.url]));
+      if (!map.size) return;
+      setMsgs((cur) => cur.map((m) => (map.has(m.id) ? { ...m, media_url: map.get(m.id)! } : m)));
+    })();
   }, [user, selected]);
   useEffect(() => {
     setMsgs([]); // clear instantly on contact switch, then load
