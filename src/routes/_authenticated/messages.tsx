@@ -348,8 +348,9 @@ function MessagesPage() {
   async function handleSendText() {
     if (!selected || !text.trim()) return;
     const body = text.trim();
+    const tmpId = `tmp-${Date.now()}`;
     const optimistic: Msg = {
-      id: `tmp-${Date.now()}`,
+      id: tmpId,
       direction: "outbound",
       type: "text",
       content: body,
@@ -360,18 +361,14 @@ function MessagesPage() {
     setText("");
     setMsgs((prev) => [...prev, optimistic]);
     const contactId = selected.id;
-    sendText({ data: { contactId, text: body } })
-      .then((res) => {
-        if (res && "ok" in res && res.ok === false) toast.error(res.error);
-        loadMessages();
-      })
-      .catch((e) => toast.error(e instanceof Error ? e.message : "Falha ao enviar"));
+    attemptSendText(tmpId, contactId, body, 0);
   }
 
   async function sendSticker(emoji: string) {
     if (!selected) return;
+    const tmpId = `tmp-${Date.now()}`;
     const optimistic: Msg = {
-      id: `tmp-${Date.now()}`,
+      id: tmpId,
       direction: "outbound",
       type: "text",
       content: emoji,
@@ -381,12 +378,7 @@ function MessagesPage() {
     };
     setMsgs((prev) => [...prev, optimistic]);
     const contactId = selected.id;
-    sendText({ data: { contactId, text: emoji } })
-      .then((res) => {
-        if (res && "ok" in res && res.ok === false) toast.error(res.error);
-        loadMessages();
-      })
-      .catch((e) => toast.error(e instanceof Error ? e.message : "Falha ao enviar"));
+    attemptSendText(tmpId, contactId, emoji, 0);
   }
 
   async function handleSendAttachment() {
