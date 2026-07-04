@@ -454,13 +454,25 @@ function MessagesPage() {
                       }}
                     />
                     <div className="flex-1 flex flex-col gap-1">
-                      {attachment && (
-                        <div className="flex items-center gap-2 bg-white rounded-lg px-3 py-2 shadow-sm text-sm">
-                          {attachment.file.type.startsWith("image/") ? (
-                            <img src={attachment.url} alt="" className="h-10 w-10 object-cover rounded" />
-                          ) : (
-                            <FileText className="h-8 w-8 text-gray-500" />
-                          )}
+                       {attachment && (() => {
+                         const t = attachment.file.type;
+                         const isImg = t.startsWith("image/");
+                         const isVid = t.startsWith("video/");
+                         const isAud = t.startsWith("audio/");
+                         const isPdf = t === "application/pdf" || attachment.file.name.toLowerCase().endsWith(".pdf");
+                         return (
+                         <div className="flex items-center gap-2 bg-white rounded-lg px-3 py-2 shadow-sm text-sm">
+                           {isImg ? (
+                             <img src={attachment.url} alt="" className="h-12 w-12 object-cover rounded" />
+                           ) : isVid ? (
+                             <video src={attachment.url} className="h-12 w-12 object-cover rounded bg-black" muted />
+                           ) : isAud ? (
+                             <div className="h-12 w-12 rounded grid place-items-center bg-orange-100 text-orange-600"><Music className="h-6 w-6" /></div>
+                           ) : isPdf ? (
+                             <div className="h-12 w-12 rounded grid place-items-center bg-red-100 text-red-600"><FileText className="h-6 w-6" /></div>
+                           ) : (
+                             <div className="h-12 w-12 rounded grid place-items-center bg-sky-100 text-sky-600"><FileIcon className="h-6 w-6" /></div>
+                           )}
                           <div className="min-w-0 flex-1">
                             <div className="truncate text-gray-800">{attachment.file.name}</div>
                             <div className="text-[11px] text-gray-500">{Math.round(attachment.file.size / 1024)} KB</div>
@@ -473,7 +485,8 @@ function MessagesPage() {
                             <X className="h-4 w-4" />
                           </button>
                         </div>
-                      )}
+                         );
+                       })()}
                       <textarea
                       value={text}
                       onChange={(e) => setText(e.target.value)}
