@@ -29,12 +29,6 @@ function mediaMessageType(mime: string) {
     : mime.startsWith("audio/") ? "audio" : "document";
 }
 
-function signedStorageUrl(path: string) {
-  return createServerFn({ method: "GET" })
-    .middleware([requireSupabaseAuth])
-    .handler(async () => path);
-}
-
 async function saveMediaToStorage(
   supabase: any,
   userId: string,
