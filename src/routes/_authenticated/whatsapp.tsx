@@ -245,8 +245,8 @@ function Page() {
 
   return (
     <PageShell
-      title="WhatsApp"
-      description="Crie uma nova instância, escaneie o QR Code e comece a atender."
+      title="Conexão WhatsApp"
+      description="Conecte, gerencie e reconecte seus números do WhatsApp."
       icon={<MessageCircle className="h-6 w-6" />}
       status="ativo"
       actions={
