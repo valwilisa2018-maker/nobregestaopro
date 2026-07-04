@@ -47,6 +47,27 @@ function jidFromPhone(phone: string) {
   return `${String(phone).replace(/\D+/g, "")}@s.whatsapp.net`;
 }
 
+function phoneVariants(value: string) {
+  const digits = value.replace(/\D+/g, "");
+  const variants = new Set([digits]);
+  if (digits.startsWith("55") && digits.length === 13 && digits[4] === "9") {
+    variants.add(`${digits.slice(0, 4)}${digits.slice(5)}`);
+  }
+  if (digits.startsWith("55") && digits.length === 12) {
+    variants.add(`${digits.slice(0, 4)}9${digits.slice(4)}`);
+  }
+  return [...variants].filter(Boolean);
+}
+
+function jidVariants(phone: string) {
+  return phoneVariants(phone).map((digits) => `${digits}@s.whatsapp.net`);
+}
+
+function storagePathFrom(m: Msg) {
+  const path = (m.metadata as { storagePath?: unknown } | null)?.storagePath;
+  return typeof path === "string" && path ? path : null;
+}
+
 function initials(name: string | null, phone: string) {
   const src = (name && name.trim()) || phone;
   return src.replace(/\D/g, "").slice(-2) || src.slice(0, 2).toUpperCase();
@@ -166,17 +187,30 @@ function MessagesPage() {
   // Load messages for selected contact (match conversation by remoteJid)
   const loadMessages = useCallback(async () => {
     if (!user || !selected) { setMsgs([]); return; }
-    const jid = jidFromPhone(selected.phone);
+    const phone = selected.phone.replace(/\D+/g, "");
+    const jids = new Set([jidFromPhone(selected.phone), ...jidVariants(selected.phone)]);
     const { data: convs } = await supabase.from("conversations")
-      .select("id").eq("user_id", user.id).eq("metadata->>remoteJid", jid);
-    const ids = (convs ?? []).map((c) => c.id);
+      .select("id,metadata").eq("user_id", user.id).limit(1000);
+    const ids = (convs ?? [])
+      .filter((c) => {
+        const remote = (c.metadata as { remoteJid?: string } | null)?.remoteJid ?? "";
+        return jids.has(remote) || (!!phone && remote.startsWith(`${phone}@`));
+      })
+      .map((c) => c.id);
     if (!ids.length) { setMsgs([]); return; }
     const { data } = await supabase.from("messages")
       .select("id,direction,type,content,media_url,created_at,metadata")
       .in("conversation_id", ids)
       .order("created_at", { ascending: true })
       .limit(500);
-    setMsgs((data ?? []) as Msg[]);
+    const rows = (data ?? []) as Msg[];
+    const hydrated = await Promise.all(rows.map(async (m) => {
+      const path = storagePathFrom(m);
+      if (!path) return m;
+      const { data: signed } = await supabase.storage.from("agent-media").createSignedUrl(path, 60 * 60 * 24);
+      return signed?.signedUrl ? { ...m, media_url: signed.signedUrl } : m;
+    }));
+    setMsgs(hydrated);
   }, [user, selected]);
   useEffect(() => { loadMessages(); }, [loadMessages]);
 

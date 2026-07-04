@@ -2,6 +2,8 @@ import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { z } from "zod";
 
+const MEDIA_BUCKET = "agent-media";
+
 const IdInput = z.object({ connectionId: z.string().uuid() });
 
 async function loadConnection(supabase: any, userId: string, id: string) {
@@ -19,6 +21,51 @@ function baseUrl(url: string) {
   let u = url.trim().replace(/\/+$/, "");
   if (!/^https?:\/\//i.test(u)) u = `https://${u}`;
   return u;
+}
+
+function mediaMessageType(mime: string) {
+  return mime.startsWith("image/") ? "image"
+    : mime.startsWith("video/") ? "video"
+    : mime.startsWith("audio/") ? "audio" : "document";
+}
+
+function phoneVariants(value: string) {
+  const digits = value.replace(/\D+/g, "");
+  const variants = new Set([digits]);
+  if (digits.startsWith("55") && digits.length === 13 && digits[4] === "9") {
+    variants.add(`${digits.slice(0, 4)}${digits.slice(5)}`);
+  }
+  if (digits.startsWith("55") && digits.length === 12) {
+    variants.add(`${digits.slice(0, 4)}9${digits.slice(4)}`);
+  }
+  return [...variants].filter(Boolean);
+}
+
+function jidVariants(remoteJid: string) {
+  const suffix = remoteJid.includes("@") ? remoteJid.slice(remoteJid.indexOf("@")) : "@s.whatsapp.net";
+  return phoneVariants(remoteJid.split("@")[0] ?? remoteJid).map((phone) => `${phone}${suffix}`);
+}
+
+async function saveMediaToStorage(
+  supabase: any,
+  userId: string,
+  conversationId: string,
+  base64: string,
+  mime: string,
+  fileName: string,
+) {
+  const clean = base64.replace(/^data:[^;]+;base64,/, "").replace(/\s/g, "");
+  const rawExt = fileName.includes(".") ? fileName.split(".").pop() : mime.split("/")[1]?.split(";")[0];
+  const ext = rawExt?.replace(/[^a-zA-Z0-9]+/g, "").slice(0, 12);
+  const path = `${userId}/${conversationId}/${Date.now()}-${crypto.randomUUID()}${ext ? `.${ext}` : ""}`;
+  const bytes = Uint8Array.from(atob(clean), (char) => char.charCodeAt(0));
+  const { error } = await supabase.storage.from(MEDIA_BUCKET).upload(path, bytes, {
+    contentType: mime || "application/octet-stream",
+    upsert: false,
+  });
+  if (error) throw new Error(error.message);
+  const { data } = await supabase.storage.from(MEDIA_BUCKET).createSignedUrl(path, 60 * 60 * 24 * 30);
+  return { path, url: data?.signedUrl ?? null };
 }
 
 async function evoFetch(url: string, apiKey: string, init?: RequestInit) {
@@ -271,10 +318,11 @@ async function pickActiveConnection(supabase: any, userId: string) {
 async function getOrCreateConversationForJid(
   supabase: any, userId: string, connectionId: string, remoteJid: string,
 ) {
-  const { data: existing } = await supabase.from("conversations")
-    .select("id")
-    .eq("user_id", userId).eq("connection_id", connectionId)
-    .eq("metadata->>remoteJid", remoteJid).maybeSingle();
+  const variants = jidVariants(remoteJid);
+  const { data: existingRows } = await supabase.from("conversations")
+    .select("id,metadata")
+    .eq("user_id", userId).eq("connection_id", connectionId);
+  const existing = (existingRows ?? []).find((row: any) => variants.includes(row?.metadata?.remoteJid));
   if (existing) return existing.id as string;
   const { data: created, error } = await supabase.from("conversations").insert({
     user_id: userId, connection_id: connectionId, status: "open",
@@ -366,17 +414,16 @@ export const sendChatMedia = createServerFn({ method: "POST" })
     const number = String(contact.phone).replace(/\D+/g, "");
     const remoteJid = `${number}@s.whatsapp.net`;
     const b64 = data.base64.replace(/^data:[^;]+;base64,/, "");
-    const mediatype = data.mime.startsWith("image/") ? "image"
-      : data.mime.startsWith("video/") ? "video"
-      : data.mime.startsWith("audio/") ? "audio" : "document";
+    const mediatype = mediaMessageType(data.mime);
     const convoId = await getOrCreateConversationForJid(context.supabase, context.userId, conn.id, remoteJid);
+    const stored = await saveMediaToStorage(context.supabase, context.userId, convoId, b64, data.mime, data.fileName);
     const { data: saved } = await context.supabase.from("messages").insert({
       user_id: context.userId, conversation_id: convoId,
       direction: "outbound",
       type: mediatype,
       content: data.caption ?? data.fileName,
-      media_url: `data:${data.mime};base64,${b64}`,
-      metadata: { remoteJid, manual: true, fileName: data.fileName, pending: true } as never,
+      media_url: stored.url,
+      metadata: { remoteJid, manual: true, fileName: data.fileName, mime: data.mime, storagePath: stored.path, pending: true } as never,
     }).select("id,metadata").single();
     await context.supabase.from("conversations").update({
       last_message_at: new Date().toISOString(),
@@ -434,11 +481,12 @@ export const sendChatAudio = createServerFn({ method: "POST" })
     const remoteJid = `${number}@s.whatsapp.net`;
     const audio = data.audioBase64.replace(/^data:[^;]+;base64,/, "");
     const convoId = await getOrCreateConversationForJid(context.supabase, context.userId, conn.id, remoteJid);
+    const stored = await saveMediaToStorage(context.supabase, context.userId, convoId, audio, "audio/webm", "audio.webm");
     const { data: saved } = await context.supabase.from("messages").insert({
       user_id: context.userId, conversation_id: convoId,
       direction: "outbound", type: "audio", content: "[áudio]",
-      media_url: `data:audio/webm;base64,${audio}`,
-      metadata: { remoteJid, manual: true, audio: true, pending: true } as never,
+      media_url: stored.url,
+      metadata: { remoteJid, manual: true, audio: true, mime: "audio/webm", storagePath: stored.path, pending: true } as never,
     }).select("id,metadata").single();
     await context.supabase.from("conversations").update({
       last_message_at: new Date().toISOString(),

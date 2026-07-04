@@ -38,6 +38,8 @@ type ConvMeta = {
   handoff?: boolean;
 };
 
+const MEDIA_BUCKET = "agent-media";
+
 export const Route = createFileRoute("/api/public/evolution/$instance")({
   server: {
     handlers: {
@@ -173,13 +175,28 @@ export const Route = createFileRoute("/api/public/evolution/$instance")({
               const phone = remoteJid.split("@")[0]?.replace(/\D/g, "");
               const pushName = (msg?.pushName ?? msg?.notifyName) as string | undefined;
               if (phone) {
-                await supabaseAdmin.from("contacts").upsert({
-                  user_id: conn.user_id,
-                  phone,
-                  name: pushName ?? null,
-                  source: "whatsapp",
-                  status: "active",
-                } as never, { onConflict: "user_id,phone", ignoreDuplicates: false } as never);
+                const variants = phoneVariants(phone);
+                const { data: existingContact } = await supabaseAdmin.from("contacts")
+                  .select("id,name")
+                  .eq("user_id", conn.user_id)
+                  .in("phone", variants)
+                  .limit(1)
+                  .maybeSingle();
+                if (existingContact?.id) {
+                  await supabaseAdmin.from("contacts").update({
+                    name: existingContact.name || pushName || null,
+                    status: "active",
+                    updated_at: new Date().toISOString(),
+                  } as never).eq("id", existingContact.id);
+                } else {
+                  await supabaseAdmin.from("contacts").insert({
+                    user_id: conn.user_id,
+                    phone,
+                    name: pushName ?? null,
+                    source: "whatsapp",
+                    status: "active",
+                  } as never);
+                }
               }
             } catch { /* non-blocking */ }
 
@@ -235,19 +252,30 @@ export const Route = createFileRoute("/api/public/evolution/$instance")({
             const imageMsg = bodyMsg?.imageMessage;
             const videoMsg = bodyMsg?.videoMessage;
             const docMsg = bodyMsg?.documentMessage ?? bodyMsg?.documentWithCaptionMessage?.message?.documentMessage;
-            let mediaKind: "image" | "video" | "audio" | "file" | null = null;
+            let mediaKind: "image" | "video" | "audio" | "document" | null = null;
             let mediaUrl: string | null = null;
             let mediaCaption: string | null = null;
+            let mediaPath: string | null = null;
+            let mediaMime: string | null = null;
             if (imageMsg) { mediaKind = "image"; mediaCaption = imageMsg.caption ?? null; }
             else if (videoMsg) { mediaKind = "video"; mediaCaption = videoMsg.caption ?? null; }
             else if (audioMsg && !inputWasAudio) { mediaKind = "audio"; }
-            else if (docMsg) { mediaKind = "file"; mediaCaption = docMsg.fileName ?? null; }
+            else if (docMsg) { mediaKind = "document"; mediaCaption = docMsg.fileName ?? null; }
             if (mediaKind && convo) {
               try {
                 const b64 = findBase64(msg) ?? await evolutionGetBase64(commandConn, msg);
                 if (b64) {
-                  const mime = imageMsg?.mimetype ?? videoMsg?.mimetype ?? audioMsg?.mimetype ?? docMsg?.mimetype ?? "application/octet-stream";
-                  mediaUrl = `data:${mime};base64,${stripDataUri(b64)}`;
+                  mediaMime = imageMsg?.mimetype ?? videoMsg?.mimetype ?? audioMsg?.mimetype ?? docMsg?.mimetype ?? "application/octet-stream";
+                  const saved = await saveMediaToStorage(
+                    supabaseAdmin,
+                    conn.user_id,
+                    convo.id,
+                    b64,
+                    mediaMime ?? "application/octet-stream",
+                    docMsg?.fileName ?? `${mediaKind}-${msg?.key?.id ?? Date.now()}`,
+                  );
+                  mediaUrl = saved.url;
+                  mediaPath = saved.path;
                 }
               } catch { /* ignore */ }
               await supabaseAdmin.from("messages").insert({
@@ -255,7 +283,7 @@ export const Route = createFileRoute("/api/public/evolution/$instance")({
                 direction: "inbound", type: mediaKind,
                 content: mediaCaption ?? (mediaKind === "audio" ? "[áudio]" : mediaKind === "video" ? "[vídeo]" : mediaKind === "image" ? "[imagem]" : "[arquivo]"),
                 media_url: mediaUrl,
-                metadata: { remoteJid, instance: conn.instance_name } as never,
+                metadata: { remoteJid, instance: conn.instance_name, storagePath: mediaPath, mime: mediaMime } as never,
               } as never);
               await supabaseAdmin.from("conversations").update({
                 last_message_at: new Date().toISOString(),
@@ -579,7 +607,7 @@ export const Route = createFileRoute("/api/public/evolution/$instance")({
 function sleep(ms: number) { return new Promise((r) => setTimeout(r, ms)); }
 
 async function sendText(conn: { url_api: string | null; api_key: string | null; instance_name: string | null }, number: string, text: string) {
-  return fetch(`${(conn.url_api ?? "").replace(/\/+$/, "")}/message/sendText/${conn.instance_name}`, {
+  return fetch(`${normalizeBaseUrl(conn.url_api ?? "")}/message/sendText/${conn.instance_name}`, {
     method: "POST",
     headers: { "Content-Type": "application/json", apikey: conn.api_key ?? "" },
     body: JSON.stringify({ number, text }),
@@ -587,7 +615,7 @@ async function sendText(conn: { url_api: string | null; api_key: string | null; 
 }
 
 async function sendAudio(conn: { url_api: string | null; api_key: string | null; instance_name: string | null }, number: string, audioBase64: string) {
-  return fetch(`${(conn.url_api ?? "").replace(/\/+$/, "")}/message/sendWhatsAppAudio/${conn.instance_name}`, {
+  return fetch(`${normalizeBaseUrl(conn.url_api ?? "")}/message/sendWhatsAppAudio/${conn.instance_name}`, {
     method: "POST",
     headers: { "Content-Type": "application/json", apikey: conn.api_key ?? "" },
     body: JSON.stringify({ number, audio: audioBase64 }),
@@ -599,7 +627,7 @@ async function sendMedia(
   number: string, url: string, mime: string, fileName: string,
 ) {
   const mediatype = mime.startsWith("image/") ? "image" : mime.startsWith("video/") ? "video" : mime.startsWith("audio/") ? "audio" : "document";
-  return fetch(`${(conn.url_api ?? "").replace(/\/+$/, "")}/message/sendMedia/${conn.instance_name}`, {
+  return fetch(`${normalizeBaseUrl(conn.url_api ?? "")}/message/sendMedia/${conn.instance_name}`, {
     method: "POST",
     headers: { "Content-Type": "application/json", apikey: conn.api_key ?? "" },
     body: JSON.stringify({ number, mediatype, media: url, fileName, mimetype: mime }),
@@ -612,7 +640,7 @@ async function signedMediaUrl(db: { storage: { from: (b: string) => { createSign
 }
 
 async function evolutionGetBase64(conn: { url_api: string | null; api_key: string | null; instance_name: string | null }, message: unknown): Promise<string | null> {
-  const r = await fetch(`${(conn.url_api ?? "").replace(/\/+$/, "")}/chat/getBase64FromMediaMessage/${conn.instance_name}`, {
+  const r = await fetch(`${normalizeBaseUrl(conn.url_api ?? "")}/chat/getBase64FromMediaMessage/${conn.instance_name}`, {
     method: "POST",
     headers: { "Content-Type": "application/json", apikey: conn.api_key ?? "" },
     body: JSON.stringify({ message, convertToMp3: true }),
@@ -620,6 +648,51 @@ async function evolutionGetBase64(conn: { url_api: string | null; api_key: strin
   if (!r.ok) return null;
   const j = await r.json().catch(() => null) as unknown;
   return findBase64(j);
+}
+
+function normalizeBaseUrl(url: string) {
+  let u = url.trim().replace(/\/+$/, "");
+  if (u && !/^https?:\/\//i.test(u)) u = `https://${u}`;
+  return u;
+}
+
+function phoneVariants(value: string) {
+  const digits = value.replace(/\D+/g, "");
+  const variants = new Set([digits]);
+  if (digits.startsWith("55") && digits.length === 13 && digits[4] === "9") {
+    variants.add(`${digits.slice(0, 4)}${digits.slice(5)}`);
+  }
+  if (digits.startsWith("55") && digits.length === 12) {
+    variants.add(`${digits.slice(0, 4)}9${digits.slice(4)}`);
+  }
+  return [...variants].filter(Boolean);
+}
+
+function jidVariants(remoteJid: string) {
+  const suffix = remoteJid.includes("@") ? remoteJid.slice(remoteJid.indexOf("@")) : "@s.whatsapp.net";
+  return phoneVariants(remoteJid.split("@")[0] ?? remoteJid).map((phone) => `${phone}${suffix}`);
+}
+
+async function saveMediaToStorage(
+  db: { storage: { from: (bucket: string) => any } },
+  userId: string,
+  conversationId: string,
+  base64: string,
+  mime: string,
+  fileName: string,
+) {
+  const clean = stripDataUri(base64).replace(/\s/g, "");
+  const safeName = fileName.replace(/[^a-zA-Z0-9._-]+/g, "-").slice(0, 80) || "media";
+  const ext = safeName.includes(".") ? "" : `.${(mime.split("/")[1] || "bin").split(";")[0]}`;
+  const path = `${userId}/${conversationId}/${Date.now()}-${crypto.randomUUID()}-${safeName}${ext}`;
+  const bytes = Buffer.from(clean, "base64");
+  const { error } = await db.storage.from(MEDIA_BUCKET).upload(path, bytes, {
+    contentType: mime || "application/octet-stream",
+    upsert: false,
+  });
+  if (error) throw new Error(error.message);
+  const { data } = await db.storage.from(MEDIA_BUCKET).createSignedUrl(path, 60 * 60 * 24 * 30);
+  return { path, url: data?.signedUrl ?? null };
 }
 
 function unwrapMessage(message: any): any {
@@ -703,10 +776,11 @@ async function getOrCreateConversation(
   agentId: string | null,
   remoteJid: string,
 ) {
-  const { data: existing } = await db.from("conversations")
+  const variants = jidVariants(remoteJid);
+  const { data: rows } = await db.from("conversations")
     .select("id,unread_count,metadata,follow_up_step,next_follow_up_at,follow_up_paused")
-    .eq("user_id", conn.user_id).eq("connection_id", conn.id)
-    .eq("metadata->>remoteJid", remoteJid).maybeSingle();
+    .eq("user_id", conn.user_id).eq("connection_id", conn.id);
+  const existing = (rows ?? []).find((row: { metadata?: { remoteJid?: string } }) => variants.includes(row?.metadata?.remoteJid ?? ""));
   if (existing) return existing;
   const { data: created } = await db.from("conversations").insert({
     user_id: conn.user_id, connection_id: conn.id, agent_id: agentId, status: "open",
