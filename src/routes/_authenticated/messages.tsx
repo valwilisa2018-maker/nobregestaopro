@@ -374,8 +374,22 @@ function MessagesPage() {
         const row = payload.new as { direction?: string } | null;
         if (row?.direction === "inbound") playBell();
       })
-      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "messages", filter: `user_id=eq.${user.id}` }, () => {
-        loadMessages();
+      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "messages", filter: `user_id=eq.${user.id}` }, (payload) => {
+        // Patch the single row in place so tick status updates without reloading the whole thread
+        const row = payload.new as { id?: string; metadata?: Record<string, unknown> | null } | null;
+        if (!row?.id) return;
+        const rank = (v: unknown) => v === "read" ? 3 : v === "delivered" ? 2 : v === "sent" ? 1 : 0;
+        setMsgs((prev) => {
+          const idx = prev.findIndex((m) => m.id === row.id);
+          if (idx === -1) return prev;
+          const prevMeta = (prev[idx].metadata ?? {}) as Record<string, unknown>;
+          const nextMeta = { ...prevMeta, ...(row.metadata ?? {}) };
+          // Never downgrade the status
+          if (rank(nextMeta.status) < rank(prevMeta.status)) nextMeta.status = prevMeta.status;
+          const copy = prev.slice();
+          copy[idx] = { ...prev[idx], metadata: nextMeta };
+          return copy;
+        });
       })
       .on("postgres_changes", { event: "*", schema: "public", table: "contacts", filter: `user_id=eq.${user.id}` }, () => {
         loadContacts();
