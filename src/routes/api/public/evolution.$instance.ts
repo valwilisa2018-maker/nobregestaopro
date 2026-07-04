@@ -647,7 +647,7 @@ async function ttsViaLovable(text: string, voice?: string): Promise<string | nul
 async function getOrCreateConversation(
   db: { from: (t: string) => any },
   conn: { id: string; user_id: string },
-  agentId: string,
+  agentId: string | null,
   remoteJid: string,
 ) {
   const { data: existing } = await db.from("conversations")
