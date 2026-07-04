@@ -86,7 +86,8 @@ function MessagesPage() {
   const [sending, setSending] = useState(false);
   const [recording, setRecording] = useState(false);
   const [recTime, setRecTime] = useState(0);
-  const recRef = useRef<{ mr: MediaRecorder; chunks: BlobPart[]; stream: MediaStream } | null>(null);
+  const recRef = useRef<{ mr: MediaRecorder; chunks: BlobPart[]; stream: MediaStream; cancelled?: boolean; audioCtx?: AudioContext; raf?: number } | null>(null);
+  const [recLevels, setRecLevels] = useState<number[]>(() => Array(24).fill(0.15));
   const scrollRef = useRef<HTMLDivElement | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
