@@ -464,6 +464,8 @@ export const Route = createFileRoute("/api/public/evolution/$instance")({
             let mediaCaption: string | null = null;
             let mediaPath: string | null = null;
             let mediaMime: string | null = null;
+            let mediaB64: string | null = null;
+            let mediaName: string | null = null;
             if (imageMsg) { mediaKind = "image"; mediaCaption = imageMsg.caption ?? null; }
             else if (videoMsg) { mediaKind = "video"; mediaCaption = videoMsg.caption ?? null; }
             else if (audioMsg && !inputWasAudio) { mediaKind = "audio"; }
@@ -473,6 +475,8 @@ export const Route = createFileRoute("/api/public/evolution/$instance")({
                 const b64 = findBase64(msg) ?? await evolutionGetBase64(commandConn, msg);
                 if (b64) {
                   mediaMime = imageMsg?.mimetype ?? videoMsg?.mimetype ?? audioMsg?.mimetype ?? docMsg?.mimetype ?? "application/octet-stream";
+                  mediaB64 = b64;
+                  mediaName = docMsg?.fileName ?? `${mediaKind}-${msg?.key?.id ?? Date.now()}`;
                   const saved = await saveMediaToStorage(
                     supabaseAdmin,
                     conn.user_id,
@@ -497,7 +501,9 @@ export const Route = createFileRoute("/api/public/evolution/$instance")({
                 unread_count: (convo.unread_count ?? 0) + 1,
               } as never).eq("id", convo.id);
             }
-            if (!text) return Response.json({ ok: true, skipped: mediaKind ? "media-only" : "no-text" });
+            // Allow AI to process pure media (image/pdf) without caption
+            if (!text && !mediaB64) return Response.json({ ok: true, skipped: "no-text" });
+            if (!text && mediaB64) text = mediaCaption ?? "";
 
             // Persist inbound message (only when we have a conversation — conversation_id is NOT NULL)
             if (convo) {
@@ -707,7 +713,21 @@ export const Route = createFileRoute("/api/public/evolution/$instance")({
                     return sys.trim() ? [{ role: "system", content: sys }] : [];
                   })(),
                   ...history,
-                  { role: "user", content: mergedInbound },
+                  (() => {
+                    if (mediaB64 && (mediaKind === "image" || mediaKind === "document" || mediaKind === "video")) {
+                      const dataUri = `data:${mediaMime ?? "application/octet-stream"};base64,${mediaB64}`;
+                      const parts: Array<Record<string, unknown>> = [];
+                      const textPart = (mergedInbound ?? "").trim() || (mediaKind === "image" ? "Analise esta imagem." : mediaKind === "video" ? "Analise este vídeo." : "Analise este arquivo.");
+                      parts.push({ type: "text", text: textPart });
+                      if (mediaKind === "image") {
+                        parts.push({ type: "image_url", image_url: { url: dataUri } });
+                      } else {
+                        parts.push({ type: "file", file: { filename: mediaName ?? "arquivo", file_data: dataUri } });
+                      }
+                      return { role: "user", content: parts };
+                    }
+                    return { role: "user", content: mergedInbound };
+                  })(),
                 ],
               }),
             });
