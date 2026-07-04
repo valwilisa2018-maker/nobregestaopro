@@ -535,3 +535,32 @@ export const sendPresence = createServerFn({ method: "POST" })
       return { ok: false as const, error: e instanceof Error ? e.message : "Falha" };
     }
   });
+
+export const ensurePresenceWebhook = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    try {
+      const conn = await pickActiveConnection(context.supabase, context.userId);
+      const apiKey = await loadEvolutionCommandKey(context.supabase, conn.api_key);
+      const found = await evoFetch(`${baseUrl(conn.url_api)}/webhook/find/${conn.instance_name}`, apiKey);
+      const cur = found.json ?? {};
+      const events: string[] = Array.isArray(cur.events) ? cur.events : [];
+      if (events.includes("PRESENCE_UPDATE")) return { ok: true as const, alreadyEnabled: true };
+      const url = cur.url || cur.webhookUrl;
+      if (!url) return { ok: false as const, error: "Webhook não configurado" };
+      await evoFetch(`${baseUrl(conn.url_api)}/webhook/set/${conn.instance_name}`, apiKey, {
+        method: "POST",
+        body: JSON.stringify({
+          webhook: {
+            enabled: true, url,
+            byEvents: cur.webhookByEvents ?? false,
+            base64: cur.webhookBase64 ?? true,
+            events: [...new Set([...events, "MESSAGES_UPSERT", "CONNECTION_UPDATE", "PRESENCE_UPDATE"])],
+          },
+        }),
+      });
+      return { ok: true as const };
+    } catch (e) {
+      return { ok: false as const, error: e instanceof Error ? e.message : "Falha" };
+    }
+  });
