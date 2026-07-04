@@ -702,6 +702,15 @@ function MessagesPage() {
         const row = payload.new as (Msg & { conversation_id?: string }) | null;
         if (!row) return;
         if (row.direction === "inbound") playBell();
+        // Bump unread badge for any inbound message that isn't for the currently open conversation.
+        if (row.direction === "inbound") {
+          const remote = (row.metadata as { remoteJid?: string } | null)?.remoteJid ?? "";
+          const digits = remote.replace(/\D+/g, "");
+          const match = contactsRef.current.find((c) => c.phone.replace(/\D+/g, "") === digits);
+          if (match && selectedRef.current?.id !== match.id) {
+            setUnreadMap((prev) => ({ ...prev, [match.id]: (prev[match.id] ?? 0) + 1 }));
+          }
+        }
         // Try to append immediately if the message belongs to the currently open thread.
         if (selected) {
           const phone = selected.phone.replace(/\D+/g, "");
