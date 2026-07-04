@@ -441,7 +441,7 @@ function MessagesPage() {
         </section>
       </div>
       </TooltipProvider>
-    </PageShell>
+    </div>
   );
 }
 
