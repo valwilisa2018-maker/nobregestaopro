@@ -160,6 +160,45 @@ function MessagesPage() {
     attemptSendText(tmpId, payload.contactId, payload.body, 0);
   }, [attemptSendText]);
 
+  // Starred messages (local only)
+  const [starred, setStarred] = useState<Set<string>>(() => {
+    if (typeof window === "undefined") return new Set();
+    try { return new Set(JSON.parse(localStorage.getItem("wa-starred") ?? "[]")); } catch { return new Set(); }
+  });
+  const toggleStar = useCallback((id: string) => {
+    setStarred((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      if (typeof window !== "undefined") localStorage.setItem("wa-starred", JSON.stringify([...next]));
+      return next;
+    });
+  }, []);
+
+  const deleteMessage = useCallback(async (m: Msg) => {
+    if (!confirm("Excluir esta mensagem?")) return;
+    setMsgs((prev) => prev.filter((x) => x.id !== m.id));
+    if (m.id.startsWith("tmp-")) return;
+    const { error } = await supabase.from("messages").delete().eq("id", m.id);
+    if (error) { toast.error("Falha ao excluir"); loadMessages(); }
+  }, []);
+
+  // Forward dialog
+  const [forwardMsg, setForwardMsg] = useState<Msg | null>(null);
+  const [forwardSearch, setForwardSearch] = useState("");
+  const doForward = useCallback((target: Contact) => {
+    if (!forwardMsg) return;
+    const body = forwardMsg.content ?? "";
+    if (!body.trim()) { toast.error("Só é possível encaminhar texto por enquanto"); setForwardMsg(null); return; }
+    const tmpId = `tmp-${Date.now()}`;
+    if (target.id === selected?.id) {
+      setMsgs((prev) => [...prev, { id: tmpId, direction: "outbound", type: "text", content: body, media_url: null, created_at: new Date().toISOString(), metadata: { pending: true } }]);
+    }
+    attemptSendText(tmpId, target.id, body, 0);
+    toast.success(`Encaminhada para ${target.name || target.phone}`);
+    setForwardMsg(null);
+    setForwardSearch("");
+  }, [forwardMsg, selected, attemptSendText]);
+
   // Ensure webhook includes PRESENCE_UPDATE (best-effort, one shot)
   useEffect(() => {
     if (!user) return;
