@@ -422,6 +422,23 @@ function MessagesPage() {
           return copy;
         });
       })
+      .on("postgres_changes", { event: "DELETE", schema: "public", table: "messages", filter: `user_id=eq.${user.id}` }, (payload) => {
+        const old = payload.old as { id?: string } | null;
+        const deletedId = old?.id;
+        if (!deletedId) return;
+        setMsgs((prev) => {
+          if (!prev.some((m) => m.id === deletedId || (m.metadata as { quotedId?: string } | null)?.quotedId === deletedId)) return prev;
+          return prev
+            .filter((m) => m.id !== deletedId)
+            .map((m) => {
+              const meta = (m.metadata ?? {}) as Record<string, unknown> & { quotedId?: string };
+              if (meta.quotedId !== deletedId) return m;
+              const { quotedId: _q, quotedText: _t, quotedType: _ty, quotedDirection: _d, ...rest } = meta;
+              return { ...m, metadata: { ...rest, quotedDeleted: true } };
+            });
+        });
+        if (replyToRef.current?.id === deletedId) setReplyTo(null);
+      })
       .on("postgres_changes", { event: "*", schema: "public", table: "contacts", filter: `user_id=eq.${user.id}` }, () => {
         loadContacts();
       })
@@ -932,7 +949,14 @@ function MessagesPage() {
                           </DropdownMenuContent>
                         </DropdownMenu>
                         {(() => {
-                          const q = (m.metadata ?? {}) as { quotedId?: string; quotedText?: string; quotedType?: string };
+                          const q = (m.metadata ?? {}) as { quotedId?: string; quotedText?: string; quotedType?: string; quotedDeleted?: boolean };
+                          if (q.quotedDeleted) {
+                            return (
+                              <div className="mb-1 w-full rounded border-l-4 border-gray-400 bg-black/5 px-2 py-1 text-xs italic text-gray-500">
+                                Mensagem apagada
+                              </div>
+                            );
+                          }
                           if (!q.quotedId) return null;
                           const label = q.quotedType === "audio" ? "🎤 Mensagem de voz"
                             : q.quotedType === "image" ? "🖼️ Imagem"
