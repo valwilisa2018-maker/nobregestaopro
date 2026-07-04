@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Mic, Search, Send, Square, MessageCircle, Check, CheckCheck, Loader2, ArrowLeft, Smile, Play, Pause, Paperclip, ChevronLeft, ChevronRight, X, FileText, Image as ImageIcon, Video, Music, File as FileIcon, MoreVertical, Star, Archive, ArchiveRestore, Pin, PinOff, Tag, Info, Save, Bell, BellOff } from "lucide-react";
+import { Mic, Search, Send, Square, MessageCircle, Check, CheckCheck, Loader2, ArrowLeft, Smile, Play, Pause, Paperclip, ChevronLeft, ChevronRight, X, FileText, Image as ImageIcon, Video, Music, File as FileIcon, MoreVertical, Star, Archive, ArchiveRestore, Pin, PinOff, Tag, Info, Save, Bell, BellOff, Trash2, Forward, ChevronDown } from "lucide-react";
 import { PageShell } from "@/components/page-shell";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
@@ -8,6 +8,8 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useServerFn } from "@tanstack/react-start";
 import { sendChatText, sendChatAudio, sendChatMedia, getProfilePicture, sendPresence, ensurePresenceWebhook } from "@/lib/evolution.functions";
 import { toast } from "sonner";
@@ -157,6 +159,45 @@ function MessagesPage() {
     setMsgs((prev) => prev.map((m) => m.id === tmpId ? { ...m, metadata: { ...(m.metadata ?? {}), failed: false, pending: true } } : m));
     attemptSendText(tmpId, payload.contactId, payload.body, 0);
   }, [attemptSendText]);
+
+  // Starred messages (local only)
+  const [starred, setStarred] = useState<Set<string>>(() => {
+    if (typeof window === "undefined") return new Set();
+    try { return new Set(JSON.parse(localStorage.getItem("wa-starred") ?? "[]")); } catch { return new Set(); }
+  });
+  const toggleStar = useCallback((id: string) => {
+    setStarred((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      if (typeof window !== "undefined") localStorage.setItem("wa-starred", JSON.stringify([...next]));
+      return next;
+    });
+  }, []);
+
+  const deleteMessage = useCallback(async (m: Msg) => {
+    if (!confirm("Excluir esta mensagem?")) return;
+    setMsgs((prev) => prev.filter((x) => x.id !== m.id));
+    if (m.id.startsWith("tmp-")) return;
+    const { error } = await supabase.from("messages").delete().eq("id", m.id);
+    if (error) { toast.error("Falha ao excluir"); loadMessages(); }
+  }, []);
+
+  // Forward dialog
+  const [forwardMsg, setForwardMsg] = useState<Msg | null>(null);
+  const [forwardSearch, setForwardSearch] = useState("");
+  const doForward = useCallback((target: Contact) => {
+    if (!forwardMsg) return;
+    const body = forwardMsg.content ?? "";
+    if (!body.trim()) { toast.error("Só é possível encaminhar texto por enquanto"); setForwardMsg(null); return; }
+    const tmpId = `tmp-${Date.now()}`;
+    if (target.id === selected?.id) {
+      setMsgs((prev) => [...prev, { id: tmpId, direction: "outbound", type: "text", content: body, media_url: null, created_at: new Date().toISOString(), metadata: { pending: true } }]);
+    }
+    attemptSendText(tmpId, target.id, body, 0);
+    toast.success(`Encaminhada para ${target.name || target.phone}`);
+    setForwardMsg(null);
+    setForwardSearch("");
+  }, [forwardMsg, selected, attemptSendText]);
 
   // Ensure webhook includes PRESENCE_UPDATE (best-effort, one shot)
   useEffect(() => {
@@ -753,11 +794,34 @@ function MessagesPage() {
                   const isVideo = m.type === "video" && !!m.media_url;
                   const isFile = (m.type === "file" || m.type === "document") && !!m.media_url;
                   return (
-                    <div key={m.id} className={`flex ${out ? "justify-end" : "justify-start"}`}>
+                    <div key={m.id} className={`group flex ${out ? "justify-end" : "justify-start"}`}>
                       <div
-                        className={`max-w-[75%] rounded-lg px-2.5 py-1.5 shadow-sm text-sm text-gray-800`}
+                        className={`relative max-w-[75%] rounded-lg px-2.5 py-1.5 shadow-sm text-sm text-gray-800`}
                         style={{ background: out ? WA.outBubble : WA.inBubble }}
                       >
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <button
+                              className="absolute top-0.5 right-0.5 p-0.5 rounded-full opacity-0 group-hover:opacity-100 hover:bg-black/10 transition"
+                              aria-label="Opções da mensagem"
+                            >
+                              <ChevronDown className="h-3.5 w-3.5 text-gray-600" />
+                            </button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align={out ? "end" : "start"} className="w-44">
+                            <DropdownMenuItem onClick={() => toggleStar(m.id)}>
+                              <Star className={`h-4 w-4 mr-2 ${starred.has(m.id) ? "fill-yellow-400 text-yellow-500" : ""}`} />
+                              {starred.has(m.id) ? "Desmarcar" : "Marcar"}
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => setForwardMsg(m)}>
+                              <Forward className="h-4 w-4 mr-2" /> Encaminhar
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem onClick={() => deleteMessage(m)} className="text-red-600 focus:text-red-600">
+                              <Trash2 className="h-4 w-4 mr-2" /> Excluir
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
                         {isAudio ? (
                           m.media_url
                             ? <AudioPlayer src={m.media_url} />
@@ -778,6 +842,7 @@ function MessagesPage() {
                           <div className="whitespace-pre-wrap break-words pr-14">{m.content}</div>
                         )}
                         <div className="mt-0.5 flex items-center justify-end gap-1 text-[10px] text-gray-500">
+                          {starred.has(m.id) && <Star className="h-3 w-3 fill-yellow-400 text-yellow-500" />}
                           <span>{new Date(m.created_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</span>
                           {out && (() => {
                             const meta = (m.metadata ?? {}) as { status?: string; pending?: boolean; failed?: boolean };
@@ -1008,6 +1073,38 @@ function MessagesPage() {
           )}
         </div>
       )}
+      <Dialog open={!!forwardMsg} onOpenChange={(o) => { if (!o) { setForwardMsg(null); setForwardSearch(""); } }}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Encaminhar mensagem</DialogTitle>
+          </DialogHeader>
+          <Input placeholder="Buscar contato..." value={forwardSearch} onChange={(e) => setForwardSearch(e.target.value)} />
+          <div className="max-h-80 overflow-y-auto -mx-2">
+            {contacts
+              .filter((c) => {
+                const q = forwardSearch.toLowerCase();
+                if (!q) return true;
+                return (c.name ?? "").toLowerCase().includes(q) || c.phone.includes(q);
+              })
+              .slice(0, 50)
+              .map((c) => (
+                <button
+                  key={c.id}
+                  onClick={() => doForward(c)}
+                  className="w-full flex items-center gap-3 px-3 py-2 hover:bg-muted rounded text-left"
+                >
+                  <div className="h-9 w-9 rounded-full bg-muted grid place-items-center text-xs font-semibold shrink-0">
+                    {initials(c.name, c.phone)}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <div className="text-sm font-medium truncate">{c.name || c.phone}</div>
+                    <div className="text-xs text-muted-foreground truncate">{c.phone}</div>
+                  </div>
+                </button>
+              ))}
+          </div>
+        </DialogContent>
+      </Dialog>
       </TooltipProvider>
     </div>
   );
