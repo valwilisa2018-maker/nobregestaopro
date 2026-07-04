@@ -461,9 +461,13 @@ function MessagesPage() {
                 <button className="md:hidden p-1 -ml-1" onClick={() => setSelected(null)}>
                   <ArrowLeft className="h-5 w-5" />
                 </button>
-                <div className="h-10 w-10 rounded-full grid place-items-center text-xs font-semibold bg-white/20 shrink-0">
-                  {initials(selected.name, selected.phone)}
-                </div>
+                {avatars[selected.id] ? (
+                  <img src={avatars[selected.id]!} alt="" className="h-10 w-10 rounded-full object-cover shrink-0" />
+                ) : (
+                  <div className="h-10 w-10 rounded-full grid place-items-center text-xs font-semibold bg-white/20 shrink-0">
+                    {initials(selected.name, selected.phone)}
+                  </div>
+                )}
                 <div className="min-w-0 flex-1">
                   <div className="text-sm font-semibold truncate">{selected.name || selected.phone}</div>
                   <div className="text-[11px] text-white/80 truncate">{selected.phone}</div>
