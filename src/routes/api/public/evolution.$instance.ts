@@ -141,6 +141,25 @@ export const Route = createFileRoute("/api/public/evolution/$instance")({
           }).eq("id", conn.id);
         }
 
+        // Presence updates (typing/recording) — upsert into public.presence
+        if (event === "presence.update" || event === "PRESENCE_UPDATE") {
+          try {
+            const d = payload?.data ?? {};
+            const presences = d.presences ?? {};
+            const jid = (d.id as string | undefined) ?? Object.keys(presences)[0];
+            if (jid) {
+              const p = presences[jid]?.lastKnownPresence ?? d.presence ?? "available";
+              await supabaseAdmin.from("presence").upsert({
+                user_id: conn.user_id,
+                jid,
+                presence: String(p),
+                updated_at: new Date().toISOString(),
+              } as never, { onConflict: "user_id,jid" });
+            }
+          } catch { /* ignore */ }
+          return Response.json({ ok: true });
+        }
+
         // Incoming message → run agent → reply
         if (event === "messages.upsert" || event === "MESSAGES_UPSERT") {
           try {
