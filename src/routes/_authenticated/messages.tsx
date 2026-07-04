@@ -477,6 +477,38 @@ function MessagesPage() {
   }, [user]);
   useEffect(() => { loadContacts(); }, [loadContacts]);
 
+  // Load instances (connections) and per-contact connection membership map
+  useEffect(() => {
+    if (!user) return;
+    (async () => {
+      const { data } = await supabase.from("connections")
+        .select("id,name,instance_name,profile_name,status")
+        .eq("user_id", user.id)
+        .order("created_at", { ascending: true });
+      setInstances((data ?? []).map((c) => ({
+        id: c.id, name: c.name, instance_name: c.instance_name, profile_name: c.profile_name,
+      })));
+    })();
+  }, [user]);
+  useEffect(() => {
+    if (!user) return;
+    (async () => {
+      const { data } = await supabase.from("conversations")
+        .select("connection_id,metadata")
+        .eq("user_id", user.id)
+        .not("connection_id", "is", null)
+        .limit(5000);
+      const map: Record<string, Set<string>> = {};
+      for (const row of data ?? []) {
+        const jid = (row.metadata as { remoteJid?: string } | null)?.remoteJid ?? "";
+        const digits = String(jid).split("@")[0].replace(/\D+/g, "");
+        if (!digits || !row.connection_id) continue;
+        (map[digits] ??= new Set()).add(row.connection_id);
+      }
+      setContactConnMap(map);
+    })();
+  }, [user, contacts.length]);
+
   // Auto-select first contact so the composer is always visible
   useEffect(() => {
     if (!selected && contacts.length) setSelected(contacts[0]);
@@ -492,6 +524,15 @@ function MessagesPage() {
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
     let list = contacts;
+    if (activeInstance !== "all") {
+      list = list.filter((c) => {
+        for (const digits of phoneVariants(c.phone)) {
+          const set = contactConnMap[digits];
+          if (set?.has(activeInstance)) return true;
+        }
+        return false;
+      });
+    }
     if (filterMode === "archived") list = list.filter((c) => archived.has(c.id));
     else list = list.filter((c) => !archived.has(c.id));
     if (filterMode === "unread") list = list.filter((c) => (unreadMap[c.id] ?? 0) > 0);
@@ -499,7 +540,7 @@ function MessagesPage() {
     else if (filterMode === "groups") list = list.filter((c) => c.phone.includes("@g.us"));
     if (q) list = list.filter((c) => (c.name ?? "").toLowerCase().includes(q) || c.phone.includes(q));
     return [...list].sort((a, b) => Number(pinned.has(b.id)) - Number(pinned.has(a.id)));
-  }, [contacts, search, filterMode, favorites, unreadMap, archived, pinned]);
+  }, [contacts, search, filterMode, favorites, unreadMap, archived, pinned, activeInstance, contactConnMap]);
   const unreadTotal = useMemo(
     () => Object.values(unreadMap).reduce((a, b) => a + b, 0),
     [unreadMap],
