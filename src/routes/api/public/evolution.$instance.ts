@@ -307,8 +307,8 @@ export const Route = createFileRoute("/api/public/evolution/$instance")({
               .maybeSingle();
             const ext = ((agent?.tools ?? {}) as Ext);
 
-            // Speech-to-text on inbound audio
-            if (!fromMe && !text && audioMsg && ext.audio?.enabled) {
+            // Speech-to-text on inbound audio (always attempt so the agent can understand voice notes)
+            if (!fromMe && !text && audioMsg) {
               try {
                 const b64 = await evolutionGetBase64(commandConn, msg);
                 if (b64) {
