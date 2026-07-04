@@ -928,13 +928,14 @@ function MessagesPage() {
     opts?: { objectUrl?: string; quotedMessageId?: string; quotedSnapshot?: Record<string, unknown> },
   ) {
     if (!selected) return;
-    const MAX = 15 * 1024 * 1024; // 15 MB
-    const url = opts?.objectUrl ?? URL.createObjectURL(file);
     const kind = fileKind(file);
+    const MAX = kind === "video" ? 60 * 1024 * 1024 : 15 * 1024 * 1024;
+    const maxLabel = kind === "video" ? "60 MB" : "15 MB";
+    const url = opts?.objectUrl ?? URL.createObjectURL(file);
     const qid = `up-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
     setUploadQueue((q) => [...q, { id: qid, name: file.name, size: file.size, url, kind, status: "uploading" }]);
     if (file.size > MAX) {
-      const err = `Máx. 15 MB (este tem ${(file.size / 1024 / 1024).toFixed(1)} MB)`;
+      const err = `Máx. ${maxLabel} (este tem ${(file.size / 1024 / 1024).toFixed(1)} MB)`;
       setUploadQueue((q) => q.map((x) => (x.id === qid ? { ...x, status: "failed", error: err } : x)));
       toast.error(`${file.name}: arquivo muito grande. ${err}`);
       return;
@@ -1336,7 +1337,7 @@ function MessagesPage() {
               <div className="w-full h-full rounded-2xl border-4 border-dashed border-blue-500 bg-blue-500/10 backdrop-blur-[2px] flex flex-col items-center justify-center gap-3 text-blue-700">
                 <Paperclip className="h-14 w-14" />
                 <div className="text-xl font-semibold">Solte para enviar</div>
-                <div className="text-sm opacity-80">Imagens, vídeos, áudio, PDF ou documentos (até 15 MB)</div>
+                <div className="text-sm opacity-80">Imagens, áudio, PDF e documentos até 15 MB · vídeos até 60 MB</div>
               </div>
             </div>
           )}
