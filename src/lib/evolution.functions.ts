@@ -255,7 +255,7 @@ export const createAndConnectInstance = createServerFn({ method: "POST" })
             url: webhookUrl,
             byEvents: false,
             base64: true,
-            events: ["MESSAGES_UPSERT", "CONNECTION_UPDATE", "QRCODE_UPDATED"],
+            events: ["MESSAGES_UPSERT", "CONNECTION_UPDATE", "QRCODE_UPDATED", "PRESENCE_UPDATE"],
           },
         } : {}),
       }),
@@ -291,7 +291,7 @@ export const createAndConnectInstance = createServerFn({ method: "POST" })
         user_id: context.userId,
         name: `WhatsApp · ${data.name}`,
         url: webhookUrl,
-        events: ["MESSAGES_UPSERT", "CONNECTION_UPDATE"],
+        events: ["MESSAGES_UPSERT", "CONNECTION_UPDATE", "PRESENCE_UPDATE"],
         is_active: true,
       });
     }
