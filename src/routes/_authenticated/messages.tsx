@@ -559,9 +559,13 @@ function MessagesPage() {
                             ? <AudioPlayer src={m.media_url} />
                             : <div className="flex items-center gap-2 text-gray-600"><Mic className="h-4 w-4" /><span>Mensagem de voz</span></div>
                         ) : isImage ? (
-                          <img src={m.media_url!} alt={m.content ?? ""} className="rounded-md max-h-64 object-cover" />
+                          <button onClick={() => setLightbox({ type: "image", src: m.media_url! })} className="block focus:outline-none">
+                            <img src={m.media_url!} alt={m.content ?? ""} className="rounded-md max-h-64 object-cover cursor-zoom-in" />
+                          </button>
                         ) : isVideo ? (
-                          <video src={m.media_url!} controls className="rounded-md max-h-64 bg-black" />
+                          <button onClick={() => setLightbox({ type: "video", src: m.media_url! })} className="block focus:outline-none">
+                            <video src={m.media_url!} className="rounded-md max-h-64 bg-black cursor-zoom-in pointer-events-none" />
+                          </button>
                         ) : isFile ? (
                           <a href={m.media_url!} target="_blank" rel="noreferrer" className="flex items-center gap-2 text-gray-800">
                             <FileText className="h-5 w-5" /><span className="underline truncate max-w-[220px]">{m.content}</span>
