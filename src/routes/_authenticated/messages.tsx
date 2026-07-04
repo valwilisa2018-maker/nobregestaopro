@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useServerFn } from "@tanstack/react-start";
-import { sendChatText, sendChatAudio } from "@/lib/evolution.functions";
+import { sendChatText, sendChatAudio, sendChatMedia, getProfilePicture } from "@/lib/evolution.functions";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/messages")({
@@ -87,6 +87,9 @@ function MessagesPage() {
   });
   const sendText = useServerFn(sendChatText);
   const sendAudio = useServerFn(sendChatAudio);
+  const sendMedia = useServerFn(sendChatMedia);
+  const fetchAvatar = useServerFn(getProfilePicture);
+  const [avatars, setAvatars] = useState<Record<string, string | null>>({});
 
   // Load contacts
   const loadContacts = useCallback(async () => {
@@ -184,6 +187,53 @@ function MessagesPage() {
       setSending(false);
     }
   }
+
+  async function handleSendAttachment() {
+    if (!selected || !attachment || sending) return;
+    setSending(true);
+    const file = attachment.file;
+    try {
+      const b64 = await blobToBase64(file);
+      const res = await sendMedia({ data: {
+        contactId: selected.id, base64: b64, mime: file.type || "application/octet-stream",
+        fileName: file.name, caption: text.trim() || undefined,
+      }});
+      if (res && "ok" in res && res.ok === false) toast.error(res.error);
+      else { setText(""); setAttachment(null); }
+      await loadMessages();
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Falha ao enviar arquivo");
+    } finally {
+      setSending(false);
+    }
+  }
+
+  // Fetch avatar for the selected contact
+  useEffect(() => {
+    if (!selected || avatars[selected.id] !== undefined) return;
+    fetchAvatar({ data: { phone: selected.phone } })
+      .then((r) => setAvatars((prev) => ({ ...prev, [selected.id]: r.url })))
+      .catch(() => setAvatars((prev) => ({ ...prev, [selected.id]: null })));
+  }, [selected, fetchAvatar, avatars]);
+
+  // Lazy-fetch avatars for the visible contacts (first 30)
+  useEffect(() => {
+    const pending = contacts.slice(0, 30).filter((c) => avatars[c.id] === undefined);
+    if (!pending.length) return;
+    let cancelled = false;
+    (async () => {
+      for (const c of pending) {
+        if (cancelled) return;
+        try {
+          const r = await fetchAvatar({ data: { phone: c.phone } });
+          if (!cancelled) setAvatars((prev) => ({ ...prev, [c.id]: r.url }));
+        } catch {
+          if (!cancelled) setAvatars((prev) => ({ ...prev, [c.id]: null }));
+        }
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [contacts, fetchAvatar, avatars]);
 
   async function startRecording() {
     if (!selected) return;
@@ -309,9 +359,13 @@ function MessagesPage() {
                   title={sidebarCollapsed ? (c.name || c.phone) : undefined}
                 >
                   <button onClick={() => setSelected(c)} className="flex items-center gap-3 flex-1 min-w-0 text-left focus:outline-none">
-                    <div className="h-12 w-12 rounded-full grid place-items-center text-sm font-semibold text-white shrink-0" style={{ background: WA.headerTeal }}>
-                      {initials(c.name, c.phone)}
-                    </div>
+                    {avatars[c.id] ? (
+                      <img src={avatars[c.id]!} alt="" className="h-12 w-12 rounded-full object-cover shrink-0" />
+                    ) : (
+                      <div className="h-12 w-12 rounded-full grid place-items-center text-sm font-semibold text-white shrink-0" style={{ background: WA.headerTeal }}>
+                        {initials(c.name, c.phone)}
+                      </div>
+                    )}
                     {!sidebarCollapsed && (
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-1.5">
@@ -426,9 +480,13 @@ function MessagesPage() {
                 <button className="md:hidden p-1 -ml-1" onClick={() => setSelected(null)}>
                   <ArrowLeft className="h-5 w-5" />
                 </button>
-                <div className="h-10 w-10 rounded-full grid place-items-center text-xs font-semibold bg-white/20 shrink-0">
-                  {initials(selected.name, selected.phone)}
-                </div>
+                {avatars[selected.id] ? (
+                  <img src={avatars[selected.id]!} alt="" className="h-10 w-10 rounded-full object-cover shrink-0" />
+                ) : (
+                  <div className="h-10 w-10 rounded-full grid place-items-center text-xs font-semibold bg-white/20 shrink-0">
+                    {initials(selected.name, selected.phone)}
+                  </div>
+                )}
                 <div className="min-w-0 flex-1">
                   <div className="text-sm font-semibold truncate">{selected.name || selected.phone}</div>
                   <div className="text-[11px] text-white/80 truncate">{selected.phone}</div>
@@ -448,7 +506,8 @@ function MessagesPage() {
                   const out = m.direction === "outbound";
                   const isAudio = m.type === "audio" || (m.metadata as { audio?: boolean } | null)?.audio;
                   const isImage = m.type === "image" && !!m.media_url;
-                  const isFile = m.type === "file" && !!m.media_url;
+                  const isVideo = m.type === "video" && !!m.media_url;
+                  const isFile = (m.type === "file" || m.type === "document") && !!m.media_url;
                   return (
                     <div key={m.id} className={`flex ${out ? "justify-end" : "justify-start"}`}>
                       <div
@@ -461,6 +520,8 @@ function MessagesPage() {
                             : <div className="flex items-center gap-2 text-gray-600"><Mic className="h-4 w-4" /><span>Mensagem de voz</span></div>
                         ) : isImage ? (
                           <img src={m.media_url!} alt={m.content ?? ""} className="rounded-md max-h-64 object-cover" />
+                        ) : isVideo ? (
+                          <video src={m.media_url!} controls className="rounded-md max-h-64 bg-black" />
                         ) : isFile ? (
                           <a href={m.media_url!} target="_blank" rel="noreferrer" className="flex items-center gap-2 text-gray-800">
                             <FileText className="h-5 w-5" /><span className="underline truncate max-w-[220px]">{m.content}</span>
@@ -610,7 +671,7 @@ function MessagesPage() {
                     <TooltipContent side="top">Parar gravação</TooltipContent>
                   </Tooltip>
                 ) : text.trim() || attachment ? (
-                  <Button size="icon" onClick={() => { if (attachment) { setMsgs((p) => [...p, { id: `local-${Date.now()}`, direction: "outbound", type: attachment.file.type.startsWith("image/") ? "image" : "file", content: attachment.file.name, media_url: attachment.url, created_at: new Date().toISOString(), metadata: null }]); setAttachment(null); } if (text.trim()) handleSendText(); }} disabled={sending} className="rounded-full h-11 w-11 text-white hover:opacity-90" style={{ background: WA.accent }}>
+                  <Button size="icon" onClick={() => { if (attachment) handleSendAttachment(); else if (text.trim()) handleSendText(); }} disabled={sending} className="rounded-full h-11 w-11 text-white hover:opacity-90" style={{ background: WA.accent }}>
                     {sending ? <Loader2 className="h-5 w-5 animate-spin" /> : <Send className="h-5 w-5" />}
                   </Button>
                 ) : (
