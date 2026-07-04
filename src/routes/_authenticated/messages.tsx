@@ -1079,6 +1079,26 @@ function MessagesPage() {
                       }}
                     />
                     <div className="flex-1 flex flex-col gap-1">
+                       {replyTo && (
+                         <div className="flex items-stretch gap-2 bg-white rounded-lg px-2 py-1.5 shadow-sm text-sm">
+                           <div className="w-1 rounded bg-emerald-500" />
+                           <div className="min-w-0 flex-1">
+                             <div className="text-[11px] font-medium text-emerald-700">
+                               Respondendo {replyTo.direction === "outbound" ? "você" : (selected?.name || selected?.phone || "contato")}
+                             </div>
+                             <div className="truncate text-gray-700">
+                               {replyTo.type === "audio" ? "🎤 Mensagem de voz"
+                                 : replyTo.type === "image" ? "🖼️ Imagem"
+                                 : replyTo.type === "video" ? "🎬 Vídeo"
+                                 : replyTo.type === "document" ? "📄 Arquivo"
+                                 : (replyTo.content || "")}
+                             </div>
+                           </div>
+                           <button onClick={() => setReplyTo(null)} className="p-1 rounded-full hover:bg-gray-100 text-gray-500" aria-label="Cancelar resposta">
+                             <X className="h-4 w-4" />
+                           </button>
+                         </div>
+                       )}
                        {attachment && (() => {
                          const t = attachment.file.type;
                          const isImg = t.startsWith("image/");
