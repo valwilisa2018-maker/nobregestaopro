@@ -160,6 +160,38 @@ export const Route = createFileRoute("/api/public/evolution/$instance")({
           return Response.json({ ok: true });
         }
 
+        // Delivery / read receipts for outbound messages
+        if (event === "messages.update" || event === "MESSAGES_UPDATE") {
+          try {
+            const arr = Array.isArray(payload?.data) ? payload.data : [payload?.data];
+            for (const u of arr) {
+              const evoId = u?.key?.id ?? u?.keyId ?? u?.messageId;
+              const rawStatus = u?.status ?? u?.update?.status;
+              if (!evoId || !rawStatus) continue;
+              const s = String(rawStatus).toUpperCase();
+              const status = s === "READ" || s === "PLAYED" ? "read"
+                : s === "DELIVERY_ACK" || s === "DELIVERED" ? "delivered"
+                : s === "SERVER_ACK" || s === "SENT" ? "sent" : null;
+              if (!status) continue;
+              const { data: rows } = await supabaseAdmin.from("messages")
+                .select("id,metadata")
+                .eq("user_id", conn.user_id)
+                .eq("metadata->>evoId", evoId)
+                .limit(1);
+              const row = rows?.[0];
+              if (!row) continue;
+              const meta = (row.metadata && typeof row.metadata === "object") ? row.metadata as Record<string, unknown> : {};
+              const prev = String(meta.status ?? "");
+              const rank = (v: string) => v === "read" ? 3 : v === "delivered" ? 2 : v === "sent" ? 1 : 0;
+              if (rank(status) <= rank(prev)) continue;
+              await supabaseAdmin.from("messages").update({
+                metadata: { ...meta, status } as never,
+              }).eq("id", row.id);
+            }
+          } catch { /* ignore */ }
+          return Response.json({ ok: true });
+        }
+
         // Incoming message → run agent → reply
         if (event === "messages.upsert" || event === "MESSAGES_UPSERT") {
           try {
