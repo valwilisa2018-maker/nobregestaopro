@@ -1150,7 +1150,7 @@ function MessagesPage() {
   }, [recording, selected, pushPresence]);
 
   return (
-    <div className="-m-6 h-[calc(100vh-3rem)]">
+    <div className="-m-3 sm:-m-6 h-[calc(100vh-3rem)]">
       <TooltipProvider delayDuration={200}>
       <div
         className={`grid grid-cols-1 gap-0 overflow-hidden h-full transition-all duration-300 ${
