@@ -634,7 +634,28 @@ function MessagesPage() {
               const { data: signed } = await supabase.storage.from("agent-media").createSignedUrl(path, 60 * 60 * 24);
               if (signed?.signedUrl) hydrated = { ...(row as Msg), media_url: signed.signedUrl };
             }
-            setMsgs((prev) => (prev.some((m) => m.id === hydrated.id) ? prev : [...prev, hydrated]));
+            setMsgs((prev) => {
+              // Already have the real row → no-op
+              if (prev.some((m) => m.id === hydrated.id)) return prev;
+              // Reconcile against optimistic (tmp-*) rows: same direction + same content/type
+              // added within the last 2 minutes → replace the tmp instead of appending a duplicate.
+              const nowTs = Date.now();
+              const tmpIdx = prev.findIndex((m) => {
+                if (!m.id.startsWith("tmp-")) return false;
+                if (m.direction !== hydrated.direction) return false;
+                if ((m.type || "text") !== (hydrated.type || "text")) return false;
+                const sameText = (m.content ?? "") === (hydrated.content ?? "");
+                const created = new Date(m.created_at).getTime();
+                const recent = Number.isFinite(created) && nowTs - created < 120_000;
+                return sameText && recent;
+              });
+              if (tmpIdx !== -1) {
+                const copy = prev.slice();
+                copy[tmpIdx] = hydrated;
+                return copy;
+              }
+              return [...prev, hydrated];
+            });
             return;
           }
         }
