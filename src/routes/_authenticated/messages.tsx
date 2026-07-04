@@ -427,6 +427,7 @@ function MessagesPage() {
     if (!selected || !text.trim()) return;
     const body = text.trim();
     const tmpId = `tmp-${Date.now()}`;
+    const quotedMessageId = replyTo?.id;
     const optimistic: Msg = {
       id: tmpId,
       direction: "outbound",
@@ -434,12 +435,13 @@ function MessagesPage() {
       content: body,
       media_url: null,
       created_at: new Date().toISOString(),
-      metadata: { pending: true },
+      metadata: quotedMessageId ? { pending: true, quotedId: quotedMessageId, quotedText: (replyTo?.content ?? "").slice(0, 200), quotedType: replyTo?.type, quotedDirection: replyTo?.direction } : { pending: true },
     };
     setText("");
+    setReplyTo(null);
     setMsgs((prev) => [...prev, optimistic]);
     const contactId = selected.id;
-    attemptSendText(tmpId, contactId, body, 0);
+    attemptSendText(tmpId, contactId, body, 0, quotedMessageId);
   }
 
   async function sendSticker(emoji: string) {
@@ -470,6 +472,7 @@ function MessagesPage() {
     const file = attachment.file;
     const mime = file.type || "application/octet-stream";
     const optimisticType = mime.startsWith("image/") ? "image" : mime.startsWith("video/") ? "video" : mime.startsWith("audio/") ? "audio" : "document";
+    const quotedMessageId = replyTo?.id;
     const optimistic: Msg = {
       id: `tmp-${Date.now()}`,
       direction: "outbound",
@@ -477,14 +480,15 @@ function MessagesPage() {
       content: text.trim() || file.name,
       media_url: attachment.url,
       created_at: new Date().toISOString(),
-      metadata: { pending: true, fileName: file.name },
+      metadata: { pending: true, fileName: file.name, ...(quotedMessageId ? { quotedId: quotedMessageId, quotedText: (replyTo?.content ?? "").slice(0, 200), quotedType: replyTo?.type, quotedDirection: replyTo?.direction } : {}) },
     };
     setMsgs((prev) => [...prev, optimistic]);
+    setReplyTo(null);
     try {
       const b64 = await blobToBase64(file);
       const res = await sendMedia({ data: {
         contactId: selected.id, base64: b64, mime,
-        fileName: file.name, caption: text.trim() || undefined,
+        fileName: file.name, caption: text.trim() || undefined, quotedMessageId,
       }});
       if (res && "ok" in res && res.ok === false) toast.error(res.error);
       else { setText(""); setAttachment(null); }
