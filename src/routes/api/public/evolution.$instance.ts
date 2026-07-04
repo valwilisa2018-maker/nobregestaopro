@@ -239,7 +239,7 @@ export const Route = createFileRoute("/api/public/evolution/$instance")({
                   .select("id,metadata")
                   .eq("user_id", conn.user_id)
                   .eq("direction", "outbound")
-                  .eq("metadata->>remoteJid", String(remoteJid))
+                  .in("metadata->>remoteJid", receiptRemoteJidCandidates(String(remoteJid)))
                   .gte("created_at", dayAgo)
                   .order("created_at", { ascending: false })
                   .limit(1);
@@ -251,8 +251,14 @@ export const Route = createFileRoute("/api/public/evolution/$instance")({
               const prev = String(meta.status ?? "");
               const rank = (v: string) => v === "read" ? 3 : v === "delivered" ? 2 : v === "sent" ? 1 : 0;
               if (rank(status) <= rank(prev)) continue;
+              const now = new Date().toISOString();
               await supabaseAdmin.from("messages").update({
-                metadata: { ...meta, status } as never,
+                metadata: {
+                  ...meta,
+                  status,
+                  ...(status === "delivered" && !meta.delivered_at ? { delivered_at: now } : {}),
+                  ...(status === "read" ? { delivered_at: meta.delivered_at ?? now, read_at: now } : {}),
+                } as never,
               }).eq("id", row.id);
             }
           } catch { /* ignore */ }
