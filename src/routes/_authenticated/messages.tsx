@@ -793,9 +793,10 @@ function MessagesPage() {
           }
         }
         // Try to append immediately if the message belongs to the currently open thread.
-        if (selected) {
-          const phone = selected.phone.replace(/\D+/g, "");
-          const jids = new Set([jidFromPhone(selected.phone), ...jidVariants(selected.phone)]);
+        const openContact = selectedRef.current;
+        if (openContact) {
+          const phone = openContact.phone.replace(/\D+/g, "");
+          const jids = new Set([jidFromPhone(openContact.phone), ...jidVariants(openContact.phone)]);
           const remote = (row.metadata as { remoteJid?: string } | null)?.remoteJid ?? "";
           const belongs = jids.has(remote) || (!!phone && remote.startsWith(`${phone}@`));
           if (belongs) {
@@ -835,7 +836,7 @@ function MessagesPage() {
                 return copy;
               }
               const next = [...prev, withReceipt];
-              persistMsgCache(selectedRef.current?.id ?? selected.id, next);
+              persistMsgCache(selectedRef.current?.id ?? openContact.id, next);
               return next;
             });
             return;
