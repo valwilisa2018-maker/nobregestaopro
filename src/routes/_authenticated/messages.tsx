@@ -250,9 +250,10 @@ function MessagesPage() {
   useEffect(() => {
     if (!user) return;
     const ch = supabase.channel("messages-live")
-      .on("postgres_changes", { event: "INSERT", schema: "public", table: "messages", filter: `user_id=eq.${user.id}` }, () => {
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "messages", filter: `user_id=eq.${user.id}` }, (payload) => {
         loadMessages();
-        playBell();
+        const row = payload.new as { direction?: string } | null;
+        if (row?.direction === "inbound") playBell();
       })
       .on("postgres_changes", { event: "UPDATE", schema: "public", table: "messages", filter: `user_id=eq.${user.id}` }, () => {
         loadMessages();
