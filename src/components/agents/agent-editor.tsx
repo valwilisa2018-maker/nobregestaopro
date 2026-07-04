@@ -4,6 +4,7 @@ import {
   Save, RotateCcw, Sliders, MessageSquare, Clock, Bell, Send, Hash,
   CalendarClock, AudioLines, Image as ImageIcon, PlayCircle, BookOpen, Loader2,
   Plus, X, Play, Mic, Info, Trash2, ChevronDown, Upload, FileText, Send as SendIcon, Bot,
+  RefreshCw, Database, Brain,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
@@ -15,7 +16,9 @@ import { Slider } from "@/components/ui/slider";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { PROVIDERS, type ProviderId } from "./providers";
+import { PROMPT_LIBRARY } from "./prompt-library";
 
 export interface AgentRow {
   id: string;
