@@ -1323,11 +1323,22 @@ function MessagesPage() {
                                 title="Tentar novamente"
                               >!</button>
                             );
-                            if (meta.pending || !meta.status) return <Check className="h-3.5 w-3.5 text-gray-400" />;
-                            if (meta.status === "sent") return <Check className="h-3.5 w-3.5 text-gray-500" />;
-                            if (meta.status === "delivered") return <CheckCheck className="h-3.5 w-3.5 text-gray-500" />;
-                            if (meta.status === "read") return <CheckCheck className="h-3.5 w-3.5" style={{ color: WA.read }} />;
-                            return <Check className="h-3.5 w-3.5 text-gray-400" />;
+                            const s = meta.pending || !meta.status ? "pending" : meta.status;
+                            const color =
+                              s === "read" ? WA.read :
+                              s === "delivered" || s === "sent" ? "#6b7280" :
+                              "#9ca3af";
+                            const Icon = s === "delivered" || s === "read" ? CheckCheck : Check;
+                            return (
+                              <span
+                                key={s}
+                                className="inline-flex transition-all duration-300 ease-out animate-in fade-in zoom-in-90"
+                                style={{ color }}
+                                aria-label={s === "read" ? "Lida" : s === "delivered" ? "Entregue" : s === "sent" ? "Enviada" : "Pendente"}
+                              >
+                                <Icon className="h-3.5 w-3.5 transition-colors duration-300" />
+                              </span>
+                            );
                           })()}
                         </div>
                       </div>
