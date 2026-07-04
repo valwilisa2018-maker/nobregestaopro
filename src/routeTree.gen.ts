@@ -33,6 +33,7 @@ import { Route as AuthenticatedConversationsRouteImport } from './routes/_authen
 import { Route as AuthenticatedContactsRouteImport } from './routes/_authenticated/contacts'
 import { Route as AuthenticatedConnectionsRouteImport } from './routes/_authenticated/connections'
 import { Route as AuthenticatedClientsRouteImport } from './routes/_authenticated/clients'
+import { Route as AuthenticatedCalendarRouteImport } from './routes/_authenticated/calendar'
 import { Route as AuthenticatedBroadcastsRouteImport } from './routes/_authenticated/broadcasts'
 import { Route as AuthenticatedBillingRouteImport } from './routes/_authenticated/billing'
 import { Route as AuthenticatedAudiosRouteImport } from './routes/_authenticated/audios'
@@ -165,6 +166,11 @@ const AuthenticatedClientsRoute = AuthenticatedClientsRouteImport.update({
   path: '/clients',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
+const AuthenticatedCalendarRoute = AuthenticatedCalendarRouteImport.update({
+  id: '/calendar',
+  path: '/calendar',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
 const AuthenticatedBroadcastsRoute = AuthenticatedBroadcastsRouteImport.update({
   id: '/broadcasts',
   path: '/broadcasts',
@@ -223,6 +229,7 @@ export interface FileRoutesByFullPath {
   '/audios': typeof AuthenticatedAudiosRoute
   '/billing': typeof AuthenticatedBillingRoute
   '/broadcasts': typeof AuthenticatedBroadcastsRoute
+  '/calendar': typeof AuthenticatedCalendarRoute
   '/clients': typeof AuthenticatedClientsRoute
   '/connections': typeof AuthenticatedConnectionsRoute
   '/contacts': typeof AuthenticatedContactsRoute
@@ -257,6 +264,7 @@ export interface FileRoutesByTo {
   '/audios': typeof AuthenticatedAudiosRoute
   '/billing': typeof AuthenticatedBillingRoute
   '/broadcasts': typeof AuthenticatedBroadcastsRoute
+  '/calendar': typeof AuthenticatedCalendarRoute
   '/clients': typeof AuthenticatedClientsRoute
   '/connections': typeof AuthenticatedConnectionsRoute
   '/contacts': typeof AuthenticatedContactsRoute
@@ -293,6 +301,7 @@ export interface FileRoutesById {
   '/_authenticated/audios': typeof AuthenticatedAudiosRoute
   '/_authenticated/billing': typeof AuthenticatedBillingRoute
   '/_authenticated/broadcasts': typeof AuthenticatedBroadcastsRoute
+  '/_authenticated/calendar': typeof AuthenticatedCalendarRoute
   '/_authenticated/clients': typeof AuthenticatedClientsRoute
   '/_authenticated/connections': typeof AuthenticatedConnectionsRoute
   '/_authenticated/contacts': typeof AuthenticatedContactsRoute
@@ -329,6 +338,7 @@ export interface FileRouteTypes {
     | '/audios'
     | '/billing'
     | '/broadcasts'
+    | '/calendar'
     | '/clients'
     | '/connections'
     | '/contacts'
@@ -363,6 +373,7 @@ export interface FileRouteTypes {
     | '/audios'
     | '/billing'
     | '/broadcasts'
+    | '/calendar'
     | '/clients'
     | '/connections'
     | '/contacts'
@@ -398,6 +409,7 @@ export interface FileRouteTypes {
     | '/_authenticated/audios'
     | '/_authenticated/billing'
     | '/_authenticated/broadcasts'
+    | '/_authenticated/calendar'
     | '/_authenticated/clients'
     | '/_authenticated/connections'
     | '/_authenticated/contacts'
@@ -603,6 +615,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedClientsRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
+    '/_authenticated/calendar': {
+      id: '/_authenticated/calendar'
+      path: '/calendar'
+      fullPath: '/calendar'
+      preLoaderRoute: typeof AuthenticatedCalendarRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
     '/_authenticated/broadcasts': {
       id: '/_authenticated/broadcasts'
       path: '/broadcasts'
@@ -676,6 +695,7 @@ interface AuthenticatedRouteChildren {
   AuthenticatedAudiosRoute: typeof AuthenticatedAudiosRoute
   AuthenticatedBillingRoute: typeof AuthenticatedBillingRoute
   AuthenticatedBroadcastsRoute: typeof AuthenticatedBroadcastsRoute
+  AuthenticatedCalendarRoute: typeof AuthenticatedCalendarRoute
   AuthenticatedClientsRoute: typeof AuthenticatedClientsRoute
   AuthenticatedConnectionsRoute: typeof AuthenticatedConnectionsRoute
   AuthenticatedContactsRoute: typeof AuthenticatedContactsRoute
@@ -705,6 +725,7 @@ const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedAudiosRoute: AuthenticatedAudiosRoute,
   AuthenticatedBillingRoute: AuthenticatedBillingRoute,
   AuthenticatedBroadcastsRoute: AuthenticatedBroadcastsRoute,
+  AuthenticatedCalendarRoute: AuthenticatedCalendarRoute,
   AuthenticatedClientsRoute: AuthenticatedClientsRoute,
   AuthenticatedConnectionsRoute: AuthenticatedConnectionsRoute,
   AuthenticatedContactsRoute: AuthenticatedContactsRoute,
@@ -743,13 +764,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}
