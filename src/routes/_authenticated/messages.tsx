@@ -732,7 +732,63 @@ function MessagesPage() {
             </>
           )}
         </section>
+        {selected && infoOpen && (
+          <aside className="hidden md:flex flex-col w-80 border-l border-black/10 bg-white overflow-y-auto">
+            <div className="px-4 py-3 flex items-center gap-2 text-white" style={{ background: WA.headerDark }}>
+              <button onClick={() => setInfoOpen(false)} className="p-1 rounded-full hover:bg-white/15" aria-label="Fechar">
+                <X className="h-5 w-5" />
+              </button>
+              <div className="text-sm font-semibold">Dados do contato</div>
+            </div>
+            <div className="flex flex-col items-center py-6 border-b border-black/5">
+              {avatars[selected.id] ? (
+                <button onClick={() => setLightbox({ type: "image", src: avatars[selected.id]! })}>
+                  <img src={avatars[selected.id]!} alt="" className="h-32 w-32 rounded-full object-cover shadow" />
+                </button>
+              ) : (
+                <div className="h-32 w-32 rounded-full grid place-items-center text-3xl font-semibold text-white shadow" style={{ background: WA.headerTeal }}>
+                  {initials(selected.name, selected.phone)}
+                </div>
+              )}
+              <div className="mt-3 text-lg font-medium text-gray-900">{selected.name || selected.phone}</div>
+              <div className="text-xs text-gray-500">{selected.phone}</div>
+            </div>
+            <div className="p-4 space-y-4">
+              <div>
+                <label className="text-xs font-medium text-gray-500">Nome</label>
+                <Input value={editName} onChange={(e) => setEditName(e.target.value)} placeholder="Nome do contato" className="mt-1" />
+              </div>
+              <div>
+                <label className="text-xs font-medium text-gray-500">Telefone</label>
+                <Input value={editPhone} onChange={(e) => setEditPhone(e.target.value)} placeholder="Ex: 5511999999999" className="mt-1" />
+              </div>
+              <Button onClick={saveContact} disabled={savingContact} className="w-full text-white hover:opacity-90" style={{ background: WA.accent }}>
+                {savingContact ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Save className="h-4 w-4 mr-2" />}
+                Salvar
+              </Button>
+            </div>
+          </aside>
+        )}
       </div>
+      {lightbox && (
+        <div
+          className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center p-4"
+          onClick={() => setLightbox(null)}
+        >
+          <button
+            onClick={(e) => { e.stopPropagation(); setLightbox(null); }}
+            className="absolute top-4 right-4 p-2 rounded-full bg-white/10 hover:bg-white/20 text-white"
+            aria-label="Fechar"
+          >
+            <X className="h-6 w-6" />
+          </button>
+          {lightbox.type === "image" ? (
+            <img src={lightbox.src} alt="" className="max-h-[90vh] max-w-[95vw] object-contain" onClick={(e) => e.stopPropagation()} />
+          ) : (
+            <video src={lightbox.src} controls autoPlay className="max-h-[90vh] max-w-[95vw]" onClick={(e) => e.stopPropagation()} />
+          )}
+        </div>
+      )}
       </TooltipProvider>
     </div>
   );
