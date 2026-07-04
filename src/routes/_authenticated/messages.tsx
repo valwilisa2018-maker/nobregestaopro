@@ -300,6 +300,8 @@ function MessagesPage() {
               const active = selected?.id === c.id;
               const isFav = favorites.has(c.id);
               const isArch = archived.has(c.id);
+              const isPin = pinned.has(c.id);
+              const label = labels[c.id];
               return (
                 <div
                   key={c.id}
@@ -314,8 +316,10 @@ function MessagesPage() {
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-1.5">
                           <div className="text-sm font-medium truncate text-gray-900">{c.name || c.phone}</div>
+                          {isPin && <Pin className="h-3.5 w-3.5 text-emerald-600 shrink-0" />}
                           {isFav && <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400 shrink-0" />}
                           {isArch && <Archive className="h-3.5 w-3.5 text-gray-400 shrink-0" />}
+                          {label && <span className="h-2.5 w-2.5 rounded-full shrink-0" style={{ background: label }} />}
                         </div>
                         <div className="text-xs text-gray-500 truncate">{c.phone}</div>
                       </div>
@@ -328,7 +332,18 @@ function MessagesPage() {
                           <MoreVertical className="h-4 w-4" />
                         </button>
                       </PopoverTrigger>
-                      <PopoverContent side="right" align="start" className="w-44 p-1">
+                      <PopoverContent side="right" align="start" className="w-48 p-1">
+                        <button
+                          onClick={() => setPinned((prev) => {
+                            const n = new Set(prev); n.has(c.id) ? n.delete(c.id) : n.add(c.id);
+                            try { localStorage.setItem("wa-pin", JSON.stringify([...n])); } catch { /* ignore */ }
+                            return n;
+                          })}
+                          className="w-full flex items-center gap-2 px-3 py-2 rounded-md hover:bg-accent text-sm"
+                        >
+                          {isPin ? <PinOff className="h-4 w-4 text-emerald-600" /> : <Pin className="h-4 w-4 text-emerald-600" />}
+                          <span>{isPin ? "Desafixar" : "Fixar"}</span>
+                        </button>
                         <button
                           onClick={() => setFavorites((prev) => {
                             const n = new Set(prev); n.has(c.id) ? n.delete(c.id) : n.add(c.id);
@@ -351,6 +366,38 @@ function MessagesPage() {
                           {isArch ? <ArchiveRestore className="h-4 w-4 text-gray-600" /> : <Archive className="h-4 w-4 text-gray-600" />}
                           <span>{isArch ? "Desarquivar" : "Arquivar"}</span>
                         </button>
+                        <div className="px-3 pt-2 pb-1 flex items-center gap-2 text-xs text-gray-500 border-t mt-1">
+                          <Tag className="h-3.5 w-3.5" /> Etiqueta
+                        </div>
+                        <div className="px-2 pb-2 flex flex-wrap gap-1.5">
+                          {["#ef4444","#f97316","#eab308","#22c55e","#06b6d4","#3b82f6","#8b5cf6","#ec4899"].map((color) => (
+                            <button
+                              key={color}
+                              onClick={() => setLabels((prev) => {
+                                const n = { ...prev };
+                                if (n[c.id] === color) delete n[c.id]; else n[c.id] = color;
+                                try { localStorage.setItem("wa-labels", JSON.stringify(n)); } catch { /* ignore */ }
+                                return n;
+                              })}
+                              className={`h-5 w-5 rounded-full border-2 transition ${label === color ? "border-gray-900 scale-110" : "border-white shadow"}`}
+                              style={{ background: color }}
+                              aria-label={`Etiqueta ${color}`}
+                            />
+                          ))}
+                          {label && (
+                            <button
+                              onClick={() => setLabels((prev) => {
+                                const n = { ...prev }; delete n[c.id];
+                                try { localStorage.setItem("wa-labels", JSON.stringify(n)); } catch { /* ignore */ }
+                                return n;
+                              })}
+                              className="h-5 w-5 rounded-full border grid place-items-center text-gray-500 hover:bg-gray-100"
+                              aria-label="Remover etiqueta"
+                            >
+                              <X className="h-3 w-3" />
+                            </button>
+                          )}
+                        </div>
                       </PopoverContent>
                     </Popover>
                   )}
