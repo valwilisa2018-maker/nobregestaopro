@@ -758,7 +758,15 @@ function MessagesPage() {
                         )}
                         <div className="mt-0.5 flex items-center justify-end gap-1 text-[10px] text-gray-500">
                           <span>{new Date(m.created_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</span>
-                          {out && <CheckCheck className="h-3.5 w-3.5" style={{ color: WA.read }} />}
+                          {out && (() => {
+                            const meta = (m.metadata ?? {}) as { status?: string; pending?: boolean; failed?: boolean };
+                            if (meta.failed) return <span className="text-red-500">!</span>;
+                            if (meta.pending || !meta.status) return <Check className="h-3.5 w-3.5 text-gray-400" />;
+                            if (meta.status === "sent") return <Check className="h-3.5 w-3.5 text-gray-500" />;
+                            if (meta.status === "delivered") return <CheckCheck className="h-3.5 w-3.5 text-gray-500" />;
+                            if (meta.status === "read") return <CheckCheck className="h-3.5 w-3.5" style={{ color: WA.read }} />;
+                            return <Check className="h-3.5 w-3.5 text-gray-400" />;
+                          })()}
                         </div>
                       </div>
                     </div>

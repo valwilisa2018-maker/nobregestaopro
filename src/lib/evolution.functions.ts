@@ -255,7 +255,7 @@ export const createAndConnectInstance = createServerFn({ method: "POST" })
             url: webhookUrl,
             byEvents: false,
             base64: true,
-            events: ["MESSAGES_UPSERT", "CONNECTION_UPDATE", "QRCODE_UPDATED", "PRESENCE_UPDATE"],
+            events: ["MESSAGES_UPSERT", "MESSAGES_UPDATE", "CONNECTION_UPDATE", "QRCODE_UPDATED", "PRESENCE_UPDATE"],
           },
         } : {}),
       }),
@@ -291,7 +291,7 @@ export const createAndConnectInstance = createServerFn({ method: "POST" })
         user_id: context.userId,
         name: `WhatsApp · ${data.name}`,
         url: webhookUrl,
-        events: ["MESSAGES_UPSERT", "CONNECTION_UPDATE", "PRESENCE_UPDATE"],
+        events: ["MESSAGES_UPSERT", "MESSAGES_UPDATE", "CONNECTION_UPDATE", "PRESENCE_UPDATE"],
         is_active: true,
       });
     }
@@ -388,7 +388,8 @@ export const sendChatText = createServerFn({ method: "POST" })
       if (saved?.id) await context.supabase.from("messages").update({ metadata: { ...metadataObject(saved.metadata), pending: false, failed: true, error } as never }).eq("id", saved.id);
       return { ok: false as const, error, conversationId: convoId };
     }
-    if (saved?.id) await context.supabase.from("messages").update({ metadata: { ...metadataObject(saved.metadata), pending: false, sent: true } as never }).eq("id", saved.id);
+    const evoId = r.json?.key?.id ?? r.json?.messageId ?? null;
+    if (saved?.id) await context.supabase.from("messages").update({ metadata: { ...metadataObject(saved.metadata), pending: false, sent: true, status: "sent", evoId } as never }).eq("id", saved.id);
     return { ok: true, conversationId: convoId };
   });
 
@@ -440,7 +441,8 @@ export const sendChatMedia = createServerFn({ method: "POST" })
       if (saved?.id) await context.supabase.from("messages").update({ metadata: { ...metadataObject(saved.metadata), pending: false, failed: true, error } as never }).eq("id", saved.id);
       return { ok: false as const, error, conversationId: convoId };
     }
-    if (saved?.id) await context.supabase.from("messages").update({ metadata: { ...metadataObject(saved.metadata), pending: false, sent: true } as never }).eq("id", saved.id);
+    const evoId = r.json?.key?.id ?? r.json?.messageId ?? null;
+    if (saved?.id) await context.supabase.from("messages").update({ metadata: { ...metadataObject(saved.metadata), pending: false, sent: true, status: "sent", evoId } as never }).eq("id", saved.id);
     return { ok: true as const, conversationId: convoId };
   });
 
@@ -500,7 +502,8 @@ export const sendChatAudio = createServerFn({ method: "POST" })
       if (saved?.id) await context.supabase.from("messages").update({ metadata: { ...metadataObject(saved.metadata), pending: false, failed: true, error } as never }).eq("id", saved.id);
       return { ok: false as const, error, conversationId: convoId };
     }
-    if (saved?.id) await context.supabase.from("messages").update({ metadata: { ...metadataObject(saved.metadata), pending: false, sent: true } as never }).eq("id", saved.id);
+    const evoId = r.json?.key?.id ?? r.json?.messageId ?? null;
+    if (saved?.id) await context.supabase.from("messages").update({ metadata: { ...metadataObject(saved.metadata), pending: false, sent: true, status: "sent", evoId } as never }).eq("id", saved.id);
     return { ok: true, conversationId: convoId };
   });
 
@@ -555,7 +558,7 @@ export const ensurePresenceWebhook = createServerFn({ method: "POST" })
             enabled: true, url,
             byEvents: cur.webhookByEvents ?? false,
             base64: cur.webhookBase64 ?? true,
-            events: [...new Set([...events, "MESSAGES_UPSERT", "CONNECTION_UPDATE", "PRESENCE_UPDATE"])],
+            events: [...new Set([...events, "MESSAGES_UPSERT", "MESSAGES_UPDATE", "CONNECTION_UPDATE", "PRESENCE_UPDATE"])],
           },
         }),
       });
