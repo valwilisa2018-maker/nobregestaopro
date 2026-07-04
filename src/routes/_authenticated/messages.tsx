@@ -707,6 +707,9 @@ function MessagesPage() {
           if (rank(nextMeta.status) < rank(prevMeta.status)) nextMeta.status = prevMeta.status;
           const copy = prev.slice();
           copy[idx] = { ...prev[idx], metadata: nextMeta };
+          // Persist so the tick doesn't regress to a stale cached value on contact switch/reload
+          const contactId = selectedRef.current?.id;
+          if (contactId) persistMsgCache(contactId, copy);
           return copy;
         });
       })
