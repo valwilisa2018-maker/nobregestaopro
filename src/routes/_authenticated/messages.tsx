@@ -265,6 +265,7 @@ function MessagesPage() {
                 { key: "unread", label: "Não lidas", count: unreadTotal },
                 { key: "favorites", label: "Favoritas", count: favorites.size },
                 { key: "groups", label: "Grupos", count: groupsTotal },
+                { key: "archived", label: "Arquivadas", count: archived.size },
               ] as const).map((t) => {
                 const active = filterMode === t.key;
                 return (
