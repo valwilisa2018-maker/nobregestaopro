@@ -181,6 +181,30 @@ function inWindow(now: Date, ws: string | null, we: string | null, weekdays: num
   return mins >= sh * 60 + sm && mins <= eh * 60 + em;
 }
 
+async function getOrCreateBroadcastConversation(
+  supabase: any,
+  userId: string,
+  connectionId: string,
+  remoteJid: string,
+) {
+  const { data: existingRows } = await supabase.from("conversations")
+    .select("id,metadata")
+    .eq("user_id", userId)
+    .eq("connection_id", connectionId);
+  const existing = (existingRows ?? []).find((row: { metadata?: { remoteJid?: string } }) => row?.metadata?.remoteJid === remoteJid);
+  if (existing) return existing.id as string;
+  const { data: created, error } = await supabase.from("conversations").insert({
+    user_id: userId,
+    connection_id: connectionId,
+    status: "open",
+    unread_count: 0,
+    last_message_at: new Date().toISOString(),
+    metadata: { remoteJid } as never,
+  } as never).select("id").single();
+  if (error || !created) throw new Error(error?.message ?? "Falha ao criar conversa do fluxo");
+  return created.id as string;
+}
+
 export const runBroadcastBatch = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((raw: unknown) => z.object({ id: z.string().uuid(), batch: z.number().int().min(1).max(20).default(5) }).parse(raw))
@@ -194,7 +218,9 @@ export const runBroadcastBatch = createServerFn({ method: "POST" })
     if (b.status === "canceled" || b.status === "done") return { done: true, sent: b.sent_count, error: b.error_count, responded: b.responded_count, total: b.total };
 
     const now = new Date();
-    if (!inWindow(now, b.window_start as string | null, b.window_end as string | null, (b.weekdays as number[]) ?? [])) {
+    const hasWindow = Boolean(b.window_start && b.window_end);
+    const scheduleWeekdays = hasWindow ? ((b.weekdays as number[]) ?? []) : [];
+    if (!inWindow(now, b.window_start as string | null, b.window_end as string | null, scheduleWeekdays)) {
       if (!b.continue_next_day) {
         await context.supabase.from("broadcasts").update({ status: "paused", paused_at: now.toISOString() } as never).eq("id", b.id);
       }
@@ -250,8 +276,9 @@ export const runBroadcastBatch = createServerFn({ method: "POST" })
       try {
         if (!conn?.url_api || !conn?.instance_name) throw new Error("Instância inválida");
         const number = `${(r.phone as string).replace(/\D/g, "")}@s.whatsapp.net`;
+        if (b.flow_id && (!flowDef || !runFlow)) throw new Error("Fluxo inválido ou sem início configurado");
         if (flowDef && runFlow) {
-          await runFlow({
+          const result = await runFlow({
             db: context.supabase as never,
             conn: {
               id: (conn.id as string) ?? "",
@@ -266,6 +293,16 @@ export const runBroadcastBatch = createServerFn({ method: "POST" })
             state: { variables: { nome: contactName || "cliente", telefone: r.phone as string } },
             flowId: b.flow_id as string,
           });
+          const conversationId = await getOrCreateBroadcastConversation(
+            context.supabase,
+            context.userId,
+            conn.id as string,
+            number,
+          );
+          await context.supabase.from("conversations").update({
+            flow_state: result.state as never,
+            last_message_at: new Date().toISOString(),
+          } as never).eq("id", conversationId);
         } else {
           const text = (b.message as string)
             .replaceAll("{nome}", contactName || "cliente")
