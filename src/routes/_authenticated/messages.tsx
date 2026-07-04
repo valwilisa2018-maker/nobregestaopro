@@ -1245,6 +1245,30 @@ function MessagesPage() {
                         e.target.value = "";
                       }}
                     />
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <button
+                          onClick={() => cameraInputRef.current?.click()}
+                          className="p-2 text-gray-500 hover:text-gray-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 rounded-full transition"
+                          aria-label="Câmera"
+                        >
+                          <Camera className="h-6 w-6" />
+                        </button>
+                      </TooltipTrigger>
+                      <TooltipContent side="top">Gravar vídeo ou tirar foto</TooltipContent>
+                    </Tooltip>
+                    <input
+                      ref={cameraInputRef}
+                      type="file"
+                      accept="video/*,image/*"
+                      capture="environment"
+                      className="hidden"
+                      onChange={(e) => {
+                        const f = e.target.files?.[0];
+                        if (f) setAttachment({ file: f, url: URL.createObjectURL(f) });
+                        e.target.value = "";
+                      }}
+                    />
                     <div className="flex-1 flex flex-col gap-1">
                        {replyTo && (
                          <div className="flex items-stretch gap-2 bg-white rounded-lg px-2 py-1.5 shadow-sm text-sm">
