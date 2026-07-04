@@ -1073,6 +1073,38 @@ function MessagesPage() {
           )}
         </div>
       )}
+      <Dialog open={!!forwardMsg} onOpenChange={(o) => { if (!o) { setForwardMsg(null); setForwardSearch(""); } }}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Encaminhar mensagem</DialogTitle>
+          </DialogHeader>
+          <Input placeholder="Buscar contato..." value={forwardSearch} onChange={(e) => setForwardSearch(e.target.value)} />
+          <div className="max-h-80 overflow-y-auto -mx-2">
+            {contacts
+              .filter((c) => {
+                const q = forwardSearch.toLowerCase();
+                if (!q) return true;
+                return (c.name ?? "").toLowerCase().includes(q) || c.phone.includes(q);
+              })
+              .slice(0, 50)
+              .map((c) => (
+                <button
+                  key={c.id}
+                  onClick={() => doForward(c)}
+                  className="w-full flex items-center gap-3 px-3 py-2 hover:bg-muted rounded text-left"
+                >
+                  <div className="h-9 w-9 rounded-full bg-muted grid place-items-center text-xs font-semibold shrink-0">
+                    {initials(c.name, c.phone)}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <div className="text-sm font-medium truncate">{c.name || c.phone}</div>
+                    <div className="text-xs text-muted-foreground truncate">{c.phone}</div>
+                  </div>
+                </button>
+              ))}
+          </div>
+        </DialogContent>
+      </Dialog>
       </TooltipProvider>
     </div>
   );
