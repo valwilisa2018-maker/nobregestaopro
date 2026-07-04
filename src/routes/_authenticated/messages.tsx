@@ -299,6 +299,28 @@ function MessagesPage() {
     }
   }, [forwardMsg, selected, forwardMsgFn]);
 
+  const performEdit = useCallback(async () => {
+    if (!editMsg) return;
+    const newText = editText.trim();
+    if (!newText) { toast.error("Texto não pode ficar vazio"); return; }
+    if (newText === String(editMsg.content ?? "")) { setEditMsg(null); return; }
+    setEditSaving(true);
+    const id = editMsg.id;
+    const prevContent = editMsg.content;
+    setMsgs((prev) => prev.map((x) => x.id === id ? { ...x, content: newText, metadata: { ...(x.metadata ?? {}), edited: true } } : x));
+    try {
+      const res = await editMsgFn({ data: { messageId: id, text: newText } });
+      if (res && "ok" in res && res.ok === false) throw new Error((res as { error?: string }).error || "Falha ao editar");
+      toast.success("Mensagem editada");
+      setEditMsg(null);
+    } catch (e) {
+      setMsgs((prev) => prev.map((x) => x.id === id ? { ...x, content: prevContent } : x));
+      toast.error(e instanceof Error ? e.message : "Falha ao editar");
+    } finally {
+      setEditSaving(false);
+    }
+  }, [editMsg, editText, editMsgFn]);
+
   // Ensure webhook includes PRESENCE_UPDATE (best-effort, one shot)
   useEffect(() => {
     if (!user) return;
