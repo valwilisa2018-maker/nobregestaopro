@@ -24,8 +24,8 @@ import { Route as AuthenticatedPermissionsRouteImport } from './routes/_authenti
 import { Route as AuthenticatedMessagesRouteImport } from './routes/_authenticated/messages'
 import { Route as AuthenticatedLogsRouteImport } from './routes/_authenticated/logs'
 import { Route as AuthenticatedKnowledgeRouteImport } from './routes/_authenticated/knowledge'
-import { Route as AuthenticatedIntegrationsRouteImport } from './routes/_authenticated/integrations'
 import { Route as AuthenticatedHistoryRouteImport } from './routes/_authenticated/history'
+import { Route as AuthenticatedFollowupsRouteImport } from './routes/_authenticated/followups'
 import { Route as AuthenticatedFlowsRouteImport } from './routes/_authenticated/flows'
 import { Route as AuthenticatedDocumentsRouteImport } from './routes/_authenticated/documents'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
@@ -118,15 +118,14 @@ const AuthenticatedKnowledgeRoute = AuthenticatedKnowledgeRouteImport.update({
   path: '/knowledge',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
-const AuthenticatedIntegrationsRoute =
-  AuthenticatedIntegrationsRouteImport.update({
-    id: '/integrations',
-    path: '/integrations',
-    getParentRoute: () => AuthenticatedRoute,
-  } as any)
 const AuthenticatedHistoryRoute = AuthenticatedHistoryRouteImport.update({
   id: '/history',
   path: '/history',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
+const AuthenticatedFollowupsRoute = AuthenticatedFollowupsRouteImport.update({
+  id: '/followups',
+  path: '/followups',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
 const AuthenticatedFlowsRoute = AuthenticatedFlowsRouteImport.update({
@@ -231,8 +230,8 @@ export interface FileRoutesByFullPath {
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/documents': typeof AuthenticatedDocumentsRoute
   '/flows': typeof AuthenticatedFlowsRoute
+  '/followups': typeof AuthenticatedFollowupsRoute
   '/history': typeof AuthenticatedHistoryRoute
-  '/integrations': typeof AuthenticatedIntegrationsRoute
   '/knowledge': typeof AuthenticatedKnowledgeRoute
   '/logs': typeof AuthenticatedLogsRoute
   '/messages': typeof AuthenticatedMessagesRoute
@@ -265,8 +264,8 @@ export interface FileRoutesByTo {
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/documents': typeof AuthenticatedDocumentsRoute
   '/flows': typeof AuthenticatedFlowsRoute
+  '/followups': typeof AuthenticatedFollowupsRoute
   '/history': typeof AuthenticatedHistoryRoute
-  '/integrations': typeof AuthenticatedIntegrationsRoute
   '/knowledge': typeof AuthenticatedKnowledgeRoute
   '/logs': typeof AuthenticatedLogsRoute
   '/messages': typeof AuthenticatedMessagesRoute
@@ -301,8 +300,8 @@ export interface FileRoutesById {
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
   '/_authenticated/documents': typeof AuthenticatedDocumentsRoute
   '/_authenticated/flows': typeof AuthenticatedFlowsRoute
+  '/_authenticated/followups': typeof AuthenticatedFollowupsRoute
   '/_authenticated/history': typeof AuthenticatedHistoryRoute
-  '/_authenticated/integrations': typeof AuthenticatedIntegrationsRoute
   '/_authenticated/knowledge': typeof AuthenticatedKnowledgeRoute
   '/_authenticated/logs': typeof AuthenticatedLogsRoute
   '/_authenticated/messages': typeof AuthenticatedMessagesRoute
@@ -337,8 +336,8 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/documents'
     | '/flows'
+    | '/followups'
     | '/history'
-    | '/integrations'
     | '/knowledge'
     | '/logs'
     | '/messages'
@@ -371,8 +370,8 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/documents'
     | '/flows'
+    | '/followups'
     | '/history'
-    | '/integrations'
     | '/knowledge'
     | '/logs'
     | '/messages'
@@ -406,8 +405,8 @@ export interface FileRouteTypes {
     | '/_authenticated/dashboard'
     | '/_authenticated/documents'
     | '/_authenticated/flows'
+    | '/_authenticated/followups'
     | '/_authenticated/history'
-    | '/_authenticated/integrations'
     | '/_authenticated/knowledge'
     | '/_authenticated/logs'
     | '/_authenticated/messages'
@@ -541,18 +540,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedKnowledgeRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
-    '/_authenticated/integrations': {
-      id: '/_authenticated/integrations'
-      path: '/integrations'
-      fullPath: '/integrations'
-      preLoaderRoute: typeof AuthenticatedIntegrationsRouteImport
-      parentRoute: typeof AuthenticatedRoute
-    }
     '/_authenticated/history': {
       id: '/_authenticated/history'
       path: '/history'
       fullPath: '/history'
       preLoaderRoute: typeof AuthenticatedHistoryRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/followups': {
+      id: '/_authenticated/followups'
+      path: '/followups'
+      fullPath: '/followups'
+      preLoaderRoute: typeof AuthenticatedFollowupsRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
     '/_authenticated/flows': {
@@ -684,8 +683,8 @@ interface AuthenticatedRouteChildren {
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
   AuthenticatedDocumentsRoute: typeof AuthenticatedDocumentsRoute
   AuthenticatedFlowsRoute: typeof AuthenticatedFlowsRoute
+  AuthenticatedFollowupsRoute: typeof AuthenticatedFollowupsRoute
   AuthenticatedHistoryRoute: typeof AuthenticatedHistoryRoute
-  AuthenticatedIntegrationsRoute: typeof AuthenticatedIntegrationsRoute
   AuthenticatedKnowledgeRoute: typeof AuthenticatedKnowledgeRoute
   AuthenticatedLogsRoute: typeof AuthenticatedLogsRoute
   AuthenticatedMessagesRoute: typeof AuthenticatedMessagesRoute
@@ -713,8 +712,8 @@ const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
   AuthenticatedDocumentsRoute: AuthenticatedDocumentsRoute,
   AuthenticatedFlowsRoute: AuthenticatedFlowsRoute,
+  AuthenticatedFollowupsRoute: AuthenticatedFollowupsRoute,
   AuthenticatedHistoryRoute: AuthenticatedHistoryRoute,
-  AuthenticatedIntegrationsRoute: AuthenticatedIntegrationsRoute,
   AuthenticatedKnowledgeRoute: AuthenticatedKnowledgeRoute,
   AuthenticatedLogsRoute: AuthenticatedLogsRoute,
   AuthenticatedMessagesRoute: AuthenticatedMessagesRoute,

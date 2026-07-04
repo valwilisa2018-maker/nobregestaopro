@@ -879,6 +879,104 @@ export type Database = {
           },
         ]
       }
+      followup_steps: {
+        Row: {
+          created_at: string
+          delay_unit: string
+          delay_value: number
+          followup_id: string
+          id: string
+          media_url: string | null
+          message: string
+          step_order: number
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          delay_unit?: string
+          delay_value?: number
+          followup_id: string
+          id?: string
+          media_url?: string | null
+          message: string
+          step_order?: number
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          delay_unit?: string
+          delay_value?: number
+          followup_id?: string
+          id?: string
+          media_url?: string | null
+          message?: string
+          step_order?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "followup_steps_followup_id_fkey"
+            columns: ["followup_id"]
+            isOneToOne: false
+            referencedRelation: "followups"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      followups: {
+        Row: {
+          connection_id: string | null
+          created_at: string
+          description: string | null
+          id: string
+          inactivity_unit: string
+          inactivity_value: number
+          is_active: boolean
+          name: string
+          stop_on_reply: boolean
+          total_converted: number
+          total_replied: number
+          total_sent: number
+          trigger_type: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          connection_id?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          inactivity_unit?: string
+          inactivity_value?: number
+          is_active?: boolean
+          name: string
+          stop_on_reply?: boolean
+          total_converted?: number
+          total_replied?: number
+          total_sent?: number
+          trigger_type?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          connection_id?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          inactivity_unit?: string
+          inactivity_value?: number
+          is_active?: boolean
+          name?: string
+          stop_on_reply?: boolean
+          total_converted?: number
+          total_replied?: number
+          total_sent?: number
+          trigger_type?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       integrations: {
         Row: {
           config: Json
