@@ -127,6 +127,9 @@ function MessagesPage() {
   const cameraInputRef = useRef<HTMLInputElement | null>(null);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [attachment, setAttachment] = useState<{ file: File; url: string } | null>(null);
+  const [uploadQueue, setUploadQueue] = useState<Array<{ id: string; name: string; size: number; url: string; kind: "image" | "video" | "audio" | "pdf" | "file"; status: "uploading" | "done" | "failed"; error?: string }>>([]);
+  const [dragActive, setDragActive] = useState(false);
+  const dragDepthRef = useRef(0);
   const [filterMode, setFilterMode] = useState<"all" | "unread" | "favorites" | "groups" | "archived">("all");
   const [archived, setArchived] = useState<Set<string>>(() => {
     if (typeof window === "undefined") return new Set();
@@ -892,50 +895,80 @@ function MessagesPage() {
 
   async function handleSendAttachment() {
     if (!selected || !attachment) return;
+    const file = attachment.file;
+    const url = attachment.url;
+    const caption = text.trim() || undefined;
+    const quotedMessageId = replyTo?.id;
+    const quotedSnapshot = replyTo ? { quotedId: replyTo.id, quotedText: (replyTo.content ?? "").slice(0, 200), quotedType: replyTo.type, quotedDirection: replyTo.direction } : undefined;
+    // Free the composer immediately — the upload continues in the background.
+    setText("");
+    setAttachment(null);
+    setReplyTo(null);
+    sendOneFile(file, caption, { objectUrl: url, quotedMessageId, quotedSnapshot });
+  }
+
+  function fileKind(file: File): "image" | "video" | "audio" | "pdf" | "file" {
+    const t = file.type;
+    if (t.startsWith("image/")) return "image";
+    if (t.startsWith("video/")) return "video";
+    if (t.startsWith("audio/")) return "audio";
+    if (t === "application/pdf" || file.name.toLowerCase().endsWith(".pdf")) return "pdf";
+    return "file";
+  }
+
+  function formatBytes(n: number) {
+    if (n < 1024) return `${n} B`;
+    if (n < 1024 * 1024) return `${(n / 1024).toFixed(1)} KB`;
+    return `${(n / 1024 / 1024).toFixed(1)} MB`;
+  }
+
+  async function sendOneFile(
+    file: File,
+    caption?: string,
+    opts?: { objectUrl?: string; quotedMessageId?: string; quotedSnapshot?: Record<string, unknown> },
+  ) {
+    if (!selected) return;
     const MAX = 15 * 1024 * 1024; // 15 MB
-    if (attachment.file.size > MAX) {
-      toast.error(`Arquivo muito grande (máx. 15 MB). Este tem ${(attachment.file.size / 1024 / 1024).toFixed(1)} MB.`);
+    const url = opts?.objectUrl ?? URL.createObjectURL(file);
+    const kind = fileKind(file);
+    const qid = `up-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+    setUploadQueue((q) => [...q, { id: qid, name: file.name, size: file.size, url, kind, status: "uploading" }]);
+    if (file.size > MAX) {
+      const err = `Máx. 15 MB (este tem ${(file.size / 1024 / 1024).toFixed(1)} MB)`;
+      setUploadQueue((q) => q.map((x) => (x.id === qid ? { ...x, status: "failed", error: err } : x)));
+      toast.error(`${file.name}: arquivo muito grande. ${err}`);
       return;
     }
-    const file = attachment.file;
     const mime = file.type || "application/octet-stream";
-    const optimisticType = mime.startsWith("image/") ? "image" : mime.startsWith("video/") ? "video" : mime.startsWith("audio/") ? "audio" : "document";
-    const quotedMessageId = replyTo?.id;
-    const tmpId = `tmp-${Date.now()}`;
-    const optimistic: Msg = {
+    const optimisticType = kind === "pdf" || kind === "file" ? "document" : kind;
+    const tmpId = `tmp-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+    const contactId = selected.id;
+    setMsgs((prev) => [...prev, {
       id: tmpId,
       direction: "outbound",
       type: optimisticType,
-      content: text.trim() || file.name,
-      media_url: attachment.url,
+      content: caption || file.name,
+      media_url: url,
       created_at: new Date().toISOString(),
-      metadata: { pending: true, fileName: file.name, ...(quotedMessageId ? { quotedId: quotedMessageId, quotedText: (replyTo?.content ?? "").slice(0, 200), quotedType: replyTo?.type, quotedDirection: replyTo?.direction } : {}) },
-    };
-    setMsgs((prev) => [...prev, optimistic]);
-    setReplyTo(null);
-    const caption = text.trim() || undefined;
-    const contactId = selected.id;
-    // Free the composer immediately — the upload continues in the background,
-    // progress is reflected on the media bubble itself (pending tick).
-    setText("");
-    setAttachment(null);
-    (async () => {
-      try {
-        const b64 = await blobToBase64(file);
-        const res = await sendMedia({ data: {
-          contactId, base64: b64, mime,
-          fileName: file.name, caption, quotedMessageId,
-        }});
-        if (res && "ok" in res && res.ok === false) {
-          toast.error(res.error);
-          setMsgs((prev) => prev.map((m) => m.id === tmpId ? { ...m, metadata: { ...(m.metadata ?? {}), pending: false, failed: true } } : m));
-        }
-        // Real INSERT via realtime reconciles the tmp row — no reload needed.
-      } catch (e) {
-        toast.error(e instanceof Error ? e.message : "Falha ao enviar arquivo");
-        setMsgs((prev) => prev.map((m) => m.id === tmpId ? { ...m, metadata: { ...(m.metadata ?? {}), pending: false, failed: true } } : m));
+      metadata: { pending: true, fileName: file.name, ...(opts?.quotedSnapshot ?? {}) },
+    }]);
+    try {
+      const b64 = await blobToBase64(file);
+      const res = await sendMedia({ data: { contactId, base64: b64, mime, fileName: file.name, caption, quotedMessageId: opts?.quotedMessageId } });
+      if (res && "ok" in res && res.ok === false) {
+        setMsgs((prev) => prev.map((m) => (m.id === tmpId ? { ...m, metadata: { ...(m.metadata ?? {}), pending: false, failed: true } } : m)));
+        setUploadQueue((q) => q.map((x) => (x.id === qid ? { ...x, status: "failed", error: res.error } : x)));
+        toast.error(`${file.name}: ${res.error}`);
+        return;
       }
-    })();
+      setUploadQueue((q) => q.map((x) => (x.id === qid ? { ...x, status: "done" } : x)));
+      window.setTimeout(() => setUploadQueue((q) => q.filter((x) => x.id !== qid)), 1500);
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : "Falha ao enviar";
+      setMsgs((prev) => prev.map((m) => (m.id === tmpId ? { ...m, metadata: { ...(m.metadata ?? {}), pending: false, failed: true } } : m)));
+      setUploadQueue((q) => q.map((x) => (x.id === qid ? { ...x, status: "failed", error: msg } : x)));
+      toast.error(`${file.name}: ${msg}`);
+    }
   }
 
   // Fetch avatar for the selected contact
@@ -1263,7 +1296,50 @@ function MessagesPage() {
         </aside>
 
         {/* Chat area */}
-        <section className={`${selected ? "flex" : "hidden md:flex"} flex-col min-w-0 min-h-0 overflow-hidden h-full`} style={{ background: WA.chatBg }}>
+        <section
+          onDragEnter={(e) => {
+            if (!selected) return;
+            if (!Array.from(e.dataTransfer?.types || []).includes("Files")) return;
+            e.preventDefault();
+            dragDepthRef.current += 1;
+            setDragActive(true);
+          }}
+          onDragOver={(e) => {
+            if (!selected) return;
+            if (!Array.from(e.dataTransfer?.types || []).includes("Files")) return;
+            e.preventDefault();
+            e.dataTransfer.dropEffect = "copy";
+          }}
+          onDragLeave={(e) => {
+            if (!selected) return;
+            if (!Array.from(e.dataTransfer?.types || []).includes("Files")) return;
+            dragDepthRef.current = Math.max(0, dragDepthRef.current - 1);
+            if (dragDepthRef.current === 0) setDragActive(false);
+          }}
+          onDrop={(e) => {
+            if (!selected) return;
+            if (!Array.from(e.dataTransfer?.types || []).includes("Files")) return;
+            e.preventDefault();
+            dragDepthRef.current = 0;
+            setDragActive(false);
+            const files = Array.from(e.dataTransfer.files || []);
+            if (!files.length) return;
+            const cap = text.trim();
+            if (cap) setText("");
+            files.forEach((f, i) => sendOneFile(f, i === 0 ? cap || undefined : undefined));
+          }}
+          className={`${selected ? "flex" : "hidden md:flex"} flex-col min-w-0 min-h-0 overflow-hidden h-full relative`}
+          style={{ background: WA.chatBg }}
+        >
+          {dragActive && (
+            <div className="pointer-events-none absolute inset-0 z-40 p-4 flex items-center justify-center transition-opacity duration-200">
+              <div className="w-full h-full rounded-2xl border-4 border-dashed border-blue-500 bg-blue-500/10 backdrop-blur-[2px] flex flex-col items-center justify-center gap-3 text-blue-700">
+                <Paperclip className="h-14 w-14" />
+                <div className="text-xl font-semibold">Solte para enviar</div>
+                <div className="text-sm opacity-80">Imagens, vídeos, áudio, PDF ou documentos (até 15 MB)</div>
+              </div>
+            </div>
+          )}
           {!selected ? (
             <div className="flex-1 grid place-items-center text-center px-6" style={{ background: "#F0F2F5" }}>
               <div>
@@ -1546,6 +1622,56 @@ function MessagesPage() {
                 )}
               </div>
 
+              {uploadQueue.length > 0 && (
+                <div className="px-3 pt-2 pb-1 space-y-1.5" style={{ background: "#F0F2F5" }}>
+                  {uploadQueue.map((u) => (
+                    <div key={u.id} className="flex items-center gap-2 bg-white rounded-lg px-2 py-1.5 shadow-sm text-sm transition-opacity duration-300">
+                      {u.kind === "image" ? (
+                        <img src={u.url} alt="" className="h-10 w-10 rounded object-cover" />
+                      ) : u.kind === "video" ? (
+                        <video src={u.url} className="h-10 w-10 rounded object-cover bg-black" muted />
+                      ) : u.kind === "audio" ? (
+                        <div className="h-10 w-10 rounded grid place-items-center bg-orange-100 text-orange-600"><Music className="h-5 w-5" /></div>
+                      ) : u.kind === "pdf" ? (
+                        <div className="h-10 w-10 rounded grid place-items-center bg-red-100 text-red-600"><FileText className="h-5 w-5" /></div>
+                      ) : (
+                        <div className="h-10 w-10 rounded grid place-items-center bg-sky-100 text-sky-600"><FileIcon className="h-5 w-5" /></div>
+                      )}
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-2">
+                          <div className="truncate text-gray-800 flex-1">{u.name}</div>
+                          <div className="text-[11px] text-gray-500 shrink-0 tabular-nums">{formatBytes(u.size)}</div>
+                        </div>
+                        <div className="mt-1 h-1 w-full rounded-full bg-gray-200 overflow-hidden">
+                          {u.status === "uploading" ? (
+                            <div className="h-full w-1/3 bg-blue-500 animate-[upload-slide_1.2s_ease-in-out_infinite]" style={{ animation: "upload-slide 1.2s ease-in-out infinite" }} />
+                          ) : u.status === "done" ? (
+                            <div className="h-full w-full bg-emerald-500 transition-all" />
+                          ) : (
+                            <div className="h-full w-full bg-red-500" />
+                          )}
+                        </div>
+                        {u.status === "failed" && u.error && (
+                          <div className="mt-0.5 text-[11px] text-red-600 truncate">{u.error}</div>
+                        )}
+                      </div>
+                      {u.status === "uploading" ? (
+                        <Loader2 className="h-4 w-4 text-blue-500 animate-spin shrink-0" />
+                      ) : u.status === "done" ? (
+                        <Check className="h-4 w-4 text-emerald-600 shrink-0" />
+                      ) : (
+                        <button
+                          onClick={() => setUploadQueue((q) => q.filter((x) => x.id !== u.id))}
+                          className="p-1 rounded-full hover:bg-gray-100 text-gray-500"
+                          aria-label="Remover"
+                        >
+                          <X className="h-4 w-4" />
+                        </button>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
               <div className="px-3 py-2 flex items-end gap-2" style={{ background: "#F0F2F5" }}>
                 {recording ? (
                   <>
