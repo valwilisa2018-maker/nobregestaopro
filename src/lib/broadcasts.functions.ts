@@ -220,8 +220,20 @@ export const runBroadcastBatch = createServerFn({ method: "POST" })
     }
 
     const { data: conn } = await context.supabase.from("connections")
-      .select("url_api,api_key,instance_name").eq("id", b.connection_id ?? "").maybeSingle();
+      .select("id,user_id,url_api,api_key,instance_name").eq("id", b.connection_id ?? "").maybeSingle();
     const commandKey = await loadEvolutionCommandKey(context.supabase, conn?.api_key ?? "");
+
+    // If broadcast uses a flow, load its definition once.
+    let flowDef: { nodes: unknown[]; edges: unknown[] } | null = null;
+    if (b.flow_id) {
+      const { data: fl } = await context.supabase.from("flows")
+        .select("definition").eq("id", b.flow_id as string).maybeSingle();
+      const def = (fl?.definition ?? null) as { nodes?: unknown[]; edges?: unknown[] } | null;
+      if (def && Array.isArray(def.nodes) && Array.isArray(def.edges)) {
+        flowDef = { nodes: def.nodes, edges: def.edges };
+      }
+    }
+    const { runFlow } = flowDef ? await import("@/lib/flow-runner.server") : { runFlow: null as never };
 
     let sent = b.sent_count as number;
     let errored = b.error_count as number;
@@ -235,19 +247,38 @@ export const runBroadcastBatch = createServerFn({ method: "POST" })
         const { data: c } = await context.supabase.from("contacts").select("name").eq("id", r.contact_id).maybeSingle();
         contactName = (c?.name as string | null) ?? "";
       }
-      const text = (b.message as string)
-        .replaceAll("{nome}", contactName || "cliente")
-        .replaceAll("{telefone}", r.phone as string);
       try {
         if (!conn?.url_api || !conn?.instance_name) throw new Error("Instância inválida");
         const number = `${(r.phone as string).replace(/\D/g, "")}@s.whatsapp.net`;
-        const url = `${/^https?:\/\//i.test((conn.url_api??"").trim())?(conn.url_api??"").trim().replace(/\/+$/,""):"https://"+(conn.url_api??"").trim().replace(/\/+$/,"")}/message/sendText/${conn.instance_name}`;
-        const res = await fetch(url, {
-          method: "POST",
-          headers: { "Content-Type": "application/json", apikey: commandKey },
-          body: JSON.stringify({ number, text }),
-        });
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        if (flowDef && runFlow) {
+          await runFlow({
+            db: context.supabase as never,
+            conn: {
+              id: (conn.id as string) ?? "",
+              user_id: (conn.user_id as string) ?? context.userId,
+              url_api: conn.url_api,
+              api_key: commandKey,
+              instance_name: conn.instance_name,
+            },
+            recipient: number,
+            userText: "",
+            def: flowDef as never,
+            state: { variables: { nome: contactName || "cliente", telefone: r.phone as string } },
+            flowId: b.flow_id as string,
+          });
+        } else {
+          const text = (b.message as string)
+            .replaceAll("{nome}", contactName || "cliente")
+            .replaceAll("{telefone}", r.phone as string);
+          if (!text.trim()) throw new Error("Mensagem vazia");
+          const url = `${/^https?:\/\//i.test((conn.url_api??"").trim())?(conn.url_api??"").trim().replace(/\/+$/,""):"https://"+(conn.url_api??"").trim().replace(/\/+$/,"")}/message/sendText/${conn.instance_name}`;
+          const res = await fetch(url, {
+            method: "POST",
+            headers: { "Content-Type": "application/json", apikey: commandKey },
+            body: JSON.stringify({ number, text }),
+          });
+          if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        }
         await context.supabase.from("broadcast_recipients").update({
           status: "sent", sent_at: new Date().toISOString(),
         } as never).eq("id", r.id);
