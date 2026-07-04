@@ -158,7 +158,7 @@ function MessagesPage() {
     if (typeof window === "undefined") return {};
     try { return JSON.parse(localStorage.getItem("wa-labels") ?? "{}"); } catch { return {}; }
   });
-  const [instances, setInstances] = useState<Array<{ id: string; name: string; instance_name: string; profile_name: string | null }>>([]);
+  const [instances, setInstances] = useState<Array<{ id: string; name: string; instance_name: string; profile_name: string | null; profile_picture: string | null; phone_number: string | null }>>([]);
   const [activeInstance, setActiveInstance] = useState<string>(() => {
     if (typeof window === "undefined") return "all";
     try { return localStorage.getItem("wa-instance") ?? "all"; } catch { return "all"; }
