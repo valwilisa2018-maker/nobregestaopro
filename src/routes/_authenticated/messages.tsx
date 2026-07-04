@@ -507,16 +507,28 @@ function MessagesPage() {
       mr.onstop = async () => {
         stream.getTracks().forEach((t) => t.stop());
         const blob = new Blob(chunks, { type: "audio/webm" });
-        const b64 = await blobToBase64(blob);
-        setSending(true);
+        const localUrl = URL.createObjectURL(blob);
+        const tmpId = `tmp-${Date.now()}`;
+        // Optimistic bubble so the user sees the audio right away
+        setMsgs((prev) => [...prev, {
+          id: tmpId, direction: "outbound", type: "audio",
+          content: "[áudio]", media_url: localUrl,
+          created_at: new Date().toISOString(),
+          metadata: { audio: true, pending: true },
+        }]);
         try {
+          const b64 = await blobToBase64(blob);
           const res = await sendAudio({ data: { contactId: selected.id, audioBase64: b64 } });
-          if (res && "ok" in res && res.ok === false) toast.error(res.error);
-          else await loadMessages();
+          if (res && "ok" in res && res.ok === false) {
+            toast.error(res.error);
+            setMsgs((prev) => prev.map((m) => m.id === tmpId ? { ...m, metadata: { ...(m.metadata ?? {}), pending: false, failed: true } } : m));
+          } else {
+            await loadMessages();
+            URL.revokeObjectURL(localUrl);
+          }
         } catch (e) {
           toast.error(e instanceof Error ? e.message : "Falha ao enviar áudio");
-        } finally {
-          setSending(false);
+          setMsgs((prev) => prev.map((m) => m.id === tmpId ? { ...m, metadata: { ...(m.metadata ?? {}), pending: false, failed: true } } : m));
         }
       };
       mr.start();
