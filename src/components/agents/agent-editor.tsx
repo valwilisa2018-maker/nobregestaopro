@@ -607,6 +607,9 @@ function TestSection({ form, setForm }: { form: AgentRow; setForm: React.Dispatc
 
       <div className="flex items-center gap-2">
         <Input placeholder="Digite ou grave um áudio..." value={input} onChange={(e) => setInput(e.target.value)} onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), send())} disabled={loading} />
+        <Button size="icon" variant="ghost" title="Resetar conversa e memória" onClick={() => { setMessages([]); setInput(""); setLoading(false); toast.success("Conversa e memória de teste resetadas"); }}>
+          <RefreshCw className="h-4 w-4" />
+        </Button>
         <Button size="icon" variant="ghost" disabled><Mic className="h-4 w-4" /></Button>
         <Button size="icon" onClick={send} disabled={loading || !input.trim()} style={{ background: "var(--gradient-primary)" }}><SendIcon className="h-4 w-4" /></Button>
       </div>
