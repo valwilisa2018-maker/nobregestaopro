@@ -1853,36 +1853,52 @@ function MessagesPage() {
                             : <div className="flex items-center gap-2 text-gray-600"><Mic className="h-4 w-4" /><span>Mensagem de voz</span></div>
                         ) : isImage ? (
                           <div className="relative">
-                            <button onClick={() => setLightbox({ type: "image", src: m.media_url! })} className="block focus:outline-none">
-                              <img src={m.media_url!} alt={m.content ?? ""} className="rounded-md max-h-64 object-cover cursor-zoom-in" />
+                            <button onClick={() => !(m.metadata as { pending?: boolean } | null)?.pending && setLightbox({ type: "image", src: m.media_url! })} className="block focus:outline-none">
+                              <img src={m.media_url!} alt={m.content ?? ""} className={`rounded-md max-h-64 object-cover ${(m.metadata as { pending?: boolean } | null)?.pending ? "opacity-70" : "cursor-zoom-in"}`} />
                             </button>
-                            <DownloadBtn url={m.media_url!} filename={`image-${m.id}.jpg`} />
+                            {(m.metadata as { pending?: boolean } | null)?.pending ? (
+                              <div className="absolute inset-0 grid place-items-center rounded-md bg-black/25">
+                                <Loader2 className="h-8 w-8 text-white animate-spin drop-shadow" />
+                              </div>
+                            ) : (
+                              <DownloadBtn url={m.media_url!} filename={`image-${m.id}.jpg`} />
+                            )}
                           </div>
                         ) : isVideo ? (
                           <div className="relative">
-                            <button onClick={() => setLightbox({ type: "video", src: m.media_url! })} className="block focus:outline-none">
+                            <button onClick={() => !(m.metadata as { pending?: boolean } | null)?.pending && setLightbox({ type: "video", src: m.media_url! })} className="block focus:outline-none">
                               <video
                                 src={`${m.media_url!}${m.media_url!.includes("#") ? "" : "#t=0.1"}`}
-                                className="rounded-md max-h-64 bg-black cursor-zoom-in pointer-events-none"
+                                className={`rounded-md max-h-64 bg-black pointer-events-none ${(m.metadata as { pending?: boolean } | null)?.pending ? "opacity-70" : "cursor-zoom-in"}`}
                                 preload="metadata"
                                 muted
                                 playsInline
                               />
                             </button>
-                            <DownloadBtn url={m.media_url!} filename={`video-${m.id}.mp4`} dark />
+                            {(m.metadata as { pending?: boolean } | null)?.pending ? (
+                              <div className="absolute inset-0 grid place-items-center rounded-md bg-black/35">
+                                <Loader2 className="h-8 w-8 text-white animate-spin drop-shadow" />
+                              </div>
+                            ) : (
+                              <DownloadBtn url={m.media_url!} filename={`video-${m.id}.mp4`} dark />
+                            )}
                           </div>
                         ) : isFile ? (
                           <div className="flex items-center gap-2 text-gray-800">
-                            <FileText className="h-5 w-5 shrink-0" />
+                            {(m.metadata as { pending?: boolean } | null)?.pending
+                              ? <Loader2 className="h-5 w-5 shrink-0 animate-spin text-emerald-600" />
+                              : <FileText className="h-5 w-5 shrink-0" />}
                             <a href={m.media_url!} target="_blank" rel="noreferrer" className="underline truncate max-w-[200px]">{m.content}</a>
-                            <button
-                              type="button"
-                              onClick={(e) => { e.stopPropagation(); downloadFile(m.media_url!, m.content || `file-${m.id}`); }}
-                              title="Baixar arquivo"
-                              className="ml-auto grid place-items-center h-6 w-6 rounded-full bg-black/10 hover:bg-black/20 text-gray-700"
-                            >
-                              <Download className="h-3.5 w-3.5" />
-                            </button>
+                            {!(m.metadata as { pending?: boolean } | null)?.pending && (
+                              <button
+                                type="button"
+                                onClick={(e) => { e.stopPropagation(); downloadFile(m.media_url!, m.content || `file-${m.id}`); }}
+                                title="Baixar arquivo"
+                                className="ml-auto grid place-items-center h-6 w-6 rounded-full bg-black/10 hover:bg-black/20 text-gray-700"
+                              >
+                                <Download className="h-3.5 w-3.5" />
+                              </button>
+                            )}
                           </div>
                         ) : (
                           <div className="whitespace-pre-wrap break-words pr-14">{m.content}</div>
@@ -1932,56 +1948,8 @@ function MessagesPage() {
                 )}
               </div>
 
-              {uploadQueue.length > 0 && (
-                <div className="px-3 pt-2 pb-1 space-y-1.5" style={{ background: "#F0F2F5" }}>
-                  {uploadQueue.map((u) => (
-                    <div key={u.id} className="flex items-center gap-2 bg-white rounded-lg px-2 py-1.5 shadow-sm text-sm transition-opacity duration-300">
-                      {u.kind === "image" ? (
-                        <img src={u.url} alt="" className="h-10 w-10 rounded object-cover" />
-                      ) : u.kind === "video" ? (
-                        <video src={u.url} className="h-10 w-10 rounded object-cover bg-black" muted />
-                      ) : u.kind === "audio" ? (
-                        <div className="h-10 w-10 rounded grid place-items-center bg-orange-100 text-orange-600"><Music className="h-5 w-5" /></div>
-                      ) : u.kind === "pdf" ? (
-                        <div className="h-10 w-10 rounded grid place-items-center bg-red-100 text-red-600"><FileText className="h-5 w-5" /></div>
-                      ) : (
-                        <div className="h-10 w-10 rounded grid place-items-center bg-sky-100 text-sky-600"><FileIcon className="h-5 w-5" /></div>
-                      )}
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-center gap-2">
-                          <div className="truncate text-gray-800 flex-1">{u.name}</div>
-                          <div className="text-[11px] text-gray-500 shrink-0 tabular-nums">{formatBytes(u.size)}</div>
-                        </div>
-                        <div className="mt-1 h-1 w-full rounded-full bg-gray-200 overflow-hidden">
-                          {u.status === "uploading" ? (
-                            <div className="h-full w-1/3 bg-blue-500 animate-[upload-slide_1.2s_ease-in-out_infinite]" style={{ animation: "upload-slide 1.2s ease-in-out infinite" }} />
-                          ) : u.status === "done" ? (
-                            <div className="h-full w-full bg-emerald-500 transition-all" />
-                          ) : (
-                            <div className="h-full w-full bg-red-500" />
-                          )}
-                        </div>
-                        {u.status === "failed" && u.error && (
-                          <div className="mt-0.5 text-[11px] text-red-600 truncate">{u.error}</div>
-                        )}
-                      </div>
-                      {u.status === "uploading" ? (
-                        <Loader2 className="h-4 w-4 text-blue-500 animate-spin shrink-0" />
-                      ) : u.status === "done" ? (
-                        <Check className="h-4 w-4 text-emerald-600 shrink-0" />
-                      ) : (
-                        <button
-                          onClick={() => setUploadQueue((q) => q.filter((x) => x.id !== u.id))}
-                          className="p-1 rounded-full hover:bg-gray-100 text-gray-500"
-                          aria-label="Remover"
-                        >
-                          <X className="h-4 w-4" />
-                        </button>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              )}
+              {/* Upload progress is shown inline on the message bubble (WhatsApp-style),
+                  so we intentionally do not render a separate upload queue bar here. */}
               <div className="px-3 py-2 flex items-end gap-2" style={{ background: "#F0F2F5" }}>
                 {recording ? (
                   <>
