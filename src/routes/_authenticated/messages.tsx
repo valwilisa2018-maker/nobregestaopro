@@ -47,6 +47,22 @@ function jidFromPhone(phone: string) {
   return `${String(phone).replace(/\D+/g, "")}@s.whatsapp.net`;
 }
 
+function phoneVariants(value: string) {
+  const digits = value.replace(/\D+/g, "");
+  const variants = new Set([digits]);
+  if (digits.startsWith("55") && digits.length === 13 && digits[4] === "9") {
+    variants.add(`${digits.slice(0, 4)}${digits.slice(5)}`);
+  }
+  if (digits.startsWith("55") && digits.length === 12) {
+    variants.add(`${digits.slice(0, 4)}9${digits.slice(4)}`);
+  }
+  return [...variants].filter(Boolean);
+}
+
+function jidVariants(phone: string) {
+  return phoneVariants(phone).map((digits) => `${digits}@s.whatsapp.net`);
+}
+
 function storagePathFrom(m: Msg) {
   const path = (m.metadata as { storagePath?: unknown } | null)?.storagePath;
   return typeof path === "string" && path ? path : null;
@@ -172,13 +188,13 @@ function MessagesPage() {
   const loadMessages = useCallback(async () => {
     if (!user || !selected) { setMsgs([]); return; }
     const phone = selected.phone.replace(/\D+/g, "");
-    const jid = jidFromPhone(selected.phone);
+    const jids = new Set([jidFromPhone(selected.phone), ...jidVariants(selected.phone)]);
     const { data: convs } = await supabase.from("conversations")
       .select("id,metadata").eq("user_id", user.id).limit(1000);
     const ids = (convs ?? [])
       .filter((c) => {
         const remote = (c.metadata as { remoteJid?: string } | null)?.remoteJid ?? "";
-        return remote === jid || (!!phone && remote.startsWith(`${phone}@`));
+        return jids.has(remote) || (!!phone && remote.startsWith(`${phone}@`));
       })
       .map((c) => c.id);
     if (!ids.length) { setMsgs([]); return; }
