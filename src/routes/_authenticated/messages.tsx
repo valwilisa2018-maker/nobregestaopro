@@ -269,13 +269,23 @@ function MessagesPage() {
     if (!/^\d{10,15}$/.test(phone)) { toast.error("Telefone inválido (use apenas dígitos, 10 a 15)"); return; }
     setSavingContact(true);
     try {
+      if (!user) throw new Error("Sessão expirada");
+      // Find duplicates by phone variants (e.g. BR 12↔13 dígitos) and merge them
+      const variants = phoneVariants(phone);
+      const { data: dupes } = await supabase.from("contacts")
+        .select("id").eq("user_id", user.id).in("phone", variants).neq("id", selected.id);
+      if (dupes && dupes.length) {
+        await supabase.from("contacts").delete().in("id", dupes.map((d) => d.id));
+      }
       const { error } = await supabase.from("contacts")
         .update({ name: name || null, phone })
         .eq("id", selected.id);
       if (error) throw error;
       const updated = { ...selected, name: name || null, phone };
       setSelected(updated);
-      setContacts((prev) => prev.map((c) => (c.id === updated.id ? updated : c)));
+      setContacts((prev) => prev
+        .filter((c) => !(dupes ?? []).some((d) => d.id === c.id))
+        .map((c) => (c.id === updated.id ? updated : c)));
       toast.success("Contato atualizado");
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Falha ao salvar");
