@@ -23,6 +23,7 @@ export const Route = createFileRoute("/_authenticated/messages")({
 
 type Contact = {
   id: string; phone: string; name: string | null;
+  metadata?: Record<string, unknown> | null;
 };
 type Msg = {
   id: string;
@@ -251,10 +252,15 @@ function MessagesPage() {
     setRemotePresence(null);
     if (!user || !selected) return;
     const jids = new Set(jidVariants(selected.phone));
+    const lidJids = (selected.metadata as { lidJids?: unknown } | null)?.lidJids;
+    if (Array.isArray(lidJids)) lidJids.forEach((jid) => { if (typeof jid === "string") jids.add(jid); });
     const ch = supabase.channel(`presence-${user.id}`)
       .on("postgres_changes", { event: "*", schema: "public", table: "presence", filter: `user_id=eq.${user.id}` }, (payload) => {
         const row = (payload.new ?? payload.old) as { jid?: string; presence?: string; updated_at?: string } | null;
-        if (!row?.jid || !jids.has(row.jid)) return;
+        if (!row?.jid) return;
+        const exact = jids.has(row.jid);
+        const recentOneToOneLid = !exact && row.jid.endsWith("@lid") && row.updated_at && Date.now() - new Date(row.updated_at).getTime() < 8000;
+        if (!exact && !recentOneToOneLid) return;
         const p = row.presence ?? "available";
         if (p === "composing" || p === "recording") {
           setRemotePresence(p);
@@ -339,7 +345,7 @@ function MessagesPage() {
   const loadContacts = useCallback(async () => {
     if (!user) return;
     const { data } = await supabase.from("contacts")
-      .select("id,phone,name").eq("user_id", user.id).order("updated_at", { ascending: false }).limit(500);
+      .select("id,phone,name,metadata").eq("user_id", user.id).order("updated_at", { ascending: false }).limit(500);
     setContacts((data ?? []) as Contact[]);
   }, [user]);
   useEffect(() => { loadContacts(); }, [loadContacts]);
@@ -682,6 +688,14 @@ function MessagesPage() {
     const i = setInterval(() => setRecTime((t) => t + 1), 1000);
     return () => clearInterval(i);
   }, [recording]);
+
+  useEffect(() => {
+    if (!recording || !selected) return;
+    const i = setInterval(() => {
+      pushPresence({ data: { contactId: selected.id, presence: "recording" } }).catch(() => {});
+    }, 2500);
+    return () => clearInterval(i);
+  }, [recording, selected, pushPresence]);
 
   return (
     <div className="-m-6 h-[calc(100vh-3rem)]">
