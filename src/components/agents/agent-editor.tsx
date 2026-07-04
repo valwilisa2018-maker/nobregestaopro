@@ -4,6 +4,7 @@ import {
   Save, RotateCcw, Sliders, MessageSquare, Clock, Bell, Send, Hash,
   CalendarClock, AudioLines, Image as ImageIcon, PlayCircle, BookOpen, Loader2,
   Plus, X, Play, Mic, Info, Trash2, ChevronDown, Upload, FileText, Send as SendIcon, Bot,
+  RefreshCw, Database, Brain,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
@@ -15,7 +16,9 @@ import { Slider } from "@/components/ui/slider";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { PROVIDERS, type ProviderId } from "./providers";
+import { PROMPT_LIBRARY } from "./prompt-library";
 
 export interface AgentRow {
   id: string;
@@ -95,6 +98,8 @@ export function AgentEditor({ agent, onSaved, onCancel }: Props) {
   const [saving, setSaving] = useState(false);
   const [instances, setInstances] = useState<Array<{ id: string; name: string; phone_number: string | null; status: string | null }>>([]);
   const [providers, setProviders] = useState<Array<{ id: string; name: string; provider: string; model: string | null }>>([]);
+  const [libraryOpen, setLibraryOpen] = useState(false);
+  const [libraryNiche, setLibraryNiche] = useState<string>(PROMPT_LIBRARY[0].id);
 
   useEffect(() => { setForm(agent ?? emptyAgent(user?.id ?? "")); }, [agent, user?.id]);
 
@@ -281,8 +286,8 @@ export function AgentEditor({ agent, onSaved, onCancel }: Props) {
             <div className="flex items-center justify-between">
               <Label className="text-xs uppercase tracking-wider text-muted-foreground">Prompt do Sistema</Label>
               <div className="flex items-center gap-1">
-                <Button size="sm" variant="ghost" onClick={() => set("system_prompt", DEFAULT_PROMPT)} className="text-xs"><RotateCcw className="h-3 w-3" /> Restaurar Padrão</Button>
-                <Button size="sm" variant="ghost" className="text-xs text-primary"><BookOpen className="h-3 w-3" /> Biblioteca de Prompts</Button>
+                <Button size="sm" variant="ghost" onClick={() => { set("system_prompt", DEFAULT_PROMPT); toast.success("Prompt padrão restaurado"); }} className="text-xs"><RotateCcw className="h-3 w-3" /> Restaurar Padrão</Button>
+                <Button size="sm" variant="ghost" onClick={() => setLibraryOpen(true)} className="text-xs text-primary"><BookOpen className="h-3 w-3" /> Biblioteca de Prompts</Button>
               </div>
             </div>
             <Textarea rows={10} value={form.system_prompt ?? ""} onChange={(e) => set("system_prompt", e.target.value)} className="font-mono text-xs" />
@@ -328,7 +333,41 @@ export function AgentEditor({ agent, onSaved, onCancel }: Props) {
         <Section id="s10" number={10} icon={<PlayCircle className="h-4 w-4" />} title="Testar IA">
           <TestSection form={form} setForm={setForm} />
         </Section>
+
+        <Section id="s11" number={11} icon={<Database className="h-4 w-4" />} title="Base de Conhecimento">
+          <KnowledgeSection form={form} set={set} onSave={save} saving={saving} />
+        </Section>
       </Accordion>
+
+      <Dialog open={libraryOpen} onOpenChange={setLibraryOpen}>
+        <DialogContent className="max-w-3xl max-h-[85vh] overflow-hidden flex flex-col">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2"><BookOpen className="h-5 w-5 text-primary" /> Biblioteca de Prompts</DialogTitle>
+            <DialogDescription>Escolha um nicho e aplique um prompt pronto. Você pode editar depois.</DialogDescription>
+          </DialogHeader>
+          <div className="grid grid-cols-[220px_1fr] gap-4 overflow-hidden min-h-0">
+            <div className="overflow-y-auto pr-2 space-y-1">
+              {PROMPT_LIBRARY.map((n) => (
+                <button key={n.id} type="button" onClick={() => setLibraryNiche(n.id)}
+                  className={`w-full text-left rounded-lg px-3 py-2 text-sm flex items-center gap-2 transition ${libraryNiche === n.id ? "bg-primary/15 text-primary ring-1 ring-primary/30" : "hover:bg-muted/40"}`}>
+                  <span>{n.icon}</span><span className="truncate">{n.label}</span>
+                </button>
+              ))}
+            </div>
+            <div className="overflow-y-auto space-y-3 pr-1">
+              {PROMPT_LIBRARY.find((n) => n.id === libraryNiche)?.prompts.map((p, i) => (
+                <div key={i} className="rounded-xl border border-border/60 bg-card/40 p-3 space-y-2">
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="font-semibold text-sm">{p.title}</div>
+                    <Button size="sm" onClick={() => { set("system_prompt", p.prompt); setLibraryOpen(false); toast.success("Prompt aplicado"); }} style={{ background: "var(--gradient-primary)" }}>Usar este</Button>
+                  </div>
+                  <pre className="text-[11px] whitespace-pre-wrap font-mono text-muted-foreground max-h-40 overflow-auto">{p.prompt}</pre>
+                </div>
+              ))}
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
@@ -379,6 +418,45 @@ function SaveBar({ onSave, saving }: { onSave: () => void; saving: boolean }) {
     <Button onClick={onSave} disabled={saving} className="w-full mt-4 rounded-xl" style={{ background: "var(--gradient-primary)" }}>
       {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />} Salvar
     </Button>
+  );
+}
+
+// ============ 11. Base de Conhecimento ============
+type KnowledgeItem = { id: string; title: string; content: string; enabled?: boolean };
+function KnowledgeSection({ form, set, onSave, saving }: { form: AgentRow; set: <K extends keyof AgentRow>(k: K, v: AgentRow[K]) => void; onSave: () => void; saving: boolean }) {
+  const items = ((form.knowledge as KnowledgeItem[] | null) ?? []);
+  const enabled = ((form.memory as { knowledgeEnabled?: boolean } | null)?.knowledgeEnabled ?? true);
+  const setEnabled = (v: boolean) => set("memory", { ...(form.memory ?? {}), knowledgeEnabled: v });
+  const setItems = (next: KnowledgeItem[]) => set("knowledge", next as unknown as AgentRow["knowledge"]);
+  const add = () => setItems([...items, { id: crypto.randomUUID(), title: "Novo conhecimento", content: "", enabled: true }]);
+  const update = (id: string, patch: Partial<KnowledgeItem>) => setItems(items.map((x) => x.id === id ? { ...x, ...patch } : x));
+  const remove = (id: string) => setItems(items.filter((x) => x.id !== id));
+  return (
+    <div className="space-y-3">
+      <ToggleRow label="Ativar base de conhecimento" hint="Conteúdo abaixo é injetado no contexto da IA — cérebro do agente" checked={enabled} onChange={setEnabled} />
+      <div className="flex items-start gap-2 rounded-xl border border-primary/30 bg-primary/[.05] px-3 py-2.5 text-xs text-muted-foreground">
+        <Brain className="h-4 w-4 flex-shrink-0 text-primary mt-0.5" />
+        <span>Cadastre informações da empresa, produtos, políticas, FAQs, tabelas de preço, roteiros de venda. A IA usará isso para responder com precisão.</span>
+      </div>
+      <button type="button" onClick={add} className="flex w-full items-center justify-center gap-2 rounded-xl border border-dashed border-primary/40 bg-primary/5 py-3 text-sm font-medium text-primary hover:bg-primary/10 transition">
+        <Plus className="h-4 w-4" /> Adicionar conhecimento
+      </button>
+      {items.length === 0 && (
+        <p className="text-[11px] italic text-muted-foreground text-center">Nenhum conhecimento cadastrado ainda.</p>
+      )}
+      {items.map((it) => (
+        <div key={it.id} className="rounded-xl border border-border/60 bg-card/40 p-3 space-y-2">
+          <div className="flex items-center gap-2">
+            <Input value={it.title} onChange={(e) => update(it.id, { title: e.target.value })} placeholder="Título (ex: Política de troca)" className="font-semibold" />
+            <Switch checked={it.enabled ?? true} onCheckedChange={(v) => update(it.id, { enabled: v })} />
+            <button onClick={() => remove(it.id)} className="text-muted-foreground hover:text-destructive"><Trash2 className="h-4 w-4" /></button>
+          </div>
+          <Textarea rows={5} value={it.content} onChange={(e) => update(it.id, { content: e.target.value })} placeholder="Conteúdo que a IA deve saber..." className="text-xs" />
+          <div className="text-[10px] text-muted-foreground text-right">{it.content.length} chars</div>
+        </div>
+      ))}
+      <SaveBar onSave={onSave} saving={saving} />
+    </div>
   );
 }
 
@@ -529,6 +607,9 @@ function TestSection({ form, setForm }: { form: AgentRow; setForm: React.Dispatc
 
       <div className="flex items-center gap-2">
         <Input placeholder="Digite ou grave um áudio..." value={input} onChange={(e) => setInput(e.target.value)} onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), send())} disabled={loading} />
+        <Button size="icon" variant="ghost" title="Resetar conversa e memória" onClick={() => { setMessages([]); setInput(""); setLoading(false); toast.success("Conversa e memória de teste resetadas"); }}>
+          <RefreshCw className="h-4 w-4" />
+        </Button>
         <Button size="icon" variant="ghost" disabled><Mic className="h-4 w-4" /></Button>
         <Button size="icon" onClick={send} disabled={loading || !input.trim()} style={{ background: "var(--gradient-primary)" }}><SendIcon className="h-4 w-4" /></Button>
       </div>
