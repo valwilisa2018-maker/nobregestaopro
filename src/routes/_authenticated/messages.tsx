@@ -641,7 +641,7 @@ function MessagesPage() {
                     <TooltipContent side="top">Parar gravação</TooltipContent>
                   </Tooltip>
                 ) : text.trim() || attachment ? (
-                  <Button size="icon" onClick={() => { if (attachment) { setMsgs((p) => [...p, { id: `local-${Date.now()}`, direction: "outbound", type: attachment.file.type.startsWith("image/") ? "image" : "file", content: attachment.file.name, media_url: attachment.url, created_at: new Date().toISOString(), metadata: null }]); setAttachment(null); } if (text.trim()) handleSendText(); }} disabled={sending} className="rounded-full h-11 w-11 text-white hover:opacity-90" style={{ background: WA.accent }}>
+                  <Button size="icon" onClick={() => { if (attachment) handleSendAttachment(); else if (text.trim()) handleSendText(); }} disabled={sending} className="rounded-full h-11 w-11 text-white hover:opacity-90" style={{ background: WA.accent }}>
                     {sending ? <Loader2 className="h-5 w-5 animate-spin" /> : <Send className="h-5 w-5" />}
                   </Button>
                 ) : (
