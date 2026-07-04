@@ -503,7 +503,7 @@ export const Route = createFileRoute("/api/public/evolution/$instance")({
             }
             // Allow AI to process pure media (image/pdf) without caption
             if (!text && !mediaB64) return Response.json({ ok: true, skipped: "no-text" });
-            if (!text && mediaB64) text = mediaCaption ?? "";
+            if (!text) text = mediaCaption ?? "";
 
             // Persist inbound message (only when we have a conversation — conversation_id is NOT NULL)
             if (convo) {
