@@ -340,9 +340,13 @@ function MessagesPage() {
                   title={sidebarCollapsed ? (c.name || c.phone) : undefined}
                 >
                   <button onClick={() => setSelected(c)} className="flex items-center gap-3 flex-1 min-w-0 text-left focus:outline-none">
-                    <div className="h-12 w-12 rounded-full grid place-items-center text-sm font-semibold text-white shrink-0" style={{ background: WA.headerTeal }}>
-                      {initials(c.name, c.phone)}
-                    </div>
+                    {avatars[c.id] ? (
+                      <img src={avatars[c.id]!} alt="" className="h-12 w-12 rounded-full object-cover shrink-0" />
+                    ) : (
+                      <div className="h-12 w-12 rounded-full grid place-items-center text-sm font-semibold text-white shrink-0" style={{ background: WA.headerTeal }}>
+                        {initials(c.name, c.phone)}
+                      </div>
+                    )}
                     {!sidebarCollapsed && (
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-1.5">
