@@ -18,7 +18,7 @@ const SourceType = z.enum(["list", "tag", "segment", "all"]);
 const CreateInput = z.object({
   name: z.string().min(1),
   description: z.string().nullable().optional(),
-  message: z.string().min(1),
+  message: z.string().default(""),
   flow_id: z.string().uuid().nullable().optional(),
   media_url: z.string().nullable().optional(),
   media_type: z.string().nullable().optional(),
