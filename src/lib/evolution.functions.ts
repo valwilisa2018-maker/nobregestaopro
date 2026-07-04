@@ -338,6 +338,73 @@ export const sendChatText = createServerFn({ method: "POST" })
     return { ok: true, conversationId: convoId };
   });
 
+// ===================== Send media (image/video/audio/document) =====================
+
+const SendChatMediaInput = z.object({
+  contactId: z.string().uuid(),
+  base64: z.string().min(10),
+  mime: z.string().min(3),
+  fileName: z.string().min(1),
+  caption: z.string().max(1024).optional(),
+});
+
+export const sendChatMedia = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((i: unknown) => SendChatMediaInput.parse(i))
+  .handler(async ({ data, context }) => {
+    const { data: contact } = await context.supabase.from("contacts")
+      .select("*").eq("id", data.contactId).eq("user_id", context.userId).single();
+    if (!contact) throw new Error("Contato não encontrado");
+    const conn = await pickActiveConnection(context.supabase, context.userId);
+    const apiKey = await loadEvolutionCommandKey(context.supabase, conn.api_key);
+    const number = String(contact.phone).replace(/\D+/g, "");
+    const remoteJid = `${number}@s.whatsapp.net`;
+    const b64 = data.base64.replace(/^data:[^;]+;base64,/, "");
+    const mediatype = data.mime.startsWith("image/") ? "image"
+      : data.mime.startsWith("video/") ? "video"
+      : data.mime.startsWith("audio/") ? "audio" : "document";
+    const r = await evoFetch(`${baseUrl(conn.url_api)}/message/sendMedia/${conn.instance_name}`, apiKey, {
+      method: "POST",
+      body: JSON.stringify({
+        number, mediatype, media: b64, mimetype: data.mime,
+        fileName: data.fileName, caption: data.caption ?? "",
+      }),
+    });
+    if (!r.ok) return { ok: false as const, error: parseEvoError(r.json, r.status) };
+    const convoId = await getOrCreateConversationForJid(context.supabase, context.userId, conn.id, remoteJid);
+    await context.supabase.from("messages").insert({
+      user_id: context.userId, conversation_id: convoId,
+      direction: "outbound",
+      type: mediatype === "document" ? "file" : mediatype,
+      content: data.caption ?? data.fileName,
+      media_url: `data:${data.mime};base64,${b64}`,
+      metadata: { remoteJid, manual: true, fileName: data.fileName } as never,
+    });
+    await context.supabase.from("conversations").update({
+      last_message_at: new Date().toISOString(),
+    }).eq("id", convoId);
+    return { ok: true as const, conversationId: convoId };
+  });
+
+// ===================== Profile picture =====================
+
+const ProfilePicInput = z.object({ phone: z.string().min(4) });
+
+export const getProfilePicture = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((i: unknown) => ProfilePicInput.parse(i))
+  .handler(async ({ data, context }) => {
+    const conn = await pickActiveConnection(context.supabase, context.userId);
+    const apiKey = await loadEvolutionCommandKey(context.supabase, conn.api_key);
+    const number = String(data.phone).replace(/\D+/g, "");
+    const r = await evoFetch(`${baseUrl(conn.url_api)}/chat/fetchProfilePictureUrl/${conn.instance_name}`, apiKey, {
+      method: "POST",
+      body: JSON.stringify({ number }),
+    });
+    const url = r.json?.profilePictureUrl ?? r.json?.profilePicUrl ?? null;
+    return { url: typeof url === "string" ? url : null };
+  });
+
 const SendChatAudioInput = z.object({
   contactId: z.string().uuid(),
   audioBase64: z.string().min(10),
