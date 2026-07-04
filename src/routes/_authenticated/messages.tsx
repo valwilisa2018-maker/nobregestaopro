@@ -752,6 +752,8 @@ function MessagesPage() {
     loadMessages();
   }, [loadMessages]);
 
+  useEffect(() => { loadMessagesRef.current = () => { void loadMessages(); }; }, [loadMessages]);
+
   const loadOlderMessages = useCallback(async () => {
     if (!user || !selected || olderLoading || messagesLoading || !hasOlder) return;
     const ids = conversationIdsRef.current;
