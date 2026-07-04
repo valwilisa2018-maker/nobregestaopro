@@ -76,6 +76,47 @@ function findEvoId(value: unknown, depth = 0): string | null {
   return null;
 }
 
+// Extract new text from a Baileys/Evolution edit event.
+// Handles: editedMessage.message.protocolMessage.editedMessage.{conversation|extendedTextMessage.text}
+// and message.protocolMessage.editedMessage.* variants.
+function extractEditedText(value: unknown, depth = 0): string | null {
+  if (!value || depth > 8 || typeof value !== "object") return null;
+  const v = value as Record<string, unknown>;
+  const proto = (v.protocolMessage ?? (v.message as Record<string, unknown> | undefined)?.protocolMessage) as Record<string, unknown> | undefined;
+  if (proto && (proto.type === 14 || proto.type === "MESSAGE_EDIT" || proto.editedMessage)) {
+    const em = (proto.editedMessage ?? {}) as Record<string, unknown>;
+    const conv = em.conversation as string | undefined;
+    if (typeof conv === "string") return conv;
+    const ext = (em.extendedTextMessage as Record<string, unknown> | undefined)?.text as string | undefined;
+    if (typeof ext === "string") return ext;
+  }
+  for (const val of Object.values(v)) {
+    if (val && typeof val === "object") {
+      const found = extractEditedText(val, depth + 1);
+      if (found !== null) return found;
+    }
+  }
+  return null;
+}
+
+function extractEditedTargetId(value: unknown, depth = 0): string | null {
+  if (!value || depth > 8 || typeof value !== "object") return null;
+  const v = value as Record<string, unknown>;
+  const proto = (v.protocolMessage ?? (v.message as Record<string, unknown> | undefined)?.protocolMessage) as Record<string, unknown> | undefined;
+  if (proto && (proto.type === 14 || proto.type === "MESSAGE_EDIT" || proto.editedMessage)) {
+    const key = proto.key as Record<string, unknown> | undefined;
+    const id = key?.id as string | undefined;
+    if (typeof id === "string") return id;
+  }
+  for (const val of Object.values(v)) {
+    if (val && typeof val === "object") {
+      const found = extractEditedTargetId(val, depth + 1);
+      if (found !== null) return found;
+    }
+  }
+  return null;
+}
+
 function receiptRemoteJidCandidates(remoteJid: string) {
   const base = remoteJid.split(":")[0] ?? remoteJid;
   const candidates = new Set<string>([remoteJid, base]);
