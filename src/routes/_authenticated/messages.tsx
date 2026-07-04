@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Mic, Search, Send, Square, MessageCircle, Check, CheckCheck, Loader2, ArrowLeft, Smile, Play, Pause, Paperclip, ChevronLeft, ChevronRight, X, FileText } from "lucide-react";
+import { Mic, Search, Send, Square, MessageCircle, Check, CheckCheck, Loader2, ArrowLeft, Smile, Play, Pause, Paperclip, ChevronLeft, ChevronRight, X, FileText, Image as ImageIcon, Video, Music, File as FileIcon } from "lucide-react";
 import { PageShell } from "@/components/page-shell";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
@@ -367,18 +367,38 @@ function MessagesPage() {
                         </div>
                       </PopoverContent>
                     </Popover>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
+                    <Popover>
+                      <PopoverTrigger asChild>
                         <button
-                          onClick={() => fileInputRef.current?.click()}
                           className="p-2 text-gray-500 hover:text-gray-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 rounded-full transition"
-                          aria-label="Anexar arquivo"
+                          aria-label="Anexar"
                         >
                           <Paperclip className="h-6 w-6" />
                         </button>
-                      </TooltipTrigger>
-                      <TooltipContent side="top">Anexar arquivo</TooltipContent>
-                    </Tooltip>
+                      </PopoverTrigger>
+                      <PopoverContent side="top" align="start" className="w-52 p-1">
+                        {[
+                          { label: "Imagem", icon: ImageIcon, accept: "image/*", color: "text-violet-600" },
+                          { label: "Vídeo", icon: Video, accept: "video/*", color: "text-rose-600" },
+                          { label: "Áudio", icon: Music, accept: "audio/*", color: "text-orange-600" },
+                          { label: "PDF", icon: FileText, accept: "application/pdf", color: "text-red-600" },
+                          { label: "Arquivo", icon: FileIcon, accept: "*/*", color: "text-sky-600" },
+                        ].map((opt) => (
+                          <button
+                            key={opt.label}
+                            onClick={() => {
+                              if (!fileInputRef.current) return;
+                              fileInputRef.current.accept = opt.accept;
+                              fileInputRef.current.click();
+                            }}
+                            className="w-full flex items-center gap-3 px-3 py-2 rounded-md hover:bg-accent text-sm"
+                          >
+                            <opt.icon className={`h-4 w-4 ${opt.color}`} />
+                            <span>{opt.label}</span>
+                          </button>
+                        ))}
+                      </PopoverContent>
+                    </Popover>
                     <input
                       ref={fileInputRef}
                       type="file"
