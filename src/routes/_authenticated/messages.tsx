@@ -159,6 +159,8 @@ function MessagesPage() {
   const [lightbox, setLightbox] = useState<{ type: "image" | "video"; src: string } | null>(null);
   const [infoOpen, setInfoOpen] = useState(false);
   const [editName, setEditName] = useState("");
+  const [convoId, setConvoId] = useState<string | null>(null);
+  const [agentPaused, setAgentPaused] = useState<boolean>(false);
   const [editPhone, setEditPhone] = useState("");
   const [savingContact, setSavingContact] = useState(false);
   const [soundOn, setSoundOn] = useState<boolean>(() => {
