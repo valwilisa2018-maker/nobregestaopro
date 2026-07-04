@@ -53,7 +53,9 @@ function interpolate(t: string | undefined, vars: Record<string, string>) {
 }
 
 async function ev(conn: RunnerConn, path: string, body: unknown) {
-  return fetch(`${(conn.url_api ?? "").replace(/\/+$/, "")}${path}/${conn.instance_name}`, {
+  let base = (conn.url_api ?? "").trim().replace(/\/+$/, "");
+  if (base && !/^https?:\/\//i.test(base)) base = `https://${base}`;
+  return fetch(`${base}${path}/${conn.instance_name}`, {
     method: "POST",
     headers: { "Content-Type": "application/json", apikey: conn.api_key ?? "" },
     body: JSON.stringify(body),
