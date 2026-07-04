@@ -1782,8 +1782,8 @@ function MessagesPage() {
                 ) : (
                   <Tooltip>
                     <TooltipTrigger asChild>
-                      <Button size="icon" onClick={startRecording} disabled={sending} className="rounded-full h-11 w-11 text-white hover:opacity-90" style={{ background: WA.headerTeal }}>
-                        {sending ? <Loader2 className="h-5 w-5 animate-spin" /> : <Mic className="h-5 w-5" />}
+                      <Button size="icon" onClick={startRecording} className="rounded-full h-11 w-11 text-white hover:opacity-90" style={{ background: WA.headerTeal }}>
+                        <Mic className="h-5 w-5" />
                       </Button>
                     </TooltipTrigger>
                     <TooltipContent side="top">Gravar áudio</TooltipContent>
