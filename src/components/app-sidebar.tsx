@@ -4,7 +4,7 @@ import {
   LayoutDashboard, Bot, BookOpen, Workflow,
   MessageCircle, Brain, Users, MessagesSquare, History, ScrollText,
   Settings, UserCog, ShieldCheck, DollarSign, Palette, Contact2, Send, Puzzle, LogOut, Timer,
-  LineChart, Activity, CreditCard, Shield, User, Crown, Building2, Plug,
+  LineChart, Activity, CreditCard, Shield, User, Crown, Building2, Plug, CalendarDays,
 } from "lucide-react";
 import {
   Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent, SidebarGroupLabel,
@@ -19,6 +19,7 @@ const groups = [
     items: [
       { title: "Dashboard", url: "/dashboard", icon: LayoutDashboard },
       { title: "Agentes", url: "/agents", icon: Bot },
+      { title: "Agenda", url: "/calendar", icon: CalendarDays },
       { title: "Chats", url: "/conversations", icon: MessagesSquare },
       { title: "Mensagens", url: "/messages", icon: MessageCircle },
       { title: "Base de Conhecimento", url: "/knowledge", icon: BookOpen },
