@@ -484,6 +484,8 @@ function MessagesPage() {
       .select("id,phone,name,metadata").eq("user_id", user.id).order("updated_at", { ascending: false }).limit(500);
     setContacts((data ?? []) as Contact[]);
   }, [user]);
+  const loadContactsRef = useRef(loadContacts);
+  useEffect(() => { loadContactsRef.current = loadContacts; }, [loadContacts]);
   useEffect(() => { loadContacts(); }, [loadContacts]);
 
   // Load instances (connections) and per-contact connection membership map
@@ -791,9 +793,10 @@ function MessagesPage() {
           }
         }
         // Try to append immediately if the message belongs to the currently open thread.
-        if (selected) {
-          const phone = selected.phone.replace(/\D+/g, "");
-          const jids = new Set([jidFromPhone(selected.phone), ...jidVariants(selected.phone)]);
+        const openContact = selectedRef.current;
+        if (openContact) {
+          const phone = openContact.phone.replace(/\D+/g, "");
+          const jids = new Set([jidFromPhone(openContact.phone), ...jidVariants(openContact.phone)]);
           const remote = (row.metadata as { remoteJid?: string } | null)?.remoteJid ?? "";
           const belongs = jids.has(remote) || (!!phone && remote.startsWith(`${phone}@`));
           if (belongs) {
@@ -829,11 +832,11 @@ function MessagesPage() {
               if (tmpIdx !== -1) {
                 const copy = prev.slice();
                 copy[tmpIdx] = withReceipt;
-                persistMsgCache(selectedRef.current?.id ?? selected.id, copy);
+                persistMsgCache(selectedRef.current?.id ?? openContact.id, copy);
                 return copy;
               }
               const next = [...prev, withReceipt];
-              persistMsgCache(selectedRef.current?.id ?? selected.id, next);
+              persistMsgCache(selectedRef.current?.id ?? openContact.id, next);
               return next;
             });
             return;
@@ -894,12 +897,15 @@ function MessagesPage() {
         if (replyToRef.current?.id === deletedId) setReplyTo(null);
       })
       .on("postgres_changes", { event: "*", schema: "public", table: "contacts", filter: `user_id=eq.${user.id}` }, () => {
-        loadContacts();
+        loadContactsRef.current?.();
       })
       // Conversations UPDATE (unread counters etc.) must NOT reload the open thread — it caused messages to blink/disappear.
       .subscribe();
     return () => { supabase.removeChannel(ch); };
-  }, [user, loadMessages, loadContacts]);
+    // IMPORTANT: keep deps to [user] only. Re-subscribing on every `selected`
+    // change (via loadMessages) tore down the channel and dropped INSERTs that
+    // arrived during the gap — causing sent messages/audios to "disappear".
+  }, [user]);
 
   // Scroll to bottom when the thread changes or a new message is appended,
   // not on every metadata patch (status ticks). Prevents jitter/disappearing effect.
