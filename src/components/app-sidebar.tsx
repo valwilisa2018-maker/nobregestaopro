@@ -49,6 +49,7 @@ const groups = [
     label: "Financeiro",
     items: [
       { title: "Meu Plano", url: "/billing", icon: CreditCard },
+      { title: "Planos", url: "/plans", icon: Crown },
     ],
   },
   {
