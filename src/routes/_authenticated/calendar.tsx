@@ -202,8 +202,6 @@ function CalendarPage() {
         <SheetContent side="left" className="p-0 w-72">{Sidebar}</SheetContent>
       </Sheet>
 
-      <AiChat onPropose={(e) => openCreate(e)} events={events} />
-
       <EventModal
         open={modalOpen}
         event={editing}
