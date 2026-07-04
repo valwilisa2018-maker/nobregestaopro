@@ -158,6 +158,18 @@ function MessagesPage() {
     if (typeof window === "undefined") return {};
     try { return JSON.parse(localStorage.getItem("wa-labels") ?? "{}"); } catch { return {}; }
   });
+  const [instances, setInstances] = useState<Array<{ id: string; name: string; instance_name: string; profile_name: string | null }>>([]);
+  const [activeInstance, setActiveInstance] = useState<string>(() => {
+    if (typeof window === "undefined") return "all";
+    try { return localStorage.getItem("wa-instance") ?? "all"; } catch { return "all"; }
+  });
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      try { localStorage.setItem("wa-instance", activeInstance); } catch { /* ignore */ }
+    }
+  }, [activeInstance]);
+  // Map: phone digits -> Set of connection ids that have a conversation with that JID
+  const [contactConnMap, setContactConnMap] = useState<Record<string, Set<string>>>({});
   const sendText = useServerFn(sendChatText);
   const sendAudio = useServerFn(sendChatAudio);
   const sendMedia = useServerFn(sendChatMedia);
@@ -465,6 +477,38 @@ function MessagesPage() {
   }, [user]);
   useEffect(() => { loadContacts(); }, [loadContacts]);
 
+  // Load instances (connections) and per-contact connection membership map
+  useEffect(() => {
+    if (!user) return;
+    (async () => {
+      const { data } = await supabase.from("connections")
+        .select("id,name,instance_name,profile_name,status")
+        .eq("user_id", user.id)
+        .order("created_at", { ascending: true });
+      setInstances((data ?? []).map((c) => ({
+        id: c.id, name: c.name, instance_name: c.instance_name, profile_name: c.profile_name,
+      })));
+    })();
+  }, [user]);
+  useEffect(() => {
+    if (!user) return;
+    (async () => {
+      const { data } = await supabase.from("conversations")
+        .select("connection_id,metadata")
+        .eq("user_id", user.id)
+        .not("connection_id", "is", null)
+        .limit(5000);
+      const map: Record<string, Set<string>> = {};
+      for (const row of data ?? []) {
+        const jid = (row.metadata as { remoteJid?: string } | null)?.remoteJid ?? "";
+        const digits = String(jid).split("@")[0].replace(/\D+/g, "");
+        if (!digits || !row.connection_id) continue;
+        (map[digits] ??= new Set()).add(row.connection_id);
+      }
+      setContactConnMap(map);
+    })();
+  }, [user, contacts.length]);
+
   // Auto-select first contact so the composer is always visible
   useEffect(() => {
     if (!selected && contacts.length) setSelected(contacts[0]);
@@ -480,6 +524,15 @@ function MessagesPage() {
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
     let list = contacts;
+    if (activeInstance !== "all") {
+      list = list.filter((c) => {
+        for (const digits of phoneVariants(c.phone)) {
+          const set = contactConnMap[digits];
+          if (set?.has(activeInstance)) return true;
+        }
+        return false;
+      });
+    }
     if (filterMode === "archived") list = list.filter((c) => archived.has(c.id));
     else list = list.filter((c) => !archived.has(c.id));
     if (filterMode === "unread") list = list.filter((c) => (unreadMap[c.id] ?? 0) > 0);
@@ -487,7 +540,7 @@ function MessagesPage() {
     else if (filterMode === "groups") list = list.filter((c) => c.phone.includes("@g.us"));
     if (q) list = list.filter((c) => (c.name ?? "").toLowerCase().includes(q) || c.phone.includes(q));
     return [...list].sort((a, b) => Number(pinned.has(b.id)) - Number(pinned.has(a.id)));
-  }, [contacts, search, filterMode, favorites, unreadMap, archived, pinned]);
+  }, [contacts, search, filterMode, favorites, unreadMap, archived, pinned, activeInstance, contactConnMap]);
   const unreadTotal = useMemo(
     () => Object.values(unreadMap).reduce((a, b) => a + b, 0),
     [unreadMap],
@@ -1114,7 +1167,44 @@ function MessagesPage() {
             <div className="h-10 w-10 rounded-full grid place-items-center bg-white/20 font-semibold shrink-0">
               {(user?.email ?? "U").slice(0, 1).toUpperCase()}
             </div>
-            {!sidebarCollapsed && <div className="text-sm font-semibold flex-1 truncate">Conversas</div>}
+            {!sidebarCollapsed && (
+              <div className="flex-1 min-w-0">
+                <div className="text-[10px] uppercase tracking-wide text-white/70">Conversas</div>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <button className="mt-0.5 flex items-center gap-1 max-w-full text-sm font-semibold truncate rounded hover:bg-white/10 px-1 -mx-1 py-0.5">
+                      <span className="truncate">
+                        {activeInstance === "all"
+                          ? "Todas as instâncias"
+                          : (instances.find((i) => i.id === activeInstance)?.name
+                              ?? instances.find((i) => i.id === activeInstance)?.instance_name
+                              ?? "Instância")}
+                      </span>
+                      <ChevronDown className="h-3.5 w-3.5 opacity-80 shrink-0" />
+                    </button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="start" className="w-64">
+                    <DropdownMenuItem onClick={() => setActiveInstance("all")}>
+                      <span className="flex-1">Todas as instâncias</span>
+                      {activeInstance === "all" && <Check className="h-4 w-4" />}
+                    </DropdownMenuItem>
+                    {instances.length > 0 && <DropdownMenuSeparator />}
+                    {instances.map((i) => (
+                      <DropdownMenuItem key={i.id} onClick={() => setActiveInstance(i.id)}>
+                        <div className="flex-1 min-w-0">
+                          <div className="truncate">{i.name || i.instance_name}</div>
+                          {i.profile_name && <div className="text-[10px] text-muted-foreground truncate">{i.profile_name}</div>}
+                        </div>
+                        {activeInstance === i.id && <Check className="h-4 w-4" />}
+                      </DropdownMenuItem>
+                    ))}
+                    {!instances.length && (
+                      <div className="px-2 py-1.5 text-xs text-muted-foreground">Nenhuma instância cadastrada</div>
+                    )}
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
+            )}
             <Tooltip>
               <TooltipTrigger asChild>
                 <button
