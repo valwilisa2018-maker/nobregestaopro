@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Mic, Search, Send, Square, MessageCircle, Check, CheckCheck, Loader2, ArrowLeft, Smile, Play, Pause, Paperclip, ChevronLeft, ChevronRight, X, FileText, Image as ImageIcon, Video, Music, File as FileIcon, MoreVertical, Star, Archive, ArchiveRestore, Pin, PinOff, Tag, Info, Save, Bell, BellOff, Trash2, Forward, ChevronDown, Reply, CornerUpLeft, Download, Bot, BotOff } from "lucide-react";
+import { Mic, Search, Send, Square, MessageCircle, Check, CheckCheck, Loader2, ArrowLeft, Smile, Play, Pause, Paperclip, ChevronLeft, ChevronRight, X, FileText, Image as ImageIcon, Video, Music, File as FileIcon, MoreVertical, Star, Archive, ArchiveRestore, Pin, PinOff, Tag, Info, Save, Bell, BellOff, Trash2, Forward, ChevronDown, Reply, CornerUpLeft, Download, Bot, BotOff, Camera } from "lucide-react";
 import EmojiPicker, { EmojiStyle, Theme } from "emoji-picker-react";
 import { PageShell } from "@/components/page-shell";
 import { supabase } from "@/integrations/supabase/client";
@@ -120,6 +120,7 @@ function MessagesPage() {
   const [recLevels, setRecLevels] = useState<number[]>(() => Array(24).fill(0.15));
   const scrollRef = useRef<HTMLDivElement | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const cameraInputRef = useRef<HTMLInputElement | null>(null);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [attachment, setAttachment] = useState<{ file: File; url: string } | null>(null);
   const [filterMode, setFilterMode] = useState<"all" | "unread" | "favorites" | "groups" | "archived">("all");
@@ -1238,6 +1239,30 @@ function MessagesPage() {
                       ref={fileInputRef}
                       type="file"
                       accept="image/*,application/pdf,.doc,.docx,.txt"
+                      className="hidden"
+                      onChange={(e) => {
+                        const f = e.target.files?.[0];
+                        if (f) setAttachment({ file: f, url: URL.createObjectURL(f) });
+                        e.target.value = "";
+                      }}
+                    />
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <button
+                          onClick={() => cameraInputRef.current?.click()}
+                          className="p-2 text-gray-500 hover:text-gray-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 rounded-full transition"
+                          aria-label="Câmera"
+                        >
+                          <Camera className="h-6 w-6" />
+                        </button>
+                      </TooltipTrigger>
+                      <TooltipContent side="top">Gravar vídeo ou tirar foto</TooltipContent>
+                    </Tooltip>
+                    <input
+                      ref={cameraInputRef}
+                      type="file"
+                      accept="video/*,image/*"
+                      capture="environment"
                       className="hidden"
                       onChange={(e) => {
                         const f = e.target.files?.[0];
