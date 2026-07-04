@@ -376,16 +376,29 @@ async function pickConnectionForContact(supabase: any, userId: string, phone: st
   return pickActiveConnection(supabase, userId);
 }
 
+type SerializableJson = string | number | boolean | null | SerializableJson[] | { [key: string]: SerializableJson };
+
+function serializable(value: unknown): SerializableJson {
+  if (value === null || typeof value === "string" || typeof value === "number" || typeof value === "boolean") return value;
+  if (Array.isArray(value)) return value.map(serializable);
+  if (value && typeof value === "object") {
+    const out: { [key: string]: SerializableJson } = {};
+    for (const [key, val] of Object.entries(value as Record<string, unknown>)) out[key] = serializable(val);
+    return out;
+  }
+  return null;
+}
+
 function messageDto(row: any, metadata?: Record<string, unknown>) {
-  if (!row) return undefined;
+  if (!row) return null;
   return {
-    id: row.id,
-    direction: row.direction,
-    type: row.type,
-    content: row.content,
-    media_url: row.media_url,
-    created_at: row.created_at,
-    metadata: metadata ?? metadataObject(row.metadata),
+    id: String(row.id),
+    direction: String(row.direction),
+    type: String(row.type),
+    content: row.content == null ? null : String(row.content),
+    media_url: row.media_url == null ? null : String(row.media_url),
+    created_at: String(row.created_at),
+    metadata: serializable(metadata ?? metadataObject(row.metadata)),
   };
 }
 
