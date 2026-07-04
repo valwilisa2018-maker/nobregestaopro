@@ -47,6 +47,7 @@ const WA = {
 };
 
 const STICKERS = ["😀","😂","😍","🥰","😎","🤩","🥳","😭","😡","🤔","👍","👏","🙏","🔥","💯","🎉","❤️","💔","😅","🤣","😴","🤗","🤝","👀","💪","🌹","🍀","⭐","☀️","🌙","🎂","🍕","☕","⚽","🎮","🎵","📸","💡","✅","❌"];
+const MESSAGE_PAGE_SIZE = 80;
 
 function jidFromPhone(phone: string) {
   return `${String(phone).replace(/\D+/g, "")}@s.whatsapp.net`;
@@ -112,6 +113,9 @@ function MessagesPage() {
   const [search, setSearch] = useState("");
   const [selected, setSelected] = useState<Contact | null>(null);
   const [msgs, setMsgs] = useState<Msg[]>([]);
+  const [messagesLoading, setMessagesLoading] = useState(false);
+  const [olderLoading, setOlderLoading] = useState(false);
+  const [hasOlder, setHasOlder] = useState(false);
   const [text, setText] = useState("");
   const [sending, setSending] = useState(false);
   const [recording, setRecording] = useState(false);
@@ -164,6 +168,11 @@ function MessagesPage() {
   const [agentPaused, setAgentPaused] = useState<boolean>(false);
   const selectedRef = useRef<Contact | null>(null);
   useEffect(() => { selectedRef.current = selected; }, [selected]);
+  const messageLoadSeqRef = useRef(0);
+  const conversationIdsRef = useRef<string[]>([]);
+  const messagesCacheRef = useRef<Map<string, Msg[]>>(new Map());
+  const signedUrlCacheRef = useRef<Map<string, string>>(new Map());
+  const prependScrollRef = useRef(false);
   const [editPhone, setEditPhone] = useState("");
   const [savingContact, setSavingContact] = useState(false);
   const [soundOn, setSoundOn] = useState<boolean>(() => {
@@ -385,51 +394,148 @@ function MessagesPage() {
   );
   const groupsTotal = useMemo(() => contacts.filter((c) => c.phone.includes("@g.us")).length, [contacts]);
 
-  // Load messages for selected contact (match conversation by remoteJid)
-  const loadMessages = useCallback(async () => {
-    if (!user || !selected) { setMsgs([]); return; }
-    const reqId = selected.id;
-    const phone = selected.phone.replace(/\D+/g, "");
-    const jids = new Set([jidFromPhone(selected.phone), ...jidVariants(selected.phone)]);
-    const { data: convs } = await supabase.from("conversations")
-      .select("id,metadata").eq("user_id", user.id).limit(1000);
-    if (selectedRef.current?.id !== reqId) return;
-    const matched = (convs ?? []).filter((c) => {
-      const remote = (c.metadata as { remoteJid?: string } | null)?.remoteJid ?? "";
-      return jids.has(remote) || (!!phone && remote.startsWith(`${phone}@`));
-    });
-    const ids = matched.map((c) => c.id);
-    const primary = matched[0] ?? null;
-    setConvoId(primary?.id ?? null);
-    const pausedUntil = (primary?.metadata as { agent_paused_until?: string } | null)?.agent_paused_until ?? null;
-    setAgentPaused(!!pausedUntil && new Date(pausedUntil).getTime() > Date.now());
-    if (!ids.length) { setMsgs([]); return; }
-    const { data } = await supabase.from("messages")
-      .select("id,direction,type,content,media_url,created_at,metadata")
-      .in("conversation_id", ids)
-      .order("created_at", { ascending: true })
-      .limit(500);
-    if (selectedRef.current?.id !== reqId) return;
-    const rows = (data ?? []) as Msg[];
-    // Render immediately; hydrate signed URLs in background so UI stays snappy.
-    setMsgs(rows);
+  const hydrateSignedUrls = useCallback((rows: Msg[], reqId: string) => {
+    const rowsWithStorage = rows.filter((m) => storagePathFrom(m));
+    if (!rowsWithStorage.length) return;
     (async () => {
-      const patches = await Promise.all(rows.map(async (m) => {
+      const patches = await Promise.all(rowsWithStorage.map(async (m) => {
         const path = storagePathFrom(m);
         if (!path) return null;
+        const cached = signedUrlCacheRef.current.get(path);
+        if (cached) return { id: m.id, url: cached };
         const { data: signed } = await supabase.storage.from("agent-media").createSignedUrl(path, 60 * 60 * 24);
-        return signed?.signedUrl ? { id: m.id, url: signed.signedUrl } : null;
+        if (!signed?.signedUrl) return null;
+        signedUrlCacheRef.current.set(path, signed.signedUrl);
+        return { id: m.id, url: signed.signedUrl };
       }));
       if (selectedRef.current?.id !== reqId) return;
       const map = new Map(patches.filter(Boolean).map((p) => [p!.id, p!.url]));
       if (!map.size) return;
-      setMsgs((cur) => cur.map((m) => (map.has(m.id) ? { ...m, media_url: map.get(m.id)! } : m)));
+      setMsgs((cur) => {
+        const next = cur.map((m) => (map.has(m.id) ? { ...m, media_url: map.get(m.id)! } : m));
+        messagesCacheRef.current.set(reqId, next);
+        return next;
+      });
     })();
-  }, [user, selected]);
+  }, []);
+
+  async function findConversationRows(contact: Contact) {
+    const phone = contact.phone.replace(/\D+/g, "");
+    const targets = new Set([jidFromPhone(contact.phone), ...jidVariants(contact.phone)]);
+    const lidJids = (contact.metadata as { lidJids?: unknown } | null)?.lidJids;
+    if (Array.isArray(lidJids)) lidJids.forEach((jid) => { if (typeof jid === "string") targets.add(jid); });
+
+    const exactTargets = [...targets].filter(Boolean);
+    const { data: exact } = exactTargets.length
+      ? await supabase.from("conversations")
+        .select("id,metadata")
+        .eq("user_id", user!.id)
+        .in("metadata->>remoteJid", exactTargets)
+        .limit(20)
+      : { data: [] };
+
+    if (exact?.length) return exact;
+
+    const fallback = await Promise.all(phoneVariants(phone).map((digits) =>
+      supabase.from("conversations")
+        .select("id,metadata")
+        .eq("user_id", user!.id)
+        .ilike("metadata->>remoteJid", `${digits}@%`)
+        .limit(5),
+    ));
+    const seen = new Set<string>();
+    return fallback.flatMap((r) => r.data ?? []).filter((row) => {
+      if (seen.has(row.id)) return false;
+      seen.add(row.id);
+      return true;
+    });
+  }
+
+  // Load messages for selected contact (match conversation by remoteJid)
+  const loadMessages = useCallback(async () => {
+    if (!user || !selected) { setMsgs([]); setMessagesLoading(false); return; }
+    const reqId = selected.id;
+    const seq = ++messageLoadSeqRef.current;
+    const cached = messagesCacheRef.current.get(reqId);
+    setMessagesLoading(!cached?.length);
+    setHasOlder(false);
+    conversationIdsRef.current = [];
+    if (cached) setMsgs(cached);
+
+    const convs = await findConversationRows(selected);
+    if (selectedRef.current?.id !== reqId) return;
+    const matched = convs ?? [];
+    const ids = matched.map((c) => c.id);
+    conversationIdsRef.current = ids;
+    const primary = matched[0] ?? null;
+    setConvoId(primary?.id ?? null);
+    const pausedUntil = (primary?.metadata as { agent_paused_until?: string } | null)?.agent_paused_until ?? null;
+    setAgentPaused(!!pausedUntil && new Date(pausedUntil).getTime() > Date.now());
+    if (!ids.length) {
+      messagesCacheRef.current.set(reqId, []);
+      setMsgs([]);
+      setMessagesLoading(false);
+      return;
+    }
+    const { data } = await supabase.from("messages")
+      .select("id,direction,type,content,media_url,created_at,metadata")
+      .in("conversation_id", ids)
+      .order("created_at", { ascending: false })
+      .limit(MESSAGE_PAGE_SIZE + 1);
+    if (selectedRef.current?.id !== reqId || messageLoadSeqRef.current !== seq) return;
+    const rows = ((data ?? []) as Msg[]).slice(0, MESSAGE_PAGE_SIZE).reverse();
+    setHasOlder((data ?? []).length > MESSAGE_PAGE_SIZE);
+    setMsgs(rows);
+    messagesCacheRef.current.set(reqId, rows);
+    setMessagesLoading(false);
+    hydrateSignedUrls(rows, reqId);
+  }, [user, selected, hydrateSignedUrls]);
   useEffect(() => {
-    setMsgs([]); // clear instantly on contact switch, then load
+    const cached = selected ? messagesCacheRef.current.get(selected.id) : undefined;
+    setMsgs(cached ?? []);
+    setHasOlder(false);
+    setMessagesLoading(!!selected && !cached?.length);
     loadMessages();
   }, [loadMessages]);
+
+  const loadOlderMessages = useCallback(async () => {
+    if (!user || !selected || olderLoading || messagesLoading || !hasOlder) return;
+    const ids = conversationIdsRef.current;
+    const oldest = msgs[0]?.created_at;
+    if (!ids.length || !oldest) return;
+    const reqId = selected.id;
+    const el = scrollRef.current;
+    const beforeHeight = el?.scrollHeight ?? 0;
+    const beforeTop = el?.scrollTop ?? 0;
+    setOlderLoading(true);
+    try {
+      const { data } = await supabase.from("messages")
+        .select("id,direction,type,content,media_url,created_at,metadata")
+        .in("conversation_id", ids)
+        .lt("created_at", oldest)
+        .order("created_at", { ascending: false })
+        .limit(MESSAGE_PAGE_SIZE + 1);
+      if (selectedRef.current?.id !== reqId) return;
+      const older = ((data ?? []) as Msg[]).slice(0, MESSAGE_PAGE_SIZE).reverse();
+      setHasOlder((data ?? []).length > MESSAGE_PAGE_SIZE);
+      if (!older.length) return;
+      prependScrollRef.current = true;
+      setMsgs((prev) => {
+        const currentIds = new Set(prev.map((m) => m.id));
+        const next = [...older.filter((m) => !currentIds.has(m.id)), ...prev];
+        messagesCacheRef.current.set(reqId, next);
+        return next;
+      });
+      hydrateSignedUrls(older, reqId);
+      requestAnimationFrame(() => {
+        const current = scrollRef.current;
+        if (!current) return;
+        current.scrollTop = current.scrollHeight - beforeHeight + beforeTop;
+      });
+    } finally {
+      if (selectedRef.current?.id === reqId) setOlderLoading(false);
+    }
+  }, [user, selected, olderLoading, messagesLoading, hasOlder, msgs, hydrateSignedUrls]);
 
   const toggleAgent = useCallback(async () => {
     if (!convoId) { toast.error("Sem conversa vinculada ainda."); return; }
@@ -519,6 +625,11 @@ function MessagesPage() {
   useEffect(() => {
     const el = scrollRef.current;
     if (!el) return;
+    if (prependScrollRef.current) {
+      prependScrollRef.current = false;
+      msgsCountRef.current = msgs.length;
+      return;
+    }
     const prev = msgsCountRef.current;
     msgsCountRef.current = msgs.length;
     if (msgs.length === prev) return;
@@ -993,6 +1104,9 @@ function MessagesPage() {
 
               <div
                 ref={scrollRef}
+                onScroll={(e) => {
+                  if (e.currentTarget.scrollTop < 80) void loadOlderMessages();
+                }}
                 className="flex-1 overflow-y-auto px-4 py-4 space-y-1.5"
                 style={{
                   backgroundColor: WA.chatBg,
@@ -1000,6 +1114,26 @@ function MessagesPage() {
                     "url(\"data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='60' height='60'><circle cx='30' cy='30' r='1' fill='%23000000' opacity='0.04'/></svg>\")",
                 }}
               >
+                {hasOlder && (
+                  <div className="sticky top-0 z-10 flex justify-center pb-2">
+                    <button
+                      type="button"
+                      onClick={loadOlderMessages}
+                      disabled={olderLoading}
+                      className="inline-flex items-center gap-1.5 rounded-full bg-white/90 px-3 py-1 text-xs font-medium text-gray-700 shadow-sm hover:bg-white disabled:opacity-70"
+                    >
+                      {olderLoading ? <Loader2 className="h-3 w-3 animate-spin" /> : <ChevronDown className="h-3 w-3 rotate-180" />}
+                      Mensagens antigas
+                    </button>
+                  </div>
+                )}
+                {messagesLoading && !msgs.length && (
+                  <div className="text-center text-xs text-gray-600 py-12">
+                    <span className="inline-flex items-center gap-2 bg-white/80 px-3 py-1.5 rounded-full shadow-sm">
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" /> Carregando mensagens…
+                    </span>
+                  </div>
+                )}
                 {msgs.map((m) => {
                   const out = m.direction === "outbound";
                   const isAudio = m.type === "audio" || (m.metadata as { audio?: boolean } | null)?.audio;
@@ -1137,7 +1271,7 @@ function MessagesPage() {
                     </div>
                   );
                 })}
-                {!msgs.length && (
+                {!msgs.length && !messagesLoading && (
                   <div className="text-center text-xs text-gray-600 py-12">
                     <span className="inline-block bg-white/70 px-3 py-1 rounded-full shadow-sm">Nenhuma mensagem ainda — diga olá!</span>
                   </div>
