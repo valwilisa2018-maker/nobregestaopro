@@ -403,7 +403,7 @@ function MessagesPage() {
             return;
           }
         }
-        loadMessages();
+        // Not for the open thread — do NOT reload the current view (avoids flicker/disappearing).
       })
       .on("postgres_changes", { event: "UPDATE", schema: "public", table: "messages", filter: `user_id=eq.${user.id}` }, (payload) => {
         // Patch the single row in place so tick status updates without reloading the whole thread
@@ -442,9 +442,7 @@ function MessagesPage() {
       .on("postgres_changes", { event: "*", schema: "public", table: "contacts", filter: `user_id=eq.${user.id}` }, () => {
         loadContacts();
       })
-      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "conversations", filter: `user_id=eq.${user.id}` }, () => {
-        loadMessages();
-      })
+      // Conversations UPDATE (unread counters etc.) must NOT reload the open thread — it caused messages to blink/disappear.
       .subscribe();
     return () => { supabase.removeChannel(ch); };
   }, [user, loadMessages, loadContacts]);
