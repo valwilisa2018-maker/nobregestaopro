@@ -1296,7 +1296,50 @@ function MessagesPage() {
         </aside>
 
         {/* Chat area */}
-        <section className={`${selected ? "flex" : "hidden md:flex"} flex-col min-w-0 min-h-0 overflow-hidden h-full`} style={{ background: WA.chatBg }}>
+        <section
+          onDragEnter={(e) => {
+            if (!selected) return;
+            if (!Array.from(e.dataTransfer?.types || []).includes("Files")) return;
+            e.preventDefault();
+            dragDepthRef.current += 1;
+            setDragActive(true);
+          }}
+          onDragOver={(e) => {
+            if (!selected) return;
+            if (!Array.from(e.dataTransfer?.types || []).includes("Files")) return;
+            e.preventDefault();
+            e.dataTransfer.dropEffect = "copy";
+          }}
+          onDragLeave={(e) => {
+            if (!selected) return;
+            if (!Array.from(e.dataTransfer?.types || []).includes("Files")) return;
+            dragDepthRef.current = Math.max(0, dragDepthRef.current - 1);
+            if (dragDepthRef.current === 0) setDragActive(false);
+          }}
+          onDrop={(e) => {
+            if (!selected) return;
+            if (!Array.from(e.dataTransfer?.types || []).includes("Files")) return;
+            e.preventDefault();
+            dragDepthRef.current = 0;
+            setDragActive(false);
+            const files = Array.from(e.dataTransfer.files || []);
+            if (!files.length) return;
+            const cap = text.trim();
+            if (cap) setText("");
+            files.forEach((f, i) => sendOneFile(f, i === 0 ? cap || undefined : undefined));
+          }}
+          className={`${selected ? "flex" : "hidden md:flex"} flex-col min-w-0 min-h-0 overflow-hidden h-full relative`}
+          style={{ background: WA.chatBg }}
+        >
+          {dragActive && (
+            <div className="pointer-events-none absolute inset-0 z-40 p-4 flex items-center justify-center transition-opacity duration-200">
+              <div className="w-full h-full rounded-2xl border-4 border-dashed border-blue-500 bg-blue-500/10 backdrop-blur-[2px] flex flex-col items-center justify-center gap-3 text-blue-700">
+                <Paperclip className="h-14 w-14" />
+                <div className="text-xl font-semibold">Solte para enviar</div>
+                <div className="text-sm opacity-80">Imagens, vídeos, áudio, PDF ou documentos (até 15 MB)</div>
+              </div>
+            </div>
+          )}
           {!selected ? (
             <div className="flex-1 grid place-items-center text-center px-6" style={{ background: "#F0F2F5" }}>
               <div>
