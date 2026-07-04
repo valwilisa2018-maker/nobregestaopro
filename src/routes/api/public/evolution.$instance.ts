@@ -364,6 +364,7 @@ export const Route = createFileRoute("/api/public/evolution/$instance")({
               bodyMsg?.documentWithCaptionMessage?.message?.documentMessage?.caption;
             const audioMsg = bodyMsg?.audioMessage;
             const stickerMsg = bodyMsg?.stickerMessage;
+            let transcribedAudioBase64: string | null = null;
             let inputWasAudio = false;
             if (!remoteJid) return Response.json({ ok: true, skipped: true });
             // Ignore broadcasts, newsletters and groups (safe default)
@@ -424,6 +425,7 @@ export const Route = createFileRoute("/api/public/evolution/$instance")({
               try {
                 const b64 = await evolutionGetBase64(commandConn, msg, true);
                 if (b64) {
+                  transcribedAudioBase64 = b64;
                   const transcript = await sttViaLovable(b64);
                   if (transcript) { text = transcript; inputWasAudio = true; }
                 }
@@ -476,9 +478,9 @@ export const Route = createFileRoute("/api/public/evolution/$instance")({
                 let mediaPath: string | null = null;
                 let mediaMime: string | null = null;
                 try {
-                  const b64 = findBase64(msg) ?? await evolutionGetBase64(commandConn, msg, false);
+                  const b64 = findBase64(msg) ?? await evolutionGetBase64(commandConn, msg, false) ?? (mediaKind === "audio" ? transcribedAudioBase64 : null);
                   if (b64) {
-                    mediaMime = imageMsg?.mimetype ?? videoMsg?.mimetype ?? audioMsg?.mimetype ?? docMsg?.mimetype ?? stickerMsg?.mimetype ?? (mediaKind === "sticker" ? "image/webp" : "application/octet-stream");
+                    mediaMime = imageMsg?.mimetype ?? videoMsg?.mimetype ?? audioMsg?.mimetype ?? docMsg?.mimetype ?? stickerMsg?.mimetype ?? (mediaKind === "sticker" ? "image/webp" : mediaKind === "audio" ? "audio/mpeg" : "application/octet-stream");
                     const saved = await saveMediaToStorage(
                       supabaseAdmin,
                       conn.user_id,
@@ -534,9 +536,9 @@ export const Route = createFileRoute("/api/public/evolution/$instance")({
             }
             if (mediaKind && convo && !alreadySavedInbound) {
               try {
-                const b64 = findBase64(msg) ?? await evolutionGetBase64(commandConn, msg, false);
+                const b64 = findBase64(msg) ?? await evolutionGetBase64(commandConn, msg, false) ?? (mediaKind === "audio" ? transcribedAudioBase64 : null);
                 if (b64) {
-                  mediaMime = imageMsg?.mimetype ?? videoMsg?.mimetype ?? audioMsg?.mimetype ?? docMsg?.mimetype ?? stickerMsg?.mimetype ?? (mediaKind === "sticker" ? "image/webp" : "application/octet-stream");
+                  mediaMime = imageMsg?.mimetype ?? videoMsg?.mimetype ?? audioMsg?.mimetype ?? docMsg?.mimetype ?? stickerMsg?.mimetype ?? (mediaKind === "sticker" ? "image/webp" : mediaKind === "audio" ? "audio/mpeg" : "application/octet-stream");
                   mediaB64 = b64;
                   mediaName = docMsg?.fileName ?? `${mediaKind}-${msg?.key?.id ?? Date.now()}`;
                   const saved = await saveMediaToStorage(
