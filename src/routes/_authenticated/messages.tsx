@@ -188,6 +188,35 @@ function MessagesPage() {
     }
   }
 
+  async function handleSendAttachment() {
+    if (!selected || !attachment || sending) return;
+    setSending(true);
+    const file = attachment.file;
+    try {
+      const b64 = await blobToBase64(file);
+      const res = await sendMedia({ data: {
+        contactId: selected.id, base64: b64, mime: file.type || "application/octet-stream",
+        fileName: file.name, caption: text.trim() || undefined,
+      }});
+      if (res && "ok" in res && res.ok === false) toast.error(res.error);
+      else { setText(""); setAttachment(null); }
+      await loadMessages();
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Falha ao enviar arquivo");
+    } finally {
+      setSending(false);
+    }
+  }
+
+  // Fetch avatar for the selected contact
+  useEffect(() => {
+    if (!selected || avatars[selected.id] !== undefined) return;
+    fetchAvatar({ data: { phone: selected.phone } })
+      .then((r) => setAvatars((prev) => ({ ...prev, [selected.id]: r.url })))
+      .catch(() => setAvatars((prev) => ({ ...prev, [selected.id]: null })));
+  }, [selected, fetchAvatar, avatars]);
+  }
+
   async function startRecording() {
     if (!selected) return;
     try {
