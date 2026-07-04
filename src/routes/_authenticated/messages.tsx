@@ -1844,7 +1844,13 @@ function MessagesPage() {
                         ) : isVideo ? (
                           <div className="relative">
                             <button onClick={() => setLightbox({ type: "video", src: m.media_url! })} className="block focus:outline-none">
-                              <video src={m.media_url!} className="rounded-md max-h-64 bg-black cursor-zoom-in pointer-events-none" />
+                              <video
+                                src={`${m.media_url!}${m.media_url!.includes("#") ? "" : "#t=0.1"}`}
+                                className="rounded-md max-h-64 bg-black cursor-zoom-in pointer-events-none"
+                                preload="metadata"
+                                muted
+                                playsInline
+                              />
                             </button>
                             <DownloadBtn url={m.media_url!} filename={`video-${m.id}.mp4`} dark />
                           </div>
