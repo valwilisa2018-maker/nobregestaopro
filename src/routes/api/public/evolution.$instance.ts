@@ -175,13 +175,28 @@ export const Route = createFileRoute("/api/public/evolution/$instance")({
               const phone = remoteJid.split("@")[0]?.replace(/\D/g, "");
               const pushName = (msg?.pushName ?? msg?.notifyName) as string | undefined;
               if (phone) {
-                await supabaseAdmin.from("contacts").upsert({
-                  user_id: conn.user_id,
-                  phone,
-                  name: pushName ?? null,
-                  source: "whatsapp",
-                  status: "active",
-                } as never, { onConflict: "user_id,phone", ignoreDuplicates: false } as never);
+                const variants = phoneVariants(phone);
+                const { data: existingContact } = await supabaseAdmin.from("contacts")
+                  .select("id,name")
+                  .eq("user_id", conn.user_id)
+                  .in("phone", variants)
+                  .limit(1)
+                  .maybeSingle();
+                if (existingContact?.id) {
+                  await supabaseAdmin.from("contacts").update({
+                    name: existingContact.name || pushName || null,
+                    status: "active",
+                    updated_at: new Date().toISOString(),
+                  } as never).eq("id", existingContact.id);
+                } else {
+                  await supabaseAdmin.from("contacts").insert({
+                    user_id: conn.user_id,
+                    phone,
+                    name: pushName ?? null,
+                    source: "whatsapp",
+                    status: "active",
+                  } as never);
+                }
               }
             } catch { /* non-blocking */ }
 
@@ -641,6 +656,23 @@ function normalizeBaseUrl(url: string) {
   return u;
 }
 
+function phoneVariants(value: string) {
+  const digits = value.replace(/\D+/g, "");
+  const variants = new Set([digits]);
+  if (digits.startsWith("55") && digits.length === 13 && digits[4] === "9") {
+    variants.add(`${digits.slice(0, 4)}${digits.slice(5)}`);
+  }
+  if (digits.startsWith("55") && digits.length === 12) {
+    variants.add(`${digits.slice(0, 4)}9${digits.slice(4)}`);
+  }
+  return [...variants].filter(Boolean);
+}
+
+function jidVariants(remoteJid: string) {
+  const suffix = remoteJid.includes("@") ? remoteJid.slice(remoteJid.indexOf("@")) : "@s.whatsapp.net";
+  return phoneVariants(remoteJid.split("@")[0] ?? remoteJid).map((phone) => `${phone}${suffix}`);
+}
+
 async function saveMediaToStorage(
   db: { storage: { from: (bucket: string) => any } },
   userId: string,
@@ -744,10 +776,11 @@ async function getOrCreateConversation(
   agentId: string | null,
   remoteJid: string,
 ) {
-  const { data: existing } = await db.from("conversations")
+  const variants = jidVariants(remoteJid);
+  const { data: rows } = await db.from("conversations")
     .select("id,unread_count,metadata,follow_up_step,next_follow_up_at,follow_up_paused")
-    .eq("user_id", conn.user_id).eq("connection_id", conn.id)
-    .eq("metadata->>remoteJid", remoteJid).maybeSingle();
+    .eq("user_id", conn.user_id).eq("connection_id", conn.id);
+  const existing = (rows ?? []).find((row: { metadata?: { remoteJid?: string } }) => variants.includes(row?.metadata?.remoteJid ?? ""));
   if (existing) return existing;
   const { data: created } = await db.from("conversations").insert({
     user_id: conn.user_id, connection_id: conn.id, agent_id: agentId, status: "open",
