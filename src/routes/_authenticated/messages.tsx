@@ -625,6 +625,10 @@ function MessagesPage() {
   useEffect(() => {
     const el = scrollRef.current;
     if (!el) return;
+    if (prependScrollRef.current) {
+      prependScrollRef.current = false;
+      return;
+    }
     const prev = msgsCountRef.current;
     msgsCountRef.current = msgs.length;
     if (msgs.length === prev) return;
@@ -1099,6 +1103,9 @@ function MessagesPage() {
 
               <div
                 ref={scrollRef}
+                onScroll={(e) => {
+                  if (e.currentTarget.scrollTop < 80) void loadOlderMessages();
+                }}
                 className="flex-1 overflow-y-auto px-4 py-4 space-y-1.5"
                 style={{
                   backgroundColor: WA.chatBg,
@@ -1106,6 +1113,26 @@ function MessagesPage() {
                     "url(\"data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='60' height='60'><circle cx='30' cy='30' r='1' fill='%23000000' opacity='0.04'/></svg>\")",
                 }}
               >
+                {hasOlder && (
+                  <div className="sticky top-0 z-10 flex justify-center pb-2">
+                    <button
+                      type="button"
+                      onClick={loadOlderMessages}
+                      disabled={olderLoading}
+                      className="inline-flex items-center gap-1.5 rounded-full bg-white/90 px-3 py-1 text-xs font-medium text-gray-700 shadow-sm hover:bg-white disabled:opacity-70"
+                    >
+                      {olderLoading ? <Loader2 className="h-3 w-3 animate-spin" /> : <ChevronDown className="h-3 w-3 rotate-180" />}
+                      Mensagens antigas
+                    </button>
+                  </div>
+                )}
+                {messagesLoading && !msgs.length && (
+                  <div className="text-center text-xs text-gray-600 py-12">
+                    <span className="inline-flex items-center gap-2 bg-white/80 px-3 py-1.5 rounded-full shadow-sm">
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" /> Carregando mensagens…
+                    </span>
+                  </div>
+                )}
                 {msgs.map((m) => {
                   const out = m.direction === "outbound";
                   const isAudio = m.type === "audio" || (m.metadata as { audio?: boolean } | null)?.audio;
@@ -1243,7 +1270,7 @@ function MessagesPage() {
                     </div>
                   );
                 })}
-                {!msgs.length && (
+                {!msgs.length && !messagesLoading && (
                   <div className="text-center text-xs text-gray-600 py-12">
                     <span className="inline-block bg-white/70 px-3 py-1 rounded-full shadow-sm">Nenhuma mensagem ainda — diga olá!</span>
                   </div>
