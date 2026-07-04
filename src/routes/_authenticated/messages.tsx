@@ -506,7 +506,8 @@ function MessagesPage() {
                   const out = m.direction === "outbound";
                   const isAudio = m.type === "audio" || (m.metadata as { audio?: boolean } | null)?.audio;
                   const isImage = m.type === "image" && !!m.media_url;
-                  const isFile = m.type === "file" && !!m.media_url;
+                  const isVideo = m.type === "video" && !!m.media_url;
+                  const isFile = (m.type === "file" || m.type === "document") && !!m.media_url;
                   return (
                     <div key={m.id} className={`flex ${out ? "justify-end" : "justify-start"}`}>
                       <div
@@ -519,6 +520,8 @@ function MessagesPage() {
                             : <div className="flex items-center gap-2 text-gray-600"><Mic className="h-4 w-4" /><span>Mensagem de voz</span></div>
                         ) : isImage ? (
                           <img src={m.media_url!} alt={m.content ?? ""} className="rounded-md max-h-64 object-cover" />
+                        ) : isVideo ? (
+                          <video src={m.media_url!} controls className="rounded-md max-h-64 bg-black" />
                         ) : isFile ? (
                           <a href={m.media_url!} target="_blank" rel="noreferrer" className="flex items-center gap-2 text-gray-800">
                             <FileText className="h-5 w-5" /><span className="underline truncate max-w-[220px]">{m.content}</span>
