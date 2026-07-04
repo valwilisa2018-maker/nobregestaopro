@@ -336,10 +336,10 @@ export const sendChatText = createServerFn({ method: "POST" })
     });
     if (!r.ok) {
       const error = parseEvoError(r.json, r.status);
-      if (saved?.id) await context.supabase.from("messages").update({ metadata: { ...(saved.metadata ?? {}), pending: false, failed: true, error } as never }).eq("id", saved.id);
+      if (saved?.id) await context.supabase.from("messages").update({ metadata: { ...metadataObject(saved.metadata), pending: false, failed: true, error } as never }).eq("id", saved.id);
       return { ok: false as const, error, conversationId: convoId };
     }
-    if (saved?.id) await context.supabase.from("messages").update({ metadata: { ...(saved.metadata ?? {}), pending: false, sent: true } as never }).eq("id", saved.id);
+    if (saved?.id) await context.supabase.from("messages").update({ metadata: { ...metadataObject(saved.metadata), pending: false, sent: true } as never }).eq("id", saved.id);
     return { ok: true, conversationId: convoId };
   });
 
@@ -389,10 +389,10 @@ export const sendChatMedia = createServerFn({ method: "POST" })
     });
     if (!r.ok) {
       const error = parseEvoError(r.json, r.status);
-      if (saved?.id) await context.supabase.from("messages").update({ metadata: { ...(saved.metadata ?? {}), pending: false, failed: true, error } as never }).eq("id", saved.id);
+      if (saved?.id) await context.supabase.from("messages").update({ metadata: { ...metadataObject(saved.metadata), pending: false, failed: true, error } as never }).eq("id", saved.id);
       return { ok: false as const, error, conversationId: convoId };
     }
-    if (saved?.id) await context.supabase.from("messages").update({ metadata: { ...(saved.metadata ?? {}), pending: false, sent: true } as never }).eq("id", saved.id);
+    if (saved?.id) await context.supabase.from("messages").update({ metadata: { ...metadataObject(saved.metadata), pending: false, sent: true } as never }).eq("id", saved.id);
     return { ok: true as const, conversationId: convoId };
   });
 
@@ -448,9 +448,13 @@ export const sendChatAudio = createServerFn({ method: "POST" })
     });
     if (!r.ok) {
       const error = parseEvoError(r.json, r.status);
-      if (saved?.id) await context.supabase.from("messages").update({ metadata: { ...(saved.metadata ?? {}), pending: false, failed: true, error } as never }).eq("id", saved.id);
+      if (saved?.id) await context.supabase.from("messages").update({ metadata: { ...metadataObject(saved.metadata), pending: false, failed: true, error } as never }).eq("id", saved.id);
       return { ok: false as const, error, conversationId: convoId };
     }
-    if (saved?.id) await context.supabase.from("messages").update({ metadata: { ...(saved.metadata ?? {}), pending: false, sent: true } as never }).eq("id", saved.id);
+    if (saved?.id) await context.supabase.from("messages").update({ metadata: { ...metadataObject(saved.metadata), pending: false, sent: true } as never }).eq("id", saved.id);
     return { ok: true, conversationId: convoId };
   });
+
+function metadataObject(value: unknown): Record<string, unknown> {
+  return value && typeof value === "object" && !Array.isArray(value) ? value as Record<string, unknown> : {};
+}
