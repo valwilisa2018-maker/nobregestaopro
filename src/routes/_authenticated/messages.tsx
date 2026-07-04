@@ -832,7 +832,7 @@ function MessagesPage() {
               if (tmpIdx !== -1) {
                 const copy = prev.slice();
                 copy[tmpIdx] = withReceipt;
-                persistMsgCache(selectedRef.current?.id ?? selected.id, copy);
+                persistMsgCache(selectedRef.current?.id ?? openContact.id, copy);
                 return copy;
               }
               const next = [...prev, withReceipt];
