@@ -79,6 +79,11 @@ function MessagesPage() {
   }, [user]);
   useEffect(() => { loadContacts(); }, [loadContacts]);
 
+  // Auto-select first contact so the composer is always visible
+  useEffect(() => {
+    if (!selected && contacts.length) setSelected(contacts[0]);
+  }, [contacts, selected]);
+
   // Filter
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
