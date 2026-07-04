@@ -268,6 +268,33 @@ function MessagesPage() {
   // Auto-retry registry for failed text/sticker sends
   const retryRegistry = useRef<Map<string, { contactId: string; body: string }>>(new Map());
   const pendingReceiptRef = useRef<Map<string, Record<string, unknown>>>(new Map());
+  const loadMessagesRef = useRef<(() => void) | null>(null);
+
+  function mergeMessageIntoThread(incoming: Msg, replaceTmpId?: string, contactId?: string) {
+    const targetId = contactId ?? selectedRef.current?.id;
+    setMsgs((prev) => {
+      const evoId = (incoming.metadata as { evoId?: unknown } | null)?.evoId;
+      let idx = prev.findIndex((m) => {
+        if (m.id === incoming.id || (replaceTmpId && m.id === replaceTmpId)) return true;
+        const meta = (m.metadata ?? {}) as { evoId?: unknown };
+        return !!evoId && meta.evoId === evoId;
+      });
+      if (idx === -1 && !incoming.id.startsWith("tmp-")) {
+        const incomingTs = new Date(incoming.created_at).getTime();
+        idx = prev.findIndex((m) => {
+          if (!m.id.startsWith("tmp-")) return false;
+          if (m.direction !== incoming.direction || (m.type || "text") !== (incoming.type || "text")) return false;
+          if ((m.content ?? "") !== (incoming.content ?? "")) return false;
+          const mts = new Date(m.created_at).getTime();
+          return Number.isFinite(incomingTs) && Number.isFinite(mts) && Math.abs(incomingTs - mts) < 180_000;
+        });
+      }
+      const next = idx === -1 ? [...prev, incoming] : prev.map((m, i) => (i === idx ? incoming : m));
+      next.sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+      if (targetId) persistMsgCache(targetId, next);
+      return next;
+    });
+  }
 
   const attemptSendText = useCallback((tmpId: string, contactId: string, body: string, attempt = 0, quotedMessageId?: string) => {
     const MAX = 3;
@@ -275,8 +302,8 @@ function MessagesPage() {
       .then((res) => {
         if (res && "ok" in res && res.ok === false) throw new Error(res.error || "send failed");
         retryRegistry.current.delete(tmpId);
-        // Do not reload here — the Realtime INSERT reconciles the tmp row with the real one.
-        // Reloading caused duplicates/flicker when INSERT arrived before/after the refetch.
+        const serverMsg = (res as { message?: Msg | null } | null)?.message;
+        if (serverMsg) mergeMessageIntoThread(serverMsg, tmpId, contactId);
       })
       .catch((e) => {
         if (attempt < MAX) {
