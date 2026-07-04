@@ -197,19 +197,20 @@ function MessagesPage() {
   // Forward dialog
   const [forwardMsg, setForwardMsg] = useState<Msg | null>(null);
   const [forwardSearch, setForwardSearch] = useState("");
-  const doForward = useCallback((target: Contact) => {
+  const doForward = useCallback(async (target: Contact) => {
     if (!forwardMsg) return;
-    const body = forwardMsg.content ?? "";
-    if (!body.trim()) { toast.error("Só é possível encaminhar texto por enquanto"); setForwardMsg(null); return; }
-    const tmpId = `tmp-${Date.now()}`;
-    if (target.id === selected?.id) {
-      setMsgs((prev) => [...prev, { id: tmpId, direction: "outbound", type: "text", content: body, media_url: null, created_at: new Date().toISOString(), metadata: { pending: true } }]);
-    }
-    attemptSendText(tmpId, target.id, body, 0);
-    toast.success(`Encaminhada para ${target.name || target.phone}`);
+    const src = forwardMsg;
     setForwardMsg(null);
     setForwardSearch("");
-  }, [forwardMsg, selected, attemptSendText]);
+    try {
+      const res = await forwardMsgFn({ data: { messageId: src.id, targetContactId: target.id } });
+      if (res && "ok" in res && res.ok === false) throw new Error((res as { error?: string }).error || "Falha ao encaminhar");
+      toast.success(`Encaminhada para ${target.name || target.phone}`);
+      if (target.id === selected?.id) await loadMessages();
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Falha ao encaminhar");
+    }
+  }, [forwardMsg, selected, forwardMsgFn]);
 
   // Ensure webhook includes PRESENCE_UPDATE (best-effort, one shot)
   useEffect(() => {
