@@ -76,6 +76,47 @@ function findEvoId(value: unknown, depth = 0): string | null {
   return null;
 }
 
+// Extract new text from a Baileys/Evolution edit event.
+// Handles: editedMessage.message.protocolMessage.editedMessage.{conversation|extendedTextMessage.text}
+// and message.protocolMessage.editedMessage.* variants.
+function extractEditedText(value: unknown, depth = 0): string | null {
+  if (!value || depth > 8 || typeof value !== "object") return null;
+  const v = value as Record<string, unknown>;
+  const proto = (v.protocolMessage ?? (v.message as Record<string, unknown> | undefined)?.protocolMessage) as Record<string, unknown> | undefined;
+  if (proto && (proto.type === 14 || proto.type === "MESSAGE_EDIT" || proto.editedMessage)) {
+    const em = (proto.editedMessage ?? {}) as Record<string, unknown>;
+    const conv = em.conversation as string | undefined;
+    if (typeof conv === "string") return conv;
+    const ext = (em.extendedTextMessage as Record<string, unknown> | undefined)?.text as string | undefined;
+    if (typeof ext === "string") return ext;
+  }
+  for (const val of Object.values(v)) {
+    if (val && typeof val === "object") {
+      const found = extractEditedText(val, depth + 1);
+      if (found !== null) return found;
+    }
+  }
+  return null;
+}
+
+function extractEditedTargetId(value: unknown, depth = 0): string | null {
+  if (!value || depth > 8 || typeof value !== "object") return null;
+  const v = value as Record<string, unknown>;
+  const proto = (v.protocolMessage ?? (v.message as Record<string, unknown> | undefined)?.protocolMessage) as Record<string, unknown> | undefined;
+  if (proto && (proto.type === 14 || proto.type === "MESSAGE_EDIT" || proto.editedMessage)) {
+    const key = proto.key as Record<string, unknown> | undefined;
+    const id = key?.id as string | undefined;
+    if (typeof id === "string") return id;
+  }
+  for (const val of Object.values(v)) {
+    if (val && typeof val === "object") {
+      const found = extractEditedTargetId(val, depth + 1);
+      if (found !== null) return found;
+    }
+  }
+  return null;
+}
+
 function receiptRemoteJidCandidates(remoteJid: string) {
   const base = remoteJid.split(":")[0] ?? remoteJid;
   const candidates = new Set<string>([remoteJid, base]);
@@ -219,6 +260,27 @@ export const Route = createFileRoute("/api/public/evolution/$instance")({
           try {
             const arr = Array.isArray(payload?.data) ? payload.data : [payload?.data];
             for (const u of arr) {
+              // --- Edit detection (Baileys protocolMessage type=14 / editedMessage) ---
+              const editedText = extractEditedText(u);
+              if (editedText !== null) {
+                const originalEvoId = extractEditedTargetId(u) ?? findEvoId(u);
+                if (originalEvoId) {
+                  const { data: erows } = await supabaseAdmin.from("messages")
+                    .select("id,metadata,content")
+                    .eq("user_id", conn.user_id)
+                    .eq("metadata->>evoId", originalEvoId)
+                    .limit(1);
+                  const erow = erows?.[0];
+                  if (erow) {
+                    const emeta = (erow.metadata && typeof erow.metadata === "object") ? erow.metadata as Record<string, unknown> : {};
+                    await supabaseAdmin.from("messages").update({
+                      content: editedText,
+                      metadata: { ...emeta, edited: true, editedAt: new Date().toISOString() } as never,
+                    }).eq("id", erow.id);
+                  }
+                }
+                continue;
+              }
               const evoId = findEvoId(u);
               const remoteJid = u?.key?.remoteJid ?? u?.remoteJid ?? u?.jid;
               const rawStatus =
@@ -269,6 +331,27 @@ export const Route = createFileRoute("/api/public/evolution/$instance")({
         if (event === "messages.upsert" || event === "MESSAGES_UPSERT") {
           try {
             const msg = Array.isArray(payload?.data) ? payload.data[0] : payload?.data;
+            // Edit arriving as upsert (protocolMessage type=14)
+            const upsertEditedText = extractEditedText(msg);
+            if (upsertEditedText !== null) {
+              const originalEvoId = extractEditedTargetId(msg);
+              if (originalEvoId) {
+                const { data: erows } = await supabaseAdmin.from("messages")
+                  .select("id,metadata")
+                  .eq("user_id", conn.user_id)
+                  .eq("metadata->>evoId", originalEvoId)
+                  .limit(1);
+                const erow = erows?.[0];
+                if (erow) {
+                  const emeta = (erow.metadata && typeof erow.metadata === "object") ? erow.metadata as Record<string, unknown> : {};
+                  await supabaseAdmin.from("messages").update({
+                    content: upsertEditedText,
+                    metadata: { ...emeta, edited: true, editedAt: new Date().toISOString() } as never,
+                  }).eq("id", erow.id);
+                }
+              }
+              return Response.json({ ok: true, edited: true });
+            }
             const fromMe = msg?.key?.fromMe;
             const remoteJid = msg?.key?.remoteJid as string | undefined;
             const bodyMsg = unwrapMessage(msg?.message);
