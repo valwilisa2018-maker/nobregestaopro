@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Mic, Search, Send, Square, MessageCircle, Check, CheckCheck, Loader2, ArrowLeft, Smile, Play, Pause, Paperclip, ChevronLeft, ChevronRight, X, FileText, Image as ImageIcon, Video, Music, File as FileIcon, MoreVertical, Star, Archive, ArchiveRestore, Pin, PinOff, Tag } from "lucide-react";
+import { Mic, Search, Send, Square, MessageCircle, Check, CheckCheck, Loader2, ArrowLeft, Smile, Play, Pause, Paperclip, ChevronLeft, ChevronRight, X, FileText, Image as ImageIcon, Video, Music, File as FileIcon, MoreVertical, Star, Archive, ArchiveRestore, Pin, PinOff, Tag, Info, Save } from "lucide-react";
 import { PageShell } from "@/components/page-shell";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
@@ -90,6 +90,36 @@ function MessagesPage() {
   const sendMedia = useServerFn(sendChatMedia);
   const fetchAvatar = useServerFn(getProfilePicture);
   const [avatars, setAvatars] = useState<Record<string, string | null>>({});
+  const [lightbox, setLightbox] = useState<{ type: "image" | "video"; src: string } | null>(null);
+  const [infoOpen, setInfoOpen] = useState(false);
+  const [editName, setEditName] = useState("");
+  const [editPhone, setEditPhone] = useState("");
+  const [savingContact, setSavingContact] = useState(false);
+
+  useEffect(() => {
+    if (!selected) return;
+    setEditName(selected.name ?? "");
+    setEditPhone(selected.phone ?? "");
+  }, [selected]);
+
+  async function saveContact() {
+    if (!selected || savingContact) return;
+    setSavingContact(true);
+    try {
+      const { error } = await supabase.from("contacts")
+        .update({ name: editName.trim() || null, phone: editPhone.trim() })
+        .eq("id", selected.id);
+      if (error) throw error;
+      const updated = { ...selected, name: editName.trim() || null, phone: editPhone.trim() };
+      setSelected(updated);
+      setContacts((prev) => prev.map((c) => (c.id === updated.id ? updated : c)));
+      toast.success("Contato atualizado");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Falha ao salvar");
+    } finally {
+      setSavingContact(false);
+    }
+  }
 
   // Load contacts
   const loadContacts = useCallback(async () => {
@@ -280,7 +310,9 @@ function MessagesPage() {
       <TooltipProvider delayDuration={200}>
       <div
         className={`grid grid-cols-1 gap-0 overflow-hidden h-full transition-all duration-300 ${
-          sidebarCollapsed ? "md:grid-cols-[64px_1fr]" : "md:grid-cols-[360px_1fr]"
+          sidebarCollapsed
+            ? (infoOpen ? "md:grid-cols-[64px_1fr_320px]" : "md:grid-cols-[64px_1fr]")
+            : (infoOpen ? "md:grid-cols-[360px_1fr_320px]" : "md:grid-cols-[360px_1fr]")
         }`}
       >
         {/* Contacts */}
@@ -481,16 +513,26 @@ function MessagesPage() {
                   <ArrowLeft className="h-5 w-5" />
                 </button>
                 {avatars[selected.id] ? (
-                  <img src={avatars[selected.id]!} alt="" className="h-10 w-10 rounded-full object-cover shrink-0" />
+                  <button onClick={() => setLightbox({ type: "image", src: avatars[selected.id]! })} className="shrink-0 focus:outline-none">
+                    <img src={avatars[selected.id]!} alt="" className="h-10 w-10 rounded-full object-cover hover:opacity-90" />
+                  </button>
                 ) : (
                   <div className="h-10 w-10 rounded-full grid place-items-center text-xs font-semibold bg-white/20 shrink-0">
                     {initials(selected.name, selected.phone)}
                   </div>
                 )}
-                <div className="min-w-0 flex-1">
+                <button onClick={() => setInfoOpen((v) => !v)} className="min-w-0 flex-1 text-left focus:outline-none">
                   <div className="text-sm font-semibold truncate">{selected.name || selected.phone}</div>
                   <div className="text-[11px] text-white/80 truncate">{selected.phone}</div>
-                </div>
+                </button>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <button onClick={() => setInfoOpen((v) => !v)} className={`p-2 rounded-full hover:bg-white/15 transition ${infoOpen ? "bg-white/15" : ""}`} aria-label="Dados do contato">
+                      <Info className="h-5 w-5" />
+                    </button>
+                  </TooltipTrigger>
+                  <TooltipContent side="bottom">Dados do contato</TooltipContent>
+                </Tooltip>
               </header>
 
               <div
@@ -519,9 +561,13 @@ function MessagesPage() {
                             ? <AudioPlayer src={m.media_url} />
                             : <div className="flex items-center gap-2 text-gray-600"><Mic className="h-4 w-4" /><span>Mensagem de voz</span></div>
                         ) : isImage ? (
-                          <img src={m.media_url!} alt={m.content ?? ""} className="rounded-md max-h-64 object-cover" />
+                          <button onClick={() => setLightbox({ type: "image", src: m.media_url! })} className="block focus:outline-none">
+                            <img src={m.media_url!} alt={m.content ?? ""} className="rounded-md max-h-64 object-cover cursor-zoom-in" />
+                          </button>
                         ) : isVideo ? (
-                          <video src={m.media_url!} controls className="rounded-md max-h-64 bg-black" />
+                          <button onClick={() => setLightbox({ type: "video", src: m.media_url! })} className="block focus:outline-none">
+                            <video src={m.media_url!} className="rounded-md max-h-64 bg-black cursor-zoom-in pointer-events-none" />
+                          </button>
                         ) : isFile ? (
                           <a href={m.media_url!} target="_blank" rel="noreferrer" className="flex items-center gap-2 text-gray-800">
                             <FileText className="h-5 w-5" /><span className="underline truncate max-w-[220px]">{m.content}</span>
@@ -688,7 +734,63 @@ function MessagesPage() {
             </>
           )}
         </section>
+        {selected && infoOpen && (
+          <aside className="hidden md:flex flex-col w-80 border-l border-black/10 bg-white overflow-y-auto">
+            <div className="px-4 py-3 flex items-center gap-2 text-white" style={{ background: WA.headerDark }}>
+              <button onClick={() => setInfoOpen(false)} className="p-1 rounded-full hover:bg-white/15" aria-label="Fechar">
+                <X className="h-5 w-5" />
+              </button>
+              <div className="text-sm font-semibold">Dados do contato</div>
+            </div>
+            <div className="flex flex-col items-center py-6 border-b border-black/5">
+              {avatars[selected.id] ? (
+                <button onClick={() => setLightbox({ type: "image", src: avatars[selected.id]! })}>
+                  <img src={avatars[selected.id]!} alt="" className="h-32 w-32 rounded-full object-cover shadow" />
+                </button>
+              ) : (
+                <div className="h-32 w-32 rounded-full grid place-items-center text-3xl font-semibold text-white shadow" style={{ background: WA.headerTeal }}>
+                  {initials(selected.name, selected.phone)}
+                </div>
+              )}
+              <div className="mt-3 text-lg font-medium text-gray-900">{selected.name || selected.phone}</div>
+              <div className="text-xs text-gray-500">{selected.phone}</div>
+            </div>
+            <div className="p-4 space-y-4">
+              <div>
+                <label className="text-xs font-medium text-gray-500">Nome</label>
+                <Input value={editName} onChange={(e) => setEditName(e.target.value)} placeholder="Nome do contato" className="mt-1" />
+              </div>
+              <div>
+                <label className="text-xs font-medium text-gray-500">Telefone</label>
+                <Input value={editPhone} onChange={(e) => setEditPhone(e.target.value)} placeholder="Ex: 5511999999999" className="mt-1" />
+              </div>
+              <Button onClick={saveContact} disabled={savingContact} className="w-full text-white hover:opacity-90" style={{ background: WA.accent }}>
+                {savingContact ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Save className="h-4 w-4 mr-2" />}
+                Salvar
+              </Button>
+            </div>
+          </aside>
+        )}
       </div>
+      {lightbox && (
+        <div
+          className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center p-4"
+          onClick={() => setLightbox(null)}
+        >
+          <button
+            onClick={(e) => { e.stopPropagation(); setLightbox(null); }}
+            className="absolute top-4 right-4 p-2 rounded-full bg-white/10 hover:bg-white/20 text-white"
+            aria-label="Fechar"
+          >
+            <X className="h-6 w-6" />
+          </button>
+          {lightbox.type === "image" ? (
+            <img src={lightbox.src} alt="" className="max-h-[90vh] max-w-[95vw] object-contain" onClick={(e) => e.stopPropagation()} />
+          ) : (
+            <video src={lightbox.src} controls autoPlay className="max-h-[90vh] max-w-[95vw]" onClick={(e) => e.stopPropagation()} />
+          )}
+        </div>
+      )}
       </TooltipProvider>
     </div>
   );
