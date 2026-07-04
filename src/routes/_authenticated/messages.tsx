@@ -432,6 +432,37 @@ function MessagesPage() {
   );
   const groupsTotal = useMemo(() => contacts.filter((c) => c.phone.includes("@g.us")).length, [contacts]);
 
+  // Defensive dedup: even if a message slips in through both the optimistic path
+  // and Realtime (or a refetch), render it only once. Dedup by id first, then by
+  // (direction + type + content) within a 2-minute window to collapse tmp/real pairs.
+  const dedupedMsgs = useMemo(() => {
+    const seenIds = new Set<string>();
+    const bySig = new Map<string, number>(); // signature -> index in output
+    const out: typeof msgs = [];
+    for (const m of msgs) {
+      if (seenIds.has(m.id)) continue;
+      seenIds.add(m.id);
+      const ts = new Date(m.created_at).getTime() || 0;
+      const sig = `${m.direction}|${m.type || "text"}|${m.content ?? ""}`;
+      const prevIdx = bySig.get(sig);
+      if (prevIdx !== undefined) {
+        const prev = out[prevIdx];
+        const prevTs = new Date(prev.created_at).getTime() || 0;
+        if (Math.abs(ts - prevTs) < 120_000) {
+          // Prefer the non-tmp (server) row
+          if (prev.id.startsWith("tmp-") && !m.id.startsWith("tmp-")) {
+            out[prevIdx] = m;
+            bySig.set(sig, prevIdx);
+          }
+          continue;
+        }
+      }
+      bySig.set(sig, out.length);
+      out.push(m);
+    }
+    return out;
+  }, [msgs]);
+
   const hydrateSignedUrls = useCallback((rows: Msg[], reqId: string) => {
     const rowsWithStorage = rows.filter((m) => storagePathFrom(m));
     if (!rowsWithStorage.length) return;
@@ -1219,7 +1250,7 @@ function MessagesPage() {
                     </span>
                   </div>
                 )}
-                {msgs.map((m) => {
+                {dedupedMsgs.map((m) => {
                   const out = m.direction === "outbound";
                   const isAudio = m.type === "audio" || (m.metadata as { audio?: boolean } | null)?.audio;
                   const isImage = m.type === "image" && !!m.media_url;
