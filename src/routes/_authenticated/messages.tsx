@@ -1173,9 +1173,140 @@ function MessagesPage() {
           className={`${selected ? "hidden md:flex" : "flex"} flex-col bg-white border-r border-black/10 transition-all duration-300 overflow-hidden`}
         >
           <div className="px-3 py-3 flex items-center gap-2" style={{ background: WA.headerDark, color: "white" }}>
-            <div className="h-10 w-10 rounded-full grid place-items-center bg-white/20 font-semibold shrink-0">
-              {(user?.email ?? "U").slice(0, 1).toUpperCase()}
-            </div>
+            <Popover onOpenChange={(o) => {
+              if (o) {
+                const inst = instances.find((i) => i.id === activeInstance);
+                setProfileNameEdit(inst?.name ?? "");
+              }
+            }}>
+              <PopoverTrigger asChild>
+                <button
+                  className="h-10 w-10 rounded-full grid place-items-center bg-white/20 font-semibold shrink-0 overflow-hidden hover:ring-2 hover:ring-white/40 transition"
+                  aria-label="Perfil da instância"
+                  title="Perfil da instância"
+                >
+                  {activeInstance !== "all" && instanceProfilePic[activeInstance] ? (
+                    <img src={instanceProfilePic[activeInstance]!} alt="" className="h-full w-full object-cover" />
+                  ) : (
+                    <span>{(instances.find((i) => i.id === activeInstance)?.name ?? user?.email ?? "U").slice(0, 1).toUpperCase()}</span>
+                  )}
+                </button>
+              </PopoverTrigger>
+              <PopoverContent align="start" side="bottom" className="w-72 p-0 overflow-hidden">
+                {activeInstance === "all" ? (
+                  <div className="p-4 text-sm text-muted-foreground">
+                    Selecione uma instância para editar o perfil do WhatsApp.
+                  </div>
+                ) : (() => {
+                  const inst = instances.find((i) => i.id === activeInstance);
+                  if (!inst) return null;
+                  const pic = instanceProfilePic[inst.id];
+                  return (
+                    <div>
+                      <div className="p-4 flex flex-col items-center gap-2 bg-gradient-to-br from-primary/10 to-transparent">
+                        <div className="relative">
+                          <div className="h-20 w-20 rounded-full overflow-hidden bg-muted grid place-items-center text-2xl font-semibold text-primary ring-2 ring-primary/30">
+                            {pic ? <img src={pic} alt="" className="h-full w-full object-cover" /> : <span>{(inst.name || "?").slice(0, 1).toUpperCase()}</span>}
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => profilePicInputRef.current?.click()}
+                            disabled={profileUploading}
+                            className="absolute -bottom-1 -right-1 h-8 w-8 grid place-items-center rounded-full bg-primary text-primary-foreground shadow-md hover:opacity-90 disabled:opacity-60"
+                            aria-label="Trocar foto"
+                          >
+                            {profileUploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Camera className="h-4 w-4" />}
+                          </button>
+                          <input
+                            ref={profilePicInputRef}
+                            type="file"
+                            accept="image/*"
+                            className="hidden"
+                            onChange={async (e) => {
+                              const file = e.target.files?.[0];
+                              e.target.value = "";
+                              if (!file || !user) return;
+                              setProfileUploading(true);
+                              try {
+                                const ext = (file.name.split(".").pop() || "jpg").toLowerCase();
+                                const path = `${user.id}/connections/${inst.id}/profile-${Date.now()}.${ext}`;
+                                const up = await supabase.storage.from("agent-media").upload(path, file, { upsert: true, contentType: file.type });
+                                if (up.error) throw up.error;
+                                const signed = await supabase.storage.from("agent-media").createSignedUrl(path, 60 * 60 * 24 * 365);
+                                if (signed.error || !signed.data?.signedUrl) throw signed.error ?? new Error("URL");
+                                const url = signed.data.signedUrl;
+                                const upd = await supabase.from("connections").update({ profile_picture: url }).eq("id", inst.id).eq("user_id", user.id);
+                                if (upd.error) throw upd.error;
+                                setInstanceProfilePic((prev) => ({ ...prev, [inst.id]: url }));
+                                setInstances((prev) => prev.map((i) => i.id === inst.id ? { ...i, profile_picture: url } : i));
+                                toast.success("Foto atualizada");
+                              } catch (err) {
+                                toast.error(err instanceof Error ? err.message : "Falha ao enviar foto");
+                              } finally {
+                                setProfileUploading(false);
+                              }
+                            }}
+                          />
+                        </div>
+                        <div className="text-[11px] text-muted-foreground">{inst.instance_name}</div>
+                      </div>
+                      <div className="p-3 space-y-3">
+                        <div>
+                          <label className="text-[11px] font-medium text-muted-foreground uppercase tracking-wide">Nome</label>
+                          <div className="mt-1 flex gap-1.5">
+                            <Input
+                              value={profileNameEdit}
+                              onChange={(e) => setProfileNameEdit(e.target.value)}
+                              className="h-8 text-sm"
+                              placeholder="Nome da instância"
+                            />
+                            <Button
+                              size="sm"
+                              disabled={profileNameSaving || !profileNameEdit.trim() || profileNameEdit === inst.name}
+                              onClick={async () => {
+                                if (!user) return;
+                                setProfileNameSaving(true);
+                                try {
+                                  const newName = profileNameEdit.trim();
+                                  const { error } = await supabase.from("connections").update({ name: newName }).eq("id", inst.id).eq("user_id", user.id);
+                                  if (error) throw error;
+                                  setInstances((prev) => prev.map((i) => i.id === inst.id ? { ...i, name: newName } : i));
+                                  toast.success("Nome atualizado");
+                                } catch (err) {
+                                  toast.error(err instanceof Error ? err.message : "Falha ao salvar");
+                                } finally {
+                                  setProfileNameSaving(false);
+                                }
+                              }}
+                            >
+                              <Save className="h-3.5 w-3.5" />
+                            </Button>
+                          </div>
+                        </div>
+                        <div>
+                          <div className="text-[11px] font-medium text-muted-foreground uppercase tracking-wide">Número conectado</div>
+                          <div className="mt-1 text-sm font-mono">{inst.phone_number || "—"}</div>
+                        </div>
+                        {inst.profile_name && (
+                          <div>
+                            <div className="text-[11px] font-medium text-muted-foreground uppercase tracking-wide">Perfil WhatsApp</div>
+                            <div className="mt-1 text-sm">{inst.profile_name}</div>
+                          </div>
+                        )}
+                        <div className="pt-2 border-t border-border/60 flex flex-col gap-1">
+                          <Link to="/connections" className="flex items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-accent">
+                            <Plug className="h-4 w-4" /> Gerenciar conexões
+                          </Link>
+                          <Link to="/settings" className="flex items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-accent">
+                            <Settings className="h-4 w-4" /> Configurações do chat
+                          </Link>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })()}
+              </PopoverContent>
+            </Popover>
             {!sidebarCollapsed && (
               <div className="flex-1 min-w-0">
                 <div className="text-[10px] uppercase tracking-wide text-white/70">Conversas</div>
