@@ -1421,6 +1421,9 @@ function MessagesPage() {
                         )}
                         <div className="mt-0.5 flex items-center justify-end gap-1 text-[10px] text-gray-500">
                           {starred.has(m.id) && <Star className="h-3 w-3 fill-yellow-400 text-yellow-500" />}
+                          {(m.metadata as { edited?: boolean } | null)?.edited && (
+                            <span className="italic">editada</span>
+                          )}
                           <span>{new Date(m.created_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</span>
                           {out && (() => {
                             const meta = (m.metadata ?? {}) as { status?: string; pending?: boolean; failed?: boolean };
