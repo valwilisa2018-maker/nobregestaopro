@@ -19,6 +19,8 @@ import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
@@ -38,6 +40,7 @@ type EventItem = {
   guests?: string;
   calendar: CalId;
   createdByAi?: boolean;
+  connectionId?: string | null; // WhatsApp/instance owner
 };
 const CAL_META: Record<CalId, { label: string; color: string; ring: string; bg: string }> = {
   primary:  { label: "Principal", color: "#3b82f6", ring: "ring-blue-500", bg: "bg-blue-500" },
@@ -67,6 +70,7 @@ function useEvents() {
 function overlaps(a: EventItem, b: EventItem) {
   if (a.id === b.id) return false;
   if (a.calendar !== b.calendar) return false;
+  if ((a.connectionId ?? null) !== (b.connectionId ?? null)) return false;
   const as = +new Date(a.start), ae = +new Date(a.end);
   const bs = +new Date(b.start), be = +new Date(b.end);
   return as < be && bs < ae;
@@ -84,10 +88,19 @@ function CalendarPage() {
   });
   const [editing, setEditing] = useState<EventItem | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
+  const [connections, setConnections] = useState<Array<{ id: string; name: string; phone_number: string | null; status: string | null }>>([]);
+  const [activeConn, setActiveConn] = useState<string>("all"); // "all" | connection id
+
+  useEffect(() => {
+    (async () => {
+      const { data } = await supabase.from("connections").select("id,name,phone_number,status").order("created_at", { ascending: true });
+      setConnections(data ?? []);
+    })();
+  }, []);
 
   const visible = useMemo(
-    () => events.filter((e) => enabledCals[e.calendar]),
-    [events, enabledCals],
+    () => events.filter((e) => enabledCals[e.calendar] && (activeConn === "all" || (e.connectionId ?? null) === activeConn)),
+    [events, enabledCals, activeConn],
   );
 
   function openCreate(prefill?: Partial<EventItem>) {
@@ -102,6 +115,7 @@ function CalendarPage() {
       guests: prefill?.guests ?? "",
       calendar: prefill?.calendar ?? "primary",
       createdByAi: prefill?.createdByAi,
+      connectionId: prefill?.connectionId ?? (activeConn !== "all" ? activeConn : null),
     });
     setModalOpen(true);
   }
@@ -130,6 +144,21 @@ function CalendarPage() {
         <Plus className="h-4 w-4" /> Criar evento
       </Button>
       <MiniCalendar value={cursor} onChange={setCursor} events={visible} />
+      <div className="space-y-1">
+        <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Instância WhatsApp</div>
+        <Select value={activeConn} onValueChange={setActiveConn}>
+          <SelectTrigger><SelectValue /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Todas as instâncias</SelectItem>
+            {connections.map((c) => (
+              <SelectItem key={c.id} value={c.id}>
+                {c.status === "open" ? "🟢" : "⚪"} {c.name}{c.phone_number ? ` · ${c.phone_number}` : ""}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <div className="text-[10px] text-muted-foreground">Cada instância tem sua própria agenda.</div>
+      </div>
       <div className="space-y-2">
         <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Meus calendários</div>
         {(Object.keys(CAL_META) as CalId[]).map((k) => (
@@ -208,6 +237,7 @@ function CalendarPage() {
         onOpenChange={setModalOpen}
         onSave={saveEvent}
         onDelete={deleteEvent}
+        connections={connections}
       />
     </div>
   );
@@ -449,11 +479,12 @@ function toLocalInput(iso: string) {
 }
 function fromLocalInput(v: string) { return new Date(v).toISOString(); }
 
-function EventModal({ open, event, onOpenChange, onSave, onDelete }: {
+function EventModal({ open, event, onOpenChange, onSave, onDelete, connections }: {
   open: boolean; event: EventItem | null;
   onOpenChange: (o: boolean) => void;
   onSave: (e: EventItem) => void;
   onDelete: (id: string) => void;
+  connections: Array<{ id: string; name: string; phone_number: string | null; status: string | null }>;
 }) {
   const [draft, setDraft] = useState<EventItem | null>(event);
   useEffect(() => { setDraft(event); }, [event]);
@@ -499,6 +530,23 @@ function EventModal({ open, event, onOpenChange, onSave, onDelete }: {
           <div>
             <Label className="flex items-center gap-1"><UsersIcon className="h-3 w-3" /> Convidados</Label>
             <Input value={draft.guests ?? ""} onChange={(e) => setDraft({ ...draft, guests: e.target.value })} placeholder="email1@... , email2@..." />
+          </div>
+          <div>
+            <Label>Instância WhatsApp</Label>
+            <Select
+              value={draft.connectionId ?? "none"}
+              onValueChange={(v) => setDraft({ ...draft, connectionId: v === "none" ? null : v })}
+            >
+              <SelectTrigger><SelectValue placeholder="Nenhuma" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="none">Nenhuma (agenda geral)</SelectItem>
+                {connections.map((c) => (
+                  <SelectItem key={c.id} value={c.id}>
+                    {c.status === "open" ? "🟢" : "⚪"} {c.name}{c.phone_number ? ` · ${c.phone_number}` : ""}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
           <div>
             <Label className="flex items-center gap-1"><AlignLeft className="h-3 w-3" /> Descrição</Label>

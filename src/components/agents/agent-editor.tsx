@@ -539,10 +539,13 @@ function TestSection({ form, setForm }: { form: AgentRow; setForm: React.Dispatc
       let agendaText = "";
       try {
         const raw = localStorage.getItem("calendar.events.v1");
-        const list = raw ? (JSON.parse(raw) as Array<{ title: string; start: string; end: string; calendar: string }>) : [];
+        const list = raw ? (JSON.parse(raw) as Array<{ title: string; start: string; end: string; calendar: string; connectionId?: string | null }>) : [];
         const now = Date.now();
+        const connId = form.connection_id ?? null;
         const upcoming = list
           .filter((e) => new Date(e.end).getTime() >= now)
+          // Se o agente está vinculado a uma instância, só considera eventos dela (+ agenda geral)
+          .filter((e) => !connId || !e.connectionId || e.connectionId === connId)
           .sort((a, b) => +new Date(a.start) - +new Date(b.start))
           .slice(0, 50);
         const fmt = (iso: string) => new Date(iso).toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" });
