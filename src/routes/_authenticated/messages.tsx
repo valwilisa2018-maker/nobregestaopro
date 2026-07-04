@@ -120,6 +120,7 @@ function MessagesPage() {
   const [recLevels, setRecLevels] = useState<number[]>(() => Array(24).fill(0.15));
   const scrollRef = useRef<HTMLDivElement | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const cameraInputRef = useRef<HTMLInputElement | null>(null);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [attachment, setAttachment] = useState<{ file: File; url: string } | null>(null);
   const [filterMode, setFilterMode] = useState<"all" | "unread" | "favorites" | "groups" | "archived">("all");
