@@ -140,9 +140,9 @@ function MessagesPage() {
   // Auto-retry registry for failed text/sticker sends
   const retryRegistry = useRef<Map<string, { contactId: string; body: string }>>(new Map());
 
-  const attemptSendText = useCallback((tmpId: string, contactId: string, body: string, attempt = 0) => {
+  const attemptSendText = useCallback((tmpId: string, contactId: string, body: string, attempt = 0, quotedMessageId?: string) => {
     const MAX = 3;
-    sendText({ data: { contactId, text: body } })
+    sendText({ data: { contactId, text: body, quotedMessageId } })
       .then((res) => {
         if (res && "ok" in res && res.ok === false) throw new Error(res.error || "send failed");
         retryRegistry.current.delete(tmpId);
@@ -151,7 +151,7 @@ function MessagesPage() {
       .catch((e) => {
         if (attempt < MAX) {
           const delay = 1000 * Math.pow(2, attempt); // 1s, 2s, 4s
-          setTimeout(() => attemptSendText(tmpId, contactId, body, attempt + 1), delay);
+          setTimeout(() => attemptSendText(tmpId, contactId, body, attempt + 1, quotedMessageId), delay);
         } else {
           retryRegistry.current.set(tmpId, { contactId, body });
           setMsgs((prev) => prev.map((m) => m.id === tmpId ? { ...m, metadata: { ...(m.metadata ?? {}), pending: false, failed: true } } : m));
@@ -181,13 +181,18 @@ function MessagesPage() {
     });
   }, []);
 
-  const deleteMessage = useCallback(async (m: Msg) => {
-    if (!confirm("Excluir esta mensagem?")) return;
+  const performDelete = useCallback(async (m: Msg, forEveryone: boolean) => {
+    setDeleteConfirm(null);
     setMsgs((prev) => prev.filter((x) => x.id !== m.id));
     if (m.id.startsWith("tmp-")) return;
-    const { error } = await supabase.from("messages").delete().eq("id", m.id);
-    if (error) { toast.error("Falha ao excluir"); loadMessages(); }
-  }, []);
+    try {
+      await deleteMsgFn({ data: { messageId: m.id, forEveryone } });
+      toast.success(forEveryone ? "Excluída para todos" : "Excluída para mim");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Falha ao excluir");
+      loadMessages();
+    }
+  }, [deleteMsgFn]);
 
   // Forward dialog
   const [forwardMsg, setForwardMsg] = useState<Msg | null>(null);
