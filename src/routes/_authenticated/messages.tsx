@@ -606,12 +606,14 @@ function MessagesPage() {
         const prev = out[prevIdx];
         const prevTs = new Date(prev.created_at).getTime() || 0;
         if (Math.abs(ts - prevTs) < 120_000) {
-          // Prefer the non-tmp (server) row
-          if (prev.id.startsWith("tmp-") && !m.id.startsWith("tmp-")) {
+          const hasTmp = prev.id.startsWith("tmp-") || m.id.startsWith("tmp-");
+          // Collapse optimistic tmp/real pairs only. Real audios often share
+          // the same "[áudio]" content label and must all stay visible.
+          if (hasTmp && prev.id.startsWith("tmp-") && !m.id.startsWith("tmp-")) {
             out[prevIdx] = m;
             bySig.set(sig, prevIdx);
           }
-          continue;
+          if (hasTmp || (m.type || "text") === "text") continue;
         }
       }
       bySig.set(sig, out.length);
