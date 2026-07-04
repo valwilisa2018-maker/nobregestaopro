@@ -32,13 +32,13 @@ type Msg = {
 };
 
 const WA = {
-  headerDark: "#075E54",
-  headerTeal: "#128C7E",
-  accent: "#25D366",
-  chatBg: "#ECE5DD",
-  outBubble: "#DCF8C6",
+  headerDark: "#1e1b4b",   // indigo-950
+  headerTeal: "#4338ca",   // indigo-700
+  accent: "#7c3aed",       // violet-600
+  chatBg: "#eef2ff",       // indigo-50
+  outBubble: "#e0e7ff",    // indigo-100
   inBubble: "#FFFFFF",
-  read: "#34B7F1",
+  read: "#a78bfa",         // violet-400
 };
 
 const STICKERS = ["😀","😂","😍","🥰","😎","🤩","🥳","😭","😡","🤔","👍","👏","🙏","🔥","💯","🎉","❤️","💔","😅","🤣","😴","🤗","🤝","👀","💪","🌹","🍀","⭐","☀️","🌙","🎂","🍕","☕","⚽","🎮","🎵","📸","💡","✅","❌"];
