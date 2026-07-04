@@ -227,7 +227,8 @@ function MessagesPage() {
       .then((res) => {
         if (res && "ok" in res && res.ok === false) throw new Error(res.error || "send failed");
         retryRegistry.current.delete(tmpId);
-        loadMessages();
+        // Do not reload here — the Realtime INSERT reconciles the tmp row with the real one.
+        // Reloading caused duplicates/flicker when INSERT arrived before/after the refetch.
       })
       .catch((e) => {
         if (attempt < MAX) {
