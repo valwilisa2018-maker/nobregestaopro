@@ -395,17 +395,16 @@ export const sendChatMedia = createServerFn({ method: "POST" })
     const number = String(contact.phone).replace(/\D+/g, "");
     const remoteJid = `${number}@s.whatsapp.net`;
     const b64 = data.base64.replace(/^data:[^;]+;base64,/, "");
-    const mediatype = data.mime.startsWith("image/") ? "image"
-      : data.mime.startsWith("video/") ? "video"
-      : data.mime.startsWith("audio/") ? "audio" : "document";
+    const mediatype = mediaMessageType(data.mime);
     const convoId = await getOrCreateConversationForJid(context.supabase, context.userId, conn.id, remoteJid);
+    const stored = await saveMediaToStorage(context.supabase, context.userId, convoId, b64, data.mime, data.fileName);
     const { data: saved } = await context.supabase.from("messages").insert({
       user_id: context.userId, conversation_id: convoId,
       direction: "outbound",
       type: mediatype,
       content: data.caption ?? data.fileName,
-      media_url: `data:${data.mime};base64,${b64}`,
-      metadata: { remoteJid, manual: true, fileName: data.fileName, pending: true } as never,
+      media_url: stored.url,
+      metadata: { remoteJid, manual: true, fileName: data.fileName, mime: data.mime, storagePath: stored.path, pending: true } as never,
     }).select("id,metadata").single();
     await context.supabase.from("conversations").update({
       last_message_at: new Date().toISOString(),
@@ -463,11 +462,12 @@ export const sendChatAudio = createServerFn({ method: "POST" })
     const remoteJid = `${number}@s.whatsapp.net`;
     const audio = data.audioBase64.replace(/^data:[^;]+;base64,/, "");
     const convoId = await getOrCreateConversationForJid(context.supabase, context.userId, conn.id, remoteJid);
+    const stored = await saveMediaToStorage(context.supabase, context.userId, convoId, audio, "audio/webm", "audio.webm");
     const { data: saved } = await context.supabase.from("messages").insert({
       user_id: context.userId, conversation_id: convoId,
       direction: "outbound", type: "audio", content: "[áudio]",
-      media_url: `data:audio/webm;base64,${audio}`,
-      metadata: { remoteJid, manual: true, audio: true, pending: true } as never,
+      media_url: stored.url,
+      metadata: { remoteJid, manual: true, audio: true, mime: "audio/webm", storagePath: stored.path, pending: true } as never,
     }).select("id,metadata").single();
     await context.supabase.from("conversations").update({
       last_message_at: new Date().toISOString(),
