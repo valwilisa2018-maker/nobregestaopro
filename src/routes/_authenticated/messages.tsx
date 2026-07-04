@@ -511,16 +511,26 @@ function MessagesPage() {
                   <ArrowLeft className="h-5 w-5" />
                 </button>
                 {avatars[selected.id] ? (
-                  <img src={avatars[selected.id]!} alt="" className="h-10 w-10 rounded-full object-cover shrink-0" />
+                  <button onClick={() => setLightbox({ type: "image", src: avatars[selected.id]! })} className="shrink-0 focus:outline-none">
+                    <img src={avatars[selected.id]!} alt="" className="h-10 w-10 rounded-full object-cover hover:opacity-90" />
+                  </button>
                 ) : (
                   <div className="h-10 w-10 rounded-full grid place-items-center text-xs font-semibold bg-white/20 shrink-0">
                     {initials(selected.name, selected.phone)}
                   </div>
                 )}
-                <div className="min-w-0 flex-1">
+                <button onClick={() => setInfoOpen((v) => !v)} className="min-w-0 flex-1 text-left focus:outline-none">
                   <div className="text-sm font-semibold truncate">{selected.name || selected.phone}</div>
                   <div className="text-[11px] text-white/80 truncate">{selected.phone}</div>
-                </div>
+                </button>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <button onClick={() => setInfoOpen((v) => !v)} className={`p-2 rounded-full hover:bg-white/15 transition ${infoOpen ? "bg-white/15" : ""}`} aria-label="Dados do contato">
+                      <Info className="h-5 w-5" />
+                    </button>
+                  </TooltipTrigger>
+                  <TooltipContent side="bottom">Dados do contato</TooltipContent>
+                </Tooltip>
               </header>
 
               <div
