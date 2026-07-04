@@ -380,11 +380,15 @@ function MessagesPage() {
     if (Array.isArray(lidJids)) lidJids.forEach((jid) => { if (typeof jid === "string") jids.add(jid); });
     const ch = supabase.channel(`presence-${user.id}`)
       .on("postgres_changes", { event: "*", schema: "public", table: "presence", filter: `user_id=eq.${user.id}` }, (payload) => {
-        const row = (payload.new ?? payload.old) as { jid?: string; presence?: string; updated_at?: string } | null;
+        // Ignore DELETE events (no meaningful presence state)
+        if (!payload.new) return;
+        const row = payload.new as { jid?: string; presence?: string; updated_at?: string } | null;
         if (!row?.jid) return;
-        const exact = jids.has(row.jid);
-        const recentOneToOneLid = !exact && row.jid.endsWith("@lid") && row.updated_at && Date.now() - new Date(row.updated_at).getTime() < 8000;
-        if (!exact && !recentOneToOneLid) return;
+        // STRICT: only react to presence updates whose JID exactly matches this contact.
+        // The previous "recent @lid fallback" caused ghost "digitando…" for any recent LID presence.
+        if (!jids.has(row.jid)) return;
+        // Ignore stale rows (older than 20s) that arrive on channel resubscription.
+        if (row.updated_at && Date.now() - new Date(row.updated_at).getTime() > 20000) return;
         const p = row.presence ?? "available";
         if (remotePresenceTimerRef.current) { clearTimeout(remotePresenceTimerRef.current); remotePresenceTimerRef.current = null; }
         if (p === "composing" || p === "recording") {
