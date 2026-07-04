@@ -627,6 +627,7 @@ function MessagesPage() {
     if (!el) return;
     if (prependScrollRef.current) {
       prependScrollRef.current = false;
+      msgsCountRef.current = msgs.length;
       return;
     }
     const prev = msgsCountRef.current;
