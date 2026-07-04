@@ -949,7 +949,14 @@ function MessagesPage() {
                           </DropdownMenuContent>
                         </DropdownMenu>
                         {(() => {
-                          const q = (m.metadata ?? {}) as { quotedId?: string; quotedText?: string; quotedType?: string };
+                          const q = (m.metadata ?? {}) as { quotedId?: string; quotedText?: string; quotedType?: string; quotedDeleted?: boolean };
+                          if (q.quotedDeleted) {
+                            return (
+                              <div className="mb-1 w-full rounded border-l-4 border-gray-400 bg-black/5 px-2 py-1 text-xs italic text-gray-500">
+                                Mensagem apagada
+                              </div>
+                            );
+                          }
                           if (!q.quotedId) return null;
                           const label = q.quotedType === "audio" ? "🎤 Mensagem de voz"
                             : q.quotedType === "image" ? "🖼️ Imagem"
