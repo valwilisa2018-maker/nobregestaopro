@@ -905,6 +905,7 @@ function MessagesPage() {
   // not on every metadata patch (status ticks). Prevents jitter/disappearing effect.
   const msgsCountRef = useRef(0);
   const lastContactRef = useRef<string | null>(null);
+  const settledForContactRef = useRef<string | null>(null);
   useEffect(() => {
     const el = scrollRef.current;
     if (!el) return;
@@ -917,13 +918,20 @@ function MessagesPage() {
     if (contactChanged) {
       lastContactRef.current = selected?.id ?? null;
       msgsCountRef.current = msgs.length;
-      // Always jump to the latest message when opening a conversation.
-      const jump = () => { el.scrollTop = el.scrollHeight; };
+      settledForContactRef.current = null;
+    }
+    // Until we've jumped to the bottom with real content for this contact,
+    // force-anchor to the latest message on every msgs update (cache → server load → image layout).
+    const contactId = selected?.id ?? null;
+    if (contactId && settledForContactRef.current !== contactId) {
+      const jump = () => { const c = scrollRef.current; if (c) c.scrollTop = c.scrollHeight; };
       jump();
       requestAnimationFrame(jump);
-      // A second frame catches late layout (images/audio placeholders).
-      const t = setTimeout(jump, 120);
-      return () => clearTimeout(t);
+      const t1 = setTimeout(jump, 120);
+      const t2 = setTimeout(jump, 400);
+      if (msgs.length > 0) settledForContactRef.current = contactId;
+      msgsCountRef.current = msgs.length;
+      return () => { clearTimeout(t1); clearTimeout(t2); };
     }
     const prev = msgsCountRef.current;
     msgsCountRef.current = msgs.length;
