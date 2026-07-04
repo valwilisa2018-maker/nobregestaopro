@@ -901,9 +901,10 @@ function MessagesPage() {
     return () => { supabase.removeChannel(ch); };
   }, [user, loadMessages, loadContacts]);
 
-  // Scroll to bottom only when the thread changes or a new message is appended,
+  // Scroll to bottom when the thread changes or a new message is appended,
   // not on every metadata patch (status ticks). Prevents jitter/disappearing effect.
   const msgsCountRef = useRef(0);
+  const lastContactRef = useRef<string | null>(null);
   useEffect(() => {
     const el = scrollRef.current;
     if (!el) return;
@@ -912,11 +913,23 @@ function MessagesPage() {
       msgsCountRef.current = msgs.length;
       return;
     }
+    const contactChanged = lastContactRef.current !== (selected?.id ?? null);
+    if (contactChanged) {
+      lastContactRef.current = selected?.id ?? null;
+      msgsCountRef.current = msgs.length;
+      // Always jump to the latest message when opening a conversation.
+      const jump = () => { el.scrollTop = el.scrollHeight; };
+      jump();
+      requestAnimationFrame(jump);
+      // A second frame catches late layout (images/audio placeholders).
+      const t = setTimeout(jump, 120);
+      return () => clearTimeout(t);
+    }
     const prev = msgsCountRef.current;
     msgsCountRef.current = msgs.length;
     if (msgs.length === prev) return;
     const id = requestAnimationFrame(() => {
-      el.scrollTo({ top: el.scrollHeight, behavior: prev === 0 ? "auto" : "smooth" });
+      el.scrollTo({ top: el.scrollHeight, behavior: "smooth" });
     });
     return () => cancelAnimationFrame(id);
   }, [msgs, selected?.id]);
