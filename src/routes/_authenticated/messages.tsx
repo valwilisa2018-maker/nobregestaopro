@@ -153,6 +153,10 @@ function MessagesPage() {
   const ensureWebhook = useServerFn(ensurePresenceWebhook);
   const deleteMsgFn = useServerFn(deleteChatMessage);
   const forwardMsgFn = useServerFn(forwardChatMessage);
+  const editMsgFn = useServerFn(editChatMessage);
+  const [editMsg, setEditMsg] = useState<Msg | null>(null);
+  const [editText, setEditText] = useState("");
+  const [editSaving, setEditSaving] = useState(false);
   const [replyTo, setReplyTo] = useState<Msg | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<Msg | null>(null);
   const replyToRef = useRef<Msg | null>(null);
