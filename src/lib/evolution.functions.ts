@@ -255,7 +255,7 @@ export const createAndConnectInstance = createServerFn({ method: "POST" })
             url: webhookUrl,
             byEvents: false,
             base64: true,
-            events: ["MESSAGES_UPSERT", "CONNECTION_UPDATE", "QRCODE_UPDATED"],
+            events: ["MESSAGES_UPSERT", "CONNECTION_UPDATE", "QRCODE_UPDATED", "PRESENCE_UPDATE"],
           },
         } : {}),
       }),
@@ -291,7 +291,7 @@ export const createAndConnectInstance = createServerFn({ method: "POST" })
         user_id: context.userId,
         name: `WhatsApp · ${data.name}`,
         url: webhookUrl,
-        events: ["MESSAGES_UPSERT", "CONNECTION_UPDATE"],
+        events: ["MESSAGES_UPSERT", "CONNECTION_UPDATE", "PRESENCE_UPDATE"],
         is_active: true,
       });
     }
@@ -507,3 +507,60 @@ export const sendChatAudio = createServerFn({ method: "POST" })
 function metadataObject(value: unknown): Record<string, unknown> {
   return value && typeof value === "object" && !Array.isArray(value) ? value as Record<string, unknown> : {};
 }
+
+// ===================== Presence (typing / recording) =====================
+
+const SendPresenceInput = z.object({
+  contactId: z.string().uuid(),
+  presence: z.enum(["composing", "recording", "paused", "available", "unavailable"]),
+});
+
+export const sendPresence = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((i: unknown) => SendPresenceInput.parse(i))
+  .handler(async ({ data, context }) => {
+    const { data: contact } = await context.supabase.from("contacts")
+      .select("phone").eq("id", data.contactId).eq("user_id", context.userId).single();
+    if (!contact) return { ok: false as const, error: "Contato não encontrado" };
+    try {
+      const conn = await pickActiveConnection(context.supabase, context.userId);
+      const apiKey = await loadEvolutionCommandKey(context.supabase, conn.api_key);
+      const number = String(contact.phone).replace(/\D+/g, "");
+      await evoFetch(`${baseUrl(conn.url_api)}/chat/sendPresence/${conn.instance_name}`, apiKey, {
+        method: "POST",
+        body: JSON.stringify({ number, delay: 1200, presence: data.presence }),
+      });
+      return { ok: true as const };
+    } catch (e) {
+      return { ok: false as const, error: e instanceof Error ? e.message : "Falha" };
+    }
+  });
+
+export const ensurePresenceWebhook = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    try {
+      const conn = await pickActiveConnection(context.supabase, context.userId);
+      const apiKey = await loadEvolutionCommandKey(context.supabase, conn.api_key);
+      const found = await evoFetch(`${baseUrl(conn.url_api)}/webhook/find/${conn.instance_name}`, apiKey);
+      const cur = found.json ?? {};
+      const events: string[] = Array.isArray(cur.events) ? cur.events : [];
+      if (events.includes("PRESENCE_UPDATE")) return { ok: true as const, alreadyEnabled: true };
+      const url = cur.url || cur.webhookUrl;
+      if (!url) return { ok: false as const, error: "Webhook não configurado" };
+      await evoFetch(`${baseUrl(conn.url_api)}/webhook/set/${conn.instance_name}`, apiKey, {
+        method: "POST",
+        body: JSON.stringify({
+          webhook: {
+            enabled: true, url,
+            byEvents: cur.webhookByEvents ?? false,
+            base64: cur.webhookBase64 ?? true,
+            events: [...new Set([...events, "MESSAGES_UPSERT", "CONNECTION_UPDATE", "PRESENCE_UPDATE"])],
+          },
+        }),
+      });
+      return { ok: true as const };
+    } catch (e) {
+      return { ok: false as const, error: e instanceof Error ? e.message : "Falha" };
+    }
+  });

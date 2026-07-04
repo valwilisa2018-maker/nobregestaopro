@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useServerFn } from "@tanstack/react-start";
-import { sendChatText, sendChatAudio, sendChatMedia, getProfilePicture } from "@/lib/evolution.functions";
+import { sendChatText, sendChatAudio, sendChatMedia, getProfilePicture, sendPresence, ensurePresenceWebhook } from "@/lib/evolution.functions";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/messages")({
@@ -110,7 +110,12 @@ function MessagesPage() {
   const sendAudio = useServerFn(sendChatAudio);
   const sendMedia = useServerFn(sendChatMedia);
   const fetchAvatar = useServerFn(getProfilePicture);
+  const pushPresence = useServerFn(sendPresence);
+  const ensureWebhook = useServerFn(ensurePresenceWebhook);
   const [avatars, setAvatars] = useState<Record<string, string | null>>({});
+  const [remotePresence, setRemotePresence] = useState<string | null>(null);
+  const presenceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const lastSentPresenceRef = useRef<number>(0);
   const [lightbox, setLightbox] = useState<{ type: "image" | "video"; src: string } | null>(null);
   const [infoOpen, setInfoOpen] = useState(false);
   const [editName, setEditName] = useState("");
@@ -122,6 +127,50 @@ function MessagesPage() {
   });
   const soundOnRef = useRef(soundOn);
   useEffect(() => { soundOnRef.current = soundOn; }, [soundOn]);
+
+  // Ensure webhook includes PRESENCE_UPDATE (best-effort, one shot)
+  useEffect(() => {
+    if (!user) return;
+    (ensureWebhook as unknown as () => Promise<unknown>)().catch(() => {});
+  }, [user, ensureWebhook]);
+
+  // Subscribe to remote presence for the selected contact
+  useEffect(() => {
+    setRemotePresence(null);
+    if (!user || !selected) return;
+    const jids = new Set(jidVariants(selected.phone));
+    const ch = supabase.channel(`presence-${user.id}`)
+      .on("postgres_changes", { event: "*", schema: "public", table: "presence", filter: `user_id=eq.${user.id}` }, (payload) => {
+        const row = (payload.new ?? payload.old) as { jid?: string; presence?: string; updated_at?: string } | null;
+        if (!row?.jid || !jids.has(row.jid)) return;
+        const p = row.presence ?? "available";
+        if (p === "composing" || p === "recording") {
+          setRemotePresence(p);
+          // auto-clear after 6s if no new update arrives
+          setTimeout(() => setRemotePresence((cur) => (cur === p ? null : cur)), 6000);
+        } else {
+          setRemotePresence(null);
+        }
+      })
+      .subscribe();
+    return () => { supabase.removeChannel(ch); };
+  }, [user, selected]);
+
+  // Send "composing" while typing (throttled), "paused" when idle
+  useEffect(() => {
+    if (!selected) return;
+    if (!text.trim()) return;
+    const now = Date.now();
+    if (now - lastSentPresenceRef.current > 4000) {
+      lastSentPresenceRef.current = now;
+      pushPresence({ data: { contactId: selected.id, presence: "composing" } }).catch(() => {});
+    }
+    if (presenceTimerRef.current) clearTimeout(presenceTimerRef.current);
+    presenceTimerRef.current = setTimeout(() => {
+      if (selected) pushPresence({ data: { contactId: selected.id, presence: "paused" } }).catch(() => {});
+    }, 3500);
+    return () => { if (presenceTimerRef.current) clearTimeout(presenceTimerRef.current); };
+  }, [text, selected, pushPresence]);
   useEffect(() => {
     try { localStorage.setItem("wa-sound", soundOn ? "1" : "0"); } catch { /* ignore */ }
   }, [soundOn]);
@@ -395,6 +444,7 @@ function MessagesPage() {
   async function startRecording() {
     if (!selected) return;
     try {
+      pushPresence({ data: { contactId: selected.id, presence: "recording" } }).catch(() => {});
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       const mr = new MediaRecorder(stream, { mimeType: MediaRecorder.isTypeSupported("audio/webm;codecs=opus") ? "audio/webm;codecs=opus" : "audio/webm" });
       const chunks: BlobPart[] = [];
@@ -425,6 +475,7 @@ function MessagesPage() {
   function stopRecording() {
     recRef.current?.mr.stop();
     setRecording(false);
+    if (selected) pushPresence({ data: { contactId: selected.id, presence: "paused" } }).catch(() => {});
   }
   useEffect(() => {
     if (!recording) return;
@@ -650,7 +701,15 @@ function MessagesPage() {
                 )}
                 <button onClick={() => setInfoOpen((v) => !v)} className="min-w-0 flex-1 text-left focus:outline-none">
                   <div className="text-sm font-semibold truncate">{selected.name || selected.phone}</div>
-                  <div className="text-[11px] text-white/80 truncate">{selected.phone}</div>
+                  <div className="text-[11px] text-white/80 truncate">
+                    {remotePresence === "composing" ? (
+                      <span className="italic">digitando…</span>
+                    ) : remotePresence === "recording" ? (
+                      <span className="italic">gravando áudio…</span>
+                    ) : (
+                      selected.phone
+                    )}
+                  </div>
                 </button>
                 <Tooltip>
                   <TooltipTrigger asChild>
