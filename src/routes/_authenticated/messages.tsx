@@ -310,7 +310,9 @@ function MessagesPage() {
       <TooltipProvider delayDuration={200}>
       <div
         className={`grid grid-cols-1 gap-0 overflow-hidden h-full transition-all duration-300 ${
-          sidebarCollapsed ? "md:grid-cols-[64px_1fr]" : "md:grid-cols-[360px_1fr]"
+          sidebarCollapsed
+            ? (infoOpen ? "md:grid-cols-[64px_1fr_320px]" : "md:grid-cols-[64px_1fr]")
+            : (infoOpen ? "md:grid-cols-[360px_1fr_320px]" : "md:grid-cols-[360px_1fr]")
         }`}
       >
         {/* Contacts */}
