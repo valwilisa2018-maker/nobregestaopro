@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Mic, Search, Send, Square, MessageCircle, Check, CheckCheck, Loader2, ArrowLeft, Smile, Play, Pause, Paperclip, ChevronLeft, ChevronRight, X, FileText, Image as ImageIcon, Video, Music, File as FileIcon, MoreVertical, Star, Archive, ArchiveRestore, Pin, PinOff, Tag, Info, Save, Bell, BellOff, Trash2, Forward, ChevronDown, Reply, CornerUpLeft, Download, Bot, BotOff, Camera } from "lucide-react";
+import { Mic, Search, Send, Square, MessageCircle, Check, CheckCheck, Loader2, ArrowLeft, Smile, Play, Pause, Paperclip, ChevronLeft, ChevronRight, X, FileText, Image as ImageIcon, Video, Music, File as FileIcon, MoreVertical, Star, Archive, ArchiveRestore, Pin, PinOff, Tag, Info, Save, Bell, BellOff, Trash2, Forward, ChevronDown, Reply, CornerUpLeft, Download, Bot, BotOff, Camera, Pencil } from "lucide-react";
 import EmojiPicker, { EmojiStyle, Theme } from "emoji-picker-react";
 import { PageShell } from "@/components/page-shell";
 import { supabase } from "@/integrations/supabase/client";
@@ -12,7 +12,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useServerFn } from "@tanstack/react-start";
-import { sendChatText, sendChatAudio, sendChatMedia, getProfilePicture, sendPresence, ensurePresenceWebhook, deleteChatMessage, forwardChatMessage } from "@/lib/evolution.functions";
+import { sendChatText, sendChatAudio, sendChatMedia, getProfilePicture, sendPresence, ensurePresenceWebhook, deleteChatMessage, forwardChatMessage, editChatMessage } from "@/lib/evolution.functions";
 import { toast } from "sonner";
 import notificationSound from "@/assets/notification.mp3.asset.json";
 
@@ -153,6 +153,10 @@ function MessagesPage() {
   const ensureWebhook = useServerFn(ensurePresenceWebhook);
   const deleteMsgFn = useServerFn(deleteChatMessage);
   const forwardMsgFn = useServerFn(forwardChatMessage);
+  const editMsgFn = useServerFn(editChatMessage);
+  const [editMsg, setEditMsg] = useState<Msg | null>(null);
+  const [editText, setEditText] = useState("");
+  const [editSaving, setEditSaving] = useState(false);
   const [replyTo, setReplyTo] = useState<Msg | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<Msg | null>(null);
   const replyToRef = useRef<Msg | null>(null);
@@ -294,6 +298,28 @@ function MessagesPage() {
       toast.error(e instanceof Error ? e.message : "Falha ao encaminhar");
     }
   }, [forwardMsg, selected, forwardMsgFn]);
+
+  const performEdit = useCallback(async () => {
+    if (!editMsg) return;
+    const newText = editText.trim();
+    if (!newText) { toast.error("Texto não pode ficar vazio"); return; }
+    if (newText === String(editMsg.content ?? "")) { setEditMsg(null); return; }
+    setEditSaving(true);
+    const id = editMsg.id;
+    const prevContent = editMsg.content;
+    setMsgs((prev) => prev.map((x) => x.id === id ? { ...x, content: newText, metadata: { ...(x.metadata ?? {}), edited: true } } : x));
+    try {
+      const res = await editMsgFn({ data: { messageId: id, text: newText } });
+      if (res && "ok" in res && res.ok === false) throw new Error((res as { error?: string }).error || "Falha ao editar");
+      toast.success("Mensagem editada");
+      setEditMsg(null);
+    } catch (e) {
+      setMsgs((prev) => prev.map((x) => x.id === id ? { ...x, content: prevContent } : x));
+      toast.error(e instanceof Error ? e.message : "Falha ao editar");
+    } finally {
+      setEditSaving(false);
+    }
+  }, [editMsg, editText, editMsgFn]);
 
   // Ensure webhook includes PRESENCE_UPDATE (best-effort, one shot)
   useEffect(() => {
@@ -1307,6 +1333,11 @@ function MessagesPage() {
                               <Star className={`h-4 w-4 mr-2 ${starred.has(m.id) ? "fill-yellow-400 text-yellow-500" : ""}`} />
                               {starred.has(m.id) ? "Desfavoritar" : "Favoritar"}
                             </DropdownMenuItem>
+                            {out && m.type === "text" && !m.id.startsWith("tmp-") && (
+                              <DropdownMenuItem onClick={() => { setEditMsg(m); setEditText(String(m.content ?? "")); }}>
+                                <Pencil className="h-4 w-4 mr-2" /> Editar mensagem
+                              </DropdownMenuItem>
+                            )}
                             <DropdownMenuSeparator />
                             <DropdownMenuItem onClick={() => setDeleteConfirm(m)} className="text-red-600 focus:text-red-600">
                               <Trash2 className="h-4 w-4 mr-2" /> Excluir…
@@ -1390,6 +1421,9 @@ function MessagesPage() {
                         )}
                         <div className="mt-0.5 flex items-center justify-end gap-1 text-[10px] text-gray-500">
                           {starred.has(m.id) && <Star className="h-3 w-3 fill-yellow-400 text-yellow-500" />}
+                          {(m.metadata as { edited?: boolean } | null)?.edited && (
+                            <span className="italic">editada</span>
+                          )}
                           <span>{new Date(m.created_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</span>
                           {out && (() => {
                             const meta = (m.metadata ?? {}) as { status?: string; pending?: boolean; failed?: boolean };
@@ -1782,6 +1816,30 @@ function MessagesPage() {
               Excluir para mim
             </Button>
             <Button variant="ghost" onClick={() => setDeleteConfirm(null)}>Cancelar</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+      <Dialog open={!!editMsg} onOpenChange={(o) => { if (!o && !editSaving) setEditMsg(null); }}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Editar mensagem</DialogTitle>
+          </DialogHeader>
+          <textarea
+            value={editText}
+            onChange={(e) => setEditText(e.target.value)}
+            rows={4}
+            autoFocus
+            className="w-full resize-none rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) { e.preventDefault(); performEdit(); }
+            }}
+          />
+          <p className="text-xs text-gray-500">O WhatsApp permite editar apenas mensagens enviadas nos últimos 15 minutos.</p>
+          <div className="flex justify-end gap-2 pt-2">
+            <Button variant="ghost" onClick={() => setEditMsg(null)} disabled={editSaving}>Cancelar</Button>
+            <Button onClick={performEdit} disabled={editSaving || !editText.trim()}>
+              {editSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : "Salvar"}
+            </Button>
           </div>
         </DialogContent>
       </Dialog>
