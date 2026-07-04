@@ -187,15 +187,10 @@ function MessagesPage() {
   }, [recording]);
 
   return (
-    <PageShell
-      title="Mensagens"
-      description="Converse com seus contatos direto pelo WhatsApp."
-      icon={<MessageCircle className="h-6 w-6" />}
-      status="ativo"
-    >
+    <div className="-m-6 h-[calc(100vh-3rem)]">
       <TooltipProvider delayDuration={200}>
       <div
-        className={`grid grid-cols-1 gap-0 rounded-2xl border border-border/60 overflow-hidden shadow-xl h-[80vh] transition-all duration-300 ${
+        className={`grid grid-cols-1 gap-0 overflow-hidden h-full transition-all duration-300 ${
           sidebarCollapsed ? "md:grid-cols-[64px_1fr]" : "md:grid-cols-[360px_1fr]"
         }`}
       >
@@ -446,7 +441,7 @@ function MessagesPage() {
         </section>
       </div>
       </TooltipProvider>
-    </PageShell>
+    </div>
   );
 }
 
