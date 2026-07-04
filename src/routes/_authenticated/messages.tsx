@@ -133,6 +133,12 @@ function MessagesPage() {
   // Auto-select first contact so the composer is always visible
   useEffect(() => {
     if (!selected && contacts.length) setSelected(contacts[0]);
+    else if (selected) {
+      const fresh = contacts.find((c) => c.id === selected.id);
+      if (fresh && (fresh.name !== selected.name || fresh.phone !== selected.phone)) {
+        setSelected(fresh);
+      }
+    }
   }, [contacts, selected]);
 
   // Filter
