@@ -1167,7 +1167,44 @@ function MessagesPage() {
             <div className="h-10 w-10 rounded-full grid place-items-center bg-white/20 font-semibold shrink-0">
               {(user?.email ?? "U").slice(0, 1).toUpperCase()}
             </div>
-            {!sidebarCollapsed && <div className="text-sm font-semibold flex-1 truncate">Conversas</div>}
+            {!sidebarCollapsed && (
+              <div className="flex-1 min-w-0">
+                <div className="text-[10px] uppercase tracking-wide text-white/70">Conversas</div>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <button className="mt-0.5 flex items-center gap-1 max-w-full text-sm font-semibold truncate rounded hover:bg-white/10 px-1 -mx-1 py-0.5">
+                      <span className="truncate">
+                        {activeInstance === "all"
+                          ? "Todas as instâncias"
+                          : (instances.find((i) => i.id === activeInstance)?.name
+                              ?? instances.find((i) => i.id === activeInstance)?.instance_name
+                              ?? "Instância")}
+                      </span>
+                      <ChevronDown className="h-3.5 w-3.5 opacity-80 shrink-0" />
+                    </button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="start" className="w-64">
+                    <DropdownMenuItem onClick={() => setActiveInstance("all")}>
+                      <span className="flex-1">Todas as instâncias</span>
+                      {activeInstance === "all" && <Check className="h-4 w-4" />}
+                    </DropdownMenuItem>
+                    {instances.length > 0 && <DropdownMenuSeparator />}
+                    {instances.map((i) => (
+                      <DropdownMenuItem key={i.id} onClick={() => setActiveInstance(i.id)}>
+                        <div className="flex-1 min-w-0">
+                          <div className="truncate">{i.name || i.instance_name}</div>
+                          {i.profile_name && <div className="text-[10px] text-muted-foreground truncate">{i.profile_name}</div>}
+                        </div>
+                        {activeInstance === i.id && <Check className="h-4 w-4" />}
+                      </DropdownMenuItem>
+                    ))}
+                    {!instances.length && (
+                      <div className="px-2 py-1.5 text-xs text-muted-foreground">Nenhuma instância cadastrada</div>
+                    )}
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
+            )}
             <Tooltip>
               <TooltipTrigger asChild>
                 <button
