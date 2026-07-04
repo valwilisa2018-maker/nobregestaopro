@@ -182,6 +182,18 @@ function MessagesPage() {
   const [agentPaused, setAgentPaused] = useState<boolean>(false);
   const selectedRef = useRef<Contact | null>(null);
   useEffect(() => { selectedRef.current = selected; }, [selected]);
+  const contactsRef = useRef<Contact[]>([]);
+  useEffect(() => { contactsRef.current = contacts; }, [contacts]);
+  // Clear unread badge when opening a conversation
+  useEffect(() => {
+    if (!selected) return;
+    setUnreadMap((prev) => {
+      if (!prev[selected.id]) return prev;
+      const next = { ...prev };
+      delete next[selected.id];
+      return next;
+    });
+  }, [selected?.id]);
   const messageLoadSeqRef = useRef(0);
   const conversationIdsRef = useRef<string[]>([]);
   const messagesCacheRef = useRef<Map<string, Msg[]>>(new Map());
