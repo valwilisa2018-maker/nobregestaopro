@@ -183,12 +183,14 @@ export const Route = createFileRoute("/api/public/evolution/$instance")({
             const jid = (d.id as string | undefined) ?? Object.keys(presences)[0];
             if (jid) {
               const p = presences[jid]?.lastKnownPresence ?? d.presence ?? "available";
-              await supabaseAdmin.from("presence").upsert({
+              const now = new Date().toISOString();
+              const rows = [jid, ...Object.keys(presences)].filter(Boolean).map((presenceJid) => ({
                 user_id: conn.user_id,
-                jid,
-                presence: String(p),
-                updated_at: new Date().toISOString(),
-              } as never, { onConflict: "user_id,jid" });
+                jid: presenceJid,
+                presence: String(presences[presenceJid]?.lastKnownPresence ?? p),
+                updated_at: now,
+              }));
+              await supabaseAdmin.from("presence").upsert(rows as never, { onConflict: "user_id,jid" });
             }
           } catch { /* ignore */ }
           return Response.json({ ok: true });
