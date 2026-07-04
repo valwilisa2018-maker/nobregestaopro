@@ -174,6 +174,7 @@ function MessagesPage() {
   const [avatars, setAvatars] = useState<Record<string, string | null>>({});
   const [remotePresence, setRemotePresence] = useState<string | null>(null);
   const presenceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const remotePresenceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastSentPresenceRef = useRef<number>(0);
   const [lightbox, setLightbox] = useState<{ type: "image" | "video"; src: string } | null>(null);
   const [infoOpen, setInfoOpen] = useState(false);
@@ -352,6 +353,7 @@ function MessagesPage() {
   // Subscribe to remote presence for the selected contact
   useEffect(() => {
     setRemotePresence(null);
+    if (remotePresenceTimerRef.current) { clearTimeout(remotePresenceTimerRef.current); remotePresenceTimerRef.current = null; }
     if (!user || !selected) return;
     const jids = new Set(jidVariants(selected.phone));
     const lidJids = (selected.metadata as { lidJids?: unknown } | null)?.lidJids;
@@ -364,16 +366,24 @@ function MessagesPage() {
         const recentOneToOneLid = !exact && row.jid.endsWith("@lid") && row.updated_at && Date.now() - new Date(row.updated_at).getTime() < 8000;
         if (!exact && !recentOneToOneLid) return;
         const p = row.presence ?? "available";
+        if (remotePresenceTimerRef.current) { clearTimeout(remotePresenceTimerRef.current); remotePresenceTimerRef.current = null; }
         if (p === "composing" || p === "recording") {
           setRemotePresence(p);
-          // auto-clear after 6s if no new update arrives
-          setTimeout(() => setRemotePresence((cur) => (cur === p ? null : cur)), 6000);
+          // Auto-clear only if no new update arrives. Recording holds longer since audio can be long.
+          const ttl = p === "recording" ? 15000 : 8000;
+          remotePresenceTimerRef.current = setTimeout(() => {
+            setRemotePresence((cur) => (cur === p ? null : cur));
+          }, ttl);
         } else {
-          setRemotePresence(null);
+          // Hold the current indicator briefly to avoid flicker between composing bursts.
+          remotePresenceTimerRef.current = setTimeout(() => setRemotePresence(null), 1500);
         }
       })
       .subscribe();
-    return () => { supabase.removeChannel(ch); };
+    return () => {
+      supabase.removeChannel(ch);
+      if (remotePresenceTimerRef.current) { clearTimeout(remotePresenceTimerRef.current); remotePresenceTimerRef.current = null; }
+    };
   }, [user, selected]);
 
   // Send "composing" while typing (throttled), "paused" when idle
@@ -1279,14 +1289,30 @@ function MessagesPage() {
                 )}
                 <button onClick={() => setInfoOpen((v) => !v)} className="min-w-0 flex-1 text-left focus:outline-none">
                   <div className="text-sm font-semibold truncate">{selected.name || selected.phone}</div>
-                  <div className="text-[11px] text-white/80 truncate">
-                    {remotePresence === "composing" ? (
-                      <span className="italic">digitando…</span>
-                    ) : remotePresence === "recording" ? (
-                      <span className="italic">gravando áudio…</span>
-                    ) : (
-                      selected.phone
-                    )}
+                  <div className="relative h-4 text-[11px] text-white/80">
+                    <span
+                      className={`absolute inset-0 truncate transition-opacity duration-300 ease-in-out ${remotePresence ? "opacity-0" : "opacity-100"}`}
+                    >
+                      {selected.phone}
+                    </span>
+                    <span
+                      className={`absolute inset-0 flex items-center gap-1.5 italic transition-opacity duration-300 ease-in-out ${remotePresence === "composing" ? "opacity-100" : "opacity-0"}`}
+                      aria-hidden={remotePresence !== "composing"}
+                    >
+                      Digitando
+                      <span className="inline-flex gap-0.5">
+                        <span className="h-1 w-1 rounded-full bg-white/90 animate-bounce [animation-delay:-0.3s]" />
+                        <span className="h-1 w-1 rounded-full bg-white/90 animate-bounce [animation-delay:-0.15s]" />
+                        <span className="h-1 w-1 rounded-full bg-white/90 animate-bounce" />
+                      </span>
+                    </span>
+                    <span
+                      className={`absolute inset-0 flex items-center gap-1.5 italic transition-opacity duration-300 ease-in-out ${remotePresence === "recording" ? "opacity-100" : "opacity-0"}`}
+                      aria-hidden={remotePresence !== "recording"}
+                    >
+                      Gravando áudio
+                      <Mic className="h-3 w-3 text-red-300 animate-pulse" />
+                    </span>
                   </div>
                 </button>
                 <Tooltip>
