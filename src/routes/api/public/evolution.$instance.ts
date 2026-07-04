@@ -165,13 +165,22 @@ export const Route = createFileRoute("/api/public/evolution/$instance")({
           try {
             const arr = Array.isArray(payload?.data) ? payload.data : [payload?.data];
             for (const u of arr) {
-              const evoId = u?.key?.id ?? u?.keyId ?? u?.messageId;
-              const rawStatus = u?.status ?? u?.update?.status;
-              if (!evoId || !rawStatus) continue;
-              const s = String(rawStatus).toUpperCase();
-              const status = s === "READ" || s === "PLAYED" ? "read"
-                : s === "DELIVERY_ACK" || s === "DELIVERED" ? "delivered"
-                : s === "SERVER_ACK" || s === "SENT" ? "sent" : null;
+              const evoId = u?.key?.id ?? u?.keyId ?? u?.messageId ?? u?.id;
+              const rawStatus =
+                u?.status ?? u?.update?.status ?? u?.messageStatus ?? u?.ack ?? u?.update?.ack;
+              if (!evoId || rawStatus === undefined || rawStatus === null) continue;
+              // Evolution/Baileys sends either a string (SERVER_ACK/DELIVERY_ACK/READ/PLAYED)
+              // or a numeric ack: 1=PENDING, 2=SERVER_ACK, 3=DELIVERY_ACK, 4=READ, 5=PLAYED.
+              let status: "sent" | "delivered" | "read" | null = null;
+              if (typeof rawStatus === "number" || /^\d+$/.test(String(rawStatus))) {
+                const n = Number(rawStatus);
+                status = n >= 4 ? "read" : n === 3 ? "delivered" : n === 2 ? "sent" : null;
+              } else {
+                const s = String(rawStatus).toUpperCase();
+                status = s === "READ" || s === "PLAYED" ? "read"
+                  : s === "DELIVERY_ACK" || s === "DELIVERED" ? "delivered"
+                  : s === "SERVER_ACK" || s === "SENT" ? "sent" : null;
+              }
               if (!status) continue;
               const { data: rows } = await supabaseAdmin.from("messages")
                 .select("id,metadata")

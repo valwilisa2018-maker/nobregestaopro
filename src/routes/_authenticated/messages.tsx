@@ -382,10 +382,28 @@ function MessagesPage() {
   useEffect(() => {
     if (!user) return;
     const ch = supabase.channel("messages-live")
-      .on("postgres_changes", { event: "INSERT", schema: "public", table: "messages", filter: `user_id=eq.${user.id}` }, (payload) => {
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "messages", filter: `user_id=eq.${user.id}` }, async (payload) => {
+        const row = payload.new as (Msg & { conversation_id?: string }) | null;
+        if (!row) return;
+        if (row.direction === "inbound") playBell();
+        // Try to append immediately if the message belongs to the currently open thread.
+        if (selected) {
+          const phone = selected.phone.replace(/\D+/g, "");
+          const jids = new Set([jidFromPhone(selected.phone), ...jidVariants(selected.phone)]);
+          const remote = (row.metadata as { remoteJid?: string } | null)?.remoteJid ?? "";
+          const belongs = jids.has(remote) || (!!phone && remote.startsWith(`${phone}@`));
+          if (belongs) {
+            let hydrated: Msg = row as Msg;
+            const path = storagePathFrom(row as Msg);
+            if (path) {
+              const { data: signed } = await supabase.storage.from("agent-media").createSignedUrl(path, 60 * 60 * 24);
+              if (signed?.signedUrl) hydrated = { ...(row as Msg), media_url: signed.signedUrl };
+            }
+            setMsgs((prev) => (prev.some((m) => m.id === hydrated.id) ? prev : [...prev, hydrated]));
+            return;
+          }
+        }
         loadMessages();
-        const row = payload.new as { direction?: string } | null;
-        if (row?.direction === "inbound") playBell();
       })
       .on("postgres_changes", { event: "UPDATE", schema: "public", table: "messages", filter: `user_id=eq.${user.id}` }, (payload) => {
         // Patch the single row in place so tick status updates without reloading the whole thread
