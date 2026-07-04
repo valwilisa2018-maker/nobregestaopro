@@ -104,13 +104,17 @@ function MessagesPage() {
 
   async function saveContact() {
     if (!selected || savingContact) return;
+    const name = editName.trim();
+    const phone = editPhone.trim().replace(/\D/g, "");
+    if (name.length > 100) { toast.error("Nome deve ter no máximo 100 caracteres"); return; }
+    if (!/^\d{10,15}$/.test(phone)) { toast.error("Telefone inválido (use apenas dígitos, 10 a 15)"); return; }
     setSavingContact(true);
     try {
       const { error } = await supabase.from("contacts")
-        .update({ name: editName.trim() || null, phone: editPhone.trim() })
+        .update({ name: name || null, phone })
         .eq("id", selected.id);
       if (error) throw error;
-      const updated = { ...selected, name: editName.trim() || null, phone: editPhone.trim() };
+      const updated = { ...selected, name: name || null, phone };
       setSelected(updated);
       setContacts((prev) => prev.map((c) => (c.id === updated.id ? updated : c)));
       toast.success("Contato atualizado");
