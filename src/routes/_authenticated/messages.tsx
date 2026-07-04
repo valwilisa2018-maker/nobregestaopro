@@ -891,19 +891,19 @@ function MessagesPage() {
   }
 
   async function handleSendAttachment() {
-    if (!selected || !attachment || sending) return;
+    if (!selected || !attachment) return;
     const MAX = 15 * 1024 * 1024; // 15 MB
     if (attachment.file.size > MAX) {
       toast.error(`Arquivo muito grande (máx. 15 MB). Este tem ${(attachment.file.size / 1024 / 1024).toFixed(1)} MB.`);
       return;
     }
-    setSending(true);
     const file = attachment.file;
     const mime = file.type || "application/octet-stream";
     const optimisticType = mime.startsWith("image/") ? "image" : mime.startsWith("video/") ? "video" : mime.startsWith("audio/") ? "audio" : "document";
     const quotedMessageId = replyTo?.id;
+    const tmpId = `tmp-${Date.now()}`;
     const optimistic: Msg = {
-      id: `tmp-${Date.now()}`,
+      id: tmpId,
       direction: "outbound",
       type: optimisticType,
       content: text.trim() || file.name,
@@ -913,20 +913,29 @@ function MessagesPage() {
     };
     setMsgs((prev) => [...prev, optimistic]);
     setReplyTo(null);
-    try {
-      const b64 = await blobToBase64(file);
-      const res = await sendMedia({ data: {
-        contactId: selected.id, base64: b64, mime,
-        fileName: file.name, caption: text.trim() || undefined, quotedMessageId,
-      }});
-      if (res && "ok" in res && res.ok === false) toast.error(res.error);
-      else { setText(""); setAttachment(null); }
-      await loadMessages();
-    } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Falha ao enviar arquivo");
-    } finally {
-      setSending(false);
-    }
+    const caption = text.trim() || undefined;
+    const contactId = selected.id;
+    // Free the composer immediately — the upload continues in the background,
+    // progress is reflected on the media bubble itself (pending tick).
+    setText("");
+    setAttachment(null);
+    (async () => {
+      try {
+        const b64 = await blobToBase64(file);
+        const res = await sendMedia({ data: {
+          contactId, base64: b64, mime,
+          fileName: file.name, caption, quotedMessageId,
+        }});
+        if (res && "ok" in res && res.ok === false) {
+          toast.error(res.error);
+          setMsgs((prev) => prev.map((m) => m.id === tmpId ? { ...m, metadata: { ...(m.metadata ?? {}), pending: false, failed: true } } : m));
+        }
+        // Real INSERT via realtime reconciles the tmp row — no reload needed.
+      } catch (e) {
+        toast.error(e instanceof Error ? e.message : "Falha ao enviar arquivo");
+        setMsgs((prev) => prev.map((m) => m.id === tmpId ? { ...m, metadata: { ...(m.metadata ?? {}), pending: false, failed: true } } : m));
+      }
+    })();
   }
 
   // Fetch avatar for the selected contact
@@ -1767,14 +1776,14 @@ function MessagesPage() {
                     <TooltipContent side="top">Parar gravação</TooltipContent>
                   </Tooltip>
                 ) : text.trim() || attachment ? (
-                  <Button size="icon" onClick={() => { if (attachment) handleSendAttachment(); else if (text.trim()) handleSendText(); }} disabled={sending} className="rounded-full h-11 w-11 text-white hover:opacity-90" style={{ background: WA.accent }}>
-                    {sending ? <Loader2 className="h-5 w-5 animate-spin" /> : <Send className="h-5 w-5" />}
+                  <Button size="icon" onClick={() => { if (attachment) handleSendAttachment(); else if (text.trim()) handleSendText(); }} className="rounded-full h-11 w-11 text-white hover:opacity-90" style={{ background: WA.accent }}>
+                    <Send className="h-5 w-5" />
                   </Button>
                 ) : (
                   <Tooltip>
                     <TooltipTrigger asChild>
-                      <Button size="icon" onClick={startRecording} disabled={sending} className="rounded-full h-11 w-11 text-white hover:opacity-90" style={{ background: WA.headerTeal }}>
-                        {sending ? <Loader2 className="h-5 w-5 animate-spin" /> : <Mic className="h-5 w-5" />}
+                      <Button size="icon" onClick={startRecording} className="rounded-full h-11 w-11 text-white hover:opacity-90" style={{ background: WA.headerTeal }}>
+                        <Mic className="h-5 w-5" />
                       </Button>
                     </TooltipTrigger>
                     <TooltipContent side="top">Gravar áudio</TooltipContent>
