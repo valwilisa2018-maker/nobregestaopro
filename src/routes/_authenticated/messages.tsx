@@ -484,6 +484,8 @@ function MessagesPage() {
       .select("id,phone,name,metadata").eq("user_id", user.id).order("updated_at", { ascending: false }).limit(500);
     setContacts((data ?? []) as Contact[]);
   }, [user]);
+  const loadContactsRef = useRef(loadContacts);
+  useEffect(() => { loadContactsRef.current = loadContacts; }, [loadContacts]);
   useEffect(() => { loadContacts(); }, [loadContacts]);
 
   // Load instances (connections) and per-contact connection membership map
