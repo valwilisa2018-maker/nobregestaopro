@@ -29,6 +29,23 @@ function mediaMessageType(mime: string) {
     : mime.startsWith("audio/") ? "audio" : "document";
 }
 
+function phoneVariants(value: string) {
+  const digits = value.replace(/\D+/g, "");
+  const variants = new Set([digits]);
+  if (digits.startsWith("55") && digits.length === 13 && digits[4] === "9") {
+    variants.add(`${digits.slice(0, 4)}${digits.slice(5)}`);
+  }
+  if (digits.startsWith("55") && digits.length === 12) {
+    variants.add(`${digits.slice(0, 4)}9${digits.slice(4)}`);
+  }
+  return [...variants].filter(Boolean);
+}
+
+function jidVariants(remoteJid: string) {
+  const suffix = remoteJid.includes("@") ? remoteJid.slice(remoteJid.indexOf("@")) : "@s.whatsapp.net";
+  return phoneVariants(remoteJid.split("@")[0] ?? remoteJid).map((phone) => `${phone}${suffix}`);
+}
+
 async function saveMediaToStorage(
   supabase: any,
   userId: string,
@@ -300,10 +317,11 @@ async function pickActiveConnection(supabase: any, userId: string) {
 async function getOrCreateConversationForJid(
   supabase: any, userId: string, connectionId: string, remoteJid: string,
 ) {
-  const { data: existing } = await supabase.from("conversations")
-    .select("id")
-    .eq("user_id", userId).eq("connection_id", connectionId)
-    .eq("metadata->>remoteJid", remoteJid).maybeSingle();
+  const variants = jidVariants(remoteJid);
+  const { data: existingRows } = await supabase.from("conversations")
+    .select("id,metadata")
+    .eq("user_id", userId).eq("connection_id", connectionId);
+  const existing = (existingRows ?? []).find((row: any) => variants.includes(row?.metadata?.remoteJid));
   if (existing) return existing.id as string;
   const { data: created, error } = await supabase.from("conversations").insert({
     user_id: userId, connection_id: connectionId, status: "open",
