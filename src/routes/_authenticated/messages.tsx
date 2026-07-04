@@ -171,6 +171,43 @@ function MessagesPage() {
   const messageLoadSeqRef = useRef(0);
   const conversationIdsRef = useRef<string[]>([]);
   const messagesCacheRef = useRef<Map<string, Msg[]>>(new Map());
+  const conversationIdsCacheRef = useRef<Map<string, string[]>>(new Map());
+  // Hydrate persistent caches so messages appear instantly on reload / repeat opens
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    try {
+      const raw = localStorage.getItem("wa-msg-cache");
+      if (raw) {
+        const obj = JSON.parse(raw) as Record<string, Msg[]>;
+        for (const [k, v] of Object.entries(obj)) messagesCacheRef.current.set(k, v);
+      }
+      const rawIds = localStorage.getItem("wa-conv-cache");
+      if (rawIds) {
+        const obj = JSON.parse(rawIds) as Record<string, string[]>;
+        for (const [k, v] of Object.entries(obj)) conversationIdsCacheRef.current.set(k, v);
+      }
+    } catch { /* ignore */ }
+  }, []);
+  const persistMsgCache = useCallback((contactId: string, rows: Msg[]) => {
+    messagesCacheRef.current.set(contactId, rows);
+    if (typeof window === "undefined") return;
+    try {
+      const obj: Record<string, Msg[]> = {};
+      // Cap: only persist last 40 msgs per contact and last 30 contacts to keep storage small
+      const entries = [...messagesCacheRef.current.entries()].slice(-30);
+      for (const [k, v] of entries) obj[k] = v.slice(-40);
+      localStorage.setItem("wa-msg-cache", JSON.stringify(obj));
+    } catch { /* quota */ }
+  }, []);
+  const persistConvCache = useCallback((contactId: string, ids: string[]) => {
+    conversationIdsCacheRef.current.set(contactId, ids);
+    if (typeof window === "undefined") return;
+    try {
+      const obj: Record<string, string[]> = {};
+      for (const [k, v] of conversationIdsCacheRef.current.entries()) obj[k] = v;
+      localStorage.setItem("wa-conv-cache", JSON.stringify(obj));
+    } catch { /* quota */ }
+  }, []);
   const signedUrlCacheRef = useRef<Map<string, string>>(new Map());
   const prependScrollRef = useRef(false);
   const [editPhone, setEditPhone] = useState("");
