@@ -2225,9 +2225,9 @@ function MessagesPage() {
               </div>
               <div>
                 <label className="text-xs font-medium text-gray-500">Telefone</label>
-                <Input value={editPhone} onChange={(e) => setEditPhone(e.target.value)} placeholder="Ex: 5511999999999" className="mt-1" />
+                <Input value={selected.phone} readOnly disabled className="mt-1 cursor-not-allowed opacity-70" />
               </div>
-              <Button onClick={saveContact} disabled={savingContact} className="w-full text-white hover:opacity-90" style={{ background: WA.accent }}>
+              <Button onClick={saveContact} disabled={savingContact || editName.trim() === (selected.name ?? "").trim()} className="w-full text-white hover:opacity-90" style={{ background: WA.accent }}>
                 {savingContact ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Save className="h-4 w-4 mr-2" />}
                 Salvar
               </Button>
