@@ -13,6 +13,7 @@ import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import {
   Timer, Send, MessageCircleReply, Target, Plus, Trash2, Play, Pause, Pencil, Clock, Zap,
+  Plug, CheckCircle2, AlertCircle, Layers,
 } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/followups")({
@@ -25,9 +26,11 @@ type Followup = {
   id: string; name: string; description: string | null;
   inactivity_value: number; inactivity_unit: Unit;
   is_active: boolean; stop_on_reply: boolean;
+  connection_id: string | null;
   total_sent: number; total_replied: number; total_converted: number;
   created_at: string;
 };
+type Connection = { id: string; name: string; instance_name: string | null; status: string | null; phone_number: string | null };
 type Step = {
   id?: string; step_order: number;
   delay_value: number; delay_unit: Unit;
@@ -42,6 +45,7 @@ const UNITS: { value: Unit; label: string }[] = [
 
 function Page() {
   const [rows, setRows] = useState<Followup[]>([]);
+  const [connections, setConnections] = useState<Connection[]>([]);
   const [loading, setLoading] = useState(true);
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<Followup | null>(null);
@@ -53,14 +57,22 @@ function Page() {
   const [invUnit, setInvUnit] = useState<Unit>("hours");
   const [stopOnReply, setStopOnReply] = useState(true);
   const [isActive, setIsActive] = useState(true);
+  const [connectionId, setConnectionId] = useState<string>("all");
 
   async function load() {
     setLoading(true);
-    const { data, error } = await supabase.from("followups").select("*").order("created_at", { ascending: false });
+    const [{ data, error }, { data: conns }] = await Promise.all([
+      supabase.from("followups").select("*").order("created_at", { ascending: false }),
+      supabase.from("connections").select("id,name,instance_name,status,phone_number").order("created_at"),
+    ]);
     if (error) toast.error(error.message); else setRows((data as Followup[]) ?? []);
+    setConnections((conns as Connection[]) ?? []);
     setLoading(false);
   }
   useEffect(() => { void load(); }, []);
+
+  const connMap = useMemo(() => Object.fromEntries(connections.map((c) => [c.id, c])), [connections]);
+  const anyConnected = connections.some((c) => (c.status ?? "").toLowerCase().includes("open") || (c.status ?? "").toLowerCase().includes("connect"));
 
   const metrics = useMemo(() => {
     const sent = rows.reduce((a, r) => a + (r.total_sent ?? 0), 0);
@@ -74,6 +86,7 @@ function Page() {
     setEditing(null); setName(""); setDescription("");
     setInvValue(1); setInvUnit("hours");
     setStopOnReply(true); setIsActive(true);
+    setConnectionId("all");
     setSteps([{ step_order: 0, delay_value: 0, delay_unit: "minutes", message: "" }]);
     setOpen(true);
   }
@@ -81,6 +94,7 @@ function Page() {
     setEditing(f); setName(f.name); setDescription(f.description ?? "");
     setInvValue(f.inactivity_value); setInvUnit(f.inactivity_unit);
     setStopOnReply(f.stop_on_reply); setIsActive(f.is_active);
+    setConnectionId(f.connection_id ?? "all");
     const { data } = await supabase.from("followup_steps").select("*").eq("followup_id", f.id).order("step_order");
     setSteps((data as Step[])?.length ? (data as Step[]) : [{ step_order: 0, delay_value: 0, delay_unit: "minutes", message: "" }]);
     setOpen(true);
@@ -95,6 +109,7 @@ function Page() {
       user_id: user.id, name: name.trim(), description: description.trim() || null,
       inactivity_value: invValue, inactivity_unit: invUnit,
       stop_on_reply: stopOnReply, is_active: isActive,
+      connection_id: connectionId === "all" ? null : connectionId,
     };
     let followupId = editing?.id;
     if (editing) {
@@ -147,6 +162,18 @@ function Page() {
         <Button onClick={openNew} className="shrink-0"><Plus className="h-4 w-4 mr-1" /> Novo follow-up</Button>
       </div>
 
+      <Card className={`p-3 flex items-center gap-3 border ${anyConnected ? "border-green-500/40 bg-green-500/5" : "border-amber-500/40 bg-amber-500/5"}`}>
+        {anyConnected ? <CheckCircle2 className="h-5 w-5 text-green-600 shrink-0" /> : <AlertCircle className="h-5 w-5 text-amber-600 shrink-0" />}
+        <div className="text-sm min-w-0 flex-1">
+          <div className="font-semibold">
+            {anyConnected ? "Follow-up pronto para disparar" : "Nenhuma instância conectada"}
+          </div>
+          <div className="text-xs text-muted-foreground truncate">
+            {connections.length} instância(s) · dispara automaticamente quando o cliente ficar inativo · para ao receber resposta.
+          </div>
+        </div>
+      </Card>
+
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         <Metric icon={<Zap className="h-4 w-4" />} label="Ativos" value={metrics.active} />
         <Metric icon={<Send className="h-4 w-4" />} label="Envios" value={metrics.sent} />
@@ -183,6 +210,9 @@ function Page() {
                   </div>
                   <div className="flex items-center gap-3 text-xs text-muted-foreground mt-0.5">
                     <span className="flex items-center gap-1"><Clock className="h-3 w-3" /> após {f.inactivity_value} {unitLabel(f.inactivity_unit)}</span>
+                    <span className="flex items-center gap-1">
+                      {f.connection_id ? <><Plug className="h-3 w-3" /> {connMap[f.connection_id]?.name ?? "Instância removida"}</> : <><Layers className="h-3 w-3" /> Todas instâncias</>}
+                    </span>
                     <span>· {f.total_sent} envios</span>
                     <span>· {f.total_replied} respostas</span>
                   </div>
@@ -228,6 +258,31 @@ function Page() {
                   </SelectContent>
                 </Select>
               </div>
+            </div>
+
+            <div className="rounded-xl border p-4 space-y-3">
+              <div className="flex items-center gap-2">
+                <Plug className="h-4 w-4 text-primary" />
+                <Label className="font-semibold">Instância WhatsApp</Label>
+              </div>
+              <p className="text-xs text-muted-foreground">Escolha uma instância específica ou dispare por todas.</p>
+              <Select value={connectionId} onValueChange={setConnectionId}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">🌐 Todas as instâncias</SelectItem>
+                  {connections.map((c) => {
+                    const on = (c.status ?? "").toLowerCase().includes("open") || (c.status ?? "").toLowerCase().includes("connect");
+                    return (
+                      <SelectItem key={c.id} value={c.id}>
+                        {on ? "🟢" : "⚪"} {c.name} {c.phone_number ? `· ${c.phone_number}` : ""}
+                      </SelectItem>
+                    );
+                  })}
+                </SelectContent>
+              </Select>
+              {connections.length === 0 && (
+                <p className="text-xs text-amber-600">Nenhuma instância cadastrada. Conecte um WhatsApp primeiro.</p>
+              )}
             </div>
 
             <div className="space-y-3">
