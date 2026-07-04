@@ -789,7 +789,14 @@ function MessagesPage() {
                           <span>{new Date(m.created_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</span>
                           {out && (() => {
                             const meta = (m.metadata ?? {}) as { status?: string; pending?: boolean; failed?: boolean };
-                            if (meta.failed) return <span className="text-red-500">!</span>;
+                            if (meta.failed) return (
+                              <button
+                                type="button"
+                                onClick={() => retryFailed(m.id)}
+                                className="text-red-500 font-bold hover:underline"
+                                title="Tentar novamente"
+                              >!</button>
+                            );
                             if (meta.pending || !meta.status) return <Check className="h-3.5 w-3.5 text-gray-400" />;
                             if (meta.status === "sent") return <Check className="h-3.5 w-3.5 text-gray-500" />;
                             if (meta.status === "delivered") return <CheckCheck className="h-3.5 w-3.5 text-gray-500" />;
