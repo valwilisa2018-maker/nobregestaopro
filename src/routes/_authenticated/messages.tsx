@@ -1311,6 +1311,11 @@ function MessagesPage() {
                               <Star className={`h-4 w-4 mr-2 ${starred.has(m.id) ? "fill-yellow-400 text-yellow-500" : ""}`} />
                               {starred.has(m.id) ? "Desfavoritar" : "Favoritar"}
                             </DropdownMenuItem>
+                            {out && m.type === "text" && !m.id.startsWith("tmp-") && (
+                              <DropdownMenuItem onClick={() => { setEditMsg(m); setEditText(String(m.content ?? "")); }}>
+                                <Pencil className="h-4 w-4 mr-2" /> Editar mensagem
+                              </DropdownMenuItem>
+                            )}
                             <DropdownMenuSeparator />
                             <DropdownMenuItem onClick={() => setDeleteConfirm(m)} className="text-red-600 focus:text-red-600">
                               <Trash2 className="h-4 w-4 mr-2" /> Excluir…
