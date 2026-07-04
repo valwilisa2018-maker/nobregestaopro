@@ -545,16 +545,19 @@ function MessagesPage() {
         const blob = new Blob(chunks, { type: "audio/webm" });
         const localUrl = URL.createObjectURL(blob);
         const tmpId = `tmp-${Date.now()}`;
+        const quotedMessageId = replyToRef.current?.id;
+        const q = replyToRef.current;
         // Optimistic bubble so the user sees the audio right away
         setMsgs((prev) => [...prev, {
           id: tmpId, direction: "outbound", type: "audio",
           content: "[áudio]", media_url: localUrl,
           created_at: new Date().toISOString(),
-          metadata: { audio: true, pending: true },
+          metadata: { audio: true, pending: true, ...(quotedMessageId ? { quotedId: quotedMessageId, quotedText: (q?.content ?? "").slice(0, 200), quotedType: q?.type, quotedDirection: q?.direction } : {}) },
         }]);
+        setReplyTo(null);
         try {
           const b64 = await blobToBase64(blob);
-          const res = await sendAudio({ data: { contactId: selected.id, audioBase64: b64 } });
+          const res = await sendAudio({ data: { contactId: selected.id, audioBase64: b64, quotedMessageId } });
           if (res && "ok" in res && res.ok === false) {
             toast.error(res.error);
             setMsgs((prev) => prev.map((m) => m.id === tmpId ? { ...m, metadata: { ...(m.metadata ?? {}), pending: false, failed: true } } : m));
