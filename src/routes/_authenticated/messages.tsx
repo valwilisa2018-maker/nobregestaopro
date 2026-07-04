@@ -128,6 +128,35 @@ function MessagesPage() {
   });
   const soundOnRef = useRef(soundOn);
   useEffect(() => { soundOnRef.current = soundOn; }, [soundOn]);
+  // Auto-retry registry for failed text/sticker sends
+  const retryRegistry = useRef<Map<string, { contactId: string; body: string }>>(new Map());
+
+  const attemptSendText = useCallback((tmpId: string, contactId: string, body: string, attempt = 0) => {
+    const MAX = 3;
+    sendText({ data: { contactId, text: body } })
+      .then((res) => {
+        if (res && "ok" in res && res.ok === false) throw new Error(res.error || "send failed");
+        retryRegistry.current.delete(tmpId);
+        loadMessages();
+      })
+      .catch((e) => {
+        if (attempt < MAX) {
+          const delay = 1000 * Math.pow(2, attempt); // 1s, 2s, 4s
+          setTimeout(() => attemptSendText(tmpId, contactId, body, attempt + 1), delay);
+        } else {
+          retryRegistry.current.set(tmpId, { contactId, body });
+          setMsgs((prev) => prev.map((m) => m.id === tmpId ? { ...m, metadata: { ...(m.metadata ?? {}), pending: false, failed: true } } : m));
+          toast.error(e instanceof Error ? e.message : "Falha ao enviar — toque em ! para tentar novamente");
+        }
+      });
+  }, [sendText]);
+
+  const retryFailed = useCallback((tmpId: string) => {
+    const payload = retryRegistry.current.get(tmpId);
+    if (!payload) { loadMessages(); return; }
+    setMsgs((prev) => prev.map((m) => m.id === tmpId ? { ...m, metadata: { ...(m.metadata ?? {}), failed: false, pending: true } } : m));
+    attemptSendText(tmpId, payload.contactId, payload.body, 0);
+  }, [attemptSendText]);
 
   // Ensure webhook includes PRESENCE_UPDATE (best-effort, one shot)
   useEffect(() => {
