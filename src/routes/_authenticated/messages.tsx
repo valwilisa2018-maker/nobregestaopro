@@ -418,6 +418,19 @@ function MessagesPage() {
     loadMessages();
   }, [loadMessages]);
 
+  const toggleAgent = useCallback(async () => {
+    if (!convoId) { toast.error("Sem conversa vinculada ainda."); return; }
+    const { data: row } = await supabase.from("conversations").select("metadata").eq("id", convoId).maybeSingle();
+    const meta = (row?.metadata ?? {}) as Record<string, unknown>;
+    const next = agentPaused
+      ? { ...meta, agent_paused_until: null }
+      : { ...meta, agent_paused_until: new Date(Date.now() + 3650 * 24 * 3600_000).toISOString() };
+    const { error } = await supabase.from("conversations").update({ metadata: next } as never).eq("id", convoId);
+    if (error) { toast.error("Não foi possível alterar a IA."); return; }
+    setAgentPaused(!agentPaused);
+    toast.success(agentPaused ? "IA ativada nesta conversa" : "IA desativada nesta conversa");
+  }, [convoId, agentPaused]);
+
   // Realtime refresh on new messages
   useEffect(() => {
     if (!user) return;
