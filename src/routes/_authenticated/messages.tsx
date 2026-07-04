@@ -1289,14 +1289,30 @@ function MessagesPage() {
                 )}
                 <button onClick={() => setInfoOpen((v) => !v)} className="min-w-0 flex-1 text-left focus:outline-none">
                   <div className="text-sm font-semibold truncate">{selected.name || selected.phone}</div>
-                  <div className="text-[11px] text-white/80 truncate">
-                    {remotePresence === "composing" ? (
-                      <span className="italic">digitando…</span>
-                    ) : remotePresence === "recording" ? (
-                      <span className="italic">gravando áudio…</span>
-                    ) : (
-                      selected.phone
-                    )}
+                  <div className="relative h-4 text-[11px] text-white/80">
+                    <span
+                      className={`absolute inset-0 truncate transition-opacity duration-300 ease-in-out ${remotePresence ? "opacity-0" : "opacity-100"}`}
+                    >
+                      {selected.phone}
+                    </span>
+                    <span
+                      className={`absolute inset-0 flex items-center gap-1.5 italic transition-opacity duration-300 ease-in-out ${remotePresence === "composing" ? "opacity-100" : "opacity-0"}`}
+                      aria-hidden={remotePresence !== "composing"}
+                    >
+                      Digitando
+                      <span className="inline-flex gap-0.5">
+                        <span className="h-1 w-1 rounded-full bg-white/90 animate-bounce [animation-delay:-0.3s]" />
+                        <span className="h-1 w-1 rounded-full bg-white/90 animate-bounce [animation-delay:-0.15s]" />
+                        <span className="h-1 w-1 rounded-full bg-white/90 animate-bounce" />
+                      </span>
+                    </span>
+                    <span
+                      className={`absolute inset-0 flex items-center gap-1.5 italic transition-opacity duration-300 ease-in-out ${remotePresence === "recording" ? "opacity-100" : "opacity-0"}`}
+                      aria-hidden={remotePresence !== "recording"}
+                    >
+                      Gravando áudio
+                      <Mic className="h-3 w-3 text-red-300 animate-pulse" />
+                    </span>
                   </div>
                 </button>
                 <Tooltip>
