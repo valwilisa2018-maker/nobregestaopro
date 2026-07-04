@@ -136,7 +136,17 @@ function MessagesPage() {
     if (typeof window === "undefined") return new Set();
     try { return new Set(JSON.parse(localStorage.getItem("wa-fav") ?? "[]")); } catch { return new Set(); }
   });
-  const [unreadMap, setUnreadMap] = useState<Record<string, number>>({});
+  const [unreadMap, setUnreadMap] = useState<Record<string, number>>(() => {
+    if (typeof window === "undefined") return {};
+    try { return JSON.parse(localStorage.getItem("wa-unread") ?? "{}"); } catch { return {}; }
+  });
+  const unreadMapRef = useRef<Record<string, number>>({});
+  useEffect(() => {
+    unreadMapRef.current = unreadMap;
+    if (typeof window !== "undefined") {
+      try { localStorage.setItem("wa-unread", JSON.stringify(unreadMap)); } catch { /* quota */ }
+    }
+  }, [unreadMap]);
   const [pinned, setPinned] = useState<Set<string>>(() => {
     if (typeof window === "undefined") return new Set();
     try { return new Set(JSON.parse(localStorage.getItem("wa-pin") ?? "[]")); } catch { return new Set(); }
