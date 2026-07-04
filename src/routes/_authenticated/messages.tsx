@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Mic, Search, Send, Square, MessageCircle, Check, CheckCheck, Loader2, ArrowLeft, Smile, Play, Pause, Paperclip, ChevronLeft, ChevronRight, X, FileText, Image as ImageIcon, Video, Music, File as FileIcon } from "lucide-react";
+import { Mic, Search, Send, Square, MessageCircle, Check, CheckCheck, Loader2, ArrowLeft, Smile, Play, Pause, Paperclip, ChevronLeft, ChevronRight, X, FileText, Image as ImageIcon, Video, Music, File as FileIcon, MoreVertical, Star, Archive, ArchiveRestore } from "lucide-react";
 import { PageShell } from "@/components/page-shell";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
@@ -259,7 +259,7 @@ function MessagesPage() {
             </div>
           </div>}
           {!sidebarCollapsed && (
-            <div className="px-2 pb-2 pt-1 bg-[#F6F6F6] flex items-center gap-1.5 overflow-x-auto">
+            <div className="px-2 pb-2 pt-1 bg-[#F6F6F6] flex items-center gap-1 overflow-x-auto no-scrollbar">
               {([
                 { key: "all", label: "Tudo", count: null as number | null },
                 { key: "unread", label: "Não lidas", count: unreadTotal },
@@ -272,7 +272,7 @@ function MessagesPage() {
                   <button
                     key={t.key}
                     onClick={() => setFilterMode(t.key)}
-                    className={`shrink-0 flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium transition border ${
+                    className={`shrink-0 flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium transition border ${
                       active
                         ? "bg-emerald-100 text-emerald-800 border-emerald-200"
                         : "bg-white text-gray-700 border-gray-200 hover:bg-gray-100"
@@ -280,7 +280,7 @@ function MessagesPage() {
                   >
                     <span>{t.label}</span>
                     {t.count != null && t.count > 0 && (
-                      <span className={`text-[10px] px-1.5 rounded-full ${active ? "bg-emerald-600 text-white" : "bg-gray-200 text-gray-700"}`}>{t.count}</span>
+                      <span className={`text-[9px] leading-none px-1 py-0.5 rounded-full ${active ? "bg-emerald-600 text-white" : "bg-gray-200 text-gray-700"}`}>{t.count}</span>
                     )}
                   </button>
                 );
@@ -290,23 +290,63 @@ function MessagesPage() {
           <div className="flex-1 overflow-y-auto bg-white">
             {filtered.map((c) => {
               const active = selected?.id === c.id;
+              const isFav = favorites.has(c.id);
+              const isArch = archived.has(c.id);
               return (
-                <button
+                <div
                   key={c.id}
-                  onClick={() => setSelected(c)}
-                  className={`w-full flex items-center gap-3 px-3 py-3 text-left border-b border-black/5 hover:bg-gray-50 focus:outline-none focus-visible:bg-gray-100 transition ${active ? "bg-gray-100" : ""} ${sidebarCollapsed ? "justify-center" : ""}`}
+                  className={`group w-full flex items-center gap-3 px-3 py-3 border-b border-black/5 hover:bg-gray-50 transition ${active ? "bg-gray-100" : ""} ${sidebarCollapsed ? "justify-center" : ""}`}
                   title={sidebarCollapsed ? (c.name || c.phone) : undefined}
                 >
-                  <div className="h-12 w-12 rounded-full grid place-items-center text-sm font-semibold text-white shrink-0" style={{ background: WA.headerTeal }}>
-                    {initials(c.name, c.phone)}
-                  </div>
-                  {!sidebarCollapsed && <div className="min-w-0 flex-1">
-                    <div className="flex items-center justify-between gap-2">
-                      <div className="text-sm font-medium truncate text-gray-900">{c.name || c.phone}</div>
+                  <button onClick={() => setSelected(c)} className="flex items-center gap-3 flex-1 min-w-0 text-left focus:outline-none">
+                    <div className="h-12 w-12 rounded-full grid place-items-center text-sm font-semibold text-white shrink-0" style={{ background: WA.headerTeal }}>
+                      {initials(c.name, c.phone)}
                     </div>
-                    <div className="text-xs text-gray-500 truncate">{c.phone}</div>
-                  </div>}
-                </button>
+                    {!sidebarCollapsed && (
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-1.5">
+                          <div className="text-sm font-medium truncate text-gray-900">{c.name || c.phone}</div>
+                          {isFav && <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400 shrink-0" />}
+                          {isArch && <Archive className="h-3.5 w-3.5 text-gray-400 shrink-0" />}
+                        </div>
+                        <div className="text-xs text-gray-500 truncate">{c.phone}</div>
+                      </div>
+                    )}
+                  </button>
+                  {!sidebarCollapsed && (
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <button className="p-1.5 rounded-full text-gray-400 hover:text-gray-700 hover:bg-gray-200 opacity-0 group-hover:opacity-100 focus:opacity-100 transition" aria-label="Opções">
+                          <MoreVertical className="h-4 w-4" />
+                        </button>
+                      </PopoverTrigger>
+                      <PopoverContent side="right" align="start" className="w-44 p-1">
+                        <button
+                          onClick={() => setFavorites((prev) => {
+                            const n = new Set(prev); n.has(c.id) ? n.delete(c.id) : n.add(c.id);
+                            try { localStorage.setItem("wa-fav", JSON.stringify([...n])); } catch { /* ignore */ }
+                            return n;
+                          })}
+                          className="w-full flex items-center gap-2 px-3 py-2 rounded-md hover:bg-accent text-sm"
+                        >
+                          <Star className={`h-4 w-4 ${isFav ? "fill-amber-400 text-amber-400" : "text-amber-500"}`} />
+                          <span>{isFav ? "Remover favorito" : "Favoritar"}</span>
+                        </button>
+                        <button
+                          onClick={() => setArchived((prev) => {
+                            const n = new Set(prev); n.has(c.id) ? n.delete(c.id) : n.add(c.id);
+                            try { localStorage.setItem("wa-arch", JSON.stringify([...n])); } catch { /* ignore */ }
+                            return n;
+                          })}
+                          className="w-full flex items-center gap-2 px-3 py-2 rounded-md hover:bg-accent text-sm"
+                        >
+                          {isArch ? <ArchiveRestore className="h-4 w-4 text-gray-600" /> : <Archive className="h-4 w-4 text-gray-600" />}
+                          <span>{isArch ? "Desarquivar" : "Arquivar"}</span>
+                        </button>
+                      </PopoverContent>
+                    </Popover>
+                  )}
+                </div>
               );
             })}
             {!filtered.length && !sidebarCollapsed && <div className="p-6 text-center text-xs text-gray-500">Nenhum contato</div>}
