@@ -1516,6 +1516,33 @@ function MessagesPage() {
                             </button>
                           )}
                         </div>
+                        <div className="border-t mt-1 pt-1">
+                          <button
+                            onClick={async () => {
+                              if (!window.confirm(`Excluir o contato "${c.name || c.phone}"? As mensagens e conversas relacionadas também serão removidas.`)) return;
+                              try {
+                                const phone = c.phone.replace(/\D+/g, "");
+                                const { data: convs } = await supabase.from("conversations").select("id").eq("user_id", user!.id).or(`remote_jid.ilike.%${phone}%,contact_id.eq.${c.id}`);
+                                const convIds = (convs || []).map((r) => r.id);
+                                if (convIds.length) {
+                                  await supabase.from("messages").delete().in("conversation_id", convIds);
+                                  await supabase.from("conversations").delete().in("id", convIds);
+                                }
+                                const { error } = await supabase.from("contacts").delete().eq("id", c.id);
+                                if (error) throw error;
+                                setContacts((prev) => prev.filter((x) => x.id !== c.id));
+                                if (selected?.id === c.id) setSelected(null);
+                                toast.success("Contato excluído");
+                              } catch (e) {
+                                toast.error("Não foi possível excluir", { description: e instanceof Error ? e.message : String(e) });
+                              }
+                            }}
+                            className="w-full flex items-center gap-2 px-3 py-2 rounded-md hover:bg-red-50 text-sm text-red-600"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                            <span>Excluir contato</span>
+                          </button>
+                        </div>
                       </PopoverContent>
                     </Popover>
                   )}
