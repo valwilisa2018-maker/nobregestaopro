@@ -170,6 +170,11 @@ function MessagesPage() {
   }, [activeInstance]);
   // Map: phone digits -> Set of connection ids that have a conversation with that JID
   const [contactConnMap, setContactConnMap] = useState<Record<string, Set<string>>>({});
+  const [instanceProfilePic, setInstanceProfilePic] = useState<Record<string, string | null>>({});
+  const [profileUploading, setProfileUploading] = useState(false);
+  const [profileNameEdit, setProfileNameEdit] = useState("");
+  const [profileNameSaving, setProfileNameSaving] = useState(false);
+  const profilePicInputRef = useRef<HTMLInputElement | null>(null);
   const sendText = useServerFn(sendChatText);
   const sendAudio = useServerFn(sendChatAudio);
   const sendMedia = useServerFn(sendChatMedia);
