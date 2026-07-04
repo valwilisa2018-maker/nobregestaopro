@@ -427,6 +427,30 @@ function BroadcastsPage() {
 
             <div className="space-y-3">
               <Label>Velocidade (mensagens por minuto)</Label>
+              <div className="flex items-center gap-3 p-3 rounded-lg border bg-primary/5">
+                <Switch
+                  checked={rate >= 240 && humanizeMin === 0 && humanizeMax === 0 && !useWindow}
+                  onCheckedChange={(on) => {
+                    if (on) {
+                      setRate(300); setRateCustom(true);
+                      setHumanizeMin(0); setHumanizeMax(0);
+                      setUseWindow(false);
+                      setDailyLimit(null);
+                      setDelay(1);
+                    } else {
+                      setRate(20); setRateCustom(false);
+                      setHumanizeMin(5); setHumanizeMax(18);
+                      setUseWindow(true);
+                      setDailyLimit(1000);
+                      setDelay(5);
+                    }
+                  }}
+                />
+                <div className="flex-1">
+                  <Label className="cursor-pointer">Enviar agora (sem intervalo)</Label>
+                  <p className="text-xs text-muted-foreground">Dispara todos os contatos imediatamente, sem humanização nem janela de horário.</p>
+                </div>
+              </div>
               <div className="flex flex-wrap gap-2">
                 {RATE_PRESETS.map((p) => (
                   <button key={p} type="button" onClick={() => { setRate(p); setRateCustom(false); }}
