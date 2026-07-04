@@ -1891,24 +1891,57 @@ function MessagesPage() {
                               <DownloadBtn url={m.media_url!} filename={`video-${m.id}.mp4`} dark />
                             )}
                           </div>
-                        ) : isFile ? (
-                          <div className="flex items-center gap-2 text-gray-800">
-                            {(m.metadata as { pending?: boolean } | null)?.pending
-                              ? <Loader2 className="h-5 w-5 shrink-0 animate-spin text-emerald-600" />
-                              : <FileText className="h-5 w-5 shrink-0" />}
-                            <a href={m.media_url!} target="_blank" rel="noreferrer" className="underline truncate max-w-[200px]">{m.content}</a>
-                            {!(m.metadata as { pending?: boolean } | null)?.pending && (
-                              <button
-                                type="button"
-                                onClick={(e) => { e.stopPropagation(); downloadFile(m.media_url!, m.content || `file-${m.id}`); }}
-                                title="Baixar arquivo"
-                                className="ml-auto grid place-items-center h-6 w-6 rounded-full bg-black/10 hover:bg-black/20 text-gray-700"
-                              >
-                                <Download className="h-3.5 w-3.5" />
-                              </button>
-                            )}
-                          </div>
-                        ) : (
+                        ) : isFile ? (() => {
+                          const meta = (m.metadata ?? {}) as { pending?: boolean; fileName?: string; fileSize?: number; mimeType?: string };
+                          const name = meta.fileName || (m.content ?? "") || `arquivo-${m.id}`;
+                          const ext = (name.split(".").pop() || "").toLowerCase();
+                          const isPdf = ext === "pdf" || meta.mimeType === "application/pdf";
+                          const sizeLabel = typeof meta.fileSize === "number"
+                            ? (meta.fileSize < 1024 * 1024
+                                ? `${(meta.fileSize / 1024).toFixed(0)} KB`
+                                : `${(meta.fileSize / 1024 / 1024).toFixed(1)} MB`)
+                            : null;
+                          const badge = ext ? ext.slice(0, 4).toUpperCase() : "FILE";
+                          const pending = !!meta.pending;
+                          return (
+                            <a
+                              href={pending ? undefined : m.media_url!}
+                              target="_blank"
+                              rel="noreferrer"
+                              onClick={pending ? (e) => e.preventDefault() : undefined}
+                              className={`group/file flex items-center gap-3 min-w-[240px] max-w-[300px] rounded-xl border border-black/5 bg-white/70 px-2.5 py-2 shadow-sm hover:bg-white transition ${pending ? "cursor-default" : "cursor-pointer"}`}
+                            >
+                              <div className={`relative h-12 w-10 shrink-0 rounded-md grid place-items-end justify-items-center overflow-hidden ${isPdf ? "bg-gradient-to-b from-red-500 to-red-600" : "bg-gradient-to-b from-sky-500 to-sky-600"}`}>
+                                <div className="absolute top-0 right-0 h-3 w-3 bg-white/30" style={{ clipPath: "polygon(100% 0, 0 0, 100% 100%)" }} />
+                                {pending ? (
+                                  <Loader2 className="absolute inset-0 m-auto h-5 w-5 text-white animate-spin" />
+                                ) : (
+                                  <FileText className="absolute top-1.5 left-1/2 -translate-x-1/2 h-4 w-4 text-white/90" />
+                                )}
+                                <span className="mb-0.5 text-[8px] font-bold tracking-wide text-white leading-none">{badge}</span>
+                              </div>
+                              <div className="min-w-0 flex-1">
+                                <div className="truncate text-[13px] font-medium text-gray-800" title={name}>{name}</div>
+                                <div className="mt-0.5 flex items-center gap-1.5 text-[11px] text-gray-500">
+                                  {sizeLabel && <span className="tabular-nums">{sizeLabel}</span>}
+                                  {sizeLabel && <span aria-hidden>·</span>}
+                                  <span className="uppercase">{isPdf ? "PDF" : (ext || "arquivo")}</span>
+                                </div>
+                              </div>
+                              {!pending && (
+                                <button
+                                  type="button"
+                                  onClick={(e) => { e.preventDefault(); e.stopPropagation(); downloadFile(m.media_url!, name); }}
+                                  title="Baixar"
+                                  className="ml-1 grid place-items-center h-8 w-8 rounded-full bg-black/5 hover:bg-black/10 text-gray-700 shrink-0"
+                                  aria-label="Baixar arquivo"
+                                >
+                                  <Download className="h-4 w-4" />
+                                </button>
+                              )}
+                            </a>
+                          );
+                        })() : (
                           <div className="whitespace-pre-wrap break-words pr-14">{m.content}</div>
                         )}
                         <div className="mt-0.5 flex items-center justify-end gap-1 text-[10px] text-gray-500">
