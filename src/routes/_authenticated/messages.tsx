@@ -1816,6 +1816,30 @@ function MessagesPage() {
           </div>
         </DialogContent>
       </Dialog>
+      <Dialog open={!!editMsg} onOpenChange={(o) => { if (!o && !editSaving) setEditMsg(null); }}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Editar mensagem</DialogTitle>
+          </DialogHeader>
+          <textarea
+            value={editText}
+            onChange={(e) => setEditText(e.target.value)}
+            rows={4}
+            autoFocus
+            className="w-full resize-none rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) { e.preventDefault(); performEdit(); }
+            }}
+          />
+          <p className="text-xs text-gray-500">O WhatsApp permite editar apenas mensagens enviadas nos últimos 15 minutos.</p>
+          <div className="flex justify-end gap-2 pt-2">
+            <Button variant="ghost" onClick={() => setEditMsg(null)} disabled={editSaving}>Cancelar</Button>
+            <Button onClick={performEdit} disabled={editSaving || !editText.trim()}>
+              {editSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : "Salvar"}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
       </TooltipProvider>
     </div>
   );
