@@ -112,8 +112,8 @@ function MessagesPage() {
     else if (filterMode === "favorites") list = list.filter((c) => favorites.has(c.id));
     else if (filterMode === "groups") list = list.filter((c) => c.phone.includes("@g.us"));
     if (q) list = list.filter((c) => (c.name ?? "").toLowerCase().includes(q) || c.phone.includes(q));
-    return list;
-  }, [contacts, search, filterMode, favorites, unreadMap, archived]);
+    return [...list].sort((a, b) => Number(pinned.has(b.id)) - Number(pinned.has(a.id)));
+  }, [contacts, search, filterMode, favorites, unreadMap, archived, pinned]);
   const unreadTotal = useMemo(
     () => Object.values(unreadMap).reduce((a, b) => a + b, 0),
     [unreadMap],
