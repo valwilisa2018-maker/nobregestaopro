@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Mic, Search, Send, Square, MessageCircle, Check, CheckCheck, Loader2, ArrowLeft, Smile, Play, Pause, Paperclip, ChevronLeft, ChevronRight, X, FileText, Image as ImageIcon, Video, Music, File as FileIcon, MoreVertical, Star, Archive, ArchiveRestore, Pin, PinOff, Tag, Info, Save, Bell, BellOff, Trash2, Forward, ChevronDown, Reply, CornerUpLeft, Download } from "lucide-react";
+import { Mic, Search, Send, Square, MessageCircle, Check, CheckCheck, Loader2, ArrowLeft, Smile, Play, Pause, Paperclip, ChevronLeft, ChevronRight, X, FileText, Image as ImageIcon, Video, Music, File as FileIcon, MoreVertical, Star, Archive, ArchiveRestore, Pin, PinOff, Tag, Info, Save, Bell, BellOff, Trash2, Forward, ChevronDown, Reply, CornerUpLeft, Download, Bot, BotOff } from "lucide-react";
+import EmojiPicker, { EmojiStyle, Theme } from "emoji-picker-react";
 import { PageShell } from "@/components/page-shell";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
@@ -158,6 +159,8 @@ function MessagesPage() {
   const [lightbox, setLightbox] = useState<{ type: "image" | "video"; src: string } | null>(null);
   const [infoOpen, setInfoOpen] = useState(false);
   const [editName, setEditName] = useState("");
+  const [convoId, setConvoId] = useState<string | null>(null);
+  const [agentPaused, setAgentPaused] = useState<boolean>(false);
   const [editPhone, setEditPhone] = useState("");
   const [savingContact, setSavingContact] = useState(false);
   const [soundOn, setSoundOn] = useState<boolean>(() => {
@@ -386,12 +389,15 @@ function MessagesPage() {
     const jids = new Set([jidFromPhone(selected.phone), ...jidVariants(selected.phone)]);
     const { data: convs } = await supabase.from("conversations")
       .select("id,metadata").eq("user_id", user.id).limit(1000);
-    const ids = (convs ?? [])
-      .filter((c) => {
-        const remote = (c.metadata as { remoteJid?: string } | null)?.remoteJid ?? "";
-        return jids.has(remote) || (!!phone && remote.startsWith(`${phone}@`));
-      })
-      .map((c) => c.id);
+    const matched = (convs ?? []).filter((c) => {
+      const remote = (c.metadata as { remoteJid?: string } | null)?.remoteJid ?? "";
+      return jids.has(remote) || (!!phone && remote.startsWith(`${phone}@`));
+    });
+    const ids = matched.map((c) => c.id);
+    const primary = matched[0] ?? null;
+    setConvoId(primary?.id ?? null);
+    const pausedUntil = (primary?.metadata as { agent_paused_until?: string } | null)?.agent_paused_until ?? null;
+    setAgentPaused(!!pausedUntil && new Date(pausedUntil).getTime() > Date.now());
     if (!ids.length) { setMsgs([]); return; }
     const { data } = await supabase.from("messages")
       .select("id,direction,type,content,media_url,created_at,metadata")
@@ -411,6 +417,19 @@ function MessagesPage() {
     setMsgs([]); // clear instantly on contact switch, then load
     loadMessages();
   }, [loadMessages]);
+
+  const toggleAgent = useCallback(async () => {
+    if (!convoId) { toast.error("Sem conversa vinculada ainda."); return; }
+    const { data: row } = await supabase.from("conversations").select("metadata").eq("id", convoId).maybeSingle();
+    const meta = (row?.metadata ?? {}) as Record<string, unknown>;
+    const next = agentPaused
+      ? { ...meta, agent_paused_until: null }
+      : { ...meta, agent_paused_until: new Date(Date.now() + 3650 * 24 * 3600_000).toISOString() };
+    const { error } = await supabase.from("conversations").update({ metadata: next } as never).eq("id", convoId);
+    if (error) { toast.error("Não foi possível alterar a IA."); return; }
+    setAgentPaused(!agentPaused);
+    toast.success(agentPaused ? "IA ativada nesta conversa" : "IA desativada nesta conversa");
+  }, [convoId, agentPaused]);
 
   // Realtime refresh on new messages
   useEffect(() => {
@@ -1131,25 +1150,34 @@ function MessagesPage() {
                   <>
                     <Popover>
                       <PopoverTrigger asChild>
-                        <button className="p-2 text-gray-500 hover:text-gray-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 rounded-full transition" aria-label="Figurinhas">
+                        <button className="p-2 text-gray-500 hover:text-gray-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 rounded-full transition" aria-label="Emojis">
                           <Smile className="h-6 w-6" />
                         </button>
                       </PopoverTrigger>
-                      <PopoverContent side="top" align="start" className="w-80 p-2">
-                        <div className="text-xs text-muted-foreground px-1 pb-2">Figurinhas</div>
-                        <div className="grid grid-cols-8 gap-1 max-h-64 overflow-y-auto">
-                          {STICKERS.map((s) => (
-                            <button
-                              key={s}
-                              onClick={() => sendSticker(s)}
-                              className="text-2xl rounded hover:bg-accent transition p-1"
-                            >
-                              {s}
-                            </button>
-                          ))}
-                        </div>
+                      <PopoverContent side="top" align="start" className="p-0 border-0 w-auto">
+                        <EmojiPicker
+                          onEmojiClick={(e) => setText((t) => t + e.emoji)}
+                          emojiStyle={EmojiStyle.NATIVE}
+                          theme={Theme.LIGHT}
+                          searchPlaceholder="Buscar emoji"
+                          width={340}
+                          height={420}
+                          previewConfig={{ showPreview: false }}
+                        />
                       </PopoverContent>
                     </Popover>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <button
+                          onClick={toggleAgent}
+                          className={`p-2 rounded-full transition focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 ${agentPaused ? "text-gray-400 hover:text-gray-600" : "text-emerald-600 hover:text-emerald-700"}`}
+                          aria-label={agentPaused ? "Ativar IA" : "Desativar IA"}
+                        >
+                          {agentPaused ? <BotOff className="h-6 w-6" /> : <Bot className="h-6 w-6" />}
+                        </button>
+                      </TooltipTrigger>
+                      <TooltipContent side="top">{agentPaused ? "IA desativada — clique para ativar" : "IA ativa — clique para desativar"}</TooltipContent>
+                    </Tooltip>
                     <Popover>
                       <PopoverTrigger asChild>
                         <button
