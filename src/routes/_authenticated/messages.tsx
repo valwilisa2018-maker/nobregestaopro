@@ -896,17 +896,20 @@ function MessagesPage() {
                               <ChevronDown className="h-3.5 w-3.5 text-gray-600" />
                             </button>
                           </DropdownMenuTrigger>
-                          <DropdownMenuContent align={out ? "end" : "start"} className="w-44">
-                            <DropdownMenuItem onClick={() => toggleStar(m.id)}>
-                              <Star className={`h-4 w-4 mr-2 ${starred.has(m.id) ? "fill-yellow-400 text-yellow-500" : ""}`} />
-                              {starred.has(m.id) ? "Desmarcar" : "Marcar"}
+                          <DropdownMenuContent align={out ? "end" : "start"} className="w-48">
+                            <DropdownMenuItem onClick={() => setReplyTo(m)}>
+                              <Reply className="h-4 w-4 mr-2" /> Marcar (responder)
                             </DropdownMenuItem>
                             <DropdownMenuItem onClick={() => setForwardMsg(m)}>
                               <Forward className="h-4 w-4 mr-2" /> Encaminhar
                             </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => toggleStar(m.id)}>
+                              <Star className={`h-4 w-4 mr-2 ${starred.has(m.id) ? "fill-yellow-400 text-yellow-500" : ""}`} />
+                              {starred.has(m.id) ? "Desfavoritar" : "Favoritar"}
+                            </DropdownMenuItem>
                             <DropdownMenuSeparator />
-                            <DropdownMenuItem onClick={() => deleteMessage(m)} className="text-red-600 focus:text-red-600">
-                              <Trash2 className="h-4 w-4 mr-2" /> Excluir
+                            <DropdownMenuItem onClick={() => setDeleteConfirm(m)} className="text-red-600 focus:text-red-600">
+                              <Trash2 className="h-4 w-4 mr-2" /> Excluir…
                             </DropdownMenuItem>
                           </DropdownMenuContent>
                         </DropdownMenu>
