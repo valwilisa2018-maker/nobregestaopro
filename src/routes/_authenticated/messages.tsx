@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Mic, Search, Send, Square, MessageCircle, Check, CheckCheck, Loader2, ArrowLeft, Smile, Play, Pause, Paperclip, ChevronLeft, ChevronRight, X, FileText, Image as ImageIcon, Video, Music, File as FileIcon, MoreVertical, Star, Archive, ArchiveRestore, Pin, PinOff, Tag, Info, Save, Bell, BellOff, Trash2, Forward, ChevronDown, Reply, CornerUpLeft } from "lucide-react";
+import { Mic, Search, Send, Square, MessageCircle, Check, CheckCheck, Loader2, ArrowLeft, Smile, Play, Pause, Paperclip, ChevronLeft, ChevronRight, X, FileText, Image as ImageIcon, Video, Music, File as FileIcon, MoreVertical, Star, Archive, ArchiveRestore, Pin, PinOff, Tag, Info, Save, Bell, BellOff, Trash2, Forward, ChevronDown, Reply, CornerUpLeft, Download } from "lucide-react";
 import { PageShell } from "@/components/page-shell";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
@@ -74,6 +74,34 @@ function storagePathFrom(m: Msg) {
 function initials(name: string | null, phone: string) {
   const src = (name && name.trim()) || phone;
   return src.replace(/\D/g, "").slice(-2) || src.slice(0, 2).toUpperCase();
+}
+
+async function downloadFile(url: string, filename: string) {
+  try {
+    const r = await fetch(url);
+    if (!r.ok) throw new Error("fail");
+    const blob = await r.blob();
+    const bu = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = bu; a.download = filename;
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    setTimeout(() => URL.revokeObjectURL(bu), 1000);
+  } catch {
+    window.open(url, "_blank");
+  }
+}
+
+function DownloadBtn({ url, filename, dark = false }: { url: string; filename: string; dark?: boolean }) {
+  return (
+    <button
+      type="button"
+      onClick={(e) => { e.stopPropagation(); downloadFile(url, filename); }}
+      title="Baixar"
+      className={`absolute top-1 right-1 z-10 grid place-items-center h-6 w-6 rounded-full backdrop-blur transition ${dark ? "bg-black/50 hover:bg-black/70 text-white" : "bg-white/85 hover:bg-white text-gray-700"}`}
+    >
+      <Download className="h-3.5 w-3.5" />
+    </button>
+  );
 }
 
 function MessagesPage() {
@@ -403,7 +431,7 @@ function MessagesPage() {
             return;
           }
         }
-        loadMessages();
+        // Not for the open thread — do NOT reload the current view (avoids flicker/disappearing).
       })
       .on("postgres_changes", { event: "UPDATE", schema: "public", table: "messages", filter: `user_id=eq.${user.id}` }, (payload) => {
         // Patch the single row in place so tick status updates without reloading the whole thread
@@ -442,18 +470,22 @@ function MessagesPage() {
       .on("postgres_changes", { event: "*", schema: "public", table: "contacts", filter: `user_id=eq.${user.id}` }, () => {
         loadContacts();
       })
-      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "conversations", filter: `user_id=eq.${user.id}` }, () => {
-        loadMessages();
-      })
+      // Conversations UPDATE (unread counters etc.) must NOT reload the open thread — it caused messages to blink/disappear.
       .subscribe();
     return () => { supabase.removeChannel(ch); };
   }, [user, loadMessages, loadContacts]);
 
+  // Scroll to bottom only when the thread changes or a new message is appended,
+  // not on every metadata patch (status ticks). Prevents jitter/disappearing effect.
+  const msgsCountRef = useRef(0);
   useEffect(() => {
     const el = scrollRef.current;
     if (!el) return;
+    const prev = msgsCountRef.current;
+    msgsCountRef.current = msgs.length;
+    if (msgs.length === prev) return;
     const id = requestAnimationFrame(() => {
-      el.scrollTo({ top: el.scrollHeight, behavior: "smooth" });
+      el.scrollTo({ top: el.scrollHeight, behavior: prev === 0 ? "auto" : "smooth" });
     });
     return () => cancelAnimationFrame(id);
   }, [msgs, selected?.id]);
@@ -979,20 +1011,47 @@ function MessagesPage() {
                         })()}
                         {isAudio ? (
                           m.media_url
-                            ? <AudioPlayer src={m.media_url} />
+                            ? (
+                              <div className="relative pr-8">
+                                <AudioPlayer src={m.media_url} />
+                                <button
+                                  type="button"
+                                  onClick={(e) => { e.stopPropagation(); downloadFile(m.media_url!, `audio-${m.id}.ogg`); }}
+                                  title="Baixar áudio"
+                                  className="absolute top-1/2 -translate-y-1/2 right-1 grid place-items-center h-6 w-6 rounded-full bg-black/10 hover:bg-black/20 text-gray-700"
+                                >
+                                  <Download className="h-3.5 w-3.5" />
+                                </button>
+                              </div>
+                            )
                             : <div className="flex items-center gap-2 text-gray-600"><Mic className="h-4 w-4" /><span>Mensagem de voz</span></div>
                         ) : isImage ? (
-                          <button onClick={() => setLightbox({ type: "image", src: m.media_url! })} className="block focus:outline-none">
-                            <img src={m.media_url!} alt={m.content ?? ""} className="rounded-md max-h-64 object-cover cursor-zoom-in" />
-                          </button>
+                          <div className="relative">
+                            <button onClick={() => setLightbox({ type: "image", src: m.media_url! })} className="block focus:outline-none">
+                              <img src={m.media_url!} alt={m.content ?? ""} className="rounded-md max-h-64 object-cover cursor-zoom-in" />
+                            </button>
+                            <DownloadBtn url={m.media_url!} filename={`image-${m.id}.jpg`} />
+                          </div>
                         ) : isVideo ? (
-                          <button onClick={() => setLightbox({ type: "video", src: m.media_url! })} className="block focus:outline-none">
-                            <video src={m.media_url!} className="rounded-md max-h-64 bg-black cursor-zoom-in pointer-events-none" />
-                          </button>
+                          <div className="relative">
+                            <button onClick={() => setLightbox({ type: "video", src: m.media_url! })} className="block focus:outline-none">
+                              <video src={m.media_url!} className="rounded-md max-h-64 bg-black cursor-zoom-in pointer-events-none" />
+                            </button>
+                            <DownloadBtn url={m.media_url!} filename={`video-${m.id}.mp4`} dark />
+                          </div>
                         ) : isFile ? (
-                          <a href={m.media_url!} target="_blank" rel="noreferrer" className="flex items-center gap-2 text-gray-800">
-                            <FileText className="h-5 w-5" /><span className="underline truncate max-w-[220px]">{m.content}</span>
-                          </a>
+                          <div className="flex items-center gap-2 text-gray-800">
+                            <FileText className="h-5 w-5 shrink-0" />
+                            <a href={m.media_url!} target="_blank" rel="noreferrer" className="underline truncate max-w-[200px]">{m.content}</a>
+                            <button
+                              type="button"
+                              onClick={(e) => { e.stopPropagation(); downloadFile(m.media_url!, m.content || `file-${m.id}`); }}
+                              title="Baixar arquivo"
+                              className="ml-auto grid place-items-center h-6 w-6 rounded-full bg-black/10 hover:bg-black/20 text-gray-700"
+                            >
+                              <Download className="h-3.5 w-3.5" />
+                            </button>
+                          </div>
                         ) : (
                           <div className="whitespace-pre-wrap break-words pr-14">{m.content}</div>
                         )}
