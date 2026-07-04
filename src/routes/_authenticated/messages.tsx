@@ -116,6 +116,12 @@ function MessagesPage() {
   const fetchAvatar = useServerFn(getProfilePicture);
   const pushPresence = useServerFn(sendPresence);
   const ensureWebhook = useServerFn(ensurePresenceWebhook);
+  const deleteMsgFn = useServerFn(deleteChatMessage);
+  const forwardMsgFn = useServerFn(forwardChatMessage);
+  const [replyTo, setReplyTo] = useState<Msg | null>(null);
+  const [deleteConfirm, setDeleteConfirm] = useState<Msg | null>(null);
+  const replyToRef = useRef<Msg | null>(null);
+  useEffect(() => { replyToRef.current = replyTo; }, [replyTo]);
   const [avatars, setAvatars] = useState<Record<string, string | null>>({});
   const [remotePresence, setRemotePresence] = useState<string | null>(null);
   const presenceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
