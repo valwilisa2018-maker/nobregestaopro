@@ -40,6 +40,40 @@ type ConvMeta = {
 
 const MEDIA_BUCKET = "agent-media";
 
+function normalizeEvoStatus(value: unknown): "sent" | "delivered" | "read" | null {
+  if (value === undefined || value === null) return null;
+  if (typeof value === "number" || /^\d+$/.test(String(value))) {
+    const n = Number(value);
+    return n >= 4 ? "read" : n === 3 ? "delivered" : n >= 1 ? "sent" : null;
+  }
+  const s = String(value).toUpperCase();
+  if (s === "READ" || s === "PLAYED") return "read";
+  if (s === "DELIVERY_ACK" || s === "DELIVERED") return "delivered";
+  if (s === "SERVER_ACK" || s === "SENT" || s === "PENDING") return "sent";
+  return null;
+}
+
+function findEvoId(value: unknown, depth = 0): string | null {
+  if (!value || depth > 6) return null;
+  if (Array.isArray(value)) {
+    for (const item of value) {
+      const found = findEvoId(item, depth + 1);
+      if (found) return found;
+    }
+    return null;
+  }
+  if (typeof value !== "object") return null;
+  const record = value as Record<string, unknown>;
+  const key = record.key as Record<string, unknown> | undefined;
+  const direct = key?.id ?? record.id ?? record.messageId ?? record.keyId;
+  if (typeof direct === "string" && /^[A-Z0-9._-]{8,}$/i.test(direct)) return direct;
+  for (const nested of [record.update, record.data, record.message, record.response, record.result]) {
+    const found = findEvoId(nested, depth + 1);
+    if (found) return found;
+  }
+  return null;
+}
+
 export const Route = createFileRoute("/api/public/evolution/$instance")({
   server: {
     handlers: {
@@ -165,28 +199,32 @@ export const Route = createFileRoute("/api/public/evolution/$instance")({
           try {
             const arr = Array.isArray(payload?.data) ? payload.data : [payload?.data];
             for (const u of arr) {
-              const evoId = u?.key?.id ?? u?.keyId ?? u?.messageId ?? u?.id;
+              const evoId = findEvoId(u);
+              const remoteJid = u?.key?.remoteJid ?? u?.remoteJid ?? u?.jid;
               const rawStatus =
                 u?.status ?? u?.update?.status ?? u?.messageStatus ?? u?.ack ?? u?.update?.ack;
               if (!evoId || rawStatus === undefined || rawStatus === null) continue;
               // Evolution/Baileys sends either a string (SERVER_ACK/DELIVERY_ACK/READ/PLAYED)
               // or a numeric ack: 1=PENDING, 2=SERVER_ACK, 3=DELIVERY_ACK, 4=READ, 5=PLAYED.
-              let status: "sent" | "delivered" | "read" | null = null;
-              if (typeof rawStatus === "number" || /^\d+$/.test(String(rawStatus))) {
-                const n = Number(rawStatus);
-                status = n >= 4 ? "read" : n === 3 ? "delivered" : n === 2 ? "sent" : null;
-              } else {
-                const s = String(rawStatus).toUpperCase();
-                status = s === "READ" || s === "PLAYED" ? "read"
-                  : s === "DELIVERY_ACK" || s === "DELIVERED" ? "delivered"
-                  : s === "SERVER_ACK" || s === "SENT" ? "sent" : null;
-              }
+              const status = normalizeEvoStatus(rawStatus);
               if (!status) continue;
-              const { data: rows } = await supabaseAdmin.from("messages")
+              let { data: rows } = await supabaseAdmin.from("messages")
                 .select("id,metadata")
                 .eq("user_id", conn.user_id)
                 .eq("metadata->>evoId", evoId)
                 .limit(1);
+              if ((!rows || rows.length === 0) && remoteJid) {
+                const dayAgo = new Date(Date.now() - 24 * 60 * 60_000).toISOString();
+                const fallback = await supabaseAdmin.from("messages")
+                  .select("id,metadata")
+                  .eq("user_id", conn.user_id)
+                  .eq("direction", "outbound")
+                  .eq("metadata->>remoteJid", String(remoteJid))
+                  .gte("created_at", dayAgo)
+                  .order("created_at", { ascending: false })
+                  .limit(1);
+                rows = fallback.data;
+              }
               const row = rows?.[0];
               if (!row) continue;
               const meta = (row.metadata && typeof row.metadata === "object") ? row.metadata as Record<string, unknown> : {};
