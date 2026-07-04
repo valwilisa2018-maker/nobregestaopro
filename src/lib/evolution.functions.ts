@@ -55,7 +55,8 @@ async function saveMediaToStorage(
   fileName: string,
 ) {
   const clean = base64.replace(/^data:[^;]+;base64,/, "").replace(/\s/g, "");
-  const ext = fileName.includes(".") ? fileName.split(".").pop() : mime.split("/")[1]?.split(";")[0];
+  const rawExt = fileName.includes(".") ? fileName.split(".").pop() : mime.split("/")[1]?.split(";")[0];
+  const ext = rawExt?.replace(/[^a-zA-Z0-9]+/g, "").slice(0, 12);
   const path = `${userId}/${conversationId}/${Date.now()}-${crypto.randomUUID()}${ext ? `.${ext}` : ""}`;
   const bytes = Buffer.from(clean, "base64");
   const { error } = await supabase.storage.from(MEDIA_BUCKET).upload(path, bytes, {
