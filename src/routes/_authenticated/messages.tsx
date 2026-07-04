@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Mic, Search, Send, Square, MessageCircle, Check, CheckCheck, Loader2, ArrowLeft, Smile, Play, Pause, Paperclip, ChevronLeft, ChevronRight, X, FileText, Image as ImageIcon, Video, Music, File as FileIcon, MoreVertical, Star, Archive, ArchiveRestore, Pin, PinOff, Tag, Info, Save, Bell, BellOff, Trash2, Forward, ChevronDown, Reply, CornerUpLeft, Download, Bot, BotOff, Camera, Pencil, Plug, Settings } from "lucide-react";
+import { Mic, Search, Send, Square, MessageCircle, Check, CheckCheck, Loader2, ArrowLeft, Smile, Play, Pause, Paperclip, ChevronLeft, ChevronRight, X, FileText, Image as ImageIcon, Video, Music, File as FileIcon, MoreVertical, Star, Archive, ArchiveRestore, Pin, PinOff, Tag, Info, Save, Bell, BellOff, Trash2, Forward, ChevronDown, Reply, CornerUpLeft, Download, Bot, BotOff, Camera, Pencil, Plug, Settings, RefreshCw } from "lucide-react";
 import EmojiPicker, { EmojiStyle, Theme } from "emoji-picker-react";
 import { PageShell } from "@/components/page-shell";
 import { supabase } from "@/integrations/supabase/client";
@@ -1826,6 +1826,7 @@ function MessagesPage() {
                 {dedupedMsgs.map((m) => {
                   const out = m.direction === "outbound";
                   const isAudio = m.type === "audio" || (m.metadata as { audio?: boolean } | null)?.audio;
+                  const isSticker = m.type === "sticker";
                   const isImage = m.type === "image" && !!m.media_url;
                   const isVideo = m.type === "video" && !!m.media_url;
                   const isFile = (m.type === "file" || m.type === "document") && !!m.media_url;
@@ -1899,7 +1900,7 @@ function MessagesPage() {
                           m.media_url
                             ? (
                               <div className="relative pr-8">
-                                <AudioPlayer src={m.media_url} />
+                                <AudioPlayer src={m.media_url} id={m.id} />
                                 <button
                                   type="button"
                                   onClick={(e) => { e.stopPropagation(); downloadFile(m.media_url!, `audio-${m.id}.ogg`); }}
@@ -1910,7 +1911,29 @@ function MessagesPage() {
                                 </button>
                               </div>
                             )
-                            : <div className="flex items-center gap-2 text-gray-600"><Mic className="h-4 w-4" /><span>Mensagem de voz</span></div>
+                            : <MediaMissing kind="audio" onRetry={() => loadMessagesRef.current?.()} />
+                        ) : isSticker ? (
+                          m.media_url ? (
+                            <div className="relative pr-7">
+                              <button
+                                onClick={() => !(m.metadata as { pending?: boolean } | null)?.pending && setLightbox({ type: "image", src: m.media_url! })}
+                                className="block focus:outline-none"
+                              >
+                                <img
+                                  src={m.media_url!}
+                                  alt={m.content ?? "Figurinha"}
+                                  className={`max-h-36 max-w-36 object-contain ${(m.metadata as { pending?: boolean } | null)?.pending ? "opacity-70" : "cursor-zoom-in"}`}
+                                />
+                              </button>
+                              {(m.metadata as { pending?: boolean } | null)?.pending ? (
+                                <div className="absolute inset-0 grid place-items-center rounded-md bg-black/10">
+                                  <Loader2 className="h-6 w-6 text-gray-700 animate-spin" />
+                                </div>
+                              ) : (
+                                <DownloadBtn url={m.media_url!} filename={`figurinha-${m.id}.webp`} />
+                              )}
+                            </div>
+                          ) : <MediaMissing kind="sticker" onRetry={() => loadMessagesRef.current?.()} />
                         ) : isImage ? (
                           <div className="relative">
                             <button onClick={() => !(m.metadata as { pending?: boolean } | null)?.pending && setLightbox({ type: "image", src: m.media_url! })} className="block focus:outline-none">
@@ -1944,10 +1967,10 @@ function MessagesPage() {
                             )}
                           </div>
                         ) : isFile ? (() => {
-                          const meta = (m.metadata ?? {}) as { pending?: boolean; fileName?: string; fileSize?: number; mimeType?: string };
+                          const meta = (m.metadata ?? {}) as { pending?: boolean; fileName?: string; fileSize?: number; mimeType?: string; mime?: string };
                           const name = meta.fileName || (m.content ?? "") || `arquivo-${m.id}`;
                           const ext = (name.split(".").pop() || "").toLowerCase();
-                          const isPdf = ext === "pdf" || meta.mimeType === "application/pdf";
+                          const isPdf = ext === "pdf" || meta.mimeType === "application/pdf" || meta.mime === "application/pdf";
                           const sizeLabel = typeof meta.fileSize === "number"
                             ? (meta.fileSize < 1024 * 1024
                                 ? `${(meta.fileSize / 1024).toFixed(0)} KB`
@@ -2405,9 +2428,28 @@ function fmtTime(s: number) {
   return `${m}:${String(r).padStart(2, "0")}`;
 }
 
-function AudioPlayer({ src }: { src: string }) {
+function MediaMissing({ kind, onRetry }: { kind: "audio" | "sticker"; onRetry: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={(e) => { e.stopPropagation(); onRetry(); }}
+      className="flex items-center gap-2 rounded-lg bg-black/5 px-2.5 py-2 text-gray-600 hover:bg-black/10 transition"
+      title="Tentar carregar mídia"
+    >
+      {kind === "audio" ? <Mic className="h-4 w-4" /> : <ImageIcon className="h-4 w-4" />}
+      <span>{kind === "audio" ? "Mensagem de voz" : "Figurinha"}</span>
+      <RefreshCw className="h-3.5 w-3.5" />
+    </button>
+  );
+}
+
+let activeAudioElement: HTMLAudioElement | null = null;
+
+function AudioPlayer({ src, id }: { src: string; id: string }) {
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const [playing, setPlaying] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [failed, setFailed] = useState(false);
   const [cur, setCur] = useState(0);
   const [dur, setDur] = useState(0);
 
@@ -2416,38 +2458,63 @@ function AudioPlayer({ src }: { src: string }) {
     if (!a) return;
     const onTime = () => setCur(a.currentTime);
     const onMeta = () => setDur(a.duration || 0);
-    const onEnd = () => setPlaying(false);
+    const onEnd = () => { setPlaying(false); if (activeAudioElement === a) activeAudioElement = null; };
+    const onPause = () => setPlaying(false);
+    const onCanPlay = () => { setLoading(false); setFailed(false); setDur(a.duration || 0); };
+    const onError = () => { setLoading(false); setFailed(true); setPlaying(false); };
     a.addEventListener("timeupdate", onTime);
     a.addEventListener("loadedmetadata", onMeta);
     a.addEventListener("ended", onEnd);
+    a.addEventListener("pause", onPause);
+    a.addEventListener("canplay", onCanPlay);
+    a.addEventListener("error", onError);
     return () => {
+      if (activeAudioElement === a) activeAudioElement = null;
+      a.pause();
       a.removeEventListener("timeupdate", onTime);
       a.removeEventListener("loadedmetadata", onMeta);
       a.removeEventListener("ended", onEnd);
+      a.removeEventListener("pause", onPause);
+      a.removeEventListener("canplay", onCanPlay);
+      a.removeEventListener("error", onError);
     };
-  }, []);
+  }, [src]);
+
+  useEffect(() => {
+    setPlaying(false);
+    setLoading(false);
+    setFailed(false);
+    setCur(0);
+    setDur(0);
+  }, [src]);
 
   function toggle() {
     const a = audioRef.current;
     if (!a) return;
-    if (playing) { a.pause(); setPlaying(false); }
-    else { a.play(); setPlaying(true); }
+    if (playing) { a.pause(); setPlaying(false); return; }
+    if (activeAudioElement && activeAudioElement !== a) activeAudioElement.pause();
+    activeAudioElement = a;
+    setLoading(true);
+    setFailed(false);
+    a.play()
+      .then(() => { setPlaying(true); setLoading(false); })
+      .catch(() => { setPlaying(false); setLoading(false); setFailed(true); });
   }
 
   const pct = dur > 0 ? (cur / dur) * 100 : 0;
 
   return (
     <div className="flex items-center gap-2 min-w-[220px] py-1">
-      <button onClick={toggle} className="h-9 w-9 grid place-items-center rounded-full text-white shrink-0" style={{ background: WA.headerTeal }}>
-        {playing ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4 ml-0.5" />}
+      <button onClick={toggle} className="h-9 w-9 grid place-items-center rounded-full text-white shrink-0" style={{ background: failed ? "#ef4444" : WA.headerTeal }} aria-label={playing ? "Pausar áudio" : "Tocar áudio"}>
+        {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : playing ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4 ml-0.5" />}
       </button>
       <div className="flex-1">
         <div className="h-1 bg-gray-300 rounded-full overflow-hidden">
           <div className="h-full transition-all" style={{ width: `${pct}%`, background: WA.headerTeal }} />
         </div>
-        <div className="text-[10px] text-gray-500 mt-1">{fmtTime(playing || cur > 0 ? cur : dur)}</div>
+        <div className="text-[10px] text-gray-500 mt-1">{failed ? "toque para tentar novamente" : fmtTime(playing || cur > 0 ? cur : dur)}</div>
       </div>
-      <audio ref={audioRef} src={src} preload="metadata" className="hidden" />
+      <audio ref={audioRef} src={src} preload="metadata" className="hidden" data-audio-id={id} />
     </div>
   );
 }

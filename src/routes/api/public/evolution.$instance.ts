@@ -363,6 +363,8 @@ export const Route = createFileRoute("/api/public/evolution/$instance")({
               bodyMsg?.documentMessage?.caption ??
               bodyMsg?.documentWithCaptionMessage?.message?.documentMessage?.caption;
             const audioMsg = bodyMsg?.audioMessage;
+            const stickerMsg = bodyMsg?.stickerMessage;
+            let transcribedAudioBase64: string | null = null;
             let inputWasAudio = false;
             if (!remoteJid) return Response.json({ ok: true, skipped: true });
             // Ignore broadcasts, newsletters and groups (safe default)
@@ -421,8 +423,9 @@ export const Route = createFileRoute("/api/public/evolution/$instance")({
             // Speech-to-text on inbound audio (always attempt so the agent can understand voice notes)
             if (!fromMe && !text && audioMsg) {
               try {
-                const b64 = await evolutionGetBase64(commandConn, msg);
+                const b64 = await evolutionGetBase64(commandConn, msg, true);
                 if (b64) {
+                  transcribedAudioBase64 = b64;
                   const transcript = await sttViaLovable(b64);
                   if (transcript) { text = transcript; inputWasAudio = true; }
                 }
@@ -453,12 +456,13 @@ export const Route = createFileRoute("/api/public/evolution/$instance")({
                   follow_up_paused: true,
                 } as never).eq("id", convo.id);
               }
-              let mediaKind: "image" | "video" | "audio" | "document" | null = null;
+              let mediaKind: "image" | "video" | "audio" | "document" | "sticker" | null = null;
               let mediaCaption: string | null = null;
               if (imageMsg) { mediaKind = "image"; mediaCaption = imageMsg.caption ?? null; }
               else if (videoMsg) { mediaKind = "video"; mediaCaption = videoMsg.caption ?? null; }
               else if (audioMsg) { mediaKind = "audio"; }
               else if (docMsg) { mediaKind = "document"; mediaCaption = docMsg.caption ?? docMsg.fileName ?? null; }
+              else if (stickerMsg) { mediaKind = "sticker"; }
               const evoId = msg?.key?.id ?? null;
               let alreadySaved = false;
               if (evoId) {
@@ -474,9 +478,9 @@ export const Route = createFileRoute("/api/public/evolution/$instance")({
                 let mediaPath: string | null = null;
                 let mediaMime: string | null = null;
                 try {
-                  const b64 = findBase64(msg) ?? await evolutionGetBase64(commandConn, msg);
+                  const b64 = findBase64(msg) ?? await evolutionGetBase64(commandConn, msg, false) ?? (mediaKind === "audio" ? transcribedAudioBase64 : null);
                   if (b64) {
-                    mediaMime = imageMsg?.mimetype ?? videoMsg?.mimetype ?? audioMsg?.mimetype ?? docMsg?.mimetype ?? "application/octet-stream";
+                    mediaMime = imageMsg?.mimetype ?? videoMsg?.mimetype ?? audioMsg?.mimetype ?? docMsg?.mimetype ?? stickerMsg?.mimetype ?? (mediaKind === "sticker" ? "image/webp" : mediaKind === "audio" ? "audio/mpeg" : "application/octet-stream");
                     const saved = await saveMediaToStorage(
                       supabaseAdmin,
                       conn.user_id,
@@ -492,7 +496,7 @@ export const Route = createFileRoute("/api/public/evolution/$instance")({
                 await supabaseAdmin.from("messages").insert({
                   user_id: conn.user_id, conversation_id: convo.id,
                   direction: "outbound", type: mediaKind,
-                  content: mediaCaption ?? (mediaKind === "audio" ? "[áudio]" : mediaKind === "video" ? "[vídeo]" : mediaKind === "image" ? "[imagem]" : "[arquivo]"),
+                  content: mediaCaption ?? mediaLabel(mediaKind),
                   media_url: mediaUrl,
                   metadata: { remoteJid, instance: conn.instance_name, storagePath: mediaPath, mime: mediaMime, evoId, fromMe: true, manual: true, pending: false, sent: true, status: "sent" } as never,
                 } as never);
@@ -508,7 +512,7 @@ export const Route = createFileRoute("/api/public/evolution/$instance")({
               return Response.json({ ok: true, manualOutbound: true });
             }
             // Detect and persist inbound media (image/video/audio/document)
-            let mediaKind: "image" | "video" | "audio" | "document" | null = null;
+            let mediaKind: "image" | "video" | "audio" | "document" | "sticker" | null = null;
             let mediaUrl: string | null = null;
             let mediaCaption: string | null = null;
             let mediaPath: string | null = null;
@@ -517,13 +521,24 @@ export const Route = createFileRoute("/api/public/evolution/$instance")({
             let mediaName: string | null = null;
             if (imageMsg) { mediaKind = "image"; mediaCaption = imageMsg.caption ?? null; }
             else if (videoMsg) { mediaKind = "video"; mediaCaption = videoMsg.caption ?? null; }
-            else if (audioMsg && !inputWasAudio) { mediaKind = "audio"; }
+            else if (audioMsg) { mediaKind = "audio"; }
             else if (docMsg) { mediaKind = "document"; mediaCaption = docMsg.fileName ?? null; }
-            if (mediaKind && convo) {
+            else if (stickerMsg) { mediaKind = "sticker"; }
+            const inboundEvoId = msg?.key?.id ?? null;
+            let alreadySavedInbound = false;
+            if (inboundEvoId) {
+              const { data: existingInbound } = await supabaseAdmin.from("messages")
+                .select("id")
+                .eq("user_id", conn.user_id)
+                .eq("metadata->>evoId", inboundEvoId)
+                .limit(1);
+              alreadySavedInbound = !!existingInbound?.length;
+            }
+            if (mediaKind && convo && !alreadySavedInbound) {
               try {
-                const b64 = findBase64(msg) ?? await evolutionGetBase64(commandConn, msg);
+                const b64 = findBase64(msg) ?? await evolutionGetBase64(commandConn, msg, false) ?? (mediaKind === "audio" ? transcribedAudioBase64 : null);
                 if (b64) {
-                  mediaMime = imageMsg?.mimetype ?? videoMsg?.mimetype ?? audioMsg?.mimetype ?? docMsg?.mimetype ?? "application/octet-stream";
+                  mediaMime = imageMsg?.mimetype ?? videoMsg?.mimetype ?? audioMsg?.mimetype ?? docMsg?.mimetype ?? stickerMsg?.mimetype ?? (mediaKind === "sticker" ? "image/webp" : mediaKind === "audio" ? "audio/mpeg" : "application/octet-stream");
                   mediaB64 = b64;
                   mediaName = docMsg?.fileName ?? `${mediaKind}-${msg?.key?.id ?? Date.now()}`;
                   const saved = await saveMediaToStorage(
@@ -541,28 +556,29 @@ export const Route = createFileRoute("/api/public/evolution/$instance")({
               await supabaseAdmin.from("messages").insert({
                 user_id: conn.user_id, conversation_id: convo.id,
                 direction: "inbound", type: mediaKind,
-                content: mediaCaption ?? (mediaKind === "audio" ? "[áudio]" : mediaKind === "video" ? "[vídeo]" : mediaKind === "image" ? "[imagem]" : "[arquivo]"),
+                content: inputWasAudio && text ? text : (mediaCaption ?? mediaLabel(mediaKind)),
                 media_url: mediaUrl,
-                metadata: { remoteJid, instance: conn.instance_name, storagePath: mediaPath, mime: mediaMime, evoId: msg?.key?.id ?? null, fromMe: false } as never,
+                metadata: { remoteJid, instance: conn.instance_name, storagePath: mediaPath, mime: mediaMime, evoId: inboundEvoId, fromMe: false, transcribed: inputWasAudio } as never,
               } as never);
               await supabaseAdmin.from("conversations").update({
                 last_message_at: new Date().toISOString(),
                 unread_count: (convo.unread_count ?? 0) + 1,
               } as never).eq("id", convo.id);
             }
+            if (alreadySavedInbound) return Response.json({ ok: true, duplicate: true });
             // Allow AI to process pure media (image/pdf) without caption
             if (!text && !mediaB64) return Response.json({ ok: true, skipped: "no-text" });
             if (!text) text = mediaCaption ?? "";
 
             // Persist inbound message (only when we have a conversation — conversation_id is NOT NULL)
-            if (convo) {
+            if (convo && !mediaKind && !alreadySavedInbound) {
               await supabaseAdmin.from("messages").insert({
                 user_id: conn.user_id,
                 conversation_id: convo.id,
                 direction: "inbound",
                 type: inputWasAudio ? "audio" : "text",
                 content: text,
-                metadata: { remoteJid, instance: conn.instance_name, transcribed: inputWasAudio, evoId: msg?.key?.id ?? null, fromMe: false },
+                metadata: { remoteJid, instance: conn.instance_name, transcribed: inputWasAudio, evoId: inboundEvoId, fromMe: false },
               } as never);
             }
             if (convo) {
@@ -940,15 +956,23 @@ async function signedMediaUrl(db: { storage: { from: (b: string) => { createSign
   return data?.signedUrl ?? null;
 }
 
-async function evolutionGetBase64(conn: { url_api: string | null; api_key: string | null; instance_name: string | null }, message: unknown): Promise<string | null> {
+async function evolutionGetBase64(conn: { url_api: string | null; api_key: string | null; instance_name: string | null }, message: unknown, convertToMp3 = false): Promise<string | null> {
   const r = await fetch(`${normalizeBaseUrl(conn.url_api ?? "")}/chat/getBase64FromMediaMessage/${conn.instance_name}`, {
     method: "POST",
     headers: { "Content-Type": "application/json", apikey: conn.api_key ?? "" },
-    body: JSON.stringify({ message, convertToMp3: true }),
+    body: JSON.stringify({ message, convertToMp3 }),
   });
   if (!r.ok) return null;
   const j = await r.json().catch(() => null) as unknown;
   return findBase64(j);
+}
+
+function mediaLabel(kind: "image" | "video" | "audio" | "document" | "sticker") {
+  return kind === "audio" ? "[áudio]"
+    : kind === "video" ? "[vídeo]"
+      : kind === "image" ? "[imagem]"
+        : kind === "sticker" ? "[figurinha]"
+          : "[arquivo]";
 }
 
 function normalizeBaseUrl(url: string) {
