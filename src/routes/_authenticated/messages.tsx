@@ -870,6 +870,7 @@ function MessagesPage() {
               persistMsgCache(selectedRef.current?.id ?? openContact.id, next);
               return next;
             });
+            window.setTimeout(() => loadMessagesRef.current?.(), 600);
             return;
           }
         }
@@ -937,6 +938,16 @@ function MessagesPage() {
     // change (via loadMessages) tore down the channel and dropped INSERTs that
     // arrived during the gap — causing sent messages/audios to "disappear".
   }, [user]);
+
+  // Safety net: if the browser misses a realtime event while the tab/network hiccups,
+  // reconcile the open thread from the database without clearing the current view.
+  useEffect(() => {
+    if (!user || !selected) return;
+    const interval = window.setInterval(() => {
+      if (document.visibilityState === "visible") loadMessagesRef.current?.();
+    }, 8000);
+    return () => window.clearInterval(interval);
+  }, [user, selected?.id]);
 
   // Scroll to bottom when the thread changes or a new message is appended,
   // not on every metadata patch (status ticks). Prevents jitter/disappearing effect.
