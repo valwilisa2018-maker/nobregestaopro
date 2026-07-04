@@ -1417,6 +1417,35 @@ function MessagesPage() {
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <button
+                      onClick={async () => {
+                        try {
+                          if (navigator.mediaDevices?.getUserMedia) {
+                            const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+                            stream.getTracks().forEach((t) => t.stop());
+                          }
+                          cameraInputRef.current?.click();
+                        } catch (err) {
+                          const name = (err as { name?: string })?.name ?? "";
+                          if (name === "NotAllowedError" || name === "PermissionDeniedError" || name === "SecurityError") {
+                            toast.error("Acesso à câmera bloqueado", { description: "Libere o acesso à câmera nas permissões do navegador e recarregue a página.", duration: 8000 });
+                          } else if (name === "NotFoundError" || name === "OverconstrainedError") {
+                            toast.error("Nenhuma câmera encontrada neste dispositivo.");
+                          } else {
+                            cameraInputRef.current?.click();
+                          }
+                        }
+                      }}
+                      className="p-2 rounded-full hover:bg-white/15 transition"
+                      aria-label="Gravar vídeo"
+                    >
+                      <Video className="h-5 w-5" />
+                    </button>
+                  </TooltipTrigger>
+                  <TooltipContent side="bottom">Gravar vídeo pela câmera</TooltipContent>
+                </Tooltip>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <button
                       onClick={() => { setSoundOn((v) => !v); if (!soundOn) playBell(); }}
                       className="p-2 rounded-full hover:bg-white/15 transition"
                       aria-label={soundOn ? "Desligar som" : "Ligar som"}
@@ -1775,51 +1804,10 @@ function MessagesPage() {
                         e.target.value = "";
                       }}
                     />
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <button
-                          onClick={async () => {
-                            // Probe camera permission so we can give a clear message when blocked.
-                            try {
-                              if (navigator.mediaDevices?.getUserMedia) {
-                                const stream = await navigator.mediaDevices.getUserMedia({ video: true });
-                                stream.getTracks().forEach((t) => t.stop());
-                              }
-                              cameraInputRef.current?.click();
-                            } catch (err) {
-                              const name = (err as { name?: string })?.name ?? "";
-                              if (name === "NotAllowedError" || name === "PermissionDeniedError" || name === "SecurityError") {
-                                const isChrome = /Chrome/i.test(navigator.userAgent) && !/Edg|OPR/i.test(navigator.userAgent);
-                                const isFirefox = /Firefox/i.test(navigator.userAgent);
-                                const isSafari = /Safari/i.test(navigator.userAgent) && !/Chrome|Chromium/i.test(navigator.userAgent);
-                                const hint = isChrome
-                                  ? "Chrome: clique no cadeado ao lado do endereço → Permissões do site → Câmera → Permitir, e recarregue a página."
-                                  : isFirefox
-                                  ? "Firefox: clique no cadeado ao lado do endereço → Permissões → Usar a câmera → Permitir, e recarregue."
-                                  : isSafari
-                                  ? "Safari: Ajustes → Sites → Câmera → selecione este site e escolha Permitir. No iPhone: Ajustes → Safari → Câmera."
-                                  : "Abra as permissões do site no seu navegador e libere o acesso à câmera, depois recarregue a página.";
-                                toast.error("Acesso à câmera bloqueado", { description: hint, duration: 8000 });
-                              } else if (name === "NotFoundError" || name === "OverconstrainedError") {
-                                toast.error("Nenhuma câmera encontrada neste dispositivo.");
-                              } else {
-                                // Unknown error — fall back to the file picker anyway
-                                cameraInputRef.current?.click();
-                              }
-                            }
-                          }}
-                          className="p-2 text-gray-500 hover:text-gray-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 rounded-full transition"
-                          aria-label="Câmera"
-                        >
-                          <Camera className="h-6 w-6" />
-                        </button>
-                      </TooltipTrigger>
-                      <TooltipContent side="top">Gravar vídeo ou tirar foto</TooltipContent>
-                    </Tooltip>
                     <input
                       ref={cameraInputRef}
                       type="file"
-                      accept="video/*,image/*"
+                      accept="video/*"
                       capture="environment"
                       className="hidden"
                       onChange={(e) => {
