@@ -1337,7 +1337,7 @@ function MessagesPage() {
               <div className="w-full h-full rounded-2xl border-4 border-dashed border-blue-500 bg-blue-500/10 backdrop-blur-[2px] flex flex-col items-center justify-center gap-3 text-blue-700">
                 <Paperclip className="h-14 w-14" />
                 <div className="text-xl font-semibold">Solte para enviar</div>
-                <div className="text-sm opacity-80">Imagens, vídeos, áudio, PDF ou documentos (até 15 MB)</div>
+                <div className="text-sm opacity-80">Imagens, áudio, PDF e documentos até 15 MB · vídeos até 60 MB</div>
               </div>
             </div>
           )}
