@@ -1134,13 +1134,24 @@ function MessagesPage() {
                     {!sidebarCollapsed && (
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-1.5">
-                          <div className="text-sm font-medium truncate text-gray-900">{c.name || c.phone}</div>
+                          <div className="text-sm font-medium truncate text-gray-900 flex-1">{c.name || c.phone}</div>
                           {isPin && <Pin className="h-3.5 w-3.5 text-emerald-600 shrink-0" />}
                           {isFav && <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400 shrink-0" />}
                           {isArch && <Archive className="h-3.5 w-3.5 text-gray-400 shrink-0" />}
                           {label && <span className="h-2.5 w-2.5 rounded-full shrink-0" style={{ background: label }} />}
                         </div>
-                        <div className="text-xs text-gray-500 truncate">{c.phone}</div>
+                        <div className="flex items-center gap-2">
+                          <div className="text-xs text-gray-500 truncate flex-1">{c.phone}</div>
+                          {(unreadMap[c.id] ?? 0) > 0 && (
+                            <span
+                              className="shrink-0 min-w-[20px] h-5 px-1.5 rounded-full text-[11px] font-semibold text-white grid place-items-center"
+                              style={{ background: WA.headerTeal }}
+                              aria-label={`${unreadMap[c.id]} mensagens não lidas`}
+                            >
+                              {unreadMap[c.id] > 99 ? "99+" : unreadMap[c.id]}
+                            </span>
+                          )}
+                        </div>
                       </div>
                     )}
                   </button>
