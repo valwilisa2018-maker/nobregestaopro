@@ -294,7 +294,7 @@ export const Route = createFileRoute("/api/public/evolution/$instance")({
                 await supabaseAdmin.from("messages").insert({
                   user_id: conn.user_id, conversation_id: convo.id,
                   direction: "outbound", type: "text", content: text,
-                  metadata: { remoteJid, agent_id: agent?.id ?? null, manual: true },
+                  metadata: { remoteJid, agent_id: agent?.id ?? null, manual: true, evoId: msg?.key?.id ?? null, fromMe: true },
                 } as never);
               }
               return Response.json({ ok: true, manualOutbound: true });
@@ -334,7 +334,7 @@ export const Route = createFileRoute("/api/public/evolution/$instance")({
                 direction: "inbound", type: mediaKind,
                 content: mediaCaption ?? (mediaKind === "audio" ? "[áudio]" : mediaKind === "video" ? "[vídeo]" : mediaKind === "image" ? "[imagem]" : "[arquivo]"),
                 media_url: mediaUrl,
-                metadata: { remoteJid, instance: conn.instance_name, storagePath: mediaPath, mime: mediaMime } as never,
+                metadata: { remoteJid, instance: conn.instance_name, storagePath: mediaPath, mime: mediaMime, evoId: msg?.key?.id ?? null, fromMe: false } as never,
               } as never);
               await supabaseAdmin.from("conversations").update({
                 last_message_at: new Date().toISOString(),
@@ -351,7 +351,7 @@ export const Route = createFileRoute("/api/public/evolution/$instance")({
                 direction: "inbound",
                 type: inputWasAudio ? "audio" : "text",
                 content: text,
-                metadata: { remoteJid, instance: conn.instance_name, transcribed: inputWasAudio },
+                metadata: { remoteJid, instance: conn.instance_name, transcribed: inputWasAudio, evoId: msg?.key?.id ?? null, fromMe: false },
               } as never);
             }
             if (convo) {
