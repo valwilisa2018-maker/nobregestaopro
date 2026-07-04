@@ -32,13 +32,13 @@ type Msg = {
 };
 
 const WA = {
-  headerDark: "#1e1b4b",   // indigo-950
-  headerTeal: "#4338ca",   // indigo-700
-  accent: "#7c3aed",       // violet-600
-  chatBg: "#eef2ff",       // indigo-50
-  outBubble: "#e0e7ff",    // indigo-100
+  headerDark: "#4c1d95",   // violet-900
+  headerTeal: "#7c3aed",   // violet-600
+  accent: "#8b5cf6",       // violet-500
+  chatBg: "#ECE5DD",       // WhatsApp original
+  outBubble: "#DCF8C6",    // WhatsApp original
   inBubble: "#FFFFFF",
-  read: "#a78bfa",         // violet-400
+  read: "#34B7F1",         // WhatsApp original
 };
 
 const STICKERS = ["😀","😂","😍","🥰","😎","🤩","🥳","😭","😡","🤔","👍","👏","🙏","🔥","💯","🎉","❤️","💔","😅","🤣","😴","🤗","🤝","👀","💪","🌹","🍀","⭐","☀️","🌙","🎂","🍕","☕","⚽","🎮","🎵","📸","💡","✅","❌"];
