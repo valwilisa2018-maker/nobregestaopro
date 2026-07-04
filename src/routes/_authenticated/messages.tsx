@@ -444,6 +444,7 @@ function MessagesPage() {
   async function startRecording() {
     if (!selected) return;
     try {
+      pushPresence({ data: { contactId: selected.id, presence: "recording" } }).catch(() => {});
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       const mr = new MediaRecorder(stream, { mimeType: MediaRecorder.isTypeSupported("audio/webm;codecs=opus") ? "audio/webm;codecs=opus" : "audio/webm" });
       const chunks: BlobPart[] = [];
@@ -474,6 +475,7 @@ function MessagesPage() {
   function stopRecording() {
     recRef.current?.mr.stop();
     setRecording(false);
+    if (selected) pushPresence({ data: { contactId: selected.id, presence: "paused" } }).catch(() => {});
   }
   useEffect(() => {
     if (!recording) return;
@@ -699,7 +701,15 @@ function MessagesPage() {
                 )}
                 <button onClick={() => setInfoOpen((v) => !v)} className="min-w-0 flex-1 text-left focus:outline-none">
                   <div className="text-sm font-semibold truncate">{selected.name || selected.phone}</div>
-                  <div className="text-[11px] text-white/80 truncate">{selected.phone}</div>
+                  <div className="text-[11px] text-white/80 truncate">
+                    {remotePresence === "composing" ? (
+                      <span className="italic">digitando…</span>
+                    ) : remotePresence === "recording" ? (
+                      <span className="italic">gravando áudio…</span>
+                    ) : (
+                      selected.phone
+                    )}
+                  </div>
                 </button>
                 <Tooltip>
                   <TooltipTrigger asChild>
