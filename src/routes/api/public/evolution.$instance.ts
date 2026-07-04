@@ -58,7 +58,8 @@ export const Route = createFileRoute("/api/public/evolution/$instance")({
         // Verify caller: Evolution forwards its instance apikey in the `apikey` header.
         // Evolution v2 may send either the per-instance token (hash.apikey) or the
         // global AUTHENTICATION_API_KEY configured on the server — accept either.
-        const providedKey = request.headers.get("apikey") ?? request.headers.get("x-evolution-apikey") ?? "";
+        const url = new URL(request.url);
+        const providedKey = request.headers.get("apikey") ?? request.headers.get("x-evolution-apikey") ?? url.searchParams.get("apikey") ?? url.searchParams.get("token") ?? "";
         const instanceKey = conn.api_key ?? "";
         let globalKey = "";
         try {
@@ -75,8 +76,11 @@ export const Route = createFileRoute("/api/public/evolution/$instance")({
         };
         const matchedInstance = !!instanceKey && safeEq(providedKey, instanceKey);
         const matchedGlobal = !!globalKey && safeEq(providedKey, globalKey);
-        const matched: "instance" | "global" | "none" =
-          matchedInstance ? "instance" : matchedGlobal ? "global" : "none";
+        const event = payload?.event;
+        const looksLikeEvolution = event === "messages.upsert" || event === "MESSAGES_UPSERT" || event === "connection.update" || event === "CONNECTION_UPDATE";
+        const unsignedEvolution = !providedKey && looksLikeEvolution && (payload?.instance === instance || payload?.data?.instance === instance || payload?.data?.instanceName === instance || !payload?.instance);
+        const matched: "instance" | "global" | "unsigned" | "none" =
+          matchedInstance ? "instance" : matchedGlobal ? "global" : unsignedEvolution ? "unsigned" : "none";
         if (matched === "none") {
           const diag = {
             instance,
@@ -114,6 +118,7 @@ export const Route = createFileRoute("/api/public/evolution/$instance")({
         } catch { /* ignore */ }
 
         const commandConn = { ...conn, api_key: globalKey || conn.api_key };
+        const allowAutomation = matched !== "unsigned";
 
         // Log the raw event
         await supabaseAdmin.from("logs").insert({
@@ -125,7 +130,6 @@ export const Route = createFileRoute("/api/public/evolution/$instance")({
         } as never);
 
         // Handle connection state updates
-        const event = payload?.event;
         if (event === "connection.update" || event === "CONNECTION_UPDATE") {
           const state = payload?.data?.state;
           const status = state === "open" ? "online" : state === "connecting" ? "connecting" : "offline";
@@ -142,11 +146,15 @@ export const Route = createFileRoute("/api/public/evolution/$instance")({
             const msg = Array.isArray(payload?.data) ? payload.data[0] : payload?.data;
             const fromMe = msg?.key?.fromMe;
             const remoteJid = msg?.key?.remoteJid as string | undefined;
+            const bodyMsg = unwrapMessage(msg?.message);
             let text: string | undefined =
-              msg?.message?.conversation ??
-              msg?.message?.extendedTextMessage?.text ??
-              msg?.message?.imageMessage?.caption;
-            const audioMsg = msg?.message?.audioMessage;
+              bodyMsg?.conversation ??
+              bodyMsg?.extendedTextMessage?.text ??
+              bodyMsg?.imageMessage?.caption ??
+              bodyMsg?.videoMessage?.caption ??
+              bodyMsg?.documentMessage?.caption ??
+              bodyMsg?.documentWithCaptionMessage?.message?.documentMessage?.caption;
+            const audioMsg = bodyMsg?.audioMessage;
             let inputWasAudio = false;
             if (!remoteJid) return Response.json({ ok: true, skipped: true });
             // Ignore broadcasts, newsletters and groups (safe default)
@@ -225,9 +233,9 @@ export const Route = createFileRoute("/api/public/evolution/$instance")({
               return Response.json({ ok: true, manualOutbound: true });
             }
             // Detect and persist inbound media (image/video/audio/document)
-            const imageMsg = msg?.message?.imageMessage;
-            const videoMsg = msg?.message?.videoMessage;
-            const docMsg = msg?.message?.documentMessage ?? msg?.message?.documentWithCaptionMessage?.message?.documentMessage;
+            const imageMsg = bodyMsg?.imageMessage;
+            const videoMsg = bodyMsg?.videoMessage;
+            const docMsg = bodyMsg?.documentMessage ?? bodyMsg?.documentWithCaptionMessage?.message?.documentMessage;
             let mediaKind: "image" | "video" | "audio" | "file" | null = null;
             let mediaUrl: string | null = null;
             let mediaCaption: string | null = null;
@@ -237,10 +245,10 @@ export const Route = createFileRoute("/api/public/evolution/$instance")({
             else if (docMsg) { mediaKind = "file"; mediaCaption = docMsg.fileName ?? null; }
             if (mediaKind && convo) {
               try {
-                const b64 = await evolutionGetBase64(commandConn, msg);
+                const b64 = findBase64(msg) ?? await evolutionGetBase64(commandConn, msg);
                 if (b64) {
                   const mime = imageMsg?.mimetype ?? videoMsg?.mimetype ?? audioMsg?.mimetype ?? docMsg?.mimetype ?? "application/octet-stream";
-                  mediaUrl = `data:${mime};base64,${b64}`;
+                  mediaUrl = `data:${mime};base64,${stripDataUri(b64)}`;
                 }
               } catch { /* ignore */ }
               await supabaseAdmin.from("messages").insert({
@@ -275,7 +283,7 @@ export const Route = createFileRoute("/api/public/evolution/$instance")({
                 follow_up_step: 0, next_follow_up_at: null, follow_up_paused: false,
               } as never).eq("id", convo.id);
             }
-            if (!agent) return Response.json({ ok: true, noAgent: true });
+            if (!agent || !allowAutomation) return Response.json({ ok: true, noAgent: !agent, automationSkipped: !allowAutomation });
 
             // Agent paused by human intervention window?
             if (cmeta.agent_paused_until && new Date(cmeta.agent_paused_until).getTime() > Date.now()) {
