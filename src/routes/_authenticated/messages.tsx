@@ -158,6 +158,18 @@ function MessagesPage() {
     if (typeof window === "undefined") return {};
     try { return JSON.parse(localStorage.getItem("wa-labels") ?? "{}"); } catch { return {}; }
   });
+  const [instances, setInstances] = useState<Array<{ id: string; name: string; instance_name: string; profile_name: string | null }>>([]);
+  const [activeInstance, setActiveInstance] = useState<string>(() => {
+    if (typeof window === "undefined") return "all";
+    try { return localStorage.getItem("wa-instance") ?? "all"; } catch { return "all"; }
+  });
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      try { localStorage.setItem("wa-instance", activeInstance); } catch { /* ignore */ }
+    }
+  }, [activeInstance]);
+  // Map: phone digits -> Set of connection ids that have a conversation with that JID
+  const [contactConnMap, setContactConnMap] = useState<Record<string, Set<string>>>({});
   const sendText = useServerFn(sendChatText);
   const sendAudio = useServerFn(sendChatAudio);
   const sendMedia = useServerFn(sendChatMedia);
