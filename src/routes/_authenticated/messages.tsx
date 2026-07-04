@@ -928,13 +928,14 @@ function MessagesPage() {
     opts?: { objectUrl?: string; quotedMessageId?: string; quotedSnapshot?: Record<string, unknown> },
   ) {
     if (!selected) return;
-    const MAX = 15 * 1024 * 1024; // 15 MB
-    const url = opts?.objectUrl ?? URL.createObjectURL(file);
     const kind = fileKind(file);
+    const MAX = kind === "video" ? 60 * 1024 * 1024 : 15 * 1024 * 1024;
+    const maxLabel = kind === "video" ? "60 MB" : "15 MB";
+    const url = opts?.objectUrl ?? URL.createObjectURL(file);
     const qid = `up-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
     setUploadQueue((q) => [...q, { id: qid, name: file.name, size: file.size, url, kind, status: "uploading" }]);
     if (file.size > MAX) {
-      const err = `Máx. 15 MB (este tem ${(file.size / 1024 / 1024).toFixed(1)} MB)`;
+      const err = `Máx. ${maxLabel} (este tem ${(file.size / 1024 / 1024).toFixed(1)} MB)`;
       setUploadQueue((q) => q.map((x) => (x.id === qid ? { ...x, status: "failed", error: err } : x)));
       toast.error(`${file.name}: arquivo muito grande. ${err}`);
       return;
