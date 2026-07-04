@@ -47,7 +47,7 @@ function normalizeEvoStatus(value: unknown): "sent" | "delivered" | "read" | nul
     return n >= 4 ? "read" : n === 3 ? "delivered" : n >= 1 ? "sent" : null;
   }
   const s = String(value).toUpperCase();
-  if (s === "READ" || s === "PLAYED") return "read";
+  if (s === "READ" || s === "PLAYED" || s === "READ_ACK" || s === "READ_RECEIPT") return "read";
   if (s === "DELIVERY_ACK" || s === "DELIVERED") return "delivered";
   if (s === "SERVER_ACK" || s === "SENT" || s === "PENDING") return "sent";
   return null;
@@ -65,13 +65,31 @@ function findEvoId(value: unknown, depth = 0): string | null {
   if (typeof value !== "object") return null;
   const record = value as Record<string, unknown>;
   const key = record.key as Record<string, unknown> | undefined;
-  const direct = key?.id ?? record.id ?? record.messageId ?? record.keyId;
+  // Receipt payloads can include both an internal `messageId` and the real
+  // WhatsApp/Evolution id in `keyId`; the latter is what we store as evoId.
+  const direct = key?.id ?? record.keyId ?? record.id ?? record.messageId;
   if (typeof direct === "string" && /^[A-Z0-9._-]{8,}$/i.test(direct)) return direct;
   for (const nested of [record.update, record.data, record.message, record.response, record.result]) {
     const found = findEvoId(nested, depth + 1);
     if (found) return found;
   }
   return null;
+}
+
+function receiptRemoteJidCandidates(remoteJid: string) {
+  const base = remoteJid.split(":")[0] ?? remoteJid;
+  const candidates = new Set<string>([remoteJid, base]);
+  for (const jid of [remoteJid, base]) {
+    const phone = jid.split("@")[0]?.replace(/\D/g, "") ?? "";
+    if (!phone) continue;
+    candidates.add(`${phone}@s.whatsapp.net`);
+    candidates.add(`${phone}@lid`);
+    for (const variant of phoneVariants(phone)) {
+      candidates.add(`${variant}@s.whatsapp.net`);
+      candidates.add(`${variant}@lid`);
+    }
+  }
+  return [...candidates].filter(Boolean);
 }
 
 export const Route = createFileRoute("/api/public/evolution/$instance")({
@@ -221,7 +239,7 @@ export const Route = createFileRoute("/api/public/evolution/$instance")({
                   .select("id,metadata")
                   .eq("user_id", conn.user_id)
                   .eq("direction", "outbound")
-                  .eq("metadata->>remoteJid", String(remoteJid))
+                  .in("metadata->>remoteJid", receiptRemoteJidCandidates(String(remoteJid)))
                   .gte("created_at", dayAgo)
                   .order("created_at", { ascending: false })
                   .limit(1);
@@ -233,8 +251,14 @@ export const Route = createFileRoute("/api/public/evolution/$instance")({
               const prev = String(meta.status ?? "");
               const rank = (v: string) => v === "read" ? 3 : v === "delivered" ? 2 : v === "sent" ? 1 : 0;
               if (rank(status) <= rank(prev)) continue;
+              const now = new Date().toISOString();
               await supabaseAdmin.from("messages").update({
-                metadata: { ...meta, status } as never,
+                metadata: {
+                  ...meta,
+                  status,
+                  ...(status === "delivered" && !meta.delivered_at ? { delivered_at: now } : {}),
+                  ...(status === "read" ? { delivered_at: meta.delivered_at ?? now, read_at: now } : {}),
+                } as never,
               }).eq("id", row.id);
             }
           } catch { /* ignore */ }
@@ -660,24 +684,40 @@ export const Route = createFileRoute("/api/public/evolution/$instance")({
             if (!wantsAudio || !ext.audio?.replaceText) {
               if (!sendRes || !wantsAudio) sendRes = await sendText(commandConn, recipient, reply);
             }
+            let sendJson: any = null;
+            let sendBody = "";
+            if (sendRes) {
+              sendBody = await sendRes.text().catch(() => "");
+              try { sendJson = sendBody ? JSON.parse(sendBody) : null; } catch { sendJson = null; }
+            }
             if (sendRes && !sendRes.ok) {
-              const errText = await sendRes.text().catch(() => "");
               await supabaseAdmin.from("logs").insert({
                 user_id: conn.user_id, level: "error", source: `evolution:${instance}`,
-                message: `send failed ${sendRes.status}`, metadata: { recipient, body: errText.slice(0, 500) },
+                message: `send failed ${sendRes.status}`, metadata: { recipient, body: sendBody.slice(0, 500) },
               } as never);
               await maybeAlert(supabaseAdmin, commandConn, agent, ext, `Falha ao enviar (${sendRes.status})`);
             }
             void mediaSent;
 
             if (convo) {
+              const evoId = findEvoId(sendJson);
+              const status = normalizeEvoStatus(sendJson?.status ?? sendJson?.ack ?? sendJson?.messageStatus) ?? (sendRes?.ok ? "sent" : null);
               await supabaseAdmin.from("messages").insert({
                 user_id: conn.user_id,
                 conversation_id: convo.id,
                 direction: "outbound",
                 type: wantsAudio ? "audio" : "text",
                 content: reply,
-                metadata: { remoteJid, agent_id: agent.id, audio: wantsAudio, media_sent: mediaSent },
+                metadata: {
+                  remoteJid,
+                  agent_id: agent.id,
+                  audio: wantsAudio,
+                  media_sent: mediaSent,
+                  pending: false,
+                  sent: !!sendRes?.ok,
+                  ...(evoId ? { evoId } : {}),
+                  ...(status ? { status } : {}),
+                },
               } as never);
             }
 

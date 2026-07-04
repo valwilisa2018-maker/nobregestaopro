@@ -220,6 +220,7 @@ function MessagesPage() {
   useEffect(() => { soundOnRef.current = soundOn; }, [soundOn]);
   // Auto-retry registry for failed text/sticker sends
   const retryRegistry = useRef<Map<string, { contactId: string; body: string }>>(new Map());
+  const pendingReceiptRef = useRef<Map<string, Record<string, unknown>>>(new Map());
 
   const attemptSendText = useCallback((tmpId: string, contactId: string, body: string, attempt = 0, quotedMessageId?: string) => {
     const MAX = 3;
@@ -667,26 +668,37 @@ function MessagesPage() {
               if (signed?.signedUrl) hydrated = { ...(row as Msg), media_url: signed.signedUrl };
             }
             setMsgs((prev) => {
+              const evoId = (hydrated.metadata as { evoId?: unknown } | null)?.evoId;
+              const delayedReceipt = pendingReceiptRef.current.get(hydrated.id)
+                ?? (typeof evoId === "string" ? pendingReceiptRef.current.get(evoId) : undefined);
+              const withReceipt = delayedReceipt
+                ? { ...hydrated, metadata: { ...(hydrated.metadata ?? {}), ...delayedReceipt } }
+                : hydrated;
+              pendingReceiptRef.current.delete(hydrated.id);
+              if (typeof evoId === "string") pendingReceiptRef.current.delete(evoId);
               // Already have the real row → no-op
-              if (prev.some((m) => m.id === hydrated.id)) return prev;
+              if (prev.some((m) => m.id === withReceipt.id)) return prev;
               // Reconcile against optimistic (tmp-*) rows: same direction + same content/type
               // added within the last 2 minutes → replace the tmp instead of appending a duplicate.
               const nowTs = Date.now();
               const tmpIdx = prev.findIndex((m) => {
                 if (!m.id.startsWith("tmp-")) return false;
-                if (m.direction !== hydrated.direction) return false;
-                if ((m.type || "text") !== (hydrated.type || "text")) return false;
-                const sameText = (m.content ?? "") === (hydrated.content ?? "");
+                if (m.direction !== withReceipt.direction) return false;
+                if ((m.type || "text") !== (withReceipt.type || "text")) return false;
+                const sameText = (m.content ?? "") === (withReceipt.content ?? "");
                 const created = new Date(m.created_at).getTime();
                 const recent = Number.isFinite(created) && nowTs - created < 120_000;
                 return sameText && recent;
               });
               if (tmpIdx !== -1) {
                 const copy = prev.slice();
-                copy[tmpIdx] = hydrated;
+                copy[tmpIdx] = withReceipt;
+                persistMsgCache(selectedRef.current?.id ?? selected.id, copy);
                 return copy;
               }
-              return [...prev, hydrated];
+              const next = [...prev, withReceipt];
+              persistMsgCache(selectedRef.current?.id ?? selected.id, next);
+              return next;
             });
             return;
           }
@@ -699,8 +711,18 @@ function MessagesPage() {
         if (!row?.id) return;
         const rank = (v: unknown) => v === "read" ? 3 : v === "delivered" ? 2 : v === "sent" ? 1 : 0;
         setMsgs((prev) => {
-          const idx = prev.findIndex((m) => m.id === row.id);
-          if (idx === -1) return prev;
+          const rowEvoId = typeof row.metadata?.evoId === "string" ? row.metadata.evoId : null;
+          const idx = prev.findIndex((m) => {
+            if (m.id === row.id) return true;
+            const meta = (m.metadata ?? {}) as { evoId?: unknown };
+            return !!rowEvoId && meta.evoId === rowEvoId;
+          });
+          if (idx === -1) {
+            const receipt = row.metadata ?? {};
+            if (row.id) pendingReceiptRef.current.set(row.id, receipt);
+            if (rowEvoId) pendingReceiptRef.current.set(rowEvoId, receipt);
+            return prev;
+          }
           const prevMeta = (prev[idx].metadata ?? {}) as Record<string, unknown>;
           const nextMeta = { ...prevMeta, ...(row.metadata ?? {}) };
           // Never downgrade the status
