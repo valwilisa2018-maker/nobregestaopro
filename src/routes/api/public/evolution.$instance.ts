@@ -47,7 +47,7 @@ function normalizeEvoStatus(value: unknown): "sent" | "delivered" | "read" | nul
     return n >= 4 ? "read" : n === 3 ? "delivered" : n >= 1 ? "sent" : null;
   }
   const s = String(value).toUpperCase();
-  if (s === "READ" || s === "PLAYED") return "read";
+  if (s === "READ" || s === "PLAYED" || s === "READ_ACK" || s === "READ_RECEIPT") return "read";
   if (s === "DELIVERY_ACK" || s === "DELIVERED") return "delivered";
   if (s === "SERVER_ACK" || s === "SENT" || s === "PENDING") return "sent";
   return null;
@@ -65,13 +65,31 @@ function findEvoId(value: unknown, depth = 0): string | null {
   if (typeof value !== "object") return null;
   const record = value as Record<string, unknown>;
   const key = record.key as Record<string, unknown> | undefined;
-  const direct = key?.id ?? record.id ?? record.messageId ?? record.keyId;
+  // Receipt payloads can include both an internal `messageId` and the real
+  // WhatsApp/Evolution id in `keyId`; the latter is what we store as evoId.
+  const direct = key?.id ?? record.keyId ?? record.id ?? record.messageId;
   if (typeof direct === "string" && /^[A-Z0-9._-]{8,}$/i.test(direct)) return direct;
   for (const nested of [record.update, record.data, record.message, record.response, record.result]) {
     const found = findEvoId(nested, depth + 1);
     if (found) return found;
   }
   return null;
+}
+
+function receiptRemoteJidCandidates(remoteJid: string) {
+  const base = remoteJid.split(":")[0] ?? remoteJid;
+  const candidates = new Set<string>([remoteJid, base]);
+  for (const jid of [remoteJid, base]) {
+    const phone = jid.split("@")[0]?.replace(/\D/g, "") ?? "";
+    if (!phone) continue;
+    candidates.add(`${phone}@s.whatsapp.net`);
+    candidates.add(`${phone}@lid`);
+    for (const variant of phoneVariants(phone)) {
+      candidates.add(`${variant}@s.whatsapp.net`);
+      candidates.add(`${variant}@lid`);
+    }
+  }
+  return [...candidates].filter(Boolean);
 }
 
 export const Route = createFileRoute("/api/public/evolution/$instance")({
