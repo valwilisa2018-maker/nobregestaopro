@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useServerFn } from "@tanstack/react-start";
-import { sendChatText, sendChatAudio } from "@/lib/evolution.functions";
+import { sendChatText, sendChatAudio, sendChatMedia, getProfilePicture } from "@/lib/evolution.functions";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/messages")({
@@ -87,6 +87,9 @@ function MessagesPage() {
   });
   const sendText = useServerFn(sendChatText);
   const sendAudio = useServerFn(sendChatAudio);
+  const sendMedia = useServerFn(sendChatMedia);
+  const fetchAvatar = useServerFn(getProfilePicture);
+  const [avatars, setAvatars] = useState<Record<string, string | null>>({});
 
   // Load contacts
   const loadContacts = useCallback(async () => {
