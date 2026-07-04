@@ -518,6 +518,148 @@ function metadataObject(value: unknown): Record<string, unknown> {
   return value && typeof value === "object" && !Array.isArray(value) ? value as Record<string, unknown> : {};
 }
 
+// ===================== Quoted / reply helper =====================
+async function buildQuoted(
+  supabase: any,
+  userId: string,
+  quotedMessageId: string | undefined,
+): Promise<{ evo?: unknown; meta?: Record<string, unknown> }> {
+  if (!quotedMessageId) return {};
+  const { data: q } = await supabase.from("messages")
+    .select("id,type,content,direction,metadata")
+    .eq("id", quotedMessageId).eq("user_id", userId).maybeSingle();
+  if (!q) return {};
+  const qm = metadataObject(q.metadata);
+  const evoId = qm.evoId as string | undefined;
+  const remoteJid = qm.remoteJid as string | undefined;
+  const preview = String(q.content ?? "").slice(0, 200);
+  const meta = { quotedId: q.id, quotedText: preview, quotedType: q.type, quotedDirection: q.direction } as Record<string, unknown>;
+  if (!evoId || !remoteJid) return { meta };
+  return {
+    evo: {
+      key: { id: evoId, remoteJid, fromMe: q.direction === "outbound" },
+      message: { conversation: preview || " " },
+    },
+    meta,
+  };
+}
+
+// ===================== Delete message =====================
+const DeleteChatMessageInput = z.object({
+  messageId: z.string().uuid(),
+  forEveryone: z.boolean(),
+});
+
+export const deleteChatMessage = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((i: unknown) => DeleteChatMessageInput.parse(i))
+  .handler(async ({ data, context }) => {
+    const { data: m } = await context.supabase.from("messages")
+      .select("id,direction,metadata")
+      .eq("id", data.messageId).eq("user_id", context.userId).maybeSingle();
+    if (!m) return { ok: true as const };
+    const meta = metadataObject(m.metadata);
+    if (data.forEveryone && m.direction === "outbound" && meta.evoId && meta.remoteJid) {
+      try {
+        const conn = await pickActiveConnection(context.supabase, context.userId);
+        const apiKey = await loadEvolutionCommandKey(context.supabase, conn.api_key);
+        await evoFetch(`${baseUrl(conn.url_api)}/chat/deleteMessageForEveryone/${conn.instance_name}`, apiKey, {
+          method: "DELETE",
+          body: JSON.stringify({ id: meta.evoId, remoteJid: meta.remoteJid, fromMe: true }),
+        });
+      } catch { /* still delete locally */ }
+    }
+    await context.supabase.from("messages").delete().eq("id", data.messageId);
+    return { ok: true as const };
+  });
+
+// ===================== Forward message =====================
+const ForwardChatMessageInput = z.object({
+  messageId: z.string().uuid(),
+  targetContactId: z.string().uuid(),
+});
+
+export const forwardChatMessage = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((i: unknown) => ForwardChatMessageInput.parse(i))
+  .handler(async ({ data, context }) => {
+    const { data: m } = await context.supabase.from("messages")
+      .select("id,type,content,media_url,metadata")
+      .eq("id", data.messageId).eq("user_id", context.userId).single();
+    if (!m) throw new Error("Mensagem não encontrada");
+    const { data: contact } = await context.supabase.from("contacts")
+      .select("*").eq("id", data.targetContactId).eq("user_id", context.userId).single();
+    if (!contact) throw new Error("Contato não encontrado");
+    const conn = await pickActiveConnection(context.supabase, context.userId);
+    const apiKey = await loadEvolutionCommandKey(context.supabase, conn.api_key);
+    const number = String(contact.phone).replace(/\D+/g, "");
+    const remoteJid = `${number}@s.whatsapp.net`;
+    const convoId = await getOrCreateConversationForJid(context.supabase, context.userId, conn.id, remoteJid);
+    const meta = metadataObject(m.metadata);
+    const storagePath = meta.storagePath as string | undefined;
+    const mime = (meta.mime as string | undefined) ?? undefined;
+    const isMedia = (m.type === "image" || m.type === "video" || m.type === "audio" || m.type === "document") && !!storagePath;
+
+    if (!isMedia) {
+      const body = String(m.content ?? "");
+      if (!body.trim()) throw new Error("Nada a encaminhar");
+      const { data: saved } = await context.supabase.from("messages").insert({
+        user_id: context.userId, conversation_id: convoId,
+        direction: "outbound", type: "text", content: body,
+        metadata: { remoteJid, manual: true, forwardedFrom: m.id, pending: true } as never,
+      }).select("id,metadata").single();
+      await context.supabase.from("conversations").update({ last_message_at: new Date().toISOString() }).eq("id", convoId);
+      const r = await evoFetch(`${baseUrl(conn.url_api)}/message/sendText/${conn.instance_name}`, apiKey, {
+        method: "POST", body: JSON.stringify({ number, text: body }),
+      });
+      if (!r.ok) {
+        const error = parseEvoError(r.json, r.status);
+        if (saved?.id) await context.supabase.from("messages").update({ metadata: { ...metadataObject(saved.metadata), pending: false, failed: true, error } as never }).eq("id", saved.id);
+        return { ok: false as const, error };
+      }
+      const evoId = r.json?.key?.id ?? r.json?.messageId ?? null;
+      if (saved?.id) await context.supabase.from("messages").update({ metadata: { ...metadataObject(saved.metadata), pending: false, sent: true, status: "sent", evoId } as never }).eq("id", saved.id);
+      return { ok: true as const };
+    }
+
+    const dl = await context.supabase.storage.from(MEDIA_BUCKET).download(storagePath!);
+    if (dl.error || !dl.data) throw new Error("Não foi possível ler o arquivo original");
+    const buf = new Uint8Array(await dl.data.arrayBuffer());
+    let bin = ""; const CHUNK = 0x8000;
+    for (let i = 0; i < buf.length; i += CHUNK) bin += String.fromCharCode(...buf.subarray(i, i + CHUNK));
+    const b64 = btoa(bin);
+    const mm = mime ?? "application/octet-stream";
+    const fileName = (meta.fileName as string | undefined) ?? `forward.${(mm.split("/")[1] ?? "bin")}`;
+    const stored = await saveMediaToStorage(context.supabase, context.userId, convoId, b64, mm, fileName);
+    const type = m.type;
+    const { data: saved } = await context.supabase.from("messages").insert({
+      user_id: context.userId, conversation_id: convoId,
+      direction: "outbound", type,
+      content: m.content ?? fileName, media_url: stored.url,
+      metadata: { remoteJid, manual: true, forwardedFrom: m.id, storagePath: stored.path, mime: mm, fileName, pending: true, ...(type === "audio" ? { audio: true } : {}) } as never,
+    }).select("id,metadata").single();
+    await context.supabase.from("conversations").update({ last_message_at: new Date().toISOString() }).eq("id", convoId);
+    let r;
+    if (type === "audio") {
+      r = await evoFetch(`${baseUrl(conn.url_api)}/message/sendWhatsAppAudio/${conn.instance_name}`, apiKey, {
+        method: "POST", body: JSON.stringify({ number, audio: b64, encoding: true }),
+      });
+    } else {
+      r = await evoFetch(`${baseUrl(conn.url_api)}/message/sendMedia/${conn.instance_name}`, apiKey, {
+        method: "POST",
+        body: JSON.stringify({ number, mediatype: mediaMessageType(mm), media: b64, mimetype: mm, fileName, caption: "" }),
+      });
+    }
+    if (!r.ok) {
+      const error = parseEvoError(r.json, r.status);
+      if (saved?.id) await context.supabase.from("messages").update({ metadata: { ...metadataObject(saved.metadata), pending: false, failed: true, error } as never }).eq("id", saved.id);
+      return { ok: false as const, error };
+    }
+    const evoId = r.json?.key?.id ?? r.json?.messageId ?? null;
+    if (saved?.id) await context.supabase.from("messages").update({ metadata: { ...metadataObject(saved.metadata), pending: false, sent: true, status: "sent", evoId } as never }).eq("id", saved.id);
+    return { ok: true as const };
+  });
+
 // ===================== Presence (typing / recording) =====================
 
 const SendPresenceInput = z.object({
