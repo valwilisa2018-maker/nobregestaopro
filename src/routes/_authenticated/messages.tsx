@@ -67,6 +67,12 @@ function MessagesPage() {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [attachment, setAttachment] = useState<{ file: File; url: string } | null>(null);
+  const [filterMode, setFilterMode] = useState<"all" | "unread" | "favorites" | "groups">("all");
+  const [favorites, setFavorites] = useState<Set<string>>(() => {
+    if (typeof window === "undefined") return new Set();
+    try { return new Set(JSON.parse(localStorage.getItem("wa-fav") ?? "[]")); } catch { return new Set(); }
+  });
+  const [unreadMap, setUnreadMap] = useState<Record<string, number>>({});
   const sendText = useServerFn(sendChatText);
   const sendAudio = useServerFn(sendChatAudio);
 
@@ -87,9 +93,18 @@ function MessagesPage() {
   // Filter
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
-    if (!q) return contacts;
-    return contacts.filter((c) => (c.name ?? "").toLowerCase().includes(q) || c.phone.includes(q));
-  }, [contacts, search]);
+    let list = contacts;
+    if (filterMode === "unread") list = list.filter((c) => (unreadMap[c.id] ?? 0) > 0);
+    else if (filterMode === "favorites") list = list.filter((c) => favorites.has(c.id));
+    else if (filterMode === "groups") list = list.filter((c) => c.phone.includes("@g.us"));
+    if (q) list = list.filter((c) => (c.name ?? "").toLowerCase().includes(q) || c.phone.includes(q));
+    return list;
+  }, [contacts, search, filterMode, favorites, unreadMap]);
+  const unreadTotal = useMemo(
+    () => Object.values(unreadMap).reduce((a, b) => a + b, 0),
+    [unreadMap],
+  );
+  const groupsTotal = useMemo(() => contacts.filter((c) => c.phone.includes("@g.us")).length, [contacts]);
 
   // Load messages for selected contact (match conversation by remoteJid)
   const loadMessages = useCallback(async () => {
@@ -237,6 +252,34 @@ function MessagesPage() {
               />
             </div>
           </div>}
+          {!sidebarCollapsed && (
+            <div className="px-2 pb-2 pt-1 bg-[#F6F6F6] flex items-center gap-1.5 overflow-x-auto">
+              {([
+                { key: "all", label: "Tudo", count: null as number | null },
+                { key: "unread", label: "Não lidas", count: unreadTotal },
+                { key: "favorites", label: "Favoritas", count: favorites.size },
+                { key: "groups", label: "Grupos", count: groupsTotal },
+              ] as const).map((t) => {
+                const active = filterMode === t.key;
+                return (
+                  <button
+                    key={t.key}
+                    onClick={() => setFilterMode(t.key)}
+                    className={`shrink-0 flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium transition border ${
+                      active
+                        ? "bg-emerald-100 text-emerald-800 border-emerald-200"
+                        : "bg-white text-gray-700 border-gray-200 hover:bg-gray-100"
+                    }`}
+                  >
+                    <span>{t.label}</span>
+                    {t.count != null && t.count > 0 && (
+                      <span className={`text-[10px] px-1.5 rounded-full ${active ? "bg-emerald-600 text-white" : "bg-gray-200 text-gray-700"}`}>{t.count}</span>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+          )}
           <div className="flex-1 overflow-y-auto bg-white">
             {filtered.map((c) => {
               const active = selected?.id === c.id;
