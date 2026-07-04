@@ -330,6 +330,11 @@ function MessagesPage() {
 
   async function handleSendAttachment() {
     if (!selected || !attachment || sending) return;
+    const MAX = 15 * 1024 * 1024; // 15 MB
+    if (attachment.file.size > MAX) {
+      toast.error(`Arquivo muito grande (máx. 15 MB). Este tem ${(attachment.file.size / 1024 / 1024).toFixed(1)} MB.`);
+      return;
+    }
     setSending(true);
     const file = attachment.file;
     const mime = file.type || "application/octet-stream";
@@ -654,6 +659,18 @@ function MessagesPage() {
                     </button>
                   </TooltipTrigger>
                   <TooltipContent side="bottom">Dados do contato</TooltipContent>
+                </Tooltip>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <button
+                      onClick={() => { setSoundOn((v) => !v); if (!soundOn) playBell(); }}
+                      className="p-2 rounded-full hover:bg-white/15 transition"
+                      aria-label={soundOn ? "Desligar som" : "Ligar som"}
+                    >
+                      {soundOn ? <Bell className="h-5 w-5" /> : <BellOff className="h-5 w-5" />}
+                    </button>
+                  </TooltipTrigger>
+                  <TooltipContent side="bottom">{soundOn ? "Desligar som de notificação" : "Ligar som de notificação"}</TooltipContent>
                 </Tooltip>
               </header>
 
