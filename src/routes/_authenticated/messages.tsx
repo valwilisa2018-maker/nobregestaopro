@@ -521,6 +521,11 @@ function MessagesPage() {
       mr.ondataavailable = (e) => { if (e.data.size) chunks.push(e.data); };
       mr.onstop = async () => {
         stream.getTracks().forEach((t) => t.stop());
+        // Cleanup analyser loop
+        if (recRef.current?.raf) cancelAnimationFrame(recRef.current.raf);
+        recRef.current?.audioCtx?.close().catch(() => {});
+        setRecLevels(Array(24).fill(0.15));
+        if (recRef.current?.cancelled) { recRef.current = null; return; }
         const blob = new Blob(chunks, { type: "audio/webm" });
         const localUrl = URL.createObjectURL(blob);
         const tmpId = `tmp-${Date.now()}`;
@@ -547,7 +552,27 @@ function MessagesPage() {
         }
       };
       mr.start();
-      recRef.current = { mr, chunks, stream };
+      // Simple soundwave via WebAudio analyser
+      const audioCtx = new (window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext)();
+      const source = audioCtx.createMediaStreamSource(stream);
+      const analyser = audioCtx.createAnalyser();
+      analyser.fftSize = 64;
+      source.connect(analyser);
+      const buf = new Uint8Array(analyser.frequencyBinCount);
+      const tick = () => {
+        analyser.getByteFrequencyData(buf);
+        const bars = 24;
+        const step = Math.max(1, Math.floor(buf.length / bars));
+        const levels: number[] = [];
+        for (let i = 0; i < bars; i++) {
+          const v = buf[i * step] ?? 0;
+          levels.push(Math.max(0.15, v / 255));
+        }
+        setRecLevels(levels);
+        recRef.current!.raf = requestAnimationFrame(tick);
+      };
+      recRef.current = { mr, chunks, stream, audioCtx };
+      recRef.current.raf = requestAnimationFrame(tick);
       setRecording(true);
       setRecTime(0);
     } catch (e) {
@@ -556,6 +581,13 @@ function MessagesPage() {
   }
   function stopRecording() {
     recRef.current?.mr.stop();
+    setRecording(false);
+    if (selected) pushPresence({ data: { contactId: selected.id, presence: "paused" } }).catch(() => {});
+  }
+  function cancelRecording() {
+    if (!recRef.current) return;
+    recRef.current.cancelled = true;
+    try { recRef.current.mr.stop(); } catch { /* noop */ }
     setRecording(false);
     if (selected) pushPresence({ data: { contactId: selected.id, presence: "paused" } }).catch(() => {});
   }
