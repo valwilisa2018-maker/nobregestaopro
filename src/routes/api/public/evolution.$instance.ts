@@ -380,7 +380,11 @@ export const Route = createFileRoute("/api/public/evolution/$instance")({
             // Auto-save contact from incoming message
             try {
               const phone = remoteJid.split("@")[0]?.replace(/\D/g, "");
-              const pushName = (msg?.pushName ?? msg?.notifyName) as string | undefined;
+              // When fromMe, pushName is the operator's own WhatsApp profile name,
+              // NOT the recipient — never save it as the contact's name.
+              const pushName = fromMe
+                ? undefined
+                : ((msg?.pushName ?? msg?.notifyName) as string | undefined);
               if (phone) {
                 const variants = phoneVariants(phone);
                 const { data: existingContact } = await supabaseAdmin.from("contacts")
