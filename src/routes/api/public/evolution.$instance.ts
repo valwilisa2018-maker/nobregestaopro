@@ -256,7 +256,7 @@ export const Route = createFileRoute("/api/public/evolution/$instance")({
                     conn.user_id,
                     convo.id,
                     b64,
-                    mediaMime,
+                    mediaMime ?? "application/octet-stream",
                     docMsg?.fileName ?? `${mediaKind}-${msg?.key?.id ?? Date.now()}`,
                   );
                   mediaUrl = saved.url;
