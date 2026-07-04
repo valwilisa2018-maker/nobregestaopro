@@ -86,7 +86,7 @@ async function runBroadcasts(request: Request | undefined) {
         const tl = Array.isArray(r.timeline) ? (r.timeline as any[]) : [];
         try {
           const number = `${(r.phone as string).replace(/\D/g, "")}@s.whatsapp.net`;
-          const url = `${conn.url_api.replace(/\/+$/, "")}/message/sendText/${conn.instance_name}`;
+          const url = `${/^https?:\/\//i.test((conn.url_api??"").trim())?(conn.url_api??"").trim().replace(/\/+$/,""):"https://"+(conn.url_api??"").trim().replace(/\/+$/,"")}/message/sendText/${conn.instance_name}`;
           const res = await fetch(url, {
             method: "POST",
             headers: { "Content-Type": "application/json", apikey: commandKey },
@@ -143,7 +143,7 @@ async function runBroadcasts(request: Request | undefined) {
           .replaceAll("{nome}", contactName);
         try {
           const number = `${(r.phone as string).replace(/\D/g, "")}@s.whatsapp.net`;
-          const url = `${conn.url_api.replace(/\/+$/, "")}/message/sendText/${conn.instance_name}`;
+          const url = `${/^https?:\/\//i.test((conn.url_api??"").trim())?(conn.url_api??"").trim().replace(/\/+$/,""):"https://"+(conn.url_api??"").trim().replace(/\/+$/,"")}/message/sendText/${conn.instance_name}`;
           const res = await fetch(url, {
             method: "POST",
             headers: { "Content-Type": "application/json", apikey: commandKey },

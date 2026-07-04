@@ -241,7 +241,7 @@ export const runBroadcastBatch = createServerFn({ method: "POST" })
       try {
         if (!conn?.url_api || !conn?.instance_name) throw new Error("Instância inválida");
         const number = `${(r.phone as string).replace(/\D/g, "")}@s.whatsapp.net`;
-        const url = `${conn.url_api.replace(/\/+$/, "")}/message/sendText/${conn.instance_name}`;
+        const url = `${/^https?:\/\//i.test((conn.url_api??"").trim())?(conn.url_api??"").trim().replace(/\/+$/,""):"https://"+(conn.url_api??"").trim().replace(/\/+$/,"")}/message/sendText/${conn.instance_name}`;
         const res = await fetch(url, {
           method: "POST",
           headers: { "Content-Type": "application/json", apikey: commandKey },
@@ -379,7 +379,7 @@ export const runSequentialBatch = createServerFn({ method: "POST" })
       try {
         if (!conn?.url_api || !conn?.instance_name) throw new Error("Instância inválida");
         const number = `${(r.phone as string).replace(/\D/g, "")}@s.whatsapp.net`;
-        const url = `${conn.url_api.replace(/\/+$/, "")}/message/sendText/${conn.instance_name}`;
+        const url = `${/^https?:\/\//i.test((conn.url_api??"").trim())?(conn.url_api??"").trim().replace(/\/+$/,""):"https://"+(conn.url_api??"").trim().replace(/\/+$/,"")}/message/sendText/${conn.instance_name}`;
         const res = await fetch(url, {
           method: "POST",
           headers: { "Content-Type": "application/json", apikey: commandKey },
