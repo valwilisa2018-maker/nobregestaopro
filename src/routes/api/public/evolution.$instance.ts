@@ -331,6 +331,27 @@ export const Route = createFileRoute("/api/public/evolution/$instance")({
         if (event === "messages.upsert" || event === "MESSAGES_UPSERT") {
           try {
             const msg = Array.isArray(payload?.data) ? payload.data[0] : payload?.data;
+            // Edit arriving as upsert (protocolMessage type=14)
+            const upsertEditedText = extractEditedText(msg);
+            if (upsertEditedText !== null) {
+              const originalEvoId = extractEditedTargetId(msg);
+              if (originalEvoId) {
+                const { data: erows } = await supabaseAdmin.from("messages")
+                  .select("id,metadata")
+                  .eq("user_id", conn.user_id)
+                  .eq("metadata->>evoId", originalEvoId)
+                  .limit(1);
+                const erow = erows?.[0];
+                if (erow) {
+                  const emeta = (erow.metadata && typeof erow.metadata === "object") ? erow.metadata as Record<string, unknown> : {};
+                  await supabaseAdmin.from("messages").update({
+                    content: upsertEditedText,
+                    metadata: { ...emeta, edited: true, editedAt: new Date().toISOString() } as never,
+                  }).eq("id", erow.id);
+                }
+              }
+              return Response.json({ ok: true, edited: true });
+            }
             const fromMe = msg?.key?.fromMe;
             const remoteJid = msg?.key?.remoteJid as string | undefined;
             const bodyMsg = unwrapMessage(msg?.message);
