@@ -70,7 +70,6 @@ function BroadcastsPage() {
   const [name, setName] = useState("Campanha " + new Date().toLocaleDateString("pt-BR"));
   const [description, setDescription] = useState("");
   const [message, setMessage] = useState("Olá {nome}, tudo bem?");
-  const [mediaUrl, setMediaUrl] = useState("");
   const [connectionId, setConnectionId] = useState<string>("");
   const [flowId, setFlowId] = useState<string>("");
   const [mode, setMode] = useState<"quick" | "sequential">("quick");
@@ -142,8 +141,9 @@ function BroadcastsPage() {
 
   const createM = useMutation({
     mutationFn: async () => create({ data: {
-      name, description: description || null, message,
-      media_url: mediaUrl || null, media_type: mediaUrl ? "image" : null,
+      name, description: description || null,
+      message: flowId ? "" : message,
+      media_url: null, media_type: null,
       connection_id: connectionId || null, flow_id: flowId || null,
       mode,
       source_type: sourceType, source_value: selectedTags,
@@ -212,7 +212,7 @@ function BroadcastsPage() {
 
   const canNext =
     (step === 1 && ((sourceType === "list" && selectedIds.length > 0) || (sourceType === "tag" && selectedTags.length > 0) || sourceType === "all" || sourceType === "segment")) ||
-    (step === 2 && message.trim().length > 0) ||
+    (step === 2 && (flowId ? true : message.trim().length > 0)) ||
     (step === 3 && rate > 0) ||
     step === 4;
 
