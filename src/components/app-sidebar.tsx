@@ -4,7 +4,7 @@ import {
   LayoutDashboard, Bot, BookOpen, Workflow,
   MessageCircle, Brain, Users, MessagesSquare, History, ScrollText,
   Settings, UserCog, ShieldCheck, DollarSign, Palette, Contact2, Send, Puzzle, LogOut, Timer,
-  LineChart, Activity, CreditCard, Shield, User, Crown, Building2, Plug, CalendarDays,
+  LineChart, Activity, CreditCard, Shield, User, Crown, Building2, Plug, CalendarDays, Bug,
 } from "lucide-react";
 import {
   Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent, SidebarGroupLabel,
@@ -42,6 +42,7 @@ const groups = [
       { title: "Clientes", url: "/clients", icon: Users },
       { title: "Histórico", url: "/history", icon: History },
       { title: "Logs", url: "/logs", icon: ScrollText },
+      { title: "Debug de Fluxo", url: "/flow-debug", icon: Bug },
     ],
   },
   {

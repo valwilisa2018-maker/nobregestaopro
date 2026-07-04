@@ -27,6 +27,7 @@ import { Route as AuthenticatedKnowledgeRouteImport } from './routes/_authentica
 import { Route as AuthenticatedHistoryRouteImport } from './routes/_authenticated/history'
 import { Route as AuthenticatedFollowupsRouteImport } from './routes/_authenticated/followups'
 import { Route as AuthenticatedFlowsRouteImport } from './routes/_authenticated/flows'
+import { Route as AuthenticatedFlowDebugRouteImport } from './routes/_authenticated/flow-debug'
 import { Route as AuthenticatedDocumentsRouteImport } from './routes/_authenticated/documents'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
 import { Route as AuthenticatedConversationsRouteImport } from './routes/_authenticated/conversations'
@@ -134,6 +135,11 @@ const AuthenticatedFlowsRoute = AuthenticatedFlowsRouteImport.update({
   path: '/flows',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
+const AuthenticatedFlowDebugRoute = AuthenticatedFlowDebugRouteImport.update({
+  id: '/flow-debug',
+  path: '/flow-debug',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
 const AuthenticatedDocumentsRoute = AuthenticatedDocumentsRouteImport.update({
   id: '/documents',
   path: '/documents',
@@ -236,6 +242,7 @@ export interface FileRoutesByFullPath {
   '/conversations': typeof AuthenticatedConversationsRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/documents': typeof AuthenticatedDocumentsRoute
+  '/flow-debug': typeof AuthenticatedFlowDebugRoute
   '/flows': typeof AuthenticatedFlowsRoute
   '/followups': typeof AuthenticatedFollowupsRoute
   '/history': typeof AuthenticatedHistoryRoute
@@ -271,6 +278,7 @@ export interface FileRoutesByTo {
   '/conversations': typeof AuthenticatedConversationsRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/documents': typeof AuthenticatedDocumentsRoute
+  '/flow-debug': typeof AuthenticatedFlowDebugRoute
   '/flows': typeof AuthenticatedFlowsRoute
   '/followups': typeof AuthenticatedFollowupsRoute
   '/history': typeof AuthenticatedHistoryRoute
@@ -308,6 +316,7 @@ export interface FileRoutesById {
   '/_authenticated/conversations': typeof AuthenticatedConversationsRoute
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
   '/_authenticated/documents': typeof AuthenticatedDocumentsRoute
+  '/_authenticated/flow-debug': typeof AuthenticatedFlowDebugRoute
   '/_authenticated/flows': typeof AuthenticatedFlowsRoute
   '/_authenticated/followups': typeof AuthenticatedFollowupsRoute
   '/_authenticated/history': typeof AuthenticatedHistoryRoute
@@ -345,6 +354,7 @@ export interface FileRouteTypes {
     | '/conversations'
     | '/dashboard'
     | '/documents'
+    | '/flow-debug'
     | '/flows'
     | '/followups'
     | '/history'
@@ -380,6 +390,7 @@ export interface FileRouteTypes {
     | '/conversations'
     | '/dashboard'
     | '/documents'
+    | '/flow-debug'
     | '/flows'
     | '/followups'
     | '/history'
@@ -416,6 +427,7 @@ export interface FileRouteTypes {
     | '/_authenticated/conversations'
     | '/_authenticated/dashboard'
     | '/_authenticated/documents'
+    | '/_authenticated/flow-debug'
     | '/_authenticated/flows'
     | '/_authenticated/followups'
     | '/_authenticated/history'
@@ -573,6 +585,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedFlowsRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
+    '/_authenticated/flow-debug': {
+      id: '/_authenticated/flow-debug'
+      path: '/flow-debug'
+      fullPath: '/flow-debug'
+      preLoaderRoute: typeof AuthenticatedFlowDebugRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
     '/_authenticated/documents': {
       id: '/_authenticated/documents'
       path: '/documents'
@@ -702,6 +721,7 @@ interface AuthenticatedRouteChildren {
   AuthenticatedConversationsRoute: typeof AuthenticatedConversationsRoute
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
   AuthenticatedDocumentsRoute: typeof AuthenticatedDocumentsRoute
+  AuthenticatedFlowDebugRoute: typeof AuthenticatedFlowDebugRoute
   AuthenticatedFlowsRoute: typeof AuthenticatedFlowsRoute
   AuthenticatedFollowupsRoute: typeof AuthenticatedFollowupsRoute
   AuthenticatedHistoryRoute: typeof AuthenticatedHistoryRoute
@@ -732,6 +752,7 @@ const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedConversationsRoute: AuthenticatedConversationsRoute,
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
   AuthenticatedDocumentsRoute: AuthenticatedDocumentsRoute,
+  AuthenticatedFlowDebugRoute: AuthenticatedFlowDebugRoute,
   AuthenticatedFlowsRoute: AuthenticatedFlowsRoute,
   AuthenticatedFollowupsRoute: AuthenticatedFollowupsRoute,
   AuthenticatedHistoryRoute: AuthenticatedHistoryRoute,
