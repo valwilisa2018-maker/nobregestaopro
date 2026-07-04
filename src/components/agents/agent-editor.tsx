@@ -98,6 +98,8 @@ export function AgentEditor({ agent, onSaved, onCancel }: Props) {
   const [saving, setSaving] = useState(false);
   const [instances, setInstances] = useState<Array<{ id: string; name: string; phone_number: string | null; status: string | null }>>([]);
   const [providers, setProviders] = useState<Array<{ id: string; name: string; provider: string; model: string | null }>>([]);
+  const [libraryOpen, setLibraryOpen] = useState(false);
+  const [libraryNiche, setLibraryNiche] = useState<string>(PROMPT_LIBRARY[0].id);
 
   useEffect(() => { setForm(agent ?? emptyAgent(user?.id ?? "")); }, [agent, user?.id]);
 
@@ -284,8 +286,8 @@ export function AgentEditor({ agent, onSaved, onCancel }: Props) {
             <div className="flex items-center justify-between">
               <Label className="text-xs uppercase tracking-wider text-muted-foreground">Prompt do Sistema</Label>
               <div className="flex items-center gap-1">
-                <Button size="sm" variant="ghost" onClick={() => set("system_prompt", DEFAULT_PROMPT)} className="text-xs"><RotateCcw className="h-3 w-3" /> Restaurar Padrão</Button>
-                <Button size="sm" variant="ghost" className="text-xs text-primary"><BookOpen className="h-3 w-3" /> Biblioteca de Prompts</Button>
+                <Button size="sm" variant="ghost" onClick={() => { set("system_prompt", DEFAULT_PROMPT); toast.success("Prompt padrão restaurado"); }} className="text-xs"><RotateCcw className="h-3 w-3" /> Restaurar Padrão</Button>
+                <Button size="sm" variant="ghost" onClick={() => setLibraryOpen(true)} className="text-xs text-primary"><BookOpen className="h-3 w-3" /> Biblioteca de Prompts</Button>
               </div>
             </div>
             <Textarea rows={10} value={form.system_prompt ?? ""} onChange={(e) => set("system_prompt", e.target.value)} className="font-mono text-xs" />
@@ -331,7 +333,41 @@ export function AgentEditor({ agent, onSaved, onCancel }: Props) {
         <Section id="s10" number={10} icon={<PlayCircle className="h-4 w-4" />} title="Testar IA">
           <TestSection form={form} setForm={setForm} />
         </Section>
+
+        <Section id="s11" number={11} icon={<Database className="h-4 w-4" />} title="Base de Conhecimento">
+          <KnowledgeSection form={form} set={set} onSave={save} saving={saving} />
+        </Section>
       </Accordion>
+
+      <Dialog open={libraryOpen} onOpenChange={setLibraryOpen}>
+        <DialogContent className="max-w-3xl max-h-[85vh] overflow-hidden flex flex-col">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2"><BookOpen className="h-5 w-5 text-primary" /> Biblioteca de Prompts</DialogTitle>
+            <DialogDescription>Escolha um nicho e aplique um prompt pronto. Você pode editar depois.</DialogDescription>
+          </DialogHeader>
+          <div className="grid grid-cols-[220px_1fr] gap-4 overflow-hidden min-h-0">
+            <div className="overflow-y-auto pr-2 space-y-1">
+              {PROMPT_LIBRARY.map((n) => (
+                <button key={n.id} type="button" onClick={() => setLibraryNiche(n.id)}
+                  className={`w-full text-left rounded-lg px-3 py-2 text-sm flex items-center gap-2 transition ${libraryNiche === n.id ? "bg-primary/15 text-primary ring-1 ring-primary/30" : "hover:bg-muted/40"}`}>
+                  <span>{n.icon}</span><span className="truncate">{n.label}</span>
+                </button>
+              ))}
+            </div>
+            <div className="overflow-y-auto space-y-3 pr-1">
+              {PROMPT_LIBRARY.find((n) => n.id === libraryNiche)?.prompts.map((p, i) => (
+                <div key={i} className="rounded-xl border border-border/60 bg-card/40 p-3 space-y-2">
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="font-semibold text-sm">{p.title}</div>
+                    <Button size="sm" onClick={() => { set("system_prompt", p.prompt); setLibraryOpen(false); toast.success("Prompt aplicado"); }} style={{ background: "var(--gradient-primary)" }}>Usar este</Button>
+                  </div>
+                  <pre className="text-[11px] whitespace-pre-wrap font-mono text-muted-foreground max-h-40 overflow-auto">{p.prompt}</pre>
+                </div>
+              ))}
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
