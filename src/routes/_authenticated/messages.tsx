@@ -174,6 +174,7 @@ function MessagesPage() {
   const [avatars, setAvatars] = useState<Record<string, string | null>>({});
   const [remotePresence, setRemotePresence] = useState<string | null>(null);
   const presenceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const remotePresenceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastSentPresenceRef = useRef<number>(0);
   const [lightbox, setLightbox] = useState<{ type: "image" | "video"; src: string } | null>(null);
   const [infoOpen, setInfoOpen] = useState(false);
