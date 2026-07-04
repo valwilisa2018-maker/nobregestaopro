@@ -216,6 +216,25 @@ function MessagesPage() {
       .catch(() => setAvatars((prev) => ({ ...prev, [selected.id]: null })));
   }, [selected, fetchAvatar, avatars]);
 
+  // Lazy-fetch avatars for the visible contacts (first 30)
+  useEffect(() => {
+    const pending = contacts.slice(0, 30).filter((c) => avatars[c.id] === undefined);
+    if (!pending.length) return;
+    let cancelled = false;
+    (async () => {
+      for (const c of pending) {
+        if (cancelled) return;
+        try {
+          const r = await fetchAvatar({ data: { phone: c.phone } });
+          if (!cancelled) setAvatars((prev) => ({ ...prev, [c.id]: r.url }));
+        } catch {
+          if (!cancelled) setAvatars((prev) => ({ ...prev, [c.id]: null }));
+        }
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [contacts, fetchAvatar, avatars]);
+
   async function startRecording() {
     if (!selected) return;
     try {
