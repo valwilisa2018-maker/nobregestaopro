@@ -41,6 +41,9 @@ type ConvMeta = {
 const MEDIA_BUCKET = "agent-media";
 // Limite de recebimento de mídia: 200 MB por arquivo
 const MAX_INBOUND_MEDIA_BYTES = 200 * 1024 * 1024;
+// Evita derrubar o worker com vídeo em base64 no webhook.
+const MAX_WEBHOOK_BODY_BYTES = 25 * 1024 * 1024;
+const MAX_INLINE_MEDIA_BYTES = 25 * 1024 * 1024;
 let bucketLimitEnsured = false;
 
 class MediaTooLargeError extends Error {
@@ -150,10 +153,6 @@ export const Route = createFileRoute("/api/public/evolution/$instance")({
     handlers: {
       POST: async ({ request, params }) => {
         const instance = params.instance;
-        let payload: any = null;
-        const rawBody = await request.text().catch(() => "");
-        try { payload = rawBody ? JSON.parse(rawBody) : null; } catch { payload = null; }
-
         const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
         // Garante que o bucket aceita arquivos de até 200 MB (executa uma vez por processo)
@@ -195,7 +194,6 @@ export const Route = createFileRoute("/api/public/evolution/$instance")({
         const matchedInstance = !!instanceKey && safeEq(providedKey, instanceKey);
         const matchedGlobal = !!globalKey && safeEq(providedKey, globalKey);
         const matchedSecret = !!webhookSecret && safeEq(providedKey, webhookSecret);
-        const event = payload?.event;
         const matched: "instance" | "global" | "secret" | "none" =
           matchedInstance ? "instance" : matchedGlobal ? "global" : matchedSecret ? "secret" : "none";
         if (matched === "none") {
@@ -223,6 +221,24 @@ export const Route = createFileRoute("/api/public/evolution/$instance")({
             { status: 401 },
           );
         }
+        const commandConn = { ...conn, api_key: globalKey || conn.api_key };
+        const contentLength = Number(request.headers.get("content-length") ?? 0);
+        if (contentLength > MAX_WEBHOOK_BODY_BYTES) {
+          await disableWebhookBase64(commandConn).catch(() => undefined);
+          await supabaseAdmin.from("logs").insert({
+            user_id: conn.user_id,
+            level: "warn",
+            source: `evolution:${instance}`,
+            message: "webhook payload too large; disabled base64 media mode",
+            metadata: { bytes: contentLength, limit: MAX_WEBHOOK_BODY_BYTES } as never,
+          } as never);
+          return Response.json({ ok: true, skipped: "payload-too-large", action: "disabled-webhook-base64" });
+        }
+
+        let payload: any = null;
+        const rawBody = await request.text().catch(() => "");
+        try { payload = rawBody ? JSON.parse(rawBody) : null; } catch { payload = null; }
+        const event = payload?.event;
         // Successful match — record which key type authenticated the call.
         try {
           await (supabaseAdmin.from("logs") as any).insert({
@@ -234,15 +250,13 @@ export const Route = createFileRoute("/api/public/evolution/$instance")({
           });
         } catch { /* ignore */ }
 
-        const commandConn = { ...conn, api_key: globalKey || conn.api_key };
-
         // Log the raw event
         await supabaseAdmin.from("logs").insert({
           user_id: conn.user_id,
           level: "info",
           source: `evolution:${instance}`,
           message: payload?.event ?? "webhook",
-          metadata: payload ?? {},
+          metadata: sanitizeWebhookPayload(payload ?? {}) as never,
         } as never);
 
         // Handle connection state updates
