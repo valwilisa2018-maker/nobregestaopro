@@ -71,6 +71,26 @@ const fmtTokens = (n: number) => {
 const fmtBRL = (c: number) => (c / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 const fmtDate = (s: string) => new Date(s).toLocaleString("pt-BR");
 
+function ErrorState({ msg, onRetry }: { msg: string; onRetry: () => void }) {
+  return (
+    <div className="flex flex-col items-center justify-center gap-2 py-6 text-center">
+      <AlertCircle className="h-6 w-6 text-rose-400" />
+      <p className="text-sm text-rose-400">Falha ao carregar: {msg}</p>
+      <Button variant="outline" size="sm" onClick={onRetry}>
+        <RefreshCw className="h-3 w-3 mr-2" /> Tentar novamente
+      </Button>
+    </div>
+  );
+}
+
+function SectionLoader() {
+  return (
+    <div className="flex items-center justify-center py-8">
+      <Loader2 className="h-5 w-5 animate-spin text-primary" />
+    </div>
+  );
+}
+
 function Page() {
   const [loading, setLoading] = useState(true);
   const [wallet, setWallet] = useState<Wallet | null>(null);
