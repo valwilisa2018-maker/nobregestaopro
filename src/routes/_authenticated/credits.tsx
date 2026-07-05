@@ -272,6 +272,11 @@ function Page() {
       ) : (
         <>
           {/* Cards topo */}
+          {walletError ? (
+            <Card><CardContent className="p-5"><ErrorState msg={walletError} onRetry={loadWallet} /></CardContent></Card>
+          ) : walletLoading && !wallet ? (
+            <Card><CardContent className="p-5"><SectionLoader /></CardContent></Card>
+          ) : (
           <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
             <Card className="relative overflow-hidden border-emerald-500/40 bg-gradient-to-br from-emerald-500/10 via-card to-card xl:col-span-2">
               <div className="pointer-events-none absolute -right-10 -top-10 h-32 w-32 rounded-full bg-emerald-500/20 blur-3xl" />
@@ -324,6 +329,7 @@ function Page() {
               </CardContent>
             </Card>
           </div>
+          )}
 
           {/* Gráficos de consumo */}
           <Card className="mt-6">
@@ -334,6 +340,16 @@ function Page() {
                   <p className="text-xs text-muted-foreground">Atualiza automaticamente a cada 30s</p>
                 </div>
               </div>
+              {usageError ? (
+                <ErrorState msg={usageError} onRetry={loadUsage} />
+              ) : usageLoading && !usage ? (
+                <SectionLoader />
+              ) : (usage && usage.total_tokens === 0) ? (
+                <div className="flex flex-col items-center justify-center py-10 text-center text-muted-foreground">
+                  <Inbox className="h-8 w-8 mb-2 opacity-60" />
+                  <p className="text-sm">Sem consumo nos últimos {usage.days} dias.</p>
+                </div>
+              ) : (
               <Tabs defaultValue="daily">
                 <TabsList>
                   <TabsTrigger value="daily">Diário</TabsTrigger>
@@ -389,6 +405,7 @@ function Page() {
                   </div>
                 </TabsContent>
               </Tabs>
+              )}
             </CardContent>
           </Card>
 
@@ -417,6 +434,19 @@ function Page() {
                   </Button>
                 </div>
               </div>
+              {historyError ? (
+                <ErrorState msg={historyError} onRetry={() => loadHistory(page)} />
+              ) : historyLoading ? (
+                <SectionLoader />
+              ) : filtered.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-12 text-center text-muted-foreground">
+                  <Inbox className="h-10 w-10 mb-3 opacity-60" />
+                  <p className="text-sm font-semibold text-foreground">Nenhum registro ainda</p>
+                  <p className="text-xs mt-1">
+                    {search ? "Nenhum resultado para sua busca." : "Seu histórico de consumo aparecerá aqui."}
+                  </p>
+                </div>
+              ) : (
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead className="text-xs uppercase text-muted-foreground border-b border-border">
@@ -433,9 +463,7 @@ function Page() {
                     </tr>
                   </thead>
                   <tbody>
-                    {filtered.length === 0 ? (
-                      <tr><td colSpan={9} className="text-center py-8 text-muted-foreground">Nenhum registro.</td></tr>
-                    ) : filtered.map((t) => (
+                    {filtered.map((t) => (
                       <tr key={t.id} className="border-b border-border/40 hover:bg-muted/30">
                         <td className="py-2 px-2 text-muted-foreground">{fmtDate(t.occurred_at)}</td>
                         <td className="py-2 px-2">{t.agent_id ? (agents[t.agent_id] ?? "—") : "—"}</td>
@@ -459,6 +487,7 @@ function Page() {
                   </tbody>
                 </table>
               </div>
+              )}
               <div className="flex items-center justify-end gap-2 mt-4">
                 <Button variant="outline" size="sm" disabled={page === 0 || loading} onClick={() => loadHistory(page - 1)}>
                   Anterior
