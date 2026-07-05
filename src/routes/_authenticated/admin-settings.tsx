@@ -45,6 +45,9 @@ const MODELS: Record<ProviderKey, ModelOpt[]> = {
     { id: "openai/gpt-5.5", label: "GPT-5.5", group: "avançado" },
   ],
   openai: [
+    { id: "gpt-5-nano", label: "GPT-5 Nano", group: "econômico" },
+    { id: "gpt-5-mini", label: "GPT-5 Mini", group: "balanceado" },
+    { id: "gpt-5", label: "GPT-5", group: "avançado" },
     { id: "gpt-4o-mini", label: "GPT-4o Mini", group: "econômico" },
     { id: "gpt-3.5-turbo", label: "GPT-3.5 Turbo", group: "econômico" },
     { id: "o1-mini", label: "o1 Mini", group: "econômico" },
