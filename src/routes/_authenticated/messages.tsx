@@ -2691,12 +2691,6 @@ function AudioPlayer({
               />
             );
           })}
-          {dur > 0 && (
-            <div
-              className="absolute -top-1 h-4 w-4 rounded-full shadow"
-              style={{ left: `calc(${pct}% - 8px)`, background: WA.accent }}
-            />
-          )}
         </div>
         <div className="flex items-center gap-2 mt-0.5">
           <span className="text-[11px] text-gray-500">
