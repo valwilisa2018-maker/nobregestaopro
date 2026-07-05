@@ -2482,9 +2482,9 @@ function LinkPreview({ url }: { url: string }) {
   }
   if (data === null) return null;
   return (
-    <a href={data.url} target="_blank" rel="noreferrer" className="mb-1 block rounded-md overflow-hidden bg-black/5 hover:bg-black/10 transition">
+    <a href={data.url} target="_blank" rel="noreferrer" className="mb-1 block w-full max-w-[260px] rounded-md overflow-hidden bg-black/5 hover:bg-black/10 transition">
       {data.image && (
-        <img src={data.image} alt="" className="w-full max-h-40 object-cover" loading="lazy" />
+        <img src={data.image} alt="" className="w-full h-32 object-cover" loading="lazy" />
       )}
       <div className="px-2 py-1.5">
         {data.publisher && <div className="text-[10px] uppercase tracking-wide text-gray-500 truncate">{data.publisher}</div>}
