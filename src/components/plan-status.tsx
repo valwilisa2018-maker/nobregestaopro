@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { AlertTriangle, Crown } from "lucide-react";
+import { Link } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
@@ -112,6 +113,9 @@ export function PlanExpiryBanner() {
           ? `Seu plano ${s.planName ?? ""} venceu. Renove para continuar usando a plataforma.`
           : `Atenção: seu plano ${s.planName ?? ""} vence em ${s.daysLeft} dia${s.daysLeft === 1 ? "" : "s"}. Renove agora.`}
       </span>
+      <Link to="/billing" className="underline font-semibold shrink-0 hover:opacity-80">
+        Renovar plano
+      </Link>
     </div>
   );
 }
