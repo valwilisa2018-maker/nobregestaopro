@@ -59,22 +59,22 @@ function Page() {
       status="ativo"
     >
       <PlanStatusCard />
-      <div className="flex justify-center mb-10">
-        <div className="flex items-center gap-2 bg-card/60 border border-border p-1.5 rounded-full">
+      <div className="flex justify-center mb-8">
+        <div className="flex items-center gap-1 bg-card/60 border border-border p-1 rounded-full">
           <button
             onClick={() => setCycle("monthly")}
             className={`px-5 py-1.5 rounded-full text-sm font-semibold transition ${
-              cycle === "monthly" ? "bg-primary text-primary-foreground shadow-lg shadow-primary/20" : "text-muted-foreground hover:text-foreground"
+              cycle === "monthly" ? "bg-emerald-500 text-white shadow-lg shadow-emerald-500/25" : "text-muted-foreground hover:text-foreground"
             }`}
           >Mensal</button>
           <button
             onClick={() => setCycle("annual")}
             className={`px-5 py-1.5 rounded-full text-sm font-semibold transition inline-flex items-center gap-2 ${
-              cycle === "annual" ? "bg-primary text-primary-foreground shadow-lg shadow-primary/20" : "text-muted-foreground hover:text-foreground"
+              cycle === "annual" ? "bg-emerald-500 text-white shadow-lg shadow-emerald-500/25" : "text-muted-foreground hover:text-foreground"
             }`}
           >
             Anual
-            <span className="text-[10px] bg-emerald-500/10 text-emerald-400 px-2 py-0.5 rounded-full border border-emerald-500/20">-2 meses</span>
+            <span className={`text-[10px] px-2 py-0.5 rounded-full border ${cycle === "annual" ? "bg-white/15 text-white border-white/20" : "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"}`}>-2 meses</span>
           </button>
         </div>
       </div>
@@ -83,7 +83,7 @@ function Page() {
       ) : plans.length === 0 ? (
         <Card><CardContent className="p-12 text-center text-muted-foreground">Nenhum plano disponível.</CardContent></Card>
       ) : (
-        <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-4 pt-6 items-stretch">
+        <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-4 pt-6 items-stretch">
           {plans.map((p) => {
             const annualFromMonthly = p.price_cents * 12;
             const showAnnual = cycle === "annual" && p.price_annual_cents > 0;
@@ -97,36 +97,44 @@ function Page() {
             <div
               key={p.id}
               style={{ animationDelay: `${plans.indexOf(p) * 80}ms`, animationFillMode: "both" }}
-              className={`group relative flex flex-col p-8 rounded-3xl transition-all duration-300 ease-out animate-fade-in hover:-translate-y-2 hover:shadow-2xl ${
+              className={`group relative flex flex-col p-6 rounded-2xl overflow-hidden transition-all duration-300 ease-out animate-fade-in hover:-translate-y-1.5 hover:shadow-xl ${
                 p.highlight
-                  ? "bg-card border-2 border-primary shadow-2xl shadow-primary/10 xl:scale-[1.03] z-10 hover:shadow-primary/30"
-                  : "bg-card/40 border border-border hover:border-primary/40 hover:shadow-primary/10"
+                  ? "bg-gradient-to-b from-emerald-500/10 via-card to-card border-2 border-emerald-500/60 shadow-lg shadow-emerald-500/10 hover:shadow-emerald-500/30"
+                  : "bg-gradient-to-b from-primary/[0.06] via-card to-card border border-border hover:border-primary/40 hover:shadow-primary/10"
               }`}
             >
+              {/* subtle top glow */}
+              <div
+                className={`pointer-events-none absolute inset-x-0 -top-24 h-40 opacity-60 blur-2xl ${
+                  p.highlight ? "bg-emerald-500/20" : "bg-primary/10"
+                }`}
+              />
               {p.highlight && (
-                <div className="absolute -top-4 left-1/2 -translate-x-1/2 bg-primary text-primary-foreground text-[10px] font-black uppercase tracking-widest px-4 py-1.5 rounded-full shadow-lg">
+                <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-emerald-500 text-white text-[10px] font-black uppercase tracking-widest px-3 py-1 rounded-full shadow-lg shadow-emerald-500/30">
                   Mais vendido
                 </div>
               )}
+
               {/* Header */}
-              <div className="flex justify-between items-start">
-                <h3 className={`text-lg font-bold ${p.highlight ? "text-foreground" : "text-muted-foreground"}`}>{p.name}</h3>
-                {p.highlight && <Zap className="w-6 h-6 text-primary" fill="currentColor" />}
+              <div className="relative flex justify-between items-start">
+                <h3 className={`text-base font-bold ${p.highlight ? "text-foreground" : "text-foreground/80"}`}>{p.name}</h3>
+                {p.highlight && <Zap className="w-5 h-5 text-emerald-400" fill="currentColor" />}
               </div>
-              <p className="text-sm text-muted-foreground mt-2 leading-relaxed min-h-[40px]">
+              <p className="relative text-xs text-muted-foreground mt-1.5 leading-relaxed min-h-[32px]">
                 {p.description || "\u00A0"}
               </p>
 
               {/* Price */}
-              <div className="mt-6 min-h-[110px]">
+              <div className="relative mt-4 min-h-[80px]">
                 <div className="flex items-baseline gap-1">
-                  <span className={`text-3xl font-bold ${p.highlight ? "text-foreground" : "text-foreground/90"}`}>R$</span>
-                  <span className={`font-black tracking-tight leading-none ${p.highlight ? "text-6xl text-foreground" : "text-5xl text-foreground/90"}`}>
-                    {reaisFmt},{cents}
+                  <span className="text-xl font-bold text-foreground/80">R$</span>
+                  <span className="text-4xl font-black tracking-tight leading-none text-foreground">
+                    {reaisFmt}
+                    <span className="text-2xl text-foreground/70">,{cents}</span>
                   </span>
-                  <span className="text-muted-foreground text-sm ml-1">{suffix}</span>
+                  <span className="text-muted-foreground text-xs ml-1">{suffix}</span>
                 </div>
-                <div className="mt-3 h-6">
+                <div className="mt-2 h-5">
                   {showAnnual && savings > 0 && (
                     <div className="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-2 py-0.5 text-[10px] font-semibold">
                       Economize {formatBRL(savings)} ({savingsPct}%)
@@ -136,29 +144,29 @@ function Page() {
               </div>
 
               {/* Divider */}
-              <div className="my-6 h-px bg-border/60" />
+              <div className="relative my-4 h-px bg-border/60" />
 
               {/* Credits */}
-              <div className="py-2 px-4 rounded-xl w-fit border bg-emerald-500/10 border-emerald-500/30">
-                <span className="text-xs font-bold uppercase tracking-wider text-emerald-400">
+              <div className="relative py-1.5 px-3 rounded-lg w-fit border bg-emerald-500/10 border-emerald-500/30">
+                <span className="text-[11px] font-bold uppercase tracking-wider text-emerald-400">
                   {formatTokens(p.tokens_included)}
                 </span>
               </div>
 
               {/* Features */}
-              <ul className="mt-6 space-y-3 flex-grow">
+              <ul className="relative mt-4 space-y-2 flex-grow">
                 {p.features.map((f, i) => (
-                  <li key={i} className={`flex items-start gap-3 text-sm ${p.highlight ? "text-foreground/90" : "text-muted-foreground"}`}>
-                    <Check className={`w-5 h-5 shrink-0 mt-0.5 ${p.highlight ? "text-primary" : "text-primary/80"}`} strokeWidth={2.5} />
+                  <li key={i} className={`flex items-start gap-2 text-xs ${p.highlight ? "text-foreground/90" : "text-muted-foreground"}`}>
+                    <Check className={`w-4 h-4 shrink-0 mt-0.5 ${p.highlight ? "text-emerald-400" : "text-primary/80"}`} strokeWidth={2.5} />
                     <span>{f}</span>
                   </li>
                 ))}
               </ul>
 
               <Button
-                className={`mt-8 w-full py-4 h-auto rounded-2xl font-black transition-all ${
+                className={`relative mt-6 w-full py-2.5 h-auto rounded-xl font-bold text-sm transition-all ${
                   p.highlight
-                    ? "bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg shadow-primary/30 active:scale-95"
+                    ? "bg-emerald-500 hover:bg-emerald-600 text-white shadow-lg shadow-emerald-500/30 active:scale-95"
                     : "bg-transparent border border-border text-foreground hover:bg-muted/60"
                 }`}
               >
