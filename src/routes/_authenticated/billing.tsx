@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
+import { PlanStatusCard } from "@/components/plan-status";
 
 export const Route = createFileRoute("/_authenticated/billing")({
   head: () => ({ meta: [{ title: "Meu Plano — Plataforma IA WhatsApp" }] }),
@@ -59,6 +60,7 @@ function Page() {
       icon={<CreditCard className="h-6 w-6" />}
       status="ativo"
     >
+      <PlanStatusCard />
       <div className="flex justify-center mb-6">
         <Tabs value={cycle} onValueChange={(v) => setCycle(v as "monthly" | "annual")}>
           <TabsList>

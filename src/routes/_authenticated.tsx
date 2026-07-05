@@ -3,6 +3,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/app-sidebar";
 import { Toaster } from "@/components/ui/sonner";
+import { PlanExpiryBanner } from "@/components/plan-status";
 import { useEffect } from "react";
 
 export const Route = createFileRoute("/_authenticated")({
@@ -26,6 +27,7 @@ function AuthedLayout() {
       <div className="min-h-screen flex w-full">
         <AppSidebar />
         <div className="flex-1 flex flex-col">
+          <PlanExpiryBanner />
           <header className="h-12 flex items-center border-b px-2 gap-2">
             <SidebarTrigger />
           </header>
