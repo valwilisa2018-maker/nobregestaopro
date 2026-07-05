@@ -96,8 +96,23 @@ export function AgentEditor({ agent, onSaved, onCancel }: Props) {
   const [instances, setInstances] = useState<Array<{ id: string; name: string; phone_number: string | null; status: string | null }>>([]);
   const [libraryOpen, setLibraryOpen] = useState(false);
   const [libraryNiche, setLibraryNiche] = useState<string>(PROMPT_LIBRARY[0].id);
+  const [aiConnected, setAiConnected] = useState<boolean | null>(null);
 
   useEffect(() => { setForm(agent ?? emptyAgent(user?.id ?? "")); }, [agent, user?.id]);
+
+  useEffect(() => {
+    if (!user) return;
+    (async () => {
+      const { data } = await supabase
+        .from("ai_providers")
+        .select("id")
+        .eq("user_id", user.id)
+        .eq("is_active", true)
+        .limit(1)
+        .maybeSingle();
+      setAiConnected(!!data);
+    })();
+  }, [user]);
 
   useEffect(() => {
     if (!user) return;
@@ -163,7 +178,12 @@ export function AgentEditor({ agent, onSaved, onCancel }: Props) {
       <div className="flex items-start justify-between gap-4 rounded-2xl border border-border/60 bg-card/40 p-4">
         <div>
           <h2 className="text-lg font-bold">{form.name || "Novo Agente"}</h2>
-          <p className="text-xs text-muted-foreground">IA global · Configurações Globais</p>
+          <p className="text-xs mt-1 flex items-center gap-1.5">
+            <span className={`inline-block h-2 w-2 rounded-full ${aiConnected ? "bg-emerald-500" : "bg-red-500"}`} />
+            <span className={aiConnected ? "text-emerald-500" : "text-red-500"}>
+              {aiConnected === null ? "..." : aiConnected ? "Conectado" : "Desconectado"}
+            </span>
+          </p>
         </div>
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-2 text-xs">
