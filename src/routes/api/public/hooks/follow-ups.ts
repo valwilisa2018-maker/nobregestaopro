@@ -183,7 +183,7 @@ async function generateFollowUp(
     .map((m) => ({ role: m.direction === "outbound" ? "assistant" : "user", content: m.content }));
 
   const { resolveAIConfig } = await import("@/lib/ai-resolver.server");
-  const { checkAiBalance, consumeAiTokens } = await import("@/lib/ai-credits.server");
+  const { checkAiBalance, consumeAiTokens, InsufficientCreditsError } = await import("@/lib/ai-credits.server");
   const { endpoint, apiKey, model: modelId } = await resolveAIConfig(db as never, agent.user_id);
   const bal = await checkAiBalance(db as never, agent.user_id);
   if (!bal.ok) return null;
@@ -202,12 +202,17 @@ async function generateFollowUp(
     }),
   });
   const j = await res.json().catch(() => ({} as any));
-  await consumeAiTokens(db as never, {
-    userId: agent.user_id,
-    agentId: null,
-    model: modelId,
-    inputTokens: Number(j?.usage?.prompt_tokens ?? 0),
-    outputTokens: Number(j?.usage?.completion_tokens ?? 0),
-  });
+  try {
+    await consumeAiTokens(db as never, {
+      userId: agent.user_id,
+      agentId: null,
+      model: modelId,
+      inputTokens: Number(j?.usage?.prompt_tokens ?? 0),
+      outputTokens: Number(j?.usage?.completion_tokens ?? 0),
+    });
+  } catch (e) {
+    if (e instanceof InsufficientCreditsError) return null;
+    throw e;
+  }
   return j?.choices?.[0]?.message?.content ?? null;
 }
