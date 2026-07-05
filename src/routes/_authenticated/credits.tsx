@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import {
   Coins, Loader2, TrendingDown, CalendarDays, Timer, Sparkles, Download, ShoppingCart, Search,
+  AlertCircle, Inbox, RefreshCw,
 } from "lucide-react";
 import { toast } from "sonner";
 import { BuyCreditsModal } from "@/components/buy-credits-modal";
@@ -81,8 +82,33 @@ function Page() {
   const [agents, setAgents] = useState<Record<string, string>>({});
   const [search, setSearch] = useState("");
   const [buyOpen, setBuyOpen] = useState(false);
+  const [walletLoading, setWalletLoading] = useState(true);
+  const [usageLoading, setUsageLoading] = useState(true);
+  const [historyLoading, setHistoryLoading] = useState(true);
+  const [walletError, setWalletError] = useState<string | null>(null);
+  const [usageError, setUsageError] = useState<string | null>(null);
+  const [historyError, setHistoryError] = useState<string | null>(null);
+
+  const loadWallet = async () => {
+    setWalletLoading(true); setWalletError(null);
+    try {
+      const w = (await authedFetch("/api/v1/credits")) as Wallet;
+      setWallet(w);
+    } catch (e) { setWalletError((e as Error).message); }
+    finally { setWalletLoading(false); }
+  };
+
+  const loadUsage = async () => {
+    setUsageLoading(true); setUsageError(null);
+    try {
+      const u = (await authedFetch("/api/v1/usage?days=90")) as UsageResp;
+      setUsage(u);
+    } catch (e) { setUsageError((e as Error).message); }
+    finally { setUsageLoading(false); }
+  };
 
   const loadHistory = async (pageIndex: number) => {
+    setHistoryLoading(true); setHistoryError(null);
     try {
       const offset = pageIndex * PAGE_SIZE;
       const h = (await authedFetch(`/api/v1/history?limit=${PAGE_SIZE}&offset=${offset}`)) as {
@@ -91,27 +117,14 @@ function Page() {
       setTxs(h.items ?? []);
       setTotal(h.total ?? 0);
       setPage(pageIndex);
-    } catch (e) {
-      toast.error((e as Error).message);
-    }
+    } catch (e) { setHistoryError((e as Error).message); }
+    finally { setHistoryLoading(false); }
   };
 
   const load = async () => {
     setLoading(true);
     try {
-      const [w, u, h] = await Promise.all([
-        authedFetch("/api/v1/credits") as Promise<Wallet>,
-        authedFetch("/api/v1/usage?days=90") as Promise<UsageResp>,
-        authedFetch(`/api/v1/history?limit=${PAGE_SIZE}&offset=0`) as Promise<{
-          items: Tx[]; total: number;
-        }>,
-      ]);
-      setWallet(w);
-      setUsage(u);
-      setTxs(h.items ?? []);
-      setTotal(h.total ?? 0);
-      setPage(0);
-
+      await Promise.all([loadWallet(), loadUsage(), loadHistory(0)]);
       const { data: userData } = await supabase.auth.getUser();
       const uid = userData.user?.id;
       if (uid) {
@@ -137,14 +150,7 @@ function Page() {
   // Live refresh: wallet + usage every 30s
   useEffect(() => {
     const id = setInterval(async () => {
-      try {
-        const [w, u] = await Promise.all([
-          authedFetch("/api/v1/credits") as Promise<Wallet>,
-          authedFetch("/api/v1/usage?days=90") as Promise<UsageResp>,
-        ]);
-        setWallet(w);
-        setUsage(u);
-      } catch { /* silent */ }
+      await Promise.all([loadWallet(), loadUsage()]);
     }, 30_000);
     return () => clearInterval(id);
   }, []);
