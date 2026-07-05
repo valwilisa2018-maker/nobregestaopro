@@ -204,7 +204,7 @@ async function generateFollowUp(
   const j = await res.json().catch(() => ({} as any));
   await consumeAiTokens(db as never, {
     userId: agent.user_id,
-    agentId: agent.id ?? null,
+    agentId: null,
     model: modelId,
     inputTokens: Number(j?.usage?.prompt_tokens ?? 0),
     outputTokens: Number(j?.usage?.completion_tokens ?? 0),
