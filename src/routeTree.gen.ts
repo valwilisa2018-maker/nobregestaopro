@@ -48,6 +48,7 @@ import { Route as ApiV1UsageRouteImport } from './routes/api/v1/usage'
 import { Route as ApiV1PackagesRouteImport } from './routes/api/v1/packages'
 import { Route as ApiV1HistoryRouteImport } from './routes/api/v1/history'
 import { Route as ApiV1CreditsRouteImport } from './routes/api/v1/credits'
+import { Route as ApiV1ConsumeRouteImport } from './routes/api/v1/consume'
 import { Route as ApiV1BuyRouteImport } from './routes/api/v1/buy'
 import { Route as ApiPublicHooksFollowUpsRouteImport } from './routes/api/public/hooks/follow-ups'
 import { Route as ApiPublicHooksBroadcastsRouteImport } from './routes/api/public/hooks/broadcasts'
@@ -251,6 +252,11 @@ const ApiV1CreditsRoute = ApiV1CreditsRouteImport.update({
   path: '/api/v1/credits',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiV1ConsumeRoute = ApiV1ConsumeRouteImport.update({
+  id: '/api/v1/consume',
+  path: '/api/v1/consume',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiV1BuyRoute = ApiV1BuyRouteImport.update({
   id: '/api/v1/buy',
   path: '/api/v1/buy',
@@ -310,6 +316,7 @@ export interface FileRoutesByFullPath {
   '/whatsapp': typeof AuthenticatedWhatsappRoute
   '/white-label': typeof AuthenticatedWhiteLabelRoute
   '/api/v1/buy': typeof ApiV1BuyRoute
+  '/api/v1/consume': typeof ApiV1ConsumeRoute
   '/api/v1/credits': typeof ApiV1CreditsRoute
   '/api/v1/history': typeof ApiV1HistoryRoute
   '/api/v1/packages': typeof ApiV1PackagesRoute
@@ -354,6 +361,7 @@ export interface FileRoutesByTo {
   '/whatsapp': typeof AuthenticatedWhatsappRoute
   '/white-label': typeof AuthenticatedWhiteLabelRoute
   '/api/v1/buy': typeof ApiV1BuyRoute
+  '/api/v1/consume': typeof ApiV1ConsumeRoute
   '/api/v1/credits': typeof ApiV1CreditsRoute
   '/api/v1/history': typeof ApiV1HistoryRoute
   '/api/v1/packages': typeof ApiV1PackagesRoute
@@ -400,6 +408,7 @@ export interface FileRoutesById {
   '/_authenticated/whatsapp': typeof AuthenticatedWhatsappRoute
   '/_authenticated/white-label': typeof AuthenticatedWhiteLabelRoute
   '/api/v1/buy': typeof ApiV1BuyRoute
+  '/api/v1/consume': typeof ApiV1ConsumeRoute
   '/api/v1/credits': typeof ApiV1CreditsRoute
   '/api/v1/history': typeof ApiV1HistoryRoute
   '/api/v1/packages': typeof ApiV1PackagesRoute
@@ -446,6 +455,7 @@ export interface FileRouteTypes {
     | '/whatsapp'
     | '/white-label'
     | '/api/v1/buy'
+    | '/api/v1/consume'
     | '/api/v1/credits'
     | '/api/v1/history'
     | '/api/v1/packages'
@@ -490,6 +500,7 @@ export interface FileRouteTypes {
     | '/whatsapp'
     | '/white-label'
     | '/api/v1/buy'
+    | '/api/v1/consume'
     | '/api/v1/credits'
     | '/api/v1/history'
     | '/api/v1/packages'
@@ -535,6 +546,7 @@ export interface FileRouteTypes {
     | '/_authenticated/whatsapp'
     | '/_authenticated/white-label'
     | '/api/v1/buy'
+    | '/api/v1/consume'
     | '/api/v1/credits'
     | '/api/v1/history'
     | '/api/v1/packages'
@@ -550,6 +562,7 @@ export interface RootRouteChildren {
   AuthRoute: typeof AuthRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   ApiV1BuyRoute: typeof ApiV1BuyRoute
+  ApiV1ConsumeRoute: typeof ApiV1ConsumeRoute
   ApiV1CreditsRoute: typeof ApiV1CreditsRoute
   ApiV1HistoryRoute: typeof ApiV1HistoryRoute
   ApiV1PackagesRoute: typeof ApiV1PackagesRoute
@@ -834,6 +847,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiV1CreditsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/v1/consume': {
+      id: '/api/v1/consume'
+      path: '/api/v1/consume'
+      fullPath: '/api/v1/consume'
+      preLoaderRoute: typeof ApiV1ConsumeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/v1/buy': {
       id: '/api/v1/buy'
       path: '/api/v1/buy'
@@ -943,6 +963,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthRoute: AuthRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
   ApiV1BuyRoute: ApiV1BuyRoute,
+  ApiV1ConsumeRoute: ApiV1ConsumeRoute,
   ApiV1CreditsRoute: ApiV1CreditsRoute,
   ApiV1HistoryRoute: ApiV1HistoryRoute,
   ApiV1PackagesRoute: ApiV1PackagesRoute,
