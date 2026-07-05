@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Bot, Plus, Zap, Sliders, Clock, Copy, Trash2, Loader2, ArrowLeft } from "lucide-react";
+import { Bot, Plus, Zap, Sliders, Clock, Copy, Trash2, Loader2, ArrowLeft, ArrowRight, Hash } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
@@ -81,27 +81,84 @@ export function TabAgents() {
           </Button>
         </div>
       ) : (
-        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+        <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
           {rows.map((r) => (
-            <div key={r.id} className="rounded-2xl border border-border/60 bg-card/40 p-5 space-y-4 hover:border-primary/40 transition-colors">
-              <div className="flex items-start justify-between gap-2">
-                <div className="flex items-center gap-2 min-w-0">
-                  <span className={`h-2 w-2 rounded-full ${r.is_active ? "bg-emerald-500" : "bg-muted-foreground"}`} />
-                  <h3 className="font-semibold truncate">{r.name || "Sem nome"}</h3>
+            <div key={r.id} className="relative group">
+              {/* Ambient glow */}
+              <div className="pointer-events-none absolute -inset-1 rounded-[2rem] bg-gradient-to-r from-emerald-500/20 to-blue-500/20 blur-xl opacity-40 group-hover:opacity-100 transition-opacity duration-700" />
+              {/* Card */}
+              <div className="relative rounded-[2rem] border border-white/10 bg-[hsl(240_10%_6%/0.8)] backdrop-blur-2xl p-6 shadow-2xl overflow-hidden">
+                {/* Header */}
+                <div className="flex items-center justify-between mb-8">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className="relative shrink-0">
+                      <div className={`h-3 w-3 rounded-full ${r.is_active ? "bg-emerald-500" : "bg-muted-foreground"}`} />
+                      {r.is_active && <div className="absolute inset-0 h-3 w-3 rounded-full bg-emerald-500 animate-ping opacity-75" />}
+                    </div>
+                    <h3 className="text-white font-semibold text-xl tracking-tight truncate">{r.name || "Sem nome"}</h3>
+                  </div>
+                  <div className="flex gap-2 shrink-0">
+                    <button onClick={() => duplicate(r)} className="p-2 rounded-xl text-slate-400 hover:bg-white/5 hover:text-white transition-colors">
+                      <Copy className="h-4 w-4" />
+                    </button>
+                    <button onClick={() => remove(r)} className="p-2 rounded-xl text-slate-400 hover:bg-red-500/10 hover:text-red-400 transition-colors">
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  </div>
                 </div>
-                <div className="flex gap-1 shrink-0">
-                  <button onClick={() => duplicate(r)} className="p-1.5 rounded-md hover:bg-primary/10 text-muted-foreground hover:text-primary"><Copy className="h-4 w-4" /></button>
-                  <button onClick={() => remove(r)} className="p-1.5 rounded-md hover:bg-destructive/10 text-muted-foreground hover:text-destructive"><Trash2 className="h-4 w-4" /></button>
+
+                {/* Info */}
+                <div className="space-y-4 mb-10">
+                  <div className="flex items-start gap-4 p-3 rounded-2xl bg-white/[0.03] border border-white/[0.05]">
+                    <div className="mt-0.5 p-2 rounded-lg bg-blue-500/10 text-blue-400">
+                      <Zap className="h-4 w-4" />
+                    </div>
+                    <div className="flex flex-col min-w-0">
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Model Intelligence</span>
+                      <span className="text-sm text-slate-200 font-medium truncate">IA · Configurações Globais</span>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="flex flex-col gap-1 p-3 rounded-2xl bg-white/[0.03] border border-white/[0.05]">
+                      <div className="flex items-center gap-2 text-slate-500">
+                        <Sliders className="h-3 w-3" />
+                        <span className="text-[10px] font-bold uppercase tracking-wider">Temp</span>
+                      </div>
+                      <span className="text-sm text-slate-200">{r.temperature ?? 0.7}</span>
+                    </div>
+                    <div className="flex flex-col gap-1 p-3 rounded-2xl bg-white/[0.03] border border-white/[0.05]">
+                      <div className="flex items-center gap-2 text-slate-500">
+                        <Hash className="h-3 w-3" />
+                        <span className="text-[10px] font-bold uppercase tracking-wider">Tokens</span>
+                      </div>
+                      <span className="text-sm text-slate-200">{r.max_tokens ?? 2048}</span>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-between px-3">
+                    <div className="flex items-center gap-3 text-slate-400">
+                      <Clock className="h-4 w-4" />
+                      <span className="text-sm font-medium">Timer Mode</span>
+                    </div>
+                    <span className="text-xs font-semibold px-2 py-1 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                      Humanizado
+                    </span>
+                  </div>
                 </div>
+
+                {/* CTA */}
+                <button
+                  onClick={() => setEditing(r)}
+                  className="w-full group/btn relative py-4 bg-white text-black font-bold rounded-2xl overflow-hidden transition-all duration-300 active:scale-95 shadow-[0_0_20px_rgba(255,255,255,0.1)]"
+                >
+                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-black/5 to-transparent -translate-x-full group-hover/btn:translate-x-full transition-transform duration-700" />
+                  <span className="relative flex items-center justify-center gap-2">
+                    Configurar Agente
+                    <ArrowRight className="h-4 w-4 transition-transform group-hover/btn:translate-x-1" />
+                  </span>
+                </button>
               </div>
-              <div className="space-y-1.5 text-xs text-muted-foreground">
-                <div className="flex items-center gap-2"><Zap className="h-3.5 w-3.5 text-primary" /> IA · Configurações Globais</div>
-                <div className="flex items-center gap-2"><Sliders className="h-3.5 w-3.5 text-primary" /> Temp: {r.temperature ?? 0.7} | Max Tokens: {r.max_tokens ?? 2048}</div>
-                <div className="flex items-center gap-2"><Clock className="h-3.5 w-3.5 text-primary" /> Timer: humanizado</div>
-              </div>
-              <Button onClick={() => setEditing(r)} className="w-full rounded-xl font-bold" variant="outline" style={{ borderColor: "hsl(var(--primary) / 0.4)", color: "hsl(var(--primary))" }}>
-                Configurar Agente
-              </Button>
             </div>
           ))}
         </div>
