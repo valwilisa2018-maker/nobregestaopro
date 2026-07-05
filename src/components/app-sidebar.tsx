@@ -49,7 +49,7 @@ const groups = [
     label: "Financeiro",
     items: [
       { title: "Meu Plano", url: "/billing", icon: CreditCard },
-      { title: "Créditos de IA", url: "/plans", icon: Coins },
+      { title: "Créditos IA", url: "/credits", icon: Coins },
     ],
   },
   {

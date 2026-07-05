@@ -1,70 +1,87 @@
-# Objetivo
 
-Fazer as 10 seções do editor de agente pararem de ser só UI e serem honradas em runtime pelo webhook Evolution e pelo runner de follow-ups.
+# Módulo "Créditos IA"
 
-# Estado atual
+Módulo premium para o cliente ver, consumir e comprar créditos de IA sem precisar entender tokens.
 
-- UI: 10 seções salvam em `agents.tools` (JSON) e em colunas dedicadas (`system_prompt`, `temperature`, `model`, `memory`, `is_active`).
-- Backend (`/api/public/evolution.$instance.ts`): já respeita `system_prompt`, `temperature`, `model`, provider, memória (últimas N msgs), cota de plano e envia via Evolution.
-- Backend (`/api/public/hooks/follow-ups.ts`): scaffold existe, mas não roda de fato os disparos.
-- **Não respeitado hoje**: conversas (marca não-lida, msg única, cancelar em nova), tempo (delay por caractere, delay máx, espera, resposta padrão desconhecido, intervenção humana, reativação), alertas (WhatsApp/handoff), follow-up (agenda + mensagens + IA-generated), palavras-chave (allow/block/regex), horário (janela + almoço + dias + datas bloqueadas), áudio (STT de áudio recebido + TTS de resposta), mídia (envio condicional).
+## Escopo entregue agora
+1. **Banco de dados** (novas tabelas + funções)
+2. **Página `/credits`** com dashboard + histórico + botão comprar
+3. **Modal premium** com 4 pacotes
+4. **Consumo automático** via função no banco (chamada pelos agentes)
+5. **Bloqueio de IA** quando saldo zera
 
-# Entregas (4 ondas)
+Integração de **pagamento fica preparada mas desativada** (botão "Comprar" cria um pedido `pending`). A ativação real (Stripe/Mercado Pago/PIX) exige plano Pro + escolha de provedor e será uma etapa separada.
 
-## Onda 1 — Núcleo de comportamento (sem áudio/mídia)
+## 1. Banco de dados
 
-Ajustar `evolution.$instance.ts` para aplicar antes de responder:
+Novas tabelas:
 
-1. **Palavras-chave** (`ext.keywords`): modos `allow` (só responde se casar), `block` (ignora se casar), `regex`. Se bloquear → registra em `logs` e retorna 200 sem responder.
-2. **Horário** (`ext.hours`): checa dia da semana, janela `start`–`end`, pausa almoço, `blockedDates`. Fora do horário → mensagem padrão configurável ou silêncio.
-3. **Tempo** (`ext.timing`): `wait` (debounce por conversa via `conversations.metadata.pending_until`), `delayChar` + `delayMax` (delay artificial antes do envio), `unknownMsg` como fallback quando IA não gera texto, `humanIntervention`/`reactivation` (marca conversa em pausa quando operador humano manda mensagem outbound).
-4. **Conversas** (`ext.conversation`): `keepUnread` (não zera `unread_count`), `singleMessage` (concatena múltiplas mensagens curtas dentro da janela `wait` numa só resposta), `cancelOnNew` (descarta job pendente se nova msg entrar), `stopAfterManual` (pausa agente se humano respondeu).
-5. **Alertas** (`ext.alerts`): quando handoff detectado ou erro grave, envia mensagem via Evolution para número admin definido em `profiles.alert_phone` (nova coluna) e grava `billing_events`/`logs`.
+- `credit_wallets` — 1 por usuário
+  - `user_id`, `plan_tokens_remaining`, `extra_tokens_remaining`, `plan_tokens_reset_at`, `updated_at`
+- `credit_transactions` — histórico consolidado (débitos e créditos)
+  - `user_id`, `agent_id`, `model`, `input_tokens`, `output_tokens`, `total_tokens`, `cost_cents`, `kind` (`usage` | `purchase` | `plan_grant`), `status`, `occurred_at`
+- `credit_packages` — catálogo dos 4 pacotes (5M, 20M, 50M, 100M)
+- `credit_orders` — pedidos de compra (`pending` | `paid` | `failed`), `provider` opcional
 
-Persistência mínima adicionada: `conversations.metadata` (jsonb) para `pending_until`, `pending_texts[]`, `agent_paused_until`, `last_manual_at`. Nova coluna `profiles.alert_phone`.
+Funções (RPC):
+- `consume_ai_tokens(user, agent, model, input, output, cost_cents)` — desconta primeiro do plano, depois do extra, grava transação, devolve `{allowed, remaining}`
+- `grant_plan_tokens(user)` — restaura tokens do plano no início do ciclo (mantém extras)
+- `credit_purchase(user, package_id)` — cria order e, quando marcada `paid`, credita `extra_tokens_remaining`
 
-## Onda 2 — Follow-up real
+RLS: usuário só lê/atualiza a própria wallet, transações e orders. Pacotes são públicos read-only.
 
-Reescrever `/api/public/hooks/follow-ups.ts` (cron pg_cron a cada 5 min via `pg_net`):
+## 2. Menu lateral
 
-- Para cada conversa com `last_message_at` > `checkMin` minutos e `follow_up_step` < `count`:
-  - Se `respectHours` → aplica `ext.hours`.
-  - Se `aiGenerated` → chama Lovable AI com histórico para gerar próxima abordagem; senão pega `messages[step]`.
-  - Envia via Evolution, incrementa `follow_up_step`, agenda próximo `next_follow_up_at = now + intervalHrs`.
-- Novas colunas em `conversations`: `follow_up_step int`, `next_follow_up_at timestamptz`, `follow_up_paused bool`.
-- Job `pg_cron` chamando o endpoint com `apikey` (anon).
+Renomear/adicionar item **"Créditos IA"** → `/credits` com ícone `Coins` (o item atual já existe como "Créditos de IA" → `/plans`; vou trocar rota para `/credits` e manter os planos como sub-fluxo do módulo).
 
-## Onda 3 — Áudio com IA (ElevenLabs)
+## 3. Página `/credits` — Dashboard
 
-- Solicitar conexão do connector **ElevenLabs** (sem pedir chave manual).
-- Webhook Evolution: quando mensagem recebida for áudio (`type = "audioMessage"`), baixa o media, envia para `openai/gpt-4o-mini-transcribe` via Lovable AI e usa o transcript como input.
-- Resposta: se `ext.audio.enabled` e (`ext.audio.mirrorFormat` && input foi áudio) ou (`ext.audio.smartAudio` && resposta > `smartAudioChars`) → gera TTS via ElevenLabs `eleven_turbo_v2_5`, faz upload no bucket `agent-audio` e envia pelo Evolution como `audio`. Caso contrário, texto normal.
-- `ext.audio.replaceText`, `autoReply`, `asTool` respeitados.
+5 cartões no topo:
+1. **Créditos Disponíveis** — total (plano + extra) formatado como tokens, com barra de progresso vs. total do plano
+2. **Plano Atual** — nome, tokens inclusos, dias até renovação
+3. **Consumo Hoje** — soma de `usage` do dia
+4. **Consumo no Mês** — soma de `usage` do mês
+5. **Estimativa Restante** — `saldo / média_diária` → "durará ~X dias"
 
-## Onda 4 — Mídia com IA
+Botão grande **Comprar Créditos** abre o modal.
 
-- Novo bucket `agent-media` (Storage) + migração.
-- Cada item em `ext.media.items[]` guarda `storage_path`, `mode` (`keyword`|`ai-decide`|`always`), `keywords`, `description`.
-- No webhook: se `mode=keyword` e casar, envia via Evolution como `image`/`video`/`document`. Se `mode=ai-decide`, passamos as `description` como ferramentas para a IA escolher via tool-call.
-- Upload feito pela UI (`MediaSection` ganha input de arquivo real).
+## 4. Histórico de consumo
 
-# Detalhes técnicos
+Tabela com: Data, Agente, Modelo, Input, Output, Total, Custo, Status.
+Recursos: busca por agente/modelo, filtros (data, tipo), paginação, **Exportar CSV** (client-side).
+Exportar Excel: entrego CSV compatível com Excel; XLSX real exigiria lib extra (aviso o usuário).
 
-- Sem custom shared-secret: cron chama endpoint público com `apikey: <anon>`.
-- Todo estado por-conversa vai em `conversations.metadata` (jsonb) para evitar corridas de coluna.
-- Delay artificial usa `setTimeout` dentro do handler (Worker aguenta até ~30s; máximo `delayMax` capado em 25s).
-- Debounce `wait` reusa `pending_until`: mensagens que chegam antes só empilham em `pending_texts`; a última dispara o processamento.
-- Alertas: reutiliza a mesma `connection_id` do agente para enviar ao `alert_phone`.
-- Auditoria: cada decisão (bloqueio por palavra, fora de horário, follow-up disparado, TTS gerado) escreve em `logs` para o dashboard de conversas já existente.
+## 5. Modal de compra
 
-# Ordem de execução
+4 cards premium (mesma estética verde/gradiente dos planos):
+- 5M — R$ 29,90
+- 20M — R$ 99,90 (destaque "Mais escolhido")
+- 50M — R$ 219,90
+- 100M — R$ 399,90 (destaque "Melhor custo")
 
-1. Migração: colunas novas (`conversations.metadata`, `follow_up_*`, `profiles.alert_phone`) + buckets.
-2. Onda 1 no `evolution.$instance.ts`.
-3. Onda 2 + cron.
-4. Onda 3 (ElevenLabs).
-5. Onda 4 (mídia).
+Botão **Comprar Agora** → cria `credit_order` `pending` e mostra toast "Integração de pagamento em breve". Estrutura pronta para plugar Stripe/MP depois.
 
-Cada onda termina com verificação pelos logs (`supabase--edge_function_logs` equivalente / `logs` table + preview).
+## 6. Consumo automático
 
-Vou pedir confirmação antes de rodar a migração de cada onda; as edições de código dentro da onda saem em lote.
+Onde os agentes já chamam IA (edge functions / server fns existentes), adicionar chamada a `consume_ai_tokens` **antes** da chamada real ao modelo:
+- se `allowed=false` → devolver mensagem padrão de saldo esgotado
+- se `allowed=true` → prosseguir e depois lançar consumo com tokens reais devolvidos pela API
+
+Vou implementar a função RPC + um wrapper `useCreditGuard` do lado servidor. Ajuste dos pontos exatos de chamada nos agentes: se houver mais de 1–2 locais, listo e ajusto todos.
+
+## 7. Bloqueio quando zera
+
+Componente `CreditsExhaustedBanner` global (junto do `PlanStatus`) aparece quando saldo total = 0, com CTA "Comprar Créditos".
+
+## 8. Renovação do ciclo
+
+Função `grant_plan_tokens` chamada:
+- na primeira leitura da wallet após `plan_tokens_reset_at < now()`
+- garante que **extras nunca expiram**
+
+## Fora do escopo desta entrega
+- Integração real com Stripe / Mercado Pago / Asaas / Pagar.me / PagSeguro / PIX / Boleto (cada uma é uma etapa própria — recomendo começar por **Stripe seamless** depois desta entrega)
+- Geração de XLSX nativo (entrego CSV)
+- Webhooks de pagamento reais (a estrutura de `credit_orders` já suporta)
+
+Confirma que posso seguir?
