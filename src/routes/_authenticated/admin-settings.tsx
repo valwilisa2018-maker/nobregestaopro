@@ -76,7 +76,7 @@ function Page() {
       title="Configurações Globais"
       description="Credenciais globais da plataforma. Estas configurações são compartilhadas por todos os usuários."
       icon={<Settings className="h-6 w-6" />}
-      status="admin"
+      status="ativo"
     >
       <Card className="border-primary/20">
         <CardHeader>
