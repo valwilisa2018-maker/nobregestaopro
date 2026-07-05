@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { CreditCard, Check, Loader2, Zap } from "lucide-react";
+import { CreditCard, Check, Loader2, Zap, Rocket, Briefcase, Building2, Crown, type LucideIcon } from "lucide-react";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { PageShell } from "@/components/page-shell";
@@ -31,6 +31,15 @@ const formatTokens = (n: number) => {
   if (n >= 1_000_000) return `${(n / 1_000_000).toLocaleString("pt-BR", { maximumFractionDigits: 1 })} mi de créditos`;
   if (n >= 1_000) return `${(n / 1_000).toLocaleString("pt-BR")} mil créditos`;
   return `${n} créditos`;
+};
+
+const iconForPlan = (name: string): LucideIcon => {
+  const n = name.toLowerCase();
+  if (n.includes("start") || n.includes("inicial") || n.includes("basic")) return Rocket;
+  if (n.includes("pro")) return Briefcase;
+  if (n.includes("business") || n.includes("empresarial")) return Building2;
+  if (n.includes("enterprise") || n.includes("premium") || n.includes("ultimate")) return Crown;
+  return Zap;
 };
 
 function Page() {
@@ -97,28 +106,35 @@ function Page() {
             <div
               key={p.id}
               style={{ animationDelay: `${plans.indexOf(p) * 80}ms`, animationFillMode: "both" }}
-              className={`group relative flex flex-col p-6 rounded-2xl overflow-hidden transition-all duration-300 ease-out animate-fade-in hover:-translate-y-1.5 hover:shadow-xl ${
+              className={`group relative flex flex-col p-6 pt-8 rounded-2xl transition-all duration-300 ease-out animate-fade-in hover:-translate-y-1.5 hover:shadow-xl ${
                 p.highlight
                   ? "bg-gradient-to-b from-emerald-500/10 via-card to-card border-2 border-emerald-500/60 shadow-lg shadow-emerald-500/10 hover:shadow-emerald-500/30"
                   : "bg-gradient-to-b from-primary/[0.06] via-card to-card border border-border hover:border-primary/40 hover:shadow-primary/10"
               }`}
             >
-              {/* subtle top glow */}
-              <div
-                className={`pointer-events-none absolute inset-x-0 -top-24 h-40 opacity-60 blur-2xl ${
-                  p.highlight ? "bg-emerald-500/20" : "bg-primary/10"
-                }`}
-              />
+              {/* subtle top glow (clipped so it doesn't hide the badge) */}
+              <div className="pointer-events-none absolute inset-0 rounded-2xl overflow-hidden">
+                <div className={`absolute inset-x-0 -top-24 h-40 opacity-60 blur-2xl ${p.highlight ? "bg-emerald-500/20" : "bg-primary/10"}`} />
+              </div>
               {p.highlight && (
-                <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-emerald-500 text-white text-[10px] font-black uppercase tracking-widest px-3 py-1 rounded-full shadow-lg shadow-emerald-500/30">
+                <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-emerald-500 text-white text-[10px] font-black uppercase tracking-widest px-3 py-1 rounded-full shadow-lg shadow-emerald-500/30 whitespace-nowrap z-10">
                   Mais vendido
                 </div>
               )}
 
               {/* Header */}
-              <div className="relative flex justify-between items-start">
-                <h3 className={`text-base font-bold ${p.highlight ? "text-foreground" : "text-foreground/80"}`}>{p.name}</h3>
-                {p.highlight && <Zap className="w-5 h-5 text-emerald-400" fill="currentColor" />}
+              <div className="relative flex justify-between items-center">
+                <div className="flex items-center gap-2">
+                  {(() => {
+                    const Icon = iconForPlan(p.name);
+                    return (
+                      <div className={`p-1.5 rounded-lg ${p.highlight ? "bg-emerald-500/15 text-emerald-400" : "bg-primary/10 text-primary"}`}>
+                        <Icon className="w-4 h-4" strokeWidth={2.5} />
+                      </div>
+                    );
+                  })()}
+                  <h3 className={`text-base font-bold ${p.highlight ? "text-foreground" : "text-foreground/80"}`}>{p.name}</h3>
+                </div>
               </div>
               <p className="relative text-xs text-muted-foreground mt-1.5 leading-relaxed min-h-[32px]">
                 {p.description || "\u00A0"}
