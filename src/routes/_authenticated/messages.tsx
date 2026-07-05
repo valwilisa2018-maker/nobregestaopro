@@ -2016,15 +2016,15 @@ function MessagesPage() {
                               )}
                             </a>
                           );
-                        })() : (
-                          <div className="pr-14">
-                            {(() => {
-                              const url = extractFirstUrl(m.content ?? "");
-                              return url ? <LinkPreview url={url} /> : null;
-                            })()}
-                            <div className="whitespace-pre-wrap break-words">{m.content}</div>
-                          </div>
-                        )}
+                        })() : (() => {
+                          const url = extractFirstUrl(m.content ?? "");
+                          return (
+                            <div className={`pr-14 ${url ? "w-[260px] max-w-full" : ""}`}>
+                              {url && <LinkPreview url={url} />}
+                              <div className="whitespace-pre-wrap break-words">{m.content}</div>
+                            </div>
+                          );
+                        })()}
                         <div className="mt-0.5 flex items-center justify-end gap-1 text-[10px] text-gray-500">
                           {starred.has(m.id) && <Star className="h-3 w-3 fill-yellow-400 text-yellow-500" />}
                           {(m.metadata as { edited?: boolean } | null)?.edited && (
