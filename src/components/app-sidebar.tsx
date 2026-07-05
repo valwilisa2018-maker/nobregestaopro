@@ -68,6 +68,7 @@ const adminGroup = {
     { title: "Conexões", url: "/connections", icon: Plug },
     { title: "Webhooks", url: "/webhooks", icon: Puzzle },
     { title: "API Keys", url: "/api", icon: Shield },
+    { title: "Configurações Globais", url: "/admin-settings", icon: Settings },
     { title: "White Label", url: "/white-label", icon: Palette },
   ],
 };
