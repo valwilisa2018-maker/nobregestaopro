@@ -151,7 +151,9 @@ export function AgentEditor({ agent, onSaved, onCancel }: Props) {
       }
       onSaved();
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Erro ao salvar");
+      console.error("[agent save]", e);
+      const msg = e instanceof Error ? e.message : (typeof e === "object" && e && "message" in e ? String((e as { message: unknown }).message) : JSON.stringify(e));
+      toast.error(`Erro ao salvar: ${msg}`);
     } finally { setSaving(false); }
   }
 
