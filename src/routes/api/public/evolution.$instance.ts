@@ -42,7 +42,7 @@ const MEDIA_BUCKET = "agent-media";
 // Limite de recebimento de mídia: 200 MB por arquivo
 const MAX_INBOUND_MEDIA_BYTES = 200 * 1024 * 1024;
 // Evita derrubar o worker com vídeo em base64 no webhook.
-const MAX_WEBHOOK_BODY_BYTES = 25 * 1024 * 1024;
+const MAX_WEBHOOK_BODY_BYTES = 5 * 1024 * 1024;
 const MAX_INLINE_MEDIA_BYTES = 25 * 1024 * 1024;
 let bucketLimitEnsured = false;
 
@@ -1114,17 +1114,21 @@ async function disableWebhookBase64(conn: { url_api: string | null; api_key: str
   const cur = await found.json().catch(() => ({} as any));
   const url = cur?.url ?? cur?.webhookUrl;
   if (!url) return;
+  const events = cur?.events ?? ["MESSAGES_UPSERT", "MESSAGES_UPDATE", "CONNECTION_UPDATE", "QRCODE_UPDATED", "PRESENCE_UPDATE"];
+  const byEvents = cur?.webhookByEvents ?? cur?.webhook_by_events ?? cur?.byEvents ?? false;
   await fetch(`${base}/webhook/set/${conn.instance_name}`, {
     method: "POST",
     headers: { "Content-Type": "application/json", apikey: conn.api_key ?? "" },
     body: JSON.stringify({
-      webhook: {
-        enabled: true,
-        url,
-        byEvents: cur?.webhookByEvents ?? cur?.byEvents ?? false,
-        base64: false,
-        events: cur?.events ?? ["MESSAGES_UPSERT", "MESSAGES_UPDATE", "CONNECTION_UPDATE", "QRCODE_UPDATED", "PRESENCE_UPDATE"],
-      },
+      enabled: true,
+      url,
+      webhookByEvents: byEvents,
+      webhook_by_events: byEvents,
+      byEvents,
+      webhookBase64: false,
+      webhook_base64: false,
+      base64: false,
+      events,
     }),
   });
 }
