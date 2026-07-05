@@ -536,6 +536,19 @@ function MessagesPage() {
   useEffect(() => { loadContactsRef.current = loadContacts; }, [loadContacts]);
   useEffect(() => { loadContacts(); }, [loadContacts]);
 
+  // Sync missing contact names from WhatsApp (once per session, when needed)
+  const syncedNamesRef = useRef(false);
+  useEffect(() => {
+    if (!user || syncedNamesRef.current) return;
+    if (!contacts.length) return;
+    const missing = contacts.filter((c) => !c.name || !c.name.trim());
+    if (!missing.length) return;
+    syncedNamesRef.current = true;
+    syncNamesFn({})
+      .then((r) => { if (r?.updated) loadContactsRef.current?.(); })
+      .catch(() => { /* ignore */ });
+  }, [user, contacts, syncNamesFn]);
+
   // Load instances (connections) and per-contact connection membership map
   useEffect(() => {
     if (!user) return;
