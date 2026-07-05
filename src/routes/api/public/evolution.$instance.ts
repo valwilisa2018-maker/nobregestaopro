@@ -46,6 +46,16 @@ const MAX_WEBHOOK_BODY_BYTES = 25 * 1024 * 1024;
 const MAX_INLINE_MEDIA_BYTES = 25 * 1024 * 1024;
 let bucketLimitEnsured = false;
 
+
+class PayloadTooLargeError extends Error {
+  bytes: number;
+  constructor(bytes: number) {
+    super(`Payload excede o limite seguro (${(bytes / 1024 / 1024).toFixed(1)} MB).`);
+    this.name = "PayloadTooLargeError";
+    this.bytes = bytes;
+  }
+}
+
 class MediaTooLargeError extends Error {
   bytes: number;
   constructor(bytes: number) {
@@ -236,8 +246,19 @@ export const Route = createFileRoute("/api/public/evolution/$instance")({
         }
 
         let payload: any = null;
-        const rawBody = await request.text().catch(() => "");
-        try { payload = rawBody ? JSON.parse(rawBody) : null; } catch { payload = null; }
+        const rawBody = await readRequestTextLimited(request, MAX_WEBHOOK_BODY_BYTES).catch(async (e) => {
+          if (e instanceof PayloadTooLargeError) {
+            await disableWebhookBase64(commandConn).catch(() => undefined);
+            await supabaseAdmin.from("logs").insert({
+              user_id: conn.user_id, level: "warn", source: `evolution:${instance}`,
+              message: "webhook stream too large; disabled base64 media mode",
+              metadata: { bytes: e.bytes, limit: MAX_WEBHOOK_BODY_BYTES } as never,
+            } as never);
+          }
+          return "";
+        });
+        if (!rawBody) return Response.json({ ok: true, skipped: "empty-or-too-large" });
+        try { payload = JSON.parse(rawBody); } catch { payload = null; }
         const event = payload?.event;
         // Successful match — record which key type authenticated the call.
         try {
@@ -1053,6 +1074,36 @@ async function sendMedia(
 async function signedMediaUrl(db: { storage: { from: (b: string) => { createSignedUrl: (p: string, s: number) => Promise<{ data: { signedUrl: string } | null }> } } }, path: string) {
   const { data } = await db.storage.from("agent-media").createSignedUrl(path, 60 * 10);
   return data?.signedUrl ?? null;
+}
+
+
+async function readRequestTextLimited(request: Request, maxBytes: number) {
+  if (!request.body) return "";
+  const reader = request.body.getReader();
+  const chunks: Uint8Array[] = [];
+  let total = 0;
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    if (!value) continue;
+    total += value.byteLength;
+    if (total > maxBytes) {
+      try { await reader.cancel(); } catch { /* ignore */ }
+      throw new PayloadTooLargeError(total);
+    }
+    chunks.push(value);
+  }
+  return new TextDecoder().decode(concatUint8(chunks, total));
+}
+
+function concatUint8(chunks: Uint8Array[], total: number) {
+  const out = new Uint8Array(total);
+  let offset = 0;
+  for (const chunk of chunks) {
+    out.set(chunk, offset);
+    offset += chunk.byteLength;
+  }
+  return out;
 }
 
 async function disableWebhookBase64(conn: { url_api: string | null; api_key: string | null; instance_name: string | null }) {
