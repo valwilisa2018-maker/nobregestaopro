@@ -2113,7 +2113,6 @@ function MessagesPage() {
                             );
                           })()}
                         </div>
-                      </div>
                         {(m.metadata as { reaction?: string } | null)?.reaction && (
                           <button
                             onClick={() => performReact(m, (m.metadata as { reaction?: string }).reaction!)}
@@ -2123,6 +2122,7 @@ function MessagesPage() {
                             {(m.metadata as { reaction?: string }).reaction}
                           </button>
                         )}
+                      </div>
                     </div>
                   );
                 })}
