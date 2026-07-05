@@ -1,18 +1,16 @@
 import { useState } from "react";
-import { Bot, ScrollText, Smartphone, KeyRound } from "lucide-react";
+import { Bot, ScrollText, Smartphone } from "lucide-react";
 import { PageShell } from "@/components/page-shell";
 import { TabAgents } from "./tab-agents";
 import { TabLogs } from "./tab-logs";
 import { TabProviders } from "./tab-providers";
-import { TabApiKeys } from "./tab-api-keys";
 
-type TabId = "agents" | "logs" | "providers" | "keys";
+type TabId = "agents" | "logs" | "providers";
 
 const TABS: { id: TabId; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
   { id: "agents", label: "Meus Agentes", icon: Bot },
   { id: "logs", label: "Logs", icon: ScrollText },
   { id: "providers", label: "Provedores", icon: Smartphone },
-  { id: "keys", label: "Chaves API", icon: KeyRound },
 ];
 
 export function AgentsPage() {
@@ -25,7 +23,7 @@ export function AgentsPage() {
       icon={<Bot className="h-6 w-6" />}
       status="ativo"
     >
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-2 rounded-2xl border border-border/60 bg-card/40 p-2">
+      <div className="grid grid-cols-2 md:grid-cols-3 gap-2 rounded-2xl border border-border/60 bg-card/40 p-2">
         {TABS.map((t) => {
           const active = tab === t.id;
           return (
@@ -50,7 +48,6 @@ export function AgentsPage() {
         {tab === "agents" && <TabAgents />}
         {tab === "logs" && <TabLogs />}
         {tab === "providers" && <TabProviders />}
-        {tab === "keys" && <TabApiKeys />}
       </div>
     </PageShell>
   );
