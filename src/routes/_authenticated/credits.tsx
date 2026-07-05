@@ -19,10 +19,10 @@ export const Route = createFileRoute("/_authenticated/credits")({
 });
 
 type Wallet = {
-  user_id: string;
-  plan_tokens_remaining: number;
-  extra_tokens_remaining: number;
-  plan_tokens_reset_at: string;
+  plan_remaining: number;
+  extra_remaining: number;
+  total: number;
+  resets_at: string | null;
 };
 
 type Tx = {
@@ -39,6 +39,23 @@ type Tx = {
 };
 
 type PlanInfo = { name: string | null; tokens_included: number };
+type UsageResp = {
+  days: number;
+  total_tokens: number;
+  total_cost_cents: number;
+  by_model: Record<string, number>;
+};
+
+const PAGE_SIZE = 25;
+
+async function authedFetch(path: string) {
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session) throw new Error("no_session");
+  const res = await fetch(path, { headers: { Authorization: `Bearer ${session.access_token}` } });
+  const body = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error((body as { error?: string })?.error ?? `HTTP ${res.status}`);
+  return body;
+}
 
 const fmtTokens = (n: number) => {
   if (n >= 1_000_000) return `${(n / 1_000_000).toLocaleString("pt-BR", { maximumFractionDigits: 2 })}M`;
@@ -53,57 +70,80 @@ function Page() {
   const [wallet, setWallet] = useState<Wallet | null>(null);
   const [plan, setPlan] = useState<PlanInfo>({ name: null, tokens_included: 0 });
   const [txs, setTxs] = useState<Tx[]>([]);
+  const [total, setTotal] = useState(0);
+  const [page, setPage] = useState(0);
+  const [usage, setUsage] = useState<UsageResp | null>(null);
   const [agents, setAgents] = useState<Record<string, string>>({});
   const [search, setSearch] = useState("");
   const [buyOpen, setBuyOpen] = useState(false);
 
+  const loadHistory = async (pageIndex: number) => {
+    try {
+      const offset = pageIndex * PAGE_SIZE;
+      const h = (await authedFetch(`/api/v1/history?limit=${PAGE_SIZE}&offset=${offset}`)) as {
+        items: Tx[]; total: number; limit: number; offset: number;
+      };
+      setTxs(h.items ?? []);
+      setTotal(h.total ?? 0);
+      setPage(pageIndex);
+    } catch (e) {
+      toast.error((e as Error).message);
+    }
+  };
+
   const load = async () => {
     setLoading(true);
-    const { data: userData } = await supabase.auth.getUser();
-    const uid = userData.user?.id;
-    if (!uid) { setLoading(false); return; }
+    try {
+      const [w, u, h] = await Promise.all([
+        authedFetch("/api/v1/credits") as Promise<Wallet>,
+        authedFetch("/api/v1/usage?days=30") as Promise<UsageResp>,
+        authedFetch(`/api/v1/history?limit=${PAGE_SIZE}&offset=0`) as Promise<{
+          items: Tx[]; total: number;
+        }>,
+      ]);
+      setWallet(w);
+      setUsage(u);
+      setTxs(h.items ?? []);
+      setTotal(h.total ?? 0);
+      setPage(0);
 
-    // ensure wallet exists / cycle refresh
-    await supabase.rpc("ensure_credit_wallet", { _user_id: uid });
-
-    const [walletRes, profileRes, txsRes, agentsRes] = await Promise.all([
-      supabase.from("credit_wallets").select("*").eq("user_id", uid).maybeSingle(),
-      supabase.from("profiles").select("plan_id, plans(name, tokens_included)").eq("id", uid).maybeSingle(),
-      supabase.from("credit_transactions").select("*").eq("user_id", uid).order("occurred_at", { ascending: false }).limit(200),
-      supabase.from("agents").select("id, name"),
-    ]);
-    setLoading(false);
-    if (walletRes.data) setWallet(walletRes.data as unknown as Wallet);
-    const p = (profileRes.data as { plans: { name: string; tokens_included: number } | null } | null)?.plans;
-    setPlan({ name: p?.name ?? null, tokens_included: p?.tokens_included ?? 0 });
-    setTxs((txsRes.data ?? []) as unknown as Tx[]);
-    const map: Record<string, string> = {};
-    (agentsRes.data ?? []).forEach((a: { id: string; name: string }) => { map[a.id] = a.name; });
-    setAgents(map);
+      const { data: userData } = await supabase.auth.getUser();
+      const uid = userData.user?.id;
+      if (uid) {
+        const [profileRes, agentsRes] = await Promise.all([
+          supabase.from("profiles").select("plan_id, plans(name, tokens_included)").eq("id", uid).maybeSingle(),
+          supabase.from("agents").select("id, name"),
+        ]);
+        const p = (profileRes.data as { plans: { name: string; tokens_included: number } | null } | null)?.plans;
+        setPlan({ name: p?.name ?? null, tokens_included: p?.tokens_included ?? 0 });
+        const map: Record<string, string> = {};
+        (agentsRes.data ?? []).forEach((a: { id: string; name: string }) => { map[a.id] = a.name; });
+        setAgents(map);
+      }
+    } catch (e) {
+      toast.error((e as Error).message);
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => { load(); }, []);
 
-  const totalAvailable = (wallet?.plan_tokens_remaining ?? 0) + (wallet?.extra_tokens_remaining ?? 0);
+  const totalAvailable = wallet?.total ?? 0;
   const planIncluded = plan.tokens_included || 1;
-  const planPct = Math.max(0, Math.min(100, Math.round(((wallet?.plan_tokens_remaining ?? 0) / planIncluded) * 100)));
+  const planPct = Math.max(0, Math.min(100, Math.round(((wallet?.plan_remaining ?? 0) / planIncluded) * 100)));
 
   const daysToReset = useMemo(() => {
-    if (!wallet) return 0;
-    return Math.max(0, Math.ceil((new Date(wallet.plan_tokens_reset_at).getTime() - Date.now()) / 86400000));
+    if (!wallet?.resets_at) return 0;
+    return Math.max(0, Math.ceil((new Date(wallet.resets_at).getTime() - Date.now()) / 86400000));
   }, [wallet]);
 
   const today = new Date().toDateString();
-  const monthStart = new Date(); monthStart.setDate(1); monthStart.setHours(0,0,0,0);
-
   const consumoHoje = txs
     .filter((t) => t.kind === "usage" && t.status === "ok" && new Date(t.occurred_at).toDateString() === today)
     .reduce((s, t) => s + t.total_tokens, 0);
-  const consumoMes = txs
-    .filter((t) => t.kind === "usage" && t.status === "ok" && new Date(t.occurred_at) >= monthStart)
-    .reduce((s, t) => s + t.total_tokens, 0);
-
-  const avgDaily = consumoMes / Math.max(1, new Date().getDate());
+  const consumoMes = usage?.total_tokens ?? 0;
+  const avgDaily = consumoMes / Math.max(1, usage?.days ?? 30);
   const daysLeft = avgDaily > 0 ? Math.floor(totalAvailable / avgDaily) : null;
 
   const filtered = useMemo(() => {
@@ -222,7 +262,9 @@ function Page() {
               <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
                 <div>
                   <h2 className="text-lg font-bold text-foreground">Histórico de Consumo</h2>
-                  <p className="text-xs text-muted-foreground">Últimos 200 registros</p>
+                  <p className="text-xs text-muted-foreground">
+                    {total.toLocaleString("pt-BR")} registros · página {page + 1} de {Math.max(1, Math.ceil(total / PAGE_SIZE))}
+                  </p>
                 </div>
                 <div className="flex items-center gap-2">
                   <div className="relative">
@@ -280,6 +322,18 @@ function Page() {
                     ))}
                   </tbody>
                 </table>
+              </div>
+              <div className="flex items-center justify-end gap-2 mt-4">
+                <Button variant="outline" size="sm" disabled={page === 0 || loading} onClick={() => loadHistory(page - 1)}>
+                  Anterior
+                </Button>
+                <Button
+                  variant="outline" size="sm"
+                  disabled={loading || (page + 1) * PAGE_SIZE >= total}
+                  onClick={() => loadHistory(page + 1)}
+                >
+                  Próxima
+                </Button>
               </div>
             </CardContent>
           </Card>
