@@ -3,52 +3,19 @@ import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
 const Input = z.object({
-  provider: z.string(),
-  model: z.string(),
   temperature: z.number().min(0).max(2),
   maxTokens: z.number().int().positive().max(8192),
   systemPrompt: z.string(),
   messages: z.array(z.object({ role: z.enum(["user", "assistant"]), content: z.string() })),
-  providerId: z.string().uuid().nullable().optional(),
 });
-
-const PROVIDER_PREFIX: Record<string, string> = {
-  gemini: "google/",
-  google: "google/",
-  openai: "openai/",
-  deepseek: "openai/",
-  grok: "openai/",
-  anthropic: "anthropic/",
-  claude: "anthropic/",
-  ollama: "",
-  custom: "",
-};
 
 export const chatWithAgent = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((raw: unknown) => Input.parse(raw))
   .handler(async ({ data, context }) => {
-    let endpoint = "https://ai.gateway.lovable.dev/v1/chat/completions";
-    let apiKey = process.env.LOVABLE_API_KEY ?? "";
-    const prefix = PROVIDER_PREFIX[data.provider.toLowerCase()] ?? "";
-    let modelId = data.model.includes("/") ? data.model : `${prefix}${data.model}`;
-
-    if (data.providerId) {
-      // Use user-scoped client so RLS enforces ownership of the provider row.
-      const { data: p, error } = await context.supabase
-        .from("ai_providers")
-        .select("api_key, base_url, model, provider")
-        .eq("id", data.providerId)
-        .eq("user_id", context.userId)
-        .maybeSingle();
-      if (error || !p) throw new Error("Provedor não encontrado");
-      apiKey = p.api_key ?? "";
-      if (p.base_url) endpoint = p.base_url.replace(/\/+$/, "") + "/chat/completions";
-      // Custom providers use raw model id (no gateway prefix)
-      modelId = data.model || p.model || modelId;
-    }
-
-    if (!apiKey) throw new Error("Chave de API não configurada");
+    const { resolveAIConfig } = await import("./ai-resolver.server");
+    const { endpoint, apiKey, model: modelId } = await resolveAIConfig(context.supabase, context.userId);
+    if (!apiKey) throw new Error("Nenhum provedor de IA ativo. Configure em Configurações Globais.");
 
     const res = await fetch(endpoint, {
       method: "POST",

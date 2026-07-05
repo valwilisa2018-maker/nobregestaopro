@@ -460,7 +460,6 @@ function TimingSection({ ext, setExt, onSave, saving }: ExtProps) {
 
 // ============ 10. Testar IA ============
 function TestSection({ form, setForm }: { form: AgentRow; setForm: React.Dispatch<React.SetStateAction<AgentRow>> }) {
-  const spec = PROVIDERS.find((p) => p.id === (form.category?.toLowerCase() as ProviderId)) ?? PROVIDERS[1];
   const [messages, setMessages] = useState<Array<{ role: "user" | "assistant"; content: string }>>([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
@@ -503,13 +502,10 @@ function TestSection({ form, setForm }: { form: AgentRow; setForm: React.Dispatc
       } catch { /* ignore */ }
       const res = await chatWithAgent({
         data: {
-          provider: (form.category ?? "gemini").toLowerCase(),
-          model: form.model ?? "gemini-2.5-flash",
           temperature: form.temperature,
           maxTokens: form.max_tokens ?? 2048,
           systemPrompt: (form.system_prompt ?? "") + kbText + agendaText,
           messages: next,
-          providerId: form.ai_provider_id,
         },
       });
       setMessages([...next, { role: "assistant", content: res.text || "(sem resposta)" }]);
@@ -525,27 +521,11 @@ function TestSection({ form, setForm }: { form: AgentRow; setForm: React.Dispatc
     <div className="space-y-3">
       <div className="flex items-start gap-2 rounded-xl border border-primary/30 bg-primary/[.05] px-3 py-2.5 text-xs text-muted-foreground">
         <Info className="h-4 w-4 flex-shrink-0 text-primary mt-0.5" />
-        <span>Teste seu agente em tempo real com texto ou áudio. Selecione provedor e modelo abaixo para comparar rapidamente — essas alterações são apenas para teste.</span>
+        <span>Teste seu agente em tempo real. Provedor, modelo e chave são lidos automaticamente de Configurações Globais.</span>
       </div>
 
-      <div className="grid gap-3 md:grid-cols-4">
-        <FieldRow label="Provedor">
-          <Select value={(form.category ?? "gemini").toLowerCase()} onValueChange={(v) => { setForm((f) => ({ ...f, category: v, model: PROVIDERS.find((p) => p.id === v)?.models[0] ?? f.model })); }}>
-            <SelectTrigger><SelectValue /></SelectTrigger>
-            <SelectContent>{PROVIDERS.map((p) => <SelectItem key={p.id} value={p.id}>{p.label}</SelectItem>)}</SelectContent>
-          </Select>
-        </FieldRow>
-        <FieldRow label="Modelo">
-          {spec.models.length > 0 ? (
-            <Select value={form.model ?? ""} onValueChange={(v) => setForm((f) => ({ ...f, model: v }))}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent>{spec.models.map((m) => <SelectItem key={m} value={m}>{m}</SelectItem>)}</SelectContent>
-            </Select>
-          ) : (
-            <Input value={form.model ?? ""} onChange={(e) => setForm((f) => ({ ...f, model: e.target.value }))} />
-          )}
-        </FieldRow>
-        <div className="space-y-1.5 md:col-span-1">
+      <div className="grid gap-3 md:grid-cols-2">
+        <div className="space-y-1.5">
           <div className="flex justify-between text-xs"><span className="uppercase tracking-wider text-muted-foreground">Temperatura ({form.temperature})</span></div>
           <Slider value={[form.temperature]} min={0} max={2} step={0.1} onValueChange={([v]) => setForm((f) => ({ ...f, temperature: v }))} />
         </div>
@@ -565,7 +545,7 @@ function TestSection({ form, setForm }: { form: AgentRow; setForm: React.Dispatc
           <div className="flex flex-col items-center justify-center h-full py-16 text-center text-muted-foreground">
             <div className="grid h-12 w-12 place-items-center rounded-xl bg-primary/10 text-primary mb-3"><Bot className="h-6 w-6" /></div>
             <div className="text-sm">Envie uma mensagem ou áudio para testar</div>
-            <div className="text-[11px] mt-1">{form.category} — {form.model}</div>
+            <div className="text-[11px] mt-1">Configurações Globais</div>
           </div>
         ) : (
           messages.map((m, i) => (
