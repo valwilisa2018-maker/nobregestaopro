@@ -172,7 +172,7 @@ function inWorkingHours(h: Ext["hours"], tz: string | null | undefined) {
 
 async function generateFollowUp(
   db: { from: (t: string) => any; rpc?: unknown },
-  agent: { system_prompt: string | null; model: string | null; category: string | null; temperature: number | null; max_tokens: number | null; ai_provider_id: string | null },
+  agent: { user_id: string; system_prompt: string | null; temperature: number | null; max_tokens: number | null },
   convId: string, step: number,
 ): Promise<string | null> {
   const { data: prev } = await db.from("messages")
@@ -182,19 +182,8 @@ async function generateFollowUp(
     .reverse().filter((m) => m.content)
     .map((m) => ({ role: m.direction === "outbound" ? "assistant" : "user", content: m.content }));
 
-  let endpoint = "https://ai.gateway.lovable.dev/v1/chat/completions";
-  let apiKey = process.env.LOVABLE_API_KEY ?? "";
-  const PREFIX: Record<string, string> = { gemini: "google/", openai: "openai/", deepseek: "openai/", grok: "openai/" };
-  let modelId = agent.model ?? "gemini-2.5-flash";
-  if (!modelId.includes("/")) modelId = (PREFIX[(agent.category ?? "gemini").toLowerCase()] ?? "google/") + modelId;
-  if (agent.ai_provider_id) {
-    const { data: p } = await db.from("ai_providers").select("api_key,base_url,model").eq("id", agent.ai_provider_id).maybeSingle();
-    if (p) {
-      apiKey = p.api_key ?? apiKey;
-      if (p.base_url) endpoint = p.base_url.replace(/\/+$/, "") + "/chat/completions";
-      modelId = agent.model || p.model || modelId;
-    }
-  }
+  const { resolveAIConfig } = await import("@/lib/ai-resolver.server");
+  const { endpoint, apiKey, model: modelId } = await resolveAIConfig(db as never, agent.user_id);
   const sysAdd = `\n\n[FOLLOW-UP] Este é o follow-up #${step + 1}. O cliente ficou em silêncio. Reengaje de forma humana, curta (1-2 frases) e leve, sem soar insistente. Faça UMA pergunta aberta.`;
   const res = await fetch(endpoint, {
     method: "POST",
