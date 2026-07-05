@@ -183,7 +183,10 @@ async function generateFollowUp(
     .map((m) => ({ role: m.direction === "outbound" ? "assistant" : "user", content: m.content }));
 
   const { resolveAIConfig } = await import("@/lib/ai-resolver.server");
+  const { checkAiBalance, consumeAiTokens } = await import("@/lib/ai-credits.server");
   const { endpoint, apiKey, model: modelId } = await resolveAIConfig(db as never, agent.user_id);
+  const bal = await checkAiBalance(db as never, agent.user_id);
+  if (!bal.ok) return null;
   const sysAdd = `\n\n[FOLLOW-UP] Este é o follow-up #${step + 1}. O cliente ficou em silêncio. Reengaje de forma humana, curta (1-2 frases) e leve, sem soar insistente. Faça UMA pergunta aberta.`;
   const res = await fetch(endpoint, {
     method: "POST",
@@ -199,5 +202,12 @@ async function generateFollowUp(
     }),
   });
   const j = await res.json().catch(() => ({} as any));
+  await consumeAiTokens(db as never, {
+    userId: agent.user_id,
+    agentId: agent.id ?? null,
+    model: modelId,
+    inputTokens: Number(j?.usage?.prompt_tokens ?? 0),
+    outputTokens: Number(j?.usage?.completion_tokens ?? 0),
+  });
   return j?.choices?.[0]?.message?.content ?? null;
 }
