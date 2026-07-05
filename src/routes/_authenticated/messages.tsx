@@ -1959,13 +1959,21 @@ function MessagesPage() {
                         {isAudio ? (
                           m.media_url
                             ? (
-                              <AudioPlayer
-                                src={m.media_url}
-                                id={m.id}
-                                avatarUrl={avatars[selected.id] ?? null}
-                                direction={m.direction as "inbound" | "outbound"}
-                                onDownload={() => downloadFile(m.media_url!, `audio-${m.id}.ogg`)}
-                              />
+                               <AudioPlayer
+                                 src={m.media_url}
+                                 id={m.id}
+                                 avatarUrl={
+                                   m.direction === "outbound"
+                                     ? (
+                                         (activeInstance !== "all" && instanceProfilePic[activeInstance])
+                                         || Object.values(instanceProfilePic).find((v) => !!v)
+                                         || null
+                                       )
+                                     : (avatars[selected.id] ?? null)
+                                 }
+                                 direction={m.direction as "inbound" | "outbound"}
+                                 onDownload={() => downloadFile(m.media_url!, `audio-${m.id}.ogg`)}
+                               />
                             )
                             : <MediaMissing kind="audio" onRetry={() => loadMessagesRef.current?.()} />
                         ) : isSticker ? (
