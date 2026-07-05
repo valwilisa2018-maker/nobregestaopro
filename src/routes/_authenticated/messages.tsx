@@ -392,6 +392,24 @@ function MessagesPage() {
     }
   }, [editMsg, editText, editMsgFn]);
 
+  const performReact = useCallback(async (m: Msg, emoji: string) => {
+    const current = (m.metadata as { reaction?: string } | null)?.reaction ?? "";
+    const next = current === emoji ? "" : emoji; // toggle
+    setMsgs((prev) => prev.map((x) => x.id === m.id
+      ? { ...x, metadata: { ...(x.metadata ?? {}), reaction: next || undefined } }
+      : x));
+    if (m.id.startsWith("tmp-")) return;
+    try {
+      const res = await reactMsgFn({ data: { messageId: m.id, reaction: next } });
+      if (res && "ok" in res && res.ok === false) throw new Error((res as { error?: string }).error || "Falha ao reagir");
+    } catch (e) {
+      setMsgs((prev) => prev.map((x) => x.id === m.id
+        ? { ...x, metadata: { ...(x.metadata ?? {}), reaction: current || undefined } }
+        : x));
+      toast.error(e instanceof Error ? e.message : "Falha ao reagir");
+    }
+  }, [reactMsgFn]);
+
   // Ensure webhook includes PRESENCE_UPDATE (best-effort, one shot)
   useEffect(() => {
     if (!user) return;
