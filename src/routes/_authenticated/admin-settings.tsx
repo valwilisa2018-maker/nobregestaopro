@@ -10,6 +10,8 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem, SelectGroup, SelectLabel } from "@/components/ui/select";
+import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/admin-settings")({
@@ -20,13 +22,61 @@ export const Route = createFileRoute("/_authenticated/admin-settings")({
 type EvoCfg = { url_api: string; api_key: string; webhook_base_url: string };
 
 type ProviderKey = "lovable" | "openai" | "gemini" | "anthropic";
-type ProviderCfg = { id?: string; api_key: string; model: string; base_url: string; is_active: boolean };
+type ProviderCfg = { id?: string; api_key: string; model: string; is_active: boolean };
+
+type ModelOpt = { id: string; label: string; group: "econômico" | "balanceado" | "avançado" };
+
+const MODELS: Record<ProviderKey, ModelOpt[]> = {
+  lovable: [
+    { id: "google/gemini-3-flash-preview", label: "Gemini 3 Flash (padrão)", group: "balanceado" },
+    { id: "google/gemini-3.1-flash-lite", label: "Gemini 3.1 Flash Lite", group: "econômico" },
+    { id: "google/gemini-2.5-flash-lite", label: "Gemini 2.5 Flash Lite", group: "econômico" },
+    { id: "openai/gpt-5-nano", label: "GPT-5 Nano", group: "econômico" },
+    { id: "openai/gpt-5.4-nano", label: "GPT-5.4 Nano", group: "econômico" },
+    { id: "google/gemini-3.5-flash", label: "Gemini 3.5 Flash", group: "balanceado" },
+    { id: "google/gemini-2.5-flash", label: "Gemini 2.5 Flash", group: "balanceado" },
+    { id: "openai/gpt-5-mini", label: "GPT-5 Mini", group: "balanceado" },
+    { id: "openai/gpt-5.4-mini", label: "GPT-5.4 Mini", group: "balanceado" },
+    { id: "google/gemini-3.1-pro-preview", label: "Gemini 3.1 Pro", group: "avançado" },
+    { id: "google/gemini-2.5-pro", label: "Gemini 2.5 Pro", group: "avançado" },
+    { id: "openai/gpt-5", label: "GPT-5", group: "avançado" },
+    { id: "openai/gpt-5.2", label: "GPT-5.2", group: "avançado" },
+    { id: "openai/gpt-5.4", label: "GPT-5.4", group: "avançado" },
+    { id: "openai/gpt-5.5", label: "GPT-5.5", group: "avançado" },
+  ],
+  openai: [
+    { id: "gpt-4o-mini", label: "GPT-4o Mini", group: "econômico" },
+    { id: "gpt-3.5-turbo", label: "GPT-3.5 Turbo", group: "econômico" },
+    { id: "o1-mini", label: "o1 Mini", group: "econômico" },
+    { id: "gpt-4o", label: "GPT-4o", group: "balanceado" },
+    { id: "gpt-4-turbo", label: "GPT-4 Turbo", group: "balanceado" },
+    { id: "gpt-4", label: "GPT-4", group: "avançado" },
+    { id: "o1", label: "o1", group: "avançado" },
+    { id: "o1-preview", label: "o1 Preview", group: "avançado" },
+  ],
+  gemini: [
+    { id: "gemini-1.5-flash-8b", label: "Gemini 1.5 Flash 8B", group: "econômico" },
+    { id: "gemini-1.5-flash", label: "Gemini 1.5 Flash", group: "econômico" },
+    { id: "gemini-2.0-flash-lite", label: "Gemini 2.0 Flash Lite", group: "econômico" },
+    { id: "gemini-2.0-flash", label: "Gemini 2.0 Flash", group: "balanceado" },
+    { id: "gemini-1.5-pro", label: "Gemini 1.5 Pro", group: "avançado" },
+  ],
+  anthropic: [
+    { id: "claude-3-haiku-20240307", label: "Claude 3 Haiku", group: "econômico" },
+    { id: "claude-3-5-haiku-latest", label: "Claude 3.5 Haiku", group: "econômico" },
+    { id: "claude-3-5-sonnet-latest", label: "Claude 3.5 Sonnet", group: "balanceado" },
+    { id: "claude-3-7-sonnet-latest", label: "Claude 3.7 Sonnet", group: "balanceado" },
+    { id: "claude-sonnet-4-20250514", label: "Claude Sonnet 4", group: "avançado" },
+    { id: "claude-3-opus-latest", label: "Claude 3 Opus", group: "avançado" },
+    { id: "claude-opus-4-20250514", label: "Claude Opus 4", group: "avançado" },
+  ],
+};
 
 const PROVIDERS: { key: ProviderKey; name: string; icon: typeof Brain; desc: string; placeholder: string; defaultModel: string }[] = [
-  { key: "lovable", name: "Lovable AI", icon: Sparkles, desc: "Gateway nativo — sem chave necessária. Desative para usar outros provedores.", placeholder: "Gerenciado pela Lovable", defaultModel: "google/gemini-2.5-flash" },
-  { key: "openai", name: "OpenAI", icon: Brain, desc: "GPT-4, GPT-4o e modelos da OpenAI.", placeholder: "sk-...", defaultModel: "gpt-4o-mini" },
+  { key: "lovable", name: "Lovable AI", icon: Sparkles, desc: "Gateway nativo — sem chave necessária. Desative para usar outros provedores.", placeholder: "Gerenciado pela Lovable", defaultModel: "google/gemini-3-flash-preview" },
+  { key: "openai", name: "OpenAI", icon: Brain, desc: "GPT-4o, o1 e modelos da OpenAI.", placeholder: "sk-...", defaultModel: "gpt-4o-mini" },
   { key: "gemini", name: "Google Gemini", icon: Sparkles, desc: "Modelos Gemini do Google.", placeholder: "AIza...", defaultModel: "gemini-2.0-flash" },
-  { key: "anthropic", name: "Anthropic Claude", icon: Brain, desc: "Modelos Claude da Anthropic.", placeholder: "sk-ant-...", defaultModel: "claude-3-5-sonnet" },
+  { key: "anthropic", name: "Anthropic Claude", icon: Brain, desc: "Modelos Claude da Anthropic.", placeholder: "sk-ant-...", defaultModel: "claude-3-5-sonnet-latest" },
 ];
 
 function Page() {
@@ -35,10 +85,10 @@ function Page() {
   const [isAdmin, setIsAdmin] = useState<boolean | null>(null);
   const [cfg, setCfg] = useState<EvoCfg>({ url_api: "", api_key: "", webhook_base_url: "" });
   const [providers, setProviders] = useState<Record<ProviderKey, ProviderCfg>>({
-    lovable: { api_key: "", model: "google/gemini-2.5-flash", base_url: "", is_active: true },
-    openai: { api_key: "", model: "gpt-4o-mini", base_url: "", is_active: false },
-    gemini: { api_key: "", model: "gemini-2.0-flash", base_url: "", is_active: false },
-    anthropic: { api_key: "", model: "claude-3-5-sonnet", base_url: "", is_active: false },
+    lovable: { api_key: "", model: "google/gemini-3-flash-preview", is_active: true },
+    openai: { api_key: "", model: "gpt-4o-mini", is_active: false },
+    gemini: { api_key: "", model: "gemini-2.0-flash", is_active: false },
+    anthropic: { api_key: "", model: "claude-3-5-sonnet-latest", is_active: false },
   });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -70,7 +120,6 @@ function Page() {
               id: p.id,
               api_key: p.api_key ?? "",
               model: p.model ?? next[k].model,
-              base_url: p.base_url ?? "",
               is_active: p.is_active,
             };
           }
@@ -108,7 +157,7 @@ function Page() {
       name: meta.name,
       api_key: p.api_key || null,
       model: p.model || null,
-      base_url: p.base_url || null,
+      base_url: null,
       is_active: p.is_active,
     };
     const q = p.id
@@ -226,16 +275,32 @@ function Page() {
                     )}
                     <div className="space-y-1.5">
                       <Label>Modelo padrão</Label>
-                      <Input placeholder={meta.defaultModel} value={p.model}
-                        onChange={(e) => updateProv(meta.key, { model: e.target.value })} />
+                      <Select value={p.model} onValueChange={(v) => updateProv(meta.key, { model: v })}>
+                        <SelectTrigger><SelectValue placeholder="Selecione um modelo" /></SelectTrigger>
+                        <SelectContent className="max-h-80">
+                          {(["econômico", "balanceado", "avançado"] as const).map((g) => {
+                            const items = MODELS[meta.key].filter((m) => m.group === g);
+                            if (!items.length) return null;
+                            return (
+                              <SelectGroup key={g}>
+                                <SelectLabel className="capitalize flex items-center gap-2">
+                                  {g}
+                                  {g === "econômico" && <Badge variant="secondary" className="text-[9px] px-1.5 py-0 bg-emerald-500/15 text-emerald-400 border-emerald-500/30">$</Badge>}
+                                </SelectLabel>
+                                {items.map((m) => (
+                                  <SelectItem key={m.id} value={m.id}>
+                                    <div className="flex items-center gap-2">
+                                      <span>{m.label}</span>
+                                      <span className="text-[10px] text-muted-foreground font-mono">{m.id}</span>
+                                    </div>
+                                  </SelectItem>
+                                ))}
+                              </SelectGroup>
+                            );
+                          })}
+                        </SelectContent>
+                      </Select>
                     </div>
-                    {!isLovable && (
-                      <div className="space-y-1.5">
-                        <Label>Base URL (opcional)</Label>
-                        <Input placeholder="https://api..." value={p.base_url}
-                          onChange={(e) => updateProv(meta.key, { base_url: e.target.value })} />
-                      </div>
-                    )}
                     <div className="flex justify-end pt-1">
                       <Button size="sm" onClick={() => saveProvider(meta.key)} disabled={savingProv === meta.key}>
                         {savingProv === meta.key ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
