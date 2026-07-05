@@ -417,7 +417,7 @@ function QuickSendEditor({
               </div>
             )}
             <div className="text-[11px] text-muted-foreground">
-              Vídeo: máximo {MAX_VIDEO_MB}MB. Áudio é enviado como mensagem de voz (PTT).
+              Mídias até 2 GB (padrão WhatsApp). Áudio é enviado como mensagem de voz (PTT).
             </div>
           </div>
 
