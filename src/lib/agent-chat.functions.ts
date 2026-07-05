@@ -14,7 +14,7 @@ export const chatWithAgent = createServerFn({ method: "POST" })
   .inputValidator((raw: unknown) => Input.parse(raw))
   .handler(async ({ data, context }) => {
     const { resolveAIConfig } = await import("./ai-resolver.server");
-    const { checkAiBalance, consumeAiTokens } = await import("./ai-credits.server");
+    const { checkAiBalance, consumeAiTokens, InsufficientCreditsError } = await import("./ai-credits.server");
     const { endpoint, apiKey, model: modelId } = await resolveAIConfig(context.supabase, context.userId);
     if (!apiKey) throw new Error("Nenhum provedor de IA ativo. Configure em Configurações Globais.");
 
@@ -47,12 +47,19 @@ export const chatWithAgent = createServerFn({ method: "POST" })
       usage?: { prompt_tokens?: number; completion_tokens?: number };
     };
     const text = json.choices?.[0]?.message?.content ?? "";
-    await consumeAiTokens(context.supabase, {
-      userId: context.userId,
-      agentId: null,
-      model: modelId,
-      inputTokens: json.usage?.prompt_tokens ?? 0,
-      outputTokens: json.usage?.completion_tokens ?? 0,
-    });
+    try {
+      await consumeAiTokens(context.supabase, {
+        userId: context.userId,
+        agentId: null,
+        model: modelId,
+        inputTokens: json.usage?.prompt_tokens ?? 0,
+        outputTokens: json.usage?.completion_tokens ?? 0,
+      });
+    } catch (e) {
+      if (e instanceof InsufficientCreditsError) {
+        throw new Error("Saldo insuficiente para debitar o consumo. Compre mais créditos.");
+      }
+      throw e;
+    }
     return { text };
   });
