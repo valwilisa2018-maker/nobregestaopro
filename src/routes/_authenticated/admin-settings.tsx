@@ -357,10 +357,11 @@ function Page() {
       status="ativo"
     >
       <Tabs defaultValue="whatsapp" className="space-y-4">
-        <TabsList className="grid w-full sm:w-auto grid-cols-3">
+        <TabsList className="grid w-full sm:w-auto grid-cols-4">
           <TabsTrigger value="whatsapp" className="gap-2"><MessageSquare className="h-4 w-4" />WhatsApp API</TabsTrigger>
           <TabsTrigger value="ai" className="gap-2"><Brain className="h-4 w-4" />Chaves de IA</TabsTrigger>
           <TabsTrigger value="plans" className="gap-2"><Package className="h-4 w-4" />Planos</TabsTrigger>
+          <TabsTrigger value="credits" className="gap-2"><Coins className="h-4 w-4" />Créditos</TabsTrigger>
         </TabsList>
 
         <TabsContent value="whatsapp" className="mt-0">
