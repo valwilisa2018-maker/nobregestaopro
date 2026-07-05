@@ -1856,9 +1856,32 @@ function MessagesPage() {
                   return (
                     <div key={m.id} data-msg-id={m.id} className={`group flex ${out ? "justify-end" : "justify-start"}`}>
                       <div
-                        className={`relative max-w-[75%] rounded-lg shadow-sm text-sm text-gray-800 ${linkUrl ? "px-1 py-1" : "px-2.5 py-1.5"}`}
+                        className={`relative max-w-[75%] rounded-lg shadow-sm text-sm text-gray-800 ${linkUrl ? "px-1 py-1" : "px-2.5 py-1.5"} ${(m.metadata as { reaction?: string } | null)?.reaction ? "mb-3" : ""}`}
                         style={{ background: out ? WA.outBubble : WA.inBubble }}
                       >
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <button
+                              className={`absolute -top-3 ${out ? "right-8" : "left-1"} p-1 rounded-full bg-white shadow border border-black/10 opacity-0 group-hover:opacity-100 hover:bg-gray-50 transition`}
+                              aria-label="Reagir"
+                            >
+                              <Smile className="h-3.5 w-3.5 text-gray-600" />
+                            </button>
+                          </PopoverTrigger>
+                          <PopoverContent align={out ? "end" : "start"} side="top" className="p-1 w-auto rounded-full">
+                            <div className="flex items-center gap-0.5">
+                              {["👍", "❤️", "😂", "😮", "😢", "🙏"].map((e) => (
+                                <button
+                                  key={e}
+                                  onClick={() => performReact(m, e)}
+                                  className={`h-9 w-9 grid place-items-center text-xl rounded-full hover:bg-gray-100 transition ${((m.metadata as { reaction?: string } | null)?.reaction === e) ? "bg-gray-100" : ""}`}
+                                >
+                                  {e}
+                                </button>
+                              ))}
+                            </div>
+                          </PopoverContent>
+                        </Popover>
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
                             <button
@@ -1869,6 +1892,18 @@ function MessagesPage() {
                             </button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align={out ? "end" : "start"} className="w-48">
+                            <div className="flex items-center justify-around px-1 py-1">
+                              {["👍", "❤️", "😂", "😮", "😢", "🙏"].map((e) => (
+                                <button
+                                  key={e}
+                                  onClick={() => performReact(m, e)}
+                                  className={`h-8 w-8 grid place-items-center text-lg rounded-full hover:bg-gray-100 transition ${((m.metadata as { reaction?: string } | null)?.reaction === e) ? "bg-gray-100" : ""}`}
+                                >
+                                  {e}
+                                </button>
+                              ))}
+                            </div>
+                            <DropdownMenuSeparator />
                             <DropdownMenuItem onClick={() => setReplyTo(m)}>
                               <Reply className="h-4 w-4 mr-2" /> Marcar (responder)
                             </DropdownMenuItem>
