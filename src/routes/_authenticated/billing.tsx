@@ -7,6 +7,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { PlanStatusCard } from "@/components/plan-status";
+import { usePlanStatus } from "@/components/plan-status";
 
 export const Route = createFileRoute("/_authenticated/billing")({
   head: () => ({ meta: [{ title: "Meu Plano — Plataforma IA WhatsApp" }] }),
@@ -46,6 +47,8 @@ function Page() {
   const [plans, setPlans] = useState<Plan[]>([]);
   const [loading, setLoading] = useState(true);
   const [cycle, setCycle] = useState<"monthly" | "annual">("monthly");
+  const planStatus = usePlanStatus();
+  const hasActivePlan = !!planStatus?.planName && !planStatus.expired;
 
   useEffect(() => {
     (async () => {
@@ -65,7 +68,7 @@ function Page() {
       title="Meu Plano"
       description="Escolha o plano ideal para sua operação."
       icon={<CreditCard className="h-6 w-6" />}
-      status="ativo"
+      status={hasActivePlan ? "ativo" : "sem-plano"}
     >
       <PlanStatusCard />
       <div className="flex justify-center mb-8">

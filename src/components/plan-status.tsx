@@ -62,8 +62,9 @@ export function usePlanStatus() {
 
 export function PlanStatusCard() {
   const s = usePlanStatus();
-  if (!s || !s.planName) return null;
-  const pct = Math.round((s.usedDays / s.totalDays) * 100);
+  if (!s) return null;
+  const hasPlan = !!s.planName;
+  const pct = hasPlan ? Math.round((s.usedDays / s.totalDays) * 100) : 0;
   const warn = s.expiring || s.expired;
   return (
     <Card className={`mb-4 ${warn ? "border-destructive/60" : ""}`}>
@@ -73,20 +74,23 @@ export function PlanStatusCard() {
             <Crown className="h-5 w-5 text-primary" />
             <div>
               <div className="text-xs text-muted-foreground">Plano atual</div>
-              <div className="font-bold">{s.planName}</div>
+              <div className="font-bold">{hasPlan ? s.planName : "Nenhum plano ativo"}</div>
             </div>
           </div>
-          {s.daysLeft != null && (
+          {hasPlan && s.daysLeft != null && (
             <Badge variant={warn ? "destructive" : "secondary"}>
               {s.expired ? "Vencido" : `${s.daysLeft} dia${s.daysLeft === 1 ? "" : "s"} restante${s.daysLeft === 1 ? "" : "s"}`}
             </Badge>
           )}
+          {!hasPlan && <Badge variant="outline">Escolha um plano abaixo</Badge>}
         </div>
         <div>
           <Progress value={pct} className={warn ? "[&>div]:bg-destructive" : ""} />
           <div className="flex justify-between text-[10px] text-muted-foreground mt-1">
             <span>Dia {s.usedDays} de {s.totalDays}</span>
-            {s.expiresAt && <span>Vence em {s.expiresAt.toLocaleDateString("pt-BR")}</span>}
+            {hasPlan && s.expiresAt
+              ? <span>Vence em {s.expiresAt.toLocaleDateString("pt-BR")}</span>
+              : <span>Ciclo de 30 dias</span>}
           </div>
         </div>
         {warn && (
