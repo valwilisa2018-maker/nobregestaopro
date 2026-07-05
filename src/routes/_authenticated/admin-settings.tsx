@@ -571,6 +571,121 @@ function Page() {
             </div>
           )}
         </TabsContent>
+
+        <TabsContent value="credits" className="mt-0 space-y-4">
+          {/* Stats */}
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            {[
+              { label: "Vendas (pagas)", value: `${pricing.currency} ${(stats.salesCents / 100).toFixed(2)}`, sub: `${stats.salesCount} pedidos`, icon: DollarSign },
+              { label: "Tokens vendidos", value: stats.tokensSold.toLocaleString(), sub: "acumulado", icon: Coins },
+              { label: "Tokens consumidos", value: stats.tokensUsed.toLocaleString(), sub: "global", icon: TrendingUp },
+              { label: "Lucro estimado", value: `${pricing.currency} ${((stats.salesCents - stats.costCents * pricing.usd_rate) / 100).toFixed(2)}`, sub: `custo ~US$ ${(stats.costCents / 100).toFixed(2)}`, icon: Sparkles },
+            ].map((s, i) => (
+              <Card key={i} className="border-primary/20 backdrop-blur-xl bg-card/50">
+                <CardContent className="py-4 space-y-1">
+                  <div className="flex items-center justify-between text-xs text-muted-foreground">
+                    <span>{s.label}</span><s.icon className="h-4 w-4 text-primary" />
+                  </div>
+                  <div className="text-lg font-semibold">{s.value}</div>
+                  <div className="text-[10px] text-muted-foreground">{s.sub}</div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+
+          {/* Pricing config */}
+          <Card className="border-primary/20">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2"><DollarSign className="h-4 w-4 text-primary" />Precificação global</CardTitle>
+              <CardDescription>Cotação, margem e multiplicadores por modelo. Aplicado ao converter custo de provedor em créditos.</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid gap-3 sm:grid-cols-3">
+                <div className="space-y-1.5">
+                  <Label className="text-xs">Moeda</Label>
+                  <Input value={pricing.currency} onChange={(e) => setPricing({ ...pricing, currency: e.target.value.toUpperCase() })} />
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-xs">Cotação do dólar</Label>
+                  <Input type="number" step="0.01" value={pricing.usd_rate} onChange={(e) => setPricing({ ...pricing, usd_rate: Number(e.target.value) })} />
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-xs">Margem de lucro (%)</Label>
+                  <Input type="number" value={pricing.margin_pct} onChange={(e) => setPricing({ ...pricing, margin_pct: Number(e.target.value) })} />
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label className="text-xs">Multiplicador por modelo</Label>
+                <div className="grid gap-2 sm:grid-cols-2">
+                  {Object.entries(pricing.multipliers).map(([model, mult]) => (
+                    <div key={model} className="flex items-center gap-2">
+                      <Input value={model} onChange={(e) => {
+                        const next = { ...pricing.multipliers };
+                        delete next[model]; next[e.target.value] = mult;
+                        setPricing({ ...pricing, multipliers: next });
+                      }} className="font-mono text-xs" />
+                      <Input type="number" step="0.1" value={mult} onChange={(e) => setPricing({ ...pricing, multipliers: { ...pricing.multipliers, [model]: Number(e.target.value) } })} className="w-24" />
+                      <Button size="icon" variant="ghost" onClick={() => {
+                        const next = { ...pricing.multipliers }; delete next[model];
+                        setPricing({ ...pricing, multipliers: next });
+                      }}><Trash2 className="h-4 w-4 text-destructive" /></Button>
+                    </div>
+                  ))}
+                </div>
+                <Button size="sm" variant="outline" onClick={() => setPricing({ ...pricing, multipliers: { ...pricing.multipliers, "novo/modelo": 1 } })}>
+                  <Plus className="h-4 w-4" /> Adicionar modelo
+                </Button>
+              </div>
+              <div className="flex justify-end">
+                <Button onClick={savePricing} disabled={savingPricing}>
+                  {savingPricing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+                  Salvar precificação
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Packages CRUD */}
+          <div className="flex justify-between items-center">
+            <h3 className="text-sm font-semibold text-muted-foreground">Pacotes de créditos</h3>
+            <Button size="sm" onClick={addPkg}><Plus className="h-4 w-4" /> Novo pacote</Button>
+          </div>
+          {packages.length === 0 ? (
+            <Card><CardContent className="py-10 text-center text-muted-foreground">Nenhum pacote cadastrado.</CardContent></Card>
+          ) : (
+            <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
+              {packages.map((p) => (
+                <Card key={p.id} className={`border-primary/20 ${p.is_active ? "" : "opacity-70"}`}>
+                  <CardHeader className="pb-2">
+                    <div className="flex items-center justify-between gap-2">
+                      <Input value={p.name} onChange={(e) => updatePkg(p.id, { name: e.target.value })} className="font-semibold" />
+                      <Switch checked={p.is_active} onCheckedChange={(v) => updatePkg(p.id, { is_active: v })} />
+                    </div>
+                  </CardHeader>
+                  <CardContent className="space-y-2">
+                    <div className="grid grid-cols-2 gap-2">
+                      <div className="space-y-1"><Label className="text-xs">Tokens</Label>
+                        <Input type="number" value={p.tokens} onChange={(e) => updatePkg(p.id, { tokens: Number(e.target.value) })} /></div>
+                      <div className="space-y-1"><Label className="text-xs">Preço (centavos)</Label>
+                        <Input type="number" value={p.price_cents} onChange={(e) => updatePkg(p.id, { price_cents: Number(e.target.value) })} /></div>
+                      <div className="space-y-1"><Label className="text-xs">Selo</Label>
+                        <Input value={p.badge ?? ""} onChange={(e) => updatePkg(p.id, { badge: e.target.value || null })} /></div>
+                      <div className="space-y-1"><Label className="text-xs">Ordem</Label>
+                        <Input type="number" value={p.sort_order} onChange={(e) => updatePkg(p.id, { sort_order: Number(e.target.value) })} /></div>
+                    </div>
+                    <div className="flex justify-between pt-1">
+                      <Button size="sm" variant="ghost" onClick={() => deletePkg(p.id)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
+                      <Button size="sm" onClick={() => savePkg(p)} disabled={savingPkg === p.id}>
+                        {savingPkg === p.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+                        Salvar
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
+        </TabsContent>
       </Tabs>
     </PageShell>
   );
