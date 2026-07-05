@@ -108,32 +108,45 @@ function Page() {
                   Mais vendido
                 </div>
               )}
-              <div className="flex justify-between items-start mb-2">
+              {/* Header */}
+              <div className="flex justify-between items-start">
                 <h3 className={`text-lg font-bold ${p.highlight ? "text-foreground" : "text-muted-foreground"}`}>{p.name}</h3>
                 {p.highlight && <Zap className="w-6 h-6 text-primary" fill="currentColor" />}
               </div>
-              {p.description && <p className="text-sm text-muted-foreground mb-8 leading-relaxed">{p.description}</p>}
+              <p className="text-sm text-muted-foreground mt-2 leading-relaxed min-h-[40px]">
+                {p.description || "\u00A0"}
+              </p>
 
-              <div className="flex items-baseline gap-1 mb-2">
-                <span className={`text-3xl font-bold ${p.highlight ? "text-foreground" : "text-foreground/90"}`}>R$</span>
-                <span className={`font-black tracking-tight ${p.highlight ? "text-6xl text-foreground" : "text-5xl text-foreground/90"}`}>
-                  {reaisFmt},{cents}
-                </span>
-                <span className="text-muted-foreground text-sm">{suffix}</span>
-              </div>
-              {showAnnual && savings > 0 ? (
-                <div className="inline-flex w-fit items-center gap-1 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-2 py-0.5 text-[10px] font-semibold mb-6">
-                  Economize {formatBRL(savings)} ({savingsPct}%)
+              {/* Price */}
+              <div className="mt-6 min-h-[110px]">
+                <div className="flex items-baseline gap-1">
+                  <span className={`text-3xl font-bold ${p.highlight ? "text-foreground" : "text-foreground/90"}`}>R$</span>
+                  <span className={`font-black tracking-tight leading-none ${p.highlight ? "text-6xl text-foreground" : "text-5xl text-foreground/90"}`}>
+                    {reaisFmt},{cents}
+                  </span>
+                  <span className="text-muted-foreground text-sm ml-1">{suffix}</span>
                 </div>
-              ) : <div className="mb-6" />}
+                <div className="mt-3 h-6">
+                  {showAnnual && savings > 0 && (
+                    <div className="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-2 py-0.5 text-[10px] font-semibold">
+                      Economize {formatBRL(savings)} ({savingsPct}%)
+                    </div>
+                  )}
+                </div>
+              </div>
 
-              <div className="mb-8 py-2 px-4 rounded-xl w-fit border bg-emerald-500/10 border-emerald-500/30">
+              {/* Divider */}
+              <div className="my-6 h-px bg-border/60" />
+
+              {/* Credits */}
+              <div className="py-2 px-4 rounded-xl w-fit border bg-emerald-500/10 border-emerald-500/30">
                 <span className="text-xs font-bold uppercase tracking-wider text-emerald-400">
                   {formatTokens(p.tokens_included)}
                 </span>
               </div>
 
-              <ul className="space-y-4 mb-10 flex-grow">
+              {/* Features */}
+              <ul className="mt-6 space-y-3 flex-grow">
                 {p.features.map((f, i) => (
                   <li key={i} className={`flex items-start gap-3 text-sm ${p.highlight ? "text-foreground/90" : "text-muted-foreground"}`}>
                     <Check className={`w-5 h-5 shrink-0 mt-0.5 ${p.highlight ? "text-primary" : "text-primary/80"}`} strokeWidth={2.5} />
@@ -143,7 +156,7 @@ function Page() {
               </ul>
 
               <Button
-                className={`w-full py-4 h-auto rounded-2xl font-black transition-all ${
+                className={`mt-8 w-full py-4 h-auto rounded-2xl font-black transition-all ${
                   p.highlight
                     ? "bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg shadow-primary/30 active:scale-95"
                     : "bg-transparent border border-border text-foreground hover:bg-muted/60"
