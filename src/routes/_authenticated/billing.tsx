@@ -126,10 +126,8 @@ function Page() {
                 </div>
               ) : <div className="mb-6" />}
 
-              <div className={`mb-8 py-2 px-4 rounded-xl w-fit border ${
-                p.highlight ? "bg-primary/10 border-primary/30" : "bg-muted/40 border-border"
-              }`}>
-                <span className={`text-xs font-bold uppercase tracking-wider ${p.highlight ? "text-primary" : "text-primary/90"}`}>
+              <div className="mb-8 py-2 px-4 rounded-xl w-fit border bg-emerald-500/10 border-emerald-500/30">
+                <span className="text-xs font-bold uppercase tracking-wider text-emerald-400">
                   {formatTokens(p.tokens_included)}
                 </span>
               </div>
