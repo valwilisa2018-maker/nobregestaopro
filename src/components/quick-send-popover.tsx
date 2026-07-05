@@ -27,7 +27,7 @@ type QuickSend = {
   is_ptt: boolean;
 };
 
-const MAX_VIDEO_MB = 2048;
+const MAX_VIDEO_MB = 16;
 
 function fmtSize(bytes: number | null | undefined) {
   if (!bytes) return "";
@@ -417,7 +417,7 @@ function QuickSendEditor({
               </div>
             )}
             <div className="text-[11px] text-muted-foreground">
-              Mídias até 2 GB (padrão WhatsApp). Áudio é enviado como mensagem de voz (PTT).
+              Envio até {MAX_VIDEO_MB} MB por mídia (padrão WhatsApp). Áudio é enviado como mensagem de voz (PTT).
             </div>
           </div>
 

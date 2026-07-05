@@ -1087,9 +1087,9 @@ function MessagesPage() {
   ) {
     if (!selected) return;
     const kind = fileKind(file);
-    // Limites no padrão WhatsApp: 2 GB para qualquer mídia
-    const MAX = 2 * 1024 * 1024 * 1024;
-    const maxLabel = "2 GB";
+    // Envio: padrão WhatsApp (16 MB por mídia). Recebimento aceita até 2 GB.
+    const MAX = 16 * 1024 * 1024;
+    const maxLabel = "16 MB";
     const url = opts?.objectUrl ?? URL.createObjectURL(file);
     const qid = `up-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
     setUploadQueue((q) => [...q, { id: qid, name: file.name, size: file.size, url, kind, status: "uploading" }]);
