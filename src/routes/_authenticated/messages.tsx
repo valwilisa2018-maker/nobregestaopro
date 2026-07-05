@@ -1087,8 +1087,9 @@ function MessagesPage() {
   ) {
     if (!selected) return;
     const kind = fileKind(file);
-    const MAX = kind === "video" ? 60 * 1024 * 1024 : 15 * 1024 * 1024;
-    const maxLabel = kind === "video" ? "60 MB" : "15 MB";
+    // Limites no padrão WhatsApp: 2 GB para qualquer mídia
+    const MAX = 2 * 1024 * 1024 * 1024;
+    const maxLabel = "2 GB";
     const url = opts?.objectUrl ?? URL.createObjectURL(file);
     const qid = `up-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
     setUploadQueue((q) => [...q, { id: qid, name: file.name, size: file.size, url, kind, status: "uploading" }]);
