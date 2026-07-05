@@ -540,7 +540,7 @@ export const Route = createFileRoute("/api/public/evolution/$instance")({
                   } else {
                     const b64 = findBase64(msg) ?? await evolutionGetBase64(commandConn, msg, false) ?? (mediaKind === "audio" ? transcribedAudioBase64 : null);
                     if (b64) {
-                      const saved = await saveMediaToStorage(supabaseAdmin, conn.user_id, convo.id, b64, mediaMime, fileName);
+                      const saved = await saveMediaToStorage(supabaseAdmin, conn.user_id, convo.id, b64, mediaMime ?? "application/octet-stream", fileName);
                       mediaUrl = saved.url;
                       mediaPath = saved.path;
                     }
@@ -618,7 +618,7 @@ export const Route = createFileRoute("/api/public/evolution/$instance")({
                   const b64 = findBase64(msg) ?? await evolutionGetBase64(commandConn, msg, false) ?? (mediaKind === "audio" ? transcribedAudioBase64 : null);
                   if (b64) {
                     mediaB64 = b64;
-                    const saved = await saveMediaToStorage(supabaseAdmin, conn.user_id, convo.id, b64, mediaMime, mediaName);
+                    const saved = await saveMediaToStorage(supabaseAdmin, conn.user_id, convo.id, b64, mediaMime ?? "application/octet-stream", mediaName);
                     mediaUrl = saved.url;
                     mediaPath = saved.path;
                   }
