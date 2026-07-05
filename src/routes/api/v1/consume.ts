@@ -19,7 +19,7 @@ export const Route = createFileRoute("/api/v1/consume")({
     const p = schema.safeParse(body);
     if (!p.success) return json({ error: p.error.issues[0].message }, 400);
     const { data, error } = await ctx.supabase.rpc("consume_ai_tokens", {
-      _user_id: ctx.userId, _agent_id: p.data.agent_id ?? undefined, _model: p.data.model,
+      _user_id: ctx.userId, _agent_id: (p.data.agent_id ?? null) as unknown as string, _model: p.data.model,
       _input_tokens: p.data.input_tokens, _output_tokens: p.data.output_tokens, _cost_cents: p.data.cost_cents,
     });
     if (error) return json({ error: error.message }, 400);
