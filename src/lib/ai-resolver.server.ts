@@ -30,17 +30,21 @@ export async function resolveAIConfig(
 
   if (!data) return fallback;
   const provider = (data.provider ?? "lovable").toLowerCase();
-  const model = data.model || DEFAULT_MODEL;
+  const rawModel = data.model || DEFAULT_MODEL;
 
   // Lovable native → use the gateway with the platform key.
   if (provider === "lovable") {
-    return { endpoint: LOVABLE_GATEWAY, apiKey: lovableKey, model };
+    return { endpoint: LOVABLE_GATEWAY, apiKey: lovableKey, model: rawModel };
   }
-  // OpenAI direct
+  // OpenAI direct (user's own key)
   if (provider === "openai" && data.api_key) {
-    return { endpoint: "https://api.openai.com/v1/chat/completions", apiKey: data.api_key, model: model.replace(/^openai\//, "") };
+    return { endpoint: "https://api.openai.com/v1/chat/completions", apiKey: data.api_key, model: rawModel.replace(/^openai\//, "") };
   }
-  // Gemini / Anthropic and others → route through Lovable Gateway using the platform key.
-  // (Model already carries the vendor prefix set in Configurações Globais.)
+  // Gemini / Anthropic → route through Lovable Gateway (OpenAI-compatible) using the platform key.
+  // Ensure the model carries the vendor prefix the gateway expects.
+  let model = rawModel;
+  if (provider === "gemini" && !model.includes("/")) model = `google/${model}`;
+  if (provider === "anthropic" && !model.includes("/")) model = `anthropic/${model}`;
+  if (provider === "openai" && !model.includes("/")) model = `openai/${model}`;
   return { endpoint: LOVABLE_GATEWAY, apiKey: lovableKey, model };
 }
