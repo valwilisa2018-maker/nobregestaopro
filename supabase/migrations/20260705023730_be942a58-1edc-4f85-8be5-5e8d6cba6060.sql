@@ -1,0 +1,1 @@
+ALTER TABLE public.plans ADD COLUMN IF NOT EXISTS price_annual_cents integer NOT NULL DEFAULT 0;
