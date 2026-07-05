@@ -503,7 +503,18 @@ export const Route = createFileRoute("/api/public/evolution/$instance")({
                     mediaUrl = saved.url;
                     mediaPath = saved.path;
                   }
-                } catch { /* keep metadata-only media bubble */ }
+                } catch (e) {
+                  if (e instanceof MediaTooLargeError) {
+                    await supabaseAdmin.from("logs").insert({
+                      user_id: conn.user_id,
+                      level: "warn",
+                      source: "evolution:outbound-media",
+                      message: e.message,
+                      metadata: { remoteJid, kind: mediaKind, bytes: e.bytes, limit: MAX_INBOUND_MEDIA_BYTES } as never,
+                    } as never);
+                    mediaCaption = `⚠️ ${mediaLabel(mediaKind)} excede o limite de 2 GB e não foi salvo.`;
+                  }
+                }
                 await supabaseAdmin.from("messages").insert({
                   user_id: conn.user_id, conversation_id: convo.id,
                   direction: "outbound", type: mediaKind,
