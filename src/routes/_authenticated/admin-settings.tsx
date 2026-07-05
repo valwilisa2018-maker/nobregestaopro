@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { Settings, Save, Loader2, Zap, ShieldAlert, Brain, Sparkles, MessageSquare } from "lucide-react";
+import { Settings, Save, Loader2, Zap, ShieldAlert, Brain, Sparkles, MessageSquare, Package, Plus, Trash2, Star } from "lucide-react";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
@@ -20,6 +20,22 @@ export const Route = createFileRoute("/_authenticated/admin-settings")({
 });
 
 type EvoCfg = { url_api: string; api_key: string; webhook_base_url: string };
+
+type PlanRow = {
+  id: string;
+  name: string;
+  description: string | null;
+  price_cents: number;
+  price_annual_cents: number | null;
+  currency: string;
+  tokens_included: number;
+  daily_limit: number;
+  monthly_limit: number;
+  highlight: boolean;
+  sort_order: number;
+  is_active: boolean;
+  features: string[] | null;
+};
 
 type ProviderKey = "lovable" | "openai" | "gemini" | "anthropic";
 type ProviderCfg = { id?: string; api_key: string; model: string; is_active: boolean };
@@ -96,6 +112,8 @@ function Page() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [savingProv, setSavingProv] = useState<ProviderKey | null>(null);
+  const [plans, setPlans] = useState<PlanRow[]>([]);
+  const [savingPlan, setSavingPlan] = useState<string | null>(null);
 
   useEffect(() => {
     if (!user) return;
@@ -129,9 +147,57 @@ function Page() {
           return next;
         });
       }
+      await reloadPlans();
       setLoading(false);
     })();
   }, [user]);
+
+  async function reloadPlans() {
+    const { data } = await supabase.from("plans").select("*").order("sort_order", { ascending: true });
+    setPlans(((data ?? []) as unknown as PlanRow[]).map((p) => ({
+      ...p,
+      features: Array.isArray(p.features) ? p.features : (p.features ? (p.features as unknown as string[]) : []),
+    })));
+  }
+
+  const updatePlan = (id: string, patch: Partial<PlanRow>) =>
+    setPlans((prev) => prev.map((p) => (p.id === id ? { ...p, ...patch } : p)));
+
+  const savePlan = async (p: PlanRow) => {
+    setSavingPlan(p.id);
+    const payload = {
+      name: p.name, description: p.description, price_cents: p.price_cents,
+      price_annual_cents: p.price_annual_cents, currency: p.currency,
+      tokens_included: p.tokens_included, daily_limit: p.daily_limit, monthly_limit: p.monthly_limit,
+      highlight: p.highlight, sort_order: p.sort_order, is_active: p.is_active,
+      features: p.features ?? [],
+    };
+    const { error } = p.id.startsWith("new-")
+      ? await supabase.from("plans").insert({ ...payload } as never)
+      : await supabase.from("plans").update(payload as never).eq("id", p.id);
+    setSavingPlan(null);
+    if (error) return toast.error(error.message);
+    toast.success("Plano salvo");
+    await reloadPlans();
+  };
+
+  const deletePlan = async (id: string) => {
+    if (id.startsWith("new-")) { setPlans((prev) => prev.filter((p) => p.id !== id)); return; }
+    if (!confirm("Excluir este plano?")) return;
+    const { error } = await supabase.from("plans").delete().eq("id", id);
+    if (error) return toast.error(error.message);
+    toast.success("Plano excluído");
+    await reloadPlans();
+  };
+
+  const addPlan = () => {
+    const id = `new-${Date.now()}`;
+    setPlans((prev) => [...prev, {
+      id, name: "Novo Plano", description: "", price_cents: 0, price_annual_cents: 0,
+      currency: "BRL", tokens_included: 0, daily_limit: 0, monthly_limit: 0,
+      highlight: false, sort_order: (prev.at(-1)?.sort_order ?? 0) + 1, is_active: false, features: [],
+    }]);
+  };
 
   const save = async () => {
     if (!user) return;
@@ -195,9 +261,10 @@ function Page() {
       status="ativo"
     >
       <Tabs defaultValue="whatsapp" className="space-y-4">
-        <TabsList className="grid w-full sm:w-auto grid-cols-2">
+        <TabsList className="grid w-full sm:w-auto grid-cols-3">
           <TabsTrigger value="whatsapp" className="gap-2"><MessageSquare className="h-4 w-4" />WhatsApp API</TabsTrigger>
           <TabsTrigger value="ai" className="gap-2"><Brain className="h-4 w-4" />Chaves de IA</TabsTrigger>
+          <TabsTrigger value="plans" className="gap-2"><Package className="h-4 w-4" />Planos</TabsTrigger>
         </TabsList>
 
         <TabsContent value="whatsapp" className="mt-0">
@@ -315,6 +382,97 @@ function Page() {
               );
             })}
           </div>
+        </TabsContent>
+
+        <TabsContent value="plans" className="mt-0 space-y-3">
+          <div className="flex justify-end">
+            <Button size="sm" onClick={addPlan}><Plus className="h-4 w-4" /> Novo plano</Button>
+          </div>
+          {loading ? (
+            <div className="py-8 flex justify-center"><Loader2 className="h-5 w-5 animate-spin text-primary" /></div>
+          ) : plans.length === 0 ? (
+            <Card><CardContent className="py-10 text-center text-muted-foreground">Nenhum plano cadastrado.</CardContent></Card>
+          ) : (
+            <div className="grid gap-4 md:grid-cols-2">
+              {plans.map((p) => (
+                <Card key={p.id} className={`border-primary/20 ${p.is_active ? "" : "opacity-70"}`}>
+                  <CardHeader>
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <div className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-primary/15 text-primary ring-1 ring-primary/30">
+                          <Package className="h-4 w-4" />
+                        </div>
+                        <Input value={p.name} onChange={(e) => updatePlan(p.id, { name: e.target.value })} className="font-semibold" />
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs text-muted-foreground">Ativo</span>
+                        <Switch checked={p.is_active} onCheckedChange={(v) => updatePlan(p.id, { is_active: v })} />
+                      </div>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    <div className="space-y-1.5">
+                      <Label className="text-xs">Descrição</Label>
+                      <Input value={p.description ?? ""} onChange={(e) => updatePlan(p.id, { description: e.target.value })} />
+                    </div>
+                    <div className="grid grid-cols-2 gap-2">
+                      <div className="space-y-1.5">
+                        <Label className="text-xs">Preço mensal (centavos)</Label>
+                        <Input type="number" value={p.price_cents} onChange={(e) => updatePlan(p.id, { price_cents: Number(e.target.value) })} />
+                      </div>
+                      <div className="space-y-1.5">
+                        <Label className="text-xs">Preço anual (centavos)</Label>
+                        <Input type="number" value={p.price_annual_cents ?? 0} onChange={(e) => updatePlan(p.id, { price_annual_cents: Number(e.target.value) })} />
+                      </div>
+                      <div className="space-y-1.5">
+                        <Label className="text-xs">Moeda</Label>
+                        <Input value={p.currency} onChange={(e) => updatePlan(p.id, { currency: e.target.value.toUpperCase() })} />
+                      </div>
+                      <div className="space-y-1.5">
+                        <Label className="text-xs">Tokens IA / mês</Label>
+                        <Input type="number" value={p.tokens_included} onChange={(e) => updatePlan(p.id, { tokens_included: Number(e.target.value) })} />
+                      </div>
+                      <div className="space-y-1.5">
+                        <Label className="text-xs">Envios/dia (0 = ilim.)</Label>
+                        <Input type="number" value={p.daily_limit} onChange={(e) => updatePlan(p.id, { daily_limit: Number(e.target.value) })} />
+                      </div>
+                      <div className="space-y-1.5">
+                        <Label className="text-xs">Envios/mês (0 = ilim.)</Label>
+                        <Input type="number" value={p.monthly_limit} onChange={(e) => updatePlan(p.id, { monthly_limit: Number(e.target.value) })} />
+                      </div>
+                      <div className="space-y-1.5">
+                        <Label className="text-xs">Ordem</Label>
+                        <Input type="number" value={p.sort_order} onChange={(e) => updatePlan(p.id, { sort_order: Number(e.target.value) })} />
+                      </div>
+                      <div className="flex items-end gap-2">
+                        <div className="flex items-center gap-2">
+                          <Switch checked={p.highlight} onCheckedChange={(v) => updatePlan(p.id, { highlight: v })} />
+                          <Label className="text-xs flex items-center gap-1"><Star className="h-3 w-3" />Destaque</Label>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label className="text-xs">Recursos (um por linha)</Label>
+                      <textarea
+                        className="w-full min-h-24 rounded-md border border-border bg-background p-2 text-xs"
+                        value={(p.features ?? []).join("\n")}
+                        onChange={(e) => updatePlan(p.id, { features: e.target.value.split("\n").map((s) => s.trim()).filter(Boolean) })}
+                      />
+                    </div>
+                    <div className="flex justify-between pt-1">
+                      <Button size="sm" variant="ghost" onClick={() => deletePlan(p.id)}>
+                        <Trash2 className="h-4 w-4 text-destructive" />
+                      </Button>
+                      <Button size="sm" onClick={() => savePlan(p)} disabled={savingPlan === p.id}>
+                        {savingPlan === p.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+                        Salvar
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
         </TabsContent>
       </Tabs>
     </PageShell>
