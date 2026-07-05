@@ -62,9 +62,9 @@ export function usePlanStatus() {
 
 export function PlanStatusCard() {
   const s = usePlanStatus();
-  if (!s) return null;
-  const hasPlan = !!s.planName;
-  const pct = hasPlan ? Math.round((s.usedDays / s.totalDays) * 100) : 0;
+  if (!s || !s.planName) return null;
+  const hasPlan = true;
+  const pct = Math.round((s.usedDays / s.totalDays) * 100);
   const warn = s.expiring || s.expired;
   return (
     <Card className={`mb-4 ${warn ? "border-destructive/60" : ""}`}>
