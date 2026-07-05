@@ -65,7 +65,7 @@ async function runFollowups(request: Request | undefined) {
           processed++;
           const { data: agent } = await supabaseAdmin
             .from("agents")
-            .select("id,user_id,is_active,tools,timezone,system_prompt,model,category,temperature,max_tokens,ai_provider_id")
+            .select("id,user_id,is_active,tools,timezone,system_prompt,temperature,max_tokens")
             .eq("id", c.agent_id!).eq("is_active", true).maybeSingle();
           if (!agent) continue;
           const ext = (agent.tools ?? {}) as Ext;
