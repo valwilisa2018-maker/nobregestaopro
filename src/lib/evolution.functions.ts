@@ -289,7 +289,11 @@ export const createAndConnectInstance = createServerFn({ method: "POST" })
           webhook: {
             url: webhookUrl,
             byEvents: false,
+            webhookByEvents: false,
+            webhook_by_events: false,
             base64: false,
+            webhookBase64: false,
+            webhook_base64: false,
             events: ["MESSAGES_UPSERT", "MESSAGES_UPDATE", "CONNECTION_UPDATE", "QRCODE_UPDATED", "PRESENCE_UPDATE"],
           },
         } : {}),
@@ -1196,19 +1200,23 @@ export const ensurePresenceWebhook = createServerFn({ method: "POST" })
       const cur = found.json ?? {};
       const events: string[] = Array.isArray(cur.events) ? cur.events : [];
       const required = ["MESSAGES_UPSERT", "MESSAGES_UPDATE", "CONNECTION_UPDATE", "PRESENCE_UPDATE"];
-      const base64Enabled = cur.webhookBase64 ?? cur.base64 ?? cur.webhook_base64;
+      const base64Enabled = cur.webhookBase64 ?? cur.webhook_base64 ?? cur.base64;
       if (required.every((event) => events.includes(event)) && base64Enabled === false) return { ok: true as const, alreadyEnabled: true };
       const url = cur.url || cur.webhookUrl;
       if (!url) return { ok: false as const, error: "Webhook não configurado" };
+      const byEvents = cur.webhookByEvents ?? cur.webhook_by_events ?? cur.byEvents ?? false;
       await evoFetch(`${baseUrl(conn.url_api)}/webhook/set/${conn.instance_name}`, apiKey, {
         method: "POST",
         body: JSON.stringify({
-          webhook: {
-            enabled: true, url,
-            byEvents: cur.webhookByEvents ?? false,
-            base64: false,
-            events: [...new Set([...events, ...required])],
-          },
+          enabled: true,
+          url,
+          webhookByEvents: byEvents,
+          webhook_by_events: byEvents,
+          byEvents,
+          webhookBase64: false,
+          webhook_base64: false,
+          base64: false,
+          events: [...new Set([...events, ...required])],
         }),
       });
       return { ok: true as const };
