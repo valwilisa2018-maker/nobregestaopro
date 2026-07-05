@@ -763,7 +763,7 @@ export const reactChatMessage = createServerFn({ method: "POST" })
 
 // ===================== Quick Sends (templates) =====================
 
-const MAX_QUICK_VIDEO_BYTES = 2 * 1024 * 1024 * 1024;
+const MAX_QUICK_VIDEO_BYTES = 16 * 1024 * 1024;
 
 function guessQuickKind(mime: string): "image" | "video" | "audio" | "file" {
   if (mime.startsWith("image/")) return "image";
