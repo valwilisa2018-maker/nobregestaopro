@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { Settings, Save, Loader2, Zap, ShieldAlert, Brain, Sparkles, MessageSquare, Package, Plus, Trash2, Star } from "lucide-react";
+import { Settings, Save, Loader2, Zap, ShieldAlert, Brain, Sparkles, MessageSquare, Package, Plus, Trash2, Star, Coins, TrendingUp, DollarSign } from "lucide-react";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
@@ -20,6 +20,39 @@ export const Route = createFileRoute("/_authenticated/admin-settings")({
 });
 
 type EvoCfg = { url_api: string; api_key: string; webhook_base_url: string };
+
+type PackageRow = {
+  id: string;
+  name: string;
+  tokens: number;
+  price_cents: number;
+  badge: string | null;
+  sort_order: number;
+  is_active: boolean;
+};
+
+type PricingCfg = {
+  currency: string;
+  usd_rate: number;
+  margin_pct: number;
+  multipliers: Record<string, number>;
+};
+
+const DEFAULT_PRICING: PricingCfg = {
+  currency: "BRL",
+  usd_rate: 5.2,
+  margin_pct: 40,
+  multipliers: {
+    "openai/gpt-5-nano": 1,
+    "openai/gpt-5-mini": 2,
+    "openai/gpt-5": 8,
+    "google/gemini-2.5-flash": 1,
+    "google/gemini-2.5-pro": 5,
+    "anthropic/claude-3-5-sonnet": 6,
+    "anthropic/claude-3-opus": 15,
+    "deepseek/deepseek-chat": 1,
+  },
+};
 
 type PlanRow = {
   id: string;
@@ -114,6 +147,11 @@ function Page() {
   const [savingProv, setSavingProv] = useState<ProviderKey | null>(null);
   const [plans, setPlans] = useState<PlanRow[]>([]);
   const [savingPlan, setSavingPlan] = useState<string | null>(null);
+  const [packages, setPackages] = useState<PackageRow[]>([]);
+  const [savingPkg, setSavingPkg] = useState<string | null>(null);
+  const [pricing, setPricing] = useState<PricingCfg>(DEFAULT_PRICING);
+  const [savingPricing, setSavingPricing] = useState(false);
+  const [stats, setStats] = useState<{ salesCents: number; salesCount: number; tokensSold: number; tokensUsed: number; costCents: number }>({ salesCents: 0, salesCount: 0, tokensSold: 0, tokensUsed: 0, costCents: 0 });
 
   useEffect(() => {
     if (!user) return;
@@ -148,6 +186,7 @@ function Page() {
         });
       }
       await reloadPlans();
+      await reloadCredits();
       setLoading(false);
     })();
   }, [user]);
@@ -159,6 +198,63 @@ function Page() {
       features: Array.isArray(p.features) ? p.features : (p.features ? (p.features as unknown as string[]) : []),
     })));
   }
+
+  async function reloadCredits() {
+    const { data: pkgs } = await supabase.from("credit_packages").select("*").order("sort_order", { ascending: true });
+    setPackages((pkgs ?? []) as unknown as PackageRow[]);
+    const { data: cfgRow } = await supabase.from("internal_config").select("value").eq("key", "credits_pricing").maybeSingle();
+    if (cfgRow?.value) {
+      try { setPricing({ ...DEFAULT_PRICING, ...JSON.parse(cfgRow.value as string) }); } catch { /* ignore */ }
+    }
+    const { data: orders } = await supabase.from("credit_orders").select("tokens, price_cents").eq("status", "paid");
+    const salesCents = (orders ?? []).reduce((s, o) => s + (o.price_cents ?? 0), 0);
+    const tokensSold = (orders ?? []).reduce((s, o) => s + Number(o.tokens ?? 0), 0);
+    const { data: txs } = await supabase.from("credit_transactions").select("total_tokens, cost_cents").eq("kind", "usage").eq("status", "ok");
+    const tokensUsed = (txs ?? []).reduce((s, t) => s + Number(t.total_tokens ?? 0), 0);
+    const costCents = (txs ?? []).reduce((s, t) => s + (t.cost_cents ?? 0), 0);
+    setStats({ salesCents, salesCount: orders?.length ?? 0, tokensSold, tokensUsed, costCents });
+  }
+
+  const updatePkg = (id: string, patch: Partial<PackageRow>) =>
+    setPackages((prev) => prev.map((p) => (p.id === id ? { ...p, ...patch } : p)));
+
+  const savePkg = async (p: PackageRow) => {
+    setSavingPkg(p.id);
+    const payload = { name: p.name, tokens: p.tokens, price_cents: p.price_cents, badge: p.badge, sort_order: p.sort_order, is_active: p.is_active };
+    const { error } = p.id.startsWith("new-")
+      ? await supabase.from("credit_packages").insert(payload as never)
+      : await supabase.from("credit_packages").update(payload as never).eq("id", p.id);
+    setSavingPkg(null);
+    if (error) return toast.error(error.message);
+    toast.success("Pacote salvo");
+    await reloadCredits();
+  };
+
+  const deletePkg = async (id: string) => {
+    if (id.startsWith("new-")) { setPackages((prev) => prev.filter((p) => p.id !== id)); return; }
+    if (!confirm("Excluir pacote?")) return;
+    const { error } = await supabase.from("credit_packages").delete().eq("id", id);
+    if (error) return toast.error(error.message);
+    toast.success("Pacote excluído");
+    await reloadCredits();
+  };
+
+  const addPkg = () => {
+    const id = `new-${Date.now()}`;
+    setPackages((prev) => [...prev, { id, name: "Novo pacote", tokens: 100000, price_cents: 2990, badge: null, sort_order: (prev.at(-1)?.sort_order ?? 0) + 1, is_active: false }]);
+  };
+
+  const savePricing = async () => {
+    setSavingPricing(true);
+    const value = JSON.stringify(pricing);
+    const { data: existing } = await supabase.from("internal_config").select("key").eq("key", "credits_pricing").maybeSingle();
+    const { error } = existing
+      ? await supabase.from("internal_config").update({ value }).eq("key", "credits_pricing")
+      : await supabase.from("internal_config").insert({ key: "credits_pricing", value });
+    setSavingPricing(false);
+    if (error) return toast.error(error.message);
+    toast.success("Precificação salva");
+  };
 
   const updatePlan = (id: string, patch: Partial<PlanRow>) =>
     setPlans((prev) => prev.map((p) => (p.id === id ? { ...p, ...patch } : p)));
