@@ -2017,7 +2017,13 @@ function MessagesPage() {
                             </a>
                           );
                         })() : (
-                          <div className="whitespace-pre-wrap break-words pr-14">{m.content}</div>
+                          <div className="pr-14">
+                            {(() => {
+                              const url = extractFirstUrl(m.content ?? "");
+                              return url ? <LinkPreview url={url} /> : null;
+                            })()}
+                            <div className="whitespace-pre-wrap break-words">{m.content}</div>
+                          </div>
                         )}
                         <div className="mt-0.5 flex items-center justify-end gap-1 text-[10px] text-gray-500">
                           {starred.has(m.id) && <Star className="h-3 w-3 fill-yellow-400 text-yellow-500" />}
@@ -2444,6 +2450,50 @@ function MediaMissing({ kind, onRetry }: { kind: "audio" | "sticker"; onRetry: (
 }
 
 let activeAudioElement: HTMLAudioElement | null = null;
+
+function extractFirstUrl(text: string): string | null {
+  const m = text.match(/https?:\/\/[^\s<>"']+/i);
+  return m ? m[0].replace(/[),.;!?]+$/, "") : null;
+}
+
+const linkPreviewCache = new Map<string, { title?: string; description?: string; image?: string; publisher?: string; url: string } | null>();
+
+function LinkPreview({ url }: { url: string }) {
+  const [data, setData] = useState<{ title?: string; description?: string; image?: string; publisher?: string; url: string } | null | undefined>(
+    () => linkPreviewCache.get(url),
+  );
+  useEffect(() => {
+    if (linkPreviewCache.has(url)) { setData(linkPreviewCache.get(url)); return; }
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch(`https://api.microlink.io/?url=${encodeURIComponent(url)}`);
+        const json = (await res.json()) as { status?: string; data?: { title?: string; description?: string; image?: { url?: string }; publisher?: string; url?: string } };
+        if (json.status !== "success" || !json.data) { linkPreviewCache.set(url, null); if (!cancelled) setData(null); return; }
+        const p = { title: json.data.title, description: json.data.description, image: json.data.image?.url, publisher: json.data.publisher, url: json.data.url ?? url };
+        linkPreviewCache.set(url, p);
+        if (!cancelled) setData(p);
+      } catch { linkPreviewCache.set(url, null); if (!cancelled) setData(null); }
+    })();
+    return () => { cancelled = true; };
+  }, [url]);
+  if (data === undefined) {
+    return <div className="mb-1 rounded-md bg-black/5 h-16 animate-pulse" />;
+  }
+  if (data === null) return null;
+  return (
+    <a href={data.url} target="_blank" rel="noreferrer" className="mb-1 block rounded-md overflow-hidden bg-black/5 hover:bg-black/10 transition">
+      {data.image && (
+        <img src={data.image} alt="" className="w-full max-h-40 object-cover" loading="lazy" />
+      )}
+      <div className="px-2 py-1.5">
+        {data.publisher && <div className="text-[10px] uppercase tracking-wide text-gray-500 truncate">{data.publisher}</div>}
+        {data.title && <div className="text-[13px] font-medium text-gray-800 line-clamp-2">{data.title}</div>}
+        {data.description && <div className="text-[11px] text-gray-600 line-clamp-2">{data.description}</div>}
+      </div>
+    </a>
+  );
+}
 
 function AudioPlayer({ src, id }: { src: string; id: string }) {
   const audioRef = useRef<HTMLAudioElement | null>(null);
