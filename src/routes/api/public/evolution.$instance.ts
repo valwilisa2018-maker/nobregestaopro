@@ -742,7 +742,19 @@ export const Route = createFileRoute("/api/public/evolution/$instance")({
 
             // Build endpoint + key from Configurações Globais (ai_providers ativo do dono da conexão).
             const { resolveAIConfig } = await import("@/lib/ai-resolver.server");
+            const { checkAiBalance, consumeAiTokens } = await import("@/lib/ai-credits.server");
             const { endpoint, apiKey, model: modelId } = await resolveAIConfig(supabaseAdmin, conn.user_id);
+
+            // Pre-check AI credit wallet — block gracefully if empty.
+            const bal = await checkAiBalance(supabaseAdmin, conn.user_id);
+            if (!bal.ok) {
+              await supabaseAdmin.from("logs").insert({
+                user_id: conn.user_id, level: "warn", source: `evolution:${instance}`,
+                message: "AI credits exhausted", metadata: { remaining: bal.remaining } as never,
+              } as never);
+              await maybeAlert(supabaseAdmin, commandConn, agent, ext, "Créditos de IA esgotados. Compre créditos para o agente voltar a responder.");
+              return Response.json({ ok: true, creditsBlocked: true });
+            }
 
             const aiRes = await fetch(endpoint, {
               method: "POST",
@@ -783,6 +795,14 @@ export const Route = createFileRoute("/api/public/evolution/$instance")({
             });
             const aiJson = await aiRes.json().catch(() => ({} as any));
             let reply: string = aiJson?.choices?.[0]?.message?.content ?? "";
+            // Debit tokens consumed from the wallet.
+            await consumeAiTokens(supabaseAdmin, {
+              userId: conn.user_id,
+              agentId: agent.id,
+              model: modelId,
+              inputTokens: Number(aiJson?.usage?.prompt_tokens ?? 0),
+              outputTokens: Number(aiJson?.usage?.completion_tokens ?? 0),
+            });
             if (!reply) reply = ext.timing?.unknownMsg ?? "";
             if (!reply) return Response.json({ ok: true, empty: true });
 
