@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { z } from "zod";
 import { authFromRequest, json } from "@/lib/api-auth.server";
+import { emitWebhook } from "@/lib/webhooks.server";
 
 const schema = z.object({ order_id: z.string().uuid(), reason: z.string().max(200).optional() });
 
@@ -30,6 +31,9 @@ export const Route = createFileRoute("/api/v1/refund")({
     await supabaseAdmin.from("credit_transactions").insert({
       user_id: order.user_id, total_tokens: -Number(order.tokens), cost_cents: -Number(order.price_cents),
       kind: "refund", status: "ok", metadata: { order_id: order.id, reason: p.data.reason ?? null },
+    });
+    await emitWebhook(order.user_id, "order.refunded", {
+      order_id: order.id, tokens: Number(order.tokens), price_cents: Number(order.price_cents), reason: p.data.reason ?? null,
     });
     return json({ ok: true, order_id: order.id });
   } } },

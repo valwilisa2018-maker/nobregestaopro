@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { z } from "zod";
 import { authFromRequest, json } from "@/lib/api-auth.server";
+import { emitWebhook } from "@/lib/webhooks.server";
 
 const schema = z.object({
   model: z.string().min(1).max(120),
@@ -23,7 +24,16 @@ export const Route = createFileRoute("/api/v1/consume")({
       _input_tokens: p.data.input_tokens, _output_tokens: p.data.output_tokens, _cost_cents: p.data.cost_cents,
     });
     if (error) return json({ error: error.message }, 400);
-    const result = data as { allowed: boolean };
+    const result = data as { allowed: boolean; remaining?: number };
+    if (result?.allowed) {
+      await emitWebhook(ctx.userId, "credits.consumed", {
+        model: p.data.model, input_tokens: p.data.input_tokens, output_tokens: p.data.output_tokens,
+        cost_cents: p.data.cost_cents, agent_id: p.data.agent_id ?? null, remaining: result.remaining ?? null,
+      });
+      const remaining = Number(result.remaining ?? 0);
+      if (remaining <= 0) await emitWebhook(ctx.userId, "credits.zero", { remaining });
+      else if (remaining < 1000) await emitWebhook(ctx.userId, "credits.low", { remaining });
+    }
     return json(result, result?.allowed ? 200 : 402);
   } } },
 });
