@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import {
   Coins, Loader2, TrendingDown, CalendarDays, Timer, Sparkles, Download, ShoppingCart, Search,
+  AlertCircle, Inbox, RefreshCw,
 } from "lucide-react";
 import { toast } from "sonner";
 import { BuyCreditsModal } from "@/components/buy-credits-modal";
@@ -70,6 +71,26 @@ const fmtTokens = (n: number) => {
 const fmtBRL = (c: number) => (c / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 const fmtDate = (s: string) => new Date(s).toLocaleString("pt-BR");
 
+function ErrorState({ msg, onRetry }: { msg: string; onRetry: () => void }) {
+  return (
+    <div className="flex flex-col items-center justify-center gap-2 py-6 text-center">
+      <AlertCircle className="h-6 w-6 text-rose-400" />
+      <p className="text-sm text-rose-400">Falha ao carregar: {msg}</p>
+      <Button variant="outline" size="sm" onClick={onRetry}>
+        <RefreshCw className="h-3 w-3 mr-2" /> Tentar novamente
+      </Button>
+    </div>
+  );
+}
+
+function SectionLoader() {
+  return (
+    <div className="flex items-center justify-center py-8">
+      <Loader2 className="h-5 w-5 animate-spin text-primary" />
+    </div>
+  );
+}
+
 function Page() {
   const [loading, setLoading] = useState(true);
   const [wallet, setWallet] = useState<Wallet | null>(null);
@@ -81,8 +102,33 @@ function Page() {
   const [agents, setAgents] = useState<Record<string, string>>({});
   const [search, setSearch] = useState("");
   const [buyOpen, setBuyOpen] = useState(false);
+  const [walletLoading, setWalletLoading] = useState(true);
+  const [usageLoading, setUsageLoading] = useState(true);
+  const [historyLoading, setHistoryLoading] = useState(true);
+  const [walletError, setWalletError] = useState<string | null>(null);
+  const [usageError, setUsageError] = useState<string | null>(null);
+  const [historyError, setHistoryError] = useState<string | null>(null);
+
+  const loadWallet = async () => {
+    setWalletLoading(true); setWalletError(null);
+    try {
+      const w = (await authedFetch("/api/v1/credits")) as Wallet;
+      setWallet(w);
+    } catch (e) { setWalletError((e as Error).message); }
+    finally { setWalletLoading(false); }
+  };
+
+  const loadUsage = async () => {
+    setUsageLoading(true); setUsageError(null);
+    try {
+      const u = (await authedFetch("/api/v1/usage?days=90")) as UsageResp;
+      setUsage(u);
+    } catch (e) { setUsageError((e as Error).message); }
+    finally { setUsageLoading(false); }
+  };
 
   const loadHistory = async (pageIndex: number) => {
+    setHistoryLoading(true); setHistoryError(null);
     try {
       const offset = pageIndex * PAGE_SIZE;
       const h = (await authedFetch(`/api/v1/history?limit=${PAGE_SIZE}&offset=${offset}`)) as {
@@ -91,27 +137,14 @@ function Page() {
       setTxs(h.items ?? []);
       setTotal(h.total ?? 0);
       setPage(pageIndex);
-    } catch (e) {
-      toast.error((e as Error).message);
-    }
+    } catch (e) { setHistoryError((e as Error).message); }
+    finally { setHistoryLoading(false); }
   };
 
   const load = async () => {
     setLoading(true);
     try {
-      const [w, u, h] = await Promise.all([
-        authedFetch("/api/v1/credits") as Promise<Wallet>,
-        authedFetch("/api/v1/usage?days=90") as Promise<UsageResp>,
-        authedFetch(`/api/v1/history?limit=${PAGE_SIZE}&offset=0`) as Promise<{
-          items: Tx[]; total: number;
-        }>,
-      ]);
-      setWallet(w);
-      setUsage(u);
-      setTxs(h.items ?? []);
-      setTotal(h.total ?? 0);
-      setPage(0);
-
+      await Promise.all([loadWallet(), loadUsage(), loadHistory(0)]);
       const { data: userData } = await supabase.auth.getUser();
       const uid = userData.user?.id;
       if (uid) {
@@ -137,14 +170,7 @@ function Page() {
   // Live refresh: wallet + usage every 30s
   useEffect(() => {
     const id = setInterval(async () => {
-      try {
-        const [w, u] = await Promise.all([
-          authedFetch("/api/v1/credits") as Promise<Wallet>,
-          authedFetch("/api/v1/usage?days=90") as Promise<UsageResp>,
-        ]);
-        setWallet(w);
-        setUsage(u);
-      } catch { /* silent */ }
+      await Promise.all([loadWallet(), loadUsage()]);
     }, 30_000);
     return () => clearInterval(id);
   }, []);
@@ -246,6 +272,11 @@ function Page() {
       ) : (
         <>
           {/* Cards topo */}
+          {walletError ? (
+            <Card><CardContent className="p-5"><ErrorState msg={walletError} onRetry={loadWallet} /></CardContent></Card>
+          ) : walletLoading && !wallet ? (
+            <Card><CardContent className="p-5"><SectionLoader /></CardContent></Card>
+          ) : (
           <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
             <Card className="relative overflow-hidden border-emerald-500/40 bg-gradient-to-br from-emerald-500/10 via-card to-card xl:col-span-2">
               <div className="pointer-events-none absolute -right-10 -top-10 h-32 w-32 rounded-full bg-emerald-500/20 blur-3xl" />
@@ -298,6 +329,7 @@ function Page() {
               </CardContent>
             </Card>
           </div>
+          )}
 
           {/* Gráficos de consumo */}
           <Card className="mt-6">
@@ -308,6 +340,16 @@ function Page() {
                   <p className="text-xs text-muted-foreground">Atualiza automaticamente a cada 30s</p>
                 </div>
               </div>
+              {usageError ? (
+                <ErrorState msg={usageError} onRetry={loadUsage} />
+              ) : usageLoading && !usage ? (
+                <SectionLoader />
+              ) : (usage && usage.total_tokens === 0) ? (
+                <div className="flex flex-col items-center justify-center py-10 text-center text-muted-foreground">
+                  <Inbox className="h-8 w-8 mb-2 opacity-60" />
+                  <p className="text-sm">Sem consumo nos últimos {usage.days} dias.</p>
+                </div>
+              ) : (
               <Tabs defaultValue="daily">
                 <TabsList>
                   <TabsTrigger value="daily">Diário</TabsTrigger>
@@ -363,6 +405,7 @@ function Page() {
                   </div>
                 </TabsContent>
               </Tabs>
+              )}
             </CardContent>
           </Card>
 
@@ -391,6 +434,19 @@ function Page() {
                   </Button>
                 </div>
               </div>
+              {historyError ? (
+                <ErrorState msg={historyError} onRetry={() => loadHistory(page)} />
+              ) : historyLoading ? (
+                <SectionLoader />
+              ) : filtered.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-12 text-center text-muted-foreground">
+                  <Inbox className="h-10 w-10 mb-3 opacity-60" />
+                  <p className="text-sm font-semibold text-foreground">Nenhum registro ainda</p>
+                  <p className="text-xs mt-1">
+                    {search ? "Nenhum resultado para sua busca." : "Seu histórico de consumo aparecerá aqui."}
+                  </p>
+                </div>
+              ) : (
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead className="text-xs uppercase text-muted-foreground border-b border-border">
@@ -407,9 +463,7 @@ function Page() {
                     </tr>
                   </thead>
                   <tbody>
-                    {filtered.length === 0 ? (
-                      <tr><td colSpan={9} className="text-center py-8 text-muted-foreground">Nenhum registro.</td></tr>
-                    ) : filtered.map((t) => (
+                    {filtered.map((t) => (
                       <tr key={t.id} className="border-b border-border/40 hover:bg-muted/30">
                         <td className="py-2 px-2 text-muted-foreground">{fmtDate(t.occurred_at)}</td>
                         <td className="py-2 px-2">{t.agent_id ? (agents[t.agent_id] ?? "—") : "—"}</td>
@@ -433,6 +487,7 @@ function Page() {
                   </tbody>
                 </table>
               </div>
+              )}
               <div className="flex items-center justify-end gap-2 mt-4">
                 <Button variant="outline" size="sm" disabled={page === 0 || loading} onClick={() => loadHistory(page - 1)}>
                   Anterior
