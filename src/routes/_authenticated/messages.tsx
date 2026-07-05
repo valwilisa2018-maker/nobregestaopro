@@ -1903,17 +1903,13 @@ function MessagesPage() {
                         {isAudio ? (
                           m.media_url
                             ? (
-                              <div className="relative pr-8">
-                                <AudioPlayer src={m.media_url} id={m.id} />
-                                <button
-                                  type="button"
-                                  onClick={(e) => { e.stopPropagation(); downloadFile(m.media_url!, `audio-${m.id}.ogg`); }}
-                                  title="Baixar áudio"
-                                  className="absolute top-1/2 -translate-y-1/2 right-1 grid place-items-center h-6 w-6 rounded-full bg-black/10 hover:bg-black/20 text-gray-700"
-                                >
-                                  <Download className="h-3.5 w-3.5" />
-                                </button>
-                              </div>
+                              <AudioPlayer
+                                src={m.media_url}
+                                id={m.id}
+                                avatarUrl={avatars[selected.id] ?? null}
+                                direction={m.direction as "inbound" | "outbound"}
+                                onDownload={() => downloadFile(m.media_url!, `audio-${m.id}.ogg`)}
+                              />
                             )
                             : <MediaMissing kind="audio" onRetry={() => loadMessagesRef.current?.()} />
                         ) : isSticker ? (
