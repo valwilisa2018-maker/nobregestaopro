@@ -1161,6 +1161,7 @@ export type Database = {
           is_active: boolean
           monthly_limit: number
           name: string
+          price_annual_cents: number
           price_cents: number
           sort_order: number
           tokens_included: number
@@ -1176,6 +1177,7 @@ export type Database = {
           is_active?: boolean
           monthly_limit?: number
           name: string
+          price_annual_cents?: number
           price_cents?: number
           sort_order?: number
           tokens_included?: number
@@ -1191,6 +1193,7 @@ export type Database = {
           is_active?: boolean
           monthly_limit?: number
           name?: string
+          price_annual_cents?: number
           price_cents?: number
           sort_order?: number
           tokens_included?: number

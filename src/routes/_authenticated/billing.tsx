@@ -6,6 +6,7 @@ import { PageShell } from "@/components/page-shell";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/billing")({
@@ -18,6 +19,7 @@ type Plan = {
   name: string;
   description: string | null;
   price_cents: number;
+  price_annual_cents: number;
   tokens_included: number;
   features: string[];
   highlight: boolean;
@@ -35,6 +37,7 @@ const formatTokens = (n: number) => {
 function Page() {
   const [plans, setPlans] = useState<Plan[]>([]);
   const [loading, setLoading] = useState(true);
+  const [cycle, setCycle] = useState<"monthly" | "annual">("monthly");
 
   useEffect(() => {
     (async () => {
@@ -56,13 +59,28 @@ function Page() {
       icon={<CreditCard className="h-6 w-6" />}
       status="ativo"
     >
+      <div className="flex justify-center mb-6">
+        <Tabs value={cycle} onValueChange={(v) => setCycle(v as "monthly" | "annual")}>
+          <TabsList>
+            <TabsTrigger value="monthly">Mensal</TabsTrigger>
+            <TabsTrigger value="annual" className="gap-2">Anual <Badge variant="secondary" className="text-[10px]">-2 meses</Badge></TabsTrigger>
+          </TabsList>
+        </Tabs>
+      </div>
       {loading ? (
         <div className="p-12 flex justify-center"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>
       ) : plans.length === 0 ? (
         <Card><CardContent className="p-12 text-center text-muted-foreground">Nenhum plano disponível.</CardContent></Card>
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-          {plans.map((p) => (
+          {plans.map((p) => {
+            const annualFromMonthly = p.price_cents * 12;
+            const showAnnual = cycle === "annual" && p.price_annual_cents > 0;
+            const price = showAnnual ? p.price_annual_cents : p.price_cents;
+            const suffix = showAnnual ? "/ano" : "/mês";
+            const savings = showAnnual ? annualFromMonthly - p.price_annual_cents : 0;
+            const savingsPct = showAnnual && annualFromMonthly > 0 ? Math.round((savings / annualFromMonthly) * 100) : 0;
+            return (
             <Card key={p.id} className={`relative flex flex-col ${p.highlight ? "border-primary ring-2 ring-primary/30" : ""}`}>
               {p.highlight && (
                 <Badge className="absolute -top-3 left-1/2 -translate-x-1/2 gap-1">
@@ -75,7 +93,12 @@ function Page() {
                   {p.description && <p className="text-xs text-muted-foreground mt-1">{p.description}</p>}
                 </div>
                 <div>
-                  <div className="text-3xl font-black">{formatBRL(p.price_cents)}<span className="text-sm text-muted-foreground font-normal">/mês</span></div>
+                  <div className="text-3xl font-black">{formatBRL(price)}<span className="text-sm text-muted-foreground font-normal">{suffix}</span></div>
+                  {showAnnual && savings > 0 && (
+                    <div className="text-xs text-emerald-500 font-medium mt-1">
+                      Economize {formatBRL(savings)} ({savingsPct}%) vs mensal
+                    </div>
+                  )}
                   <div className="text-xs text-primary font-medium mt-1">{formatTokens(p.tokens_included)} / mês</div>
                 </div>
                 <ul className="space-y-1.5 text-sm flex-1">
@@ -86,7 +109,8 @@ function Page() {
                 <Button className="w-full" variant={p.highlight ? "default" : "outline"}>Assinar</Button>
               </CardContent>
             </Card>
-          ))}
+            );
+          })}
         </div>
       )}
     </PageShell>
