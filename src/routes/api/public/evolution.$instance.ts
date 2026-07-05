@@ -39,6 +39,17 @@ type ConvMeta = {
 };
 
 const MEDIA_BUCKET = "agent-media";
+// Limite de recebimento de mídia (padrão WhatsApp: 2 GB)
+const MAX_INBOUND_MEDIA_BYTES = 2 * 1024 * 1024 * 1024;
+
+class MediaTooLargeError extends Error {
+  bytes: number;
+  constructor(bytes: number) {
+    super(`Mídia excede o limite de 2 GB (${(bytes / 1024 / 1024).toFixed(1)} MB recebidos).`);
+    this.name = "MediaTooLargeError";
+    this.bytes = bytes;
+  }
+}
 
 function normalizeEvoStatus(value: unknown): "sent" | "delivered" | "read" | null {
   if (value === undefined || value === null) return null;
@@ -492,7 +503,18 @@ export const Route = createFileRoute("/api/public/evolution/$instance")({
                     mediaUrl = saved.url;
                     mediaPath = saved.path;
                   }
-                } catch { /* keep metadata-only media bubble */ }
+                } catch (e) {
+                  if (e instanceof MediaTooLargeError) {
+                    await supabaseAdmin.from("logs").insert({
+                      user_id: conn.user_id,
+                      level: "warn",
+                      source: "evolution:outbound-media",
+                      message: e.message,
+                      metadata: { remoteJid, kind: mediaKind, bytes: e.bytes, limit: MAX_INBOUND_MEDIA_BYTES } as never,
+                    } as never);
+                    mediaCaption = `⚠️ ${mediaLabel(mediaKind)} excede o limite de 2 GB e não foi salvo.`;
+                  }
+                }
                 await supabaseAdmin.from("messages").insert({
                   user_id: conn.user_id, conversation_id: convo.id,
                   direction: "outbound", type: mediaKind,
@@ -552,7 +574,18 @@ export const Route = createFileRoute("/api/public/evolution/$instance")({
                   mediaUrl = saved.url;
                   mediaPath = saved.path;
                 }
-              } catch { /* ignore */ }
+              } catch (e) {
+                if (e instanceof MediaTooLargeError) {
+                  await supabaseAdmin.from("logs").insert({
+                    user_id: conn.user_id,
+                    level: "warn",
+                    source: "evolution:inbound-media",
+                    message: e.message,
+                    metadata: { remoteJid, kind: mediaKind, bytes: e.bytes, limit: MAX_INBOUND_MEDIA_BYTES } as never,
+                  } as never);
+                  mediaCaption = `⚠️ ${mediaLabel(mediaKind)} recebido excede o limite de 2 GB e não foi salvo.`;
+                }
+              }
               await supabaseAdmin.from("messages").insert({
                 user_id: conn.user_id, conversation_id: convo.id,
                 direction: "inbound", type: mediaKind,
@@ -1028,6 +1061,9 @@ async function saveMediaToStorage(
   const ext = safeName.includes(".") ? "" : `.${(mime.split("/")[1] || "bin").split(";")[0]}`;
   const path = `${userId}/${conversationId}/${Date.now()}-${crypto.randomUUID()}-${safeName}${ext}`;
   const bytes = Buffer.from(clean, "base64");
+  if (bytes.byteLength > MAX_INBOUND_MEDIA_BYTES) {
+    throw new MediaTooLargeError(bytes.byteLength);
+  }
   const { error } = await db.storage.from(MEDIA_BUCKET).upload(path, bytes, {
     contentType: mime || "application/octet-stream",
     upsert: false,
