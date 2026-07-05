@@ -44,6 +44,13 @@ import { Route as AuthenticatedApiRouteImport } from './routes/_authenticated/ap
 import { Route as AuthenticatedAiRouteImport } from './routes/_authenticated/ai'
 import { Route as AuthenticatedAgentsRouteImport } from './routes/_authenticated/agents'
 import { Route as AuthenticatedAdminSettingsRouteImport } from './routes/_authenticated/admin-settings'
+import { Route as ApiV1UsageRouteImport } from './routes/api/v1/usage'
+import { Route as ApiV1RefundRouteImport } from './routes/api/v1/refund'
+import { Route as ApiV1PackagesRouteImport } from './routes/api/v1/packages'
+import { Route as ApiV1HistoryRouteImport } from './routes/api/v1/history'
+import { Route as ApiV1CreditsRouteImport } from './routes/api/v1/credits'
+import { Route as ApiV1ConsumeRouteImport } from './routes/api/v1/consume'
+import { Route as ApiV1BuyRouteImport } from './routes/api/v1/buy'
 import { Route as ApiPublicHooksFollowUpsRouteImport } from './routes/api/public/hooks/follow-ups'
 import { Route as ApiPublicHooksBroadcastsRouteImport } from './routes/api/public/hooks/broadcasts'
 import { Route as ApiPublicEvolutionInstanceRouteImport } from './routes/api/public/evolution.$instance'
@@ -226,6 +233,41 @@ const AuthenticatedAdminSettingsRoute =
     path: '/admin-settings',
     getParentRoute: () => AuthenticatedRoute,
   } as any)
+const ApiV1UsageRoute = ApiV1UsageRouteImport.update({
+  id: '/api/v1/usage',
+  path: '/api/v1/usage',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiV1RefundRoute = ApiV1RefundRouteImport.update({
+  id: '/api/v1/refund',
+  path: '/api/v1/refund',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiV1PackagesRoute = ApiV1PackagesRouteImport.update({
+  id: '/api/v1/packages',
+  path: '/api/v1/packages',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiV1HistoryRoute = ApiV1HistoryRouteImport.update({
+  id: '/api/v1/history',
+  path: '/api/v1/history',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiV1CreditsRoute = ApiV1CreditsRouteImport.update({
+  id: '/api/v1/credits',
+  path: '/api/v1/credits',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiV1ConsumeRoute = ApiV1ConsumeRouteImport.update({
+  id: '/api/v1/consume',
+  path: '/api/v1/consume',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiV1BuyRoute = ApiV1BuyRouteImport.update({
+  id: '/api/v1/buy',
+  path: '/api/v1/buy',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiPublicHooksFollowUpsRoute = ApiPublicHooksFollowUpsRouteImport.update({
   id: '/api/public/hooks/follow-ups',
   path: '/api/public/hooks/follow-ups',
@@ -279,6 +321,13 @@ export interface FileRoutesByFullPath {
   '/webhooks': typeof AuthenticatedWebhooksRoute
   '/whatsapp': typeof AuthenticatedWhatsappRoute
   '/white-label': typeof AuthenticatedWhiteLabelRoute
+  '/api/v1/buy': typeof ApiV1BuyRoute
+  '/api/v1/consume': typeof ApiV1ConsumeRoute
+  '/api/v1/credits': typeof ApiV1CreditsRoute
+  '/api/v1/history': typeof ApiV1HistoryRoute
+  '/api/v1/packages': typeof ApiV1PackagesRoute
+  '/api/v1/refund': typeof ApiV1RefundRoute
+  '/api/v1/usage': typeof ApiV1UsageRoute
   '/api/public/evolution/$instance': typeof ApiPublicEvolutionInstanceRoute
   '/api/public/hooks/broadcasts': typeof ApiPublicHooksBroadcastsRoute
   '/api/public/hooks/follow-ups': typeof ApiPublicHooksFollowUpsRoute
@@ -318,6 +367,13 @@ export interface FileRoutesByTo {
   '/webhooks': typeof AuthenticatedWebhooksRoute
   '/whatsapp': typeof AuthenticatedWhatsappRoute
   '/white-label': typeof AuthenticatedWhiteLabelRoute
+  '/api/v1/buy': typeof ApiV1BuyRoute
+  '/api/v1/consume': typeof ApiV1ConsumeRoute
+  '/api/v1/credits': typeof ApiV1CreditsRoute
+  '/api/v1/history': typeof ApiV1HistoryRoute
+  '/api/v1/packages': typeof ApiV1PackagesRoute
+  '/api/v1/refund': typeof ApiV1RefundRoute
+  '/api/v1/usage': typeof ApiV1UsageRoute
   '/api/public/evolution/$instance': typeof ApiPublicEvolutionInstanceRoute
   '/api/public/hooks/broadcasts': typeof ApiPublicHooksBroadcastsRoute
   '/api/public/hooks/follow-ups': typeof ApiPublicHooksFollowUpsRoute
@@ -359,6 +415,13 @@ export interface FileRoutesById {
   '/_authenticated/webhooks': typeof AuthenticatedWebhooksRoute
   '/_authenticated/whatsapp': typeof AuthenticatedWhatsappRoute
   '/_authenticated/white-label': typeof AuthenticatedWhiteLabelRoute
+  '/api/v1/buy': typeof ApiV1BuyRoute
+  '/api/v1/consume': typeof ApiV1ConsumeRoute
+  '/api/v1/credits': typeof ApiV1CreditsRoute
+  '/api/v1/history': typeof ApiV1HistoryRoute
+  '/api/v1/packages': typeof ApiV1PackagesRoute
+  '/api/v1/refund': typeof ApiV1RefundRoute
+  '/api/v1/usage': typeof ApiV1UsageRoute
   '/api/public/evolution/$instance': typeof ApiPublicEvolutionInstanceRoute
   '/api/public/hooks/broadcasts': typeof ApiPublicHooksBroadcastsRoute
   '/api/public/hooks/follow-ups': typeof ApiPublicHooksFollowUpsRoute
@@ -400,6 +463,13 @@ export interface FileRouteTypes {
     | '/webhooks'
     | '/whatsapp'
     | '/white-label'
+    | '/api/v1/buy'
+    | '/api/v1/consume'
+    | '/api/v1/credits'
+    | '/api/v1/history'
+    | '/api/v1/packages'
+    | '/api/v1/refund'
+    | '/api/v1/usage'
     | '/api/public/evolution/$instance'
     | '/api/public/hooks/broadcasts'
     | '/api/public/hooks/follow-ups'
@@ -439,6 +509,13 @@ export interface FileRouteTypes {
     | '/webhooks'
     | '/whatsapp'
     | '/white-label'
+    | '/api/v1/buy'
+    | '/api/v1/consume'
+    | '/api/v1/credits'
+    | '/api/v1/history'
+    | '/api/v1/packages'
+    | '/api/v1/refund'
+    | '/api/v1/usage'
     | '/api/public/evolution/$instance'
     | '/api/public/hooks/broadcasts'
     | '/api/public/hooks/follow-ups'
@@ -479,6 +556,13 @@ export interface FileRouteTypes {
     | '/_authenticated/webhooks'
     | '/_authenticated/whatsapp'
     | '/_authenticated/white-label'
+    | '/api/v1/buy'
+    | '/api/v1/consume'
+    | '/api/v1/credits'
+    | '/api/v1/history'
+    | '/api/v1/packages'
+    | '/api/v1/refund'
+    | '/api/v1/usage'
     | '/api/public/evolution/$instance'
     | '/api/public/hooks/broadcasts'
     | '/api/public/hooks/follow-ups'
@@ -489,6 +573,13 @@ export interface RootRouteChildren {
   AuthenticatedRoute: typeof AuthenticatedRouteWithChildren
   AuthRoute: typeof AuthRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
+  ApiV1BuyRoute: typeof ApiV1BuyRoute
+  ApiV1ConsumeRoute: typeof ApiV1ConsumeRoute
+  ApiV1CreditsRoute: typeof ApiV1CreditsRoute
+  ApiV1HistoryRoute: typeof ApiV1HistoryRoute
+  ApiV1PackagesRoute: typeof ApiV1PackagesRoute
+  ApiV1RefundRoute: typeof ApiV1RefundRoute
+  ApiV1UsageRoute: typeof ApiV1UsageRoute
   ApiPublicEvolutionInstanceRoute: typeof ApiPublicEvolutionInstanceRoute
   ApiPublicHooksBroadcastsRoute: typeof ApiPublicHooksBroadcastsRoute
   ApiPublicHooksFollowUpsRoute: typeof ApiPublicHooksFollowUpsRoute
@@ -741,6 +832,55 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminSettingsRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
+    '/api/v1/usage': {
+      id: '/api/v1/usage'
+      path: '/api/v1/usage'
+      fullPath: '/api/v1/usage'
+      preLoaderRoute: typeof ApiV1UsageRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/v1/refund': {
+      id: '/api/v1/refund'
+      path: '/api/v1/refund'
+      fullPath: '/api/v1/refund'
+      preLoaderRoute: typeof ApiV1RefundRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/v1/packages': {
+      id: '/api/v1/packages'
+      path: '/api/v1/packages'
+      fullPath: '/api/v1/packages'
+      preLoaderRoute: typeof ApiV1PackagesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/v1/history': {
+      id: '/api/v1/history'
+      path: '/api/v1/history'
+      fullPath: '/api/v1/history'
+      preLoaderRoute: typeof ApiV1HistoryRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/v1/credits': {
+      id: '/api/v1/credits'
+      path: '/api/v1/credits'
+      fullPath: '/api/v1/credits'
+      preLoaderRoute: typeof ApiV1CreditsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/v1/consume': {
+      id: '/api/v1/consume'
+      path: '/api/v1/consume'
+      fullPath: '/api/v1/consume'
+      preLoaderRoute: typeof ApiV1ConsumeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/v1/buy': {
+      id: '/api/v1/buy'
+      path: '/api/v1/buy'
+      fullPath: '/api/v1/buy'
+      preLoaderRoute: typeof ApiV1BuyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/hooks/follow-ups': {
       id: '/api/public/hooks/follow-ups'
       path: '/api/public/hooks/follow-ups'
@@ -842,6 +982,13 @@ const rootRouteChildren: RootRouteChildren = {
   AuthenticatedRoute: AuthenticatedRouteWithChildren,
   AuthRoute: AuthRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
+  ApiV1BuyRoute: ApiV1BuyRoute,
+  ApiV1ConsumeRoute: ApiV1ConsumeRoute,
+  ApiV1CreditsRoute: ApiV1CreditsRoute,
+  ApiV1HistoryRoute: ApiV1HistoryRoute,
+  ApiV1PackagesRoute: ApiV1PackagesRoute,
+  ApiV1RefundRoute: ApiV1RefundRoute,
+  ApiV1UsageRoute: ApiV1UsageRoute,
   ApiPublicEvolutionInstanceRoute: ApiPublicEvolutionInstanceRoute,
   ApiPublicHooksBroadcastsRoute: ApiPublicHooksBroadcastsRoute,
   ApiPublicHooksFollowUpsRoute: ApiPublicHooksFollowUpsRoute,
