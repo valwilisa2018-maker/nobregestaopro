@@ -332,7 +332,7 @@ function QuickSendEditor({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md">
+      <DialogContent className="max-w-md overflow-hidden">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Zap className="h-5 w-5 text-amber-500" />
@@ -340,7 +340,7 @@ function QuickSendEditor({
           </DialogTitle>
         </DialogHeader>
 
-        <div className="space-y-4">
+        <div className="space-y-4 min-w-0">
           <div className="space-y-1.5">
             <label className="text-xs font-medium text-muted-foreground">Título do atalho</label>
             <Input
@@ -362,25 +362,25 @@ function QuickSendEditor({
             />
           </div>
 
-          <div className="space-y-1.5">
+          <div className="space-y-1.5 min-w-0">
             <label className="text-xs font-medium text-muted-foreground">Mídia (opcional)</label>
             {file ? (
-              <div className="flex w-full min-w-0 items-center gap-2 overflow-hidden rounded-md border p-2 bg-muted/50">
+              <div className="flex w-full max-w-full min-w-0 items-center gap-2 overflow-hidden rounded-md border p-2 bg-muted/50">
                 <KindIcon type={currentKind} className="h-5 w-5 shrink-0" />
                 <div className="flex-1 min-w-0 overflow-hidden">
-                  <div className="text-sm truncate">{file.name}</div>
-                  <div className="text-[11px] text-muted-foreground truncate">{fmtSize(file.size)}</div>
+                  <div className="text-sm truncate max-w-full">{file.name}</div>
+                  <div className="text-[11px] text-muted-foreground truncate max-w-full">{fmtSize(file.size)}</div>
                 </div>
                 <button onClick={() => setFile(null)} className="shrink-0 p-1 rounded hover:bg-muted text-muted-foreground">
                   <X className="h-4 w-4" />
                 </button>
               </div>
             ) : existingMedia && !removeExisting ? (
-              <div className="flex w-full min-w-0 items-center gap-2 overflow-hidden rounded-md border p-2 bg-muted/50">
+              <div className="flex w-full max-w-full min-w-0 items-center gap-2 overflow-hidden rounded-md border p-2 bg-muted/50">
                 <KindIcon type={existingMedia.type} className="h-5 w-5 shrink-0" />
                 <div className="flex-1 min-w-0 overflow-hidden">
-                  <div className="text-sm truncate">{existingMedia.name}</div>
-                  <div className="text-[11px] text-muted-foreground truncate">{fmtSize(existingMedia.size)} · salvo</div>
+                  <div className="text-sm truncate max-w-full">{existingMedia.name}</div>
+                  <div className="text-[11px] text-muted-foreground truncate max-w-full">{fmtSize(existingMedia.size)} · salvo</div>
                 </div>
                 <button onClick={() => setRemoveExisting(true)} className="shrink-0 p-1 rounded hover:bg-muted text-muted-foreground" aria-label="Remover mídia">
                   <X className="h-4 w-4" />
