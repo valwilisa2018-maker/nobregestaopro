@@ -2452,6 +2452,7 @@ function AudioPlayer({ src, id }: { src: string; id: string }) {
   const [failed, setFailed] = useState(false);
   const [cur, setCur] = useState(0);
   const [dur, setDur] = useState(0);
+  const [rate, setRate] = useState(1);
 
   useEffect(() => {
     const a = audioRef.current;
@@ -2496,9 +2497,16 @@ function AudioPlayer({ src, id }: { src: string; id: string }) {
     activeAudioElement = a;
     setLoading(true);
     setFailed(false);
+    a.playbackRate = rate;
     a.play()
       .then(() => { setPlaying(true); setLoading(false); })
       .catch(() => { setPlaying(false); setLoading(false); setFailed(true); });
+  }
+
+  function cycleRate() {
+    const next = rate === 1 ? 1.5 : rate === 1.5 ? 2 : 1;
+    setRate(next);
+    if (audioRef.current) audioRef.current.playbackRate = next;
   }
 
   const pct = dur > 0 ? (cur / dur) * 100 : 0;
@@ -2514,6 +2522,15 @@ function AudioPlayer({ src, id }: { src: string; id: string }) {
         </div>
         <div className="text-[10px] text-gray-500 mt-1">{failed ? "toque para tentar novamente" : fmtTime(playing || cur > 0 ? cur : dur)}</div>
       </div>
+      <button
+        onClick={cycleRate}
+        className="shrink-0 h-6 min-w-[34px] px-1.5 rounded-full text-[10px] font-semibold text-white"
+        style={{ background: WA.headerTeal }}
+        aria-label="Velocidade de reprodução"
+        title="Velocidade"
+      >
+        {rate}x
+      </button>
       <audio ref={audioRef} src={src} preload="metadata" className="hidden" data-audio-id={id} />
     </div>
   );
