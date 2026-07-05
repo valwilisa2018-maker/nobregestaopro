@@ -44,6 +44,7 @@ import { Route as AuthenticatedApiRouteImport } from './routes/_authenticated/ap
 import { Route as AuthenticatedAiRouteImport } from './routes/_authenticated/ai'
 import { Route as AuthenticatedAgentsRouteImport } from './routes/_authenticated/agents'
 import { Route as AuthenticatedAdminSettingsRouteImport } from './routes/_authenticated/admin-settings'
+import { Route as ApiV1UsageRouteImport } from './routes/api/v1/usage'
 import { Route as ApiV1CreditsRouteImport } from './routes/api/v1/credits'
 import { Route as ApiPublicHooksFollowUpsRouteImport } from './routes/api/public/hooks/follow-ups'
 import { Route as ApiPublicHooksBroadcastsRouteImport } from './routes/api/public/hooks/broadcasts'
@@ -227,6 +228,11 @@ const AuthenticatedAdminSettingsRoute =
     path: '/admin-settings',
     getParentRoute: () => AuthenticatedRoute,
   } as any)
+const ApiV1UsageRoute = ApiV1UsageRouteImport.update({
+  id: '/api/v1/usage',
+  path: '/api/v1/usage',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiV1CreditsRoute = ApiV1CreditsRouteImport.update({
   id: '/api/v1/credits',
   path: '/api/v1/credits',
@@ -286,6 +292,7 @@ export interface FileRoutesByFullPath {
   '/whatsapp': typeof AuthenticatedWhatsappRoute
   '/white-label': typeof AuthenticatedWhiteLabelRoute
   '/api/v1/credits': typeof ApiV1CreditsRoute
+  '/api/v1/usage': typeof ApiV1UsageRoute
   '/api/public/evolution/$instance': typeof ApiPublicEvolutionInstanceRoute
   '/api/public/hooks/broadcasts': typeof ApiPublicHooksBroadcastsRoute
   '/api/public/hooks/follow-ups': typeof ApiPublicHooksFollowUpsRoute
@@ -326,6 +333,7 @@ export interface FileRoutesByTo {
   '/whatsapp': typeof AuthenticatedWhatsappRoute
   '/white-label': typeof AuthenticatedWhiteLabelRoute
   '/api/v1/credits': typeof ApiV1CreditsRoute
+  '/api/v1/usage': typeof ApiV1UsageRoute
   '/api/public/evolution/$instance': typeof ApiPublicEvolutionInstanceRoute
   '/api/public/hooks/broadcasts': typeof ApiPublicHooksBroadcastsRoute
   '/api/public/hooks/follow-ups': typeof ApiPublicHooksFollowUpsRoute
@@ -368,6 +376,7 @@ export interface FileRoutesById {
   '/_authenticated/whatsapp': typeof AuthenticatedWhatsappRoute
   '/_authenticated/white-label': typeof AuthenticatedWhiteLabelRoute
   '/api/v1/credits': typeof ApiV1CreditsRoute
+  '/api/v1/usage': typeof ApiV1UsageRoute
   '/api/public/evolution/$instance': typeof ApiPublicEvolutionInstanceRoute
   '/api/public/hooks/broadcasts': typeof ApiPublicHooksBroadcastsRoute
   '/api/public/hooks/follow-ups': typeof ApiPublicHooksFollowUpsRoute
@@ -410,6 +419,7 @@ export interface FileRouteTypes {
     | '/whatsapp'
     | '/white-label'
     | '/api/v1/credits'
+    | '/api/v1/usage'
     | '/api/public/evolution/$instance'
     | '/api/public/hooks/broadcasts'
     | '/api/public/hooks/follow-ups'
@@ -450,6 +460,7 @@ export interface FileRouteTypes {
     | '/whatsapp'
     | '/white-label'
     | '/api/v1/credits'
+    | '/api/v1/usage'
     | '/api/public/evolution/$instance'
     | '/api/public/hooks/broadcasts'
     | '/api/public/hooks/follow-ups'
@@ -491,6 +502,7 @@ export interface FileRouteTypes {
     | '/_authenticated/whatsapp'
     | '/_authenticated/white-label'
     | '/api/v1/credits'
+    | '/api/v1/usage'
     | '/api/public/evolution/$instance'
     | '/api/public/hooks/broadcasts'
     | '/api/public/hooks/follow-ups'
@@ -502,6 +514,7 @@ export interface RootRouteChildren {
   AuthRoute: typeof AuthRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   ApiV1CreditsRoute: typeof ApiV1CreditsRoute
+  ApiV1UsageRoute: typeof ApiV1UsageRoute
   ApiPublicEvolutionInstanceRoute: typeof ApiPublicEvolutionInstanceRoute
   ApiPublicHooksBroadcastsRoute: typeof ApiPublicHooksBroadcastsRoute
   ApiPublicHooksFollowUpsRoute: typeof ApiPublicHooksFollowUpsRoute
@@ -754,6 +767,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminSettingsRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
+    '/api/v1/usage': {
+      id: '/api/v1/usage'
+      path: '/api/v1/usage'
+      fullPath: '/api/v1/usage'
+      preLoaderRoute: typeof ApiV1UsageRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/v1/credits': {
       id: '/api/v1/credits'
       path: '/api/v1/credits'
@@ -863,6 +883,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthRoute: AuthRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
   ApiV1CreditsRoute: ApiV1CreditsRoute,
+  ApiV1UsageRoute: ApiV1UsageRoute,
   ApiPublicEvolutionInstanceRoute: ApiPublicEvolutionInstanceRoute,
   ApiPublicHooksBroadcastsRoute: ApiPublicHooksBroadcastsRoute,
   ApiPublicHooksFollowUpsRoute: ApiPublicHooksFollowUpsRoute,
