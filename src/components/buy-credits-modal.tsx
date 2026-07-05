@@ -66,13 +66,13 @@ export function BuyCreditsModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-5xl">
-        <DialogHeader className="text-center items-center">
-          <div className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-emerald-400/20 to-emerald-600/10 border border-emerald-500/30 shadow-lg shadow-emerald-500/10">
-            <Coins className="h-7 w-7 text-emerald-400" />
+      <DialogContent className="max-w-5xl max-h-[92vh] overflow-y-auto p-4 sm:p-6">
+        <DialogHeader className="text-center items-center space-y-2">
+          <div className="mx-auto mb-1 flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-emerald-400/20 to-emerald-600/10 border border-emerald-500/30 shadow-lg shadow-emerald-500/10">
+            <Coins className="h-6 w-6 text-emerald-400" />
           </div>
-          <DialogTitle className="text-2xl font-bold">Comprar Créditos IA</DialogTitle>
-          <DialogDescription className="max-w-md">
+          <DialogTitle className="text-xl sm:text-2xl font-bold">Comprar Créditos IA</DialogTitle>
+          <DialogDescription className="max-w-md text-xs sm:text-sm">
             Escolha o pacote ideal. Créditos não expiram e são consumidos após os inclusos no plano.
           </DialogDescription>
         </DialogHeader>
@@ -81,7 +81,7 @@ export function BuyCreditsModal({
             <Loader2 className="h-6 w-6 animate-spin text-primary" />
           </div>
         ) : (
-          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4 pt-4">
+          <div className="grid gap-3 sm:gap-4 sm:grid-cols-2 xl:grid-cols-4 pt-3 sm:pt-4">
             {packages.map((p, i) => {
               const highlight = !!p.badge;
               const pricePerMillion = p.price_cents / (p.tokens / 1_000_000) / 100;
@@ -90,7 +90,7 @@ export function BuyCreditsModal({
                 <div
                   key={p.id}
                   style={{ animationDelay: `${i * 60}ms`, animationFillMode: "both" }}
-                  className={`group relative flex flex-col p-5 pt-7 rounded-2xl transition-all duration-300 ease-out animate-fade-in hover:-translate-y-1 hover:shadow-xl ${
+                  className={`group relative flex flex-col p-4 sm:p-5 pt-6 sm:pt-7 rounded-2xl transition-all duration-300 ease-out animate-fade-in sm:hover:-translate-y-1 hover:shadow-xl ${
                     highlight
                       ? "bg-gradient-to-b from-emerald-500/15 via-card to-card border-2 border-emerald-500/60 shadow-lg shadow-emerald-500/10"
                       : "bg-gradient-to-b from-primary/[0.06] via-card to-card border border-border hover:border-primary/40"
@@ -108,41 +108,41 @@ export function BuyCreditsModal({
                       {p.badge}
                     </div>
                   )}
-                  <div className="relative flex items-center gap-2">
+                  <div className="relative flex items-center gap-2.5">
                     <div
-                      className={`p-1.5 rounded-lg ${
+                      className={`p-2 rounded-xl ${
                         highlight
-                          ? "bg-emerald-500/15 text-emerald-400"
-                          : "bg-primary/10 text-primary"
+                          ? "bg-emerald-500/15 text-emerald-400 ring-1 ring-emerald-500/30"
+                          : "bg-primary/10 text-primary ring-1 ring-primary/20"
                       }`}
                     >
                       <Icon className="w-4 h-4" strokeWidth={2.5} />
                     </div>
-                    <h3 className="text-sm font-bold text-foreground">
+                    <h3 className="text-base font-bold text-foreground tracking-tight">
                       {formatTokens(p.tokens)} Tokens
                     </h3>
                   </div>
-                  <div className="relative mt-4 flex items-baseline gap-1">
-                    <span className="text-lg font-bold text-foreground/80">R$</span>
-                    <span className="text-3xl font-black tracking-tight leading-none text-foreground">
+                  <div className="relative mt-4 flex items-baseline gap-1.5">
+                    <span className="text-base font-semibold text-muted-foreground">R$</span>
+                    <span className="text-4xl font-black tracking-tight leading-none text-foreground">
                       {(p.price_cents / 100).toLocaleString("pt-BR", {
                         minimumFractionDigits: 2,
                         maximumFractionDigits: 2,
                       })}
                     </span>
                   </div>
-                  <p className="relative text-[11px] text-muted-foreground mt-1">
-                    {formatBRL(Math.round(pricePerMillion * 100))} por milhão
+                  <p className="relative text-[10px] font-semibold text-muted-foreground mt-1.5 uppercase tracking-wider">
+                    {formatBRL(Math.round(pricePerMillion * 100))} / milhão
                   </p>
-                  <div className="relative my-4 h-px bg-border/60" />
-                  <ul className="relative space-y-1.5 flex-grow text-xs text-muted-foreground">
+                  <div className="relative my-4 h-px bg-gradient-to-r from-transparent via-border to-transparent" />
+                  <ul className="relative space-y-2 flex-grow text-xs text-muted-foreground">
                     <li className="flex items-start gap-2">
                       <Check className="w-4 h-4 shrink-0 mt-0.5 text-emerald-400" strokeWidth={2.5} />
                       <span>Créditos não expiram</span>
                     </li>
                     <li className="flex items-start gap-2">
                       <Check className="w-4 h-4 shrink-0 mt-0.5 text-emerald-400" strokeWidth={2.5} />
-                      <span>Adicionado ao saldo instantaneamente</span>
+                      <span>Saldo adicionado na hora</span>
                     </li>
                     <li className="flex items-start gap-2">
                       <Check className="w-4 h-4 shrink-0 mt-0.5 text-emerald-400" strokeWidth={2.5} />
@@ -155,7 +155,7 @@ export function BuyCreditsModal({
                     className={`relative mt-5 w-full py-2.5 h-auto rounded-xl font-bold text-sm transition-all ${
                       highlight
                         ? "bg-emerald-500 hover:bg-emerald-600 text-white shadow-lg shadow-emerald-500/30 active:scale-95"
-                        : "bg-transparent border border-border text-foreground hover:bg-muted/60"
+                        : "bg-muted/40 border border-border text-foreground hover:bg-muted/70 hover:border-primary/40"
                     }`}
                   >
                     {buyingId === p.id ? (
