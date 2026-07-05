@@ -2227,6 +2227,7 @@ function MessagesPage() {
                         ))}
                       </PopoverContent>
                     </Popover>
+                    <QuickSendPopover contactId={selected?.id ?? null} />
                     <input
                       ref={fileInputRef}
                       type="file"
