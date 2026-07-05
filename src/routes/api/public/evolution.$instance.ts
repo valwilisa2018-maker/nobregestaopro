@@ -42,7 +42,7 @@ const MEDIA_BUCKET = "agent-media";
 // Limite de recebimento de mídia: 200 MB por arquivo
 const MAX_INBOUND_MEDIA_BYTES = 200 * 1024 * 1024;
 // Evita derrubar o worker com vídeo em base64 no webhook.
-const MAX_WEBHOOK_BODY_BYTES = 5 * 1024 * 1024;
+const MAX_WEBHOOK_BODY_BYTES = 30 * 1024 * 1024;
 const MAX_INLINE_MEDIA_BYTES = 25 * 1024 * 1024;
 let bucketLimitEnsured = false;
 
