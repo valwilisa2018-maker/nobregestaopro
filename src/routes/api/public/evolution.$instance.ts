@@ -393,12 +393,16 @@ export const Route = createFileRoute("/api/public/evolution/$instance")({
             // Auto-save contact from incoming message
             try {
               const phone = remoteJid.split("@")[0]?.replace(/\D/g, "");
+              // Ignore LIDs (WhatsApp internal IDs, not phone numbers) and
+              // implausibly short numbers — they produce fake contacts like "93".
+              const isLid = remoteJid.includes("@lid");
+              const isValidPhone = !!phone && phone.length >= 8 && !isLid;
               // When fromMe, pushName is the operator's own WhatsApp profile name,
               // NOT the recipient — never save it as the contact's name.
               const pushName = fromMe
                 ? undefined
                 : ((msg?.pushName ?? msg?.notifyName) as string | undefined);
-              if (phone) {
+              if (isValidPhone) {
                 const variants = phoneVariants(phone);
                 const { data: existingContact } = await supabaseAdmin.from("contacts")
                   .select("id,name")
@@ -407,16 +411,21 @@ export const Route = createFileRoute("/api/public/evolution/$instance")({
                   .limit(1)
                   .maybeSingle();
                 if (existingContact?.id) {
-                  await supabaseAdmin.from("contacts").update({
-                    name: existingContact.name || pushName || null,
+                  // Never overwrite an existing name here — pushName can be the
+                  // operator's own profile name when fromMe is misreported.
+                  const patch: Record<string, unknown> = {
                     status: "active",
                     updated_at: new Date().toISOString(),
-                  } as never).eq("id", existingContact.id);
+                  };
+                  if (!existingContact.name && pushName && !fromMe) {
+                    patch.name = pushName;
+                  }
+                  await supabaseAdmin.from("contacts").update(patch as never).eq("id", existingContact.id);
                 } else {
                   await supabaseAdmin.from("contacts").insert({
                     user_id: conn.user_id,
                     phone,
-                    name: pushName ?? null,
+                    name: fromMe ? null : (pushName ?? null),
                     source: "whatsapp",
                     status: "active",
                   } as never);
