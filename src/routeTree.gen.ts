@@ -48,6 +48,7 @@ import { Route as ApiV1UsageRouteImport } from './routes/api/v1/usage'
 import { Route as ApiV1PackagesRouteImport } from './routes/api/v1/packages'
 import { Route as ApiV1HistoryRouteImport } from './routes/api/v1/history'
 import { Route as ApiV1CreditsRouteImport } from './routes/api/v1/credits'
+import { Route as ApiV1BuyRouteImport } from './routes/api/v1/buy'
 import { Route as ApiPublicHooksFollowUpsRouteImport } from './routes/api/public/hooks/follow-ups'
 import { Route as ApiPublicHooksBroadcastsRouteImport } from './routes/api/public/hooks/broadcasts'
 import { Route as ApiPublicEvolutionInstanceRouteImport } from './routes/api/public/evolution.$instance'
@@ -250,6 +251,11 @@ const ApiV1CreditsRoute = ApiV1CreditsRouteImport.update({
   path: '/api/v1/credits',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiV1BuyRoute = ApiV1BuyRouteImport.update({
+  id: '/api/v1/buy',
+  path: '/api/v1/buy',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiPublicHooksFollowUpsRoute = ApiPublicHooksFollowUpsRouteImport.update({
   id: '/api/public/hooks/follow-ups',
   path: '/api/public/hooks/follow-ups',
@@ -303,6 +309,7 @@ export interface FileRoutesByFullPath {
   '/webhooks': typeof AuthenticatedWebhooksRoute
   '/whatsapp': typeof AuthenticatedWhatsappRoute
   '/white-label': typeof AuthenticatedWhiteLabelRoute
+  '/api/v1/buy': typeof ApiV1BuyRoute
   '/api/v1/credits': typeof ApiV1CreditsRoute
   '/api/v1/history': typeof ApiV1HistoryRoute
   '/api/v1/packages': typeof ApiV1PackagesRoute
@@ -346,6 +353,7 @@ export interface FileRoutesByTo {
   '/webhooks': typeof AuthenticatedWebhooksRoute
   '/whatsapp': typeof AuthenticatedWhatsappRoute
   '/white-label': typeof AuthenticatedWhiteLabelRoute
+  '/api/v1/buy': typeof ApiV1BuyRoute
   '/api/v1/credits': typeof ApiV1CreditsRoute
   '/api/v1/history': typeof ApiV1HistoryRoute
   '/api/v1/packages': typeof ApiV1PackagesRoute
@@ -391,6 +399,7 @@ export interface FileRoutesById {
   '/_authenticated/webhooks': typeof AuthenticatedWebhooksRoute
   '/_authenticated/whatsapp': typeof AuthenticatedWhatsappRoute
   '/_authenticated/white-label': typeof AuthenticatedWhiteLabelRoute
+  '/api/v1/buy': typeof ApiV1BuyRoute
   '/api/v1/credits': typeof ApiV1CreditsRoute
   '/api/v1/history': typeof ApiV1HistoryRoute
   '/api/v1/packages': typeof ApiV1PackagesRoute
@@ -436,6 +445,7 @@ export interface FileRouteTypes {
     | '/webhooks'
     | '/whatsapp'
     | '/white-label'
+    | '/api/v1/buy'
     | '/api/v1/credits'
     | '/api/v1/history'
     | '/api/v1/packages'
@@ -479,6 +489,7 @@ export interface FileRouteTypes {
     | '/webhooks'
     | '/whatsapp'
     | '/white-label'
+    | '/api/v1/buy'
     | '/api/v1/credits'
     | '/api/v1/history'
     | '/api/v1/packages'
@@ -523,6 +534,7 @@ export interface FileRouteTypes {
     | '/_authenticated/webhooks'
     | '/_authenticated/whatsapp'
     | '/_authenticated/white-label'
+    | '/api/v1/buy'
     | '/api/v1/credits'
     | '/api/v1/history'
     | '/api/v1/packages'
@@ -537,6 +549,7 @@ export interface RootRouteChildren {
   AuthenticatedRoute: typeof AuthenticatedRouteWithChildren
   AuthRoute: typeof AuthRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
+  ApiV1BuyRoute: typeof ApiV1BuyRoute
   ApiV1CreditsRoute: typeof ApiV1CreditsRoute
   ApiV1HistoryRoute: typeof ApiV1HistoryRoute
   ApiV1PackagesRoute: typeof ApiV1PackagesRoute
@@ -821,6 +834,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiV1CreditsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/v1/buy': {
+      id: '/api/v1/buy'
+      path: '/api/v1/buy'
+      fullPath: '/api/v1/buy'
+      preLoaderRoute: typeof ApiV1BuyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/hooks/follow-ups': {
       id: '/api/public/hooks/follow-ups'
       path: '/api/public/hooks/follow-ups'
@@ -922,6 +942,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthenticatedRoute: AuthenticatedRouteWithChildren,
   AuthRoute: AuthRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
+  ApiV1BuyRoute: ApiV1BuyRoute,
   ApiV1CreditsRoute: ApiV1CreditsRoute,
   ApiV1HistoryRoute: ApiV1HistoryRoute,
   ApiV1PackagesRoute: ApiV1PackagesRoute,
