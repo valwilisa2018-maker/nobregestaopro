@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Coins, Check, Loader2, Sparkles } from "lucide-react";
+import { Coins, Check, Loader2, Zap, Rocket, Crown, Gem } from "lucide-react";
 import { toast } from "sonner";
 
 type Pkg = {
@@ -35,6 +35,8 @@ export function BuyCreditsModal({
   const [loading, setLoading] = useState(true);
   const [buyingId, setBuyingId] = useState<string | null>(null);
 
+  const tierIcons = [Zap, Rocket, Crown, Gem];
+
   useEffect(() => {
     if (!open) return;
     (async () => {
@@ -65,13 +67,13 @@ export function BuyCreditsModal({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-5xl">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2 text-2xl">
-            <Coins className="h-6 w-6 text-emerald-400" />
-            Comprar Créditos IA
-          </DialogTitle>
-          <DialogDescription>
-            Os créditos comprados não expiram e são consumidos após os inclusos no seu plano.
+        <DialogHeader className="text-center items-center">
+          <div className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-emerald-400/20 to-emerald-600/10 border border-emerald-500/30 shadow-lg shadow-emerald-500/10">
+            <Coins className="h-7 w-7 text-emerald-400" />
+          </div>
+          <DialogTitle className="text-2xl font-bold">Comprar Créditos IA</DialogTitle>
+          <DialogDescription className="max-w-md">
+            Escolha o pacote ideal. Créditos não expiram e são consumidos após os inclusos no plano.
           </DialogDescription>
         </DialogHeader>
         {loading ? (
@@ -83,6 +85,7 @@ export function BuyCreditsModal({
             {packages.map((p, i) => {
               const highlight = !!p.badge;
               const pricePerMillion = p.price_cents / (p.tokens / 1_000_000) / 100;
+              const Icon = tierIcons[i] ?? Zap;
               return (
                 <div
                   key={p.id}
@@ -113,7 +116,7 @@ export function BuyCreditsModal({
                           : "bg-primary/10 text-primary"
                       }`}
                     >
-                      <Sparkles className="w-4 h-4" strokeWidth={2.5} />
+                      <Icon className="w-4 h-4" strokeWidth={2.5} />
                     </div>
                     <h3 className="text-sm font-bold text-foreground">
                       {formatTokens(p.tokens)} Tokens
