@@ -29,13 +29,10 @@ export interface AgentRow {
   system_prompt: string | null;
   temperature: number;
   is_active: boolean;
-  ai_provider_id: string | null;
   connection_id: string | null;
   avatar_url: string | null;
-  category: string | null;
   language: string | null;
   timezone: string | null;
-  model: string | null;
   max_tokens: number | null;
   top_p: number | null;
   top_k: number | null;
@@ -76,9 +73,9 @@ const DEFAULT_PROMPT = `Você é um atendente virtual especialista em vendas con
 export function emptyAgent(userId: string): AgentRow {
   return {
     id: "", user_id: userId, name: "Novo Agente", description: "", role: "", system_prompt: DEFAULT_PROMPT,
-    temperature: 0.7, is_active: true, ai_provider_id: null, connection_id: null,
-    avatar_url: null, category: "Gemini", language: "pt-BR", timezone: "America/Sao_Paulo",
-    model: "gemini-2.5-flash", max_tokens: 2048, top_p: 1, top_k: null, seed: null,
+    temperature: 0.7, is_active: true, connection_id: null,
+    avatar_url: null, language: "pt-BR", timezone: "America/Sao_Paulo",
+    max_tokens: 2048, top_p: 1, top_k: null, seed: null,
     frequency_penalty: 0, presence_penalty: 0, stop_sequences: [], streaming: true, thinking_mode: false,
     tools: {}, memory: { messages: 20 }, knowledge: [], security: {},
     integrations: {}, appearance: {}, initial_message: "Olá! Como posso ajudar hoje?",
@@ -164,7 +161,7 @@ export function AgentEditor({ agent, onSaved, onCancel }: Props) {
       <div className="flex items-start justify-between gap-4 rounded-2xl border border-border/60 bg-card/40 p-4">
         <div>
           <h2 className="text-lg font-bold">{form.name || "Novo Agente"}</h2>
-          <p className="text-xs text-muted-foreground">{form.category} — {form.model}</p>
+          <p className="text-xs text-muted-foreground">IA global · Configurações Globais</p>
         </div>
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-2 text-xs">
