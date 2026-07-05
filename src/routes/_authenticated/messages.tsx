@@ -2496,7 +2496,19 @@ function LinkPreview({ url }: { url: string }) {
   );
 }
 
-function AudioPlayer({ src, id }: { src: string; id: string }) {
+function AudioPlayer({
+  src,
+  id,
+  avatarUrl,
+  direction,
+  onDownload,
+}: {
+  src: string;
+  id: string;
+  avatarUrl?: string | null;
+  direction?: "inbound" | "outbound";
+  onDownload?: () => void;
+}) {
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const [playing, setPlaying] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -2562,26 +2574,106 @@ function AudioPlayer({ src, id }: { src: string; id: string }) {
 
   const pct = dur > 0 ? (cur / dur) * 100 : 0;
 
+  // Deterministic pseudo-random waveform based on id so bars are stable across renders
+  const bars = useMemo(() => {
+    const n = 34;
+    let seed = 0;
+    for (let i = 0; i < id.length; i++) seed = (seed * 31 + id.charCodeAt(i)) >>> 0;
+    const out: number[] = [];
+    for (let i = 0; i < n; i++) {
+      seed = (seed * 1664525 + 1013904223) >>> 0;
+      const h = 0.25 + ((seed % 1000) / 1000) * 0.75; // 0.25 .. 1.0
+      out.push(h);
+    }
+    return out;
+  }, [id]);
+
+  function seek(e: React.MouseEvent<HTMLDivElement>) {
+    const a = audioRef.current;
+    if (!a || !dur) return;
+    const rect = e.currentTarget.getBoundingClientRect();
+    const p = Math.min(1, Math.max(0, (e.clientX - rect.left) / rect.width));
+    a.currentTime = p * dur;
+    setCur(a.currentTime);
+  }
+
+  const isOutbound = direction === "outbound";
+
   return (
-    <div className="flex items-center gap-2 min-w-[220px] py-1">
-      <button onClick={toggle} className="h-9 w-9 grid place-items-center rounded-full text-white shrink-0" style={{ background: failed ? "#ef4444" : WA.headerTeal }} aria-label={playing ? "Pausar áudio" : "Tocar áudio"}>
-        {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : playing ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4 ml-0.5" />}
-      </button>
-      <div className="flex-1">
-        <div className="h-1 bg-gray-300 rounded-full overflow-hidden">
-          <div className="h-full transition-all" style={{ width: `${pct}%`, background: WA.headerTeal }} />
-        </div>
-        <div className="text-[10px] text-gray-500 mt-1">{failed ? "toque para tentar novamente" : fmtTime(playing || cur > 0 ? cur : dur)}</div>
-      </div>
+    <div className="flex items-center gap-2.5 min-w-[260px] py-1 pr-1">
       <button
-        onClick={cycleRate}
-        className="shrink-0 h-6 min-w-[34px] px-1.5 rounded-full text-[10px] font-semibold text-white"
-        style={{ background: WA.headerTeal }}
-        aria-label="Velocidade de reprodução"
-        title="Velocidade"
+        onClick={toggle}
+        className="h-8 w-8 grid place-items-center rounded-full text-gray-700 shrink-0 hover:bg-black/5"
+        aria-label={playing ? "Pausar áudio" : "Tocar áudio"}
       >
-        {rate}x
+        {loading ? <Loader2 className="h-5 w-5 animate-spin" /> : playing ? <Pause className="h-5 w-5" /> : <Play className="h-5 w-5 ml-0.5" />}
       </button>
+      <div className="flex-1 min-w-0">
+        <div
+          onClick={seek}
+          className="relative h-7 flex items-center gap-[2px] cursor-pointer select-none"
+        >
+          {bars.map((h, i) => {
+            const barPct = ((i + 0.5) / bars.length) * 100;
+            const played = barPct <= pct;
+            return (
+              <div
+                key={i}
+                className="w-[2.5px] rounded-full"
+                style={{
+                  height: `${Math.round(h * 22)}px`,
+                  background: played ? "#54656f" : "#9aa3a8",
+                  opacity: played ? 1 : 0.55,
+                }}
+              />
+            );
+          })}
+          {dur > 0 && (
+            <div
+              className="absolute -top-1 h-4 w-4 rounded-full shadow"
+              style={{ left: `calc(${pct}% - 8px)`, background: WA.accent }}
+            />
+          )}
+        </div>
+        <div className="flex items-center gap-2 mt-0.5">
+          <span className="text-[11px] text-gray-500">
+            {failed ? "toque para tentar novamente" : fmtTime(playing || cur > 0 ? cur : dur)}
+          </span>
+          <button
+            onClick={cycleRate}
+            className="text-[10px] font-semibold text-gray-500 hover:text-gray-700 px-1 rounded"
+            aria-label="Velocidade de reprodução"
+            title="Velocidade"
+          >
+            {rate}x
+          </button>
+          {onDownload && (
+            <button
+              type="button"
+              onClick={(e) => { e.stopPropagation(); onDownload(); }}
+              title="Baixar áudio"
+              className="ml-auto text-gray-400 hover:text-gray-600"
+            >
+              <Download className="h-3.5 w-3.5" />
+            </button>
+          )}
+        </div>
+      </div>
+      <div className="relative shrink-0">
+        {avatarUrl ? (
+          <img src={avatarUrl} alt="" className="h-11 w-11 rounded-full object-cover" />
+        ) : (
+          <div className="h-11 w-11 rounded-full grid place-items-center text-white text-xs font-semibold" style={{ background: WA.headerTeal }}>
+            {isOutbound ? "EU" : "?"}
+          </div>
+        )}
+        <div
+          className="absolute -bottom-0.5 -right-0.5 h-4 w-4 rounded-full grid place-items-center ring-2 ring-white"
+          style={{ background: WA.accent }}
+        >
+          <Mic className="h-2.5 w-2.5 text-white" />
+        </div>
+      </div>
       <audio ref={audioRef} src={src} preload="metadata" className="hidden" data-audio-id={id} />
     </div>
   );
