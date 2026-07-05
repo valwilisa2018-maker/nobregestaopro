@@ -1833,10 +1833,11 @@ function MessagesPage() {
                   const isImage = m.type === "image" && !!m.media_url;
                   const isVideo = m.type === "video" && !!m.media_url;
                   const isFile = (m.type === "file" || m.type === "document") && !!m.media_url;
+                  const linkUrl = !isAudio && !isSticker && !isImage && !isVideo && !isFile ? extractFirstUrl(m.content ?? "") : null;
                   return (
                     <div key={m.id} data-msg-id={m.id} className={`group flex ${out ? "justify-end" : "justify-start"}`}>
                       <div
-                        className={`relative max-w-[75%] rounded-lg px-2.5 py-1.5 shadow-sm text-sm text-gray-800`}
+                        className={`relative max-w-[75%] rounded-lg shadow-sm text-sm text-gray-800 ${linkUrl ? "px-1 py-1" : "px-2.5 py-1.5"}`}
                         style={{ background: out ? WA.outBubble : WA.inBubble }}
                       >
                         <DropdownMenu>
@@ -2020,9 +2021,9 @@ function MessagesPage() {
                             </a>
                           );
                         })() : (() => {
-                          const url = extractFirstUrl(m.content ?? "");
+                          const url = linkUrl;
                           return (
-                            <div className={`pr-14 ${url ? "w-[260px] max-w-full" : ""}`}>
+                            <div className={url ? "w-[260px] max-w-full" : "pr-14"}>
                               {url && <LinkPreview url={url} />}
                               <div className="whitespace-pre-wrap break-words">{m.content}</div>
                             </div>
