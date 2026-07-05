@@ -289,7 +289,7 @@ export const createAndConnectInstance = createServerFn({ method: "POST" })
           webhook: {
             url: webhookUrl,
             byEvents: false,
-            base64: true,
+            base64: false,
             events: ["MESSAGES_UPSERT", "MESSAGES_UPDATE", "CONNECTION_UPDATE", "QRCODE_UPDATED", "PRESENCE_UPDATE"],
           },
         } : {}),
@@ -1196,7 +1196,8 @@ export const ensurePresenceWebhook = createServerFn({ method: "POST" })
       const cur = found.json ?? {};
       const events: string[] = Array.isArray(cur.events) ? cur.events : [];
       const required = ["MESSAGES_UPSERT", "MESSAGES_UPDATE", "CONNECTION_UPDATE", "PRESENCE_UPDATE"];
-      if (required.every((event) => events.includes(event))) return { ok: true as const, alreadyEnabled: true };
+      const base64Enabled = cur.webhookBase64 ?? cur.base64 ?? cur.webhook_base64;
+      if (required.every((event) => events.includes(event)) && base64Enabled === false) return { ok: true as const, alreadyEnabled: true };
       const url = cur.url || cur.webhookUrl;
       if (!url) return { ok: false as const, error: "Webhook não configurado" };
       await evoFetch(`${baseUrl(conn.url_api)}/webhook/set/${conn.instance_name}`, apiKey, {
@@ -1205,7 +1206,7 @@ export const ensurePresenceWebhook = createServerFn({ method: "POST" })
           webhook: {
             enabled: true, url,
             byEvents: cur.webhookByEvents ?? false,
-            base64: cur.webhookBase64 ?? true,
+            base64: false,
             events: [...new Set([...events, ...required])],
           },
         }),

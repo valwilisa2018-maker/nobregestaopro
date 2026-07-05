@@ -41,7 +41,20 @@ type ConvMeta = {
 const MEDIA_BUCKET = "agent-media";
 // Limite de recebimento de mídia: 200 MB por arquivo
 const MAX_INBOUND_MEDIA_BYTES = 200 * 1024 * 1024;
+// Evita derrubar o worker com vídeo em base64 no webhook.
+const MAX_WEBHOOK_BODY_BYTES = 25 * 1024 * 1024;
+const MAX_INLINE_MEDIA_BYTES = 25 * 1024 * 1024;
 let bucketLimitEnsured = false;
+
+
+class PayloadTooLargeError extends Error {
+  bytes: number;
+  constructor(bytes: number) {
+    super(`Payload excede o limite seguro (${(bytes / 1024 / 1024).toFixed(1)} MB).`);
+    this.name = "PayloadTooLargeError";
+    this.bytes = bytes;
+  }
+}
 
 class MediaTooLargeError extends Error {
   bytes: number;
@@ -150,10 +163,6 @@ export const Route = createFileRoute("/api/public/evolution/$instance")({
     handlers: {
       POST: async ({ request, params }) => {
         const instance = params.instance;
-        let payload: any = null;
-        const rawBody = await request.text().catch(() => "");
-        try { payload = rawBody ? JSON.parse(rawBody) : null; } catch { payload = null; }
-
         const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
         // Garante que o bucket aceita arquivos de até 200 MB (executa uma vez por processo)
@@ -195,7 +204,6 @@ export const Route = createFileRoute("/api/public/evolution/$instance")({
         const matchedInstance = !!instanceKey && safeEq(providedKey, instanceKey);
         const matchedGlobal = !!globalKey && safeEq(providedKey, globalKey);
         const matchedSecret = !!webhookSecret && safeEq(providedKey, webhookSecret);
-        const event = payload?.event;
         const matched: "instance" | "global" | "secret" | "none" =
           matchedInstance ? "instance" : matchedGlobal ? "global" : matchedSecret ? "secret" : "none";
         if (matched === "none") {
@@ -223,6 +231,35 @@ export const Route = createFileRoute("/api/public/evolution/$instance")({
             { status: 401 },
           );
         }
+        const commandConn = { ...conn, api_key: globalKey || conn.api_key };
+        const contentLength = Number(request.headers.get("content-length") ?? 0);
+        if (contentLength > MAX_WEBHOOK_BODY_BYTES) {
+          await disableWebhookBase64(commandConn).catch(() => undefined);
+          await supabaseAdmin.from("logs").insert({
+            user_id: conn.user_id,
+            level: "warn",
+            source: `evolution:${instance}`,
+            message: "webhook payload too large; disabled base64 media mode",
+            metadata: { bytes: contentLength, limit: MAX_WEBHOOK_BODY_BYTES } as never,
+          } as never);
+          return Response.json({ ok: true, skipped: "payload-too-large", action: "disabled-webhook-base64" });
+        }
+
+        let payload: any = null;
+        const rawBody = await readRequestTextLimited(request, MAX_WEBHOOK_BODY_BYTES).catch(async (e) => {
+          if (e instanceof PayloadTooLargeError) {
+            await disableWebhookBase64(commandConn).catch(() => undefined);
+            await supabaseAdmin.from("logs").insert({
+              user_id: conn.user_id, level: "warn", source: `evolution:${instance}`,
+              message: "webhook stream too large; disabled base64 media mode",
+              metadata: { bytes: e.bytes, limit: MAX_WEBHOOK_BODY_BYTES } as never,
+            } as never);
+          }
+          return "";
+        });
+        if (!rawBody) return Response.json({ ok: true, skipped: "empty-or-too-large" });
+        try { payload = JSON.parse(rawBody); } catch { payload = null; }
+        const event = payload?.event;
         // Successful match — record which key type authenticated the call.
         try {
           await (supabaseAdmin.from("logs") as any).insert({
@@ -234,15 +271,13 @@ export const Route = createFileRoute("/api/public/evolution/$instance")({
           });
         } catch { /* ignore */ }
 
-        const commandConn = { ...conn, api_key: globalKey || conn.api_key };
-
         // Log the raw event
         await supabaseAdmin.from("logs").insert({
           user_id: conn.user_id,
           level: "info",
           source: `evolution:${instance}`,
           message: payload?.event ?? "webhook",
-          metadata: payload ?? {},
+          metadata: sanitizeWebhookPayload(payload ?? {}) as never,
         } as never);
 
         // Handle connection state updates
@@ -509,19 +544,27 @@ export const Route = createFileRoute("/api/public/evolution/$instance")({
                 let mediaPath: string | null = null;
                 let mediaMime: string | null = null;
                 try {
-                  const b64 = findBase64(msg) ?? await evolutionGetBase64(commandConn, msg, false) ?? (mediaKind === "audio" ? transcribedAudioBase64 : null);
-                  if (b64) {
-                    mediaMime = imageMsg?.mimetype ?? videoMsg?.mimetype ?? audioMsg?.mimetype ?? docMsg?.mimetype ?? stickerMsg?.mimetype ?? (mediaKind === "sticker" ? "image/webp" : mediaKind === "audio" ? "audio/mpeg" : "application/octet-stream");
-                    const saved = await saveMediaToStorage(
-                      supabaseAdmin,
-                      conn.user_id,
-                      convo.id,
-                      b64,
-                      mediaMime ?? "application/octet-stream",
-                      docMsg?.fileName ?? `${mediaKind}-${evoId ?? Date.now()}`,
-                    );
-                    mediaUrl = saved.url;
-                    mediaPath = saved.path;
+                  mediaMime = imageMsg?.mimetype ?? videoMsg?.mimetype ?? audioMsg?.mimetype ?? docMsg?.mimetype ?? stickerMsg?.mimetype ?? (mediaKind === "sticker" ? "image/webp" : mediaKind === "audio" ? "audio/mpeg" : "application/octet-stream");
+                  const mediaObject = imageMsg ?? videoMsg ?? audioMsg ?? docMsg ?? stickerMsg;
+                  const fileName = docMsg?.fileName ?? `${mediaKind}-${evoId ?? Date.now()}`;
+                  const externalUrl = findPlayableMediaUrl(msg) ?? findPlayableMediaUrl(payload);
+                  const declaredBytes = mediaFileLength(mediaObject);
+                  if (externalUrl) {
+                    mediaUrl = externalUrl;
+                  } else if (mediaKind === "video" || (declaredBytes ?? 0) > MAX_INLINE_MEDIA_BYTES) {
+                    const streamed = await downloadEvolutionMediaToStorage(supabaseAdmin, commandConn, conn.user_id, convo.id, msg, mediaMime, fileName, declaredBytes);
+                    if (streamed) {
+                      mediaUrl = streamed.url;
+                      mediaPath = streamed.path;
+                      mediaMime = streamed.mime;
+                    }
+                  } else {
+                    const b64 = findBase64(msg) ?? await evolutionGetBase64(commandConn, msg, false) ?? (mediaKind === "audio" ? transcribedAudioBase64 : null);
+                    if (b64) {
+                      const saved = await saveMediaToStorage(supabaseAdmin, conn.user_id, convo.id, b64, mediaMime ?? "application/octet-stream", fileName);
+                      mediaUrl = saved.url;
+                      mediaPath = saved.path;
+                    }
                   }
                 } catch (e) {
                   if (e instanceof MediaTooLargeError) {
@@ -578,21 +621,28 @@ export const Route = createFileRoute("/api/public/evolution/$instance")({
             }
             if (mediaKind && convo && !alreadySavedInbound) {
               try {
-                const b64 = findBase64(msg) ?? await evolutionGetBase64(commandConn, msg, false) ?? (mediaKind === "audio" ? transcribedAudioBase64 : null);
-                if (b64) {
-                  mediaMime = imageMsg?.mimetype ?? videoMsg?.mimetype ?? audioMsg?.mimetype ?? docMsg?.mimetype ?? stickerMsg?.mimetype ?? (mediaKind === "sticker" ? "image/webp" : mediaKind === "audio" ? "audio/mpeg" : "application/octet-stream");
-                  mediaB64 = b64;
-                  mediaName = docMsg?.fileName ?? `${mediaKind}-${msg?.key?.id ?? Date.now()}`;
-                  const saved = await saveMediaToStorage(
-                    supabaseAdmin,
-                    conn.user_id,
-                    convo.id,
-                    b64,
-                    mediaMime ?? "application/octet-stream",
-                    docMsg?.fileName ?? `${mediaKind}-${msg?.key?.id ?? Date.now()}`,
-                  );
-                  mediaUrl = saved.url;
-                  mediaPath = saved.path;
+                mediaMime = imageMsg?.mimetype ?? videoMsg?.mimetype ?? audioMsg?.mimetype ?? docMsg?.mimetype ?? stickerMsg?.mimetype ?? (mediaKind === "sticker" ? "image/webp" : mediaKind === "audio" ? "audio/mpeg" : "application/octet-stream");
+                mediaName = docMsg?.fileName ?? `${mediaKind}-${msg?.key?.id ?? Date.now()}`;
+                const mediaObject = imageMsg ?? videoMsg ?? audioMsg ?? docMsg ?? stickerMsg;
+                const externalUrl = findPlayableMediaUrl(msg) ?? findPlayableMediaUrl(payload);
+                const declaredBytes = mediaFileLength(mediaObject);
+                if (externalUrl) {
+                  mediaUrl = externalUrl;
+                } else if (mediaKind === "video" || (declaredBytes ?? 0) > MAX_INLINE_MEDIA_BYTES) {
+                  const streamed = await downloadEvolutionMediaToStorage(supabaseAdmin, commandConn, conn.user_id, convo.id, msg, mediaMime, mediaName ?? `${mediaKind}-${msg?.key?.id ?? Date.now()}`, declaredBytes);
+                  if (streamed) {
+                    mediaUrl = streamed.url;
+                    mediaPath = streamed.path;
+                    mediaMime = streamed.mime;
+                  }
+                } else {
+                  const b64 = findBase64(msg) ?? await evolutionGetBase64(commandConn, msg, false) ?? (mediaKind === "audio" ? transcribedAudioBase64 : null);
+                  if (b64) {
+                    mediaB64 = b64;
+                    const saved = await saveMediaToStorage(supabaseAdmin, conn.user_id, convo.id, b64, mediaMime ?? "application/octet-stream", mediaName ?? `${mediaKind}-${msg?.key?.id ?? Date.now()}`);
+                    mediaUrl = saved.url;
+                    mediaPath = saved.path;
+                  }
                 }
               } catch (e) {
                 if (e instanceof MediaTooLargeError) {
@@ -1024,6 +1074,145 @@ async function sendMedia(
 async function signedMediaUrl(db: { storage: { from: (b: string) => { createSignedUrl: (p: string, s: number) => Promise<{ data: { signedUrl: string } | null }> } } }, path: string) {
   const { data } = await db.storage.from("agent-media").createSignedUrl(path, 60 * 10);
   return data?.signedUrl ?? null;
+}
+
+
+async function readRequestTextLimited(request: Request, maxBytes: number) {
+  if (!request.body) return "";
+  const reader = request.body.getReader();
+  const chunks: Uint8Array[] = [];
+  let total = 0;
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    if (!value) continue;
+    total += value.byteLength;
+    if (total > maxBytes) {
+      try { await reader.cancel(); } catch { /* ignore */ }
+      throw new PayloadTooLargeError(total);
+    }
+    chunks.push(value);
+  }
+  return new TextDecoder().decode(concatUint8(chunks, total));
+}
+
+function concatUint8(chunks: Uint8Array[], total: number) {
+  const out = new Uint8Array(total);
+  let offset = 0;
+  for (const chunk of chunks) {
+    out.set(chunk, offset);
+    offset += chunk.byteLength;
+  }
+  return out;
+}
+
+async function disableWebhookBase64(conn: { url_api: string | null; api_key: string | null; instance_name: string | null }) {
+  const base = normalizeBaseUrl(conn.url_api ?? "");
+  const found = await fetch(`${base}/webhook/find/${conn.instance_name}`, {
+    headers: { apikey: conn.api_key ?? "" },
+  });
+  const cur = await found.json().catch(() => ({} as any));
+  const url = cur?.url ?? cur?.webhookUrl;
+  if (!url) return;
+  await fetch(`${base}/webhook/set/${conn.instance_name}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", apikey: conn.api_key ?? "" },
+    body: JSON.stringify({
+      webhook: {
+        enabled: true,
+        url,
+        byEvents: cur?.webhookByEvents ?? cur?.byEvents ?? false,
+        base64: false,
+        events: cur?.events ?? ["MESSAGES_UPSERT", "MESSAGES_UPDATE", "CONNECTION_UPDATE", "QRCODE_UPDATED", "PRESENCE_UPDATE"],
+      },
+    }),
+  });
+}
+
+function sanitizeWebhookPayload(value: unknown, depth = 0): unknown {
+  if (depth > 8) return "[truncated]";
+  if (typeof value === "string") {
+    const clean = stripDataUri(value.trim());
+    if (clean.length > 100 && /^[A-Za-z0-9+/=\r\n]+$/.test(clean)) return `[base64:${clean.length}chars]`;
+    return value.length > 2000 ? `${value.slice(0, 2000)}…` : value;
+  }
+  if (Array.isArray(value)) return value.slice(0, 50).map((item) => sanitizeWebhookPayload(item, depth + 1));
+  if (!value || typeof value !== "object") return value;
+  const out: Record<string, unknown> = {};
+  for (const [key, val] of Object.entries(value as Record<string, unknown>)) {
+    out[key] = key.toLowerCase().includes("base64") ? "[base64]" : sanitizeWebhookPayload(val, depth + 1);
+  }
+  return out;
+}
+
+function mediaFileLength(value: unknown): number | null {
+  if (!value || typeof value !== "object") return null;
+  const raw = (value as Record<string, unknown>).fileLength;
+  if (typeof raw === "number") return raw;
+  if (typeof raw === "string") return Number(raw) || null;
+  if (raw && typeof raw === "object") {
+    const r = raw as Record<string, unknown>;
+    const low = Number(r.low ?? 0);
+    const high = Number(r.high ?? 0);
+    const n = high * 4294967296 + (low >>> 0);
+    return Number.isFinite(n) && n > 0 ? n : null;
+  }
+  return null;
+}
+
+function findPlayableMediaUrl(value: unknown, depth = 0): string | null {
+  if (!value || depth > 6) return null;
+  if (Array.isArray(value)) {
+    for (const item of value) {
+      const found = findPlayableMediaUrl(item, depth + 1);
+      if (found) return found;
+    }
+    return null;
+  }
+  if (typeof value !== "object") return null;
+  const record = value as Record<string, unknown>;
+  for (const key of ["mediaUrl", "media_url", "downloadUrl", "fileUrl", "publicUrl", "signedUrl"]) {
+    const url = record[key];
+    if (typeof url === "string" && /^https?:\/\//i.test(url) && !url.includes("mmg.whatsapp.net")) return url;
+  }
+  for (const nested of Object.values(record)) {
+    const found = findPlayableMediaUrl(nested, depth + 1);
+    if (found) return found;
+  }
+  return null;
+}
+
+async function downloadEvolutionMediaToStorage(
+  db: { storage: { from: (bucket: string) => any } },
+  conn: { url_api: string | null; api_key: string | null; instance_name: string | null },
+  userId: string,
+  conversationId: string,
+  message: unknown,
+  mime: string | null,
+  fileName: string,
+  declaredBytes: number | null,
+): Promise<{ path: string; url: string | null; mime: string } | null> {
+  if (declaredBytes && declaredBytes > MAX_INBOUND_MEDIA_BYTES) throw new MediaTooLargeError(declaredBytes);
+  const contentType = mime || "application/octet-stream";
+  const safeName = fileName.replace(/[^a-zA-Z0-9._-]+/g, "-").slice(0, 80) || "media";
+  const ext = safeName.includes(".") ? "" : `.${(contentType.split("/")[1] || "bin").split(";")[0]}`;
+  const path = `${userId}/${conversationId}/${Date.now()}-${crypto.randomUUID()}-${safeName}${ext}`;
+  const r = await fetch(`${normalizeBaseUrl(conn.url_api ?? "")}/chat/downloadMediaMessage/${conn.instance_name}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", apikey: conn.api_key ?? "" },
+    body: JSON.stringify(message),
+  });
+  if (!r.ok || !r.body) return null;
+  const responseType = r.headers.get("content-type") ?? contentType;
+  if (responseType.includes("application/json")) return null;
+  const { error } = await db.storage.from(MEDIA_BUCKET).upload(path, r.body, {
+    contentType: responseType || contentType,
+    upsert: false,
+    duplex: "half",
+  });
+  if (error) throw new Error(error.message);
+  const { data } = await db.storage.from(MEDIA_BUCKET).createSignedUrl(path, 60 * 60 * 24 * 30);
+  return { path, url: data?.signedUrl ?? null, mime: responseType || contentType };
 }
 
 async function evolutionGetBase64(conn: { url_api: string | null; api_key: string | null; instance_name: string | null }, message: unknown, convertToMp3 = false): Promise<string | null> {
