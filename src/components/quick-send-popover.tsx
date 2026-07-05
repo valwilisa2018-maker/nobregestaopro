@@ -27,7 +27,7 @@ type QuickSend = {
   is_ptt: boolean;
 };
 
-const MAX_VIDEO_MB = 15;
+const MAX_VIDEO_MB = 2048;
 
 function fmtSize(bytes: number | null | undefined) {
   if (!bytes) return "";
