@@ -97,7 +97,6 @@ export function AgentEditor({ agent, onSaved, onCancel }: Props) {
   const [form, setForm] = useState<AgentRow>(() => agent ?? emptyAgent(user?.id ?? ""));
   const [saving, setSaving] = useState(false);
   const [instances, setInstances] = useState<Array<{ id: string; name: string; phone_number: string | null; status: string | null }>>([]);
-  const [providers, setProviders] = useState<Array<{ id: string; name: string; provider: string; model: string | null }>>([]);
   const [libraryOpen, setLibraryOpen] = useState(false);
   const [libraryNiche, setLibraryNiche] = useState<string>(PROMPT_LIBRARY[0].id);
 
@@ -115,20 +114,6 @@ export function AgentEditor({ agent, onSaved, onCancel }: Props) {
     })();
   }, [user]);
 
-  useEffect(() => {
-    if (!user) return;
-    (async () => {
-      const { data } = await supabase
-        .from("ai_providers")
-        .select("id, name, provider, model")
-        .eq("user_id", user.id)
-        .eq("is_active", true)
-        .order("created_at", { ascending: false });
-      setProviders(data ?? []);
-    })();
-  }, [user]);
-
-  const spec = PROVIDERS.find((p) => p.id === (form.category?.toLowerCase() as ProviderId)) ?? PROVIDERS[1];
   const memMsgs = ((form.memory as { messages?: number } | null)?.messages ?? 20);
 
   function set<K extends keyof AgentRow>(k: K, v: AgentRow[K]) { setForm((f) => ({ ...f, [k]: v })); }
@@ -221,46 +206,7 @@ export function AgentEditor({ agent, onSaved, onCancel }: Props) {
             )}
           </div>
 
-          <div className="mb-4 space-y-1.5">
-            <Label className="text-xs uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
-              <Sliders className="h-3.5 w-3.5 text-primary" /> Provedor de Chave API
-            </Label>
-            <Select value={form.ai_provider_id ?? "none"} onValueChange={(v) => set("ai_provider_id", v === "none" ? null : v)}>
-              <SelectTrigger><SelectValue placeholder="Selecione um provedor com chave" /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="none">Usar Lovable AI (padrão)</SelectItem>
-                {providers.map((p) => (
-                  <SelectItem key={p.id} value={p.id}>{p.name} — {p.provider}{p.model ? ` (${p.model})` : ""}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            {providers.length === 0 && (
-              <p className="text-[11px] text-muted-foreground">Nenhum provedor cadastrado. Adicione em Agentes → Provedores.</p>
-            )}
-          </div>
-
           <div className="grid gap-4 md:grid-cols-2">
-            <div className="space-y-1.5">
-              <Label className="text-xs uppercase tracking-wider text-muted-foreground">Provedor</Label>
-              <Select value={(form.category ?? "gemini").toLowerCase()} onValueChange={(v) => { set("category", v); const p = PROVIDERS.find((x) => x.id === v); if (p) set("model", p.models[0] ?? null); }}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>{PROVIDERS.map((p) => <SelectItem key={p.id} value={p.id}>{p.label}</SelectItem>)}</SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-1.5">
-              <Label className="text-xs uppercase tracking-wider text-muted-foreground">Modelo</Label>
-              {spec.models.length > 0 ? (
-                <Select value={form.model ?? ""} onValueChange={(v) => set("model", v)}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>{spec.models.map((m) => <SelectItem key={m} value={m}>{m}</SelectItem>)}</SelectContent>
-                </Select>
-              ) : (
-                <Input value={form.model ?? ""} onChange={(e) => set("model", e.target.value)} />
-              )}
-            </div>
-          </div>
-
-          <div className="grid gap-4 md:grid-cols-2 mt-4">
             <div className="space-y-2">
               <div className="flex justify-between text-xs"><span className="uppercase tracking-wider text-muted-foreground">Temperatura</span><span className="text-primary font-semibold">{form.temperature}</span></div>
               <Slider value={[form.temperature]} min={0} max={2} step={0.1} onValueChange={([v]) => set("temperature", v)} />
