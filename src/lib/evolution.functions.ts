@@ -550,9 +550,15 @@ export const getProfilePicture = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((i: unknown) => ProfilePicInput.parse(i))
   .handler(async ({ data, context }) => {
-    const conn = await pickActiveConnection(context.supabase, context.userId);
-    const apiKey = await loadEvolutionCommandKey(context.supabase, conn.api_key);
     const number = String(data.phone).replace(/\D+/g, "");
+    let conn;
+    try {
+      conn = await pickConnectionForContact(context.supabase, context.userId, number);
+    } catch {
+      return { url: null };
+    }
+    if (!conn) return { url: null };
+    const apiKey = await loadEvolutionCommandKey(context.supabase, conn.api_key);
     const r = await evoFetch(`${baseUrl(conn.url_api)}/chat/fetchProfilePictureUrl/${conn.instance_name}`, apiKey, {
       method: "POST",
       body: JSON.stringify({ number }),
