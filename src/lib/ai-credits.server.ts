@@ -3,6 +3,14 @@
 // ensure_credit_wallet + consume_ai_tokens (see supabase migrations).
 import type { SupabaseClient } from "@supabase/supabase-js";
 
+export class InsufficientCreditsError extends Error {
+  status = 402;
+  constructor(public remaining = 0) {
+    super("insufficient_credits");
+    this.name = "InsufficientCreditsError";
+  }
+}
+
 type Wallet = { plan_tokens_remaining: number; extra_tokens_remaining: number };
 
 export async function checkAiBalance(supabase: SupabaseClient, userId: string): Promise<{ ok: boolean; remaining: number }> {
@@ -17,11 +25,13 @@ export async function checkAiBalance(supabase: SupabaseClient, userId: string): 
   return { ok: remaining > 0, remaining };
 }
 
+export type ConsumeResult = { allowed: boolean; remaining?: number; reason?: string };
+
 export async function consumeAiTokens(
   supabase: SupabaseClient,
   params: { userId: string; agentId: string | null; model: string; inputTokens: number; outputTokens: number; costCents?: number },
-): Promise<void> {
-  await supabase.rpc("consume_ai_tokens" as never, {
+): Promise<ConsumeResult> {
+  const { data, error } = await supabase.rpc("consume_ai_tokens" as never, {
     _user_id: params.userId,
     _agent_id: params.agentId,
     _model: params.model,
@@ -29,4 +39,8 @@ export async function consumeAiTokens(
     _output_tokens: params.outputTokens,
     _cost_cents: params.costCents ?? 0,
   } as never);
+  if (error) throw error;
+  const r = (data ?? { allowed: false }) as ConsumeResult;
+  if (!r.allowed) throw new InsufficientCreditsError(Number(r.remaining ?? 0));
+  return r;
 }
