@@ -12,6 +12,10 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { BuyCreditsModal } from "@/components/buy-credits-modal";
+import {
+  ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid,
+} from "recharts";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 
 export const Route = createFileRoute("/_authenticated/credits")({
   head: () => ({ meta: [{ title: "Créditos IA — Plataforma IA WhatsApp" }] }),
@@ -44,6 +48,7 @@ type UsageResp = {
   total_tokens: number;
   total_cost_cents: number;
   by_model: Record<string, number>;
+  series: { date: string; tokens: number; cost_cents: number }[];
 };
 
 const PAGE_SIZE = 25;
@@ -128,6 +133,44 @@ function Page() {
   };
 
   useEffect(() => { load(); }, []);
+
+  // Live refresh: wallet + usage every 30s
+  useEffect(() => {
+    const id = setInterval(async () => {
+      try {
+        const [w, u] = await Promise.all([
+          authedFetch("/api/v1/credits") as Promise<Wallet>,
+          authedFetch("/api/v1/usage?days=90") as Promise<UsageResp>,
+        ]);
+        setWallet(w);
+        setUsage(u);
+      } catch { /* silent */ }
+    }, 30_000);
+    return () => clearInterval(id);
+  }, []);
+
+  const daily = usage?.series ?? [];
+  const weekly = useMemo(() => {
+    const map: Record<string, { week: string; tokens: number; cost_cents: number }> = {};
+    for (const p of daily) {
+      const d = new Date(p.date + "T00:00:00Z");
+      const day = d.getUTCDay();
+      const monday = new Date(d); monday.setUTCDate(d.getUTCDate() - ((day + 6) % 7));
+      const key = monday.toISOString().slice(0, 10);
+      if (!map[key]) map[key] = { week: key, tokens: 0, cost_cents: 0 };
+      map[key].tokens += p.tokens; map[key].cost_cents += p.cost_cents;
+    }
+    return Object.values(map).sort((a, b) => a.week.localeCompare(b.week));
+  }, [daily]);
+  const monthly = useMemo(() => {
+    const map: Record<string, { month: string; tokens: number; cost_cents: number }> = {};
+    for (const p of daily) {
+      const key = p.date.slice(0, 7);
+      if (!map[key]) map[key] = { month: key, tokens: 0, cost_cents: 0 };
+      map[key].tokens += p.tokens; map[key].cost_cents += p.cost_cents;
+    }
+    return Object.values(map).sort((a, b) => a.month.localeCompare(b.month));
+  }, [daily]);
 
   const totalAvailable = wallet?.total ?? 0;
   const planIncluded = plan.tokens_included || 1;
@@ -255,6 +298,73 @@ function Page() {
               </CardContent>
             </Card>
           </div>
+
+          {/* Gráficos de consumo */}
+          <Card className="mt-6">
+            <CardContent className="p-5">
+              <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
+                <div>
+                  <h2 className="text-lg font-bold text-foreground">Consumo ao longo do tempo</h2>
+                  <p className="text-xs text-muted-foreground">Atualiza automaticamente a cada 30s</p>
+                </div>
+              </div>
+              <Tabs defaultValue="daily">
+                <TabsList>
+                  <TabsTrigger value="daily">Diário</TabsTrigger>
+                  <TabsTrigger value="weekly">Semanal</TabsTrigger>
+                  <TabsTrigger value="monthly">Mensal</TabsTrigger>
+                </TabsList>
+                <TabsContent value="daily">
+                  <div className="h-64">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart data={daily.slice(-30)}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                        <XAxis dataKey="date" fontSize={10} tickFormatter={(v) => v.slice(5)} />
+                        <YAxis fontSize={10} tickFormatter={(v) => fmtTokens(v as number)} />
+                        <Tooltip
+                          contentStyle={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))" }}
+                          formatter={(v: number) => fmtTokens(v)}
+                        />
+                        <Bar dataKey="tokens" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
+                </TabsContent>
+                <TabsContent value="weekly">
+                  <div className="h-64">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart data={weekly}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                        <XAxis dataKey="week" fontSize={10} tickFormatter={(v) => v.slice(5)} />
+                        <YAxis fontSize={10} tickFormatter={(v) => fmtTokens(v as number)} />
+                        <Tooltip
+                          contentStyle={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))" }}
+                          formatter={(v: number) => fmtTokens(v)}
+                        />
+                        <Bar dataKey="tokens" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
+                </TabsContent>
+                <TabsContent value="monthly">
+                  <div className="h-64">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart data={monthly}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                        <XAxis dataKey="month" fontSize={10} />
+                        <YAxis fontSize={10} tickFormatter={(v) => fmtTokens(v as number)} />
+                        <Tooltip
+                          contentStyle={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))" }}
+                          formatter={(v: number) => fmtTokens(v)}
+                        />
+                        <Bar dataKey="tokens" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
+                </TabsContent>
+              </Tabs>
+            </CardContent>
+          </Card>
 
           {/* Histórico */}
           <Card className="mt-6">
