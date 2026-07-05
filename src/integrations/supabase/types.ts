@@ -769,6 +769,166 @@ export type Database = {
           },
         ]
       }
+      credit_orders: {
+        Row: {
+          created_at: string
+          id: string
+          package_id: string
+          paid_at: string | null
+          price_cents: number
+          provider: string | null
+          status: string
+          tokens: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          package_id: string
+          paid_at?: string | null
+          price_cents: number
+          provider?: string | null
+          status?: string
+          tokens: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          package_id?: string
+          paid_at?: string | null
+          price_cents?: number
+          provider?: string | null
+          status?: string
+          tokens?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "credit_orders_package_id_fkey"
+            columns: ["package_id"]
+            isOneToOne: false
+            referencedRelation: "credit_packages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      credit_packages: {
+        Row: {
+          badge: string | null
+          created_at: string
+          id: string
+          is_active: boolean
+          name: string
+          price_cents: number
+          sort_order: number
+          tokens: number
+        }
+        Insert: {
+          badge?: string | null
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name: string
+          price_cents: number
+          sort_order?: number
+          tokens: number
+        }
+        Update: {
+          badge?: string | null
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name?: string
+          price_cents?: number
+          sort_order?: number
+          tokens?: number
+        }
+        Relationships: []
+      }
+      credit_transactions: {
+        Row: {
+          agent_id: string | null
+          cost_cents: number
+          id: string
+          input_tokens: number
+          kind: string
+          metadata: Json
+          model: string | null
+          occurred_at: string
+          output_tokens: number
+          status: string
+          total_tokens: number
+          user_id: string
+        }
+        Insert: {
+          agent_id?: string | null
+          cost_cents?: number
+          id?: string
+          input_tokens?: number
+          kind: string
+          metadata?: Json
+          model?: string | null
+          occurred_at?: string
+          output_tokens?: number
+          status?: string
+          total_tokens?: number
+          user_id: string
+        }
+        Update: {
+          agent_id?: string | null
+          cost_cents?: number
+          id?: string
+          input_tokens?: number
+          kind?: string
+          metadata?: Json
+          model?: string | null
+          occurred_at?: string
+          output_tokens?: number
+          status?: string
+          total_tokens?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "credit_transactions_agent_id_fkey"
+            columns: ["agent_id"]
+            isOneToOne: false
+            referencedRelation: "agents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      credit_wallets: {
+        Row: {
+          created_at: string
+          extra_tokens_remaining: number
+          plan_tokens_remaining: number
+          plan_tokens_reset_at: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          extra_tokens_remaining?: number
+          plan_tokens_remaining?: number
+          plan_tokens_reset_at?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          extra_tokens_remaining?: number
+          plan_tokens_remaining?: number
+          plan_tokens_reset_at?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       documents: {
         Row: {
           client_id: string | null
@@ -1477,13 +1637,83 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      consume_ai_tokens: {
+        Args: {
+          _agent_id: string
+          _cost_cents: number
+          _input_tokens: number
+          _model: string
+          _output_tokens: number
+          _user_id: string
+        }
+        Returns: Json
+      }
       consume_send_quota: { Args: { _user_id: string }; Returns: Json }
+      create_credit_order: {
+        Args: { _package_id: string }
+        Returns: {
+          created_at: string
+          id: string
+          package_id: string
+          paid_at: string | null
+          price_cents: number
+          provider: string | null
+          status: string
+          tokens: number
+          updated_at: string
+          user_id: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "credit_orders"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      ensure_credit_wallet: {
+        Args: { _user_id: string }
+        Returns: {
+          created_at: string
+          extra_tokens_remaining: number
+          plan_tokens_remaining: number
+          plan_tokens_reset_at: string
+          updated_at: string
+          user_id: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "credit_wallets"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
           _user_id: string
         }
         Returns: boolean
+      }
+      mark_credit_order_paid: {
+        Args: { _order_id: string }
+        Returns: {
+          created_at: string
+          id: string
+          package_id: string
+          paid_at: string | null
+          price_cents: number
+          provider: string | null
+          status: string
+          tokens: number
+          updated_at: string
+          user_id: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "credit_orders"
+          isOneToOne: true
+          isSetofReturn: false
+        }
       }
     }
     Enums: {
