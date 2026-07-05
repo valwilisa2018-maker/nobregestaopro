@@ -1442,6 +1442,54 @@ export type Database = {
         }
         Relationships: []
       }
+      quick_sends: {
+        Row: {
+          created_at: string
+          id: string
+          is_ptt: boolean
+          media_mime: string | null
+          media_name: string | null
+          media_size: number | null
+          media_type: string | null
+          media_url: string | null
+          storage_path: string | null
+          text: string | null
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_ptt?: boolean
+          media_mime?: string | null
+          media_name?: string | null
+          media_size?: number | null
+          media_type?: string | null
+          media_url?: string | null
+          storage_path?: string | null
+          text?: string | null
+          title: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_ptt?: boolean
+          media_mime?: string | null
+          media_name?: string | null
+          media_size?: number | null
+          media_type?: string | null
+          media_url?: string | null
+          storage_path?: string | null
+          text?: string | null
+          title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       settings: {
         Row: {
           id: string

@@ -15,6 +15,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { sendChatText, sendChatAudio, sendChatMedia, getProfilePicture, sendPresence, ensurePresenceWebhook, deleteChatMessage, forwardChatMessage, editChatMessage, reactChatMessage } from "@/lib/evolution.functions";
 import { toast } from "sonner";
 import notificationSound from "@/assets/notification.mp3.asset.json";
+import { QuickSendPopover } from "@/components/quick-send-popover";
 
 export const Route = createFileRoute("/_authenticated/messages")({
   ssr: false,
@@ -2226,6 +2227,7 @@ function MessagesPage() {
                         ))}
                       </PopoverContent>
                     </Popover>
+                    <QuickSendPopover contactId={selected?.id ?? null} />
                     <input
                       ref={fileInputRef}
                       type="file"
