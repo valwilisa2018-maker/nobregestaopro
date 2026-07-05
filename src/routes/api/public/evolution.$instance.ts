@@ -39,13 +39,14 @@ type ConvMeta = {
 };
 
 const MEDIA_BUCKET = "agent-media";
-// Limite de recebimento de mídia (padrão WhatsApp: 2 GB)
-const MAX_INBOUND_MEDIA_BYTES = 2 * 1024 * 1024 * 1024;
+// Limite de recebimento de mídia: 200 MB por arquivo
+const MAX_INBOUND_MEDIA_BYTES = 200 * 1024 * 1024;
+let bucketLimitEnsured = false;
 
 class MediaTooLargeError extends Error {
   bytes: number;
   constructor(bytes: number) {
-    super(`Mídia excede o limite de 2 GB (${(bytes / 1024 / 1024).toFixed(1)} MB recebidos).`);
+    super(`Mídia excede o limite de 200 MB (${(bytes / 1024 / 1024).toFixed(1)} MB recebidos).`);
     this.name = "MediaTooLargeError";
     this.bytes = bytes;
   }
