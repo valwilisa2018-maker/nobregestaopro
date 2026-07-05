@@ -212,8 +212,8 @@ function Page() {
                 </div>
                 <div className="text-4xl font-black tracking-tight text-foreground">{fmtTokens(totalAvailable)}</div>
                 <div className="text-xs text-muted-foreground">
-                  Plano: <span className="text-foreground font-semibold">{fmtTokens(wallet?.plan_tokens_remaining ?? 0)}</span>
-                  {" · "}Extras: <span className="text-foreground font-semibold">{fmtTokens(wallet?.extra_tokens_remaining ?? 0)}</span>
+                  Plano: <span className="text-foreground font-semibold">{fmtTokens(wallet?.plan_remaining ?? 0)}</span>
+                  {" · "}Extras: <span className="text-foreground font-semibold">{fmtTokens(wallet?.extra_remaining ?? 0)}</span>
                 </div>
                 <Progress value={planPct} className="h-2" />
                 <div className="text-[10px] text-muted-foreground uppercase tracking-wider">
