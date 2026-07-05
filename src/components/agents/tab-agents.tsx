@@ -95,7 +95,7 @@ export function TabAgents() {
                 </div>
               </div>
               <div className="space-y-1.5 text-xs text-muted-foreground">
-                <div className="flex items-center gap-2"><Zap className="h-3.5 w-3.5 text-primary" /> {(r.category || "Gemini")} — {r.model || "gemini-2.5-flash"}</div>
+                <div className="flex items-center gap-2"><Zap className="h-3.5 w-3.5 text-primary" /> IA · Configurações Globais</div>
                 <div className="flex items-center gap-2"><Sliders className="h-3.5 w-3.5 text-primary" /> Temp: {r.temperature ?? 0.7} | Max Tokens: {r.max_tokens ?? 2048}</div>
                 <div className="flex items-center gap-2"><Clock className="h-3.5 w-3.5 text-primary" /> Timer: humanizado</div>
               </div>
