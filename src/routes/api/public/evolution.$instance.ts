@@ -1039,6 +1039,9 @@ async function saveMediaToStorage(
   const ext = safeName.includes(".") ? "" : `.${(mime.split("/")[1] || "bin").split(";")[0]}`;
   const path = `${userId}/${conversationId}/${Date.now()}-${crypto.randomUUID()}-${safeName}${ext}`;
   const bytes = Buffer.from(clean, "base64");
+  if (bytes.byteLength > MAX_INBOUND_MEDIA_BYTES) {
+    throw new MediaTooLargeError(bytes.byteLength);
+  }
   const { error } = await db.storage.from(MEDIA_BUCKET).upload(path, bytes, {
     contentType: mime || "application/octet-stream",
     upsert: false,
