@@ -599,8 +599,11 @@ function MessagesPage() {
     for (const m of msgs) {
       if (seenIds.has(m.id)) continue;
       seenIds.add(m.id);
+      const type = m.type || "text";
+      // Skip empty text messages (no content, no media) that render as blank bubbles.
+      if (type === "text" && !m.media_url && !(m.content ?? "").trim()) continue;
       const ts = new Date(m.created_at).getTime() || 0;
-      const sig = `${m.direction}|${m.type || "text"}|${m.content ?? ""}`;
+      const sig = `${m.direction}|${type}|${m.content ?? ""}`;
       const prevIdx = bySig.get(sig);
       if (prevIdx !== undefined) {
         const prev = out[prevIdx];
