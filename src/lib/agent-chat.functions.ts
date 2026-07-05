@@ -14,8 +14,12 @@ export const chatWithAgent = createServerFn({ method: "POST" })
   .inputValidator((raw: unknown) => Input.parse(raw))
   .handler(async ({ data, context }) => {
     const { resolveAIConfig } = await import("./ai-resolver.server");
+    const { checkAiBalance, consumeAiTokens } = await import("./ai-credits.server");
     const { endpoint, apiKey, model: modelId } = await resolveAIConfig(context.supabase, context.userId);
     if (!apiKey) throw new Error("Nenhum provedor de IA ativo. Configure em Configurações Globais.");
+
+    const bal = await checkAiBalance(context.supabase, context.userId);
+    if (!bal.ok) throw new Error("Saldo de créditos de IA esgotado. Compre mais créditos para continuar.");
 
     const res = await fetch(endpoint, {
       method: "POST",
@@ -38,7 +42,17 @@ export const chatWithAgent = createServerFn({ method: "POST" })
       throw new Error(`Erro ${res.status}: ${t.slice(0, 200)}`);
     }
 
-    const json = (await res.json()) as { choices?: Array<{ message?: { content?: string } }> };
+    const json = (await res.json()) as {
+      choices?: Array<{ message?: { content?: string } }>;
+      usage?: { prompt_tokens?: number; completion_tokens?: number };
+    };
     const text = json.choices?.[0]?.message?.content ?? "";
+    await consumeAiTokens(context.supabase, {
+      userId: context.userId,
+      agentId: null,
+      model: modelId,
+      inputTokens: json.usage?.prompt_tokens ?? 0,
+      outputTokens: json.usage?.completion_tokens ?? 0,
+    });
     return { text };
   });
