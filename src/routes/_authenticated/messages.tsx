@@ -2484,15 +2484,16 @@ function LinkPreview({ url }: { url: string }) {
     return <div className="mb-1 rounded-md bg-black/5 h-16 animate-pulse" />;
   }
   if (data === null) return null;
+  let domain = "";
+  try { domain = new URL(data.url).hostname.replace(/^www\./, ""); } catch { /* ignore */ }
   return (
-    <a href={data.url} target="_blank" rel="noreferrer" className="mb-1 block w-full max-w-[260px] rounded-md overflow-hidden bg-black/5 hover:bg-black/10 transition">
+    <a href={data.url} target="_blank" rel="noreferrer" className="mb-1 block w-full max-w-[260px] rounded-lg overflow-hidden bg-black/5 hover:bg-black/10 transition">
       {data.image && (
-        <img src={data.image} alt="" className="w-full h-32 object-cover" loading="lazy" />
+        <img src={data.image} alt="" className="w-full max-h-[260px] object-cover bg-black" loading="lazy" />
       )}
-      <div className="px-2 py-1.5">
-        {data.publisher && <div className="text-[10px] uppercase tracking-wide text-gray-500 truncate">{data.publisher}</div>}
-        {data.title && <div className="text-[13px] font-medium text-gray-800 line-clamp-2">{data.title}</div>}
-        {data.description && <div className="text-[11px] text-gray-600 line-clamp-2">{data.description}</div>}
+      <div className="px-2.5 py-1.5">
+        {data.title && <div className="text-[13px] font-medium text-gray-800 line-clamp-2 leading-snug">{data.title}</div>}
+        {domain && <div className="mt-0.5 text-[11px] text-gray-500 truncate">{domain}</div>}
       </div>
     </a>
   );
