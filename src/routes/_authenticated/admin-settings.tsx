@@ -14,15 +14,7 @@ import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem, SelectGr
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { z } from "zod";
-
-const packageSchema = z.object({
-  name: z.string().trim().min(2, "Nome mínimo 2 caracteres").max(80, "Nome muito longo"),
-  tokens: z.number().int("Tokens deve ser inteiro").positive("Tokens deve ser > 0").max(1_000_000_000, "Tokens excede o limite"),
-  price_cents: z.number().int().min(1, "Preço deve ser > 0").max(100_000_000, "Preço excede o limite"),
-  badge: z.string().trim().max(30).nullable(),
-  sort_order: z.number().int().min(0).max(9999),
-  is_active: z.boolean(),
-});
+import { validatePackage } from "@/lib/package-schema";
 
 export const Route = createFileRoute("/_authenticated/admin-settings")({
   head: () => ({ meta: [{ title: "Configurações Globais — Admin" }] }),
@@ -229,14 +221,15 @@ function Page() {
     setPackages((prev) => prev.map((p) => (p.id === id ? { ...p, ...patch } : p)));
 
   const savePkg = async (p: PackageRow) => {
-    const parsed = packageSchema.safeParse({
+    const parsed = validatePackage({
       name: p.name, tokens: p.tokens, price_cents: p.price_cents,
+      currency: (p as unknown as { currency?: string }).currency ?? "BRL",
       badge: p.badge && p.badge.length ? p.badge : null,
       sort_order: p.sort_order, is_active: p.is_active,
     });
-    if (!parsed.success) return toast.error(parsed.error.issues[0]?.message ?? "Dados inválidos");
+    if (!parsed.ok) return toast.error(parsed.error);
     setSavingPkg(p.id);
-    const payload = parsed.data;
+    const { currency: _c, ...payload } = parsed.data;
     const { error } = p.id.startsWith("new-")
       ? await supabase.from("credit_packages").insert(payload as never)
       : await supabase.from("credit_packages").update(payload as never).eq("id", p.id);
