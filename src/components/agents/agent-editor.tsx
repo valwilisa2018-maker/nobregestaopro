@@ -97,7 +97,6 @@ export function AgentEditor({ agent, onSaved, onCancel }: Props) {
   const [form, setForm] = useState<AgentRow>(() => agent ?? emptyAgent(user?.id ?? ""));
   const [saving, setSaving] = useState(false);
   const [instances, setInstances] = useState<Array<{ id: string; name: string; phone_number: string | null; status: string | null }>>([]);
-  const [providers, setProviders] = useState<Array<{ id: string; name: string; provider: string; model: string | null }>>([]);
   const [libraryOpen, setLibraryOpen] = useState(false);
   const [libraryNiche, setLibraryNiche] = useState<string>(PROMPT_LIBRARY[0].id);
 
@@ -115,20 +114,6 @@ export function AgentEditor({ agent, onSaved, onCancel }: Props) {
     })();
   }, [user]);
 
-  useEffect(() => {
-    if (!user) return;
-    (async () => {
-      const { data } = await supabase
-        .from("ai_providers")
-        .select("id, name, provider, model")
-        .eq("user_id", user.id)
-        .eq("is_active", true)
-        .order("created_at", { ascending: false });
-      setProviders(data ?? []);
-    })();
-  }, [user]);
-
-  const spec = PROVIDERS.find((p) => p.id === (form.category?.toLowerCase() as ProviderId)) ?? PROVIDERS[1];
   const memMsgs = ((form.memory as { messages?: number } | null)?.messages ?? 20);
 
   function set<K extends keyof AgentRow>(k: K, v: AgentRow[K]) { setForm((f) => ({ ...f, [k]: v })); }
