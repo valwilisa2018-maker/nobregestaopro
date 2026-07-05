@@ -47,6 +47,7 @@ import { Route as AuthenticatedAdminSettingsRouteImport } from './routes/_authen
 import { Route as ApiV1UsageRouteImport } from './routes/api/v1/usage'
 import { Route as ApiV1RefundRouteImport } from './routes/api/v1/refund'
 import { Route as ApiV1PackagesRouteImport } from './routes/api/v1/packages'
+import { Route as ApiV1MarkPaidRouteImport } from './routes/api/v1/mark-paid'
 import { Route as ApiV1HistoryRouteImport } from './routes/api/v1/history'
 import { Route as ApiV1CreditsRouteImport } from './routes/api/v1/credits'
 import { Route as ApiV1ConsumeRouteImport } from './routes/api/v1/consume'
@@ -248,6 +249,11 @@ const ApiV1PackagesRoute = ApiV1PackagesRouteImport.update({
   path: '/api/v1/packages',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiV1MarkPaidRoute = ApiV1MarkPaidRouteImport.update({
+  id: '/api/v1/mark-paid',
+  path: '/api/v1/mark-paid',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiV1HistoryRoute = ApiV1HistoryRouteImport.update({
   id: '/api/v1/history',
   path: '/api/v1/history',
@@ -325,6 +331,7 @@ export interface FileRoutesByFullPath {
   '/api/v1/consume': typeof ApiV1ConsumeRoute
   '/api/v1/credits': typeof ApiV1CreditsRoute
   '/api/v1/history': typeof ApiV1HistoryRoute
+  '/api/v1/mark-paid': typeof ApiV1MarkPaidRoute
   '/api/v1/packages': typeof ApiV1PackagesRoute
   '/api/v1/refund': typeof ApiV1RefundRoute
   '/api/v1/usage': typeof ApiV1UsageRoute
@@ -371,6 +378,7 @@ export interface FileRoutesByTo {
   '/api/v1/consume': typeof ApiV1ConsumeRoute
   '/api/v1/credits': typeof ApiV1CreditsRoute
   '/api/v1/history': typeof ApiV1HistoryRoute
+  '/api/v1/mark-paid': typeof ApiV1MarkPaidRoute
   '/api/v1/packages': typeof ApiV1PackagesRoute
   '/api/v1/refund': typeof ApiV1RefundRoute
   '/api/v1/usage': typeof ApiV1UsageRoute
@@ -419,6 +427,7 @@ export interface FileRoutesById {
   '/api/v1/consume': typeof ApiV1ConsumeRoute
   '/api/v1/credits': typeof ApiV1CreditsRoute
   '/api/v1/history': typeof ApiV1HistoryRoute
+  '/api/v1/mark-paid': typeof ApiV1MarkPaidRoute
   '/api/v1/packages': typeof ApiV1PackagesRoute
   '/api/v1/refund': typeof ApiV1RefundRoute
   '/api/v1/usage': typeof ApiV1UsageRoute
@@ -467,6 +476,7 @@ export interface FileRouteTypes {
     | '/api/v1/consume'
     | '/api/v1/credits'
     | '/api/v1/history'
+    | '/api/v1/mark-paid'
     | '/api/v1/packages'
     | '/api/v1/refund'
     | '/api/v1/usage'
@@ -513,6 +523,7 @@ export interface FileRouteTypes {
     | '/api/v1/consume'
     | '/api/v1/credits'
     | '/api/v1/history'
+    | '/api/v1/mark-paid'
     | '/api/v1/packages'
     | '/api/v1/refund'
     | '/api/v1/usage'
@@ -560,6 +571,7 @@ export interface FileRouteTypes {
     | '/api/v1/consume'
     | '/api/v1/credits'
     | '/api/v1/history'
+    | '/api/v1/mark-paid'
     | '/api/v1/packages'
     | '/api/v1/refund'
     | '/api/v1/usage'
@@ -577,6 +589,7 @@ export interface RootRouteChildren {
   ApiV1ConsumeRoute: typeof ApiV1ConsumeRoute
   ApiV1CreditsRoute: typeof ApiV1CreditsRoute
   ApiV1HistoryRoute: typeof ApiV1HistoryRoute
+  ApiV1MarkPaidRoute: typeof ApiV1MarkPaidRoute
   ApiV1PackagesRoute: typeof ApiV1PackagesRoute
   ApiV1RefundRoute: typeof ApiV1RefundRoute
   ApiV1UsageRoute: typeof ApiV1UsageRoute
@@ -853,6 +866,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiV1PackagesRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/v1/mark-paid': {
+      id: '/api/v1/mark-paid'
+      path: '/api/v1/mark-paid'
+      fullPath: '/api/v1/mark-paid'
+      preLoaderRoute: typeof ApiV1MarkPaidRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/v1/history': {
       id: '/api/v1/history'
       path: '/api/v1/history'
@@ -986,6 +1006,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiV1ConsumeRoute: ApiV1ConsumeRoute,
   ApiV1CreditsRoute: ApiV1CreditsRoute,
   ApiV1HistoryRoute: ApiV1HistoryRoute,
+  ApiV1MarkPaidRoute: ApiV1MarkPaidRoute,
   ApiV1PackagesRoute: ApiV1PackagesRoute,
   ApiV1RefundRoute: ApiV1RefundRoute,
   ApiV1UsageRoute: ApiV1UsageRoute,
