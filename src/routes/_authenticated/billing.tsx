@@ -1,12 +1,10 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { CreditCard, Check, Loader2, Rocket, Sparkles, Zap } from "lucide-react";
+import { CreditCard, Check, Loader2, Zap } from "lucide-react";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { PageShell } from "@/components/page-shell";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import { PlanStatusCard } from "@/components/plan-status";
 
@@ -61,20 +59,31 @@ function Page() {
       status="ativo"
     >
       <PlanStatusCard />
-      <div className="flex justify-center mb-6">
-        <Tabs value={cycle} onValueChange={(v) => setCycle(v as "monthly" | "annual")}>
-          <TabsList>
-            <TabsTrigger value="monthly">Mensal</TabsTrigger>
-            <TabsTrigger value="annual" className="gap-2">Anual <Badge variant="secondary" className="text-[10px]">-2 meses</Badge></TabsTrigger>
-          </TabsList>
-        </Tabs>
+      <div className="flex justify-center mb-10">
+        <div className="flex items-center gap-2 bg-card/60 border border-border p-1.5 rounded-full">
+          <button
+            onClick={() => setCycle("monthly")}
+            className={`px-5 py-1.5 rounded-full text-sm font-semibold transition ${
+              cycle === "monthly" ? "bg-primary text-primary-foreground shadow-lg shadow-primary/20" : "text-muted-foreground hover:text-foreground"
+            }`}
+          >Mensal</button>
+          <button
+            onClick={() => setCycle("annual")}
+            className={`px-5 py-1.5 rounded-full text-sm font-semibold transition inline-flex items-center gap-2 ${
+              cycle === "annual" ? "bg-primary text-primary-foreground shadow-lg shadow-primary/20" : "text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            Anual
+            <span className="text-[10px] bg-emerald-500/10 text-emerald-400 px-2 py-0.5 rounded-full border border-emerald-500/20">-2 meses</span>
+          </button>
+        </div>
       </div>
       {loading ? (
         <div className="p-12 flex justify-center"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>
       ) : plans.length === 0 ? (
         <Card><CardContent className="p-12 text-center text-muted-foreground">Nenhum plano disponível.</CardContent></Card>
       ) : (
-        <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-4 pt-6">
+        <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-4 pt-6 items-stretch">
           {plans.map((p) => {
             const annualFromMonthly = p.price_cents * 12;
             const showAnnual = cycle === "annual" && p.price_annual_cents > 0;
@@ -82,94 +91,67 @@ function Page() {
             const suffix = showAnnual ? "/ano" : "/mês";
             const savings = showAnnual ? annualFromMonthly - p.price_annual_cents : 0;
             const savingsPct = showAnnual && annualFromMonthly > 0 ? Math.round((savings / annualFromMonthly) * 100) : 0;
+            const [reais, cents] = (price / 100).toFixed(2).split(".");
+            const reaisFmt = Number(reais).toLocaleString("pt-BR");
             return (
-            <div key={p.id} className="relative group">
+            <div
+              key={p.id}
+              className={`group relative flex flex-col p-8 rounded-3xl transition-all ${
+                p.highlight
+                  ? "bg-card border-2 border-primary shadow-2xl shadow-primary/10 xl:scale-[1.03] z-10"
+                  : "bg-card/40 border border-border hover:border-border/80"
+              }`}
+            >
               {p.highlight && (
-                <div
-                  aria-hidden
-                  className="absolute -inset-0.5 rounded-2xl opacity-70 blur-lg transition duration-500 group-hover:opacity-100"
-                  style={{ background: "linear-gradient(135deg, hsl(var(--primary)) 0%, hsl(var(--primary) / 0.35) 60%, transparent 100%)" }}
-                />
+                <div className="absolute -top-4 left-1/2 -translate-x-1/2 bg-primary text-primary-foreground text-[10px] font-black uppercase tracking-widest px-4 py-1.5 rounded-full shadow-lg">
+                  Mais vendido
+                </div>
               )}
-              <Card
-                className={`relative flex flex-col overflow-hidden rounded-2xl border-border/60 bg-card/80 backdrop-blur transition-transform duration-300 group-hover:-translate-y-1 ${
-                  p.highlight ? "border-primary/60 shadow-[0_20px_60px_-25px_hsl(var(--primary)/0.6)]" : "hover:border-primary/40"
+              <div className="flex justify-between items-start mb-2">
+                <h3 className={`text-lg font-bold ${p.highlight ? "text-foreground" : "text-muted-foreground"}`}>{p.name}</h3>
+                {p.highlight && <Zap className="w-6 h-6 text-primary" fill="currentColor" />}
+              </div>
+              {p.description && <p className="text-sm text-muted-foreground mb-8 leading-relaxed">{p.description}</p>}
+
+              <div className="flex items-baseline gap-1 mb-2">
+                <span className={`text-3xl font-bold ${p.highlight ? "text-foreground" : "text-foreground/90"}`}>R$</span>
+                <span className={`font-black tracking-tight ${p.highlight ? "text-6xl text-foreground" : "text-5xl text-foreground/90"}`}>
+                  {reaisFmt},{cents}
+                </span>
+                <span className="text-muted-foreground text-sm">{suffix}</span>
+              </div>
+              {showAnnual && savings > 0 ? (
+                <div className="inline-flex w-fit items-center gap-1 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-2 py-0.5 text-[10px] font-semibold mb-6">
+                  Economize {formatBRL(savings)} ({savingsPct}%)
+                </div>
+              ) : <div className="mb-6" />}
+
+              <div className={`mb-8 py-2 px-4 rounded-xl w-fit border ${
+                p.highlight ? "bg-primary/10 border-primary/30" : "bg-muted/40 border-border"
+              }`}>
+                <span className={`text-xs font-bold uppercase tracking-wider ${p.highlight ? "text-primary" : "text-primary/90"}`}>
+                  {formatTokens(p.tokens_included)}
+                </span>
+              </div>
+
+              <ul className="space-y-4 mb-10 flex-grow">
+                {p.features.map((f, i) => (
+                  <li key={i} className={`flex items-start gap-3 text-sm ${p.highlight ? "text-foreground/90" : "text-muted-foreground"}`}>
+                    <Check className={`w-5 h-5 shrink-0 mt-0.5 ${p.highlight ? "text-primary" : "text-primary/80"}`} strokeWidth={2.5} />
+                    <span>{f}</span>
+                  </li>
+                ))}
+              </ul>
+
+              <Button
+                className={`w-full py-4 h-auto rounded-2xl font-black transition-all ${
+                  p.highlight
+                    ? "bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg shadow-primary/30 active:scale-95"
+                    : "bg-transparent border border-border text-foreground hover:bg-muted/60"
                 }`}
               >
-                {p.highlight && (
-                  <div className="absolute -top-px left-1/2 -translate-x-1/2 z-10">
-                    <div className="flex items-center gap-1.5 rounded-b-lg bg-gradient-to-r from-primary to-primary/70 px-3 py-1 text-[10px] font-bold uppercase tracking-widest text-primary-foreground shadow-lg">
-                      <Rocket className="h-3 w-3" /> Mais vendido
-                    </div>
-                  </div>
-                )}
-                {/* Ambient header */}
-                <div className="relative h-24 overflow-hidden">
-                  <div
-                    className="absolute inset-0"
-                    style={{
-                      background: p.highlight
-                        ? "linear-gradient(135deg, hsl(var(--primary)) 0%, hsl(var(--primary) / 0.55) 100%)"
-                        : "linear-gradient(135deg, hsl(var(--muted)) 0%, hsl(var(--card)) 100%)",
-                    }}
-                  />
-                  <div
-                    className="absolute inset-0 opacity-70"
-                    style={{ backgroundImage: "radial-gradient(circle at 25% 20%, rgba(255,255,255,0.35), transparent 55%)" }}
-                  />
-                  <div className="absolute inset-0 flex items-end justify-between px-5 pb-3">
-                    <div className="flex items-center gap-2">
-                      <div className={`grid h-10 w-10 place-items-center rounded-xl border backdrop-blur ${p.highlight ? "border-white/30 bg-white/15 text-primary-foreground" : "border-primary/30 bg-primary/10 text-primary"}`}>
-                        <Rocket className="h-5 w-5" />
-                      </div>
-                      <div className={`font-black text-lg tracking-tight ${p.highlight ? "text-primary-foreground" : "text-foreground"}`}>{p.name}</div>
-                    </div>
-                    <Sparkles className={`h-4 w-4 ${p.highlight ? "text-primary-foreground/80" : "text-primary/60"}`} />
-                  </div>
-                </div>
-
-                <CardContent className="p-5 flex-1 flex flex-col gap-4">
-                  {p.description && <p className="text-xs text-muted-foreground leading-relaxed">{p.description}</p>}
-
-                  <div className="rounded-xl border border-border/60 bg-muted/30 p-4">
-                    <div className="flex items-baseline gap-1">
-                      <span className="text-4xl font-black tracking-tight bg-clip-text text-transparent"
-                        style={{ backgroundImage: "linear-gradient(135deg, hsl(var(--primary)) 0%, hsl(var(--foreground)) 100%)" }}>
-                        {formatBRL(price)}
-                      </span>
-                      <span className="text-xs text-muted-foreground font-medium">{suffix}</span>
-                    </div>
-                    {showAnnual && savings > 0 && (
-                      <div className="mt-1 inline-flex items-center gap-1 rounded-full bg-emerald-500/15 px-2 py-0.5 text-[10px] font-semibold text-emerald-500">
-                        <Zap className="h-3 w-3" /> Economize {formatBRL(savings)} ({savingsPct}%)
-                      </div>
-                    )}
-                    <div className="mt-2 flex items-center gap-1.5 text-[11px] font-semibold text-primary">
-                      <Sparkles className="h-3 w-3" /> {formatTokens(p.tokens_included)} / mês
-                    </div>
-                  </div>
-
-                  <ul className="space-y-2 text-sm flex-1">
-                    {p.features.map((f, i) => (
-                      <li key={i} className="flex gap-2">
-                        <span className="mt-0.5 grid h-4 w-4 shrink-0 place-items-center rounded-full bg-primary/15">
-                          <Check className="h-3 w-3 text-primary" />
-                        </span>
-                        <span className="text-foreground/90">{f}</span>
-                      </li>
-                    ))}
-                  </ul>
-
-                  <Button
-                    className={`w-full h-11 font-bold gap-2 ${p.highlight
-                      ? "bg-gradient-to-r from-primary to-primary/80 hover:from-primary hover:to-primary text-primary-foreground shadow-lg shadow-primary/30"
-                      : ""}`}
-                    variant={p.highlight ? "default" : "outline"}
-                  >
-                    <Rocket className="h-4 w-4" /> Assinar {p.name}
-                  </Button>
-                </CardContent>
-              </Card>
+                {p.highlight ? "Assinar Agora" : "Assinar"}
+              </Button>
             </div>
             );
           })}
