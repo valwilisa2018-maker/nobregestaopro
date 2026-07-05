@@ -44,6 +44,7 @@ import { Route as AuthenticatedApiRouteImport } from './routes/_authenticated/ap
 import { Route as AuthenticatedAiRouteImport } from './routes/_authenticated/ai'
 import { Route as AuthenticatedAgentsRouteImport } from './routes/_authenticated/agents'
 import { Route as AuthenticatedAdminSettingsRouteImport } from './routes/_authenticated/admin-settings'
+import { Route as ApiV1CreditsRouteImport } from './routes/api/v1/credits'
 import { Route as ApiPublicHooksFollowUpsRouteImport } from './routes/api/public/hooks/follow-ups'
 import { Route as ApiPublicHooksBroadcastsRouteImport } from './routes/api/public/hooks/broadcasts'
 import { Route as ApiPublicEvolutionInstanceRouteImport } from './routes/api/public/evolution.$instance'
@@ -226,6 +227,11 @@ const AuthenticatedAdminSettingsRoute =
     path: '/admin-settings',
     getParentRoute: () => AuthenticatedRoute,
   } as any)
+const ApiV1CreditsRoute = ApiV1CreditsRouteImport.update({
+  id: '/api/v1/credits',
+  path: '/api/v1/credits',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiPublicHooksFollowUpsRoute = ApiPublicHooksFollowUpsRouteImport.update({
   id: '/api/public/hooks/follow-ups',
   path: '/api/public/hooks/follow-ups',
@@ -279,6 +285,7 @@ export interface FileRoutesByFullPath {
   '/webhooks': typeof AuthenticatedWebhooksRoute
   '/whatsapp': typeof AuthenticatedWhatsappRoute
   '/white-label': typeof AuthenticatedWhiteLabelRoute
+  '/api/v1/credits': typeof ApiV1CreditsRoute
   '/api/public/evolution/$instance': typeof ApiPublicEvolutionInstanceRoute
   '/api/public/hooks/broadcasts': typeof ApiPublicHooksBroadcastsRoute
   '/api/public/hooks/follow-ups': typeof ApiPublicHooksFollowUpsRoute
@@ -318,6 +325,7 @@ export interface FileRoutesByTo {
   '/webhooks': typeof AuthenticatedWebhooksRoute
   '/whatsapp': typeof AuthenticatedWhatsappRoute
   '/white-label': typeof AuthenticatedWhiteLabelRoute
+  '/api/v1/credits': typeof ApiV1CreditsRoute
   '/api/public/evolution/$instance': typeof ApiPublicEvolutionInstanceRoute
   '/api/public/hooks/broadcasts': typeof ApiPublicHooksBroadcastsRoute
   '/api/public/hooks/follow-ups': typeof ApiPublicHooksFollowUpsRoute
@@ -359,6 +367,7 @@ export interface FileRoutesById {
   '/_authenticated/webhooks': typeof AuthenticatedWebhooksRoute
   '/_authenticated/whatsapp': typeof AuthenticatedWhatsappRoute
   '/_authenticated/white-label': typeof AuthenticatedWhiteLabelRoute
+  '/api/v1/credits': typeof ApiV1CreditsRoute
   '/api/public/evolution/$instance': typeof ApiPublicEvolutionInstanceRoute
   '/api/public/hooks/broadcasts': typeof ApiPublicHooksBroadcastsRoute
   '/api/public/hooks/follow-ups': typeof ApiPublicHooksFollowUpsRoute
@@ -400,6 +409,7 @@ export interface FileRouteTypes {
     | '/webhooks'
     | '/whatsapp'
     | '/white-label'
+    | '/api/v1/credits'
     | '/api/public/evolution/$instance'
     | '/api/public/hooks/broadcasts'
     | '/api/public/hooks/follow-ups'
@@ -439,6 +449,7 @@ export interface FileRouteTypes {
     | '/webhooks'
     | '/whatsapp'
     | '/white-label'
+    | '/api/v1/credits'
     | '/api/public/evolution/$instance'
     | '/api/public/hooks/broadcasts'
     | '/api/public/hooks/follow-ups'
@@ -479,6 +490,7 @@ export interface FileRouteTypes {
     | '/_authenticated/webhooks'
     | '/_authenticated/whatsapp'
     | '/_authenticated/white-label'
+    | '/api/v1/credits'
     | '/api/public/evolution/$instance'
     | '/api/public/hooks/broadcasts'
     | '/api/public/hooks/follow-ups'
@@ -489,6 +501,7 @@ export interface RootRouteChildren {
   AuthenticatedRoute: typeof AuthenticatedRouteWithChildren
   AuthRoute: typeof AuthRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
+  ApiV1CreditsRoute: typeof ApiV1CreditsRoute
   ApiPublicEvolutionInstanceRoute: typeof ApiPublicEvolutionInstanceRoute
   ApiPublicHooksBroadcastsRoute: typeof ApiPublicHooksBroadcastsRoute
   ApiPublicHooksFollowUpsRoute: typeof ApiPublicHooksFollowUpsRoute
@@ -741,6 +754,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminSettingsRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
+    '/api/v1/credits': {
+      id: '/api/v1/credits'
+      path: '/api/v1/credits'
+      fullPath: '/api/v1/credits'
+      preLoaderRoute: typeof ApiV1CreditsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/hooks/follow-ups': {
       id: '/api/public/hooks/follow-ups'
       path: '/api/public/hooks/follow-ups'
@@ -842,6 +862,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthenticatedRoute: AuthenticatedRouteWithChildren,
   AuthRoute: AuthRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
+  ApiV1CreditsRoute: ApiV1CreditsRoute,
   ApiPublicEvolutionInstanceRoute: ApiPublicEvolutionInstanceRoute,
   ApiPublicHooksBroadcastsRoute: ApiPublicHooksBroadcastsRoute,
   ApiPublicHooksFollowUpsRoute: ApiPublicHooksFollowUpsRoute,
