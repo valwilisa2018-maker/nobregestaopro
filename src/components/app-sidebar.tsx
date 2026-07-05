@@ -5,6 +5,7 @@ import {
   MessageCircle, Brain, Users, MessagesSquare, History, ScrollText,
   Settings, UserCog, ShieldCheck, DollarSign, Palette, Contact2, Send, Puzzle, LogOut, Timer,
   LineChart, Activity, CreditCard, Shield, User, Crown, Building2, Plug, CalendarDays, Bug, Coins,
+  Sun, Moon,
 } from "lucide-react";
 import {
   Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent, SidebarGroupLabel,
@@ -12,6 +13,7 @@ import {
 } from "@/components/ui/sidebar";
 import { supabase } from "@/integrations/supabase/client";
 import logoAsset from "@/assets/agent-ia-logo.png.asset.json";
+import { useTheme } from "@/hooks/use-theme";
 
 const groups = [
   {
@@ -78,6 +80,7 @@ export function AppSidebar() {
   const collapsed = state === "collapsed";
   const pathname = useRouterState({ select: (r) => r.location.pathname });
   const [isAdmin, setIsAdmin] = useState(false);
+  const { theme, toggle } = useTheme();
 
   useEffect(() => {
     let cancelled = false;
@@ -131,6 +134,10 @@ export function AppSidebar() {
         ))}
       </SidebarContent>
       <SidebarFooter className="p-2">
+        <SidebarMenuButton onClick={toggle} tooltip={theme === "dark" ? "Modo claro" : "Modo escuro"}>
+          {theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+          {!collapsed && <span>{theme === "dark" ? "Modo claro" : "Modo escuro"}</span>}
+        </SidebarMenuButton>
         <SidebarMenuButton onClick={() => supabase.auth.signOut()} tooltip="Sair">
           <LogOut className="h-4 w-4" />
           {!collapsed && <span>Sair</span>}
