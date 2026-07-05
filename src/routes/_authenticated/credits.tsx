@@ -101,7 +101,7 @@ function Page() {
     try {
       const [w, u, h] = await Promise.all([
         authedFetch("/api/v1/credits") as Promise<Wallet>,
-        authedFetch("/api/v1/usage?days=30") as Promise<UsageResp>,
+        authedFetch("/api/v1/usage?days=90") as Promise<UsageResp>,
         authedFetch(`/api/v1/history?limit=${PAGE_SIZE}&offset=0`) as Promise<{
           items: Tx[]; total: number;
         }>,
