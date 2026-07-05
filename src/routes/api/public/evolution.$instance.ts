@@ -532,7 +532,7 @@ export const Route = createFileRoute("/api/public/evolution/$instance")({
                       message: e.message,
                       metadata: { remoteJid, kind: mediaKind, bytes: e.bytes, limit: MAX_INBOUND_MEDIA_BYTES } as never,
                     } as never);
-                    mediaCaption = `⚠️ ${mediaLabel(mediaKind)} excede o limite de 2 GB e não foi salvo.`;
+                    mediaCaption = `⚠️ ${mediaLabel(mediaKind)} excede o limite de 200 MB e não foi salvo.`;
                   }
                 }
                 await supabaseAdmin.from("messages").insert({
