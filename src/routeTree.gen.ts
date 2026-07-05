@@ -45,6 +45,7 @@ import { Route as AuthenticatedAiRouteImport } from './routes/_authenticated/ai'
 import { Route as AuthenticatedAgentsRouteImport } from './routes/_authenticated/agents'
 import { Route as AuthenticatedAdminSettingsRouteImport } from './routes/_authenticated/admin-settings'
 import { Route as ApiV1UsageRouteImport } from './routes/api/v1/usage'
+import { Route as ApiV1RefundRouteImport } from './routes/api/v1/refund'
 import { Route as ApiV1PackagesRouteImport } from './routes/api/v1/packages'
 import { Route as ApiV1HistoryRouteImport } from './routes/api/v1/history'
 import { Route as ApiV1CreditsRouteImport } from './routes/api/v1/credits'
@@ -237,6 +238,11 @@ const ApiV1UsageRoute = ApiV1UsageRouteImport.update({
   path: '/api/v1/usage',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiV1RefundRoute = ApiV1RefundRouteImport.update({
+  id: '/api/v1/refund',
+  path: '/api/v1/refund',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiV1PackagesRoute = ApiV1PackagesRouteImport.update({
   id: '/api/v1/packages',
   path: '/api/v1/packages',
@@ -320,6 +326,7 @@ export interface FileRoutesByFullPath {
   '/api/v1/credits': typeof ApiV1CreditsRoute
   '/api/v1/history': typeof ApiV1HistoryRoute
   '/api/v1/packages': typeof ApiV1PackagesRoute
+  '/api/v1/refund': typeof ApiV1RefundRoute
   '/api/v1/usage': typeof ApiV1UsageRoute
   '/api/public/evolution/$instance': typeof ApiPublicEvolutionInstanceRoute
   '/api/public/hooks/broadcasts': typeof ApiPublicHooksBroadcastsRoute
@@ -365,6 +372,7 @@ export interface FileRoutesByTo {
   '/api/v1/credits': typeof ApiV1CreditsRoute
   '/api/v1/history': typeof ApiV1HistoryRoute
   '/api/v1/packages': typeof ApiV1PackagesRoute
+  '/api/v1/refund': typeof ApiV1RefundRoute
   '/api/v1/usage': typeof ApiV1UsageRoute
   '/api/public/evolution/$instance': typeof ApiPublicEvolutionInstanceRoute
   '/api/public/hooks/broadcasts': typeof ApiPublicHooksBroadcastsRoute
@@ -412,6 +420,7 @@ export interface FileRoutesById {
   '/api/v1/credits': typeof ApiV1CreditsRoute
   '/api/v1/history': typeof ApiV1HistoryRoute
   '/api/v1/packages': typeof ApiV1PackagesRoute
+  '/api/v1/refund': typeof ApiV1RefundRoute
   '/api/v1/usage': typeof ApiV1UsageRoute
   '/api/public/evolution/$instance': typeof ApiPublicEvolutionInstanceRoute
   '/api/public/hooks/broadcasts': typeof ApiPublicHooksBroadcastsRoute
@@ -459,6 +468,7 @@ export interface FileRouteTypes {
     | '/api/v1/credits'
     | '/api/v1/history'
     | '/api/v1/packages'
+    | '/api/v1/refund'
     | '/api/v1/usage'
     | '/api/public/evolution/$instance'
     | '/api/public/hooks/broadcasts'
@@ -504,6 +514,7 @@ export interface FileRouteTypes {
     | '/api/v1/credits'
     | '/api/v1/history'
     | '/api/v1/packages'
+    | '/api/v1/refund'
     | '/api/v1/usage'
     | '/api/public/evolution/$instance'
     | '/api/public/hooks/broadcasts'
@@ -550,6 +561,7 @@ export interface FileRouteTypes {
     | '/api/v1/credits'
     | '/api/v1/history'
     | '/api/v1/packages'
+    | '/api/v1/refund'
     | '/api/v1/usage'
     | '/api/public/evolution/$instance'
     | '/api/public/hooks/broadcasts'
@@ -566,6 +578,7 @@ export interface RootRouteChildren {
   ApiV1CreditsRoute: typeof ApiV1CreditsRoute
   ApiV1HistoryRoute: typeof ApiV1HistoryRoute
   ApiV1PackagesRoute: typeof ApiV1PackagesRoute
+  ApiV1RefundRoute: typeof ApiV1RefundRoute
   ApiV1UsageRoute: typeof ApiV1UsageRoute
   ApiPublicEvolutionInstanceRoute: typeof ApiPublicEvolutionInstanceRoute
   ApiPublicHooksBroadcastsRoute: typeof ApiPublicHooksBroadcastsRoute
@@ -826,6 +839,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiV1UsageRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/v1/refund': {
+      id: '/api/v1/refund'
+      path: '/api/v1/refund'
+      fullPath: '/api/v1/refund'
+      preLoaderRoute: typeof ApiV1RefundRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/v1/packages': {
       id: '/api/v1/packages'
       path: '/api/v1/packages'
@@ -967,6 +987,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiV1CreditsRoute: ApiV1CreditsRoute,
   ApiV1HistoryRoute: ApiV1HistoryRoute,
   ApiV1PackagesRoute: ApiV1PackagesRoute,
+  ApiV1RefundRoute: ApiV1RefundRoute,
   ApiV1UsageRoute: ApiV1UsageRoute,
   ApiPublicEvolutionInstanceRoute: ApiPublicEvolutionInstanceRoute,
   ApiPublicHooksBroadcastsRoute: ApiPublicHooksBroadcastsRoute,
