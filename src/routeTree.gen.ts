@@ -41,6 +41,7 @@ import { Route as AuthenticatedBroadcastsRouteImport } from './routes/_authentic
 import { Route as AuthenticatedBillingRouteImport } from './routes/_authenticated/billing'
 import { Route as AuthenticatedAudiosRouteImport } from './routes/_authenticated/audios'
 import { Route as AuthenticatedApiRouteImport } from './routes/_authenticated/api'
+import { Route as AuthenticatedAiRouteImport } from './routes/_authenticated/ai'
 import { Route as AuthenticatedAgentsRouteImport } from './routes/_authenticated/agents'
 import { Route as AuthenticatedAdminSettingsRouteImport } from './routes/_authenticated/admin-settings'
 import { Route as ApiPublicHooksFollowUpsRouteImport } from './routes/api/public/hooks/follow-ups'
@@ -209,6 +210,11 @@ const AuthenticatedApiRoute = AuthenticatedApiRouteImport.update({
   path: '/api',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
+const AuthenticatedAiRoute = AuthenticatedAiRouteImport.update({
+  id: '/ai',
+  path: '/ai',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
 const AuthenticatedAgentsRoute = AuthenticatedAgentsRouteImport.update({
   id: '/agents',
   path: '/agents',
@@ -244,6 +250,7 @@ export interface FileRoutesByFullPath {
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/admin-settings': typeof AuthenticatedAdminSettingsRoute
   '/agents': typeof AuthenticatedAgentsRoute
+  '/ai': typeof AuthenticatedAiRoute
   '/api': typeof AuthenticatedApiRoute
   '/audios': typeof AuthenticatedAudiosRoute
   '/billing': typeof AuthenticatedBillingRoute
@@ -282,6 +289,7 @@ export interface FileRoutesByTo {
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/admin-settings': typeof AuthenticatedAdminSettingsRoute
   '/agents': typeof AuthenticatedAgentsRoute
+  '/ai': typeof AuthenticatedAiRoute
   '/api': typeof AuthenticatedApiRoute
   '/audios': typeof AuthenticatedAudiosRoute
   '/billing': typeof AuthenticatedBillingRoute
@@ -322,6 +330,7 @@ export interface FileRoutesById {
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/_authenticated/admin-settings': typeof AuthenticatedAdminSettingsRoute
   '/_authenticated/agents': typeof AuthenticatedAgentsRoute
+  '/_authenticated/ai': typeof AuthenticatedAiRoute
   '/_authenticated/api': typeof AuthenticatedApiRoute
   '/_authenticated/audios': typeof AuthenticatedAudiosRoute
   '/_authenticated/billing': typeof AuthenticatedBillingRoute
@@ -362,6 +371,7 @@ export interface FileRouteTypes {
     | '/sitemap.xml'
     | '/admin-settings'
     | '/agents'
+    | '/ai'
     | '/api'
     | '/audios'
     | '/billing'
@@ -400,6 +410,7 @@ export interface FileRouteTypes {
     | '/sitemap.xml'
     | '/admin-settings'
     | '/agents'
+    | '/ai'
     | '/api'
     | '/audios'
     | '/billing'
@@ -439,6 +450,7 @@ export interface FileRouteTypes {
     | '/sitemap.xml'
     | '/_authenticated/admin-settings'
     | '/_authenticated/agents'
+    | '/_authenticated/ai'
     | '/_authenticated/api'
     | '/_authenticated/audios'
     | '/_authenticated/billing'
@@ -708,6 +720,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedApiRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
+    '/_authenticated/ai': {
+      id: '/_authenticated/ai'
+      path: '/ai'
+      fullPath: '/ai'
+      preLoaderRoute: typeof AuthenticatedAiRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
     '/_authenticated/agents': {
       id: '/_authenticated/agents'
       path: '/agents'
@@ -749,6 +768,7 @@ declare module '@tanstack/react-router' {
 interface AuthenticatedRouteChildren {
   AuthenticatedAdminSettingsRoute: typeof AuthenticatedAdminSettingsRoute
   AuthenticatedAgentsRoute: typeof AuthenticatedAgentsRoute
+  AuthenticatedAiRoute: typeof AuthenticatedAiRoute
   AuthenticatedApiRoute: typeof AuthenticatedApiRoute
   AuthenticatedAudiosRoute: typeof AuthenticatedAudiosRoute
   AuthenticatedBillingRoute: typeof AuthenticatedBillingRoute
@@ -782,6 +802,7 @@ interface AuthenticatedRouteChildren {
 const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedAdminSettingsRoute: AuthenticatedAdminSettingsRoute,
   AuthenticatedAgentsRoute: AuthenticatedAgentsRoute,
+  AuthenticatedAiRoute: AuthenticatedAiRoute,
   AuthenticatedApiRoute: AuthenticatedApiRoute,
   AuthenticatedAudiosRoute: AuthenticatedAudiosRoute,
   AuthenticatedBillingRoute: AuthenticatedBillingRoute,
