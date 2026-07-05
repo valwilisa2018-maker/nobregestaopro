@@ -743,10 +743,8 @@ export const reactChatMessage = createServerFn({ method: "POST" })
         const r = await evoFetch(`${baseUrl(conn.url_api)}/message/sendReaction/${conn.instance_name}`, apiKey, {
           method: "POST",
           body: JSON.stringify({
-            reactionMessage: {
-              key: { id: evoId, remoteJid, fromMe: m.direction === "outbound" },
-              reaction: data.reaction,
-            },
+            key: { id: evoId, remoteJid, fromMe: m.direction === "outbound" },
+            reaction: data.reaction,
           }),
         });
         if (!r.ok) {
