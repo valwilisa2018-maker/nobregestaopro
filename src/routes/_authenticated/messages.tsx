@@ -184,6 +184,7 @@ function MessagesPage() {
   const deleteMsgFn = useServerFn(deleteChatMessage);
   const forwardMsgFn = useServerFn(forwardChatMessage);
   const editMsgFn = useServerFn(editChatMessage);
+  const reactMsgFn = useServerFn(reactChatMessage);
   const [editMsg, setEditMsg] = useState<Msg | null>(null);
   const [editText, setEditText] = useState("");
   const [editSaving, setEditSaving] = useState(false);
