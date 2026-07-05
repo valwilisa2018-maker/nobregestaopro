@@ -19,7 +19,6 @@ function Page() {
     {name:"name", label:"Nome", type:"text", required:true},
     {name:"provider", label:"Provedor", type:"select", options:[{value:"openai",label:"OpenAI"},{value:"gemini",label:"Google Gemini"},{value:"anthropic",label:"Anthropic"},{value:"lovable",label:"Lovable AI"}]},
     {name:"model", label:"Modelo", type:"text"},
-    {name:"api_key", label:"API Key", type:"password"},
     {name:"base_url", label:"Base URL", type:"url"},
     {name:"is_active", label:"Ativo", type:"boolean"}
       ]}
