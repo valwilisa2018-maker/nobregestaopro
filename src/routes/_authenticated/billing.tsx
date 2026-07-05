@@ -5,8 +5,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { PageShell } from "@/components/page-shell";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import { PlanStatusCard } from "@/components/plan-status";
 
