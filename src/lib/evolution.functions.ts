@@ -719,6 +719,50 @@ export const editChatMessage = createServerFn({ method: "POST" })
     return { ok: true as const };
   });
 
+// ===================== React to message =====================
+const ReactChatMessageInput = z.object({
+  messageId: z.string().uuid(),
+  reaction: z.string().max(8), // empty string removes the reaction
+});
+
+export const reactChatMessage = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((i: unknown) => ReactChatMessageInput.parse(i))
+  .handler(async ({ data, context }) => {
+    const { data: m } = await context.supabase.from("messages")
+      .select("id,direction,metadata")
+      .eq("id", data.messageId).eq("user_id", context.userId).maybeSingle();
+    if (!m) throw new Error("Mensagem não encontrada");
+    const meta = metadataObject(m.metadata);
+    const evoId = meta.evoId as string | undefined;
+    const remoteJid = meta.remoteJid as string | undefined;
+    if (evoId && remoteJid) {
+      try {
+        const conn = await pickActiveConnection(context.supabase, context.userId);
+        const apiKey = await loadEvolutionCommandKey(context.supabase, conn.api_key);
+        const r = await evoFetch(`${baseUrl(conn.url_api)}/message/sendReaction/${conn.instance_name}`, apiKey, {
+          method: "POST",
+          body: JSON.stringify({
+            reactionMessage: {
+              key: { id: evoId, remoteJid, fromMe: m.direction === "outbound" },
+              reaction: data.reaction,
+            },
+          }),
+        });
+        if (!r.ok) {
+          const error = parseEvoError(r.json, r.status);
+          return { ok: false as const, error };
+        }
+      } catch (e) {
+        return { ok: false as const, error: e instanceof Error ? e.message : "Falha ao reagir" };
+      }
+    }
+    const next = { ...meta, reaction: data.reaction || undefined } as Record<string, unknown>;
+    if (!data.reaction) delete next.reaction;
+    await context.supabase.from("messages").update({ metadata: next as never }).eq("id", data.messageId);
+    return { ok: true as const };
+  });
+
 export const forwardChatMessage = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((i: unknown) => ForwardChatMessageInput.parse(i))
