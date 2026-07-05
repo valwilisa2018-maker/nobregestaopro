@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { Settings, Save, Loader2, Zap, ShieldAlert, Brain, Sparkles, MessageSquare, Package, Plus, Trash2, Star } from "lucide-react";
+import { Settings, Save, Loader2, Zap, ShieldAlert, Brain, Sparkles, MessageSquare, Package, Plus, Trash2, Star, Coins, TrendingUp, DollarSign } from "lucide-react";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
@@ -20,6 +20,39 @@ export const Route = createFileRoute("/_authenticated/admin-settings")({
 });
 
 type EvoCfg = { url_api: string; api_key: string; webhook_base_url: string };
+
+type PackageRow = {
+  id: string;
+  name: string;
+  tokens: number;
+  price_cents: number;
+  badge: string | null;
+  sort_order: number;
+  is_active: boolean;
+};
+
+type PricingCfg = {
+  currency: string;
+  usd_rate: number;
+  margin_pct: number;
+  multipliers: Record<string, number>;
+};
+
+const DEFAULT_PRICING: PricingCfg = {
+  currency: "BRL",
+  usd_rate: 5.2,
+  margin_pct: 40,
+  multipliers: {
+    "openai/gpt-5-nano": 1,
+    "openai/gpt-5-mini": 2,
+    "openai/gpt-5": 8,
+    "google/gemini-2.5-flash": 1,
+    "google/gemini-2.5-pro": 5,
+    "anthropic/claude-3-5-sonnet": 6,
+    "anthropic/claude-3-opus": 15,
+    "deepseek/deepseek-chat": 1,
+  },
+};
 
 type PlanRow = {
   id: string;
@@ -114,6 +147,11 @@ function Page() {
   const [savingProv, setSavingProv] = useState<ProviderKey | null>(null);
   const [plans, setPlans] = useState<PlanRow[]>([]);
   const [savingPlan, setSavingPlan] = useState<string | null>(null);
+  const [packages, setPackages] = useState<PackageRow[]>([]);
+  const [savingPkg, setSavingPkg] = useState<string | null>(null);
+  const [pricing, setPricing] = useState<PricingCfg>(DEFAULT_PRICING);
+  const [savingPricing, setSavingPricing] = useState(false);
+  const [stats, setStats] = useState<{ salesCents: number; salesCount: number; tokensSold: number; tokensUsed: number; costCents: number }>({ salesCents: 0, salesCount: 0, tokensSold: 0, tokensUsed: 0, costCents: 0 });
 
   useEffect(() => {
     if (!user) return;
@@ -148,6 +186,7 @@ function Page() {
         });
       }
       await reloadPlans();
+      await reloadCredits();
       setLoading(false);
     })();
   }, [user]);
@@ -159,6 +198,63 @@ function Page() {
       features: Array.isArray(p.features) ? p.features : (p.features ? (p.features as unknown as string[]) : []),
     })));
   }
+
+  async function reloadCredits() {
+    const { data: pkgs } = await supabase.from("credit_packages").select("*").order("sort_order", { ascending: true });
+    setPackages((pkgs ?? []) as unknown as PackageRow[]);
+    const { data: cfgRow } = await supabase.from("internal_config").select("value").eq("key", "credits_pricing").maybeSingle();
+    if (cfgRow?.value) {
+      try { setPricing({ ...DEFAULT_PRICING, ...JSON.parse(cfgRow.value as string) }); } catch { /* ignore */ }
+    }
+    const { data: orders } = await supabase.from("credit_orders").select("tokens, price_cents").eq("status", "paid");
+    const salesCents = (orders ?? []).reduce((s, o) => s + (o.price_cents ?? 0), 0);
+    const tokensSold = (orders ?? []).reduce((s, o) => s + Number(o.tokens ?? 0), 0);
+    const { data: txs } = await supabase.from("credit_transactions").select("total_tokens, cost_cents").eq("kind", "usage").eq("status", "ok");
+    const tokensUsed = (txs ?? []).reduce((s, t) => s + Number(t.total_tokens ?? 0), 0);
+    const costCents = (txs ?? []).reduce((s, t) => s + (t.cost_cents ?? 0), 0);
+    setStats({ salesCents, salesCount: orders?.length ?? 0, tokensSold, tokensUsed, costCents });
+  }
+
+  const updatePkg = (id: string, patch: Partial<PackageRow>) =>
+    setPackages((prev) => prev.map((p) => (p.id === id ? { ...p, ...patch } : p)));
+
+  const savePkg = async (p: PackageRow) => {
+    setSavingPkg(p.id);
+    const payload = { name: p.name, tokens: p.tokens, price_cents: p.price_cents, badge: p.badge, sort_order: p.sort_order, is_active: p.is_active };
+    const { error } = p.id.startsWith("new-")
+      ? await supabase.from("credit_packages").insert(payload as never)
+      : await supabase.from("credit_packages").update(payload as never).eq("id", p.id);
+    setSavingPkg(null);
+    if (error) return toast.error(error.message);
+    toast.success("Pacote salvo");
+    await reloadCredits();
+  };
+
+  const deletePkg = async (id: string) => {
+    if (id.startsWith("new-")) { setPackages((prev) => prev.filter((p) => p.id !== id)); return; }
+    if (!confirm("Excluir pacote?")) return;
+    const { error } = await supabase.from("credit_packages").delete().eq("id", id);
+    if (error) return toast.error(error.message);
+    toast.success("Pacote excluído");
+    await reloadCredits();
+  };
+
+  const addPkg = () => {
+    const id = `new-${Date.now()}`;
+    setPackages((prev) => [...prev, { id, name: "Novo pacote", tokens: 100000, price_cents: 2990, badge: null, sort_order: (prev.at(-1)?.sort_order ?? 0) + 1, is_active: false }]);
+  };
+
+  const savePricing = async () => {
+    setSavingPricing(true);
+    const value = JSON.stringify(pricing);
+    const { data: existing } = await supabase.from("internal_config").select("key").eq("key", "credits_pricing").maybeSingle();
+    const { error } = existing
+      ? await supabase.from("internal_config").update({ value }).eq("key", "credits_pricing")
+      : await supabase.from("internal_config").insert({ key: "credits_pricing", value });
+    setSavingPricing(false);
+    if (error) return toast.error(error.message);
+    toast.success("Precificação salva");
+  };
 
   const updatePlan = (id: string, patch: Partial<PlanRow>) =>
     setPlans((prev) => prev.map((p) => (p.id === id ? { ...p, ...patch } : p)));
@@ -261,10 +357,11 @@ function Page() {
       status="ativo"
     >
       <Tabs defaultValue="whatsapp" className="space-y-4">
-        <TabsList className="grid w-full sm:w-auto grid-cols-3">
+        <TabsList className="grid w-full sm:w-auto grid-cols-4">
           <TabsTrigger value="whatsapp" className="gap-2"><MessageSquare className="h-4 w-4" />WhatsApp API</TabsTrigger>
           <TabsTrigger value="ai" className="gap-2"><Brain className="h-4 w-4" />Chaves de IA</TabsTrigger>
           <TabsTrigger value="plans" className="gap-2"><Package className="h-4 w-4" />Planos</TabsTrigger>
+          <TabsTrigger value="credits" className="gap-2"><Coins className="h-4 w-4" />Créditos</TabsTrigger>
         </TabsList>
 
         <TabsContent value="whatsapp" className="mt-0">
@@ -465,6 +562,121 @@ function Page() {
                       </Button>
                       <Button size="sm" onClick={() => savePlan(p)} disabled={savingPlan === p.id}>
                         {savingPlan === p.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+                        Salvar
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
+        </TabsContent>
+
+        <TabsContent value="credits" className="mt-0 space-y-4">
+          {/* Stats */}
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            {[
+              { label: "Vendas (pagas)", value: `${pricing.currency} ${(stats.salesCents / 100).toFixed(2)}`, sub: `${stats.salesCount} pedidos`, icon: DollarSign },
+              { label: "Tokens vendidos", value: stats.tokensSold.toLocaleString(), sub: "acumulado", icon: Coins },
+              { label: "Tokens consumidos", value: stats.tokensUsed.toLocaleString(), sub: "global", icon: TrendingUp },
+              { label: "Lucro estimado", value: `${pricing.currency} ${((stats.salesCents - stats.costCents * pricing.usd_rate) / 100).toFixed(2)}`, sub: `custo ~US$ ${(stats.costCents / 100).toFixed(2)}`, icon: Sparkles },
+            ].map((s, i) => (
+              <Card key={i} className="border-primary/20 backdrop-blur-xl bg-card/50">
+                <CardContent className="py-4 space-y-1">
+                  <div className="flex items-center justify-between text-xs text-muted-foreground">
+                    <span>{s.label}</span><s.icon className="h-4 w-4 text-primary" />
+                  </div>
+                  <div className="text-lg font-semibold">{s.value}</div>
+                  <div className="text-[10px] text-muted-foreground">{s.sub}</div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+
+          {/* Pricing config */}
+          <Card className="border-primary/20">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2"><DollarSign className="h-4 w-4 text-primary" />Precificação global</CardTitle>
+              <CardDescription>Cotação, margem e multiplicadores por modelo. Aplicado ao converter custo de provedor em créditos.</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid gap-3 sm:grid-cols-3">
+                <div className="space-y-1.5">
+                  <Label className="text-xs">Moeda</Label>
+                  <Input value={pricing.currency} onChange={(e) => setPricing({ ...pricing, currency: e.target.value.toUpperCase() })} />
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-xs">Cotação do dólar</Label>
+                  <Input type="number" step="0.01" value={pricing.usd_rate} onChange={(e) => setPricing({ ...pricing, usd_rate: Number(e.target.value) })} />
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-xs">Margem de lucro (%)</Label>
+                  <Input type="number" value={pricing.margin_pct} onChange={(e) => setPricing({ ...pricing, margin_pct: Number(e.target.value) })} />
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label className="text-xs">Multiplicador por modelo</Label>
+                <div className="grid gap-2 sm:grid-cols-2">
+                  {Object.entries(pricing.multipliers).map(([model, mult]) => (
+                    <div key={model} className="flex items-center gap-2">
+                      <Input value={model} onChange={(e) => {
+                        const next = { ...pricing.multipliers };
+                        delete next[model]; next[e.target.value] = mult;
+                        setPricing({ ...pricing, multipliers: next });
+                      }} className="font-mono text-xs" />
+                      <Input type="number" step="0.1" value={mult} onChange={(e) => setPricing({ ...pricing, multipliers: { ...pricing.multipliers, [model]: Number(e.target.value) } })} className="w-24" />
+                      <Button size="icon" variant="ghost" onClick={() => {
+                        const next = { ...pricing.multipliers }; delete next[model];
+                        setPricing({ ...pricing, multipliers: next });
+                      }}><Trash2 className="h-4 w-4 text-destructive" /></Button>
+                    </div>
+                  ))}
+                </div>
+                <Button size="sm" variant="outline" onClick={() => setPricing({ ...pricing, multipliers: { ...pricing.multipliers, "novo/modelo": 1 } })}>
+                  <Plus className="h-4 w-4" /> Adicionar modelo
+                </Button>
+              </div>
+              <div className="flex justify-end">
+                <Button onClick={savePricing} disabled={savingPricing}>
+                  {savingPricing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+                  Salvar precificação
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Packages CRUD */}
+          <div className="flex justify-between items-center">
+            <h3 className="text-sm font-semibold text-muted-foreground">Pacotes de créditos</h3>
+            <Button size="sm" onClick={addPkg}><Plus className="h-4 w-4" /> Novo pacote</Button>
+          </div>
+          {packages.length === 0 ? (
+            <Card><CardContent className="py-10 text-center text-muted-foreground">Nenhum pacote cadastrado.</CardContent></Card>
+          ) : (
+            <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
+              {packages.map((p) => (
+                <Card key={p.id} className={`border-primary/20 ${p.is_active ? "" : "opacity-70"}`}>
+                  <CardHeader className="pb-2">
+                    <div className="flex items-center justify-between gap-2">
+                      <Input value={p.name} onChange={(e) => updatePkg(p.id, { name: e.target.value })} className="font-semibold" />
+                      <Switch checked={p.is_active} onCheckedChange={(v) => updatePkg(p.id, { is_active: v })} />
+                    </div>
+                  </CardHeader>
+                  <CardContent className="space-y-2">
+                    <div className="grid grid-cols-2 gap-2">
+                      <div className="space-y-1"><Label className="text-xs">Tokens</Label>
+                        <Input type="number" value={p.tokens} onChange={(e) => updatePkg(p.id, { tokens: Number(e.target.value) })} /></div>
+                      <div className="space-y-1"><Label className="text-xs">Preço (centavos)</Label>
+                        <Input type="number" value={p.price_cents} onChange={(e) => updatePkg(p.id, { price_cents: Number(e.target.value) })} /></div>
+                      <div className="space-y-1"><Label className="text-xs">Selo</Label>
+                        <Input value={p.badge ?? ""} onChange={(e) => updatePkg(p.id, { badge: e.target.value || null })} /></div>
+                      <div className="space-y-1"><Label className="text-xs">Ordem</Label>
+                        <Input type="number" value={p.sort_order} onChange={(e) => updatePkg(p.id, { sort_order: Number(e.target.value) })} /></div>
+                    </div>
+                    <div className="flex justify-between pt-1">
+                      <Button size="sm" variant="ghost" onClick={() => deletePkg(p.id)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
+                      <Button size="sm" onClick={() => savePkg(p)} disabled={savingPkg === p.id}>
+                        {savingPkg === p.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
                         Salvar
                       </Button>
                     </div>
