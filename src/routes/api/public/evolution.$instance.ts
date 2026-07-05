@@ -523,19 +523,27 @@ export const Route = createFileRoute("/api/public/evolution/$instance")({
                 let mediaPath: string | null = null;
                 let mediaMime: string | null = null;
                 try {
-                  const b64 = findBase64(msg) ?? await evolutionGetBase64(commandConn, msg, false) ?? (mediaKind === "audio" ? transcribedAudioBase64 : null);
-                  if (b64) {
-                    mediaMime = imageMsg?.mimetype ?? videoMsg?.mimetype ?? audioMsg?.mimetype ?? docMsg?.mimetype ?? stickerMsg?.mimetype ?? (mediaKind === "sticker" ? "image/webp" : mediaKind === "audio" ? "audio/mpeg" : "application/octet-stream");
-                    const saved = await saveMediaToStorage(
-                      supabaseAdmin,
-                      conn.user_id,
-                      convo.id,
-                      b64,
-                      mediaMime ?? "application/octet-stream",
-                      docMsg?.fileName ?? `${mediaKind}-${evoId ?? Date.now()}`,
-                    );
-                    mediaUrl = saved.url;
-                    mediaPath = saved.path;
+                  mediaMime = imageMsg?.mimetype ?? videoMsg?.mimetype ?? audioMsg?.mimetype ?? docMsg?.mimetype ?? stickerMsg?.mimetype ?? (mediaKind === "sticker" ? "image/webp" : mediaKind === "audio" ? "audio/mpeg" : "application/octet-stream");
+                  const mediaObject = imageMsg ?? videoMsg ?? audioMsg ?? docMsg ?? stickerMsg;
+                  const fileName = docMsg?.fileName ?? `${mediaKind}-${evoId ?? Date.now()}`;
+                  const externalUrl = findPlayableMediaUrl(msg) ?? findPlayableMediaUrl(payload);
+                  const declaredBytes = mediaFileLength(mediaObject);
+                  if (externalUrl) {
+                    mediaUrl = externalUrl;
+                  } else if (mediaKind === "video" || (declaredBytes ?? 0) > MAX_INLINE_MEDIA_BYTES) {
+                    const streamed = await downloadEvolutionMediaToStorage(supabaseAdmin, commandConn, conn.user_id, convo.id, msg, mediaMime, fileName, declaredBytes);
+                    if (streamed) {
+                      mediaUrl = streamed.url;
+                      mediaPath = streamed.path;
+                      mediaMime = streamed.mime;
+                    }
+                  } else {
+                    const b64 = findBase64(msg) ?? await evolutionGetBase64(commandConn, msg, false) ?? (mediaKind === "audio" ? transcribedAudioBase64 : null);
+                    if (b64) {
+                      const saved = await saveMediaToStorage(supabaseAdmin, conn.user_id, convo.id, b64, mediaMime, fileName);
+                      mediaUrl = saved.url;
+                      mediaPath = saved.path;
+                    }
                   }
                 } catch (e) {
                   if (e instanceof MediaTooLargeError) {
@@ -592,21 +600,28 @@ export const Route = createFileRoute("/api/public/evolution/$instance")({
             }
             if (mediaKind && convo && !alreadySavedInbound) {
               try {
-                const b64 = findBase64(msg) ?? await evolutionGetBase64(commandConn, msg, false) ?? (mediaKind === "audio" ? transcribedAudioBase64 : null);
-                if (b64) {
-                  mediaMime = imageMsg?.mimetype ?? videoMsg?.mimetype ?? audioMsg?.mimetype ?? docMsg?.mimetype ?? stickerMsg?.mimetype ?? (mediaKind === "sticker" ? "image/webp" : mediaKind === "audio" ? "audio/mpeg" : "application/octet-stream");
-                  mediaB64 = b64;
-                  mediaName = docMsg?.fileName ?? `${mediaKind}-${msg?.key?.id ?? Date.now()}`;
-                  const saved = await saveMediaToStorage(
-                    supabaseAdmin,
-                    conn.user_id,
-                    convo.id,
-                    b64,
-                    mediaMime ?? "application/octet-stream",
-                    docMsg?.fileName ?? `${mediaKind}-${msg?.key?.id ?? Date.now()}`,
-                  );
-                  mediaUrl = saved.url;
-                  mediaPath = saved.path;
+                mediaMime = imageMsg?.mimetype ?? videoMsg?.mimetype ?? audioMsg?.mimetype ?? docMsg?.mimetype ?? stickerMsg?.mimetype ?? (mediaKind === "sticker" ? "image/webp" : mediaKind === "audio" ? "audio/mpeg" : "application/octet-stream");
+                mediaName = docMsg?.fileName ?? `${mediaKind}-${msg?.key?.id ?? Date.now()}`;
+                const mediaObject = imageMsg ?? videoMsg ?? audioMsg ?? docMsg ?? stickerMsg;
+                const externalUrl = findPlayableMediaUrl(msg) ?? findPlayableMediaUrl(payload);
+                const declaredBytes = mediaFileLength(mediaObject);
+                if (externalUrl) {
+                  mediaUrl = externalUrl;
+                } else if (mediaKind === "video" || (declaredBytes ?? 0) > MAX_INLINE_MEDIA_BYTES) {
+                  const streamed = await downloadEvolutionMediaToStorage(supabaseAdmin, commandConn, conn.user_id, convo.id, msg, mediaMime, mediaName, declaredBytes);
+                  if (streamed) {
+                    mediaUrl = streamed.url;
+                    mediaPath = streamed.path;
+                    mediaMime = streamed.mime;
+                  }
+                } else {
+                  const b64 = findBase64(msg) ?? await evolutionGetBase64(commandConn, msg, false) ?? (mediaKind === "audio" ? transcribedAudioBase64 : null);
+                  if (b64) {
+                    mediaB64 = b64;
+                    const saved = await saveMediaToStorage(supabaseAdmin, conn.user_id, convo.id, b64, mediaMime, mediaName);
+                    mediaUrl = saved.url;
+                    mediaPath = saved.path;
+                  }
                 }
               } catch (e) {
                 if (e instanceof MediaTooLargeError) {
