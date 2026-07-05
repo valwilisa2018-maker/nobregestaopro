@@ -2114,6 +2114,15 @@ function MessagesPage() {
                           })()}
                         </div>
                       </div>
+                        {(m.metadata as { reaction?: string } | null)?.reaction && (
+                          <button
+                            onClick={() => performReact(m, (m.metadata as { reaction?: string }).reaction!)}
+                            className={`absolute -bottom-3 ${out ? "right-2" : "left-2"} bg-white rounded-full shadow border border-black/10 px-1.5 py-0.5 text-sm leading-none hover:scale-110 transition`}
+                            title="Remover reação"
+                          >
+                            {(m.metadata as { reaction?: string }).reaction}
+                          </button>
+                        )}
                     </div>
                   );
                 })}
