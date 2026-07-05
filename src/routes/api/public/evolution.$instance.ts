@@ -415,7 +415,7 @@ export const Route = createFileRoute("/api/public/evolution/$instance")({
 
             const { data: agent } = await supabaseAdmin
               .from("agents")
-              .select("id,system_prompt,temperature,max_tokens,model,category,ai_provider_id,is_active,tools,timezone,memory,knowledge")
+              .select("id,system_prompt,temperature,max_tokens,is_active,tools,timezone,memory,knowledge")
               .eq("connection_id", conn.id).eq("is_active", true)
               .maybeSingle();
             const ext = ((agent?.tools ?? {}) as Ext);
