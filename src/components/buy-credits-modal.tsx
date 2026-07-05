@@ -54,14 +54,25 @@ export function BuyCreditsModal({
 
   const buy = async (pkg: Pkg) => {
     setBuyingId(pkg.id);
-    const { error } = await supabase.rpc("create_credit_order", {
-      _package_id: pkg.id,
-    });
-    setBuyingId(null);
-    if (error) return toast.error(error.message);
-    toast.success("Pedido criado! Integração de pagamento em breve.");
-    onPurchased?.();
-    onOpenChange(false);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) { toast.error("Sessão expirada"); return; }
+      const res = await fetch("/api/v1/buy", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({ package_id: pkg.id }),
+      });
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok) { toast.error(body?.error ?? "Falha ao criar pedido"); return; }
+      toast.success("Pedido criado! Integração de pagamento em breve.");
+      onPurchased?.();
+      onOpenChange(false);
+    } finally {
+      setBuyingId(null);
+    }
   };
 
   return (
