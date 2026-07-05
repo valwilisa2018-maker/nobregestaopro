@@ -229,8 +229,14 @@ function Page() {
     setPackages((prev) => prev.map((p) => (p.id === id ? { ...p, ...patch } : p)));
 
   const savePkg = async (p: PackageRow) => {
+    const parsed = packageSchema.safeParse({
+      name: p.name, tokens: p.tokens, price_cents: p.price_cents,
+      badge: p.badge && p.badge.length ? p.badge : null,
+      sort_order: p.sort_order, is_active: p.is_active,
+    });
+    if (!parsed.success) return toast.error(parsed.error.issues[0]?.message ?? "Dados inválidos");
     setSavingPkg(p.id);
-    const payload = { name: p.name, tokens: p.tokens, price_cents: p.price_cents, badge: p.badge, sort_order: p.sort_order, is_active: p.is_active };
+    const payload = parsed.data;
     const { error } = p.id.startsWith("new-")
       ? await supabase.from("credit_packages").insert(payload as never)
       : await supabase.from("credit_packages").update(payload as never).eq("id", p.id);
