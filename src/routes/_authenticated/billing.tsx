@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { CreditCard, Check, Loader2, Zap } from "lucide-react";
+import { CreditCard, Check, Loader2, Zap, Rocket, Briefcase, Building2, Crown, type LucideIcon } from "lucide-react";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { PageShell } from "@/components/page-shell";
@@ -31,6 +31,15 @@ const formatTokens = (n: number) => {
   if (n >= 1_000_000) return `${(n / 1_000_000).toLocaleString("pt-BR", { maximumFractionDigits: 1 })} mi de créditos`;
   if (n >= 1_000) return `${(n / 1_000).toLocaleString("pt-BR")} mil créditos`;
   return `${n} créditos`;
+};
+
+const iconForPlan = (name: string): LucideIcon => {
+  const n = name.toLowerCase();
+  if (n.includes("start") || n.includes("inicial") || n.includes("basic")) return Rocket;
+  if (n.includes("pro")) return Briefcase;
+  if (n.includes("business") || n.includes("empresarial")) return Building2;
+  if (n.includes("enterprise") || n.includes("premium") || n.includes("ultimate")) return Crown;
+  return Zap;
 };
 
 function Page() {
