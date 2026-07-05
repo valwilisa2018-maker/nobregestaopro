@@ -761,6 +761,257 @@ export const reactChatMessage = createServerFn({ method: "POST" })
     return { ok: true as const };
   });
 
+// ===================== Quick Sends (templates) =====================
+
+const MAX_QUICK_VIDEO_BYTES = 15 * 1024 * 1024;
+
+function guessQuickKind(mime: string): "image" | "video" | "audio" | "file" {
+  if (mime.startsWith("image/")) return "image";
+  if (mime.startsWith("video/")) return "video";
+  if (mime.startsWith("audio/")) return "audio";
+  return "file";
+}
+
+async function saveQuickSendMedia(
+  supabase: any,
+  userId: string,
+  base64: string,
+  mime: string,
+  fileName: string,
+) {
+  const clean = base64.replace(/^data:[^;]+;base64,/, "").replace(/\s/g, "");
+  const rawExt = fileName.includes(".") ? fileName.split(".").pop() : mime.split("/")[1]?.split(";")[0];
+  const ext = rawExt?.replace(/[^a-zA-Z0-9]+/g, "").slice(0, 12);
+  const path = `${userId}/quick-sends/${Date.now()}-${crypto.randomUUID()}${ext ? `.${ext}` : ""}`;
+  const bytes = Uint8Array.from(atob(clean), (c) => c.charCodeAt(0));
+  const { error } = await supabase.storage.from(MEDIA_BUCKET).upload(path, bytes, {
+    contentType: mime || "application/octet-stream",
+    upsert: false,
+  });
+  if (error) throw new Error(error.message);
+  const { data } = await supabase.storage.from(MEDIA_BUCKET).createSignedUrl(path, 60 * 60 * 24 * 365);
+  return { path, url: data?.signedUrl ?? null, size: bytes.length };
+}
+
+async function refreshQuickSendUrl(supabase: any, storagePath: string): Promise<string | null> {
+  const { data } = await supabase.storage.from(MEDIA_BUCKET).createSignedUrl(storagePath, 60 * 60 * 24 * 30);
+  return data?.signedUrl ?? null;
+}
+
+export const listQuickSends = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { data, error } = await context.supabase.from("quick_sends")
+      .select("id,title,text,media_type,media_mime,media_name,media_size,media_url,storage_path,is_ptt,created_at,updated_at")
+      .eq("user_id", context.userId)
+      .order("created_at", { ascending: false });
+    if (error) throw new Error(error.message);
+    // Refresh signed URLs (they expire); best-effort.
+    const items = await Promise.all((data ?? []).map(async (row) => {
+      if (row.storage_path) {
+        const url = await refreshQuickSendUrl(context.supabase, row.storage_path);
+        return { ...row, media_url: url ?? row.media_url };
+      }
+      return row;
+    }));
+    return { items };
+  });
+
+const UpsertQuickSendInput = z.object({
+  id: z.string().uuid().optional(),
+  title: z.string().trim().min(1).max(80),
+  text: z.string().max(4000).optional(),
+  isPtt: z.boolean().optional(),
+  media: z.object({
+    base64: z.string().min(10),
+    mime: z.string().min(1),
+    fileName: z.string().min(1),
+  }).optional(),
+  removeMedia: z.boolean().optional(),
+});
+
+export const upsertQuickSend = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((i: unknown) => UpsertQuickSendInput.parse(i))
+  .handler(async ({ data, context }) => {
+    let mediaFields: Record<string, unknown> = {};
+    if (data.media) {
+      const kind = guessQuickKind(data.media.mime);
+      // Estimate raw size (base64 is ~4/3 of raw)
+      const clean = data.media.base64.replace(/^data:[^;]+;base64,/, "").replace(/\s/g, "");
+      const approxSize = Math.floor(clean.length * 0.75);
+      if (kind === "video" && approxSize > MAX_QUICK_VIDEO_BYTES) {
+        throw new Error(`Vídeo excede o limite de ${Math.floor(MAX_QUICK_VIDEO_BYTES / 1024 / 1024)}MB`);
+      }
+      const stored = await saveQuickSendMedia(context.supabase, context.userId, data.media.base64, data.media.mime, data.media.fileName);
+      mediaFields = {
+        media_type: kind,
+        media_mime: data.media.mime,
+        media_name: data.media.fileName,
+        media_size: stored.size,
+        media_url: stored.url,
+        storage_path: stored.path,
+      };
+    } else if (data.removeMedia) {
+      mediaFields = {
+        media_type: null, media_mime: null, media_name: null, media_size: null, media_url: null, storage_path: null,
+      };
+    }
+    if (data.id) {
+      const { data: existing } = await context.supabase.from("quick_sends")
+        .select("storage_path").eq("id", data.id).eq("user_id", context.userId).maybeSingle();
+      if (!existing) throw new Error("Template não encontrado");
+      if ((data.media || data.removeMedia) && existing.storage_path) {
+        await context.supabase.storage.from(MEDIA_BUCKET).remove([existing.storage_path]).catch(() => {});
+      }
+      const { data: row, error } = await context.supabase.from("quick_sends").update({
+        title: data.title,
+        text: data.text ?? null,
+        is_ptt: !!data.isPtt,
+        ...mediaFields,
+      } as never).eq("id", data.id).select("*").single();
+      if (error) throw new Error(error.message);
+      return { ok: true as const, item: row };
+    }
+    const { data: row, error } = await context.supabase.from("quick_sends").insert({
+      user_id: context.userId,
+      title: data.title,
+      text: data.text ?? null,
+      is_ptt: !!data.isPtt,
+      ...mediaFields,
+    } as never).select("*").single();
+    if (error) throw new Error(error.message);
+    return { ok: true as const, item: row };
+  });
+
+const DeleteQuickSendInput = z.object({ id: z.string().uuid() });
+
+export const deleteQuickSend = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((i: unknown) => DeleteQuickSendInput.parse(i))
+  .handler(async ({ data, context }) => {
+    const { data: existing } = await context.supabase.from("quick_sends")
+      .select("storage_path").eq("id", data.id).eq("user_id", context.userId).maybeSingle();
+    if (!existing) return { ok: true as const };
+    if (existing.storage_path) {
+      await context.supabase.storage.from(MEDIA_BUCKET).remove([existing.storage_path]).catch(() => {});
+    }
+    await context.supabase.from("quick_sends").delete().eq("id", data.id).eq("user_id", context.userId);
+    return { ok: true as const };
+  });
+
+const SendQuickSendInput = z.object({
+  id: z.string().uuid(),
+  contactId: z.string().uuid(),
+});
+
+export const sendQuickSend = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((i: unknown) => SendQuickSendInput.parse(i))
+  .handler(async ({ data, context }) => {
+    const { data: qs } = await context.supabase.from("quick_sends")
+      .select("*").eq("id", data.id).eq("user_id", context.userId).maybeSingle();
+    if (!qs) throw new Error("Envio rápido não encontrado");
+    const { data: contact } = await context.supabase.from("contacts")
+      .select("*").eq("id", data.contactId).eq("user_id", context.userId).single();
+    if (!contact) throw new Error("Contato não encontrado");
+    const number = String(contact.phone).replace(/\D+/g, "");
+    const conn = await pickConnectionForContact(context.supabase, context.userId, number);
+    const apiKey = await loadEvolutionCommandKey(context.supabase, conn.api_key);
+    const remoteJid = `${number}@s.whatsapp.net`;
+    const convoId = await getOrCreateConversationForJid(context.supabase, context.userId, conn.id, remoteJid);
+    await context.supabase.from("conversations").update({ last_message_at: new Date().toISOString() }).eq("id", convoId);
+
+    const results: Array<{ kind: string; ok: boolean; error?: string }> = [];
+
+    // 1) Send text if present
+    const bodyText = String(qs.text ?? "").trim();
+    if (bodyText) {
+      const { data: saved } = await context.supabase.from("messages").insert({
+        user_id: context.userId, conversation_id: convoId,
+        direction: "outbound", type: "text", content: bodyText,
+        metadata: { remoteJid, manual: true, quickSendId: qs.id, pending: true } as never,
+      }).select("id,metadata").single();
+      const r = await evoFetch(`${baseUrl(conn.url_api)}/message/sendText/${conn.instance_name}`, apiKey, {
+        method: "POST", body: JSON.stringify({ number, text: bodyText }),
+      });
+      if (!r.ok) {
+        const error = parseEvoError(r.json, r.status);
+        if (saved?.id) await context.supabase.from("messages").update({ metadata: { ...metadataObject(saved.metadata), pending: false, failed: true, error } as never }).eq("id", saved.id);
+        results.push({ kind: "text", ok: false, error });
+      } else {
+        const evoId = findEvoId(r.json);
+        const status = normalizeEvoStatus(r.json?.status ?? r.json?.ack ?? r.json?.messageStatus) ?? "sent";
+        if (saved?.id) await context.supabase.from("messages").update({ metadata: { ...metadataObject(saved.metadata), pending: false, sent: true, status, evoId } as never }).eq("id", saved.id);
+        results.push({ kind: "text", ok: true });
+      }
+    }
+
+    // 2) Send media if present
+    if (qs.storage_path && qs.media_mime) {
+      const dl = await context.supabase.storage.from(MEDIA_BUCKET).download(qs.storage_path);
+      if (dl.error || !dl.data) {
+        results.push({ kind: "media", ok: false, error: "Não foi possível ler o arquivo do template" });
+      } else {
+        const buf = new Uint8Array(await dl.data.arrayBuffer());
+        let bin = ""; const CHUNK = 0x8000;
+        for (let i = 0; i < buf.length; i += CHUNK) bin += String.fromCharCode(...buf.subarray(i, i + CHUNK));
+        const b64 = btoa(bin);
+        const mime = qs.media_mime as string;
+        const fileName = (qs.media_name as string) || `quick.${mime.split("/")[1] ?? "bin"}`;
+        const asPtt = qs.is_ptt && mime.startsWith("audio/");
+        if (asPtt) {
+          const stored = await saveMediaToStorage(context.supabase, context.userId, convoId, b64, mime, fileName);
+          const { data: saved } = await context.supabase.from("messages").insert({
+            user_id: context.userId, conversation_id: convoId,
+            direction: "outbound", type: "audio", content: "[áudio]",
+            media_url: stored.url,
+            metadata: { remoteJid, manual: true, audio: true, mime, storagePath: stored.path, quickSendId: qs.id, pending: true } as never,
+          }).select("id,metadata").single();
+          const r = await evoFetch(`${baseUrl(conn.url_api)}/message/sendWhatsAppAudio/${conn.instance_name}`, apiKey, {
+            method: "POST", body: JSON.stringify({ number, audio: b64, encoding: true }),
+          });
+          if (!r.ok) {
+            const error = parseEvoError(r.json, r.status);
+            if (saved?.id) await context.supabase.from("messages").update({ metadata: { ...metadataObject(saved.metadata), pending: false, failed: true, error } as never }).eq("id", saved.id);
+            results.push({ kind: "audio", ok: false, error });
+          } else {
+            const evoId = findEvoId(r.json);
+            const status = normalizeEvoStatus(r.json?.status ?? r.json?.ack ?? r.json?.messageStatus) ?? "sent";
+            if (saved?.id) await context.supabase.from("messages").update({ metadata: { ...metadataObject(saved.metadata), pending: false, sent: true, status, evoId } as never }).eq("id", saved.id);
+            results.push({ kind: "audio", ok: true });
+          }
+        } else {
+          const mediatype = mediaMessageType(mime);
+          const stored = await saveMediaToStorage(context.supabase, context.userId, convoId, b64, mime, fileName);
+          const { data: saved } = await context.supabase.from("messages").insert({
+            user_id: context.userId, conversation_id: convoId,
+            direction: "outbound", type: mediatype, content: fileName,
+            media_url: stored.url,
+            metadata: { remoteJid, manual: true, fileName, mime, storagePath: stored.path, quickSendId: qs.id, pending: true } as never,
+          }).select("id,metadata").single();
+          const r = await evoFetch(`${baseUrl(conn.url_api)}/message/sendMedia/${conn.instance_name}`, apiKey, {
+            method: "POST",
+            body: JSON.stringify({ number, mediatype, media: b64, mimetype: mime, fileName, caption: "" }),
+          });
+          if (!r.ok) {
+            const error = parseEvoError(r.json, r.status);
+            if (saved?.id) await context.supabase.from("messages").update({ metadata: { ...metadataObject(saved.metadata), pending: false, failed: true, error } as never }).eq("id", saved.id);
+            results.push({ kind: mediatype, ok: false, error });
+          } else {
+            const evoId = findEvoId(r.json);
+            const status = normalizeEvoStatus(r.json?.status ?? r.json?.ack ?? r.json?.messageStatus) ?? "sent";
+            if (saved?.id) await context.supabase.from("messages").update({ metadata: { ...metadataObject(saved.metadata), pending: false, sent: true, status, evoId } as never }).eq("id", saved.id);
+            results.push({ kind: mediatype, ok: true });
+          }
+        }
+      }
+    }
+
+    if (!bodyText && !qs.storage_path) throw new Error("Template vazio");
+    return { ok: true as const, results, conversationId: convoId };
+  });
+
 export const forwardChatMessage = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((i: unknown) => ForwardChatMessageInput.parse(i))
