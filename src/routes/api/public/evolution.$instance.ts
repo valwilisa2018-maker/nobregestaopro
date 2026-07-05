@@ -740,24 +740,9 @@ export const Route = createFileRoute("/api/public/evolution/$instance")({
                 .map((r) => ({ role: r.direction === "outbound" ? "assistant" : "user", content: r.content }));
             }
 
-            // Build endpoint + key
-            let endpoint = "https://ai.gateway.lovable.dev/v1/chat/completions";
-            let apiKey = process.env.LOVABLE_API_KEY ?? "";
-            const PREFIX: Record<string, string> = { gemini: "google/", openai: "openai/", deepseek: "openai/", grok: "openai/" };
-            let modelId = (agent.model ?? "gemini-2.5-flash");
-            if (!modelId.includes("/")) modelId = (PREFIX[(agent.category ?? "gemini").toLowerCase()] ?? "google/") + modelId;
-            if (agent.ai_provider_id) {
-              const { data: p } = await supabaseAdmin
-                .from("ai_providers").select("api_key,base_url,model")
-                .eq("id", agent.ai_provider_id)
-                .eq("user_id", conn.user_id)
-                .maybeSingle();
-              if (p) {
-                apiKey = p.api_key ?? apiKey;
-                if (p.base_url) endpoint = p.base_url.replace(/\/+$/, "") + "/chat/completions";
-                modelId = agent.model || p.model || modelId;
-              }
-            }
+            // Build endpoint + key from Configurações Globais (ai_providers ativo do dono da conexão).
+            const { resolveAIConfig } = await import("@/lib/ai-resolver.server");
+            const { endpoint, apiKey, model: modelId } = await resolveAIConfig(supabaseAdmin, conn.user_id);
 
             const aiRes = await fetch(endpoint, {
               method: "POST",
