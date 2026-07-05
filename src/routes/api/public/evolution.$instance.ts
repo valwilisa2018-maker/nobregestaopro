@@ -1111,25 +1111,27 @@ async function disableWebhookBase64(conn: { url_api: string | null; api_key: str
   const found = await fetch(`${base}/webhook/find/${conn.instance_name}`, {
     headers: { apikey: conn.api_key ?? "" },
   });
-  const cur = await found.json().catch(() => ({} as any));
+  const raw = await found.json().catch(() => ({} as any));
+  const cur = raw?.webhook ?? raw;
   const url = cur?.url ?? cur?.webhookUrl;
   if (!url) return;
   const events = cur?.events ?? ["MESSAGES_UPSERT", "MESSAGES_UPDATE", "CONNECTION_UPDATE", "QRCODE_UPDATED", "PRESENCE_UPDATE"];
   const byEvents = cur?.webhookByEvents ?? cur?.webhook_by_events ?? cur?.byEvents ?? false;
+  const webhook = {
+    enabled: true,
+    url,
+    webhookByEvents: byEvents,
+    webhook_by_events: byEvents,
+    byEvents,
+    webhookBase64: false,
+    webhook_base64: false,
+    base64: false,
+    events,
+  };
   await fetch(`${base}/webhook/set/${conn.instance_name}`, {
     method: "POST",
     headers: { "Content-Type": "application/json", apikey: conn.api_key ?? "" },
-    body: JSON.stringify({
-      enabled: true,
-      url,
-      webhookByEvents: byEvents,
-      webhook_by_events: byEvents,
-      byEvents,
-      webhookBase64: false,
-      webhook_base64: false,
-      base64: false,
-      events,
-    }),
+    body: JSON.stringify({ ...webhook, webhook }),
   });
 }
 

@@ -915,7 +915,7 @@ function MessagesPage() {
       })
       .on("postgres_changes", { event: "UPDATE", schema: "public", table: "messages", filter: `user_id=eq.${user.id}` }, (payload) => {
         // Patch the single row in place so tick status updates without reloading the whole thread
-        const row = payload.new as { id?: string; content?: string | null; metadata?: Record<string, unknown> | null } | null;
+          const row = payload.new as { id?: string; type?: string | null; content?: string | null; media_url?: string | null; metadata?: Record<string, unknown> | null } | null;
         if (!row?.id) return;
         const rank = (v: unknown) => v === "read" ? 3 : v === "delivered" ? 2 : v === "sent" ? 1 : 0;
         setMsgs((prev) => {
@@ -940,6 +940,8 @@ function MessagesPage() {
           copy[idx] = {
             ...prev[idx],
             ...(contentChanged ? { content: row.content as string } : {}),
+            ...(row.type ? { type: row.type } : {}),
+            ...(row.media_url !== undefined ? { media_url: row.media_url } : {}),
             metadata: nextMeta,
           };
           // Persist so the tick doesn't regress to a stale cached value on contact switch/reload
