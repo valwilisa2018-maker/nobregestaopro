@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { CreditCard, Check, Star, Loader2 } from "lucide-react";
+import { CreditCard, Check, Loader2, Rocket, Sparkles, Zap } from "lucide-react";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { PageShell } from "@/components/page-shell";
@@ -74,7 +74,7 @@ function Page() {
       ) : plans.length === 0 ? (
         <Card><CardContent className="p-12 text-center text-muted-foreground">Nenhum plano disponível.</CardContent></Card>
       ) : (
-        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-4 pt-6">
           {plans.map((p) => {
             const annualFromMonthly = p.price_cents * 12;
             const showAnnual = cycle === "annual" && p.price_annual_cents > 0;
@@ -83,34 +83,94 @@ function Page() {
             const savings = showAnnual ? annualFromMonthly - p.price_annual_cents : 0;
             const savingsPct = showAnnual && annualFromMonthly > 0 ? Math.round((savings / annualFromMonthly) * 100) : 0;
             return (
-            <Card key={p.id} className={`relative flex flex-col ${p.highlight ? "border-primary ring-2 ring-primary/30" : ""}`}>
+            <div key={p.id} className="relative group">
               {p.highlight && (
-                <Badge className="absolute -top-3 left-1/2 -translate-x-1/2 gap-1">
-                  <Star className="h-3 w-3" /> Mais vendido
-                </Badge>
+                <div
+                  aria-hidden
+                  className="absolute -inset-0.5 rounded-2xl opacity-70 blur-lg transition duration-500 group-hover:opacity-100"
+                  style={{ background: "linear-gradient(135deg, hsl(var(--primary)) 0%, hsl(var(--primary) / 0.35) 60%, transparent 100%)" }}
+                />
               )}
-              <CardContent className="p-6 flex-1 flex flex-col gap-4">
-                <div>
-                  <h3 className="text-xl font-bold">{p.name}</h3>
-                  {p.description && <p className="text-xs text-muted-foreground mt-1">{p.description}</p>}
-                </div>
-                <div>
-                  <div className="text-3xl font-black">{formatBRL(price)}<span className="text-sm text-muted-foreground font-normal">{suffix}</span></div>
-                  {showAnnual && savings > 0 && (
-                    <div className="text-xs text-emerald-500 font-medium mt-1">
-                      Economize {formatBRL(savings)} ({savingsPct}%) vs mensal
+              <Card
+                className={`relative flex flex-col overflow-hidden rounded-2xl border-border/60 bg-card/80 backdrop-blur transition-transform duration-300 group-hover:-translate-y-1 ${
+                  p.highlight ? "border-primary/60 shadow-[0_20px_60px_-25px_hsl(var(--primary)/0.6)]" : "hover:border-primary/40"
+                }`}
+              >
+                {p.highlight && (
+                  <div className="absolute -top-px left-1/2 -translate-x-1/2 z-10">
+                    <div className="flex items-center gap-1.5 rounded-b-lg bg-gradient-to-r from-primary to-primary/70 px-3 py-1 text-[10px] font-bold uppercase tracking-widest text-primary-foreground shadow-lg">
+                      <Rocket className="h-3 w-3" /> Mais vendido
                     </div>
-                  )}
-                  <div className="text-xs text-primary font-medium mt-1">{formatTokens(p.tokens_included)} / mês</div>
+                  </div>
+                )}
+                {/* Ambient header */}
+                <div className="relative h-24 overflow-hidden">
+                  <div
+                    className="absolute inset-0"
+                    style={{
+                      background: p.highlight
+                        ? "linear-gradient(135deg, hsl(var(--primary)) 0%, hsl(var(--primary) / 0.55) 100%)"
+                        : "linear-gradient(135deg, hsl(var(--muted)) 0%, hsl(var(--card)) 100%)",
+                    }}
+                  />
+                  <div
+                    className="absolute inset-0 opacity-70"
+                    style={{ backgroundImage: "radial-gradient(circle at 25% 20%, rgba(255,255,255,0.35), transparent 55%)" }}
+                  />
+                  <div className="absolute inset-0 flex items-end justify-between px-5 pb-3">
+                    <div className="flex items-center gap-2">
+                      <div className={`grid h-10 w-10 place-items-center rounded-xl border backdrop-blur ${p.highlight ? "border-white/30 bg-white/15 text-primary-foreground" : "border-primary/30 bg-primary/10 text-primary"}`}>
+                        <Rocket className="h-5 w-5" />
+                      </div>
+                      <div className={`font-black text-lg tracking-tight ${p.highlight ? "text-primary-foreground" : "text-foreground"}`}>{p.name}</div>
+                    </div>
+                    <Sparkles className={`h-4 w-4 ${p.highlight ? "text-primary-foreground/80" : "text-primary/60"}`} />
+                  </div>
                 </div>
-                <ul className="space-y-1.5 text-sm flex-1">
-                  {p.features.map((f, i) => (
-                    <li key={i} className="flex gap-2"><Check className="h-4 w-4 text-primary shrink-0 mt-0.5" /><span>{f}</span></li>
-                  ))}
-                </ul>
-                <Button className="w-full" variant={p.highlight ? "default" : "outline"}>Assinar</Button>
-              </CardContent>
-            </Card>
+
+                <CardContent className="p-5 flex-1 flex flex-col gap-4">
+                  {p.description && <p className="text-xs text-muted-foreground leading-relaxed">{p.description}</p>}
+
+                  <div className="rounded-xl border border-border/60 bg-muted/30 p-4">
+                    <div className="flex items-baseline gap-1">
+                      <span className="text-4xl font-black tracking-tight bg-clip-text text-transparent"
+                        style={{ backgroundImage: "linear-gradient(135deg, hsl(var(--primary)) 0%, hsl(var(--foreground)) 100%)" }}>
+                        {formatBRL(price)}
+                      </span>
+                      <span className="text-xs text-muted-foreground font-medium">{suffix}</span>
+                    </div>
+                    {showAnnual && savings > 0 && (
+                      <div className="mt-1 inline-flex items-center gap-1 rounded-full bg-emerald-500/15 px-2 py-0.5 text-[10px] font-semibold text-emerald-500">
+                        <Zap className="h-3 w-3" /> Economize {formatBRL(savings)} ({savingsPct}%)
+                      </div>
+                    )}
+                    <div className="mt-2 flex items-center gap-1.5 text-[11px] font-semibold text-primary">
+                      <Sparkles className="h-3 w-3" /> {formatTokens(p.tokens_included)} / mês
+                    </div>
+                  </div>
+
+                  <ul className="space-y-2 text-sm flex-1">
+                    {p.features.map((f, i) => (
+                      <li key={i} className="flex gap-2">
+                        <span className="mt-0.5 grid h-4 w-4 shrink-0 place-items-center rounded-full bg-primary/15">
+                          <Check className="h-3 w-3 text-primary" />
+                        </span>
+                        <span className="text-foreground/90">{f}</span>
+                      </li>
+                    ))}
+                  </ul>
+
+                  <Button
+                    className={`w-full h-11 font-bold gap-2 ${p.highlight
+                      ? "bg-gradient-to-r from-primary to-primary/80 hover:from-primary hover:to-primary text-primary-foreground shadow-lg shadow-primary/30"
+                      : ""}`}
+                    variant={p.highlight ? "default" : "outline"}
+                  >
+                    <Rocket className="h-4 w-4" /> Assinar {p.name}
+                  </Button>
+                </CardContent>
+              </Card>
+            </div>
             );
           })}
         </div>
