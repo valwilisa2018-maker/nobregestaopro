@@ -9,7 +9,7 @@ interface PageShellProps {
   icon?: ReactNode;
   actions?: ReactNode;
   children?: ReactNode;
-  status?: "ativo" | "em-breve" | "beta";
+  status?: "ativo" | "em-breve" | "beta" | "sem-plano";
 }
 
 export function PageShell({ title, description, icon, actions, children, status = "em-breve" }: PageShellProps) {
@@ -17,6 +17,7 @@ export function PageShell({ title, description, icon, actions, children, status 
     ativo: { label: "Ativo", cls: "bg-primary/15 text-primary border-primary/30" },
     "em-breve": { label: "Em breve", cls: "bg-muted text-muted-foreground border-border" },
     beta: { label: "Beta", cls: "bg-accent/40 text-primary border-primary/30" },
+    "sem-plano": { label: "Nenhum plano ativo", cls: "bg-muted text-muted-foreground border-border" },
   } as const;
   const s = statusMap[status];
 
