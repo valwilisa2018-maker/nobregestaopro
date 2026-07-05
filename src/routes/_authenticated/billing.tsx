@@ -96,10 +96,11 @@ function Page() {
             return (
             <div
               key={p.id}
-              className={`group relative flex flex-col p-8 rounded-3xl transition-all ${
+              style={{ animationDelay: `${plans.indexOf(p) * 80}ms`, animationFillMode: "both" }}
+              className={`group relative flex flex-col p-8 rounded-3xl transition-all duration-300 ease-out animate-fade-in hover:-translate-y-2 hover:shadow-2xl ${
                 p.highlight
-                  ? "bg-card border-2 border-primary shadow-2xl shadow-primary/10 xl:scale-[1.03] z-10"
-                  : "bg-card/40 border border-border hover:border-border/80"
+                  ? "bg-card border-2 border-primary shadow-2xl shadow-primary/10 xl:scale-[1.03] z-10 hover:shadow-primary/30"
+                  : "bg-card/40 border border-border hover:border-primary/40 hover:shadow-primary/10"
               }`}
             >
               {p.highlight && (
