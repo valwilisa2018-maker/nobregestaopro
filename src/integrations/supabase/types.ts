@@ -16,10 +16,8 @@ export type Database = {
     Tables: {
       agents: {
         Row: {
-          ai_provider_id: string | null
           appearance: Json | null
           avatar_url: string | null
-          category: string | null
           connection_id: string | null
           created_at: string
           description: string | null
@@ -32,7 +30,6 @@ export type Database = {
           language: string | null
           max_tokens: number | null
           memory: Json | null
-          model: string | null
           name: string
           presence_penalty: number | null
           primary_color: string | null
@@ -53,10 +50,8 @@ export type Database = {
           user_id: string
         }
         Insert: {
-          ai_provider_id?: string | null
           appearance?: Json | null
           avatar_url?: string | null
-          category?: string | null
           connection_id?: string | null
           created_at?: string
           description?: string | null
@@ -69,7 +64,6 @@ export type Database = {
           language?: string | null
           max_tokens?: number | null
           memory?: Json | null
-          model?: string | null
           name: string
           presence_penalty?: number | null
           primary_color?: string | null
@@ -90,10 +84,8 @@ export type Database = {
           user_id: string
         }
         Update: {
-          ai_provider_id?: string | null
           appearance?: Json | null
           avatar_url?: string | null
-          category?: string | null
           connection_id?: string | null
           created_at?: string
           description?: string | null
@@ -106,7 +98,6 @@ export type Database = {
           language?: string | null
           max_tokens?: number | null
           memory?: Json | null
-          model?: string | null
           name?: string
           presence_penalty?: number | null
           primary_color?: string | null
@@ -127,13 +118,6 @@ export type Database = {
           user_id?: string
         }
         Relationships: [
-          {
-            foreignKeyName: "agents_ai_provider_id_fkey"
-            columns: ["ai_provider_id"]
-            isOneToOne: false
-            referencedRelation: "ai_providers"
-            referencedColumns: ["id"]
-          },
           {
             foreignKeyName: "agents_connection_id_fkey"
             columns: ["connection_id"]
