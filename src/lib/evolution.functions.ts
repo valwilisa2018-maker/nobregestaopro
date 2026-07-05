@@ -567,6 +567,63 @@ export const getProfilePicture = createServerFn({ method: "POST" })
     return { url: typeof url === "string" ? url : null };
   });
 
+// ===================== Sync contact names from WhatsApp =====================
+
+export const syncContactNames = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { data: contacts } = await context.supabase
+      .from("contacts")
+      .select("id,phone,name")
+      .eq("user_id", context.userId)
+      .or("name.is.null,name.eq.")
+      .limit(500);
+    if (!contacts?.length) return { updated: 0 };
+
+    const { data: conns } = await context.supabase
+      .from("connections")
+      .select("id,url_api,api_key,instance_name")
+      .eq("user_id", context.userId);
+    if (!conns?.length) return { updated: 0 };
+
+    // Build a map: digits -> pushName from every instance's contact list.
+    const nameByDigits: Record<string, string> = {};
+    for (const c of conns) {
+      try {
+        const apiKey = await loadEvolutionCommandKey(context.supabase, c.api_key);
+        const r = await evoFetch(`${baseUrl(c.url_api)}/chat/findContacts/${c.instance_name}`, apiKey, {
+          method: "POST",
+          body: JSON.stringify({ where: {} }),
+        });
+        const list = Array.isArray(r.json) ? r.json : (r.json?.contacts ?? r.json?.data ?? []);
+        for (const item of list as any[]) {
+          const jid = String(item?.id ?? item?.remoteJid ?? item?.jid ?? "");
+          if (!jid || jid.includes("@g.us") || jid.includes("@broadcast") || jid.includes("@lid")) continue;
+          const digits = jid.split("@")[0].replace(/\D+/g, "");
+          const name = String(item?.pushName ?? item?.name ?? item?.verifiedName ?? item?.notify ?? "").trim();
+          if (digits && name && !nameByDigits[digits]) nameByDigits[digits] = name;
+        }
+      } catch { /* skip failing instance */ }
+    }
+
+    let updated = 0;
+    for (const ct of contacts) {
+      const variants = phoneVariants(String(ct.phone));
+      let name: string | undefined;
+      for (const v of variants) {
+        if (nameByDigits[v]) { name = nameByDigits[v]; break; }
+      }
+      if (!name) continue;
+      const { error } = await context.supabase
+        .from("contacts")
+        .update({ name, updated_at: new Date().toISOString() } as never)
+        .eq("id", ct.id)
+        .eq("user_id", context.userId);
+      if (!error) updated++;
+    }
+    return { updated };
+  });
+
 const SendChatAudioInput = z.object({
   contactId: z.string().uuid(),
   audioBase64: z.string().min(10),
