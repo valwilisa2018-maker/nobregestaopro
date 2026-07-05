@@ -156,6 +156,16 @@ export const Route = createFileRoute("/api/public/evolution/$instance")({
 
         const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
+        // Garante que o bucket aceita arquivos de até 200 MB (executa uma vez por processo)
+        if (!bucketLimitEnsured) {
+          bucketLimitEnsured = true;
+          try {
+            await (supabaseAdmin.storage as any).updateBucket(MEDIA_BUCKET, {
+              fileSizeLimit: MAX_INBOUND_MEDIA_BYTES,
+            });
+          } catch { /* best-effort */ }
+        }
+
         // Find connection by instance_name
         const { data: conn } = await supabaseAdmin
           .from("connections").select("id,user_id,url_api,api_key,instance_name").eq("instance_name", instance).maybeSingle();
