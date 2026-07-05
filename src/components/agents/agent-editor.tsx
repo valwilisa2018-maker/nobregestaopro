@@ -503,13 +503,10 @@ function TestSection({ form, setForm }: { form: AgentRow; setForm: React.Dispatc
       } catch { /* ignore */ }
       const res = await chatWithAgent({
         data: {
-          provider: (form.category ?? "gemini").toLowerCase(),
-          model: form.model ?? "gemini-2.5-flash",
           temperature: form.temperature,
           maxTokens: form.max_tokens ?? 2048,
           systemPrompt: (form.system_prompt ?? "") + kbText + agendaText,
           messages: next,
-          providerId: form.ai_provider_id,
         },
       });
       setMessages([...next, { role: "assistant", content: res.text || "(sem resposta)" }]);
