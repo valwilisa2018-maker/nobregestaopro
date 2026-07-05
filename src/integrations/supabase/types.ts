@@ -1747,6 +1747,7 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      purge_old_messages_media: { Args: never; Returns: undefined }
     }
     Enums: {
       app_role: "admin" | "supervisor" | "atendente" | "viewer"
