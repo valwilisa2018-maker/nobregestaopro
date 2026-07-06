@@ -52,6 +52,7 @@ import { Route as ApiV1HistoryRouteImport } from './routes/api/v1/history'
 import { Route as ApiV1CreditsRouteImport } from './routes/api/v1/credits'
 import { Route as ApiV1ConsumeRouteImport } from './routes/api/v1/consume'
 import { Route as ApiV1BuyRouteImport } from './routes/api/v1/buy'
+import { Route as ApiPublicHooksProcessVideoJobsRouteImport } from './routes/api/public/hooks/process-video-jobs'
 import { Route as ApiPublicHooksFollowUpsRouteImport } from './routes/api/public/hooks/follow-ups'
 import { Route as ApiPublicHooksBroadcastsRouteImport } from './routes/api/public/hooks/broadcasts'
 import { Route as ApiPublicEvolutionInstanceRouteImport } from './routes/api/public/evolution.$instance'
@@ -274,6 +275,12 @@ const ApiV1BuyRoute = ApiV1BuyRouteImport.update({
   path: '/api/v1/buy',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicHooksProcessVideoJobsRoute =
+  ApiPublicHooksProcessVideoJobsRouteImport.update({
+    id: '/api/public/hooks/process-video-jobs',
+    path: '/api/public/hooks/process-video-jobs',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicHooksFollowUpsRoute = ApiPublicHooksFollowUpsRouteImport.update({
   id: '/api/public/hooks/follow-ups',
   path: '/api/public/hooks/follow-ups',
@@ -338,6 +345,7 @@ export interface FileRoutesByFullPath {
   '/api/public/evolution/$instance': typeof ApiPublicEvolutionInstanceRoute
   '/api/public/hooks/broadcasts': typeof ApiPublicHooksBroadcastsRoute
   '/api/public/hooks/follow-ups': typeof ApiPublicHooksFollowUpsRoute
+  '/api/public/hooks/process-video-jobs': typeof ApiPublicHooksProcessVideoJobsRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -385,6 +393,7 @@ export interface FileRoutesByTo {
   '/api/public/evolution/$instance': typeof ApiPublicEvolutionInstanceRoute
   '/api/public/hooks/broadcasts': typeof ApiPublicHooksBroadcastsRoute
   '/api/public/hooks/follow-ups': typeof ApiPublicHooksFollowUpsRoute
+  '/api/public/hooks/process-video-jobs': typeof ApiPublicHooksProcessVideoJobsRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -434,6 +443,7 @@ export interface FileRoutesById {
   '/api/public/evolution/$instance': typeof ApiPublicEvolutionInstanceRoute
   '/api/public/hooks/broadcasts': typeof ApiPublicHooksBroadcastsRoute
   '/api/public/hooks/follow-ups': typeof ApiPublicHooksFollowUpsRoute
+  '/api/public/hooks/process-video-jobs': typeof ApiPublicHooksProcessVideoJobsRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -483,6 +493,7 @@ export interface FileRouteTypes {
     | '/api/public/evolution/$instance'
     | '/api/public/hooks/broadcasts'
     | '/api/public/hooks/follow-ups'
+    | '/api/public/hooks/process-video-jobs'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -530,6 +541,7 @@ export interface FileRouteTypes {
     | '/api/public/evolution/$instance'
     | '/api/public/hooks/broadcasts'
     | '/api/public/hooks/follow-ups'
+    | '/api/public/hooks/process-video-jobs'
   id:
     | '__root__'
     | '/'
@@ -578,6 +590,7 @@ export interface FileRouteTypes {
     | '/api/public/evolution/$instance'
     | '/api/public/hooks/broadcasts'
     | '/api/public/hooks/follow-ups'
+    | '/api/public/hooks/process-video-jobs'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -596,6 +609,7 @@ export interface RootRouteChildren {
   ApiPublicEvolutionInstanceRoute: typeof ApiPublicEvolutionInstanceRoute
   ApiPublicHooksBroadcastsRoute: typeof ApiPublicHooksBroadcastsRoute
   ApiPublicHooksFollowUpsRoute: typeof ApiPublicHooksFollowUpsRoute
+  ApiPublicHooksProcessVideoJobsRoute: typeof ApiPublicHooksProcessVideoJobsRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -901,6 +915,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiV1BuyRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/hooks/process-video-jobs': {
+      id: '/api/public/hooks/process-video-jobs'
+      path: '/api/public/hooks/process-video-jobs'
+      fullPath: '/api/public/hooks/process-video-jobs'
+      preLoaderRoute: typeof ApiPublicHooksProcessVideoJobsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/hooks/follow-ups': {
       id: '/api/public/hooks/follow-ups'
       path: '/api/public/hooks/follow-ups'
@@ -1013,6 +1034,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicEvolutionInstanceRoute: ApiPublicEvolutionInstanceRoute,
   ApiPublicHooksBroadcastsRoute: ApiPublicHooksBroadcastsRoute,
   ApiPublicHooksFollowUpsRoute: ApiPublicHooksFollowUpsRoute,
+  ApiPublicHooksProcessVideoJobsRoute: ApiPublicHooksProcessVideoJobsRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
