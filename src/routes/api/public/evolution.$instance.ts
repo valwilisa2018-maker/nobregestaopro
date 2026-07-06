@@ -628,6 +628,27 @@ export const Route = createFileRoute("/api/public/evolution/$instance")({
                 const declaredBytes = mediaFileLength(mediaObject);
                 if (externalUrl) {
                   mediaUrl = externalUrl;
+                } else if (mediaKind === "video" && (declaredBytes ?? 0) <= MAX_INLINE_MEDIA_BYTES) {
+                  const b64 = findBase64(msg) ?? await evolutionGetBase64(commandConn, msg, false, supabaseAdmin, conn.user_id, remoteJid, mediaKind, declaredBytes, inboundEvoId);
+                  if (b64) {
+                    mediaB64 = b64;
+                    const saved = await saveMediaToStorage(supabaseAdmin, conn.user_id, convo.id, b64, mediaMime ?? "application/octet-stream", mediaName ?? `${mediaKind}-${msg?.key?.id ?? Date.now()}`);
+                    mediaUrl = saved.url;
+                    mediaPath = saved.path;
+                  } else {
+                    const streamed = await downloadEvolutionMediaToStorage(supabaseAdmin, commandConn, conn.user_id, convo.id, msg, mediaMime, mediaName ?? `${mediaKind}-${msg?.key?.id ?? Date.now()}`, declaredBytes).catch(async (err) => {
+                      if (err instanceof MediaTooLargeError) throw err;
+                      await supabaseAdmin.from("logs").insert({ user_id: conn.user_id, level: "error", source: "evolution:inbound-media", message: `video inline fallback stream failed: ${err?.message ?? String(err)}`, metadata: { remoteJid, kind: mediaKind, declaredBytes } as never } as never);
+                      return null;
+                    });
+                    if (streamed) {
+                      mediaUrl = streamed.url;
+                      mediaPath = streamed.path;
+                      mediaMime = streamed.mime;
+                    } else {
+                      await supabaseAdmin.from("logs").insert({ user_id: conn.user_id, level: "error", source: "evolution:inbound-media", message: "video: no base64 and stream returned empty", metadata: { remoteJid, declaredBytes, mime: mediaMime, evoId: inboundEvoId } as never } as never);
+                    }
+                  }
                 } else if (mediaKind === "video" || (declaredBytes ?? 0) > MAX_INLINE_MEDIA_BYTES) {
                   const streamed = await downloadEvolutionMediaToStorage(supabaseAdmin, commandConn, conn.user_id, convo.id, msg, mediaMime, mediaName ?? `${mediaKind}-${msg?.key?.id ?? Date.now()}`, declaredBytes).catch(async (err) => {
                     if (err instanceof MediaTooLargeError) throw err;
@@ -640,7 +661,7 @@ export const Route = createFileRoute("/api/public/evolution/$instance")({
                     mediaMime = streamed.mime;
                   } else {
                     // Fallback to base64 endpoint (handles cases where stream endpoint returns json/empty)
-                    const b64 = findBase64(msg) ?? await evolutionGetBase64(commandConn, msg, false);
+                    const b64 = findBase64(msg) ?? await evolutionGetBase64(commandConn, msg, false, supabaseAdmin, conn.user_id, remoteJid, mediaKind, declaredBytes, inboundEvoId);
                     if (b64) {
                       mediaB64 = b64;
                       const saved = await saveMediaToStorage(supabaseAdmin, conn.user_id, convo.id, b64, mediaMime ?? "application/octet-stream", mediaName ?? `${mediaKind}-${msg?.key?.id ?? Date.now()}`);
@@ -651,7 +672,7 @@ export const Route = createFileRoute("/api/public/evolution/$instance")({
                     }
                   }
                 } else {
-                  const b64 = findBase64(msg) ?? await evolutionGetBase64(commandConn, msg, false) ?? (mediaKind === "audio" ? transcribedAudioBase64 : null);
+                  const b64 = findBase64(msg) ?? await evolutionGetBase64(commandConn, msg, false, supabaseAdmin, conn.user_id, remoteJid, mediaKind, declaredBytes, inboundEvoId) ?? (mediaKind === "audio" ? transcribedAudioBase64 : null);
                   if (b64) {
                     mediaB64 = b64;
                     const saved = await saveMediaToStorage(supabaseAdmin, conn.user_id, convo.id, b64, mediaMime ?? "application/octet-stream", mediaName ?? `${mediaKind}-${msg?.key?.id ?? Date.now()}`);
@@ -1219,7 +1240,14 @@ async function downloadEvolutionMediaToStorage(
   const ext = safeName.includes(".") ? "" : `.${(contentType.split("/")[1] || "bin").split(";")[0]}`;
   const path = `${userId}/${conversationId}/${Date.now()}-${crypto.randomUUID()}-${safeName}${ext}`;
   const endpoint = `${normalizeBaseUrl(conn.url_api ?? "")}/chat/downloadMediaMessage/${conn.instance_name}`;
-  const bodies = [message, { message }];
+  const record = message && typeof message === "object" ? message as Record<string, unknown> : {};
+  const bodies = [
+    message,
+    { message },
+    { key: record.key, message: record.message },
+    { messageKey: record.key, message: record.message },
+    { id: (record.key as Record<string, unknown> | undefined)?.id, key: record.key },
+  ];
 
   for (const body of bodies) {
     const r = await fetch(endpoint, {
@@ -1267,15 +1295,45 @@ async function downloadEvolutionMediaToStorage(
   return null;
 }
 
-async function evolutionGetBase64(conn: { url_api: string | null; api_key: string | null; instance_name: string | null }, message: unknown, convertToMp3 = false): Promise<string | null> {
-  const r = await fetch(`${normalizeBaseUrl(conn.url_api ?? "")}/chat/getBase64FromMediaMessage/${conn.instance_name}`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json", apikey: conn.api_key ?? "" },
-    body: JSON.stringify({ message, convertToMp3 }),
-  });
-  if (!r.ok) return null;
-  const j = await r.json().catch(() => null) as unknown;
-  return findBase64(j);
+async function evolutionGetBase64(
+  conn: { url_api: string | null; api_key: string | null; instance_name: string | null },
+  message: unknown,
+  convertToMp3 = false,
+  db?: { from: (table: string) => any },
+  userId?: string,
+  remoteJid?: string,
+  kind?: string | null,
+  declaredBytes?: number | null,
+  evoId?: string | null,
+): Promise<string | null> {
+  const endpoint = `${normalizeBaseUrl(conn.url_api ?? "")}/chat/getBase64FromMediaMessage/${conn.instance_name}`;
+  const record = message && typeof message === "object" ? message as Record<string, unknown> : {};
+  const bodies = [
+    { message, convertToMp3 },
+    { message: { key: record.key, message: record.message }, convertToMp3 },
+    { key: record.key, message: record.message, convertToMp3 },
+  ];
+
+  for (const body of bodies) {
+    const r = await fetch(endpoint, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", apikey: conn.api_key ?? "" },
+      body: JSON.stringify(body),
+    });
+    const text = await r.text().catch(() => "");
+    const b64 = findBase64(text);
+    if (r.ok && b64) return b64;
+    if (db && userId) {
+      await db.from("logs").insert({
+        user_id: userId,
+        level: r.ok ? "warn" : "error",
+        source: "evolution:get-base64",
+        message: r.ok ? "base64 not found in response" : `getBase64 failed: HTTP ${r.status}`,
+        metadata: { remoteJid, kind, declaredBytes, evoId, responsePreview: text.slice(0, 500) } as never,
+      } as never);
+    }
+  }
+  return null;
 }
 
 function mediaLabel(kind: "image" | "video" | "audio" | "document" | "sticker") {
