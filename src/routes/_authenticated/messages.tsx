@@ -1281,13 +1281,13 @@ function MessagesPage() {
       <div
         className={`grid grid-cols-1 gap-0 overflow-hidden h-full transition-all duration-300 ${
           sidebarCollapsed
-            ? (infoOpen ? "md:grid-cols-[64px_1fr_320px]" : "md:grid-cols-[64px_1fr]")
-            : (infoOpen ? "md:grid-cols-[360px_1fr_320px]" : "md:grid-cols-[360px_1fr]")
+            ? (infoOpen ? "lg:grid-cols-[64px_1fr_320px]" : "lg:grid-cols-[64px_1fr]")
+            : (infoOpen ? "lg:grid-cols-[340px_1fr_300px] xl:grid-cols-[360px_1fr_320px]" : "lg:grid-cols-[300px_1fr] xl:grid-cols-[360px_1fr]")
         }`}
       >
         {/* Contacts */}
         <aside
-          className={`${selected ? "hidden md:flex" : "flex"} flex-col bg-white border-r border-black/10 transition-all duration-300 overflow-hidden`}
+          className={`${selected ? "hidden lg:flex" : "flex animate-in fade-in slide-in-from-left-4 duration-200"} flex-col bg-white border-r border-black/10 transition-all duration-300 overflow-hidden`}
         >
           <div className="px-3 py-3 flex items-center gap-2" style={{ background: WA.headerDark, color: "white" }}>
             <Popover onOpenChange={(o) => {
