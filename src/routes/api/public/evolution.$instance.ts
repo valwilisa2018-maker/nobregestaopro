@@ -1242,6 +1242,8 @@ async function downloadEvolutionMediaToStorage(
   const endpoint = `${normalizeBaseUrl(conn.url_api ?? "")}/chat/downloadMediaMessage/${conn.instance_name}`;
   const record = message && typeof message === "object" ? message as Record<string, unknown> : {};
   const bodies = [
+    { message: { key: record.key }, convertToMp4: false },
+    { message: { key: record.key, message: record.message }, convertToMp4: false },
     message,
     { message },
     { key: record.key, message: record.message },
@@ -1292,7 +1294,116 @@ async function downloadEvolutionMediaToStorage(
     return { path, url: data?.signedUrl ?? null, mime: responseType || contentType };
   }
 
+  return downloadWhatsAppEncryptedMediaToStorage(db, userId, conversationId, message, contentType, fileName, declaredBytes);
+}
+
+async function downloadWhatsAppEncryptedMediaToStorage(
+  db: { storage: { from: (bucket: string) => any } },
+  userId: string,
+  conversationId: string,
+  message: unknown,
+  mime: string,
+  fileName: string,
+  declaredBytes: number | null,
+): Promise<{ path: string; url: string | null; mime: string } | null> {
+  if (declaredBytes && declaredBytes > MAX_INBOUND_MEDIA_BYTES) throw new MediaTooLargeError(declaredBytes);
+  const found = findWhatsAppMedia(message);
+  if (!found?.media) return null;
+  const media = found.media as Record<string, unknown>;
+  const mediaKey = bytesFromBinaryLike(media.mediaKey);
+  const sourceUrl = typeof media.url === "string" && /^https?:\/\//i.test(media.url)
+    ? media.url
+    : typeof media.directPath === "string"
+      ? `https://mmg.whatsapp.net${media.directPath}`
+      : null;
+  if (!mediaKey || !sourceUrl) return null;
+
+  const res = await fetch(sourceUrl);
+  if (!res.ok) return null;
+  const encrypted = new Uint8Array(await res.arrayBuffer());
+  if (encrypted.byteLength > MAX_INBOUND_MEDIA_BYTES + 1024 * 1024) throw new MediaTooLargeError(encrypted.byteLength);
+  const decrypted = await decryptWhatsAppMedia(encrypted, mediaKey, found.kind);
+  if (decrypted.byteLength > MAX_INBOUND_MEDIA_BYTES) throw new MediaTooLargeError(decrypted.byteLength);
+
+  const safeName = fileName.replace(/[^a-zA-Z0-9._-]+/g, "-").slice(0, 80) || "media";
+  const ext = safeName.includes(".") ? "" : `.${(mime.split("/")[1] || "bin").split(";")[0]}`;
+  const path = `${userId}/${conversationId}/${Date.now()}-${crypto.randomUUID()}-${safeName}${ext}`;
+  const { error } = await db.storage.from(MEDIA_BUCKET).upload(path, decrypted, {
+    contentType: mime || "application/octet-stream",
+    upsert: false,
+  });
+  if (error) throw new Error(error.message);
+  const { data } = await db.storage.from(MEDIA_BUCKET).createSignedUrl(path, 60 * 60 * 24 * 30);
+  return { path, url: data?.signedUrl ?? null, mime };
+}
+
+function findWhatsAppMedia(value: unknown, depth = 0): { kind: "image" | "video" | "audio" | "document" | "sticker"; media: unknown } | null {
+  if (!value || depth > 8) return null;
+  if (Array.isArray(value)) {
+    for (const item of value) {
+      const found = findWhatsAppMedia(item, depth + 1);
+      if (found) return found;
+    }
+    return null;
+  }
+  if (typeof value !== "object") return null;
+  const record = value as Record<string, unknown>;
+  const keys: Array<[string, "image" | "video" | "audio" | "document" | "sticker"]> = [
+    ["imageMessage", "image"], ["videoMessage", "video"], ["ptvMessage", "video"],
+    ["audioMessage", "audio"], ["documentMessage", "document"], ["stickerMessage", "sticker"],
+  ];
+  for (const [key, kind] of keys) {
+    if (record[key]) return { kind, media: record[key] };
+  }
+  for (const nested of Object.values(record)) {
+    const found = findWhatsAppMedia(nested, depth + 1);
+    if (found) return found;
+  }
   return null;
+}
+
+function bytesFromBinaryLike(value: unknown): Uint8Array | null {
+  if (!value) return null;
+  if (value instanceof Uint8Array) return value;
+  if (Array.isArray(value) && value.every((n) => typeof n === "number")) return Uint8Array.from(value);
+  if (typeof value === "string") {
+    try { return Uint8Array.from(Buffer.from(value, "base64")); } catch { return null; }
+  }
+  if (typeof value === "object") {
+    const record = value as Record<string, unknown>;
+    if (Array.isArray(record.data)) return bytesFromBinaryLike(record.data);
+    const entries = Object.entries(record)
+      .filter(([k, v]) => /^\d+$/.test(k) && typeof v === "number")
+      .sort(([a], [b]) => Number(a) - Number(b));
+    if (entries.length) return Uint8Array.from(entries.map(([, v]) => v as number));
+  }
+  return null;
+}
+
+async function decryptWhatsAppMedia(encryptedWithMac: Uint8Array, mediaKey: Uint8Array, kind: "image" | "video" | "audio" | "document" | "sticker") {
+  const info = kind === "video" ? "WhatsApp Video Keys"
+    : kind === "audio" ? "WhatsApp Audio Keys"
+      : kind === "document" ? "WhatsApp Document Keys"
+        : "WhatsApp Image Keys";
+  const material = await hkdf(mediaKey, info, 112);
+  const iv = material.slice(0, 16);
+  const cipherKey = material.slice(16, 48);
+  const encrypted = encryptedWithMac.slice(0, Math.max(0, encryptedWithMac.byteLength - 10));
+  const key = await crypto.subtle.importKey("raw", arrayBufferFrom(cipherKey), { name: "AES-CBC" }, false, ["decrypt"]);
+  const out = await crypto.subtle.decrypt({ name: "AES-CBC", iv: arrayBufferFrom(iv) }, key, arrayBufferFrom(encrypted));
+  return new Uint8Array(out);
+}
+
+async function hkdf(keyMaterial: Uint8Array, infoText: string, length: number) {
+  const key = await crypto.subtle.importKey("raw", arrayBufferFrom(keyMaterial), "HKDF", false, ["deriveBits"]);
+  const bits = await crypto.subtle.deriveBits({ name: "HKDF", hash: "SHA-256", salt: arrayBufferFrom(new Uint8Array(32)), info: arrayBufferFrom(new TextEncoder().encode(infoText)) }, key, length * 8);
+  return new Uint8Array(bits);
+}
+
+function arrayBufferFrom(bytes: Uint8Array) {
+  const copy = new Uint8Array(bytes.byteLength);
+  copy.set(bytes);
+  return copy.buffer as ArrayBuffer;
 }
 
 async function evolutionGetBase64(
@@ -1309,9 +1420,9 @@ async function evolutionGetBase64(
   const endpoint = `${normalizeBaseUrl(conn.url_api ?? "")}/chat/getBase64FromMediaMessage/${conn.instance_name}`;
   const record = message && typeof message === "object" ? message as Record<string, unknown> : {};
   const bodies = [
-    { message, convertToMp3 },
-    { message: { key: record.key, message: record.message }, convertToMp3 },
-    { key: record.key, message: record.message, convertToMp3 },
+    { message: { key: record.key }, convertToMp4: false, convertToMp3 },
+    { message: { key: record.key, message: record.message }, convertToMp4: false, convertToMp3 },
+    { message, convertToMp4: false, convertToMp3 },
   ];
 
   for (const body of bodies) {
