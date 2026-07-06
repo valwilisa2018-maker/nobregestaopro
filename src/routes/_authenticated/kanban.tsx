@@ -441,7 +441,7 @@ function KanbanPage() {
       .select("sale_id")
       .maybeSingle();
     if (soErr) {
-      await logger.error(`Erro ao transferir card: ${error.message}`, { context: "kanban/transferCard", details: { cardId, producerId, error } });
+      await logger.error(`Erro ao transferir card: ${soErr.message}`, { context: "kanban/transferCard", details: { cardId, producerId, error: soErr } });
     } else {
       if (so?.sale_id) {
         const { error: saleErr } = await supabase
