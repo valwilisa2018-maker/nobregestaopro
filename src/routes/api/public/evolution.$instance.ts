@@ -621,6 +621,41 @@ export const Route = createFileRoute("/api/public/evolution/$instance")({
               alreadySavedInbound = !!existingInbound?.length;
             }
             if (mediaKind && convo && !alreadySavedInbound) {
+              // Vídeos/mídias grandes: enfileira para processamento assíncrono
+              // (worker Cloudflare não aguenta baixar+descriptografar 100MB inline).
+              const declaredBytesEarly = mediaFileLength(imageMsg ?? videoMsg ?? audioMsg ?? docMsg ?? stickerMsg);
+              const shouldQueue = (mediaKind === "video") && (declaredBytesEarly ?? 0) > MAX_INLINE_MEDIA_BYTES;
+              const jobParams = shouldQueue ? extractWhatsAppMediaJob(msg) : null;
+              if (jobParams) {
+                mediaMime = jobParams.mime ?? "video/mp4";
+                mediaName = jobParams.fileName ?? `video-${inboundEvoId ?? Date.now()}.mp4`;
+                mediaCaption = mediaCaption ?? "⏳ Baixando vídeo...";
+                const { data: inserted } = await supabaseAdmin.from("messages").insert({
+                  user_id: conn.user_id, conversation_id: convo.id,
+                  direction: "inbound", type: mediaKind,
+                  content: mediaCaption,
+                  media_url: null,
+                  metadata: { remoteJid, instance: conn.instance_name, storagePath: null, mime: mediaMime, evoId: inboundEvoId, fromMe: false, transcribed: false, pending: true } as never,
+                } as never).select("id").single();
+                await supabaseAdmin.from("video_jobs").insert({
+                  user_id: conn.user_id,
+                  message_id: (inserted as { id?: string } | null)?.id ?? null,
+                  conversation_id: convo.id,
+                  connection_id: conn.id ?? null,
+                  direct_path: jobParams.directPath,
+                  media_key: jobParams.mediaKeyB64,
+                  mime: mediaMime,
+                  file_name: mediaName,
+                  kind: jobParams.kind,
+                  declared_bytes: jobParams.declaredBytes ?? declaredBytesEarly ?? null,
+                  status: "pending",
+                } as never);
+                await supabaseAdmin.from("conversations").update({
+                  last_message_at: new Date().toISOString(),
+                  unread_count: (convo.unread_count ?? 0) + 1,
+                } as never).eq("id", convo.id);
+                return Response.json({ ok: true, queued: true });
+              }
               try {
                 mediaMime = imageMsg?.mimetype ?? videoMsg?.mimetype ?? audioMsg?.mimetype ?? docMsg?.mimetype ?? stickerMsg?.mimetype ?? (mediaKind === "sticker" ? "image/webp" : mediaKind === "audio" ? "audio/mpeg" : "application/octet-stream");
                 mediaName = docMsg?.fileName ?? `${mediaKind}-${msg?.key?.id ?? Date.now()}`;
@@ -1379,6 +1414,20 @@ function bytesFromBinaryLike(value: unknown): Uint8Array | null {
     if (entries.length) return Uint8Array.from(entries.map(([, v]) => v as number));
   }
   return null;
+}
+
+function extractWhatsAppMediaJob(msg: unknown): { directPath: string; mediaKeyB64: string; kind: "video" | "image" | "audio" | "document" | "sticker"; mime: string | null; fileName: string | null; declaredBytes: number | null } | null {
+  const found = findWhatsAppMedia(msg);
+  if (!found) return null;
+  const media = found.media as Record<string, unknown>;
+  const directPath = typeof media.directPath === "string" ? media.directPath : null;
+  const mediaKeyBytes = bytesFromBinaryLike(media.mediaKey);
+  if (!directPath || !mediaKeyBytes) return null;
+  const mediaKeyB64 = Buffer.from(mediaKeyBytes).toString("base64");
+  const mime = typeof media.mimetype === "string" ? media.mimetype : null;
+  const fileName = typeof media.fileName === "string" ? media.fileName : null;
+  const declaredBytes = mediaFileLength(media);
+  return { directPath, mediaKeyB64, kind: found.kind, mime, fileName, declaredBytes };
 }
 
 async function decryptWhatsAppMedia(encryptedWithMac: Uint8Array, mediaKey: Uint8Array, kind: "image" | "video" | "audio" | "document" | "sticker") {
