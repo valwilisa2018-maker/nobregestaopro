@@ -628,6 +628,27 @@ export const Route = createFileRoute("/api/public/evolution/$instance")({
                 const declaredBytes = mediaFileLength(mediaObject);
                 if (externalUrl) {
                   mediaUrl = externalUrl;
+                } else if (mediaKind === "video" && (declaredBytes ?? 0) <= MAX_INLINE_MEDIA_BYTES) {
+                  const b64 = findBase64(msg) ?? await evolutionGetBase64(commandConn, msg, false);
+                  if (b64) {
+                    mediaB64 = b64;
+                    const saved = await saveMediaToStorage(supabaseAdmin, conn.user_id, convo.id, b64, mediaMime ?? "application/octet-stream", mediaName ?? `${mediaKind}-${msg?.key?.id ?? Date.now()}`);
+                    mediaUrl = saved.url;
+                    mediaPath = saved.path;
+                  } else {
+                    const streamed = await downloadEvolutionMediaToStorage(supabaseAdmin, commandConn, conn.user_id, convo.id, msg, mediaMime, mediaName ?? `${mediaKind}-${msg?.key?.id ?? Date.now()}`, declaredBytes).catch(async (err) => {
+                      if (err instanceof MediaTooLargeError) throw err;
+                      await supabaseAdmin.from("logs").insert({ user_id: conn.user_id, level: "error", source: "evolution:inbound-media", message: `video inline fallback stream failed: ${err?.message ?? String(err)}`, metadata: { remoteJid, kind: mediaKind, declaredBytes } as never } as never);
+                      return null;
+                    });
+                    if (streamed) {
+                      mediaUrl = streamed.url;
+                      mediaPath = streamed.path;
+                      mediaMime = streamed.mime;
+                    } else {
+                      await supabaseAdmin.from("logs").insert({ user_id: conn.user_id, level: "error", source: "evolution:inbound-media", message: "video: no base64 and stream returned empty", metadata: { remoteJid, declaredBytes, mime: mediaMime, evoId: inboundEvoId } as never } as never);
+                    }
+                  }
                 } else if (mediaKind === "video" || (declaredBytes ?? 0) > MAX_INLINE_MEDIA_BYTES) {
                   const streamed = await downloadEvolutionMediaToStorage(supabaseAdmin, commandConn, conn.user_id, convo.id, msg, mediaMime, mediaName ?? `${mediaKind}-${msg?.key?.id ?? Date.now()}`, declaredBytes).catch(async (err) => {
                     if (err instanceof MediaTooLargeError) throw err;
