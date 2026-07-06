@@ -1703,7 +1703,7 @@ function MessagesPage() {
             if (cap) setText("");
             files.forEach((f, i) => sendOneFile(f, i === 0 ? cap || undefined : undefined));
           }}
-          className={`${selected ? "flex" : "hidden md:flex"} flex-col min-w-0 min-h-0 overflow-hidden h-full relative`}
+          className={`${selected ? "flex animate-in fade-in slide-in-from-right-4 duration-200" : "hidden lg:flex"} flex-col min-w-0 min-h-0 overflow-hidden h-full relative`}
           style={{ background: WA.chatBg }}
         >
           {dragActive && (
