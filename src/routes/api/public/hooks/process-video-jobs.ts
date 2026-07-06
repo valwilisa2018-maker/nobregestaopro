@@ -34,7 +34,7 @@ export const Route = createFileRoute("/api/public/hooks/process-video-jobs")({
           if (job.declared_bytes && job.declared_bytes > HARD_MAX) {
             throw new Error(`Vídeo maior que ${HARD_MAX / 1024 / 1024} MB (${(job.declared_bytes / 1024 / 1024).toFixed(1)} MB).`);
           }
-          const url = `https://mmg.whatsapp.net${job.direct_path}`;
+          const url = /^https?:\/\//i.test(job.direct_path) ? job.direct_path : `https://mmg.whatsapp.net${job.direct_path}`;
           const res = await fetch(url);
           if (!res.ok) throw new Error(`fetch ${res.status}`);
           const encrypted = new Uint8Array(await res.arrayBuffer());
