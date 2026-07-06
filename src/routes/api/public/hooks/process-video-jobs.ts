@@ -87,12 +87,12 @@ export const Route = createFileRoute("/api/public/hooks/process-video-jobs")({
             .update({ status: failed ? "failed" : "pending", error: msg } as never)
             .eq("id", job.id);
           if (failed && job.message_id) {
-            const { data: msg } = await supabaseAdmin
+            const { data: existingMsg } = await supabaseAdmin
               .from("messages")
               .select("metadata")
               .eq("id", job.message_id)
               .maybeSingle();
-            const meta = { ...((msg?.metadata as Record<string, unknown>) ?? {}), pending: false, error: msg };
+            const meta = { ...((existingMsg?.metadata as Record<string, unknown>) ?? {}), pending: false, error: msg };
             await supabaseAdmin
               .from("messages")
               .update({ content: `⚠️ Falha ao baixar vídeo: ${msg}`, metadata: meta as never } as never)
