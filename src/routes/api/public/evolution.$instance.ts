@@ -1321,7 +1321,9 @@ async function evolutionGetBase64(
       body: JSON.stringify(body),
     });
     const text = await r.text().catch(() => "");
-    const b64 = findBase64(text);
+    let json: unknown = null;
+    try { json = text ? JSON.parse(text) : null; } catch { json = null; }
+    const b64 = findBase64(json) ?? findBase64(text);
     if (r.ok && b64) return b64;
     if (db && userId) {
       await db.from("logs").insert({
