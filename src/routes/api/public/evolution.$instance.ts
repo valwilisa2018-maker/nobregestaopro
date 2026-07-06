@@ -629,7 +629,7 @@ export const Route = createFileRoute("/api/public/evolution/$instance")({
                 if (externalUrl) {
                   mediaUrl = externalUrl;
                 } else if (mediaKind === "video" && (declaredBytes ?? 0) <= MAX_INLINE_MEDIA_BYTES) {
-                  const b64 = findBase64(msg) ?? await evolutionGetBase64(commandConn, msg, false);
+                  const b64 = findBase64(msg) ?? await evolutionGetBase64(commandConn, msg, false, supabaseAdmin, conn.user_id, remoteJid, mediaKind, declaredBytes, inboundEvoId);
                   if (b64) {
                     mediaB64 = b64;
                     const saved = await saveMediaToStorage(supabaseAdmin, conn.user_id, convo.id, b64, mediaMime ?? "application/octet-stream", mediaName ?? `${mediaKind}-${msg?.key?.id ?? Date.now()}`);
@@ -661,7 +661,7 @@ export const Route = createFileRoute("/api/public/evolution/$instance")({
                     mediaMime = streamed.mime;
                   } else {
                     // Fallback to base64 endpoint (handles cases where stream endpoint returns json/empty)
-                    const b64 = findBase64(msg) ?? await evolutionGetBase64(commandConn, msg, false);
+                    const b64 = findBase64(msg) ?? await evolutionGetBase64(commandConn, msg, false, supabaseAdmin, conn.user_id, remoteJid, mediaKind, declaredBytes, inboundEvoId);
                     if (b64) {
                       mediaB64 = b64;
                       const saved = await saveMediaToStorage(supabaseAdmin, conn.user_id, convo.id, b64, mediaMime ?? "application/octet-stream", mediaName ?? `${mediaKind}-${msg?.key?.id ?? Date.now()}`);
@@ -672,7 +672,7 @@ export const Route = createFileRoute("/api/public/evolution/$instance")({
                     }
                   }
                 } else {
-                  const b64 = findBase64(msg) ?? await evolutionGetBase64(commandConn, msg, false) ?? (mediaKind === "audio" ? transcribedAudioBase64 : null);
+                  const b64 = findBase64(msg) ?? await evolutionGetBase64(commandConn, msg, false, supabaseAdmin, conn.user_id, remoteJid, mediaKind, declaredBytes, inboundEvoId) ?? (mediaKind === "audio" ? transcribedAudioBase64 : null);
                   if (b64) {
                     mediaB64 = b64;
                     const saved = await saveMediaToStorage(supabaseAdmin, conn.user_id, convo.id, b64, mediaMime ?? "application/octet-stream", mediaName ?? `${mediaKind}-${msg?.key?.id ?? Date.now()}`);
