@@ -1240,7 +1240,14 @@ async function downloadEvolutionMediaToStorage(
   const ext = safeName.includes(".") ? "" : `.${(contentType.split("/")[1] || "bin").split(";")[0]}`;
   const path = `${userId}/${conversationId}/${Date.now()}-${crypto.randomUUID()}-${safeName}${ext}`;
   const endpoint = `${normalizeBaseUrl(conn.url_api ?? "")}/chat/downloadMediaMessage/${conn.instance_name}`;
-  const bodies = [message, { message }];
+  const record = message && typeof message === "object" ? message as Record<string, unknown> : {};
+  const bodies = [
+    message,
+    { message },
+    { key: record.key, message: record.message },
+    { messageKey: record.key, message: record.message },
+    { id: (record.key as Record<string, unknown> | undefined)?.id, key: record.key },
+  ];
 
   for (const body of bodies) {
     const r = await fetch(endpoint, {
