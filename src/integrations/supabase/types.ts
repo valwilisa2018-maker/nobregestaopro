@@ -1595,6 +1595,84 @@ export type Database = {
         }
         Relationships: []
       }
+      video_jobs: {
+        Row: {
+          attempts: number
+          connection_id: string | null
+          conversation_id: string | null
+          created_at: string
+          declared_bytes: number | null
+          direct_path: string
+          error: string | null
+          file_name: string | null
+          id: string
+          kind: string
+          media_key: string
+          media_url: string | null
+          message_id: string | null
+          mime: string | null
+          status: string
+          storage_path: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          attempts?: number
+          connection_id?: string | null
+          conversation_id?: string | null
+          created_at?: string
+          declared_bytes?: number | null
+          direct_path: string
+          error?: string | null
+          file_name?: string | null
+          id?: string
+          kind?: string
+          media_key: string
+          media_url?: string | null
+          message_id?: string | null
+          mime?: string | null
+          status?: string
+          storage_path?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          attempts?: number
+          connection_id?: string | null
+          conversation_id?: string | null
+          created_at?: string
+          declared_bytes?: number | null
+          direct_path?: string
+          error?: string | null
+          file_name?: string | null
+          id?: string
+          kind?: string
+          media_key?: string
+          media_url?: string | null
+          message_id?: string | null
+          mime?: string | null
+          status?: string
+          storage_path?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "video_jobs_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "conversations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "video_jobs_message_id_fkey"
+            columns: ["message_id"]
+            isOneToOne: false
+            referencedRelation: "messages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       webhooks: {
         Row: {
           created_at: string
