@@ -434,15 +434,32 @@ function KanbanPage() {
       toast.error("Apenas o admin pode transferir cards para outro produtor.");
       return;
     }
-    const { error } = await supabase
+    const { data: so, error: soErr } = await supabase
       .from("service_orders")
       .update({ producer_id: producerId })
-      .eq("id", cardId);
-    if (error) {
-      await logger.error(`Erro ao transferir card: ${error.message}`, { context: "kanban/transferCard", details: { cardId, producerId, error } });
-    } else { 
-      toast.success("Serviço transferido"); 
-      qc.invalidateQueries({ queryKey: ["kanban-cards"] }); 
+      .eq("id", cardId)
+      .select("sale_id")
+      .maybeSingle();
+    if (soErr) {
+      await logger.error(`Erro ao transferir card: ${soErr.message}`, { context: "kanban/transferCard", details: { cardId, producerId, error: soErr } });
+    } else {
+      if (so?.sale_id) {
+        const { error: saleErr } = await supabase
+          .from("sales")
+          .update({ producer_id: producerId })
+          .eq("id", so.sale_id);
+        if (saleErr) {
+          await logger.error(`Erro ao transferir venda/comissão: ${saleErr.message}`, { context: "kanban/transferCard", details: { cardId, producerId, saleErr } });
+          toast.error("Card transferido, mas falha ao mover a comissão.");
+        } else {
+          toast.success("Serviço e comissão transferidos");
+        }
+      } else {
+        toast.success("Serviço transferido");
+      }
+      qc.invalidateQueries({ queryKey: ["kanban-cards"] });
+      qc.invalidateQueries({ queryKey: ["commissions-sales"] });
+      qc.invalidateQueries({ queryKey: ["commissions-delivered-sales"] });
     }
   };
 
@@ -451,15 +468,32 @@ function KanbanPage() {
       toast.error("Apenas o admin pode transferir cards para outro produtor.");
       return;
     }
-    const { error } = await supabase
+    const { data: sos, error } = await supabase
       .from("service_orders")
       .update({ producer_id: producerId })
-      .in("id", cardIds);
+      .in("id", cardIds)
+      .select("sale_id");
     if (error) {
       await logger.error(`Erro ao transferir vários cards: ${error.message}`, { context: "kanban/transferMany", details: { cardIds, producerId, error } });
-    } else { 
-      toast.success(`${cardIds.length} serviços transferidos`); 
-      qc.invalidateQueries({ queryKey: ["kanban-cards"] }); 
+    } else {
+      const saleIds = Array.from(new Set((sos ?? []).map((r: any) => r.sale_id).filter(Boolean)));
+      if (saleIds.length > 0) {
+        const { error: saleErr } = await supabase
+          .from("sales")
+          .update({ producer_id: producerId })
+          .in("id", saleIds);
+        if (saleErr) {
+          await logger.error(`Erro ao transferir vendas/comissões: ${saleErr.message}`, { context: "kanban/transferMany", details: { saleIds, producerId, saleErr } });
+          toast.error("Cards transferidos, mas falha ao mover comissões.");
+        } else {
+          toast.success(`${cardIds.length} serviços e comissões transferidos`);
+        }
+      } else {
+        toast.success(`${cardIds.length} serviços transferidos`);
+      }
+      qc.invalidateQueries({ queryKey: ["kanban-cards"] });
+      qc.invalidateQueries({ queryKey: ["commissions-sales"] });
+      qc.invalidateQueries({ queryKey: ["commissions-delivered-sales"] });
     }
   };
 
