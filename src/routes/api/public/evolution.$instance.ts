@@ -1295,15 +1295,45 @@ async function downloadEvolutionMediaToStorage(
   return null;
 }
 
-async function evolutionGetBase64(conn: { url_api: string | null; api_key: string | null; instance_name: string | null }, message: unknown, convertToMp3 = false): Promise<string | null> {
-  const r = await fetch(`${normalizeBaseUrl(conn.url_api ?? "")}/chat/getBase64FromMediaMessage/${conn.instance_name}`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json", apikey: conn.api_key ?? "" },
-    body: JSON.stringify({ message, convertToMp3 }),
-  });
-  if (!r.ok) return null;
-  const j = await r.json().catch(() => null) as unknown;
-  return findBase64(j);
+async function evolutionGetBase64(
+  conn: { url_api: string | null; api_key: string | null; instance_name: string | null },
+  message: unknown,
+  convertToMp3 = false,
+  db?: { from: (table: string) => any },
+  userId?: string,
+  remoteJid?: string,
+  kind?: string | null,
+  declaredBytes?: number | null,
+  evoId?: string | null,
+): Promise<string | null> {
+  const endpoint = `${normalizeBaseUrl(conn.url_api ?? "")}/chat/getBase64FromMediaMessage/${conn.instance_name}`;
+  const record = message && typeof message === "object" ? message as Record<string, unknown> : {};
+  const bodies = [
+    { message, convertToMp3 },
+    { message: { key: record.key, message: record.message }, convertToMp3 },
+    { key: record.key, message: record.message, convertToMp3 },
+  ];
+
+  for (const body of bodies) {
+    const r = await fetch(endpoint, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", apikey: conn.api_key ?? "" },
+      body: JSON.stringify(body),
+    });
+    const text = await r.text().catch(() => "");
+    const b64 = findBase64(text);
+    if (r.ok && b64) return b64;
+    if (db && userId) {
+      await db.from("logs").insert({
+        user_id: userId,
+        level: r.ok ? "warn" : "error",
+        source: "evolution:get-base64",
+        message: r.ok ? "base64 not found in response" : `getBase64 failed: HTTP ${r.status}`,
+        metadata: { remoteJid, kind, declaredBytes, evoId, responsePreview: text.slice(0, 500) } as never,
+      } as never);
+    }
+  }
+  return null;
 }
 
 function mediaLabel(kind: "image" | "video" | "audio" | "document" | "sticker") {
