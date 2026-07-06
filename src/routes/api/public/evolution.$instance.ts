@@ -1218,22 +1218,53 @@ async function downloadEvolutionMediaToStorage(
   const safeName = fileName.replace(/[^a-zA-Z0-9._-]+/g, "-").slice(0, 80) || "media";
   const ext = safeName.includes(".") ? "" : `.${(contentType.split("/")[1] || "bin").split(";")[0]}`;
   const path = `${userId}/${conversationId}/${Date.now()}-${crypto.randomUUID()}-${safeName}${ext}`;
-  const r = await fetch(`${normalizeBaseUrl(conn.url_api ?? "")}/chat/downloadMediaMessage/${conn.instance_name}`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json", apikey: conn.api_key ?? "" },
-    body: JSON.stringify(message),
-  });
-  if (!r.ok || !r.body) return null;
-  const responseType = r.headers.get("content-type") ?? contentType;
-  if (responseType.includes("application/json")) return null;
-  const { error } = await db.storage.from(MEDIA_BUCKET).upload(path, r.body, {
-    contentType: responseType || contentType,
-    upsert: false,
-    duplex: "half",
-  });
-  if (error) throw new Error(error.message);
-  const { data } = await db.storage.from(MEDIA_BUCKET).createSignedUrl(path, 60 * 60 * 24 * 30);
-  return { path, url: data?.signedUrl ?? null, mime: responseType || contentType };
+  const endpoint = `${normalizeBaseUrl(conn.url_api ?? "")}/chat/downloadMediaMessage/${conn.instance_name}`;
+  const bodies = [message, { message }];
+
+  for (const body of bodies) {
+    const r = await fetch(endpoint, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", apikey: conn.api_key ?? "" },
+      body: JSON.stringify(body),
+    });
+    if (!r.ok || !r.body) continue;
+
+    const responseType = r.headers.get("content-type") ?? contentType;
+    if (responseType.includes("application/json")) {
+      const json = await r.json().catch(() => null) as unknown;
+      const directUrl = findPlayableMediaUrl(json);
+      if (directUrl) return { path: "", url: directUrl, mime: contentType };
+      const b64 = findBase64(json);
+      if (b64) {
+        const saved = await saveMediaToStorage(db, userId, conversationId, b64, contentType, fileName);
+        return { path: saved.path, url: saved.url, mime: contentType };
+      }
+      continue;
+    }
+
+    if (responseType.startsWith("text/")) {
+      const text = await r.text().catch(() => "");
+      const directUrl = /^https?:\/\//i.test(text.trim()) ? text.trim() : null;
+      if (directUrl && !directUrl.includes("mmg.whatsapp.net")) return { path: "", url: directUrl, mime: contentType };
+      const b64 = findBase64(text);
+      if (b64) {
+        const saved = await saveMediaToStorage(db, userId, conversationId, b64, contentType, fileName);
+        return { path: saved.path, url: saved.url, mime: contentType };
+      }
+      continue;
+    }
+
+    const { error } = await db.storage.from(MEDIA_BUCKET).upload(path, r.body, {
+      contentType: responseType || contentType,
+      upsert: false,
+      duplex: "half",
+    });
+    if (error) throw new Error(error.message);
+    const { data } = await db.storage.from(MEDIA_BUCKET).createSignedUrl(path, 60 * 60 * 24 * 30);
+    return { path, url: data?.signedUrl ?? null, mime: responseType || contentType };
+  }
+
+  return null;
 }
 
 async function evolutionGetBase64(conn: { url_api: string | null; api_key: string | null; instance_name: string | null }, message: unknown, convertToMp3 = false): Promise<string | null> {
