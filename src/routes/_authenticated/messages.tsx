@@ -1281,13 +1281,13 @@ function MessagesPage() {
       <div
         className={`grid grid-cols-1 gap-0 overflow-hidden h-full transition-all duration-300 ${
           sidebarCollapsed
-            ? (infoOpen ? "md:grid-cols-[64px_1fr_320px]" : "md:grid-cols-[64px_1fr]")
-            : (infoOpen ? "md:grid-cols-[360px_1fr_320px]" : "md:grid-cols-[360px_1fr]")
+            ? (infoOpen ? "lg:grid-cols-[64px_1fr_320px]" : "lg:grid-cols-[64px_1fr]")
+            : (infoOpen ? "lg:grid-cols-[340px_1fr_300px] xl:grid-cols-[360px_1fr_320px]" : "lg:grid-cols-[300px_1fr] xl:grid-cols-[360px_1fr]")
         }`}
       >
         {/* Contacts */}
         <aside
-          className={`${selected ? "hidden md:flex" : "flex"} flex-col bg-white border-r border-black/10 transition-all duration-300 overflow-hidden`}
+          className={`${selected ? "hidden lg:flex" : "flex animate-in fade-in slide-in-from-left-4 duration-200"} flex-col bg-white border-r border-black/10 transition-all duration-300 overflow-hidden`}
         >
           <div className="px-3 py-3 flex items-center gap-2" style={{ background: WA.headerDark, color: "white" }}>
             <Popover onOpenChange={(o) => {
@@ -1703,7 +1703,7 @@ function MessagesPage() {
             if (cap) setText("");
             files.forEach((f, i) => sendOneFile(f, i === 0 ? cap || undefined : undefined));
           }}
-          className={`${selected ? "flex" : "hidden md:flex"} flex-col min-w-0 min-h-0 overflow-hidden h-full relative`}
+          className={`${selected ? "flex animate-in fade-in slide-in-from-right-4 duration-200" : "hidden lg:flex"} flex-col min-w-0 min-h-0 overflow-hidden h-full relative`}
           style={{ background: WA.chatBg }}
         >
           {dragActive && (
@@ -1728,14 +1728,14 @@ function MessagesPage() {
           ) : (
             <>
               <header className="px-4 py-2.5 flex items-center gap-3 text-white shadow-sm" style={{ background: WA.headerTeal }}>
-                <button className="md:hidden p-1 -ml-1" onClick={() => setSelected(null)}>
+                <button className="lg:hidden p-1 -ml-1 active:bg-white/20 rounded-full" onClick={() => setSelected(null)}>
                   <ArrowLeft className="h-5 w-5" />
                 </button>
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <button
                       onClick={() => setSidebarCollapsed((v) => !v)}
-                      className="hidden md:grid h-9 w-9 -ml-1 place-items-center rounded-full bg-white/15 hover:bg-white/25 text-white transition focus:outline-none focus-visible:ring-2 focus-visible:ring-white/70"
+                      className="hidden lg:grid h-9 w-9 -ml-1 place-items-center rounded-full bg-white/15 hover:bg-white/25 text-white transition focus:outline-none focus-visible:ring-2 focus-visible:ring-white/70"
                       aria-label={sidebarCollapsed ? "Expandir lista de conversas" : "Recolher lista de conversas"}
                     >
                       {sidebarCollapsed ? <ChevronRight className="h-5 w-5" /> : <ChevronLeft className="h-5 w-5" />}
@@ -2369,7 +2369,7 @@ function MessagesPage() {
           )}
         </section>
         {selected && infoOpen && (
-          <aside className="hidden md:flex flex-col w-80 border-l border-black/10 bg-white overflow-y-auto">
+          <aside className="hidden xl:flex flex-col w-80 border-l border-black/10 bg-white overflow-y-auto">
             <div className="px-4 py-3 flex items-center gap-2 text-white" style={{ background: WA.headerDark }}>
               <button onClick={() => setInfoOpen(false)} className="p-1 rounded-full hover:bg-white/15" aria-label="Fechar">
                 <X className="h-5 w-5" />
