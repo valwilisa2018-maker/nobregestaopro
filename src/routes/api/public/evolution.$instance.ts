@@ -39,8 +39,9 @@ type ConvMeta = {
 };
 
 const MEDIA_BUCKET = "agent-media";
-// Limite de recebimento de mídia: 200 MB por arquivo
-const MAX_INBOUND_MEDIA_BYTES = 200 * 1024 * 1024;
+// Cloudflare Workers têm ~128MB de RAM. Baixar+base64+upload de vídeos grandes
+// estoura memória/CPU e o handler morre silenciosamente. Limite realista: 30 MB.
+const MAX_INBOUND_MEDIA_BYTES = 30 * 1024 * 1024;
 // Evita derrubar o worker com vídeo em base64 no webhook.
 const MAX_WEBHOOK_BODY_BYTES = 30 * 1024 * 1024;
 const MAX_INLINE_MEDIA_BYTES = 25 * 1024 * 1024;
@@ -59,7 +60,7 @@ class PayloadTooLargeError extends Error {
 class MediaTooLargeError extends Error {
   bytes: number;
   constructor(bytes: number) {
-    super(`Mídia excede o limite de 200 MB (${(bytes / 1024 / 1024).toFixed(1)} MB recebidos).`);
+    super(`Mídia excede o limite de 30 MB (${(bytes / 1024 / 1024).toFixed(1)} MB recebidos).`);
     this.name = "MediaTooLargeError";
     this.bytes = bytes;
   }
@@ -575,7 +576,7 @@ export const Route = createFileRoute("/api/public/evolution/$instance")({
                       message: e.message,
                       metadata: { remoteJid, kind: mediaKind, bytes: e.bytes, limit: MAX_INBOUND_MEDIA_BYTES } as never,
                     } as never);
-                    mediaCaption = `⚠️ ${mediaLabel(mediaKind)} excede o limite de 200 MB e não foi salvo.`;
+                    mediaCaption = `⚠️ ${mediaLabel(mediaKind)} excede o limite de 30 MB e não foi salvo.`;
                   }
                 }
                 await supabaseAdmin.from("messages").insert({
@@ -689,7 +690,7 @@ export const Route = createFileRoute("/api/public/evolution/$instance")({
                     message: e.message,
                     metadata: { remoteJid, kind: mediaKind, bytes: e.bytes, limit: MAX_INBOUND_MEDIA_BYTES } as never,
                   } as never);
-                  mediaCaption = `⚠️ ${mediaLabel(mediaKind)} recebido excede o limite de 200 MB e não foi salvo.`;
+                  mediaCaption = `⚠️ ${mediaLabel(mediaKind)} recebido excede o limite de 30 MB e não foi salvo.`;
                 }
               }
               await supabaseAdmin.from("messages").insert({
