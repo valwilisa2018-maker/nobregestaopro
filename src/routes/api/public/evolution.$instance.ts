@@ -1389,15 +1389,21 @@ async function decryptWhatsAppMedia(encryptedWithMac: Uint8Array, mediaKey: Uint
   const iv = material.slice(0, 16);
   const cipherKey = material.slice(16, 48);
   const encrypted = encryptedWithMac.slice(0, Math.max(0, encryptedWithMac.byteLength - 10));
-  const key = await crypto.subtle.importKey("raw", cipherKey, { name: "AES-CBC" }, false, ["decrypt"]);
-  const out = await crypto.subtle.decrypt({ name: "AES-CBC", iv }, key, encrypted);
+  const key = await crypto.subtle.importKey("raw", arrayBufferFrom(cipherKey), { name: "AES-CBC" }, false, ["decrypt"]);
+  const out = await crypto.subtle.decrypt({ name: "AES-CBC", iv: arrayBufferFrom(iv) }, key, arrayBufferFrom(encrypted));
   return new Uint8Array(out);
 }
 
 async function hkdf(keyMaterial: Uint8Array, infoText: string, length: number) {
-  const key = await crypto.subtle.importKey("raw", keyMaterial, "HKDF", false, ["deriveBits"]);
-  const bits = await crypto.subtle.deriveBits({ name: "HKDF", hash: "SHA-256", salt: new Uint8Array(32), info: new TextEncoder().encode(infoText) }, key, length * 8);
+  const key = await crypto.subtle.importKey("raw", arrayBufferFrom(keyMaterial), "HKDF", false, ["deriveBits"]);
+  const bits = await crypto.subtle.deriveBits({ name: "HKDF", hash: "SHA-256", salt: arrayBufferFrom(new Uint8Array(32)), info: arrayBufferFrom(new TextEncoder().encode(infoText)) }, key, length * 8);
   return new Uint8Array(bits);
+}
+
+function arrayBufferFrom(bytes: Uint8Array) {
+  const copy = new Uint8Array(bytes.byteLength);
+  copy.set(bytes);
+  return copy.buffer as ArrayBuffer;
 }
 
 async function evolutionGetBase64(
