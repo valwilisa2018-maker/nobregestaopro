@@ -34,7 +34,7 @@ export const Route = createFileRoute("/api/public/hooks/process-video-jobs")({
           if (job.declared_bytes && job.declared_bytes > HARD_MAX) {
             throw new Error(`Vídeo maior que ${HARD_MAX / 1024 / 1024} MB (${(job.declared_bytes / 1024 / 1024).toFixed(1)} MB).`);
           }
-          const url = `https://mmg.whatsapp.net${job.direct_path}`;
+          const url = /^https?:\/\//i.test(job.direct_path) ? job.direct_path : `https://mmg.whatsapp.net${job.direct_path}`;
           const res = await fetch(url);
           if (!res.ok) throw new Error(`fetch ${res.status}`);
           const encrypted = new Uint8Array(await res.arrayBuffer());
@@ -87,9 +87,15 @@ export const Route = createFileRoute("/api/public/hooks/process-video-jobs")({
             .update({ status: failed ? "failed" : "pending", error: msg } as never)
             .eq("id", job.id);
           if (failed && job.message_id) {
+            const { data: existingMsg } = await supabaseAdmin
+              .from("messages")
+              .select("metadata")
+              .eq("id", job.message_id)
+              .maybeSingle();
+            const meta = { ...((existingMsg?.metadata as Record<string, unknown>) ?? {}), pending: false, error: msg };
             await supabaseAdmin
               .from("messages")
-              .update({ content: `⚠️ Falha ao baixar vídeo: ${msg}`, metadata: { pending: false, error: msg } as never } as never)
+              .update({ content: `⚠️ Falha ao baixar vídeo: ${msg}`, metadata: meta as never } as never)
               .eq("id", job.message_id);
           }
           await supabaseAdmin.from("logs").insert({

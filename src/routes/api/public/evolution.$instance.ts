@@ -45,6 +45,8 @@ const MAX_INBOUND_MEDIA_BYTES = 30 * 1024 * 1024;
 // Evita derrubar o worker com vídeo em base64 no webhook.
 const MAX_WEBHOOK_BODY_BYTES = 30 * 1024 * 1024;
 const MAX_INLINE_MEDIA_BYTES = 25 * 1024 * 1024;
+const MAX_QUEUED_VIDEO_BYTES = 150 * 1024 * 1024;
+const STORAGE_FILE_SIZE_LIMIT = 200 * 1024 * 1024;
 let bucketLimitEnsured = false;
 
 
@@ -171,7 +173,7 @@ export const Route = createFileRoute("/api/public/evolution/$instance")({
           bucketLimitEnsured = true;
           try {
             await (supabaseAdmin.storage as any).updateBucket(MEDIA_BUCKET, {
-              fileSizeLimit: MAX_INBOUND_MEDIA_BYTES,
+              fileSizeLimit: STORAGE_FILE_SIZE_LIMIT,
             });
           } catch { /* best-effort */ }
         }
@@ -625,19 +627,20 @@ export const Route = createFileRoute("/api/public/evolution/$instance")({
               // (worker Cloudflare não aguenta baixar+descriptografar 100MB inline).
               const declaredBytesEarly = mediaFileLength(imageMsg ?? videoMsg ?? audioMsg ?? docMsg ?? stickerMsg);
               const shouldQueue = (mediaKind === "video") && (declaredBytesEarly ?? 0) > MAX_INLINE_MEDIA_BYTES;
-              const jobParams = shouldQueue ? extractWhatsAppMediaJob(msg) : null;
+              const jobParams = shouldQueue ? (extractWhatsAppMediaJob(msg) ?? extractWhatsAppMediaJob(payload)) : null;
               if (jobParams) {
                 mediaMime = jobParams.mime ?? "video/mp4";
                 mediaName = jobParams.fileName ?? `video-${inboundEvoId ?? Date.now()}.mp4`;
                 mediaCaption = mediaCaption ?? "⏳ Baixando vídeo...";
-                const { data: inserted } = await supabaseAdmin.from("messages").insert({
+                const { data: inserted, error: msgErr } = await supabaseAdmin.from("messages").insert({
                   user_id: conn.user_id, conversation_id: convo.id,
                   direction: "inbound", type: mediaKind,
                   content: mediaCaption,
                   media_url: null,
                   metadata: { remoteJid, instance: conn.instance_name, storagePath: null, mime: mediaMime, evoId: inboundEvoId, fromMe: false, transcribed: false, pending: true } as never,
                 } as never).select("id").single();
-                await supabaseAdmin.from("video_jobs").insert({
+                if (msgErr) throw new Error(`message queue insert failed: ${msgErr.message}`);
+                const { error: jobErr } = await supabaseAdmin.from("video_jobs").insert({
                   user_id: conn.user_id,
                   message_id: (inserted as { id?: string } | null)?.id ?? null,
                   conversation_id: convo.id,
@@ -650,11 +653,29 @@ export const Route = createFileRoute("/api/public/evolution/$instance")({
                   declared_bytes: jobParams.declaredBytes ?? declaredBytesEarly ?? null,
                   status: "pending",
                 } as never);
+                if (jobErr) throw new Error(`video job insert failed: ${jobErr.message}`);
                 await supabaseAdmin.from("conversations").update({
                   last_message_at: new Date().toISOString(),
                   unread_count: (convo.unread_count ?? 0) + 1,
                 } as never).eq("id", convo.id);
                 return Response.json({ ok: true, queued: true });
+              }
+              if (shouldQueue) {
+                await supabaseAdmin.from("logs").insert({
+                  user_id: conn.user_id,
+                  level: "error",
+                  source: "evolution:inbound-media",
+                  message: "video queue metadata missing",
+                  metadata: { remoteJid, evoId: inboundEvoId, declaredBytes: declaredBytesEarly } as never,
+                } as never);
+                await supabaseAdmin.from("messages").insert({
+                  user_id: conn.user_id, conversation_id: convo.id,
+                  direction: "inbound", type: mediaKind,
+                  content: "⚠️ Vídeo recebido, mas faltaram dados para baixar automaticamente.",
+                  media_url: null,
+                  metadata: { remoteJid, instance: conn.instance_name, storagePath: null, mime: mediaMime, evoId: inboundEvoId, fromMe: false, pending: false, error: "missing-video-download-metadata" } as never,
+                } as never);
+                return Response.json({ ok: true, queued: false, reason: "missing-video-download-metadata" });
               }
               try {
                 mediaMime = imageMsg?.mimetype ?? videoMsg?.mimetype ?? audioMsg?.mimetype ?? docMsg?.mimetype ?? stickerMsg?.mimetype ?? (mediaKind === "sticker" ? "image/webp" : mediaKind === "audio" ? "audio/mpeg" : "application/octet-stream");
@@ -1420,13 +1441,18 @@ function extractWhatsAppMediaJob(msg: unknown): { directPath: string; mediaKeyB6
   const found = findWhatsAppMedia(msg);
   if (!found) return null;
   const media = found.media as Record<string, unknown>;
-  const directPath = typeof media.directPath === "string" ? media.directPath : null;
+  const directPath = typeof media.directPath === "string"
+    ? media.directPath
+    : typeof media.url === "string" && /^https?:\/\//i.test(media.url)
+      ? media.url
+      : null;
   const mediaKeyBytes = bytesFromBinaryLike(media.mediaKey);
   if (!directPath || !mediaKeyBytes) return null;
+  const declaredBytes = mediaFileLength(media);
+  if (found.kind === "video" && declaredBytes && declaredBytes > MAX_QUEUED_VIDEO_BYTES) return null;
   const mediaKeyB64 = Buffer.from(mediaKeyBytes).toString("base64");
   const mime = typeof media.mimetype === "string" ? media.mimetype : null;
   const fileName = typeof media.fileName === "string" ? media.fileName : null;
-  const declaredBytes = mediaFileLength(media);
   return { directPath, mediaKeyB64, kind: found.kind, mime, fileName, declaredBytes };
 }
 
