@@ -1728,14 +1728,14 @@ function MessagesPage() {
           ) : (
             <>
               <header className="px-4 py-2.5 flex items-center gap-3 text-white shadow-sm" style={{ background: WA.headerTeal }}>
-                <button className="md:hidden p-1 -ml-1" onClick={() => setSelected(null)}>
+                <button className="lg:hidden p-1 -ml-1 active:bg-white/20 rounded-full" onClick={() => setSelected(null)}>
                   <ArrowLeft className="h-5 w-5" />
                 </button>
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <button
                       onClick={() => setSidebarCollapsed((v) => !v)}
-                      className="hidden md:grid h-9 w-9 -ml-1 place-items-center rounded-full bg-white/15 hover:bg-white/25 text-white transition focus:outline-none focus-visible:ring-2 focus-visible:ring-white/70"
+                      className="hidden lg:grid h-9 w-9 -ml-1 place-items-center rounded-full bg-white/15 hover:bg-white/25 text-white transition focus:outline-none focus-visible:ring-2 focus-visible:ring-white/70"
                       aria-label={sidebarCollapsed ? "Expandir lista de conversas" : "Recolher lista de conversas"}
                     >
                       {sidebarCollapsed ? <ChevronRight className="h-5 w-5" /> : <ChevronLeft className="h-5 w-5" />}
@@ -2369,7 +2369,7 @@ function MessagesPage() {
           )}
         </section>
         {selected && infoOpen && (
-          <aside className="hidden md:flex flex-col w-80 border-l border-black/10 bg-white overflow-y-auto">
+          <aside className="hidden xl:flex flex-col w-80 border-l border-black/10 bg-white overflow-y-auto">
             <div className="px-4 py-3 flex items-center gap-2 text-white" style={{ background: WA.headerDark }}>
               <button onClick={() => setInfoOpen(false)} className="p-1 rounded-full hover:bg-white/15" aria-label="Fechar">
                 <X className="h-5 w-5" />
