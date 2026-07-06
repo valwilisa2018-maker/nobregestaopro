@@ -1381,6 +1381,20 @@ function bytesFromBinaryLike(value: unknown): Uint8Array | null {
   return null;
 }
 
+function extractWhatsAppMediaJob(msg: unknown): { directPath: string; mediaKeyB64: string; kind: "video" | "image" | "audio" | "document" | "sticker"; mime: string | null; fileName: string | null; declaredBytes: number | null } | null {
+  const found = findWhatsAppMedia(msg);
+  if (!found) return null;
+  const media = found.media as Record<string, unknown>;
+  const directPath = typeof media.directPath === "string" ? media.directPath : null;
+  const mediaKeyBytes = bytesFromBinaryLike(media.mediaKey);
+  if (!directPath || !mediaKeyBytes) return null;
+  const mediaKeyB64 = Buffer.from(mediaKeyBytes).toString("base64");
+  const mime = typeof media.mimetype === "string" ? media.mimetype : null;
+  const fileName = typeof media.fileName === "string" ? media.fileName : null;
+  const declaredBytes = mediaFileLength(media);
+  return { directPath, mediaKeyB64, kind: found.kind, mime, fileName, declaredBytes };
+}
+
 async function decryptWhatsAppMedia(encryptedWithMac: Uint8Array, mediaKey: Uint8Array, kind: "image" | "video" | "audio" | "document" | "sticker") {
   const info = kind === "video" ? "WhatsApp Video Keys"
     : kind === "audio" ? "WhatsApp Audio Keys"
