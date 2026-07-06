@@ -629,11 +629,26 @@ export const Route = createFileRoute("/api/public/evolution/$instance")({
                 if (externalUrl) {
                   mediaUrl = externalUrl;
                 } else if (mediaKind === "video" || (declaredBytes ?? 0) > MAX_INLINE_MEDIA_BYTES) {
-                  const streamed = await downloadEvolutionMediaToStorage(supabaseAdmin, commandConn, conn.user_id, convo.id, msg, mediaMime, mediaName ?? `${mediaKind}-${msg?.key?.id ?? Date.now()}`, declaredBytes);
+                  const streamed = await downloadEvolutionMediaToStorage(supabaseAdmin, commandConn, conn.user_id, convo.id, msg, mediaMime, mediaName ?? `${mediaKind}-${msg?.key?.id ?? Date.now()}`, declaredBytes).catch(async (err) => {
+                    if (err instanceof MediaTooLargeError) throw err;
+                    await supabaseAdmin.from("logs").insert({ user_id: conn.user_id, level: "error", source: "evolution:inbound-media", message: `stream download failed: ${err?.message ?? String(err)}`, metadata: { remoteJid, kind: mediaKind, declaredBytes } as never } as never);
+                    return null;
+                  });
                   if (streamed) {
                     mediaUrl = streamed.url;
                     mediaPath = streamed.path;
                     mediaMime = streamed.mime;
+                  } else {
+                    // Fallback to base64 endpoint (handles cases where stream endpoint returns json/empty)
+                    const b64 = findBase64(msg) ?? await evolutionGetBase64(commandConn, msg, false);
+                    if (b64) {
+                      mediaB64 = b64;
+                      const saved = await saveMediaToStorage(supabaseAdmin, conn.user_id, convo.id, b64, mediaMime ?? "application/octet-stream", mediaName ?? `${mediaKind}-${msg?.key?.id ?? Date.now()}`);
+                      mediaUrl = saved.url;
+                      mediaPath = saved.path;
+                    } else {
+                      await supabaseAdmin.from("logs").insert({ user_id: conn.user_id, level: "error", source: "evolution:inbound-media", message: "video: no url from stream and no base64 fallback", metadata: { remoteJid, declaredBytes, mime: mediaMime } as never } as never);
+                    }
                   }
                 } else {
                   const b64 = findBase64(msg) ?? await evolutionGetBase64(commandConn, msg, false) ?? (mediaKind === "audio" ? transcribedAudioBase64 : null);
