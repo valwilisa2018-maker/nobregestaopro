@@ -645,9 +645,8 @@ function MessagesPage() {
   );
   const groupsTotal = useMemo(() => contacts.filter((c) => c.phone.includes("@g.us")).length, [contacts]);
 
-  // Defensive dedup: even if a message slips in through both the optimistic path
-  // and Realtime (or a refetch), render it only once. Dedup by id first, then by
-  // (direction + type + content) within a 2-minute window to collapse tmp/real pairs.
+  // Defensive dedup: collapse only identical IDs and optimistic tmp/real pairs.
+  // Real repeated text like "oi" must stay visible in the history.
   const dedupedMsgs = useMemo(() => {
     const seenIds = new Set<string>();
     const bySig = new Map<string, number>(); // signature -> index in output
@@ -672,7 +671,7 @@ function MessagesPage() {
             out[prevIdx] = m;
             bySig.set(sig, prevIdx);
           }
-          if (hasTmp || (m.type || "text") === "text") continue;
+          if (hasTmp) continue;
         }
       }
       bySig.set(sig, out.length);
