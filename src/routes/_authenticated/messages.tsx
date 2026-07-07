@@ -316,6 +316,10 @@ function MessagesPage() {
   }
 
   function mergeThreadPagePreservingOlder(current: Msg[], refreshed: Msg[]) {
+    if (typeof window !== "undefined" && localStorage.getItem("wa-debug") === "1") {
+      // eslint-disable-next-line no-console
+      console.log("[wa-msg] mergeThreadPagePreservingOlder:in", { currentCount: current.length, refreshedCount: refreshed.length });
+    }
     if (!current.length) return refreshed;
     if (!refreshed.length) return current;
     const oldestRefreshedTs = Math.min(...refreshed.map((m) => new Date(m.created_at).getTime()).filter(Number.isFinite));
@@ -334,7 +338,17 @@ function MessagesPage() {
       const prev = map.get(key);
       map.set(key, prev ? { ...prev, ...m, metadata: { ...(prev.metadata ?? {}), ...(m.metadata ?? {}) } } : m);
     }
-    return [...map.values()].sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+    const out = [...map.values()].sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+    if (typeof window !== "undefined" && localStorage.getItem("wa-debug") === "1") {
+      // eslint-disable-next-line no-console
+      console.log("[wa-msg] mergeThreadPagePreservingOlder:out", {
+        outCount: out.length,
+        keptOlder: keptOlder.length,
+        oldestRefreshedTs,
+        droppedFromCurrent: current.length - keptOlder.length,
+      });
+    }
+    return out;
   }
 
   const attemptSendText = useCallback((tmpId: string, contactId: string, body: string, attempt = 0, quotedMessageId?: string) => {
