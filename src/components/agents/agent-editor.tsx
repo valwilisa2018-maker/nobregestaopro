@@ -251,21 +251,17 @@ export function AgentEditor({ agent, onSaved, onCancel }: Props) {
       const m = ext.media ?? {};
       push(9, "Mídia com IA", true, `${(m.items ?? []).length} item(ns)`);
 
-      // 10) Testar IA — ping ao gateway
-      try {
-        const key = (import.meta.env.VITE_LOVABLE_API_KEY as string | undefined) ?? "";
-        const modelId = prov?.model ?? "google/gemini-2.5-flash";
-        const isGpt5 = /gpt-5|o1|o3|o4/.test(modelId);
-        const body: Record<string, unknown> = { model: modelId, messages: [{ role: "user", content: "ping" }] };
-        if (isGpt5) body.max_completion_tokens = 16; else { body.max_tokens = 16; body.temperature = 0.2; }
-        const r = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-          method: "POST",
-          headers: { "content-type": "application/json", ...(key ? { authorization: `Bearer ${key}` } : {}) },
-          body: JSON.stringify(body),
-        });
-        push(10, "Testar IA", r.ok || r.status === 401, r.ok ? `Gateway respondeu (${modelId})` : `HTTP ${r.status}`);
-      } catch (e) {
-        push(10, "Testar IA", false, e instanceof Error ? e.message : String(e));
+      // 10) Testar IA — verifica provedor + instância vinculada (webhook chama o gateway no servidor)
+      {
+        const modelId = prov?.model ?? null;
+        const hasProv = !!prov;
+        const hasConn = !!form.connection_id;
+        const ok = hasProv && hasConn && form.is_active;
+        const msg = !hasProv ? "Sem provedor de IA ativo"
+          : !hasConn ? "Sem instância WhatsApp vinculada"
+          : !form.is_active ? "Agente pausado"
+          : `Pronto para responder (modelo: ${modelId})`;
+        push(10, "Testar IA", ok, msg);
       }
 
       // 11) Conhecimento
