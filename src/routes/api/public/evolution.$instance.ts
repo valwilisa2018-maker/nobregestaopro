@@ -978,7 +978,7 @@ export const Route = createFileRoute("/api/public/evolution/$instance")({
                       ? "\n\n## Base de Conhecimento\n" + kb.map((k) => `### ${k.title ?? "Item"}\n${k.content}`).join("\n\n")
                       : "";
                     const sys = (agent.system_prompt ?? "") + kbText;
-                    return sys.trim() ? [{ role: "system", content: sys }] : [];
+                    return sys.trim() ? [{ role: "system" as const, content: sys }] : [];
                   })(),
                   ...history,
                   (() => {
@@ -992,9 +992,9 @@ export const Route = createFileRoute("/api/public/evolution/$instance")({
                       } else {
                         parts.push({ type: "file", file: { filename: mediaName ?? "arquivo", file_data: dataUri } });
                       }
-                      return { role: "user", content: parts };
+                      return { role: "user" as const, content: parts };
                     }
-                    return { role: "user", content: mergedInbound };
+                    return { role: "user" as const, content: mergedInbound };
                   })(),
                 ],
             });

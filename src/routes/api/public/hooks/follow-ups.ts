@@ -180,7 +180,7 @@ async function generateFollowUp(
     .order("created_at", { ascending: false }).limit(20);
   const history = ((prev ?? []) as Array<{ direction: string; content: string }>)
     .reverse().filter((m) => m.content)
-    .map((m) => ({ role: m.direction === "outbound" ? "assistant" : "user", content: m.content }));
+    .map((m) => ({ role: (m.direction === "outbound" ? "assistant" : "user") as "assistant" | "user", content: m.content }));
 
   const { resolveAIConfig } = await import("@/lib/ai-resolver.server");
   const { checkAiBalance, consumeAiTokens, InsufficientCreditsError } = await import("@/lib/ai-credits.server");
@@ -196,7 +196,7 @@ async function generateFollowUp(
     temperature: Number(agent.temperature ?? 0.7),
     maxTokens: Math.min(agent.max_tokens ?? 512, 512),
     messages: [
-        ...(agent.system_prompt ? [{ role: "system", content: agent.system_prompt + sysAdd }] : [{ role: "system", content: sysAdd }]),
+        ...(agent.system_prompt ? [{ role: "system" as const, content: agent.system_prompt + sysAdd }] : [{ role: "system" as const, content: sysAdd }]),
         ...history,
       ],
   });

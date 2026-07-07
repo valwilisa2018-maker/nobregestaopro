@@ -29,7 +29,7 @@ export const chatWithAgent = createServerFn({ method: "POST" })
       temperature: data.temperature,
       maxTokens: data.maxTokens,
       messages: [
-        ...(data.systemPrompt.trim() ? [{ role: "system", content: data.systemPrompt }] : []),
+        ...(data.systemPrompt.trim() ? [{ role: "system" as const, content: data.systemPrompt }] : []),
         ...data.messages,
       ],
     });
