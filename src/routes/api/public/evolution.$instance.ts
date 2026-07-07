@@ -895,7 +895,14 @@ export const Route = createFileRoute("/api/public/evolution/$instance")({
                 metadata: { ...cmeta, pending_until: pendingUntil, pending_texts: pending },
               } as never).eq("id", convo.id);
 
-              await sleep(Math.min(Math.max(waitSec, 3), 20) * 1000);
+              const sleepSec = Math.min(Math.max(waitSec, 3), 8);
+              if (waitSec > sleepSec) {
+                await supabaseAdmin.from("logs").insert({
+                  user_id: conn.user_id, level: "info", source: `evolution:${instance}`,
+                  message: "debounce capped for webhook runtime", metadata: { remoteJid, configuredWaitSec: waitSec, appliedWaitSec: sleepSec } as never,
+                } as never);
+              }
+              await sleep(sleepSec * 1000);
 
               const { data: fresh } = await supabaseAdmin.from("conversations")
                 .select("id,metadata").eq("id", convo.id).maybeSingle();
@@ -962,58 +969,78 @@ export const Route = createFileRoute("/api/public/evolution/$instance")({
             }
 
             const { callChatCompletions, extractAssistantText, chatErrorMessage } = await import("@/lib/ai-chat-request.server");
-            const { res: aiRes, json: aiJson } = await callChatCompletions({
-              endpoint,
-              apiKey,
-              model: modelId,
-              temperature: Number(agent.temperature ?? 0.7),
-              maxTokens: agent.max_tokens ?? 2048,
-              messages: [
-                  ...(() => {
-                    const kbEnabled = ((agent.memory as { knowledgeEnabled?: boolean } | null)?.knowledgeEnabled ?? true);
-                    const items = (agent.knowledge as Array<{ title?: string; content?: string; enabled?: boolean }> | null) ?? [];
-                    const kb = kbEnabled ? items.filter((k) => (k.enabled ?? true) && (k.content ?? "").trim()) : [];
-                    const kbText = kb.length
-                      ? "\n\n## Base de Conhecimento\n" + kb.map((k) => `### ${k.title ?? "Item"}\n${k.content}`).join("\n\n")
-                      : "";
-                    const sys = (agent.system_prompt ?? "") + kbText;
-                    return sys.trim() ? [{ role: "system" as const, content: sys }] : [];
-                  })(),
-                  ...history,
-                  (() => {
-                    if (mediaB64 && (mediaKind === "image" || mediaKind === "document" || mediaKind === "video")) {
-                      const dataUri = `data:${mediaMime ?? "application/octet-stream"};base64,${mediaB64}`;
-                      const parts: Array<Record<string, unknown>> = [];
-                      const textPart = (mergedInbound ?? "").trim() || (mediaKind === "image" ? "Analise esta imagem." : mediaKind === "video" ? "Analise este vídeo." : "Analise este arquivo.");
-                      parts.push({ type: "text", text: textPart });
-                      if (mediaKind === "image") {
-                        parts.push({ type: "image_url", image_url: { url: dataUri } });
-                      } else {
-                        parts.push({ type: "file", file: { filename: mediaName ?? "arquivo", file_data: dataUri } });
-                      }
-                      return { role: "user" as const, content: parts };
-                    }
-                    return { role: "user" as const, content: mergedInbound };
-                  })(),
-                ],
-            });
-            if (!aiRes.ok) {
+            const aiMessages = [
+              ...(() => {
+                const kbEnabled = ((agent.memory as { knowledgeEnabled?: boolean } | null)?.knowledgeEnabled ?? true);
+                const items = (agent.knowledge as Array<{ title?: string; content?: string; enabled?: boolean }> | null) ?? [];
+                const kb = kbEnabled ? items.filter((k) => (k.enabled ?? true) && (k.content ?? "").trim()) : [];
+                const kbText = kb.length
+                  ? "\n\n## Base de Conhecimento\n" + kb.map((k) => `### ${k.title ?? "Item"}\n${k.content}`).join("\n\n")
+                  : "";
+                const sys = (agent.system_prompt ?? "") + kbText;
+                return sys.trim() ? [{ role: "system" as const, content: sys }] : [];
+              })(),
+              ...history,
+              (() => {
+                if (mediaB64 && (mediaKind === "image" || mediaKind === "document" || mediaKind === "video")) {
+                  const dataUri = `data:${mediaMime ?? "application/octet-stream"};base64,${mediaB64}`;
+                  const parts: Array<Record<string, unknown>> = [];
+                  const textPart = (mergedInbound ?? "").trim() || (mediaKind === "image" ? "Analise esta imagem." : mediaKind === "video" ? "Analise este vídeo." : "Analise este arquivo.");
+                  parts.push({ type: "text", text: textPart });
+                  if (mediaKind === "image") {
+                    parts.push({ type: "image_url", image_url: { url: dataUri } });
+                  } else {
+                    parts.push({ type: "file", file: { filename: mediaName ?? "arquivo", file_data: dataUri } });
+                  }
+                  return { role: "user" as const, content: parts };
+                }
+                return { role: "user" as const, content: mergedInbound };
+              })(),
+            ];
+            let aiJson: any = {};
+            try {
+              await supabaseAdmin.from("logs").insert({
+                user_id: conn.user_id, level: "info", source: `evolution:${instance}`,
+                message: "AI request started", metadata: { remoteJid, model: modelId, historyCount: history.length, hasMedia: !!mediaB64 } as never,
+              } as never);
+              const { res: aiRes, json } = await callChatCompletions({
+                endpoint,
+                apiKey,
+                model: modelId,
+                temperature: Number(agent.temperature ?? 0.7),
+                maxTokens: agent.max_tokens ?? 2048,
+                timeoutMs: 12_000,
+                maxAttempts: 1,
+                messages: aiMessages,
+              });
+              aiJson = json;
+              const finishReason = aiJson?.choices?.[0]?.finish_reason ?? null;
+              const contentLength = String(aiJson?.choices?.[0]?.message?.content ?? "").length;
+              await supabaseAdmin.from("logs").insert({
+                user_id: conn.user_id, level: aiRes.ok ? "info" : "error", source: `evolution:${instance}`,
+                message: aiRes.ok ? "AI response received" : chatErrorMessage(aiRes.status, aiJson),
+                metadata: { remoteJid, model: modelId, status: aiRes.status, finishReason, contentLength, usage: aiJson?.usage ?? null, err: aiJson?.error ?? null } as never,
+              } as never);
+            } catch (e) {
               await supabaseAdmin.from("logs").insert({
                 user_id: conn.user_id, level: "error", source: `evolution:${instance}`,
-                message: chatErrorMessage(aiRes.status, aiJson),
-                metadata: { model: modelId, err: aiJson?.error ?? null } as never,
+                message: "AI call failed", metadata: { remoteJid, model: modelId, err: e instanceof Error ? e.message : String(e) } as never,
               } as never);
             }
             let reply = extractAssistantText(aiJson) ?? "";
             // Debit tokens consumed from the wallet. Block on 402/insufficient.
             try {
-              await consumeAiTokens(supabaseAdmin, {
-                userId: conn.user_id,
-                agentId: agent.id,
-                model: modelId,
-                inputTokens: Number(aiJson?.usage?.prompt_tokens ?? 0),
-                outputTokens: Number(aiJson?.usage?.completion_tokens ?? 0),
-              });
+              const inputTokens = Number(aiJson?.usage?.prompt_tokens ?? 0);
+              const outputTokens = Number(aiJson?.usage?.completion_tokens ?? 0);
+              if (inputTokens || outputTokens) {
+                await consumeAiTokens(supabaseAdmin, {
+                  userId: conn.user_id,
+                  agentId: agent.id,
+                  model: modelId,
+                  inputTokens,
+                  outputTokens,
+                });
+              }
             } catch (e) {
               if (e instanceof InsufficientCreditsError) {
                 await supabaseAdmin.from("logs").insert({
@@ -1025,8 +1052,13 @@ export const Route = createFileRoute("/api/public/evolution/$instance")({
               }
               throw e;
             }
-            if (!reply) reply = ext.timing?.unknownMsg ?? "";
-            if (!reply) return Response.json({ ok: true, empty: true });
+            if (!reply) {
+              reply = (ext.timing?.unknownMsg ?? "").trim() || "Desculpe, não consegui gerar uma resposta agora. Pode repetir?";
+              await supabaseAdmin.from("logs").insert({
+                user_id: conn.user_id, level: "warn", source: `evolution:${instance}`,
+                message: "AI empty response; fallback reply selected", metadata: { remoteJid, model: modelId, replyLength: reply.length } as never,
+              } as never);
+            }
 
             // Enforce plan send quota (daily/monthly) before dispatch
             const { data: quota } = await supabaseAdmin.rpc("consume_send_quota" as never, { _user_id: conn.user_id } as never);
