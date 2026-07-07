@@ -1013,6 +1013,64 @@ export type Database = {
         }
         Relationships: []
       }
+      service_order_history: {
+        Row: {
+          created_at: string
+          from_column_id: string | null
+          from_column_name: string | null
+          id: string
+          moved_by: string | null
+          moved_by_email: string | null
+          service_order_id: string
+          to_column_id: string | null
+          to_column_name: string | null
+        }
+        Insert: {
+          created_at?: string
+          from_column_id?: string | null
+          from_column_name?: string | null
+          id?: string
+          moved_by?: string | null
+          moved_by_email?: string | null
+          service_order_id: string
+          to_column_id?: string | null
+          to_column_name?: string | null
+        }
+        Update: {
+          created_at?: string
+          from_column_id?: string | null
+          from_column_name?: string | null
+          id?: string
+          moved_by?: string | null
+          moved_by_email?: string | null
+          service_order_id?: string
+          to_column_id?: string | null
+          to_column_name?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "service_order_history_from_column_id_fkey"
+            columns: ["from_column_id"]
+            isOneToOne: false
+            referencedRelation: "kanban_columns"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "service_order_history_service_order_id_fkey"
+            columns: ["service_order_id"]
+            isOneToOne: false
+            referencedRelation: "service_orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "service_order_history_to_column_id_fkey"
+            columns: ["to_column_id"]
+            isOneToOne: false
+            referencedRelation: "kanban_columns"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       service_orders: {
         Row: {
           color: string | null
