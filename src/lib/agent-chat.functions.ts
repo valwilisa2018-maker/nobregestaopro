@@ -21,19 +21,34 @@ export const chatWithAgent = createServerFn({ method: "POST" })
     const bal = await checkAiBalance(context.supabase, context.userId);
     if (!bal.ok) throw new Error("Saldo de créditos de IA esgotado. Compre mais créditos para continuar.");
 
-    const res = await fetch(endpoint, {
-      method: "POST",
-      headers: { "Content-Type": "application/json", Authorization: `Bearer ${apiKey}` },
-      body: JSON.stringify({
-        model: modelId,
-        temperature: data.temperature,
-        max_tokens: data.maxTokens,
-        messages: [
-          ...(data.systemPrompt.trim() ? [{ role: "system", content: data.systemPrompt }] : []),
-          ...data.messages,
-        ],
-      }),
-    });
+    const isGpt5 = /(^|\/)(gpt-5|o1|o3|o4)/i.test(modelId);
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 45_000);
+    let res: Response;
+    try {
+      res = await fetch(endpoint, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${apiKey}` },
+        signal: controller.signal,
+        body: JSON.stringify({
+          model: modelId,
+          ...(isGpt5
+            ? { max_completion_tokens: data.maxTokens }
+            : { temperature: data.temperature, max_tokens: data.maxTokens }),
+          messages: [
+            ...(data.systemPrompt.trim() ? [{ role: "system", content: data.systemPrompt }] : []),
+            ...data.messages,
+          ],
+        }),
+      });
+    } catch (e) {
+      if ((e as { name?: string })?.name === "AbortError") {
+        throw new Error("Tempo esgotado ao chamar a IA (45s). Tente novamente.");
+      }
+      throw e;
+    } finally {
+      clearTimeout(timeoutId);
+    }
 
     if (!res.ok) {
       const t = await res.text().catch(() => "");
@@ -42,11 +57,16 @@ export const chatWithAgent = createServerFn({ method: "POST" })
       throw new Error(`Erro ${res.status}: ${t.slice(0, 200)}`);
     }
 
-    const json = (await res.json()) as {
+    const json = (await res.json().catch(() => ({}))) as {
       choices?: Array<{ message?: { content?: string } }>;
+      choices_finish_reason?: string;
       usage?: { prompt_tokens?: number; completion_tokens?: number };
     };
-    const text = json.choices?.[0]?.message?.content ?? "";
+    const finish = (json.choices?.[0] as { finish_reason?: string } | undefined)?.finish_reason;
+    let text = json.choices?.[0]?.message?.content ?? "";
+    if (!text && finish === "length") {
+      text = "(A resposta foi cortada por limite de tokens. Aumente Max Tokens.)";
+    }
     try {
       await consumeAiTokens(context.supabase, {
         userId: context.userId,
