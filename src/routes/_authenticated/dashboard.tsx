@@ -38,7 +38,7 @@ function Dashboard() {
       const month = startOfMonth();
       const [
         agentsActive, agentsTotal, convsToday, msgsToday, contactsTotal,
-        billing, usage, recentConvs, recentLogs,
+        billing, txsMonth, txsToday, recentConvs, recentLogs, respPairs,
       ] = await Promise.all([
         supabase.from("agents").select("id", { count: "exact", head: true }).eq("user_id", uid!).eq("is_active", true),
         supabase.from("agents").select("id", { count: "exact", head: true }).eq("user_id", uid!),
@@ -46,22 +46,46 @@ function Dashboard() {
         supabase.from("messages").select("id", { count: "exact", head: true }).eq("user_id", uid!).gte("created_at", today),
         supabase.from("contacts").select("id", { count: "exact", head: true }).eq("user_id", uid!),
         supabase.from("billing_events").select("kind, quantity, amount").eq("user_id", uid!).gte("occurred_at", month),
-        supabase.from("usage_counters").select("day_count, month_count").eq("user_id", uid!).maybeSingle(),
+        supabase.from("credit_transactions").select("total_tokens, cost_cents").eq("user_id", uid!).eq("kind", "usage").eq("status", "ok").gte("occurred_at", month),
+        supabase.from("credit_transactions").select("id", { count: "exact", head: true }).eq("user_id", uid!).eq("kind", "usage").eq("status", "ok").gte("occurred_at", today),
         supabase.from("conversations").select("id, status, last_message_at, unread_count, created_at").eq("user_id", uid!).order("last_message_at", { ascending: false, nullsFirst: false }).limit(6),
         supabase.from("logs").select("id, level, source, message, created_at").eq("user_id", uid!).order("created_at", { ascending: false }).limit(6),
+        supabase.from("messages").select("conversation_id, direction, created_at").eq("user_id", uid!).gte("created_at", month).order("created_at", { ascending: true }).limit(2000),
       ]);
 
       const billingRows = (billing.data ?? []) as BillingRow[];
-      const tokens = billingRows
-        .filter((r) => /token/i.test(r.kind))
-        .reduce((s, r) => s + Number(r.quantity || 0), 0);
-      const cost = billingRows.reduce((s, r) => s + Number(r.amount || 0), 0);
+      void billingRows;
+      const txs = (txsMonth.data ?? []) as Array<{ total_tokens: number | null; cost_cents: number | null }>;
+      const tokens = txs.reduce((s, r) => s + Number(r.total_tokens || 0), 0);
+      const cost = txs.reduce((s, r) => s + Number(r.cost_cents || 0), 0) / 100;
+      const requests = txs.length;
+      const requestsToday = txsToday.count ?? 0;
+
+      // Avg response time: for each inbound followed by outbound in same conv, measure gap.
+      const pairs = (respPairs.data ?? []) as Array<{ conversation_id: string; direction: string; created_at: string }>;
+      const perConv = new Map<string, Array<{ dir: string; t: number }>>();
+      for (const r of pairs) {
+        const arr = perConv.get(r.conversation_id) ?? [];
+        arr.push({ dir: r.direction, t: new Date(r.created_at).getTime() });
+        perConv.set(r.conversation_id, arr);
+      }
+      const gaps: number[] = [];
+      for (const arr of perConv.values()) {
+        for (let i = 0; i < arr.length - 1; i++) {
+          if (arr[i].dir === "inbound" && arr[i + 1].dir === "outbound") {
+            const g = arr[i + 1].t - arr[i].t;
+            if (g > 0 && g < 30 * 60_000) gaps.push(g);
+          }
+        }
+      }
+      const avgMs = gaps.length ? gaps.reduce((s, g) => s + g, 0) / gaps.length : null;
 
       return {
         tokens,
         cost,
-        requests: usage.data?.month_count ?? 0,
-        requestsToday: usage.data?.day_count ?? 0,
+        requests,
+        requestsToday,
+        avgMs,
         agentsActive: agentsActive.count ?? 0,
         agentsTotal: agentsTotal.count ?? 0,
         convsToday: convsToday.count ?? 0,
@@ -86,6 +110,12 @@ function Dashboard() {
   }, [uid, dash]);
 
   const d = dash.data;
+  const fmtAvg = (ms: number | null) => {
+    if (ms == null) return "—";
+    if (ms < 1000) return `${Math.round(ms)}ms`;
+    if (ms < 60_000) return `${(ms / 1000).toFixed(1)}s`;
+    return `${Math.round(ms / 60_000)}min`;
+  };
   const stats = [
     { label: "Tokens", value: d ? nf.format(d.tokens) : "—", delta: "mês atual", icon: Coins, tone: "primary" as const },
     { label: "Custo IA", value: d ? cf.format(d.cost) : "—", delta: "mês atual", icon: DollarSign, tone: "accent" as const },
@@ -94,7 +124,7 @@ function Dashboard() {
     { label: "Agentes Ativos", value: d ? nf.format(d.agentsActive) : "—", delta: `${d?.agentsTotal ?? 0} total`, icon: Bot, tone: "primary" as const },
     { label: "Conversas", value: d ? nf.format(d.convsToday) : "—", delta: "hoje", icon: MessagesSquare, tone: "accent" as const },
     { label: "Mensagens", value: d ? nf.format(d.msgsToday) : "—", delta: "hoje", icon: MessageSquare, tone: "primary" as const },
-    { label: "Tempo médio", value: "—", delta: "em breve", icon: Timer, tone: "accent" as const },
+    { label: "Tempo médio", value: d ? fmtAvg(d.avgMs) : "—", delta: "resposta IA", icon: Timer, tone: "accent" as const },
   ];
 
   const fmtWhen = (iso: string | null) => {
