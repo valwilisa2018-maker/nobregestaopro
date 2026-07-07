@@ -1743,7 +1743,7 @@ async function sttViaLovable(audioBase64: string, mime?: string | null): Promise
   const bin = Buffer.from(stripDataUri(audioBase64).replace(/\s/g, ""), "base64");
   const detected = detectAudioContainer(bin, mime);
   if (!key) return { text: null, mime: detected.mime, ext: detected.ext, bytes: bin.byteLength, error: "LOVABLE_API_KEY ausente" };
-  const blob = new Blob([new Uint8Array(bin)], { type: contentType });
+  const blob = new Blob([new Uint8Array(bin)], { type: detected.mime });
   const fd = new FormData();
   fd.append("file", blob, `audio.${detected.ext}`);
   fd.append("model", "openai/gpt-4o-mini-transcribe");
