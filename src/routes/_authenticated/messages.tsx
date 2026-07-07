@@ -1051,6 +1051,9 @@ function MessagesPage() {
     const prev = msgsCountRef.current;
     msgsCountRef.current = msgs.length;
     if (msgs.length === prev) return;
+    const elNow = scrollRef.current;
+    const isLoadingOlderMessages = msgs.length > prev && elNow && elNow.scrollTop < 160;
+    if (isLoadingOlderMessages) return;
     const id = requestAnimationFrame(() => {
       el.scrollTo({ top: el.scrollHeight, behavior: "smooth" });
     });
