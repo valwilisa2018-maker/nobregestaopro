@@ -1530,6 +1530,7 @@ function KanbanPage() {
               </div>
             </div>
           )}
+          {editing?.id && <CardHistory cardId={editing.id} />}
           <DialogFooter className="gap-2">
             {editing?.id && (
               <Button variant="destructive" onClick={deleteCard} className="mr-auto">
