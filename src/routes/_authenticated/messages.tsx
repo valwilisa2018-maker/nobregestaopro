@@ -110,6 +110,18 @@ function DownloadBtn({ url, filename, dark = false }: { url: string; filename: s
 
 function MessagesPage() {
   const { user } = useAuth();
+  // Debug logger — ligue no console com: localStorage.setItem('wa-debug','1')
+  // Desligue com: localStorage.removeItem('wa-debug')
+  const waDebug = useCallback((event: string, payload?: Record<string, unknown>) => {
+    if (typeof window === "undefined") return;
+    if (localStorage.getItem("wa-debug") !== "1") return;
+    // eslint-disable-next-line no-console
+    console.log(`[wa-msg] ${event}`, {
+      t: new Date().toISOString(),
+      route: typeof window !== "undefined" ? window.location.pathname : "",
+      ...(payload ?? {}),
+    });
+  }, []);
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [search, setSearch] = useState("");
   const [selected, setSelected] = useState<Contact | null>(null);
