@@ -870,6 +870,50 @@ function MessagesPage() {
 
   useEffect(() => { loadMessagesRef.current = () => { void loadMessages(); }; }, [loadMessages]);
 
+  // Fallback: se a thread ficar vazia mas há um contato selecionado, tenta restaurar do cache
+  // (memória → localStorage) e, se ainda vazio, recarrega do servidor. Máx. 2 tentativas por seleção.
+  const emptyRecoveryRef = useRef<{ contactId: string | null; attempts: number }>({ contactId: null, attempts: 0 });
+  useEffect(() => {
+    if (!selected) return;
+    if (messagesLoading) return;
+    if (msgs.length > 0) {
+      if (emptyRecoveryRef.current.contactId === selected.id) {
+        emptyRecoveryRef.current = { contactId: selected.id, attempts: 0 };
+      }
+      return;
+    }
+    const rec = emptyRecoveryRef.current;
+    if (rec.contactId !== selected.id) {
+      emptyRecoveryRef.current = { contactId: selected.id, attempts: 0 };
+    }
+    if (emptyRecoveryRef.current.attempts >= 2) return;
+    const t = window.setTimeout(() => {
+      if (selectedRef.current?.id !== selected.id) return;
+      // 1) tenta cache em memória
+      let cached = messagesCacheRef.current.get(selected.id);
+      // 2) tenta cache persistido em localStorage
+      if (!cached?.length && typeof window !== "undefined") {
+        try {
+          const raw = localStorage.getItem("wa-msg-cache");
+          if (raw) {
+            const obj = JSON.parse(raw) as Record<string, Msg[]>;
+            const fromDisk = obj[selected.id];
+            if (Array.isArray(fromDisk) && fromDisk.length) {
+              messagesCacheRef.current.set(selected.id, fromDisk);
+              cached = fromDisk;
+            }
+          }
+        } catch { /* ignore */ }
+      }
+      emptyRecoveryRef.current = { contactId: selected.id, attempts: emptyRecoveryRef.current.attempts + 1 };
+      waDebug("emptyRecovery:trigger", { contactId: selected.id, cachedCount: cached?.length ?? 0, attempt: emptyRecoveryRef.current.attempts });
+      if (cached?.length) setMsgs(cached);
+      // sempre re-busca do servidor para reconciliar
+      void loadMessages();
+    }, 400);
+    return () => window.clearTimeout(t);
+  }, [msgs.length, messagesLoading, selected, loadMessages, waDebug]);
+
   const loadOlderMessages = useCallback(async () => {
     if (!user || !selected || olderLoading || messagesLoading || !hasOlder) return;
     const ids = conversationIdsRef.current;
