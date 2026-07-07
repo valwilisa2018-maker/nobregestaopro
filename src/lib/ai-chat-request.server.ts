@@ -34,8 +34,9 @@ export function buildChatCompletionsBody(params: Pick<ChatCallParams, "model" | 
   const max = normalizedMaxTokens(params.model, params.maxTokens);
   return {
     model: params.model,
-    temperature: Number(params.temperature ?? 0.7),
-    ...(isReasoningModel(params.model) ? { max_completion_tokens: max } : { max_tokens: max }),
+    ...(isReasoningModel(params.model)
+      ? { max_completion_tokens: max }
+      : { temperature: Number(params.temperature ?? 0.7), max_tokens: max }),
     messages: params.messages,
   };
 }
