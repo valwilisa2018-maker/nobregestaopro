@@ -93,6 +93,7 @@ export function AgentEditor({ agent, onSaved, onCancel }: Props) {
   const { user } = useAuth();
   const [form, setForm] = useState<AgentRow>(() => agent ?? emptyAgent(user?.id ?? ""));
   const [saving, setSaving] = useState(false);
+  const [clearingMem, setClearingMem] = useState(false);
   const [instances, setInstances] = useState<Array<{ id: string; name: string; phone_number: string | null; status: string | null }>>([]);
   const [libraryOpen, setLibraryOpen] = useState(false);
   const [libraryNiche, setLibraryNiche] = useState<string>(PROMPT_LIBRARY[0].id);
@@ -172,6 +173,32 @@ export function AgentEditor({ agent, onSaved, onCancel }: Props) {
     } finally { setSaving(false); }
   }
 
+  async function toggleActive(v: boolean) {
+    set("is_active", v);
+    if (!agent?.id) return; // novo agente só persiste ao salvar
+    const { error } = await supabase.from("agents").update({ is_active: v } as never).eq("id", agent.id);
+    if (error) { toast.error(`Falha ao ${v ? "ativar" : "pausar"}: ${error.message}`); return; }
+    toast.success(v ? "Agente ativado" : "Agente pausado");
+  }
+
+  async function clearMemory() {
+    if (!agent?.id) return toast.info("Salve o agente antes de limpar a memória");
+    if (!confirm("Limpar toda a memória (mensagens salvas) deste agente?")) return;
+    setClearingMem(true);
+    try {
+      const { data: convs, error: e1 } = await supabase.from("conversations").select("id").eq("agent_id", agent.id);
+      if (e1) throw e1;
+      const ids = (convs ?? []).map((c) => c.id);
+      if (ids.length) {
+        const { error: e2 } = await supabase.from("messages").delete().in("conversation_id", ids);
+        if (e2) throw e2;
+      }
+      toast.success(`Memória limpa (${ids.length} conversa(s))`);
+    } catch (e) {
+      toast.error(`Erro: ${e instanceof Error ? e.message : String(e)}`);
+    } finally { setClearingMem(false); }
+  }
+
   return (
     <div className="space-y-4">
       {/* Header */}
@@ -188,9 +215,11 @@ export function AgentEditor({ agent, onSaved, onCancel }: Props) {
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-2 text-xs">
             <span className="text-muted-foreground">Ativo</span>
-            <Switch checked={form.is_active} onCheckedChange={(v) => set("is_active", v)} />
+            <Switch checked={form.is_active} onCheckedChange={toggleActive} />
           </div>
-          <Button variant="ghost" size="sm" onClick={onCancel}><RotateCcw className="h-4 w-4" /></Button>
+          <Button variant="ghost" size="sm" onClick={clearMemory} disabled={clearingMem} title="Limpar memória">
+            {clearingMem ? <Loader2 className="h-4 w-4 animate-spin" /> : <RotateCcw className="h-4 w-4" />}
+          </Button>
           <Button onClick={save} disabled={saving} className="rounded-xl" style={{ background: "var(--gradient-primary)", boxShadow: "var(--shadow-elegant)" }}>
             {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />} Salvar Tudo
           </Button>
