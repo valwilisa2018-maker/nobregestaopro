@@ -1736,19 +1736,16 @@ function findBase64(value: unknown, depth = 0): string | null {
   return null;
 }
 
-async function sttViaLovable(audioBase64: string, mime?: string | null): Promise<string | null> {
+type SttResult = { text: string | null; mime: string; ext: string; bytes: number; status?: number; error?: string };
+
+async function sttViaLovable(audioBase64: string, mime?: string | null): Promise<SttResult> {
   const key = process.env.LOVABLE_API_KEY ?? "";
-  if (!key) return null;
-  const bin = Buffer.from(audioBase64, "base64");
-  const contentType = mime || "audio/ogg";
-  const ext = contentType.includes("mp3") || contentType.includes("mpeg") ? "mp3"
-    : contentType.includes("wav") ? "wav"
-      : contentType.includes("mp4") ? "mp4"
-        : contentType.includes("webm") ? "webm"
-          : "ogg";
+  const bin = Buffer.from(stripDataUri(audioBase64).replace(/\s/g, ""), "base64");
+  const detected = detectAudioContainer(bin, mime);
+  if (!key) return { text: null, mime: detected.mime, ext: detected.ext, bytes: bin.byteLength, error: "LOVABLE_API_KEY ausente" };
   const blob = new Blob([new Uint8Array(bin)], { type: contentType });
   const fd = new FormData();
-  fd.append("file", blob, `audio.${ext}`);
+  fd.append("file", blob, `audio.${detected.ext}`);
   fd.append("model", "openai/gpt-4o-mini-transcribe");
   const r = await fetch("https://ai.gateway.lovable.dev/v1/audio/transcriptions", {
     method: "POST", headers: { Authorization: `Bearer ${key}` }, body: fd,
@@ -1756,10 +1753,25 @@ async function sttViaLovable(audioBase64: string, mime?: string | null): Promise
   if (!r.ok) {
     const body = await r.text().catch(() => "");
     console.warn("[stt] Lovable AI transcription failed", r.status, body.slice(0, 300));
-    return null;
+    return { text: null, mime: detected.mime, ext: detected.ext, bytes: bin.byteLength, status: r.status, error: body.slice(0, 500) };
   }
   const j = await r.json().catch(() => null) as { text?: string } | null;
-  return j?.text ?? null;
+  return { text: j?.text ?? null, mime: detected.mime, ext: detected.ext, bytes: bin.byteLength };
+}
+
+function detectAudioContainer(bytes: Uint8Array, declaredMime?: string | null) {
+  const lower = (declaredMime ?? "").toLowerCase();
+  if (bytes[0] === 0x4f && bytes[1] === 0x67 && bytes[2] === 0x67 && bytes[3] === 0x53) return { mime: "audio/ogg", ext: "ogg" };
+  if (bytes[0] === 0x49 && bytes[1] === 0x44 && bytes[2] === 0x33) return { mime: "audio/mpeg", ext: "mp3" };
+  if (bytes[0] === 0xff && (bytes[1] & 0xe0) === 0xe0) return { mime: "audio/mpeg", ext: "mp3" };
+  if (bytes[0] === 0x52 && bytes[1] === 0x49 && bytes[2] === 0x46 && bytes[3] === 0x46) return { mime: "audio/wav", ext: "wav" };
+  if (bytes[4] === 0x66 && bytes[5] === 0x74 && bytes[6] === 0x79 && bytes[7] === 0x70) return { mime: "audio/mp4", ext: "mp4" };
+  if (bytes[0] === 0x1a && bytes[1] === 0x45 && bytes[2] === 0xdf && bytes[3] === 0xa3) return { mime: "audio/webm", ext: "webm" };
+  if (lower.includes("mp3") || lower.includes("mpeg")) return { mime: "audio/mpeg", ext: "mp3" };
+  if (lower.includes("wav")) return { mime: "audio/wav", ext: "wav" };
+  if (lower.includes("mp4") || lower.includes("m4a")) return { mime: "audio/mp4", ext: "mp4" };
+  if (lower.includes("webm")) return { mime: "audio/webm", ext: "webm" };
+  return { mime: "audio/ogg", ext: "ogg" };
 }
 
 async function ttsViaLovable(text: string, voice?: string): Promise<string | null> {
