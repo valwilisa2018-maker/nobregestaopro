@@ -1738,7 +1738,11 @@ async function sttViaLovable(audioBase64: string, mime?: string | null): Promise
   const r = await fetch("https://ai.gateway.lovable.dev/v1/audio/transcriptions", {
     method: "POST", headers: { Authorization: `Bearer ${key}` }, body: fd,
   });
-  if (!r.ok) return null;
+  if (!r.ok) {
+    const body = await r.text().catch(() => "");
+    console.warn("[stt] Lovable AI transcription failed", r.status, body.slice(0, 300));
+    return null;
+  }
   const j = await r.json().catch(() => null) as { text?: string } | null;
   return j?.text ?? null;
 }
