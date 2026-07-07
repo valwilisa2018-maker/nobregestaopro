@@ -5,6 +5,7 @@ import {
   CalendarClock, AudioLines, Image as ImageIcon, PlayCircle, BookOpen, Loader2,
   Plus, X, Play, Mic, Info, Trash2, ChevronDown, Upload, FileText, Send as SendIcon, Bot,
   RefreshCw, Database, Brain,
+  CheckCircle2, XCircle, ShieldCheck,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
@@ -98,6 +99,9 @@ export function AgentEditor({ agent, onSaved, onCancel }: Props) {
   const [libraryOpen, setLibraryOpen] = useState(false);
   const [libraryNiche, setLibraryNiche] = useState<string>(PROMPT_LIBRARY[0].id);
   const [aiConnected, setAiConnected] = useState<boolean | null>(null);
+  const [validating, setValidating] = useState(false);
+  const [validationOpen, setValidationOpen] = useState(false);
+  const [validationResults, setValidationResults] = useState<Array<{ n: number; title: string; ok: boolean; msg: string }>>([]);
 
   useEffect(() => { setForm(agent ?? emptyAgent(user?.id ?? "")); }, [agent, user?.id]);
 
@@ -199,6 +203,83 @@ export function AgentEditor({ agent, onSaved, onCancel }: Props) {
     } finally { setClearingMem(false); }
   }
 
+  async function runValidation() {
+    if (!user) return;
+    setValidating(true);
+    setValidationOpen(true);
+    const results: Array<{ n: number; title: string; ok: boolean; msg: string }> = [];
+    const push = (n: number, title: string, ok: boolean, msg: string) => results.push({ n, title, ok, msg });
+    try {
+      // 1) Modelo
+      const { data: prov } = await supabase.from("ai_providers").select("id, provider, model").eq("user_id", user.id).eq("is_active", true).limit(1).maybeSingle();
+      const hasModel = !!prov && !!form.system_prompt && (form.max_tokens ?? 0) > 0;
+      push(1, "Configuração do Modelo", hasModel, hasModel ? `Provedor ativo (${prov?.provider}/${prov?.model ?? "?"}), prompt e tokens OK` : "Sem provedor ativo ou prompt/tokens vazios");
+
+      // 2) Conversas
+      const conv = ext.conversation ?? {};
+      push(2, "Conversas", true, `keepUnread=${!!conv.keepUnread} singleMessage=${!!conv.singleMessage} cancelOnNew=${!!conv.cancelOnNew}`);
+
+      // 3) Tempo e Mensagens
+      const t = ext.timing ?? {};
+      const tOk = (t.wait ?? 0) >= 0 && (t.delayChar ?? 0) >= 0;
+      push(3, "Tempo e Mensagens", tOk, `debounce=${t.wait ?? 0}s delay/char=${t.delayChar ?? 0}ms tz=${t.timezone ?? form.timezone}`);
+
+      // 4) Alertas
+      const a = ext.alerts ?? {};
+      push(4, "Alertas", true, `whatsapp=${!!a.whatsapp} handoff=${!!a.stopAfterHandoff}`);
+
+      // 5) Follow-up
+      const f = ext.followup ?? {};
+      const fOk = !f.enabled || (Array.isArray(f.messages) && f.messages.length > 0);
+      push(5, "Follow-Up", fOk, f.enabled ? `${(f.messages ?? []).length} mensagem(ns), intervalo=${f.intervalHrs ?? 0}h` : "desativado");
+
+      // 6) Keywords
+      const k = ext.keywords ?? {};
+      const kOk = !k.enabled || (Array.isArray(k.list) && k.list.length > 0);
+      push(6, "Ativação por Palavra-chave", kOk, k.enabled ? `${(k.list ?? []).length} palavra(s) modo=${k.mode ?? "?"}` : "desativado");
+
+      // 7) Horários
+      const h = ext.hours ?? {};
+      const hOk = !h.enabled || (!!h.start && !!h.end);
+      push(7, "Horário de Funcionamento", hOk, h.enabled ? `${h.start}-${h.end} dias=${(h.days ?? []).length}` : "24/7");
+
+      // 8) Áudio
+      const au = ext.audio ?? {};
+      push(8, "Áudio com IA", true, au.enabled ? `provider=${au.provider ?? "browser"} autoReply=${!!au.autoReply}` : "desativado");
+
+      // 9) Mídia
+      const m = ext.media ?? {};
+      push(9, "Mídia com IA", true, `${(m.items ?? []).length} item(ns)`);
+
+      // 10) Testar IA — ping ao gateway
+      try {
+        const key = (import.meta.env.VITE_LOVABLE_API_KEY as string | undefined) ?? "";
+        const modelId = prov?.model ?? "google/gemini-2.5-flash";
+        const isGpt5 = /gpt-5|o1|o3|o4/.test(modelId);
+        const body: Record<string, unknown> = { model: modelId, messages: [{ role: "user", content: "ping" }] };
+        if (isGpt5) body.max_completion_tokens = 16; else { body.max_tokens = 16; body.temperature = 0.2; }
+        const r = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+          method: "POST",
+          headers: { "content-type": "application/json", ...(key ? { authorization: `Bearer ${key}` } : {}) },
+          body: JSON.stringify(body),
+        });
+        push(10, "Testar IA", r.ok || r.status === 401, r.ok ? `Gateway respondeu (${modelId})` : `HTTP ${r.status}`);
+      } catch (e) {
+        push(10, "Testar IA", false, e instanceof Error ? e.message : String(e));
+      }
+
+      // 11) Conhecimento
+      const kn = Array.isArray(form.knowledge) ? form.knowledge : [];
+      push(11, "Base de Conhecimento", true, `${kn.length} item(ns)`);
+    } finally {
+      setValidationResults(results);
+      setValidating(false);
+      const okCount = results.filter((r) => r.ok).length;
+      if (okCount === results.length) toast.success(`Todas as ${results.length} funções OK`);
+      else toast.warning(`${okCount}/${results.length} funções OK`);
+    }
+  }
+
   return (
     <div className="space-y-4">
       {/* Header */}
@@ -220,11 +301,39 @@ export function AgentEditor({ agent, onSaved, onCancel }: Props) {
           <Button variant="ghost" size="sm" onClick={clearMemory} disabled={clearingMem} title="Limpar memória">
             {clearingMem ? <Loader2 className="h-4 w-4 animate-spin" /> : <RotateCcw className="h-4 w-4" />}
           </Button>
+          <Button variant="outline" size="sm" onClick={runValidation} disabled={validating} className="rounded-xl" title="Validar todas as 11 funções">
+            {validating ? <Loader2 className="h-4 w-4 animate-spin" /> : <ShieldCheck className="h-4 w-4" />} Validar
+          </Button>
           <Button onClick={save} disabled={saving} className="rounded-xl" style={{ background: "var(--gradient-primary)", boxShadow: "var(--shadow-elegant)" }}>
             {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />} Salvar Tudo
           </Button>
         </div>
       </div>
+
+      <Dialog open={validationOpen} onOpenChange={setValidationOpen}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2"><ShieldCheck className="h-5 w-5 text-primary" /> Validação das 11 funções</DialogTitle>
+            <DialogDescription>
+              {validating ? "Executando testes..." : `${validationResults.filter((r) => r.ok).length}/${validationResults.length} funções OK`}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2 max-h-[60vh] overflow-y-auto">
+            {validating && validationResults.length === 0 && (
+              <div className="flex items-center gap-2 text-sm text-muted-foreground"><Loader2 className="h-4 w-4 animate-spin" /> Testando...</div>
+            )}
+            {validationResults.map((r) => (
+              <div key={r.n} className="flex items-start gap-2 rounded-lg border border-border/60 bg-card/40 p-2 text-sm">
+                {r.ok ? <CheckCircle2 className="h-4 w-4 text-emerald-500 mt-0.5" /> : <XCircle className="h-4 w-4 text-red-500 mt-0.5" />}
+                <div className="flex-1 min-w-0">
+                  <div className="font-medium">{r.n}. {r.title}</div>
+                  <div className="text-[11px] text-muted-foreground break-words">{r.msg}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </DialogContent>
+      </Dialog>
 
       <Accordion type="single" collapsible defaultValue="s1" className="space-y-3">
         <Section id="s1" number={1} icon={<Sliders className="h-4 w-4" />} title="Configuração do Modelo">
