@@ -502,11 +502,18 @@ export const Route = createFileRoute("/api/public/evolution/$instance")({
                   await supabaseAdmin.from("logs").insert({
                     user_id: conn.user_id, level: "warn", source: `evolution:${instance}`,
                     message: "stt: no audio base64 (evolution getBase64 returned null)",
-                    metadata: { remoteJid, evoId: inboundEvoId, mime: audioMsg?.mimetype ?? null } as never,
+                    metadata: { remoteJid, mime: audioMsg?.mimetype ?? null } as never,
                   } as never);
                 } else {
                   transcribedAudioBase64 = b64;
-                  const transcript = await sttViaLovable(b64, audioMsg?.mimetype, supabaseAdmin, conn.user_id, `evolution:${instance}`);
+                  const transcript = await sttViaLovable(b64, audioMsg?.mimetype);
+                  if (!transcript) {
+                    await supabaseAdmin.from("logs").insert({
+                      user_id: conn.user_id, level: "warn", source: `evolution:${instance}`,
+                      message: "stt: Lovable AI returned no transcript",
+                      metadata: { remoteJid, mime: audioMsg?.mimetype ?? null, bytes: Math.floor((b64.length * 3) / 4) } as never,
+                    } as never);
+                  }
                   if (transcript) {
                     text = transcript;
                     inputWasAudio = true;
