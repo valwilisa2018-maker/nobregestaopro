@@ -252,6 +252,10 @@ function MessagesPage() {
   }, []);
   const persistMsgCache = useCallback((contactId: string, rows: Msg[]) => {
     messagesCacheRef.current.set(contactId, rows);
+    if (typeof window !== "undefined" && localStorage.getItem("wa-debug") === "1") {
+      // eslint-disable-next-line no-console
+      console.log("[wa-msg] persistMsgCache", { contactId, count: rows.length, firstId: rows[0]?.id, lastId: rows[rows.length - 1]?.id });
+    }
     if (typeof window === "undefined") return;
     try {
       const obj: Record<string, Msg[]> = {};
