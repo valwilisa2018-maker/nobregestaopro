@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import {
   Activity, MessageSquare, MessagesSquare, Timer, Coins, DollarSign, Plug, Bot,
   Plus, Search, ArrowUpRight, Zap, Users, ScrollText, RefreshCw,
+  CheckCircle2, XCircle, AlertTriangle, Bell, Cpu,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { useQuery } from "@tanstack/react-query";
@@ -53,6 +54,18 @@ function Dashboard() {
         supabase.from("messages").select("conversation_id, direction, created_at").eq("user_id", uid!).gte("created_at", month).order("created_at", { ascending: true }).limit(2000),
       ]);
 
+      // Status panel signals: latest occurrence + last error per subsystem
+      const [
+        lastTx, lastMsg, lastConv, lastAlert, lastAiErr, lastAlertErr,
+      ] = await Promise.all([
+        supabase.from("credit_transactions").select("occurred_at,status").eq("user_id", uid!).eq("kind", "usage").order("occurred_at", { ascending: false }).limit(1).maybeSingle(),
+        supabase.from("messages").select("created_at,direction").eq("user_id", uid!).order("created_at", { ascending: false }).limit(1).maybeSingle(),
+        supabase.from("conversations").select("last_message_at,created_at").eq("user_id", uid!).order("last_message_at", { ascending: false, nullsFirst: false }).limit(1).maybeSingle(),
+        supabase.from("logs").select("created_at,level,message").eq("user_id", uid!).ilike("source", "%alert%").order("created_at", { ascending: false }).limit(1).maybeSingle(),
+        supabase.from("logs").select("created_at,message").eq("user_id", uid!).eq("level", "error").ilike("message", "AI %").order("created_at", { ascending: false }).limit(1).maybeSingle(),
+        supabase.from("logs").select("created_at,message").eq("user_id", uid!).eq("level", "error").ilike("source", "%alert%").order("created_at", { ascending: false }).limit(1).maybeSingle(),
+      ]);
+
       const billingRows = (billing.data ?? []) as BillingRow[];
       void billingRows;
       const txs = (txsMonth.data ?? []) as Array<{ total_tokens: number | null; cost_cents: number | null }>;
@@ -80,6 +93,14 @@ function Dashboard() {
       }
       const avgMs = gaps.length ? gaps.reduce((s, g) => s + g, 0) / gaps.length : null;
 
+      const status = {
+        tokens: { at: (lastTx.data?.occurred_at as string | undefined) ?? null, ok: (lastTx.data?.status ?? "ok") === "ok", msg: null as string | null },
+        messages: { at: (lastMsg.data?.created_at as string | undefined) ?? null, ok: true, msg: null as string | null },
+        conversations: { at: (lastConv.data?.last_message_at as string | undefined) ?? (lastConv.data?.created_at as string | undefined) ?? null, ok: true, msg: null as string | null },
+        alerts: { at: (lastAlert.data?.created_at as string | undefined) ?? null, ok: !lastAlertErr.data, msg: (lastAlertErr.data?.message as string | undefined) ?? null },
+        gateway: { at: (lastTx.data?.occurred_at as string | undefined) ?? null, ok: !lastAiErr.data, msg: (lastAiErr.data?.message as string | undefined) ?? null },
+      };
+
       return {
         tokens,
         cost,
@@ -93,6 +114,7 @@ function Dashboard() {
         contactsTotal: contactsTotal.count ?? 0,
         recentConvs: (recentConvs.data ?? []) as ConvRow[],
         recentLogs: (recentLogs.data ?? []) as LogRow[],
+        status,
       };
     },
   });
@@ -110,6 +132,13 @@ function Dashboard() {
   }, [uid, dash]);
 
   const d = dash.data;
+  const statusItems: Array<{ key: keyof NonNullable<typeof d>["status"]; label: string; icon: typeof Coins; logFilter: string }> = [
+    { key: "tokens", label: "Tokens / Custo", icon: Coins, logFilter: "credit" },
+    { key: "messages", label: "Mensagens", icon: MessageSquare, logFilter: "evolution" },
+    { key: "conversations", label: "Conversas", icon: MessagesSquare, logFilter: "evolution" },
+    { key: "alerts", label: "Alertas", icon: Bell, logFilter: "alert" },
+    { key: "gateway", label: "Gateway IA", icon: Cpu, logFilter: "AI" },
+  ];
   const fmtAvg = (ms: number | null) => {
     if (ms == null) return "—";
     if (ms < 1000) return `${Math.round(ms)}ms`;
@@ -196,6 +225,57 @@ function Dashboard() {
           </Card>
         ))}
       </div>
+
+      {/* Status panel */}
+      <Card className="border-border/50">
+        <CardHeader className="flex flex-row items-center justify-between">
+          <div>
+            <CardTitle className="text-base flex items-center gap-2"><Activity className="h-4 w-4 text-primary" /> Status do Sistema</CardTitle>
+            <p className="text-xs text-muted-foreground mt-1">Última execução e resultado de cada subsistema</p>
+          </div>
+          <Button asChild variant="ghost" size="sm"><Link to="/logs">Abrir logs <ArrowUpRight className="h-3 w-3" /></Link></Button>
+        </CardHeader>
+        <CardContent>
+          <div className="grid gap-2 md:grid-cols-2 lg:grid-cols-5">
+            {statusItems.map((s) => {
+              const st = d?.status[s.key];
+              const ok = st?.ok ?? true;
+              const at = st?.at ?? null;
+              const Icon = s.icon;
+              return (
+                <Link
+                  key={s.key}
+                  to="/logs"
+                  search={{ q: s.logFilter } as never}
+                  className="group rounded-xl border border-border/60 bg-card/40 p-3 hover:border-primary/40 transition-all"
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2 text-xs uppercase tracking-wider text-muted-foreground">
+                      <Icon className="h-3.5 w-3.5 text-primary" /> {s.label}
+                    </div>
+                    {!d ? (
+                      <AlertTriangle className="h-4 w-4 text-muted-foreground" />
+                    ) : ok ? (
+                      <CheckCircle2 className="h-4 w-4 text-emerald-500" />
+                    ) : (
+                      <XCircle className="h-4 w-4 text-red-500" />
+                    )}
+                  </div>
+                  <div className="mt-2 text-sm font-medium">
+                    {ok ? "OK" : "Erro"}
+                  </div>
+                  <div className="text-[11px] text-muted-foreground mt-0.5">
+                    {at ? `há ${fmtWhen(at)}` : "sem eventos"}
+                  </div>
+                  {st?.msg && (
+                    <div className="text-[11px] text-red-400 mt-1 line-clamp-2">{st.msg}</div>
+                  )}
+                </Link>
+              );
+            })}
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Panels */}
       <div className="grid gap-4 lg:grid-cols-3">
