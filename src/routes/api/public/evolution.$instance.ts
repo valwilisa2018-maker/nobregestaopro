@@ -1742,21 +1742,51 @@ async function sttViaLovable(audioBase64: string, mime?: string | null): Promise
   const key = process.env.LOVABLE_API_KEY ?? "";
   const bin = Buffer.from(stripDataUri(audioBase64).replace(/\s/g, ""), "base64");
   const detected = detectAudioContainer(bin, mime);
+  const magic = Array.from(bin.slice(0, 12)).map((b) => b.toString(16).padStart(2, "0")).join(" ");
   if (!key) return { text: null, mime: detected.mime, ext: detected.ext, bytes: bin.byteLength, error: "LOVABLE_API_KEY ausente" };
-  const blob = new Blob([new Uint8Array(bin)], { type: detected.mime });
-  const fd = new FormData();
-  fd.append("file", blob, `audio.${detected.ext}`);
-  fd.append("model", "openai/gpt-4o-mini-transcribe");
-  const r = await fetch("https://ai.gateway.lovable.dev/v1/audio/transcriptions", {
-    method: "POST", headers: { Authorization: `Bearer ${key}` }, body: fd,
-  });
-  if (!r.ok) {
-    const body = await r.text().catch(() => "");
-    console.warn("[stt] Lovable AI transcription failed", r.status, body.slice(0, 300));
-    return { text: null, mime: detected.mime, ext: detected.ext, bytes: bin.byteLength, status: r.status, error: body.slice(0, 500) };
+  // Validações de payload antes de enviar para o STT
+  if (bin.byteLength < 200) {
+    console.warn("[stt] audio too small", { bytes: bin.byteLength, magic, declared: mime, detected: detected.mime });
+    return { text: null, mime: detected.mime, ext: detected.ext, bytes: bin.byteLength, error: `audio too small (${bin.byteLength}B); magic=${magic}` };
   }
-  const j = await r.json().catch(() => null) as { text?: string } | null;
-  return { text: j?.text ?? null, mime: detected.mime, ext: detected.ext, bytes: bin.byteLength };
+  const MAX = 24 * 1024 * 1024; // Whisper aceita até 25MB
+  if (bin.byteLength > MAX) {
+    console.warn("[stt] audio too large", { bytes: bin.byteLength });
+    return { text: null, mime: detected.mime, ext: detected.ext, bytes: bin.byteLength, error: `audio too large (${bin.byteLength}B > 25MB)` };
+  }
+  console.info("[stt] preparing upload", { bytes: bin.byteLength, declared: mime, detected: detected.mime, ext: detected.ext, magic });
+
+  const attempt = async (m: string, ext: string) => {
+    const blob = new Blob([new Uint8Array(bin)], { type: m });
+    const fd = new FormData();
+    fd.append("file", blob, `audio.${ext}`);
+    fd.append("model", "openai/gpt-4o-mini-transcribe");
+    const r = await fetch("https://ai.gateway.lovable.dev/v1/audio/transcriptions", {
+      method: "POST", headers: { Authorization: `Bearer ${key}` }, body: fd,
+    });
+    const bodyText = r.ok ? "" : await r.text().catch(() => "");
+    if (!r.ok) {
+      console.warn("[stt] Lovable AI transcription failed", { status: r.status, mime: m, ext, bytes: bin.byteLength, body: bodyText.slice(0, 300) });
+      return { ok: false as const, status: r.status, error: bodyText.slice(0, 500) };
+    }
+    const j = await r.json().catch(() => null) as { text?: string } | null;
+    return { ok: true as const, text: j?.text ?? null };
+  };
+
+  let res = await attempt(detected.mime, detected.ext);
+  if (res.ok) return { text: res.text, mime: detected.mime, ext: detected.ext, bytes: bin.byteLength };
+  // Fallback: se o gateway rejeitou o container detectado, tenta variantes comuns do WhatsApp
+  const fallbacks: Array<{ mime: string; ext: string }> = [];
+  if (detected.ext !== "ogg") fallbacks.push({ mime: "audio/ogg", ext: "ogg" });
+  if (detected.ext !== "mp3") fallbacks.push({ mime: "audio/mpeg", ext: "mp3" });
+  if (detected.ext !== "m4a") fallbacks.push({ mime: "audio/mp4", ext: "m4a" });
+  for (const fb of fallbacks) {
+    console.info("[stt] retrying with fallback container", fb);
+    const r2 = await attempt(fb.mime, fb.ext);
+    if (r2.ok) return { text: r2.text, mime: fb.mime, ext: fb.ext, bytes: bin.byteLength };
+    res = r2;
+  }
+  return { text: null, mime: detected.mime, ext: detected.ext, bytes: bin.byteLength, status: res.status, error: res.error };
 }
 
 function detectAudioContainer(bytes: Uint8Array, declaredMime?: string | null) {
