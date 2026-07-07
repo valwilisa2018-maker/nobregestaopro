@@ -492,11 +492,37 @@ export const Route = createFileRoute("/api/public/evolution/$instance")({
             // Speech-to-text on inbound audio (always attempt so the agent can understand voice notes)
             if (!fromMe && !text && audioMsg) {
               try {
+                await supabaseAdmin.from("logs").insert({
+                  user_id: conn.user_id, level: "info", source: `evolution:${instance}`,
+                  message: "stt: fetching audio base64",
+                  metadata: { remoteJid, mime: audioMsg?.mimetype ?? null, ptt: audioMsg?.ptt ?? null, seconds: audioMsg?.seconds ?? null } as never,
+                } as never);
                 const b64 = await evolutionGetBase64(commandConn, msg, true);
-                if (b64) {
+                if (!b64) {
+                  await supabaseAdmin.from("logs").insert({
+                    user_id: conn.user_id, level: "warn", source: `evolution:${instance}`,
+                    message: "stt: no audio base64 (evolution getBase64 returned null)",
+                    metadata: { remoteJid, mime: audioMsg?.mimetype ?? null } as never,
+                  } as never);
+                } else {
                   transcribedAudioBase64 = b64;
                   const transcript = await sttViaLovable(b64, audioMsg?.mimetype);
-                  if (transcript) { text = transcript; inputWasAudio = true; }
+                  if (!transcript) {
+                    await supabaseAdmin.from("logs").insert({
+                      user_id: conn.user_id, level: "warn", source: `evolution:${instance}`,
+                      message: "stt: Lovable AI returned no transcript",
+                      metadata: { remoteJid, mime: audioMsg?.mimetype ?? null, bytes: Math.floor((b64.length * 3) / 4) } as never,
+                    } as never);
+                  }
+                  if (transcript) {
+                    text = transcript;
+                    inputWasAudio = true;
+                    await supabaseAdmin.from("logs").insert({
+                      user_id: conn.user_id, level: "info", source: `evolution:${instance}`,
+                      message: "stt: transcription ok",
+                      metadata: { remoteJid, chars: transcript.length, mime: audioMsg?.mimetype ?? null } as never,
+                    } as never);
+                  }
                 }
               } catch (e) {
                 await supabaseAdmin.from("logs").insert({
@@ -1712,7 +1738,11 @@ async function sttViaLovable(audioBase64: string, mime?: string | null): Promise
   const r = await fetch("https://ai.gateway.lovable.dev/v1/audio/transcriptions", {
     method: "POST", headers: { Authorization: `Bearer ${key}` }, body: fd,
   });
-  if (!r.ok) return null;
+  if (!r.ok) {
+    const body = await r.text().catch(() => "");
+    console.warn("[stt] Lovable AI transcription failed", r.status, body.slice(0, 300));
+    return null;
+  }
   const j = await r.json().catch(() => null) as { text?: string } | null;
   return j?.text ?? null;
 }
