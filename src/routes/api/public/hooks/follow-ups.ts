@@ -184,24 +184,22 @@ async function generateFollowUp(
 
   const { resolveAIConfig } = await import("@/lib/ai-resolver.server");
   const { checkAiBalance, consumeAiTokens, InsufficientCreditsError } = await import("@/lib/ai-credits.server");
+  const { callChatCompletions, extractAssistantText } = await import("@/lib/ai-chat-request.server");
   const { endpoint, apiKey, model: modelId } = await resolveAIConfig(db as never, agent.user_id);
   const bal = await checkAiBalance(db as never, agent.user_id);
   if (!bal.ok) return null;
   const sysAdd = `\n\n[FOLLOW-UP] Este é o follow-up #${step + 1}. O cliente ficou em silêncio. Reengaje de forma humana, curta (1-2 frases) e leve, sem soar insistente. Faça UMA pergunta aberta.`;
-  const res = await fetch(endpoint, {
-    method: "POST",
-    headers: { "Content-Type": "application/json", Authorization: `Bearer ${apiKey}` },
-    body: JSON.stringify({
-      model: modelId,
-      temperature: Number(agent.temperature ?? 0.7),
-      max_tokens: Math.min(agent.max_tokens ?? 512, 512),
-      messages: [
+  const { json: j } = await callChatCompletions({
+    endpoint,
+    apiKey,
+    model: modelId,
+    temperature: Number(agent.temperature ?? 0.7),
+    maxTokens: Math.min(agent.max_tokens ?? 512, 512),
+    messages: [
         ...(agent.system_prompt ? [{ role: "system", content: agent.system_prompt + sysAdd }] : [{ role: "system", content: sysAdd }]),
         ...history,
       ],
-    }),
   });
-  const j = await res.json().catch(() => ({} as any));
   try {
     await consumeAiTokens(db as never, {
       userId: agent.user_id,
@@ -214,5 +212,5 @@ async function generateFollowUp(
     if (e instanceof InsufficientCreditsError) return null;
     throw e;
   }
-  return j?.choices?.[0]?.message?.content ?? null;
+  return extractAssistantText(j) || null;
 }

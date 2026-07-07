@@ -495,7 +495,7 @@ export const Route = createFileRoute("/api/public/evolution/$instance")({
                 const b64 = await evolutionGetBase64(commandConn, msg, true);
                 if (b64) {
                   transcribedAudioBase64 = b64;
-                  const transcript = await sttViaLovable(b64);
+                  const transcript = await sttViaLovable(b64, audioMsg?.mimetype);
                   if (transcript) { text = transcript; inputWasAudio = true; }
                 }
               } catch (e) {
@@ -962,15 +962,14 @@ export const Route = createFileRoute("/api/public/evolution/$instance")({
               return Response.json({ ok: true, creditsBlocked: true });
             }
 
-            const aiRes = await fetch(endpoint, {
-              method: "POST",
-              headers: { "Content-Type": "application/json", Authorization: `Bearer ${apiKey}` },
-              body: JSON.stringify({
-                model: modelId,
-                ...(/(^|\/)(gpt-5|o1|o3|o4)/i.test(modelId)
-                  ? { max_completion_tokens: agent.max_tokens ?? 2048 }
-                  : { temperature: Number(agent.temperature ?? 0.7), max_tokens: agent.max_tokens ?? 2048 }),
-                messages: [
+            const { callChatCompletions, extractAssistantText, chatErrorMessage } = await import("@/lib/ai-chat-request.server");
+            const { res: aiRes, json: aiJson } = await callChatCompletions({
+              endpoint,
+              apiKey,
+              model: modelId,
+              temperature: Number(agent.temperature ?? 0.7),
+              maxTokens: agent.max_tokens ?? 2048,
+              messages: [
                   ...(() => {
                     const kbEnabled = ((agent.memory as { knowledgeEnabled?: boolean } | null)?.knowledgeEnabled ?? true);
                     const items = (agent.knowledge as Array<{ title?: string; content?: string; enabled?: boolean }> | null) ?? [];
@@ -998,17 +997,15 @@ export const Route = createFileRoute("/api/public/evolution/$instance")({
                     return { role: "user", content: mergedInbound };
                   })(),
                 ],
-              }),
             });
-            const aiJson = await aiRes.json().catch(() => ({} as any));
             if (!aiRes.ok) {
               await supabaseAdmin.from("logs").insert({
                 user_id: conn.user_id, level: "error", source: `evolution:${instance}`,
-                message: `AI ${aiRes.status}: ${aiJson?.error?.message ?? "upstream error"}`,
+                message: chatErrorMessage(aiRes.status, aiJson),
                 metadata: { model: modelId, err: aiJson?.error ?? null } as never,
               } as never);
             }
-            let reply: string = aiJson?.choices?.[0]?.message?.content ?? "";
+            let reply: string = extractAssistantText(aiJson);
             // Debit tokens consumed from the wallet. Block on 402/insufficient.
             try {
               await consumeAiTokens(supabaseAdmin, {
@@ -1645,13 +1642,19 @@ function findBase64(value: unknown, depth = 0): string | null {
   return null;
 }
 
-async function sttViaLovable(audioBase64: string): Promise<string | null> {
+async function sttViaLovable(audioBase64: string, mime?: string | null): Promise<string | null> {
   const key = process.env.LOVABLE_API_KEY ?? "";
   if (!key) return null;
   const bin = Buffer.from(audioBase64, "base64");
-  const blob = new Blob([new Uint8Array(bin)], { type: "audio/mpeg" });
+  const contentType = mime || "audio/ogg";
+  const ext = contentType.includes("mp3") || contentType.includes("mpeg") ? "mp3"
+    : contentType.includes("wav") ? "wav"
+      : contentType.includes("mp4") ? "mp4"
+        : contentType.includes("webm") ? "webm"
+          : "ogg";
+  const blob = new Blob([new Uint8Array(bin)], { type: contentType });
   const fd = new FormData();
-  fd.append("file", blob, "audio.mp3");
+  fd.append("file", blob, `audio.${ext}`);
   fd.append("model", "openai/gpt-4o-mini-transcribe");
   const r = await fetch("https://ai.gateway.lovable.dev/v1/audio/transcriptions", {
     method: "POST", headers: { Authorization: `Bearer ${key}` }, body: fd,
