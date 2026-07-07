@@ -977,7 +977,8 @@ export const Route = createFileRoute("/api/public/evolution/$instance")({
                 const kbText = kb.length
                   ? "\n\n## Base de Conhecimento\n" + kb.map((k) => `### ${k.title ?? "Item"}\n${k.content}`).join("\n\n")
                   : "";
-                const sys = (agent.system_prompt ?? "") + kbText;
+                const brevity = "\n\n[REGRA DE RESPOSTA] Responda em português, no máximo 2-3 frases curtas e humanas por mensagem. Uma pergunta por vez. Sem listas, sem markdown, sem textão.";
+                const sys = (agent.system_prompt ?? "") + kbText + brevity;
                 return sys.trim() ? [{ role: "system" as const, content: sys }] : [];
               })(),
               ...history,
@@ -999,6 +1000,8 @@ export const Route = createFileRoute("/api/public/evolution/$instance")({
             ];
             let aiJson: any = {};
             try {
+              // Mostra "digitando..." no WhatsApp enquanto a IA processa
+              await sendPresence(commandConn, recipient, "composing", 15_000);
               await supabaseAdmin.from("logs").insert({
                 user_id: conn.user_id, level: "info", source: `evolution:${instance}`,
                 message: "AI request started", metadata: { remoteJid, model: modelId, historyCount: history.length, hasMedia: !!mediaB64 } as never,
@@ -1078,7 +1081,11 @@ export const Route = createFileRoute("/api/public/evolution/$instance")({
             const maxDelayMs = Math.max(0, Number(ext.timing?.delayMax ?? 0));
             if (perChar > 0) {
               const ms = Math.min(reply.length * perChar, maxDelayMs || 20_000, 20_000);
-              if (ms > 0) await sleep(ms);
+              if (ms > 0) {
+                // Mantém indicador de "digitando..." durante o delay artificial
+                await sendPresence(commandConn, recipient, "composing", ms);
+                await sleep(ms);
+              }
             }
 
             // Media attachments (keyword-triggered) sent before/instead of text
@@ -1188,6 +1195,21 @@ async function sendText(conn: { url_api: string | null; api_key: string | null; 
     headers: { "Content-Type": "application/json", apikey: conn.api_key ?? "" },
     body: JSON.stringify({ number, text }),
   });
+}
+
+async function sendPresence(
+  conn: { url_api: string | null; api_key: string | null; instance_name: string | null },
+  number: string,
+  presence: "composing" | "paused" | "recording",
+  delayMs = 15_000,
+) {
+  try {
+    await fetch(`${normalizeBaseUrl(conn.url_api ?? "")}/chat/sendPresence/${conn.instance_name}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", apikey: conn.api_key ?? "" },
+      body: JSON.stringify({ number, delay: Math.max(1000, Math.min(delayMs, 20_000)), presence }),
+    });
+  } catch { /* best-effort — presença é opcional */ }
 }
 
 async function sendAudio(conn: { url_api: string | null; api_key: string | null; instance_name: string | null }, number: string, audioBase64: string) {
