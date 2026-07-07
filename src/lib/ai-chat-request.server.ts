@@ -15,7 +15,7 @@ type ChatCallParams = {
 };
 
 type ChatJson = {
-  choices?: Array<{ message?: { content?: string }; finish_reason?: string }>;
+  choices?: Array<{ message?: { content?: string; refusal?: string }; finish_reason?: string }>;
   usage?: { prompt_tokens?: number; completion_tokens?: number };
   error?: { message?: string; type?: string; code?: string; param?: string };
 };
@@ -27,7 +27,7 @@ export function isReasoningModel(modelId: string) {
 export function normalizedMaxTokens(modelId: string, value?: number | null) {
   const n = Number(value ?? 2048);
   const safe = Number.isFinite(n) && n > 0 ? Math.floor(n) : 2048;
-  return isReasoningModel(modelId) ? Math.max(safe, 512) : safe;
+  return isReasoningModel(modelId) ? Math.max(safe, 2048) : safe;
 }
 
 export function buildChatCompletionsBody(params: Pick<ChatCallParams, "model" | "temperature" | "maxTokens" | "messages">) {
@@ -82,10 +82,11 @@ export function extractAssistantText(json: ChatJson) {
   const choice = json.choices?.[0];
   const text = choice?.message?.content ?? "";
   if (text.trim()) return text;
+  if (choice?.message?.refusal) return choice.message.refusal;
   if (choice?.finish_reason === "length") {
-    return "(A resposta foi cortada por limite de tokens. Aumente Max Tokens.)";
+    return "A resposta foi cortada por limite de tokens. Aumente Max Tokens e tente novamente.";
   }
-  return "";
+  return null;
 }
 
 export function chatErrorMessage(status: number, json: ChatJson) {

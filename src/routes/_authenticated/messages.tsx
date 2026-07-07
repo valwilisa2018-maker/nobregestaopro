@@ -299,6 +299,28 @@ function MessagesPage() {
     });
   }
 
+  function mergeThreadPagePreservingOlder(current: Msg[], refreshed: Msg[]) {
+    if (!current.length) return refreshed;
+    if (!refreshed.length) return current;
+    const oldestRefreshedTs = Math.min(...refreshed.map((m) => new Date(m.created_at).getTime()).filter(Number.isFinite));
+    const keyFor = (m: Msg) => {
+      const evoId = (m.metadata as { evoId?: unknown } | null)?.evoId;
+      return typeof evoId === "string" && evoId ? `evo:${evoId}` : `id:${m.id}`;
+    };
+    const keptOlder = current.filter((m) => {
+      if (m.id.startsWith("tmp-")) return true;
+      const ts = new Date(m.created_at).getTime();
+      return Number.isFinite(ts) && ts < oldestRefreshedTs;
+    });
+    const map = new Map<string, Msg>();
+    for (const m of [...keptOlder, ...refreshed]) {
+      const key = keyFor(m);
+      const prev = map.get(key);
+      map.set(key, prev ? { ...prev, ...m, metadata: { ...(prev.metadata ?? {}), ...(m.metadata ?? {}) } } : m);
+    }
+    return [...map.values()].sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+  }
+
   const attemptSendText = useCallback((tmpId: string, contactId: string, body: string, attempt = 0, quotedMessageId?: string) => {
     const MAX = 3;
     sendText({ data: { contactId, text: body, quotedMessageId } })
@@ -623,9 +645,8 @@ function MessagesPage() {
   );
   const groupsTotal = useMemo(() => contacts.filter((c) => c.phone.includes("@g.us")).length, [contacts]);
 
-  // Defensive dedup: even if a message slips in through both the optimistic path
-  // and Realtime (or a refetch), render it only once. Dedup by id first, then by
-  // (direction + type + content) within a 2-minute window to collapse tmp/real pairs.
+  // Defensive dedup: collapse only identical IDs and optimistic tmp/real pairs.
+  // Real repeated text like "oi" must stay visible in the history.
   const dedupedMsgs = useMemo(() => {
     const seenIds = new Set<string>();
     const bySig = new Map<string, number>(); // signature -> index in output
@@ -650,7 +671,7 @@ function MessagesPage() {
             out[prevIdx] = m;
             bySig.set(sig, prevIdx);
           }
-          if (hasTmp || (m.type || "text") === "text") continue;
+          if (hasTmp) continue;
         }
       }
       bySig.set(sig, out.length);
@@ -751,8 +772,11 @@ function MessagesPage() {
     if (fastData && selectedRef.current?.id === reqId && messageLoadSeqRef.current === seq) {
       const rows = fastData.slice(0, MESSAGE_PAGE_SIZE).reverse();
       setHasOlder(fastData.length > MESSAGE_PAGE_SIZE);
-      setMsgs(rows);
-      persistMsgCache(reqId, rows);
+      setMsgs((prev) => {
+        const next = mergeThreadPagePreservingOlder(prev, rows);
+        persistMsgCache(reqId, next);
+        return next;
+      });
       setMessagesLoading(false);
       hydrateSignedUrls(rows, reqId);
     }
@@ -776,8 +800,11 @@ function MessagesPage() {
     if (selectedRef.current?.id !== reqId || messageLoadSeqRef.current !== seq) return;
     const rows = data.slice(0, MESSAGE_PAGE_SIZE).reverse();
     setHasOlder(data.length > MESSAGE_PAGE_SIZE);
-    setMsgs(rows);
-    persistMsgCache(reqId, rows);
+    setMsgs((prev) => {
+      const next = mergeThreadPagePreservingOlder(prev, rows);
+      persistMsgCache(reqId, next);
+      return next;
+    });
     setMessagesLoading(false);
     hydrateSignedUrls(rows, reqId);
   }, [user, selected, hydrateSignedUrls]);
@@ -1023,6 +1050,9 @@ function MessagesPage() {
     const prev = msgsCountRef.current;
     msgsCountRef.current = msgs.length;
     if (msgs.length === prev) return;
+    const elNow = scrollRef.current;
+    const isLoadingOlderMessages = msgs.length > prev && elNow && elNow.scrollTop < 160;
+    if (isLoadingOlderMessages) return;
     const id = requestAnimationFrame(() => {
       el.scrollTo({ top: el.scrollHeight, behavior: "smooth" });
     });

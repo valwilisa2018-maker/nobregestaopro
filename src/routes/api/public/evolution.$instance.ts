@@ -812,7 +812,6 @@ export const Route = createFileRoute("/api/public/evolution/$instance")({
                   ...(f.trigger ?? "").split(",").map((s) => s.trim()).filter(Boolean),
                 ];
                 active = forConn.find((f) => kwList(f).some((k) => k && text!.toLowerCase().includes(k.toLowerCase())))
-                  ?? forConn.find((f) => kwList(f).length === 0)
                   ?? null;
               }
               if (active && convo) {
@@ -1005,7 +1004,7 @@ export const Route = createFileRoute("/api/public/evolution/$instance")({
                 metadata: { model: modelId, err: aiJson?.error ?? null } as never,
               } as never);
             }
-            let reply: string = extractAssistantText(aiJson);
+            let reply = extractAssistantText(aiJson) ?? "";
             // Debit tokens consumed from the wallet. Block on 402/insufficient.
             try {
               await consumeAiTokens(supabaseAdmin, {
