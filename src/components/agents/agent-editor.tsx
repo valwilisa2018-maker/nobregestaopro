@@ -617,6 +617,48 @@ function TestSection({ form, setForm }: { form: AgentRow; setForm: React.Dispatc
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [showPrompt, setShowPrompt] = useState(false);
+  const [recording, setRecording] = useState(false);
+  const [transcribing, setTranscribing] = useState(false);
+  const recRef = useState<{ rec: MediaRecorder | null; chunks: Blob[] }>({ rec: null, chunks: [] })[0];
+
+  async function toggleRecord() {
+    if (recording) {
+      recRef.rec?.stop();
+      return;
+    }
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const mime = MediaRecorder.isTypeSupported("audio/webm;codecs=opus") ? "audio/webm;codecs=opus" : "audio/webm";
+      const rec = new MediaRecorder(stream, { mimeType: mime });
+      recRef.rec = rec;
+      recRef.chunks = [];
+      rec.ondataavailable = (e) => { if (e.data.size) recRef.chunks.push(e.data); };
+      rec.onstop = async () => {
+        stream.getTracks().forEach((t) => t.stop());
+        setRecording(false);
+        const blob = new Blob(recRef.chunks, { type: mime });
+        if (!blob.size) return;
+        setTranscribing(true);
+        try {
+          const buf = await blob.arrayBuffer();
+          let bin = "";
+          const bytes = new Uint8Array(buf);
+          for (let i = 0; i < bytes.length; i++) bin += String.fromCharCode(bytes[i]);
+          const b64 = btoa(bin);
+          const { transcribeAudio } = await import("@/lib/agent-stt.functions");
+          const { text } = await transcribeAudio({ data: { audioBase64: b64, mime } });
+          if (text) setInput((v) => (v ? `${v} ${text}` : text));
+          else toast.info("Nada foi transcrito");
+        } catch (e) {
+          toast.error(e instanceof Error ? e.message : "Falha ao transcrever");
+        } finally { setTranscribing(false); }
+      };
+      rec.start();
+      setRecording(true);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Sem acesso ao microfone");
+    }
+  }
 
   async function send() {
     const text = input.trim();
@@ -715,7 +757,9 @@ function TestSection({ form, setForm }: { form: AgentRow; setForm: React.Dispatc
         <Button size="icon" variant="ghost" title="Resetar conversa e memória" onClick={() => { setMessages([]); setInput(""); setLoading(false); toast.success("Conversa e memória de teste resetadas"); }}>
           <RefreshCw className="h-4 w-4" />
         </Button>
-        <Button size="icon" variant="ghost" disabled><Mic className="h-4 w-4" /></Button>
+        <Button size="icon" variant={recording ? "destructive" : "ghost"} onClick={toggleRecord} disabled={transcribing || loading} title={recording ? "Parar gravação" : "Gravar áudio"}>
+          {transcribing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Mic className={`h-4 w-4 ${recording ? "animate-pulse" : ""}`} />}
+        </Button>
         <Button size="icon" onClick={send} disabled={loading || !input.trim()} style={{ background: "var(--gradient-primary)" }}><SendIcon className="h-4 w-4" /></Button>
       </div>
     </div>
