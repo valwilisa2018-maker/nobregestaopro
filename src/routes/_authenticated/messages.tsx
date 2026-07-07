@@ -870,28 +870,32 @@ function MessagesPage() {
 
   useEffect(() => { loadMessagesRef.current = () => { void loadMessages(); }; }, [loadMessages]);
 
-  // Fallback: se a thread ficar vazia mas há um contato selecionado, tenta restaurar do cache
-  // (memória → localStorage) e, se ainda vazio, recarrega do servidor. Máx. 2 tentativas por seleção.
+  // Fallback: se a thread ficar vazia com um contato selecionado, tenta restaurar do cache
+  // (memória → localStorage) e re-busca do servidor. Retry com backoff exponencial:
+  // 400, 800, 1600, 3200, 6400ms (máx. 5 tentativas por seleção).
   const emptyRecoveryRef = useRef<{ contactId: string | null; attempts: number }>({ contactId: null, attempts: 0 });
   useEffect(() => {
     if (!selected) return;
     if (messagesLoading) return;
     if (msgs.length > 0) {
-      if (emptyRecoveryRef.current.contactId === selected.id) {
+      if (emptyRecoveryRef.current.contactId !== selected.id || emptyRecoveryRef.current.attempts !== 0) {
         emptyRecoveryRef.current = { contactId: selected.id, attempts: 0 };
       }
       return;
     }
-    const rec = emptyRecoveryRef.current;
-    if (rec.contactId !== selected.id) {
+    if (emptyRecoveryRef.current.contactId !== selected.id) {
       emptyRecoveryRef.current = { contactId: selected.id, attempts: 0 };
     }
-    if (emptyRecoveryRef.current.attempts >= 2) return;
+    const MAX_ATTEMPTS = 5;
+    const attempt = emptyRecoveryRef.current.attempts;
+    if (attempt >= MAX_ATTEMPTS) return;
+    const delay = Math.min(400 * 2 ** attempt, 6400); // 400,800,1600,3200,6400
+    const jitter = Math.floor(Math.random() * 150);
     const t = window.setTimeout(() => {
       if (selectedRef.current?.id !== selected.id) return;
-      // 1) tenta cache em memória
+      // 1) cache em memória
       let cached = messagesCacheRef.current.get(selected.id);
-      // 2) tenta cache persistido em localStorage
+      // 2) cache persistido em localStorage
       if (!cached?.length && typeof window !== "undefined") {
         try {
           const raw = localStorage.getItem("wa-msg-cache");
@@ -905,12 +909,16 @@ function MessagesPage() {
           }
         } catch { /* ignore */ }
       }
-      emptyRecoveryRef.current = { contactId: selected.id, attempts: emptyRecoveryRef.current.attempts + 1 };
-      waDebug("emptyRecovery:trigger", { contactId: selected.id, cachedCount: cached?.length ?? 0, attempt: emptyRecoveryRef.current.attempts });
+      emptyRecoveryRef.current = { contactId: selected.id, attempts: attempt + 1 };
+      waDebug("emptyRecovery:trigger", {
+        contactId: selected.id,
+        cachedCount: cached?.length ?? 0,
+        attempt: attempt + 1,
+        delayMs: delay + jitter,
+      });
       if (cached?.length) setMsgs(cached);
-      // sempre re-busca do servidor para reconciliar
       void loadMessages();
-    }, 400);
+    }, delay + jitter);
     return () => window.clearTimeout(t);
   }, [msgs.length, messagesLoading, selected, loadMessages, waDebug]);
 
