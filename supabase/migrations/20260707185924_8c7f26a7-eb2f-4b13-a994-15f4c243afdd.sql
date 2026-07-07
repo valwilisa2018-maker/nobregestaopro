@@ -1,0 +1,7 @@
+UPDATE public.conversations c
+SET agent_id = a.id
+FROM public.agents a
+WHERE c.agent_id IS NULL
+  AND a.connection_id = c.connection_id
+  AND a.user_id = c.user_id
+  AND a.is_active = true;
