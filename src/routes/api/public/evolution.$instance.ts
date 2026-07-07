@@ -903,10 +903,20 @@ export const Route = createFileRoute("/api/public/evolution/$instance")({
               const fm = (fresh?.metadata ?? {}) as ConvMeta;
               // If another message came in after us (pending_until moved forward), let that one respond
               if (fm.pending_until && new Date(fm.pending_until).getTime() > new Date(pendingUntil).getTime() + 500) {
+                await supabaseAdmin.from("logs").insert({
+                  user_id: conn.user_id, level: "info", source: `evolution:${instance}`,
+                  message: "debounced (newer msg took over)",
+                  metadata: { remoteJid, mine: pendingUntil, fresh: fm.pending_until } as never,
+                } as never);
                 return Response.json({ ok: true, debounced: true });
               }
               // cancelOnNew: if newer inbound arrived while we waited, abort
               if (ext.conversation?.cancelOnNew && (fm.pending_texts?.length ?? 0) > pending.length) {
+                await supabaseAdmin.from("logs").insert({
+                  user_id: conn.user_id, level: "info", source: `evolution:${instance}`,
+                  message: "cancelledByNewer",
+                  metadata: { remoteJid, was: pending.length, now: fm.pending_texts?.length } as never,
+                } as never);
                 return Response.json({ ok: true, cancelledByNewer: true });
               }
             }
