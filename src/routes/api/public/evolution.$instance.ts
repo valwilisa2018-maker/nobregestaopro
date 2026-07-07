@@ -957,8 +957,9 @@ export const Route = createFileRoute("/api/public/evolution/$instance")({
               headers: { "Content-Type": "application/json", Authorization: `Bearer ${apiKey}` },
               body: JSON.stringify({
                 model: modelId,
-                temperature: Number(agent.temperature ?? 0.7),
-                max_tokens: agent.max_tokens ?? 2048,
+                ...(/(^|\/)(gpt-5|o1|o3|o4)/i.test(modelId)
+                  ? { max_completion_tokens: agent.max_tokens ?? 2048 }
+                  : { temperature: Number(agent.temperature ?? 0.7), max_tokens: agent.max_tokens ?? 2048 }),
                 messages: [
                   ...(() => {
                     const kbEnabled = ((agent.memory as { knowledgeEnabled?: boolean } | null)?.knowledgeEnabled ?? true);
@@ -990,6 +991,13 @@ export const Route = createFileRoute("/api/public/evolution/$instance")({
               }),
             });
             const aiJson = await aiRes.json().catch(() => ({} as any));
+            if (!aiRes.ok) {
+              await supabaseAdmin.from("logs").insert({
+                user_id: conn.user_id, level: "error", source: `evolution:${instance}`,
+                message: `AI ${aiRes.status}: ${aiJson?.error?.message ?? "upstream error"}`,
+                metadata: { model: modelId, err: aiJson?.error ?? null } as never,
+              } as never);
+            }
             let reply: string = aiJson?.choices?.[0]?.message?.content ?? "";
             // Debit tokens consumed from the wallet. Block on 402/insufficient.
             try {
