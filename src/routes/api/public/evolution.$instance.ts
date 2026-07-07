@@ -492,11 +492,30 @@ export const Route = createFileRoute("/api/public/evolution/$instance")({
             // Speech-to-text on inbound audio (always attempt so the agent can understand voice notes)
             if (!fromMe && !text && audioMsg) {
               try {
+                await supabaseAdmin.from("logs").insert({
+                  user_id: conn.user_id, level: "info", source: `evolution:${instance}`,
+                  message: "stt: fetching audio base64",
+                  metadata: { remoteJid, mime: audioMsg?.mimetype ?? null, ptt: audioMsg?.ptt ?? null, seconds: audioMsg?.seconds ?? null } as never,
+                } as never);
                 const b64 = await evolutionGetBase64(commandConn, msg, true);
-                if (b64) {
+                if (!b64) {
+                  await supabaseAdmin.from("logs").insert({
+                    user_id: conn.user_id, level: "warn", source: `evolution:${instance}`,
+                    message: "stt: no audio base64 (evolution getBase64 returned null)",
+                    metadata: { remoteJid, evoId: inboundEvoId, mime: audioMsg?.mimetype ?? null } as never,
+                  } as never);
+                } else {
                   transcribedAudioBase64 = b64;
-                  const transcript = await sttViaLovable(b64, audioMsg?.mimetype);
-                  if (transcript) { text = transcript; inputWasAudio = true; }
+                  const transcript = await sttViaLovable(b64, audioMsg?.mimetype, supabaseAdmin, conn.user_id, `evolution:${instance}`);
+                  if (transcript) {
+                    text = transcript;
+                    inputWasAudio = true;
+                    await supabaseAdmin.from("logs").insert({
+                      user_id: conn.user_id, level: "info", source: `evolution:${instance}`,
+                      message: "stt: transcription ok",
+                      metadata: { remoteJid, chars: transcript.length, mime: audioMsg?.mimetype ?? null } as never,
+                    } as never);
+                  }
                 }
               } catch (e) {
                 await supabaseAdmin.from("logs").insert({
