@@ -110,6 +110,18 @@ function DownloadBtn({ url, filename, dark = false }: { url: string; filename: s
 
 function MessagesPage() {
   const { user } = useAuth();
+  // Debug logger — ligue no console com: localStorage.setItem('wa-debug','1')
+  // Desligue com: localStorage.removeItem('wa-debug')
+  const waDebug = useCallback((event: string, payload?: Record<string, unknown>) => {
+    if (typeof window === "undefined") return;
+    if (localStorage.getItem("wa-debug") !== "1") return;
+    // eslint-disable-next-line no-console
+    console.log(`[wa-msg] ${event}`, {
+      t: new Date().toISOString(),
+      route: typeof window !== "undefined" ? window.location.pathname : "",
+      ...(payload ?? {}),
+    });
+  }, []);
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [search, setSearch] = useState("");
   const [selected, setSelected] = useState<Contact | null>(null);
@@ -240,6 +252,10 @@ function MessagesPage() {
   }, []);
   const persistMsgCache = useCallback((contactId: string, rows: Msg[]) => {
     messagesCacheRef.current.set(contactId, rows);
+    if (typeof window !== "undefined" && localStorage.getItem("wa-debug") === "1") {
+      // eslint-disable-next-line no-console
+      console.log("[wa-msg] persistMsgCache", { contactId, count: rows.length, firstId: rows[0]?.id, lastId: rows[rows.length - 1]?.id });
+    }
     if (typeof window === "undefined") return;
     try {
       const obj: Record<string, Msg[]> = {};
@@ -300,6 +316,10 @@ function MessagesPage() {
   }
 
   function mergeThreadPagePreservingOlder(current: Msg[], refreshed: Msg[]) {
+    if (typeof window !== "undefined" && localStorage.getItem("wa-debug") === "1") {
+      // eslint-disable-next-line no-console
+      console.log("[wa-msg] mergeThreadPagePreservingOlder:in", { currentCount: current.length, refreshedCount: refreshed.length });
+    }
     if (!current.length) return refreshed;
     if (!refreshed.length) return current;
     const oldestRefreshedTs = Math.min(...refreshed.map((m) => new Date(m.created_at).getTime()).filter(Number.isFinite));
@@ -318,7 +338,17 @@ function MessagesPage() {
       const prev = map.get(key);
       map.set(key, prev ? { ...prev, ...m, metadata: { ...(prev.metadata ?? {}), ...(m.metadata ?? {}) } } : m);
     }
-    return [...map.values()].sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+    const out = [...map.values()].sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+    if (typeof window !== "undefined" && localStorage.getItem("wa-debug") === "1") {
+      // eslint-disable-next-line no-console
+      console.log("[wa-msg] mergeThreadPagePreservingOlder:out", {
+        outCount: out.length,
+        keptOlder: keptOlder.length,
+        oldestRefreshedTs,
+        droppedFromCurrent: current.length - keptOlder.length,
+      });
+    }
+    return out;
   }
 
   const attemptSendText = useCallback((tmpId: string, contactId: string, body: string, attempt = 0, quotedMessageId?: string) => {
@@ -739,11 +769,21 @@ function MessagesPage() {
 
   // Load messages for selected contact (match conversation by remoteJid)
   const loadMessages = useCallback(async () => {
-    if (!user || !selected) { setMsgs([]); setMessagesLoading(false); return; }
+    if (!user || !selected) {
+      waDebug("loadMessages:abort-no-selection", { hasUser: !!user, hasSelected: !!selected });
+      setMsgs([]); setMessagesLoading(false); return;
+    }
     const reqId = selected.id;
     const seq = ++messageLoadSeqRef.current;
     const cached = messagesCacheRef.current.get(reqId);
     const cachedIds = conversationIdsCacheRef.current.get(reqId);
+    waDebug("loadMessages:start", {
+      contactId: reqId,
+      seq,
+      cachedMsgs: cached?.length ?? 0,
+      cachedConvIds: cachedIds?.length ?? 0,
+      selectedPhone: selected.phone,
+    });
     setMessagesLoading(!cached?.length);
     setHasOlder(false);
     conversationIdsRef.current = cachedIds ?? [];
@@ -771,9 +811,11 @@ function MessagesPage() {
     // Apply fast path result first (if any) so UI updates ASAP
     if (fastData && selectedRef.current?.id === reqId && messageLoadSeqRef.current === seq) {
       const rows = fastData.slice(0, MESSAGE_PAGE_SIZE).reverse();
+      waDebug("loadMessages:fastPath", { contactId: reqId, fetched: fastData.length, applied: rows.length });
       setHasOlder(fastData.length > MESSAGE_PAGE_SIZE);
       setMsgs((prev) => {
         const next = mergeThreadPagePreservingOlder(prev, rows);
+        waDebug("loadMessages:fastPath:setMsgs", { contactId: reqId, prevCount: prev.length, nextCount: next.length });
         persistMsgCache(reqId, next);
         return next;
       });
@@ -781,7 +823,10 @@ function MessagesPage() {
       hydrateSignedUrls(rows, reqId);
     }
 
-    if (selectedRef.current?.id !== reqId) return;
+    if (selectedRef.current?.id !== reqId) {
+      waDebug("loadMessages:abort-selection-changed", { reqId, currentId: selectedRef.current?.id });
+      return;
+    }
     const matched = convs ?? [];
     const ids = matched.map((c) => c.id);
     conversationIdsRef.current = ids;
@@ -792,29 +837,36 @@ function MessagesPage() {
     setAgentPaused(!!pausedUntil && new Date(pausedUntil).getTime() > Date.now());
     if (!ids.length) {
       // Don't wipe cached messages if lookup temporarily fails; only clear if we truly have nothing
+      waDebug("loadMessages:no-convo-ids", { contactId: reqId, cached: cached?.length ?? 0, fast: fastData?.length ?? 0 });
       if (!cached?.length && !fastData?.length) setMsgs([]);
       setMessagesLoading(false);
       return;
     }
     const data = await fetchMessagesFor(ids);
-    if (selectedRef.current?.id !== reqId || messageLoadSeqRef.current !== seq) return;
+    if (selectedRef.current?.id !== reqId || messageLoadSeqRef.current !== seq) {
+      waDebug("loadMessages:abort-stale", { reqId, currentId: selectedRef.current?.id, seq, currentSeq: messageLoadSeqRef.current });
+      return;
+    }
     const rows = data.slice(0, MESSAGE_PAGE_SIZE).reverse();
+    waDebug("loadMessages:slowPath", { contactId: reqId, convoIds: ids.length, fetched: data.length, applied: rows.length });
     setHasOlder(data.length > MESSAGE_PAGE_SIZE);
     setMsgs((prev) => {
       const next = mergeThreadPagePreservingOlder(prev, rows);
+      waDebug("loadMessages:slowPath:setMsgs", { contactId: reqId, prevCount: prev.length, nextCount: next.length });
       persistMsgCache(reqId, next);
       return next;
     });
     setMessagesLoading(false);
     hydrateSignedUrls(rows, reqId);
-  }, [user, selected, hydrateSignedUrls]);
+  }, [user, selected, hydrateSignedUrls, waDebug]);
   useEffect(() => {
     const cached = selected ? messagesCacheRef.current.get(selected.id) : undefined;
+    waDebug("selection:effect", { contactId: selected?.id ?? null, cachedCount: cached?.length ?? 0 });
     setMsgs(cached ?? []);
     setHasOlder(false);
     setMessagesLoading(!!selected && !cached?.length);
     loadMessages();
-  }, [loadMessages]);
+  }, [loadMessages, selected, waDebug]);
 
   useEffect(() => { loadMessagesRef.current = () => { void loadMessages(); }; }, [loadMessages]);
 
