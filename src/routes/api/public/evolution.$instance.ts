@@ -1190,6 +1190,21 @@ async function sendText(conn: { url_api: string | null; api_key: string | null; 
   });
 }
 
+async function sendPresence(
+  conn: { url_api: string | null; api_key: string | null; instance_name: string | null },
+  number: string,
+  presence: "composing" | "paused" | "recording",
+  delayMs = 15_000,
+) {
+  try {
+    await fetch(`${normalizeBaseUrl(conn.url_api ?? "")}/chat/sendPresence/${conn.instance_name}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", apikey: conn.api_key ?? "" },
+      body: JSON.stringify({ number, delay: Math.max(1000, Math.min(delayMs, 20_000)), presence }),
+    });
+  } catch { /* best-effort — presença é opcional */ }
+}
+
 async function sendAudio(conn: { url_api: string | null; api_key: string | null; instance_name: string | null }, number: string, audioBase64: string) {
   return fetch(`${normalizeBaseUrl(conn.url_api ?? "")}/message/sendWhatsAppAudio/${conn.instance_name}`, {
     method: "POST",
