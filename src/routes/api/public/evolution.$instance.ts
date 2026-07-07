@@ -497,7 +497,10 @@ export const Route = createFileRoute("/api/public/evolution/$instance")({
                   message: "stt: fetching audio base64",
                   metadata: { remoteJid, mime: audioMsg?.mimetype ?? null, ptt: audioMsg?.ptt ?? null, seconds: audioMsg?.seconds ?? null } as never,
                 } as never);
-                const b64 = await evolutionGetBase64(commandConn, msg, true);
+                // Não pedir conversão para MP3 aqui: algumas versões da Evolution
+                // retornam bytes OGG/Opus com nome/MIME de MP3, e o STT rejeita
+                // como "Audio file might be corrupted or unsupported".
+                const b64 = await evolutionGetBase64(commandConn, msg, false);
                 if (!b64) {
                   await supabaseAdmin.from("logs").insert({
                     user_id: conn.user_id, level: "warn", source: `evolution:${instance}`,
@@ -506,12 +509,21 @@ export const Route = createFileRoute("/api/public/evolution/$instance")({
                   } as never);
                 } else {
                   transcribedAudioBase64 = b64;
-                  const transcript = await sttViaLovable(b64, audioMsg?.mimetype);
+                  const stt = await sttViaLovable(b64, audioMsg?.mimetype);
+                  const transcript = stt.text;
                   if (!transcript) {
                     await supabaseAdmin.from("logs").insert({
                       user_id: conn.user_id, level: "warn", source: `evolution:${instance}`,
                       message: "stt: Lovable AI returned no transcript",
-                      metadata: { remoteJid, mime: audioMsg?.mimetype ?? null, bytes: Math.floor((b64.length * 3) / 4) } as never,
+                      metadata: {
+                        remoteJid,
+                        declaredMime: audioMsg?.mimetype ?? null,
+                        detectedMime: stt.mime,
+                        ext: stt.ext,
+                        bytes: stt.bytes,
+                        status: stt.status ?? null,
+                        error: stt.error ?? null,
+                      } as never,
                     } as never);
                   }
                   if (transcript) {
@@ -1003,7 +1015,7 @@ export const Route = createFileRoute("/api/public/evolution/$instance")({
                 const kbText = kb.length
                   ? "\n\n## Base de Conhecimento\n" + kb.map((k) => `### ${k.title ?? "Item"}\n${k.content}`).join("\n\n")
                   : "";
-                const brevity = "\n\n[REGRA DE RESPOSTA] Responda em português, no máximo 2-3 frases curtas e humanas por mensagem. Uma pergunta por vez. Sem listas, sem markdown, sem textão.";
+                const brevity = "\n\n[REGRA DE RESPOSTA] Responda em português, no máximo 2-3 frases curtas e humanas por mensagem. Uma pergunta por vez. Sem listas, sem markdown, sem textão. Se a mensagem veio de áudio, ela já foi transcrita pelo sistema: responda ao conteúdo transcrito e nunca diga que não consegue ouvir ou transcrever áudio.";
                 const sys = (agent.system_prompt ?? "") + kbText + brevity;
                 return sys.trim() ? [{ role: "system" as const, content: sys }] : [];
               })(),
@@ -1020,6 +1032,9 @@ export const Route = createFileRoute("/api/public/evolution/$instance")({
                     parts.push({ type: "file", file: { filename: mediaName ?? "arquivo", file_data: dataUri } });
                   }
                   return { role: "user" as const, content: parts };
+                }
+                if (inputWasAudio) {
+                  return { role: "user" as const, content: `Áudio do usuário transcrito automaticamente: ${mergedInbound}\n\nResponda ao conteúdo dessa fala como uma mensagem normal do cliente.` };
                 }
                 return { role: "user" as const, content: mergedInbound };
               })(),
