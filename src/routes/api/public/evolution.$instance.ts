@@ -1664,7 +1664,7 @@ async function getOrCreateConversation(
 ) {
   const variants = jidVariants(remoteJid);
   const { data: rows } = await db.from("conversations")
-    .select("id,unread_count,metadata,follow_up_step,next_follow_up_at,follow_up_paused,flow_state")
+    .select("id,agent_id,unread_count,metadata,follow_up_step,next_follow_up_at,follow_up_paused,flow_state")
     .eq("user_id", conn.user_id).eq("connection_id", conn.id);
   const existing = (rows ?? []).find((row: { metadata?: { remoteJid?: string } }) => variants.includes(row?.metadata?.remoteJid ?? ""));
   if (existing) {
