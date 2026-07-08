@@ -4,6 +4,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { PageShell } from "@/components/page-shell";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { AlertTriangle, Loader2, RefreshCw } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -26,20 +29,30 @@ const FAILED_TYPES = ["whatsapp_failed", "email_failed", "task_failed", "automat
 function PipelineStatusPage() {
   const [items, setItems] = useState<FailedActivity[]>([]);
   const [loading, setLoading] = useState(true);
+  const [from, setFrom] = useState<string>("");
+  const [to, setTo] = useState<string>("");
+  const [sort, setSort] = useState<"desc" | "asc">("desc");
 
   const load = async () => {
     setLoading(true);
-    const { data } = await supabase
+    let q = supabase
       .from("pipeline_activities" as never)
       .select("id,deal_id,type,created_at,payload")
       .in("type", FAILED_TYPES)
-      .order("created_at", { ascending: false })
-      .limit(100);
+      .order("created_at", { ascending: sort === "asc" })
+      .limit(200);
+    if (from) q = q.gte("created_at", new Date(from).toISOString());
+    if (to) {
+      const end = new Date(to);
+      end.setHours(23, 59, 59, 999);
+      q = q.lte("created_at", end.toISOString());
+    }
+    const { data } = await q;
     setItems(((data as never) || []) as FailedActivity[]);
     setLoading(false);
   };
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => { load(); /* eslint-disable-next-line */ }, [from, to, sort]);
 
   return (
     <PageShell
@@ -54,6 +67,29 @@ function PipelineStatusPage() {
         </Button>
       }
     >
+      <div className="mb-4 grid gap-3 sm:grid-cols-[1fr_1fr_180px_auto] sm:items-end">
+        <div className="space-y-1">
+          <Label htmlFor="from" className="text-xs">De</Label>
+          <Input id="from" type="date" value={from} onChange={(e) => setFrom(e.target.value)} />
+        </div>
+        <div className="space-y-1">
+          <Label htmlFor="to" className="text-xs">Até</Label>
+          <Input id="to" type="date" value={to} onChange={(e) => setTo(e.target.value)} />
+        </div>
+        <div className="space-y-1">
+          <Label className="text-xs">Ordenar</Label>
+          <Select value={sort} onValueChange={(v) => setSort(v as "asc" | "desc")}>
+            <SelectTrigger><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="desc">Mais recentes</SelectItem>
+              <SelectItem value="asc">Mais antigas</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+        {(from || to) && (
+          <Button variant="ghost" onClick={() => { setFrom(""); setTo(""); }}>Limpar</Button>
+        )}
+      </div>
       {loading ? (
         <div className="flex justify-center py-24"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>
       ) : items.length === 0 ? (
