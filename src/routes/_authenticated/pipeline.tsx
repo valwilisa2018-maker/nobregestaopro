@@ -7,7 +7,7 @@ import { PageShell } from "@/components/page-shell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Kanban, Plus, Loader2, Search } from "lucide-react";
+import { Kanban, Plus, Loader2, Search, Download } from "lucide-react";
 import { toast } from "sonner";
 import { KanbanBoard } from "@/components/pipeline/kanban-board";
 import { DealDrawer } from "@/components/pipeline/deal-drawer";
@@ -31,6 +31,7 @@ function PipelinePage() {
   const [search, setSearch] = useState("");
   const [priorityFilter, setPriorityFilter] = useState<string>("all");
   const [sourceFilter, setSourceFilter] = useState<string>("all");
+  const [importing, setImporting] = useState(false);
 
   const load = async () => {
     setLoading(true);
@@ -45,6 +46,55 @@ function PipelinePage() {
   };
 
   useEffect(() => { load(); }, []);
+
+  const importContacts = async () => {
+    if (importing) return;
+    setImporting(true);
+    try {
+      const { data: userRes } = await supabase.auth.getUser();
+      const uid = userRes.user?.id;
+      if (!uid) { toast.error("Sessão expirada"); return; }
+      const firstStage = [...stages].sort((a, b) => a.position - b.position)[0];
+      if (!firstStage) { toast.error("Nenhuma etapa disponível"); return; }
+
+      const [{ data: contacts }, { data: existing }] = await Promise.all([
+        supabase.from("contacts").select("id,name,phone,tags,source,notes").eq("user_id", uid),
+        supabase.from("pipeline_deals" as never).select("phone,whatsapp").eq("user_id", uid),
+      ]);
+      if (!contacts || contacts.length === 0) { toast.info("Nenhum contato para importar"); return; }
+
+      const existingPhones = new Set<string>();
+      ((existing as Array<{ phone: string | null; whatsapp: string | null }>) || []).forEach((d) => {
+        [d.phone, d.whatsapp].forEach((p) => { if (p) existingPhones.add(String(p).replace(/\D+/g, "")); });
+      });
+
+      const rows = contacts
+        .filter((c) => c.phone && !existingPhones.has(String(c.phone).replace(/\D+/g, "")))
+        .map((c) => ({
+          user_id: uid,
+          stage_id: firstStage.id,
+          title: c.name || c.phone,
+          phone: c.phone,
+          whatsapp: c.phone,
+          tags: (c.tags as string[] | null) || [],
+          source: (c.source as string | null) || "contatos",
+          notes: (c.notes as string | null) || null,
+          priority: "medium" as const,
+          value_cents: 0,
+          links: {},
+          checklist: [],
+        }));
+
+      if (rows.length === 0) { toast.info("Todos os contatos já estão no pipeline"); return; }
+
+      const { error } = await supabase.from("pipeline_deals" as never).insert(rows as never);
+      if (error) { toast.error(error.message); return; }
+      toast.success(`${rows.length} contato(s) importado(s) para o pipeline`);
+      await load();
+    } finally {
+      setImporting(false);
+    }
+  };
 
   const openCreate = (stageId?: string) => {
     setEditing(null);
@@ -127,9 +177,15 @@ function PipelinePage() {
       icon={<Kanban className="h-6 w-6" />}
       status="ativo"
       actions={
-        <Button onClick={() => openCreate()}>
-          <Plus className="h-4 w-4" /> Novo Cartão
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={importContacts} disabled={importing || loading}>
+            {importing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
+            Importar Contatos
+          </Button>
+          <Button onClick={() => openCreate()}>
+            <Plus className="h-4 w-4" /> Novo Cartão
+          </Button>
+        </div>
       }
     >
       {loading ? (
