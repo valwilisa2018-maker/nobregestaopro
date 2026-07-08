@@ -4,7 +4,7 @@ import {
   LayoutDashboard, Bot, BookOpen, Workflow,
   MessageCircle, Brain, Users, MessagesSquare, History, ScrollText,
   Settings, UserCog, ShieldCheck, DollarSign, Palette, Contact2, Send, Puzzle, LogOut, Timer,
-  LineChart, Activity, CreditCard, Shield, User, Crown, Building2, Plug, CalendarDays, Bug, Coins,
+  LineChart, Activity, CreditCard, Shield, User, Crown, Building2, Plug, CalendarDays, Bug, Coins, Brain,
   Sun, Moon,
 } from "lucide-react";
 import {
@@ -66,6 +66,7 @@ const adminGroup = {
   label: "Admin",
   items: [
     { title: "Usuários", url: "/users", icon: UserCog },
+    { title: "Cérebro Universal", url: "/brain", icon: Brain },
     { title: "Permissões", url: "/permissions", icon: ShieldCheck },
     { title: "Conexões", url: "/connections", icon: Plug },
     { title: "Webhooks", url: "/webhooks", icon: Puzzle },
