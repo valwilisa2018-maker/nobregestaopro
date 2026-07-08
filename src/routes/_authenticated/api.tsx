@@ -13,11 +13,11 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { createApiKey, revokeApiKey, deleteApiKey } from "@/lib/api-keys.functions";
-import { AdminGuard } from "@/components/admin-guard";
+import { MasterGuard } from "@/components/master-guard";
 
 export const Route = createFileRoute("/_authenticated/api")({
   head: () => ({ meta: [{ title: "API — Plataforma IA WhatsApp" }] }),
-  component: () => <AdminGuard><Page /></AdminGuard>,
+  component: () => <MasterGuard><Page /></MasterGuard>,
 });
 
 type KeyRow = {
