@@ -1,108 +1,54 @@
-# Painel Admin Master Completo
+# Módulo Pipeline CRM (Kanban)
 
-## 1. Banco de dados (nova migração)
+Módulo completo de CRM em Kanban para o cliente, acessível em `/pipeline`, com 13 etapas padrão, cartões ricos, drag & drop, filtros, busca, automações básicas e mini-dashboard. Entrega em fases para não estourar o escopo.
 
-Novas tabelas (todas com RLS master-only para escrita, usuário-dono para leitura própria):
+## Fase 1 — Base funcional (esta rodada)
 
-- **announcements** — anúncios/recados globais criados pelo Master
-  - campos: `title`, `body`, `severity` (info/warning/success), `cta_label`, `cta_url`, `starts_at`, `ends_at`, `is_active`, `created_by`
-- **announcement_reads** — controle de "já vi" por usuário
-  - campos: `announcement_id`, `user_id`, `read_at`
-- **notifications** — sino de notificações por usuário (o Master vê agregado)
-  - campos: `user_id`, `title`, `body`, `type`, `link`, `read_at`
-- **support_tickets** — suporte bidirecional
-  - campos: `user_id` (dono), `subject`, `status` (open/pending/closed), `priority`, `assigned_to`
-- **support_messages** — mensagens do ticket (user ↔ master)
-  - campos: `ticket_id`, `sender_id`, `sender_role` (user/master), `body`, `attachments`
-- **account_status** (ou coluna em `profiles`) — ativar/desativar/suspender conta
-  - `profiles.status` enum: `active | suspended | pending`
-  - `profiles.plan_activated_at`, `profiles.plan_expires_at` (Master libera acesso manualmente)
-- **payment_settings** — configurações globais de pagamento (chaves, gateway, taxas)
-  - campos: `provider`, `mode` (test/live), `config` jsonb, `is_active`
+### Banco (1 migração)
+- `pipeline_stages` — etapas (nome, cor, ordem, `is_system`, `user_id`). Seed automático das 13 etapas ao 1º acesso via RPC `ensure_default_pipeline_stages()`.
+- `pipeline_deals` — cartões: `stage_id`, `contact_id?`, `client_id?`, `title`, `company`, `phone`, `whatsapp`, `email`, `value_cents`, `product`, `source`, `owner_id`, `priority` (low/med/high/urgent), `tags text[]`, `notes`, `next_contact_at`, `last_interaction_at`, `links jsonb` (conversa/proposta/contrato/drive/pagamento), `lost_reason`, `position`, `user_id`.
+- `pipeline_activities` — histórico de movimentação/eventos por deal (`deal_id`, `type`, `from_stage`, `to_stage`, `payload jsonb`).
+- `pipeline_attachments` — arquivos (`deal_id`, `name`, `url`, `mime`, `size`).
+- RLS: dono (`user_id = auth.uid()`) full, master full. GRANT SELECT/INSERT/UPDATE/DELETE p/ authenticated; ALL p/ service_role.
+- Trigger: ao inserir/alterar `stage_id`, registrar em `pipeline_activities` e atualizar `last_interaction_at`.
 
-RPCs:
-- `master_activate_account(_user_id, _plan_id, _expires_at)` — Master libera plano manualmente
-- `master_grant_credits(_user_id, _tokens, _reason)` — creditar tokens manualmente
-- `master_suspend_account(_user_id, _reason)` — suspender
+### Rotas / UI
+- `src/routes/_authenticated/pipeline.tsx` — tela Kanban.
+- Item "Pipeline" no `AppSidebar` (grupo Vendas/CRM).
+- Componentes em `src/components/pipeline/`:
+  - `kanban-board.tsx` — colunas com scroll horizontal, cores por etapa, contador e soma de valores.
+  - `deal-card.tsx` — avatar, nome, empresa, valor formatado, badges de prioridade e tags, próximo contato.
+  - `deal-drawer.tsx` — edição completa do cartão (todos os campos, links, anexos, histórico, checklist por etapa).
+  - `pipeline-filters.tsx` — busca + filtros (responsável, produto, origem, prioridade, tags, valor, data).
+  - `pipeline-stats.tsx` — cards no topo (leads, em andamento, ganhos, perdidos, taxa conversão, ticket médio, receita prevista/realizada).
+- Drag & drop: `@dnd-kit/core` + `@dnd-kit/sortable` (já leve, sem dependências pesadas).
+- Design: glassmorphism sutil usando tokens (`bg-card/60 backdrop-blur`), sombras, animações com classes existentes; cores das etapas via HSL nos tokens semânticos.
 
-## 2. Estrutura de rotas `/master/*`
+### Automação básica (Fase 1)
+- Ao arrastar → update `stage_id` + registro em `pipeline_activities` (via trigger).
+- Ao entrar em "Follow-up" sem `next_contact_at` → seta +2 dias.
+- Ao entrar em "Perdido" → exige `lost_reason` no drawer.
 
-Layout `_master` com sidebar próprio (roxo/dourado, separado visualmente):
+## Fase 2 — Automação avançada (próxima rodada, se aprovado)
+- Disparo de WhatsApp/e-mail por etapa (usar `broadcasts`/`quick_sends` existentes).
+- Tarefas automáticas por etapa + integração com `calendar`.
+- Geração de proposta/contrato (template).
+- Realtime (`supabase.channel`) para movimentações ao vivo.
+- Pipelines personalizados (múltiplos boards por usuário).
 
-```
-/master                          → Dashboard Master (KPIs plataforma)
-/master/clients                  → Lista de todos usuários (ativar, suspender, ver detalhes)
-/master/clients/$id              → Detalhe: plano, créditos, histórico compras, tickets, uso IA
-/master/financial                → Financeiro geral (MRR, receita, transações)
-/master/financial/orders         → Pedidos de crédito (aprovar/marcar pago manual)
-/master/financial/subscriptions  → Assinaturas ativas por cliente
-/master/financial/payment-config → Config gateway (Stripe/Paddle keys, modo)
-/master/plans                    → CRUD planos (já existe, mover pra cá)
-/master/credits/packages         → CRUD pacotes de crédito + ativar/desativar
-/master/announcements            → CRUD anúncios (com preview modal)
-/master/support                  → Inbox tickets suporte (Master responde)
-/master/notifications            → Enviar notificação p/ usuário específico ou todos
-/master/system/*                 → Cérebro, Prompts globais, Conexões, API Keys,
-                                    Webhooks, Provedores IA, White Label, Config Global
-                                    (rotas atuais movidas)
-```
+## Fase 3 — Dashboard dedicado
+- Página `/pipeline/insights`: ranking vendedores, conversão por origem, tempo médio por etapa, meta do mês, gráficos (Recharts já instalado).
 
-## 3. Componentes novos
+## Detalhes técnicos
+- Sem novas dependências além de `@dnd-kit/core` e `@dnd-kit/sortable`.
+- Queries via `supabase-js` direto (padrão do projeto), sem server functions novas.
+- Formatação de moeda em BRL, datas em pt-BR (`date-fns`).
+- Mobile: colunas em scroll horizontal + card tap abre drawer full-screen.
 
-**Master side:**
-- `MasterSidebar` — sidebar dedicado, com badges de contagem (tickets abertos, ordens pendentes)
-- `MasterHeader` — com sino de notificações Master (novos tickets, novos pedidos)
-- `ClientDetailDrawer` — ficha completa do cliente
-- `AnnouncementEditor` — form + preview do modal
-- `SupportInbox` — lista de tickets + thread de mensagens
+## O que NÃO entra na Fase 1
+- Envio real de WhatsApp/e-mail automático por etapa.
+- Geração automática de PDF de proposta/contrato.
+- Realtime multi-usuário.
+- Pipelines customizados (só o padrão de 13 etapas).
 
-**Client side (usuário comum):**
-- `NotificationBell` no topo da página — mostra `notifications` não lidas
-- `AnnouncementModal` — abre no login se houver anúncio ativo não lido
-- Rota `/support` — cliente abre ticket e conversa com Master
-- Badge de suporte no sidebar cliente
-
-## 4. Sidebar do cliente — o que fica
-
-Já limpo. Adicionar apenas:
-- Sino de notificações (topo)
-- Item "Suporte" no grupo Conta
-
-## 5. Dashboard Master (KPIs)
-
-Cards:
-- Total de clientes ativos / suspensos / pendentes
-- MRR e receita do mês
-- Créditos vendidos / consumidos no mês
-- Tickets abertos
-- Pedidos pendentes de aprovação
-- Uso de IA agregado (tokens, custo)
-
-Gráficos: receita 30d, novos clientes 30d, consumo IA 30d.
-
-## 6. Ordem de entrega (posso fazer em partes)
-
-**Fase 1 — Base + Clientes + Financeiro (esta rodada):**
-1. Migração: `announcements`, `announcement_reads`, `notifications`, `support_tickets`, `support_messages`, `profiles.status`, RPCs de ativação
-2. Layout `_master` com `MasterSidebar` + `MasterHeader` (sino)
-3. `/master` dashboard com KPIs reais
-4. `/master/clients` + drawer (ativar conta, dar créditos, ver histórico)
-5. `/master/financial` + `/master/financial/orders` (aprovar manualmente)
-6. Mover rotas atuais admin para `/master/system/*` (mantém redirects)
-
-**Fase 2 — Anúncios + Suporte + Notificações:**
-7. `/master/announcements` + `AnnouncementModal` no root do cliente
-8. `/master/support` + `/support` cliente + threads
-9. `NotificationBell` no cliente e no master
-10. `/master/financial/payment-config` (Stripe keys via secrets)
-
-**Fase 3 — Polimento:**
-11. Gráficos no dashboard
-12. Badges de contagem no sidebar Master
-13. Filtros/exportação CSV em Clientes e Financeiro
-
-## Confirmações
-
-- Confirma **Fase 1** primeiro? É a base que destrava o resto.
-- Gateway de pagamento: quer que eu use **Stripe** ou **Paddle** (built-in Lovable), ou só a UI de config por enquanto sem integrar cobrança automática (ativação manual pelo Master)?
-- Anúncios: modal aparece **1x por anúncio por usuário** (marca como lido) — ok?
+Confirma seguir com a **Fase 1** exatamente assim?
