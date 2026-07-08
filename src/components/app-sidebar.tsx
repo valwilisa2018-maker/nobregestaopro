@@ -62,40 +62,12 @@ const groups = [
   },
 ];
 
-const adminGroup = {
-  label: "Admin Master",
-  items: [
-    { title: "Usuários", url: "/users", icon: UserCog },
-    { title: "Planos", url: "/plans", icon: Crown },
-    { title: "Cérebro Universal", url: "/brain", icon: Brain },
-    { title: "Permissões", url: "/permissions", icon: ShieldCheck },
-    { title: "Conexões", url: "/connections", icon: Plug },
-    { title: "Webhooks", url: "/webhooks", icon: Puzzle },
-    { title: "API Keys", url: "/api", icon: Shield },
-    { title: "Configurações Globais", url: "/admin-settings", icon: Settings },
-    { title: "White Label", url: "/white-label", icon: Palette },
-  ],
-};
-
 export function AppSidebar() {
   const { state } = useSidebar();
   const collapsed = state === "collapsed";
   const pathname = useRouterState({ select: (r) => r.location.pathname });
-  const [isMaster, setIsMaster] = useState(false);
   const { theme, toggle } = useTheme();
-
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
-      const { data } = await supabase.rpc("has_role", { _user_id: user.id, _role: "master" });
-      if (!cancelled) setIsMaster(!!data);
-    })();
-    return () => { cancelled = true; };
-  }, []);
-
-  const allGroups = isMaster ? [...groups, adminGroup] : groups;
+  const allGroups = groups;
 
   return (
     <Sidebar collapsible="icon" className="border-r border-sidebar-border">
