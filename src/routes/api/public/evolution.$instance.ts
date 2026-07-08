@@ -1090,7 +1090,27 @@ export const Route = createFileRoute("/api/public/evolution/$instance")({
                   ? kbRules + "\n\n## Base de Conhecimento\n" + kbAll.join("\n\n")
                   : kbRules + "\n\n(Base de Conhecimento vazia no momento.)";
                 const brevity = "\n\n[REGRA DE RESPOSTA - OBRIGATÓRIA] Fale como uma pessoa no WhatsApp. Responda SEMPRE em 1 frase curta (máx. 2 quando for indispensável), no total até ~180 caracteres. Nunca use listas, tópicos, markdown, títulos ou parágrafos. No máximo 1 pergunta por mensagem, e só quando fizer sentido. Sem repetir o que o cliente disse, sem introduções longas, sem despedidas formais. Se a mensagem veio de áudio, ela já foi transcrita pelo sistema: responda ao conteúdo transcrito e nunca diga que não consegue ouvir ou transcrever áudio.";
-                const sys = neuralCore + "\n\n" + (agent.system_prompt ?? "") + kbText + brevity;
+                const files = ((agent.tools as { files?: { enabled?: boolean; image?: boolean; pdf?: boolean; document?: boolean; audio?: boolean; video?: boolean; receipts?: "analyze" | "ignore" | "confirm"; receiptReply?: string } } | null)?.files) ?? {};
+                const filesRules = mediaKind ? (() => {
+                  const allowed: Record<string, boolean | undefined> = {
+                    image: files.image ?? true, video: files.video ?? false, audio: files.audio ?? true,
+                    document: (files.pdf ?? true) || (files.document ?? true),
+                  };
+                  const isAllowed = files.enabled === false ? false : (allowed[mediaKind] ?? true);
+                  const receipts = files.receipts ?? "confirm";
+                  const rr = (files.receiptReply ?? "Recebi seu comprovante, obrigado! Vou verificar e já te retorno.").replace(/"/g, '\\"');
+                  return (
+                    "\n\n## Regras para arquivos recebidos\n" +
+                    `Tipo do arquivo atual: ${mediaKind}. Interpretação permitida: ${isAllowed ? "sim" : "NÃO — apenas confirme educadamente o recebimento e não descreva o conteúdo"}.\n` +
+                    "Fluxo obrigatório: 1) verifique se o cliente fez uma PERGUNTA (texto/caption). SIM → analise o arquivo e responda à pergunta. " +
+                    "NÃO → verifique se parece COMPROVANTE (pagamento, PIX, boleto, transferência, recibo). " +
+                    (receipts === "analyze" ? "Se for comprovante, analise normalmente." :
+                     receipts === "ignore" ? "Se for comprovante, NÃO responda nada (produza mensagem vazia)." :
+                     `Se for comprovante, NÃO analise o conteúdo — responda EXATAMENTE: "${rr}"`) +
+                    "\nSe o tipo não for permitido, apenas confirme o recebimento com naturalidade e não descreva o conteúdo."
+                  );
+                })() : "";
+                const sys = neuralCore + "\n\n" + (agent.system_prompt ?? "") + kbText + filesRules + brevity;
                 return sys.trim() ? [{ role: "system" as const, content: sys }] : [];
               })(),
               ...history,
