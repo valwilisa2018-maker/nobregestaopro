@@ -4,7 +4,7 @@ import {
   LayoutDashboard, Bot, BookOpen, Workflow,
   MessageCircle, Brain, Users, MessagesSquare, History, ScrollText,
   Settings, UserCog, ShieldCheck, DollarSign, Palette, Contact2, Send, Puzzle, LogOut, Timer,
-  LineChart, Activity, CreditCard, Shield, User, Crown, Building2, Plug, CalendarDays, Bug, Coins, Brain,
+  LineChart, Activity, CreditCard, Shield, User, Crown, Building2, Plug, CalendarDays, Bug, Coins,
   Sun, Moon,
 } from "lucide-react";
 import {
