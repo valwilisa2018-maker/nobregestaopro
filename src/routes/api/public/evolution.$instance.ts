@@ -1015,7 +1015,7 @@ export const Route = createFileRoute("/api/public/evolution/$instance")({
                 const kbText = kb.length
                   ? "\n\n## Base de Conhecimento\n" + kb.map((k) => `### ${k.title ?? "Item"}\n${k.content}`).join("\n\n")
                   : "";
-                const brevity = "\n\n[REGRA DE RESPOSTA] Responda em português, no máximo 2-3 frases curtas e humanas por mensagem. Uma pergunta por vez. Sem listas, sem markdown, sem textão. Se a mensagem veio de áudio, ela já foi transcrita pelo sistema: responda ao conteúdo transcrito e nunca diga que não consegue ouvir ou transcrever áudio.";
+                const brevity = "\n\n[REGRA DE RESPOSTA - OBRIGATÓRIA] Fale como uma pessoa no WhatsApp. Responda SEMPRE em 1 frase curta (máx. 2 quando for indispensável), no total até ~180 caracteres. Nunca use listas, tópicos, markdown, títulos ou parágrafos. No máximo 1 pergunta por mensagem, e só quando fizer sentido. Sem repetir o que o cliente disse, sem introduções longas, sem despedidas formais. Se a mensagem veio de áudio, ela já foi transcrita pelo sistema: responda ao conteúdo transcrito e nunca diga que não consegue ouvir ou transcrever áudio.";
                 const sys = (agent.system_prompt ?? "") + kbText + brevity;
                 return sys.trim() ? [{ role: "system" as const, content: sys }] : [];
               })(),
@@ -1052,7 +1052,7 @@ export const Route = createFileRoute("/api/public/evolution/$instance")({
                 apiKey,
                 model: modelId,
                 temperature: Number(agent.temperature ?? 0.7),
-                maxTokens: agent.max_tokens ?? 2048,
+                maxTokens: Math.min(agent.max_tokens ?? 220, 220),
                 timeoutMs: 12_000,
                 maxAttempts: 1,
                 messages: aiMessages,
