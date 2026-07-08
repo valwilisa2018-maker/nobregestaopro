@@ -145,6 +145,14 @@ export function AgentEditor({ agent, onSaved, onCancel }: Props) {
     audio?: { enabled?: boolean; provider?: "browser" | "elevenlabs"; replaceText?: boolean; autoReply?: boolean; mirrorFormat?: boolean; smartAudio?: boolean; smartAudioChars?: number; asTool?: boolean };
     media?: { enabled?: boolean; items?: Array<{ id: string; name: string; size?: string; mode?: string; keywords?: string; description?: string; storage_path?: string; mime?: string; bytes?: number }> };
     conversation?: { keepUnread?: boolean; singleMessage?: boolean; includeContactName?: boolean; cancelOnNew?: boolean; stopAfterManual?: boolean };
+    files?: {
+      enabled?: boolean;
+      image?: boolean; pdf?: boolean; document?: boolean; audio?: boolean; video?: boolean;
+      receipts?: "analyze" | "ignore" | "confirm";
+      receiptReply?: string;
+      ackReply?: string;
+      sendAck?: boolean;
+    };
   };
   const ext = (form.tools ?? {}) as Ext;
   function setExt<K extends keyof Ext>(k: K, v: Ext[K]) {
@@ -506,6 +514,14 @@ type ExtProps = {
     audio?: { enabled?: boolean; provider?: "browser" | "elevenlabs"; replaceText?: boolean; autoReply?: boolean; mirrorFormat?: boolean; smartAudio?: boolean; smartAudioChars?: number; asTool?: boolean };
     media?: { enabled?: boolean; items?: Array<{ id: string; name: string; size?: string; mode?: string; keywords?: string; description?: string; storage_path?: string; mime?: string; bytes?: number }> };
     conversation?: { keepUnread?: boolean; singleMessage?: boolean; includeContactName?: boolean; cancelOnNew?: boolean; stopAfterManual?: boolean };
+    files?: {
+      enabled?: boolean;
+      image?: boolean; pdf?: boolean; document?: boolean; audio?: boolean; video?: boolean;
+      receipts?: "analyze" | "ignore" | "confirm";
+      receiptReply?: string;
+      ackReply?: string;
+      sendAck?: boolean;
+    };
   };
   setExt: <K extends keyof ExtProps["ext"]>(k: K, v: ExtProps["ext"][K]) => void;
   onSave: () => void;
