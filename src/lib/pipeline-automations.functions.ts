@@ -87,9 +87,9 @@ export const runStageAutomations = createServerFn({ method: "POST" })
       const text = renderTemplate(auto.whatsapp, vars);
       const { data: conn } = await supabase
         .from("connections")
-        .select("id,url_api,instance_name,api_key,is_active")
+        .select("id,url_api,instance_name,api_key,status")
         .eq("user_id", userId)
-        .eq("is_active", true)
+        .in("status", ["connected", "open", "active"])
         .limit(1)
         .maybeSingle();
       let sent = false;
