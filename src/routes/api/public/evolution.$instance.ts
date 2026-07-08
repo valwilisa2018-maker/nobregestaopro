@@ -78,6 +78,7 @@ type ConvMeta = {
   agent_paused_until?: string; // ISO
   last_manual_at?: string;     // ISO
   handoff?: boolean;
+  agent_disabled?: boolean;    // desligado manualmente pelo operador (persistente)
 };
 
 const MEDIA_BUCKET = "agent-media";
