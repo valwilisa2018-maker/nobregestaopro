@@ -1089,7 +1089,26 @@ export const Route = createFileRoute("/api/public/evolution/$instance")({
                 const kbText = kbAll.length
                   ? kbRules + "\n\n## Base de Conhecimento\n" + kbAll.join("\n\n")
                   : kbRules + "\n\n(Base de Conhecimento vazia no momento.)";
-                const brevity = "\n\n[REGRA DE RESPOSTA — OBRIGATÓRIA E INEGOCIÁVEL] Você está no WhatsApp trocando ideia como uma pessoa real. Cada mensagem sua deve ter NO MÁXIMO 1 frase curta (idealmente até 140 caracteres, nunca mais que 220). PROIBIDO: listas, tópicos, markdown, títulos, parágrafos, negrito, emojis em excesso, saudações longas, despedidas formais, repetir o que o cliente disse, resumos, explicações longas. Se o assunto exigir mais, envie SÓ a primeira parte curta e pergunte de forma natural se pode continuar (ex.: 'quer que eu te conte o resto?'). No máximo 1 pergunta por mensagem, e só quando fizer sentido. Se a mensagem veio de áudio, ela já foi transcrita pelo sistema: responda ao conteúdo transcrito como uma mensagem normal e nunca diga que não consegue ouvir/transcrever áudio.";
+                const brevity = [
+                  "",
+                  "[ESTILO DE RESPOSTA — OBRIGATÓRIO]",
+                  "Você está no WhatsApp conversando como uma pessoa real. Responda SEMPRE em UMA LINHA só, curta e natural, como quem troca ideia. Vá dialogando aos poucos: manda uma coisinha, espera o cliente responder, aí manda a próxima. Nunca despeje tudo de uma vez.",
+                  "",
+                  "Proibido: listas, tópicos, markdown, títulos, parágrafos, negrito, saudações longas, despedidas formais, repetir o que o cliente disse, resumos ou explicações compridas.",
+                  "",
+                  "Exemplos do jeito CERTO de responder (curto, em uma linha):",
+                  'Cliente: "oi, tudo bem?" → Você: "Oii, tudo ótimo por aqui e você? 😊"',
+                  'Cliente: "quanto custa?" → Você: "Tá saindo por R$ 97, quer que eu te explique o que vem incluso?"',
+                  'Cliente: "me fala sobre o produto" → Você: "Claro! É um kit completo pra cuidar da pele — posso te contar por partes, começo pelo principal?"',
+                  'Cliente: "tenho interesse" → Você: "Que bom! Posso te fazer 2 perguntinhas rápidas pra te indicar o certo?"',
+                  "",
+                  "Exemplos do jeito ERRADO (não faça isso):",
+                  '"Olá! Fico muito feliz com seu contato. Deixa eu te explicar tudo sobre o nosso produto: ele possui... [texto gigante]"',
+                  "Listas com • ou 1) 2) 3), títulos em **negrito**, parágrafos longos.",
+                  "",
+                  "Regra: no máximo 1 pergunta por mensagem. Se o assunto for grande, mande só a primeira parte curta e pergunte de forma natural se pode continuar.",
+                  "Se a mensagem veio de áudio, já foi transcrita pelo sistema — responda ao conteúdo como uma mensagem normal e nunca diga que não consegue ouvir/transcrever áudio.",
+                ].join("\n");
                 const files = ((agent.tools as { files?: { enabled?: boolean; image?: boolean; pdf?: boolean; document?: boolean; audio?: boolean; video?: boolean; receipts?: "analyze" | "ignore" | "confirm"; receiptReply?: string } } | null)?.files) ?? {};
                 const filesRules = mediaKind ? (() => {
                   const allowed: Record<string, boolean | undefined> = {
@@ -1146,7 +1165,7 @@ export const Route = createFileRoute("/api/public/evolution/$instance")({
                 apiKey,
                 model: modelId,
                 temperature: Number(agent.temperature ?? 0.7),
-                maxTokens: Math.min(agent.max_tokens ?? 160, 160),
+                maxTokens: agent.max_tokens ?? 400,
                 timeoutMs: 12_000,
                 maxAttempts: 1,
                 messages: aiMessages,
@@ -1222,18 +1241,7 @@ export const Route = createFileRoute("/api/public/evolution/$instance")({
                 message: "AI empty response; fallback reply selected", metadata: { remoteJid, model: modelId, replyLength: reply.length } as never,
               } as never);
             }
-            // Trim final para garantir mensagem curta no WhatsApp (evita respostas gigantes).
-            reply = reply
-              .replace(/\*\*(.*?)\*\*/g, "$1")
-              .replace(/^#{1,6}\s+/gm, "")
-              .replace(/^\s*[-*•]\s+/gm, "")
-              .replace(/\n{3,}/g, "\n\n")
-              .trim();
-            if (reply.length > 240) {
-              const cut = reply.slice(0, 240);
-              const lastPunct = Math.max(cut.lastIndexOf(". "), cut.lastIndexOf("! "), cut.lastIndexOf("? "));
-              reply = (lastPunct > 80 ? cut.slice(0, lastPunct + 1) : cut).trim() + " (quer que eu continue?)";
-            }
+            reply = reply.trim();
 
             // Enforce plan send quota (daily/monthly) before dispatch
             const { data: quota } = await supabaseAdmin.rpc("consume_send_quota" as never, { _user_id: conn.user_id } as never);
