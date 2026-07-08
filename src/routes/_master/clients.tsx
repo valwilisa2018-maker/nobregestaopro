@@ -12,6 +12,11 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 
+// RPCs criadas na migração recente; tipos serão regenerados após approval
+const sbRpc = supabase.rpc.bind(supabase) as unknown as (
+  fn: string, args?: Record<string, unknown>
+) => Promise<{ data: unknown; error: { message: string } | null }>;
+
 export const Route = createFileRoute("/_master/clients")({
   head: () => ({ meta: [{ title: "Clientes — Admin Master" }] }),
   component: Page,
@@ -152,17 +157,17 @@ function ActionDialog({ client, plans, action, onClose, onDone }: {
     try {
       if (action === "activate") {
         const expires = new Date(Date.now() + Number(expiresDays) * 86400000).toISOString();
-        const { error } = await supabase.rpc("master_activate_account", {
+        const { error } = await sbRpc("master_activate_account", {
           _user_id: client.id, _plan_id: planId || null, _expires_at: expires,
         });
         if (error) throw error;
         toast.success("Conta ativada");
       } else if (action === "suspend") {
-        const { error } = await supabase.rpc("master_suspend_account", { _user_id: client.id, _reason: reason });
+        const { error } = await sbRpc("master_suspend_account", { _user_id: client.id, _reason: reason });
         if (error) throw error;
         toast.success("Conta suspensa");
       } else if (action === "credits") {
-        const { error } = await supabase.rpc("master_grant_credits", {
+        const { error } = await sbRpc("master_grant_credits", {
           _user_id: client.id, _tokens: Number(tokens), _reason: reason || "manual grant",
         });
         if (error) throw error;
