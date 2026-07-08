@@ -444,6 +444,10 @@ export function AgentEditor({ agent, onSaved, onCancel }: Props) {
         <Section id="s11" number={11} icon={<Database className="h-4 w-4" />} title="Base de Conhecimento">
           <KnowledgeSection form={form} set={set} onSave={save} saving={saving} />
         </Section>
+
+        <Section id="s12" number={12} icon={<FileText className="h-4 w-4" />} title="Interpretação de Arquivos">
+          <FilesSection ext={ext} setExt={setExt} onSave={save} saving={saving} />
+        </Section>
       </Accordion>
 
       <Dialog open={libraryOpen} onOpenChange={setLibraryOpen}>
