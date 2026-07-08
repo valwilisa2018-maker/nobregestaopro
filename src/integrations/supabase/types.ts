@@ -1828,7 +1828,7 @@ export type Database = {
       purge_old_messages_media: { Args: never; Returns: undefined }
     }
     Enums: {
-      app_role: "admin" | "supervisor" | "atendente" | "viewer"
+      app_role: "admin" | "supervisor" | "atendente" | "viewer" | "master"
       conversation_status: "open" | "pending" | "closed" | "archived"
       message_direction: "inbound" | "outbound"
       message_type:
@@ -1967,7 +1967,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      app_role: ["admin", "supervisor", "atendente", "viewer"],
+      app_role: ["admin", "supervisor", "atendente", "viewer", "master"],
       conversation_status: ["open", "pending", "closed", "archived"],
       message_direction: ["inbound", "outbound"],
       message_type: [
