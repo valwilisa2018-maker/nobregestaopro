@@ -29,6 +29,7 @@ function Sparkle({ className, style }: { className?: string; style?: React.CSSPr
 
 export function AnnouncementModal() {
   const [current, setCurrent] = useState<Ann | null>(null);
+  const [showDetails, setShowDetails] = useState(false);
 
   useEffect(() => {
     (async () => {
@@ -45,6 +46,8 @@ export function AnnouncementModal() {
       if (unread) setCurrent(unread as Ann);
     })();
   }, []);
+
+  useEffect(() => { setShowDetails(false); }, [current?.id]);
 
   const close = async () => {
     if (!current) return;
@@ -106,45 +109,56 @@ export function AnnouncementModal() {
             </h2>
 
             {/* Body */}
-            <p className="relative mx-auto mt-3 max-w-sm text-center text-sm leading-relaxed text-slate-400 whitespace-pre-wrap">
+            <p className={cn(
+              "relative mx-auto mt-3 max-w-sm text-center text-sm leading-relaxed text-slate-400 whitespace-pre-wrap",
+              !showDetails && "line-clamp-2"
+            )}>
               {current.body}
             </p>
 
             {/* Details card */}
-            {dateStr && (
+            {showDetails ? (
+              <div className="relative mt-6 rounded-2xl border border-white/10 bg-white/[0.03] p-4 space-y-3 max-h-[45vh] overflow-y-auto">
+                <div className="flex items-center gap-2">
+                  <span className={cn("inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider bg-gradient-to-r text-white", cfg.gradFrom, cfg.gradTo)}>
+                    {cfg.label}
+                  </span>
+                  {dateStr && <span className="text-[11px] text-slate-500">Publicado em {dateStr}</span>}
+                </div>
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-wider text-slate-500 mb-1">Mensagem completa</p>
+                  <p className="text-sm leading-relaxed text-slate-200 whitespace-pre-wrap">{current.body}</p>
+                </div>
+                {current.cta_url && (
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-wider text-slate-500 mb-1">Link relacionado</p>
+                    <a href={current.cta_url} target="_blank" rel="noreferrer" className="text-sm text-sky-400 hover:underline break-all">
+                      {current.cta_url}
+                    </a>
+                  </div>
+                )}
+              </div>
+            ) : dateStr && (
               <div className="relative mt-6 flex items-start gap-3 rounded-2xl border border-white/10 bg-white/[0.03] p-4">
                 <div className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-sky-500/15 ring-1 ring-sky-500/30">
                   <Info className="h-5 w-5 text-sky-400" />
                 </div>
                 <div className="min-w-0">
                   <p className="text-sm font-semibold text-white">Detalhes</p>
-                  <p className="text-xs text-slate-400">Publicado em {dateStr}.</p>
+                  <p className="text-xs text-slate-400">Publicado em {dateStr}. Clique em "Ver detalhes" para ler tudo.</p>
                 </div>
               </div>
             )}
 
             {/* Actions */}
             <div className="relative mt-6 grid grid-cols-2 gap-3">
-              {current.cta_url && current.cta_label ? (
-                <a
-                  href={current.cta_url}
-                  target="_blank"
-                  rel="noreferrer"
-                  onClick={() => close()}
-                  className="inline-flex h-12 items-center justify-center gap-2 rounded-xl border border-white/10 bg-white/[0.03] text-sm font-semibold text-white transition hover:bg-white/[0.06]"
-                >
-                  <FileText className="h-4 w-4 text-sky-400" />
-                  {current.cta_label}
-                </a>
-              ) : (
-                <button
-                  onClick={close}
-                  className="inline-flex h-12 items-center justify-center gap-2 rounded-xl border border-white/10 bg-white/[0.03] text-sm font-semibold text-white transition hover:bg-white/[0.06]"
-                >
-                  <FileText className="h-4 w-4 text-sky-400" />
-                  Ver detalhes
-                </button>
-              )}
+              <button
+                onClick={() => setShowDetails(v => !v)}
+                className="inline-flex h-12 items-center justify-center gap-2 rounded-xl border border-white/10 bg-white/[0.03] text-sm font-semibold text-white transition hover:bg-white/[0.06]"
+              >
+                <FileText className="h-4 w-4 text-sky-400" />
+                {showDetails ? "Ocultar detalhes" : "Ver detalhes"}
+              </button>
               <button
                 onClick={close}
                 className={cn(
