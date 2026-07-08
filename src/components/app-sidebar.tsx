@@ -5,7 +5,7 @@ import {
   MessageCircle, Brain, Users, MessagesSquare, History, ScrollText,
   Settings, UserCog, ShieldCheck, DollarSign, Palette, Contact2, Send, Puzzle, LogOut, Timer,
   LineChart, Activity, CreditCard, Shield, User, Crown, Building2, Plug, CalendarDays, Bug, Coins, Package,
-  Sun, Moon,
+  Sun, Moon, LifeBuoy,
 } from "lucide-react";
 import {
   Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent, SidebarGroupLabel,
@@ -57,6 +57,7 @@ const groups = [
   {
     label: "Conta",
     items: [
+      { title: "Suporte", url: "/support", icon: LifeBuoy },
       { title: "Configurações", url: "/settings", icon: Settings },
     ],
   },
@@ -67,6 +68,19 @@ export function AppSidebar() {
   const collapsed = state === "collapsed";
   const pathname = useRouterState({ select: (r) => r.location.pathname });
   const { theme, toggle } = useTheme();
+  const [isMaster, setIsMaster] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      const { data } = await supabase.rpc("has_role", { _user_id: user.id, _role: "master" });
+      if (!cancelled) setIsMaster(!!data);
+    })();
+    return () => { cancelled = true; };
+  }, []);
+
   const allGroups = groups;
 
   return (
@@ -108,6 +122,14 @@ export function AppSidebar() {
         ))}
       </SidebarContent>
       <SidebarFooter className="p-2">
+        {isMaster && (
+          <SidebarMenuButton asChild tooltip="Painel Admin Master" className="text-amber-500 hover:text-amber-500">
+            <Link to="/master" className="flex items-center gap-2">
+              <Crown className="h-4 w-4" />
+              {!collapsed && <span>Painel Master</span>}
+            </Link>
+          </SidebarMenuButton>
+        )}
         <SidebarMenuButton onClick={toggle} tooltip={theme === "dark" ? "Modo claro" : "Modo escuro"}>
           {theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
           {!collapsed && <span>{theme === "dark" ? "Modo claro" : "Modo escuro"}</span>}
