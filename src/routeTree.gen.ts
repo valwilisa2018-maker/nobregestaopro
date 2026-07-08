@@ -31,6 +31,7 @@ import { Route as AuthenticatedSupportRouteImport } from './routes/_authenticate
 import { Route as AuthenticatedSettingsRouteImport } from './routes/_authenticated/settings'
 import { Route as AuthenticatedPromptRouteImport } from './routes/_authenticated/prompt'
 import { Route as AuthenticatedPlansRouteImport } from './routes/_authenticated/plans'
+import { Route as AuthenticatedPipelineRouteImport } from './routes/_authenticated/pipeline'
 import { Route as AuthenticatedPermissionsRouteImport } from './routes/_authenticated/permissions'
 import { Route as AuthenticatedMessagesRouteImport } from './routes/_authenticated/messages'
 import { Route as AuthenticatedLogsRouteImport } from './routes/_authenticated/logs'
@@ -175,6 +176,11 @@ const AuthenticatedPromptRoute = AuthenticatedPromptRouteImport.update({
 const AuthenticatedPlansRoute = AuthenticatedPlansRouteImport.update({
   id: '/plans',
   path: '/plans',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
+const AuthenticatedPipelineRoute = AuthenticatedPipelineRouteImport.update({
+  id: '/pipeline',
+  path: '/pipeline',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
 const AuthenticatedPermissionsRoute =
@@ -394,6 +400,7 @@ export interface FileRoutesByFullPath {
   '/logs': typeof AuthenticatedLogsRoute
   '/messages': typeof AuthenticatedMessagesRoute
   '/permissions': typeof AuthenticatedPermissionsRoute
+  '/pipeline': typeof AuthenticatedPipelineRoute
   '/plans': typeof AuthenticatedPlansRoute
   '/prompt': typeof AuthenticatedPromptRoute
   '/settings': typeof AuthenticatedSettingsRoute
@@ -452,6 +459,7 @@ export interface FileRoutesByTo {
   '/logs': typeof AuthenticatedLogsRoute
   '/messages': typeof AuthenticatedMessagesRoute
   '/permissions': typeof AuthenticatedPermissionsRoute
+  '/pipeline': typeof AuthenticatedPipelineRoute
   '/plans': typeof AuthenticatedPlansRoute
   '/prompt': typeof AuthenticatedPromptRoute
   '/settings': typeof AuthenticatedSettingsRoute
@@ -513,6 +521,7 @@ export interface FileRoutesById {
   '/_authenticated/logs': typeof AuthenticatedLogsRoute
   '/_authenticated/messages': typeof AuthenticatedMessagesRoute
   '/_authenticated/permissions': typeof AuthenticatedPermissionsRoute
+  '/_authenticated/pipeline': typeof AuthenticatedPipelineRoute
   '/_authenticated/plans': typeof AuthenticatedPlansRoute
   '/_authenticated/prompt': typeof AuthenticatedPromptRoute
   '/_authenticated/settings': typeof AuthenticatedSettingsRoute
@@ -574,6 +583,7 @@ export interface FileRouteTypes {
     | '/logs'
     | '/messages'
     | '/permissions'
+    | '/pipeline'
     | '/plans'
     | '/prompt'
     | '/settings'
@@ -632,6 +642,7 @@ export interface FileRouteTypes {
     | '/logs'
     | '/messages'
     | '/permissions'
+    | '/pipeline'
     | '/plans'
     | '/prompt'
     | '/settings'
@@ -692,6 +703,7 @@ export interface FileRouteTypes {
     | '/_authenticated/logs'
     | '/_authenticated/messages'
     | '/_authenticated/permissions'
+    | '/_authenticated/pipeline'
     | '/_authenticated/plans'
     | '/_authenticated/prompt'
     | '/_authenticated/settings'
@@ -897,6 +909,13 @@ declare module '@tanstack/react-router' {
       path: '/plans'
       fullPath: '/plans'
       preLoaderRoute: typeof AuthenticatedPlansRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/pipeline': {
+      id: '/_authenticated/pipeline'
+      path: '/pipeline'
+      fullPath: '/pipeline'
+      preLoaderRoute: typeof AuthenticatedPipelineRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
     '/_authenticated/permissions': {
@@ -1179,6 +1198,7 @@ interface AuthenticatedRouteChildren {
   AuthenticatedLogsRoute: typeof AuthenticatedLogsRoute
   AuthenticatedMessagesRoute: typeof AuthenticatedMessagesRoute
   AuthenticatedPermissionsRoute: typeof AuthenticatedPermissionsRoute
+  AuthenticatedPipelineRoute: typeof AuthenticatedPipelineRoute
   AuthenticatedPlansRoute: typeof AuthenticatedPlansRoute
   AuthenticatedPromptRoute: typeof AuthenticatedPromptRoute
   AuthenticatedSettingsRoute: typeof AuthenticatedSettingsRoute
@@ -1215,6 +1235,7 @@ const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedLogsRoute: AuthenticatedLogsRoute,
   AuthenticatedMessagesRoute: AuthenticatedMessagesRoute,
   AuthenticatedPermissionsRoute: AuthenticatedPermissionsRoute,
+  AuthenticatedPipelineRoute: AuthenticatedPipelineRoute,
   AuthenticatedPlansRoute: AuthenticatedPlansRoute,
   AuthenticatedPromptRoute: AuthenticatedPromptRoute,
   AuthenticatedSettingsRoute: AuthenticatedSettingsRoute,
@@ -1277,13 +1298,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}

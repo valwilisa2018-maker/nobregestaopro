@@ -1430,6 +1430,225 @@ export type Database = {
         }
         Relationships: []
       }
+      pipeline_activities: {
+        Row: {
+          created_at: string
+          deal_id: string
+          from_stage: string | null
+          id: string
+          payload: Json
+          to_stage: string | null
+          type: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          deal_id: string
+          from_stage?: string | null
+          id?: string
+          payload?: Json
+          to_stage?: string | null
+          type: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          deal_id?: string
+          from_stage?: string | null
+          id?: string
+          payload?: Json
+          to_stage?: string | null
+          type?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pipeline_activities_deal_id_fkey"
+            columns: ["deal_id"]
+            isOneToOne: false
+            referencedRelation: "pipeline_deals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pipeline_attachments: {
+        Row: {
+          created_at: string
+          deal_id: string
+          id: string
+          mime: string | null
+          name: string
+          size: number | null
+          url: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          deal_id: string
+          id?: string
+          mime?: string | null
+          name: string
+          size?: number | null
+          url: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          deal_id?: string
+          id?: string
+          mime?: string | null
+          name?: string
+          size?: number | null
+          url?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pipeline_attachments_deal_id_fkey"
+            columns: ["deal_id"]
+            isOneToOne: false
+            referencedRelation: "pipeline_deals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pipeline_deals: {
+        Row: {
+          avatar_url: string | null
+          checklist: Json
+          client_id: string | null
+          company: string | null
+          contact_id: string | null
+          created_at: string
+          email: string | null
+          id: string
+          last_interaction_at: string | null
+          links: Json
+          lost_reason: string | null
+          next_contact_at: string | null
+          notes: string | null
+          owner_id: string | null
+          owner_name: string | null
+          phone: string | null
+          position: number
+          priority: Database["public"]["Enums"]["pipeline_priority"]
+          product: string | null
+          source: string | null
+          stage_id: string
+          tags: string[]
+          title: string
+          updated_at: string
+          user_id: string
+          value_cents: number
+          whatsapp: string | null
+        }
+        Insert: {
+          avatar_url?: string | null
+          checklist?: Json
+          client_id?: string | null
+          company?: string | null
+          contact_id?: string | null
+          created_at?: string
+          email?: string | null
+          id?: string
+          last_interaction_at?: string | null
+          links?: Json
+          lost_reason?: string | null
+          next_contact_at?: string | null
+          notes?: string | null
+          owner_id?: string | null
+          owner_name?: string | null
+          phone?: string | null
+          position?: number
+          priority?: Database["public"]["Enums"]["pipeline_priority"]
+          product?: string | null
+          source?: string | null
+          stage_id: string
+          tags?: string[]
+          title: string
+          updated_at?: string
+          user_id: string
+          value_cents?: number
+          whatsapp?: string | null
+        }
+        Update: {
+          avatar_url?: string | null
+          checklist?: Json
+          client_id?: string | null
+          company?: string | null
+          contact_id?: string | null
+          created_at?: string
+          email?: string | null
+          id?: string
+          last_interaction_at?: string | null
+          links?: Json
+          lost_reason?: string | null
+          next_contact_at?: string | null
+          notes?: string | null
+          owner_id?: string | null
+          owner_name?: string | null
+          phone?: string | null
+          position?: number
+          priority?: Database["public"]["Enums"]["pipeline_priority"]
+          product?: string | null
+          source?: string | null
+          stage_id?: string
+          tags?: string[]
+          title?: string
+          updated_at?: string
+          user_id?: string
+          value_cents?: number
+          whatsapp?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pipeline_deals_stage_id_fkey"
+            columns: ["stage_id"]
+            isOneToOne: false
+            referencedRelation: "pipeline_stages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pipeline_stages: {
+        Row: {
+          color: string
+          created_at: string
+          id: string
+          is_lost: boolean
+          is_system: boolean
+          is_won: boolean
+          name: string
+          position: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          color?: string
+          created_at?: string
+          id?: string
+          is_lost?: boolean
+          is_system?: boolean
+          is_won?: boolean
+          name: string
+          position?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          color?: string
+          created_at?: string
+          id?: string
+          is_lost?: boolean
+          is_system?: boolean
+          is_won?: boolean
+          name?: string
+          position?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       plans: {
         Row: {
           created_at: string
@@ -2017,6 +2236,7 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      ensure_default_pipeline_stages: { Args: never; Returns: undefined }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -2094,6 +2314,7 @@ export type Database = {
         | "sticker"
         | "location"
         | "system"
+      pipeline_priority: "low" | "medium" | "high" | "urgent"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -2235,6 +2456,7 @@ export const Constants = {
         "location",
         "system",
       ],
+      pipeline_priority: ["low", "medium", "high", "urgent"],
     },
   },
 } as const
