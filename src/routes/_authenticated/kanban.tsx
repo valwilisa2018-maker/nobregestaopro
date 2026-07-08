@@ -13,11 +13,11 @@ import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { Plus, Loader2, Trash2, X, Calendar, Clock, ExternalLink, MessageCircle, ChevronDown, ChevronRight, Layers, MoreVertical, Edit2, UserPlus, AlertCircle, FolderOpen, Link as LinkIcon, Copy } from "lucide-react";
+import { Plus, Loader2, Trash2, X, Calendar, Clock, ExternalLink, MessageCircle, ChevronDown, ChevronRight, Layers, MoreVertical, Edit2, UserPlus, AlertCircle, FolderOpen, Link as LinkIcon, Copy, CheckCircle2 } from "lucide-react";
 import { waHref, formatPhoneBR } from "@/lib/phone";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Search } from "lucide-react";
-import { fmtDate } from "@/lib/format";
+import { fmtDate, fmtDateTime } from "@/lib/format";
 import { formatCurrency, useAuth, isAdmin as isAdminRole } from "@/lib/auth";
 import { autoLinkFolderFromUrl } from "@/lib/project-folders";
 
@@ -1133,6 +1133,12 @@ function KanbanPage() {
                                   </div>
                                 )}
                               </div>
+                              {col.is_done && c.delivered_at && (
+                                <div className="flex items-center gap-1.5 px-2 py-1 rounded-md bg-success/15 border border-success/40 text-success text-[11px] font-bold uppercase tracking-wide">
+                                  <CheckCircle2 className="w-3.5 h-3.5" />
+                                  Finalizado {fmtDateTime(c.delivered_at)}
+                                </div>
+                              )}
                               {(c.due_date || c.due_time || c.expected_delivery_date || c.sales?.expected_delivery_date) && (
                                 <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-muted-foreground">
                                   {c.due_date && (<span className="flex items-center gap-1"><Calendar className="w-3 h-3" />Prazo: {fmtDate(c.due_date)}</span>)}
@@ -1315,6 +1321,12 @@ function KanbanPage() {
                           </div>
                         )}
                       </div>
+                      {col.is_done && c.delivered_at && (
+                        <div className="flex items-center gap-1.5 px-2 py-1 rounded-md bg-success/15 border border-success/40 text-success text-[11px] font-bold uppercase tracking-wide">
+                          <CheckCircle2 className="w-3.5 h-3.5" />
+                          Finalizado {fmtDateTime(c.delivered_at)}
+                        </div>
+                      )}
                       {c.sales?.customers?.company && (
                         <div className="text-xs text-muted-foreground">{c.sales.customers.company}</div>
                       )}
