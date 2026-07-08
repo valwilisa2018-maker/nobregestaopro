@@ -141,7 +141,7 @@ function ActionDialog({ client, plans, action, onClose, onDone }: {
   client: Client; plans: Plan[]; action: "activate" | "suspend" | "credits";
   onClose: () => void; onDone: () => void;
 }) {
-  const [planId, setPlanId] = useState(client.plan_id ?? "");
+  const [planId, setPlanId] = useState<string>(client.plan_id ?? "");
   const [expiresDays, setExpiresDays] = useState("30");
   const [reason, setReason] = useState("");
   const [tokens, setTokens] = useState("100000");
