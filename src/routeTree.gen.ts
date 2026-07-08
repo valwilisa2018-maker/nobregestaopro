@@ -31,6 +31,7 @@ import { Route as AuthenticatedSupportRouteImport } from './routes/_authenticate
 import { Route as AuthenticatedSettingsRouteImport } from './routes/_authenticated/settings'
 import { Route as AuthenticatedPromptRouteImport } from './routes/_authenticated/prompt'
 import { Route as AuthenticatedPlansRouteImport } from './routes/_authenticated/plans'
+import { Route as AuthenticatedPipelineStatusRouteImport } from './routes/_authenticated/pipeline-status'
 import { Route as AuthenticatedPipelineRouteImport } from './routes/_authenticated/pipeline'
 import { Route as AuthenticatedPermissionsRouteImport } from './routes/_authenticated/permissions'
 import { Route as AuthenticatedMessagesRouteImport } from './routes/_authenticated/messages'
@@ -178,6 +179,12 @@ const AuthenticatedPlansRoute = AuthenticatedPlansRouteImport.update({
   path: '/plans',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
+const AuthenticatedPipelineStatusRoute =
+  AuthenticatedPipelineStatusRouteImport.update({
+    id: '/pipeline-status',
+    path: '/pipeline-status',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
 const AuthenticatedPipelineRoute = AuthenticatedPipelineRouteImport.update({
   id: '/pipeline',
   path: '/pipeline',
@@ -401,6 +408,7 @@ export interface FileRoutesByFullPath {
   '/messages': typeof AuthenticatedMessagesRoute
   '/permissions': typeof AuthenticatedPermissionsRoute
   '/pipeline': typeof AuthenticatedPipelineRoute
+  '/pipeline-status': typeof AuthenticatedPipelineStatusRoute
   '/plans': typeof AuthenticatedPlansRoute
   '/prompt': typeof AuthenticatedPromptRoute
   '/settings': typeof AuthenticatedSettingsRoute
@@ -460,6 +468,7 @@ export interface FileRoutesByTo {
   '/messages': typeof AuthenticatedMessagesRoute
   '/permissions': typeof AuthenticatedPermissionsRoute
   '/pipeline': typeof AuthenticatedPipelineRoute
+  '/pipeline-status': typeof AuthenticatedPipelineStatusRoute
   '/plans': typeof AuthenticatedPlansRoute
   '/prompt': typeof AuthenticatedPromptRoute
   '/settings': typeof AuthenticatedSettingsRoute
@@ -522,6 +531,7 @@ export interface FileRoutesById {
   '/_authenticated/messages': typeof AuthenticatedMessagesRoute
   '/_authenticated/permissions': typeof AuthenticatedPermissionsRoute
   '/_authenticated/pipeline': typeof AuthenticatedPipelineRoute
+  '/_authenticated/pipeline-status': typeof AuthenticatedPipelineStatusRoute
   '/_authenticated/plans': typeof AuthenticatedPlansRoute
   '/_authenticated/prompt': typeof AuthenticatedPromptRoute
   '/_authenticated/settings': typeof AuthenticatedSettingsRoute
@@ -584,6 +594,7 @@ export interface FileRouteTypes {
     | '/messages'
     | '/permissions'
     | '/pipeline'
+    | '/pipeline-status'
     | '/plans'
     | '/prompt'
     | '/settings'
@@ -643,6 +654,7 @@ export interface FileRouteTypes {
     | '/messages'
     | '/permissions'
     | '/pipeline'
+    | '/pipeline-status'
     | '/plans'
     | '/prompt'
     | '/settings'
@@ -704,6 +716,7 @@ export interface FileRouteTypes {
     | '/_authenticated/messages'
     | '/_authenticated/permissions'
     | '/_authenticated/pipeline'
+    | '/_authenticated/pipeline-status'
     | '/_authenticated/plans'
     | '/_authenticated/prompt'
     | '/_authenticated/settings'
@@ -909,6 +922,13 @@ declare module '@tanstack/react-router' {
       path: '/plans'
       fullPath: '/plans'
       preLoaderRoute: typeof AuthenticatedPlansRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/pipeline-status': {
+      id: '/_authenticated/pipeline-status'
+      path: '/pipeline-status'
+      fullPath: '/pipeline-status'
+      preLoaderRoute: typeof AuthenticatedPipelineStatusRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
     '/_authenticated/pipeline': {
@@ -1199,6 +1219,7 @@ interface AuthenticatedRouteChildren {
   AuthenticatedMessagesRoute: typeof AuthenticatedMessagesRoute
   AuthenticatedPermissionsRoute: typeof AuthenticatedPermissionsRoute
   AuthenticatedPipelineRoute: typeof AuthenticatedPipelineRoute
+  AuthenticatedPipelineStatusRoute: typeof AuthenticatedPipelineStatusRoute
   AuthenticatedPlansRoute: typeof AuthenticatedPlansRoute
   AuthenticatedPromptRoute: typeof AuthenticatedPromptRoute
   AuthenticatedSettingsRoute: typeof AuthenticatedSettingsRoute
@@ -1236,6 +1257,7 @@ const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedMessagesRoute: AuthenticatedMessagesRoute,
   AuthenticatedPermissionsRoute: AuthenticatedPermissionsRoute,
   AuthenticatedPipelineRoute: AuthenticatedPipelineRoute,
+  AuthenticatedPipelineStatusRoute: AuthenticatedPipelineStatusRoute,
   AuthenticatedPlansRoute: AuthenticatedPlansRoute,
   AuthenticatedPromptRoute: AuthenticatedPromptRoute,
   AuthenticatedSettingsRoute: AuthenticatedSettingsRoute,
