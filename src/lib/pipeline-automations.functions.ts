@@ -94,6 +94,7 @@ export const runStageAutomations = createServerFn({ method: "POST" })
         .maybeSingle();
       let sent = false;
       let error: string | null = null;
+      let stack: string | null = null;
       if (conn && conn.url_api && conn.instance_name && conn.api_key) {
         try {
           const r = await evoSendText(conn.url_api, conn.api_key, conn.instance_name, wpp, text);
@@ -101,6 +102,7 @@ export const runStageAutomations = createServerFn({ method: "POST" })
           if (!r.ok) error = `HTTP ${r.status}: ${r.body.slice(0, 200)}`;
         } catch (e) {
           error = e instanceof Error ? e.message : "erro desconhecido";
+          stack = e instanceof Error ? e.stack ?? null : null;
         }
       } else {
         error = "sem conexão WhatsApp ativa";
@@ -112,7 +114,7 @@ export const runStageAutomations = createServerFn({ method: "POST" })
         type: sent ? "whatsapp_sent" : "whatsapp_failed",
         from_stage: data.fromStageId ?? null,
         to_stage: data.toStageId,
-        payload: { to: wpp, text, error },
+        payload: { to: wpp, text, error, stack },
       } as never);
     }
 
