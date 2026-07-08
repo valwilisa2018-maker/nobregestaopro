@@ -25,6 +25,7 @@ type FailedActivity = {
 };
 
 const FAILED_TYPES = ["whatsapp_failed", "email_failed", "task_failed", "automation_failed"];
+const PAGE_SIZE = 20;
 
 function PipelineStatusPage() {
   const [items, setItems] = useState<FailedActivity[]>([]);
@@ -32,27 +33,33 @@ function PipelineStatusPage() {
   const [from, setFrom] = useState<string>("");
   const [to, setTo] = useState<string>("");
   const [sort, setSort] = useState<"desc" | "asc">("desc");
+  const [page, setPage] = useState(0);
+  const [total, setTotal] = useState(0);
 
   const load = async () => {
     setLoading(true);
     let q = supabase
       .from("pipeline_activities" as never)
-      .select("id,deal_id,type,created_at,payload")
+      .select("id,deal_id,type,created_at,payload", { count: "exact" })
       .in("type", FAILED_TYPES)
       .order("created_at", { ascending: sort === "asc" })
-      .limit(200);
+      .range(page * PAGE_SIZE, page * PAGE_SIZE + PAGE_SIZE - 1);
     if (from) q = q.gte("created_at", new Date(from).toISOString());
     if (to) {
       const end = new Date(to);
       end.setHours(23, 59, 59, 999);
       q = q.lte("created_at", end.toISOString());
     }
-    const { data } = await q;
+    const { data, count } = await q;
     setItems(((data as never) || []) as FailedActivity[]);
+    setTotal(count ?? 0);
     setLoading(false);
   };
 
-  useEffect(() => { load(); /* eslint-disable-next-line */ }, [from, to, sort]);
+  useEffect(() => { setPage(0); }, [from, to, sort]);
+  useEffect(() => { load(); /* eslint-disable-next-line */ }, [from, to, sort, page]);
+
+  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
 
   return (
     <PageShell
@@ -127,6 +134,21 @@ function PipelineStatusPage() {
               </div>
             );
           })}
+        </div>
+      )}
+      {total > PAGE_SIZE && (
+        <div className="mt-4 flex items-center justify-between text-sm">
+          <span className="text-muted-foreground">
+            {total} falha{total === 1 ? "" : "s"} · página {page + 1} de {totalPages}
+          </span>
+          <div className="flex gap-2">
+            <Button variant="outline" size="sm" disabled={page === 0 || loading} onClick={() => setPage((p) => Math.max(0, p - 1))}>
+              Anterior
+            </Button>
+            <Button variant="outline" size="sm" disabled={page + 1 >= totalPages || loading} onClick={() => setPage((p) => p + 1)}>
+              Próxima
+            </Button>
+          </div>
         </div>
       )}
     </PageShell>
