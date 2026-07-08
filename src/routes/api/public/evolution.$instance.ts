@@ -1222,6 +1222,18 @@ export const Route = createFileRoute("/api/public/evolution/$instance")({
                 message: "AI empty response; fallback reply selected", metadata: { remoteJid, model: modelId, replyLength: reply.length } as never,
               } as never);
             }
+            // Trim final para garantir mensagem curta no WhatsApp (evita respostas gigantes).
+            reply = reply
+              .replace(/\*\*(.*?)\*\*/g, "$1")
+              .replace(/^#{1,6}\s+/gm, "")
+              .replace(/^\s*[-*•]\s+/gm, "")
+              .replace(/\n{3,}/g, "\n\n")
+              .trim();
+            if (reply.length > 240) {
+              const cut = reply.slice(0, 240);
+              const lastPunct = Math.max(cut.lastIndexOf(". "), cut.lastIndexOf("! "), cut.lastIndexOf("? "));
+              reply = (lastPunct > 80 ? cut.slice(0, lastPunct + 1) : cut).trim() + " (quer que eu continue?)";
+            }
 
             // Enforce plan send quota (daily/monthly) before dispatch
             const { data: quota } = await supabaseAdmin.rpc("consume_send_quota" as never, { _user_id: conn.user_id } as never);
