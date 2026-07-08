@@ -833,8 +833,10 @@ function MessagesPage() {
     persistConvCache(reqId, ids);
     const primary = matched[0] ?? null;
     setConvoId(primary?.id ?? null);
-    const pausedUntil = (primary?.metadata as { agent_paused_until?: string } | null)?.agent_paused_until ?? null;
-    setAgentPaused(!!pausedUntil && new Date(pausedUntil).getTime() > Date.now());
+    const pm = (primary?.metadata ?? {}) as { agent_paused_until?: string; agent_disabled?: boolean };
+    const pausedUntil = pm.agent_paused_until ?? null;
+    const disabled = !!pm.agent_disabled;
+    setAgentPaused(disabled || (!!pausedUntil && new Date(pausedUntil).getTime() > Date.now()));
     if (!ids.length) {
       // Don't wipe cached messages if lookup temporarily fails; only clear if we truly have nothing
       waDebug("loadMessages:no-convo-ids", { contactId: reqId, cached: cached?.length ?? 0, fast: fastData?.length ?? 0 });
@@ -965,9 +967,11 @@ function MessagesPage() {
     if (!convoId) { toast.error("Sem conversa vinculada ainda."); return; }
     const { data: row } = await supabase.from("conversations").select("metadata").eq("id", convoId).maybeSingle();
     const meta = (row?.metadata ?? {}) as Record<string, unknown>;
+    // Regra: quando o operador desliga a IA no chat, ela fica REALMENTE
+    // desligada (flag booleana persistente) e só volta se ele reativar.
     const next = agentPaused
-      ? { ...meta, agent_paused_until: null }
-      : { ...meta, agent_paused_until: new Date(Date.now() + 3650 * 24 * 3600_000).toISOString() };
+      ? { ...meta, agent_disabled: false, agent_paused_until: null }
+      : { ...meta, agent_disabled: true, agent_paused_until: null };
     const { error } = await supabase.from("conversations").update({ metadata: next } as never).eq("id", convoId);
     if (error) { toast.error("Não foi possível alterar a IA."); return; }
     setAgentPaused(!agentPaused);

@@ -78,6 +78,7 @@ type ConvMeta = {
   agent_paused_until?: string; // ISO
   last_manual_at?: string;     // ISO
   handoff?: boolean;
+  agent_disabled?: boolean;    // desligado manualmente pelo operador (persistente)
 };
 
 const MEDIA_BUCKET = "agent-media";
@@ -866,7 +867,11 @@ export const Route = createFileRoute("/api/public/evolution/$instance")({
             }
             if (!agent) return Response.json({ ok: true, noAgent: true });
 
-            // Agent paused by human intervention window?
+            // IA desligada manualmente pelo operador: fica desligada até ele reativar.
+            if (cmeta.agent_disabled) {
+              return Response.json({ ok: true, paused: true, reason: "agent_disabled" });
+            }
+            // Pausa temporária por intervenção humana (janela com tempo de reativação).
             if (cmeta.agent_paused_until && new Date(cmeta.agent_paused_until).getTime() > Date.now()) {
               return Response.json({ ok: true, paused: true });
             }
