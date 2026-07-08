@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { Palette } from "lucide-react";
 import { CrudResource } from "@/components/crud-resource";
-import { AdminGuard } from "@/components/admin-guard";
+import { MasterGuard } from "@/components/master-guard";
 
 export const Route = createFileRoute("/_authenticated/white-label")({
   head: () => ({ meta: [{ title: "White Label — Plataforma IA WhatsApp" }] }),
@@ -10,7 +10,7 @@ export const Route = createFileRoute("/_authenticated/white-label")({
 
 function Page() {
   return (
-    <AdminGuard>
+    <MasterGuard>
     <CrudResource
       table="white_label"
       title="White Label"
@@ -25,6 +25,6 @@ function Page() {
     {name:"domain", label:"Domínio", type:"text"}
       ]}
     />
-    </AdminGuard>
+    </MasterGuard>
   );
 }

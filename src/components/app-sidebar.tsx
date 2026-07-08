@@ -4,7 +4,7 @@ import {
   LayoutDashboard, Bot, BookOpen, Workflow,
   MessageCircle, Brain, Users, MessagesSquare, History, ScrollText,
   Settings, UserCog, ShieldCheck, DollarSign, Palette, Contact2, Send, Puzzle, LogOut, Timer,
-  LineChart, Activity, CreditCard, Shield, User, Crown, Building2, Plug, CalendarDays, Bug, Coins,
+  LineChart, Activity, CreditCard, Shield, User, Crown, Building2, Plug, CalendarDays, Bug, Coins, Package,
   Sun, Moon,
 } from "lucide-react";
 import {
@@ -63,9 +63,10 @@ const groups = [
 ];
 
 const adminGroup = {
-  label: "Admin",
+  label: "Admin Master",
   items: [
     { title: "Usuários", url: "/users", icon: UserCog },
+    { title: "Planos", url: "/plans", icon: Crown },
     { title: "Cérebro Universal", url: "/brain", icon: Brain },
     { title: "Permissões", url: "/permissions", icon: ShieldCheck },
     { title: "Conexões", url: "/connections", icon: Plug },
@@ -80,7 +81,7 @@ export function AppSidebar() {
   const { state } = useSidebar();
   const collapsed = state === "collapsed";
   const pathname = useRouterState({ select: (r) => r.location.pathname });
-  const [isAdmin, setIsAdmin] = useState(false);
+  const [isMaster, setIsMaster] = useState(false);
   const { theme, toggle } = useTheme();
 
   useEffect(() => {
@@ -88,13 +89,13 @@ export function AppSidebar() {
     (async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
-      const { data } = await supabase.rpc("has_role", { _user_id: user.id, _role: "admin" });
-      if (!cancelled) setIsAdmin(!!data);
+      const { data } = await supabase.rpc("has_role", { _user_id: user.id, _role: "master" });
+      if (!cancelled) setIsMaster(!!data);
     })();
     return () => { cancelled = true; };
   }, []);
 
-  const allGroups = isAdmin ? [...groups, adminGroup] : groups;
+  const allGroups = isMaster ? [...groups, adminGroup] : groups;
 
   return (
     <Sidebar collapsible="icon" className="border-r border-sidebar-border">

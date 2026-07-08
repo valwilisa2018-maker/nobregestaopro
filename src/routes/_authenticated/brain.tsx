@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { Brain, Loader2, RotateCcw, Save } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { PageShell } from "@/components/page-shell";
-import { AdminGuard } from "@/components/admin-guard";
+import { MasterGuard } from "@/components/master-guard";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent } from "@/components/ui/card";
@@ -11,7 +11,7 @@ import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/brain")({
   head: () => ({ meta: [{ title: "Cérebro Universal — Admin" }] }),
-  component: () => <AdminGuard><Page /></AdminGuard>,
+  component: () => <MasterGuard><Page /></MasterGuard>,
 });
 
 const DEFAULT_NEURAL_CORE = `# NEURAL CORE AI™ — CÉREBRO UNIVERSAL PREMIUM

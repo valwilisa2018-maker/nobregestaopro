@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { UserCog } from "lucide-react";
 import { CrudResource } from "@/components/crud-resource";
-import { AdminGuard } from "@/components/admin-guard";
+import { MasterGuard } from "@/components/master-guard";
 
 export const Route = createFileRoute("/_authenticated/users")({
   head: () => ({ meta: [{ title: "Usuários — Plataforma IA WhatsApp" }] }),
@@ -10,7 +10,7 @@ export const Route = createFileRoute("/_authenticated/users")({
 
 function Page() {
   return (
-    <AdminGuard>
+    <MasterGuard>
     <CrudResource
       table="profiles"
       title="Usuários"
@@ -23,6 +23,6 @@ function Page() {
     {name:"avatar_url", label:"Avatar URL", type:"url"}
       ]}
     />
-    </AdminGuard>
+    </MasterGuard>
   );
 }
