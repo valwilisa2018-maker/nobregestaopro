@@ -11,7 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Megaphone, Loader2, Plus, Pencil, Trash2 } from "lucide-react";
+import { Megaphone, Loader2, Plus, Pencil, Trash2, Eye, EyeOff, Info, CheckCircle2, AlertTriangle, Wrench, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/master/announcements")({
@@ -28,6 +28,33 @@ const empty: Omit<Announcement, "id"> = {
   title: "", body: "", severity: "info", cta_label: "", cta_url: "",
   starts_at: new Date().toISOString(), ends_at: null, is_active: true,
 };
+
+type Template = {
+  key: string; label: string; icon: typeof Info; accent: string;
+  data: Omit<Announcement, "id">;
+};
+const TEMPLATES: Template[] = [
+  { key: "maintenance", label: "Manutenção", icon: Wrench, accent: "from-amber-500 to-orange-600",
+    data: { ...empty, severity: "maintenance", title: "Estamos em manutenção",
+      body: "Nossa equipe está trabalhando em melhorias na plataforma. Algumas funções podem ficar temporariamente indisponíveis. Obrigado pela paciência!",
+      cta_label: "", cta_url: "" } },
+  { key: "update", label: "Atualização", icon: Sparkles, accent: "from-fuchsia-500 to-indigo-600",
+    data: { ...empty, severity: "success", title: "Nova atualização disponível",
+      body: "Adicionamos novos recursos à plataforma. Confira as novidades e aproveite ao máximo!",
+      cta_label: "Ver novidades", cta_url: "" } },
+  { key: "info", label: "Informação", icon: Info, accent: "from-sky-500 to-blue-600",
+    data: { ...empty, severity: "info", title: "Comunicado importante",
+      body: "Temos uma informação importante para compartilhar com você. Leia com atenção.",
+      cta_label: "", cta_url: "" } },
+  { key: "warning", label: "Aviso", icon: AlertTriangle, accent: "from-amber-500 to-red-500",
+    data: { ...empty, severity: "warning", title: "Aviso importante",
+      body: "Fique atento a esta informação para evitar problemas no uso da plataforma.",
+      cta_label: "", cta_url: "" } },
+  { key: "success", label: "Sucesso", icon: CheckCircle2, accent: "from-emerald-500 to-teal-600",
+    data: { ...empty, severity: "success", title: "Tudo certo!",
+      body: "Uma boa notícia para compartilhar com você. Confira os detalhes.",
+      cta_label: "", cta_url: "" } },
+];
 
 function Page() {
   const [items, setItems] = useState<Announcement[]>([]);
@@ -63,12 +90,36 @@ function Page() {
     if (error) return toast.error(error.message);
     load();
   };
+  const toggleActive = async (a: Announcement) => {
+    const { error } = await supabase.from("announcements").update({ is_active: !a.is_active }).eq("id", a.id);
+    if (error) return toast.error(error.message);
+    toast.success(!a.is_active ? "Anúncio ativado" : "Anúncio desativado");
+    load();
+  };
+  const openTemplate = (t: Template) => { setEditing(null); setForm(t.data); setOpen(true); };
 
   return (
     <PageShell title="Anúncios" description="Recados e atualizações exibidos como modal aos clientes."
       icon={<Megaphone className="h-6 w-6" />} status="ativo"
       actions={<Button onClick={() => { setEditing(null); setForm(empty); setOpen(true); }}><Plus className="h-4 w-4" /> Novo anúncio</Button>}
     >
+      {/* Templates prontos */}
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+        {TEMPLATES.map(t => {
+          const Icon = t.icon;
+          return (
+            <button key={t.key} onClick={() => openTemplate(t)}
+              className="group relative overflow-hidden rounded-xl border border-border bg-card p-4 text-left transition hover:border-primary/50 hover:shadow-md">
+              <div className={`mb-2 grid h-10 w-10 place-items-center rounded-lg bg-gradient-to-br ${t.accent} text-white shadow-sm`}>
+                <Icon className="h-5 w-5" />
+              </div>
+              <div className="text-sm font-semibold">{t.label}</div>
+              <div className="text-xs text-muted-foreground mt-0.5 line-clamp-2">{t.data.title}</div>
+            </button>
+          );
+        })}
+      </div>
+
       {loading ? (
         <div className="p-12 flex justify-center"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>
       ) : (
@@ -81,9 +132,13 @@ function Page() {
                     <h3 className="font-semibold">{a.title}</h3>
                     <Badge variant="outline">{a.severity}</Badge>
                     {!a.is_active && <Badge variant="secondary">Inativo</Badge>}
+                    {a.severity === "maintenance" && a.is_active && <Badge className="bg-amber-500/15 text-amber-600 border-amber-500/30" variant="outline">Barra ativa</Badge>}
                   </div>
                   <p className="text-sm text-muted-foreground mt-1 line-clamp-2">{a.body}</p>
                 </div>
+                <Button size="icon" variant="ghost" onClick={() => toggleActive(a)} title={a.is_active ? "Desativar" : "Ativar"}>
+                  {a.is_active ? <Eye className="h-4 w-4 text-primary" /> : <EyeOff className="h-4 w-4 text-muted-foreground" />}
+                </Button>
                 <Button size="icon" variant="ghost" onClick={() => { setEditing(a); setForm(a); setOpen(true); }}><Pencil className="h-4 w-4" /></Button>
                 <Button size="icon" variant="ghost" onClick={() => remove(a)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
               </CardContent>
@@ -109,6 +164,7 @@ function Page() {
                     <SelectItem value="info">Info</SelectItem>
                     <SelectItem value="success">Sucesso</SelectItem>
                     <SelectItem value="warning">Aviso</SelectItem>
+                    <SelectItem value="maintenance">Manutenção (barra fixa)</SelectItem>
                   </SelectContent>
                 </Select></div>
               <div className="flex items-end gap-2 pb-1">

@@ -35,7 +35,7 @@ export function AnnouncementModal() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
       const { data: anns } = await supabase.from("announcements").select("id,title,body,severity,cta_label,cta_url,created_at")
-        .eq("is_active", true).order("created_at", { ascending: false }).limit(10);
+        .eq("is_active", true).neq("severity", "maintenance").order("created_at", { ascending: false }).limit(10);
       if (!anns?.length) return;
       const ids = anns.map(a => a.id);
       const { data: reads } = await supabase.from("announcement_reads").select("announcement_id")

@@ -6,6 +6,7 @@ import { Toaster } from "@/components/ui/sonner";
 import { PlanExpiryBanner } from "@/components/plan-status";
 import { NotificationBell } from "@/components/notification-bell";
 import { AnnouncementModal } from "@/components/announcement-modal";
+import { MaintenanceBanner } from "@/components/maintenance-banner";
 import { useEffect } from "react";
 
 export const Route = createFileRoute("/_authenticated")({
@@ -29,6 +30,7 @@ function AuthedLayout() {
       <div className="min-h-screen flex w-full">
         <AppSidebar />
         <div className="flex-1 flex flex-col">
+          <MaintenanceBanner />
           <PlanExpiryBanner />
           <header className="h-12 flex items-center border-b px-2 gap-2">
             <SidebarTrigger />
