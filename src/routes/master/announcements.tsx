@@ -14,7 +14,7 @@ import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "
 import { Megaphone, Loader2, Plus, Pencil, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
-export const Route = createFileRoute("/_master/announcements")({
+export const Route = createFileRoute("/master/announcements")({
   head: () => ({ meta: [{ title: "Anúncios — Admin Master" }] }),
   component: Page,
 });

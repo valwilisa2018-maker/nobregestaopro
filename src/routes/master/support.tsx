@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { LifeBuoy, Loader2, Send, CheckCircle2 } from "lucide-react";
 import { toast } from "sonner";
 
-export const Route = createFileRoute("/_master/support")({
+export const Route = createFileRoute("/master/support")({
   head: () => ({ meta: [{ title: "Suporte — Admin Master" }] }),
   component: Page,
 });

@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { CreditCard, Loader2, Check } from "lucide-react";
 import { toast } from "sonner";
 
-export const Route = createFileRoute("/_master/orders")({
+export const Route = createFileRoute("/master/orders")({
   head: () => ({ meta: [{ title: "Pedidos — Admin Master" }] }),
   component: Page,
 });

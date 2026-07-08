@@ -5,7 +5,7 @@ import { PageShell } from "@/components/page-shell";
 import { Card, CardContent } from "@/components/ui/card";
 import { DollarSign, TrendingUp, ShoppingCart, Coins, Loader2 } from "lucide-react";
 
-export const Route = createFileRoute("/_master/financial")({
+export const Route = createFileRoute("/master/financial")({
   head: () => ({ meta: [{ title: "Financeiro — Admin Master" }] }),
   component: Page,
 });

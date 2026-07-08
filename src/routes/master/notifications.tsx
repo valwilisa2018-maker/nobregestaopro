@@ -11,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Bell, Loader2, Send } from "lucide-react";
 import { toast } from "sonner";
 
-export const Route = createFileRoute("/_master/notifications")({
+export const Route = createFileRoute("/master/notifications")({
   head: () => ({ meta: [{ title: "Notificações — Admin Master" }] }),
   component: Page,
 });

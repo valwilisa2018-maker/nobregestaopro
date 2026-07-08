@@ -17,7 +17,7 @@ const sbRpc = supabase.rpc.bind(supabase) as unknown as (
   fn: string, args?: Record<string, unknown>
 ) => Promise<{ data: unknown; error: { message: string } | null }>;
 
-export const Route = createFileRoute("/_master/clients")({
+export const Route = createFileRoute("/master/clients")({
   head: () => ({ meta: [{ title: "Clientes — Admin Master" }] }),
   component: Page,
 });

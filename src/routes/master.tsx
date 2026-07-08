@@ -7,7 +7,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { supabase } from "@/integrations/supabase/client";
 import { Crown } from "lucide-react";
 
-export const Route = createFileRoute("/_master")({
+export const Route = createFileRoute("/master")({
   component: MasterLayout,
 });
 

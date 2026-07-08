@@ -12,7 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Settings2, Loader2, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
-export const Route = createFileRoute("/_master/payment-config")({
+export const Route = createFileRoute("/master/payment-config")({
   head: () => ({ meta: [{ title: "Config. Pagamento — Admin Master" }] }),
   component: Page,
 });

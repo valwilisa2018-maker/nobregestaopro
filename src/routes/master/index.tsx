@@ -6,7 +6,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Users, DollarSign, CreditCard, LifeBuoy, Coins, TrendingUp, ShieldAlert, Package } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 
-export const Route = createFileRoute("/_master/")({
+export const Route = createFileRoute("/master/")({
   head: () => ({ meta: [{ title: "Dashboard Master — Plataforma" }] }),
   component: Page,
 });

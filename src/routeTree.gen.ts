@@ -10,14 +10,24 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
+import { Route as MasterRouteImport } from './routes/master'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthenticatedRouteImport } from './routes/_authenticated'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as MasterIndexRouteImport } from './routes/master/index'
+import { Route as MasterSupportRouteImport } from './routes/master/support'
+import { Route as MasterPaymentConfigRouteImport } from './routes/master/payment-config'
+import { Route as MasterOrdersRouteImport } from './routes/master/orders'
+import { Route as MasterNotificationsRouteImport } from './routes/master/notifications'
+import { Route as MasterFinancialRouteImport } from './routes/master/financial'
+import { Route as MasterClientsRouteImport } from './routes/master/clients'
+import { Route as MasterAnnouncementsRouteImport } from './routes/master/announcements'
 import { Route as AuthenticatedWhiteLabelRouteImport } from './routes/_authenticated/white-label'
 import { Route as AuthenticatedWhatsappRouteImport } from './routes/_authenticated/whatsapp'
 import { Route as AuthenticatedWebhooksRouteImport } from './routes/_authenticated/webhooks'
 import { Route as AuthenticatedUsersRouteImport } from './routes/_authenticated/users'
 import { Route as AuthenticatedToolsRouteImport } from './routes/_authenticated/tools'
+import { Route as AuthenticatedSupportRouteImport } from './routes/_authenticated/support'
 import { Route as AuthenticatedSettingsRouteImport } from './routes/_authenticated/settings'
 import { Route as AuthenticatedPromptRouteImport } from './routes/_authenticated/prompt'
 import { Route as AuthenticatedPlansRouteImport } from './routes/_authenticated/plans'
@@ -63,6 +73,11 @@ const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
   path: '/sitemap.xml',
   getParentRoute: () => rootRouteImport,
 } as any)
+const MasterRoute = MasterRouteImport.update({
+  id: '/master',
+  path: '/master',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AuthRoute = AuthRouteImport.update({
   id: '/auth',
   path: '/auth',
@@ -76,6 +91,46 @@ const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
+} as any)
+const MasterIndexRoute = MasterIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => MasterRoute,
+} as any)
+const MasterSupportRoute = MasterSupportRouteImport.update({
+  id: '/support',
+  path: '/support',
+  getParentRoute: () => MasterRoute,
+} as any)
+const MasterPaymentConfigRoute = MasterPaymentConfigRouteImport.update({
+  id: '/payment-config',
+  path: '/payment-config',
+  getParentRoute: () => MasterRoute,
+} as any)
+const MasterOrdersRoute = MasterOrdersRouteImport.update({
+  id: '/orders',
+  path: '/orders',
+  getParentRoute: () => MasterRoute,
+} as any)
+const MasterNotificationsRoute = MasterNotificationsRouteImport.update({
+  id: '/notifications',
+  path: '/notifications',
+  getParentRoute: () => MasterRoute,
+} as any)
+const MasterFinancialRoute = MasterFinancialRouteImport.update({
+  id: '/financial',
+  path: '/financial',
+  getParentRoute: () => MasterRoute,
+} as any)
+const MasterClientsRoute = MasterClientsRouteImport.update({
+  id: '/clients',
+  path: '/clients',
+  getParentRoute: () => MasterRoute,
+} as any)
+const MasterAnnouncementsRoute = MasterAnnouncementsRouteImport.update({
+  id: '/announcements',
+  path: '/announcements',
+  getParentRoute: () => MasterRoute,
 } as any)
 const AuthenticatedWhiteLabelRoute = AuthenticatedWhiteLabelRouteImport.update({
   id: '/white-label',
@@ -100,6 +155,11 @@ const AuthenticatedUsersRoute = AuthenticatedUsersRouteImport.update({
 const AuthenticatedToolsRoute = AuthenticatedToolsRouteImport.update({
   id: '/tools',
   path: '/tools',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
+const AuthenticatedSupportRoute = AuthenticatedSupportRouteImport.update({
+  id: '/support',
+  path: '/support',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
 const AuthenticatedSettingsRoute = AuthenticatedSettingsRouteImport.update({
@@ -308,6 +368,7 @@ const ApiPublicEvolutionInstanceRoute =
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
+  '/master': typeof MasterRouteWithChildren
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/admin-settings': typeof AuthenticatedAdminSettingsRoute
   '/agents': typeof AuthenticatedAgentsRoute
@@ -336,11 +397,20 @@ export interface FileRoutesByFullPath {
   '/plans': typeof AuthenticatedPlansRoute
   '/prompt': typeof AuthenticatedPromptRoute
   '/settings': typeof AuthenticatedSettingsRoute
+  '/support': typeof AuthenticatedSupportRoute
   '/tools': typeof AuthenticatedToolsRoute
   '/users': typeof AuthenticatedUsersRoute
   '/webhooks': typeof AuthenticatedWebhooksRoute
   '/whatsapp': typeof AuthenticatedWhatsappRoute
   '/white-label': typeof AuthenticatedWhiteLabelRoute
+  '/master/announcements': typeof MasterAnnouncementsRoute
+  '/master/clients': typeof MasterClientsRoute
+  '/master/financial': typeof MasterFinancialRoute
+  '/master/notifications': typeof MasterNotificationsRoute
+  '/master/orders': typeof MasterOrdersRoute
+  '/master/payment-config': typeof MasterPaymentConfigRoute
+  '/master/support': typeof MasterSupportRoute
+  '/master/': typeof MasterIndexRoute
   '/api/v1/buy': typeof ApiV1BuyRoute
   '/api/v1/consume': typeof ApiV1ConsumeRoute
   '/api/v1/credits': typeof ApiV1CreditsRoute
@@ -385,11 +455,20 @@ export interface FileRoutesByTo {
   '/plans': typeof AuthenticatedPlansRoute
   '/prompt': typeof AuthenticatedPromptRoute
   '/settings': typeof AuthenticatedSettingsRoute
+  '/support': typeof AuthenticatedSupportRoute
   '/tools': typeof AuthenticatedToolsRoute
   '/users': typeof AuthenticatedUsersRoute
   '/webhooks': typeof AuthenticatedWebhooksRoute
   '/whatsapp': typeof AuthenticatedWhatsappRoute
   '/white-label': typeof AuthenticatedWhiteLabelRoute
+  '/master/announcements': typeof MasterAnnouncementsRoute
+  '/master/clients': typeof MasterClientsRoute
+  '/master/financial': typeof MasterFinancialRoute
+  '/master/notifications': typeof MasterNotificationsRoute
+  '/master/orders': typeof MasterOrdersRoute
+  '/master/payment-config': typeof MasterPaymentConfigRoute
+  '/master/support': typeof MasterSupportRoute
+  '/master': typeof MasterIndexRoute
   '/api/v1/buy': typeof ApiV1BuyRoute
   '/api/v1/consume': typeof ApiV1ConsumeRoute
   '/api/v1/credits': typeof ApiV1CreditsRoute
@@ -408,6 +487,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/_authenticated': typeof AuthenticatedRouteWithChildren
   '/auth': typeof AuthRoute
+  '/master': typeof MasterRouteWithChildren
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/_authenticated/admin-settings': typeof AuthenticatedAdminSettingsRoute
   '/_authenticated/agents': typeof AuthenticatedAgentsRoute
@@ -436,11 +516,20 @@ export interface FileRoutesById {
   '/_authenticated/plans': typeof AuthenticatedPlansRoute
   '/_authenticated/prompt': typeof AuthenticatedPromptRoute
   '/_authenticated/settings': typeof AuthenticatedSettingsRoute
+  '/_authenticated/support': typeof AuthenticatedSupportRoute
   '/_authenticated/tools': typeof AuthenticatedToolsRoute
   '/_authenticated/users': typeof AuthenticatedUsersRoute
   '/_authenticated/webhooks': typeof AuthenticatedWebhooksRoute
   '/_authenticated/whatsapp': typeof AuthenticatedWhatsappRoute
   '/_authenticated/white-label': typeof AuthenticatedWhiteLabelRoute
+  '/master/announcements': typeof MasterAnnouncementsRoute
+  '/master/clients': typeof MasterClientsRoute
+  '/master/financial': typeof MasterFinancialRoute
+  '/master/notifications': typeof MasterNotificationsRoute
+  '/master/orders': typeof MasterOrdersRoute
+  '/master/payment-config': typeof MasterPaymentConfigRoute
+  '/master/support': typeof MasterSupportRoute
+  '/master/': typeof MasterIndexRoute
   '/api/v1/buy': typeof ApiV1BuyRoute
   '/api/v1/consume': typeof ApiV1ConsumeRoute
   '/api/v1/credits': typeof ApiV1CreditsRoute
@@ -459,6 +548,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/auth'
+    | '/master'
     | '/sitemap.xml'
     | '/admin-settings'
     | '/agents'
@@ -487,11 +577,20 @@ export interface FileRouteTypes {
     | '/plans'
     | '/prompt'
     | '/settings'
+    | '/support'
     | '/tools'
     | '/users'
     | '/webhooks'
     | '/whatsapp'
     | '/white-label'
+    | '/master/announcements'
+    | '/master/clients'
+    | '/master/financial'
+    | '/master/notifications'
+    | '/master/orders'
+    | '/master/payment-config'
+    | '/master/support'
+    | '/master/'
     | '/api/v1/buy'
     | '/api/v1/consume'
     | '/api/v1/credits'
@@ -536,11 +635,20 @@ export interface FileRouteTypes {
     | '/plans'
     | '/prompt'
     | '/settings'
+    | '/support'
     | '/tools'
     | '/users'
     | '/webhooks'
     | '/whatsapp'
     | '/white-label'
+    | '/master/announcements'
+    | '/master/clients'
+    | '/master/financial'
+    | '/master/notifications'
+    | '/master/orders'
+    | '/master/payment-config'
+    | '/master/support'
+    | '/master'
     | '/api/v1/buy'
     | '/api/v1/consume'
     | '/api/v1/credits'
@@ -558,6 +666,7 @@ export interface FileRouteTypes {
     | '/'
     | '/_authenticated'
     | '/auth'
+    | '/master'
     | '/sitemap.xml'
     | '/_authenticated/admin-settings'
     | '/_authenticated/agents'
@@ -586,11 +695,20 @@ export interface FileRouteTypes {
     | '/_authenticated/plans'
     | '/_authenticated/prompt'
     | '/_authenticated/settings'
+    | '/_authenticated/support'
     | '/_authenticated/tools'
     | '/_authenticated/users'
     | '/_authenticated/webhooks'
     | '/_authenticated/whatsapp'
     | '/_authenticated/white-label'
+    | '/master/announcements'
+    | '/master/clients'
+    | '/master/financial'
+    | '/master/notifications'
+    | '/master/orders'
+    | '/master/payment-config'
+    | '/master/support'
+    | '/master/'
     | '/api/v1/buy'
     | '/api/v1/consume'
     | '/api/v1/credits'
@@ -609,6 +727,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AuthenticatedRoute: typeof AuthenticatedRouteWithChildren
   AuthRoute: typeof AuthRoute
+  MasterRoute: typeof MasterRouteWithChildren
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   ApiV1BuyRoute: typeof ApiV1BuyRoute
   ApiV1ConsumeRoute: typeof ApiV1ConsumeRoute
@@ -633,6 +752,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SitemapDotxmlRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/master': {
+      id: '/master'
+      path: '/master'
+      fullPath: '/master'
+      preLoaderRoute: typeof MasterRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/auth': {
       id: '/auth'
       path: '/auth'
@@ -653,6 +779,62 @@ declare module '@tanstack/react-router' {
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/master/': {
+      id: '/master/'
+      path: '/'
+      fullPath: '/master/'
+      preLoaderRoute: typeof MasterIndexRouteImport
+      parentRoute: typeof MasterRoute
+    }
+    '/master/support': {
+      id: '/master/support'
+      path: '/support'
+      fullPath: '/master/support'
+      preLoaderRoute: typeof MasterSupportRouteImport
+      parentRoute: typeof MasterRoute
+    }
+    '/master/payment-config': {
+      id: '/master/payment-config'
+      path: '/payment-config'
+      fullPath: '/master/payment-config'
+      preLoaderRoute: typeof MasterPaymentConfigRouteImport
+      parentRoute: typeof MasterRoute
+    }
+    '/master/orders': {
+      id: '/master/orders'
+      path: '/orders'
+      fullPath: '/master/orders'
+      preLoaderRoute: typeof MasterOrdersRouteImport
+      parentRoute: typeof MasterRoute
+    }
+    '/master/notifications': {
+      id: '/master/notifications'
+      path: '/notifications'
+      fullPath: '/master/notifications'
+      preLoaderRoute: typeof MasterNotificationsRouteImport
+      parentRoute: typeof MasterRoute
+    }
+    '/master/financial': {
+      id: '/master/financial'
+      path: '/financial'
+      fullPath: '/master/financial'
+      preLoaderRoute: typeof MasterFinancialRouteImport
+      parentRoute: typeof MasterRoute
+    }
+    '/master/clients': {
+      id: '/master/clients'
+      path: '/clients'
+      fullPath: '/master/clients'
+      preLoaderRoute: typeof MasterClientsRouteImport
+      parentRoute: typeof MasterRoute
+    }
+    '/master/announcements': {
+      id: '/master/announcements'
+      path: '/announcements'
+      fullPath: '/master/announcements'
+      preLoaderRoute: typeof MasterAnnouncementsRouteImport
+      parentRoute: typeof MasterRoute
     }
     '/_authenticated/white-label': {
       id: '/_authenticated/white-label'
@@ -687,6 +869,13 @@ declare module '@tanstack/react-router' {
       path: '/tools'
       fullPath: '/tools'
       preLoaderRoute: typeof AuthenticatedToolsRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/support': {
+      id: '/_authenticated/support'
+      path: '/support'
+      fullPath: '/support'
+      preLoaderRoute: typeof AuthenticatedSupportRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
     '/_authenticated/settings': {
@@ -993,6 +1182,7 @@ interface AuthenticatedRouteChildren {
   AuthenticatedPlansRoute: typeof AuthenticatedPlansRoute
   AuthenticatedPromptRoute: typeof AuthenticatedPromptRoute
   AuthenticatedSettingsRoute: typeof AuthenticatedSettingsRoute
+  AuthenticatedSupportRoute: typeof AuthenticatedSupportRoute
   AuthenticatedToolsRoute: typeof AuthenticatedToolsRoute
   AuthenticatedUsersRoute: typeof AuthenticatedUsersRoute
   AuthenticatedWebhooksRoute: typeof AuthenticatedWebhooksRoute
@@ -1028,6 +1218,7 @@ const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedPlansRoute: AuthenticatedPlansRoute,
   AuthenticatedPromptRoute: AuthenticatedPromptRoute,
   AuthenticatedSettingsRoute: AuthenticatedSettingsRoute,
+  AuthenticatedSupportRoute: AuthenticatedSupportRoute,
   AuthenticatedToolsRoute: AuthenticatedToolsRoute,
   AuthenticatedUsersRoute: AuthenticatedUsersRoute,
   AuthenticatedWebhooksRoute: AuthenticatedWebhooksRoute,
@@ -1039,10 +1230,36 @@ const AuthenticatedRouteWithChildren = AuthenticatedRoute._addFileChildren(
   AuthenticatedRouteChildren,
 )
 
+interface MasterRouteChildren {
+  MasterAnnouncementsRoute: typeof MasterAnnouncementsRoute
+  MasterClientsRoute: typeof MasterClientsRoute
+  MasterFinancialRoute: typeof MasterFinancialRoute
+  MasterNotificationsRoute: typeof MasterNotificationsRoute
+  MasterOrdersRoute: typeof MasterOrdersRoute
+  MasterPaymentConfigRoute: typeof MasterPaymentConfigRoute
+  MasterSupportRoute: typeof MasterSupportRoute
+  MasterIndexRoute: typeof MasterIndexRoute
+}
+
+const MasterRouteChildren: MasterRouteChildren = {
+  MasterAnnouncementsRoute: MasterAnnouncementsRoute,
+  MasterClientsRoute: MasterClientsRoute,
+  MasterFinancialRoute: MasterFinancialRoute,
+  MasterNotificationsRoute: MasterNotificationsRoute,
+  MasterOrdersRoute: MasterOrdersRoute,
+  MasterPaymentConfigRoute: MasterPaymentConfigRoute,
+  MasterSupportRoute: MasterSupportRoute,
+  MasterIndexRoute: MasterIndexRoute,
+}
+
+const MasterRouteWithChildren =
+  MasterRoute._addFileChildren(MasterRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthenticatedRoute: AuthenticatedRouteWithChildren,
   AuthRoute: AuthRoute,
+  MasterRoute: MasterRouteWithChildren,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
   ApiV1BuyRoute: ApiV1BuyRoute,
   ApiV1ConsumeRoute: ApiV1ConsumeRoute,
