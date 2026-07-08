@@ -1299,12 +1299,21 @@ function ProducerAchievements({ producer, delivered, onClose }: any) {
 /* ============================ CONQUISTAS ============================ */
 export function ConquistasView({ delivered, producers, catName, prodOf }: any) {
   const ranking = useMemo(() => {
-    const m = new Map<string, number>();
-    for (const p of producers) m.set(p.id, 0);
-    for (const o of delivered) if (o.producer_id) m.set(o.producer_id, (m.get(o.producer_id) ?? 0) + 1);
+    const m = new Map<string, { count: number; sec: number }>();
+    for (const p of producers) m.set(p.id, { count: 0, sec: 0 });
+    for (const o of delivered) {
+      if (!o.producer_id) continue;
+      const cur = m.get(o.producer_id) ?? { count: 0, sec: 0 };
+      cur.count += 1;
+      cur.sec +=
+        Number((o as any).video_duration_seconds) ||
+        Number((o as any).sales?.video_duration_seconds) ||
+        0;
+      m.set(o.producer_id, cur);
+    }
     return Array.from(m.entries())
-      .map(([pid, c]) => ({ id: pid, name: prodOf(pid)?.name ?? "—", avatar: prodOf(pid)?.avatar_url, count: c }))
-      .sort((a, b) => b.count - a.count);
+      .map(([pid, v]) => ({ id: pid, name: prodOf(pid)?.name ?? "—", avatar: prodOf(pid)?.avatar_url, count: v.count, sec: v.sec }))
+      .sort((a, b) => (b.count - a.count) || (b.sec - a.sec));
   }, [delivered, producers]);
 
   const [selectedId, setSelectedId] = useState<string | null>(null);
