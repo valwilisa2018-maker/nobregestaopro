@@ -1,67 +1,61 @@
-# Fila de vídeos grandes
+# Separação Admin Master vs Cliente
 
-Hoje o webhook morre ao tentar baixar/descriptografar vídeos > 30 MB dentro do worker (128 MB de RAM, timeout curto). Solução: separar recebimento (rápido) do processamento (assíncrono e com streaming).
+## 1. Banco de dados (migração)
 
-## Fluxo
+- Adicionar valor `'master'` ao enum `public.app_role`.
+- Manter `has_role(_user_id, _role)` como está (já funciona com o novo valor).
+- Criar helper `is_master(uid)` (SECURITY DEFINER) para uso em policies/UI.
+- Conceder o papel `master` ao seu usuário via INSERT em `user_roles` (você me confirma o email para eu incluir na migração, ou eu deixo um comentário SQL pronto pra rodar).
 
-```text
-WhatsApp → Webhook (/api/public/evolution/:instance)
-              │
-              ├── insere `messages` (media_url = null, status "processing")
-              └── insere `video_jobs` (directPath, mediaKey, sha256, mime, message_id)
-                          │
-                          ▼
-              pg_cron a cada 1 min → POST /api/public/hooks/process-video-jobs
-                          │
-                          ├── pega 1 job pending, marca "running"
-                          ├── fetch mmg.whatsapp.net (stream)
-                          ├── decrypt AES-CBC + HKDF em chunks
-                          ├── upload TUS resumable p/ bucket agent-media (6 MB/chunk)
-                          ├── UPDATE messages SET media_url, metadata.storagePath
-                          └── job "done" (ou "failed" + error, com retry até 3x)
-```
+## 2. Novo papel na UI
 
-## O que muda
+- `src/components/master-guard.tsx`: igual ao `AdminGuard` mas checa role `master`; redireciona não-master para `/dashboard`.
+- Atualizar `AppSidebar` para:
+  - Detectar `isMaster` além de `isAdmin`.
+  - **Remover** do sidebar do cliente os grupos que passam a ser Master-only.
+  - Se `isMaster`, mostrar botão "Painel Master" que leva para `/master`.
 
-### Banco (migração)
-- Nova tabela `public.video_jobs`:
-  - `id uuid pk`, `user_id`, `message_id`, `conversation_id`
-  - `direct_path text`, `media_key text` (base64), `mime text`, `file_name text`
-  - `kind text` (video/image/audio/document), `declared_bytes bigint`
-  - `status text` ('pending'|'running'|'done'|'failed'), `attempts int default 0`, `error text`
-  - `created_at`, `updated_at`
-- GRANTs padrão + RLS (admin/service_role); sem policies para anon.
-- Index em `(status, created_at)`.
+## 3. Rota `/master` com layout próprio
 
-### Webhook `src/routes/api/public/evolution.$instance.ts`
-- Quando `videoMessage` (ou qualquer mídia) tem `declaredBytes > MAX_INLINE_MEDIA_BYTES` (25 MB) e vem com `directPath` + `mediaKey`:
-  - Não tenta mais baixar inline.
-  - Insere `messages` com `media_url = null`, `content = "Processando vídeo..."`, `metadata.pending = true`.
-  - Insere linha em `video_jobs`.
-- Mantém caminho atual para mídias pequenas.
+- `src/routes/_master.tsx`: pathless layout com `MasterGuard`, sidebar próprio (`MasterSidebar`) e header identificando "Admin Master".
+- `src/routes/_master/index.tsx`: dashboard master (visão geral da plataforma: total de clientes, uso IA, receita).
+- Mover para `/master/*` (novos arquivos que reusam os componentes existentes):
+  - `/master/users` (era `/users`)
+  - `/master/permissions` (era `/permissions`)
+  - `/master/plans` (era `/plans`)
+  - `/master/brain` (era `/brain`)
+  - `/master/prompts-globais` (novo, prompts marcados como globais)
+  - `/master/connections` (era `/connections`)
+  - `/master/api-keys` (era `/api`)
+  - `/master/webhooks` (era `/webhooks`)
+  - `/master/ai-providers` (era `/ai`)
+  - `/master/white-label` (era `/white-label`)
+  - `/master/settings-globais` (era `/admin-settings`)
+  - `/master/billing` (billing da plataforma — receita/assinaturas)
 
-### Novo endpoint `src/routes/api/public/hooks/process-video-jobs.ts`
-- POST com `apikey` header.
-- Pega até 1 job `pending` (`FOR UPDATE SKIP LOCKED` via RPC), marca `running`.
-- Download em stream de `https://mmg.whatsapp.net{directPath}`.
-- Descriptografa AES-256-CBC em chunks (mantendo o último bloco entre reads para IV do próximo) com HKDF derivado da mediaKey.
-- Upload resumable (TUS) para `agent-media` em pedaços de 6 MB — memória fica baixa.
-- Atualiza `messages.media_url`, `metadata.storagePath`, `metadata.pending = false`.
-- Em erro: incrementa `attempts`; se >= 3, marca `failed` e atualiza mensagem com aviso.
+## 4. Rotas antigas
 
-### pg_cron
-- `SELECT cron.schedule('process-video-jobs', '* * * * *', $$ SELECT net.http_post(url:='https://project--…lovable.app/api/public/hooks/process-video-jobs', headers:='{"apikey":"…"}'::jsonb, body:='{}'::jsonb); $$);`
+- Manter os arquivos antigos como **redirects** para `/master/...` durante 1 versão, para não quebrar links salvos. Depois removemos.
+- Sidebar do cliente deixa de listar essas rotas.
 
-### UI
-- `messages.tsx` já mostra `media_url`; enquanto `metadata.pending = true`, exibe placeholder "⏳ Processando vídeo (pode levar 1-2 min)". Realtime já atualiza quando o job termina.
+## 5. O que fica na plataforma do cliente
+
+Grupos mantidos no sidebar cliente:
+- Workspace: Dashboard, Agentes, Agenda, Chats, Mensagens, Conhecimento
+- Automação: Follow-up, Contatos, Workflows, Disparo, WhatsApp
+- Insights: Prompts (só os do próprio user), Clientes, Histórico, Logs, Debug
+- Financeiro: Meu Plano, Créditos IA
+- Conta: Configurações
 
 ## Detalhes técnicos
 
-- Streaming decrypt: acumula bytes, processa em múltiplos de 16 (bloco AES), guarda tail para próximo chunk; descarta os 10 bytes finais do MAC.
-- TUS upload: usa `@supabase/storage-js` `uploadToSignedUrl` com `Tus-Resumable`. Alternativa mais simples: como storage aceita PUT direto até ~50 MB, para vídeos até 100 MB usar upload direto com `Content-Length` conhecido (ainda estoura RAM). **Vamos pelo TUS resumable** de fato.
-- Limite operacional: 100 MB por vídeo (configurável). Acima disso o job falha com mensagem clara.
-- Segurança: endpoint `/api/public/hooks/*` valida `apikey` = `SUPABASE_PUBLISHABLE_KEY`.
+- `MasterGuard` usa `supabase.rpc("has_role", { _user_id, _role: "master" })`.
+- `AppSidebar` faz duas RPCs em paralelo (`admin` e `master`) ou uma única query em `user_roles` filtrando os dois papéis.
+- Cada rota nova sob `_master/` é um wrapper mínimo importando o componente já existente da rota antiga (evita duplicação).
+- Redirects: `createFileRoute("/users")({ beforeLoad: () => { throw redirect({ to: "/master/users" }) } })`.
 
-## Não vou fazer
-- Transcodificar (ffmpeg não roda no worker). Vídeo é salvo no formato original que o WhatsApp entrega (`.enc` decodificado → mp4).
-- Trocar de runtime (Cloudflare Worker fica).
+## Fora de escopo (fica pra depois)
+
+- Split de dados por tenant (multi-tenant real).
+- Billing separado por cliente da plataforma.
+- Confirme se quer que eu **já promova seu usuário a `master`** na migração — se sim, me passe o email cadastrado.
