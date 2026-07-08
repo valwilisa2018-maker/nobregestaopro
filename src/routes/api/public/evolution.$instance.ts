@@ -1035,6 +1035,12 @@ export const Route = createFileRoute("/api/public/evolution/$instance")({
                 .reverse()
                 .filter((r) => r.content)
                 .map((r) => ({ role: r.direction === "outbound" ? "assistant" : "user", content: r.content }));
+              // Evita duplicar a mensagem atual: ela já foi persistida antes desta
+              // consulta e a mensagem "user" real é montada logo abaixo (com mídia).
+              // Também remove qualquer sequência de "user" no final (pending merge).
+              while (history.length && history[history.length - 1].role === "user") {
+                history.pop();
+              }
             }
 
             // Build endpoint + key from Configurações Globais (ai_providers ativo do dono da conexão).
