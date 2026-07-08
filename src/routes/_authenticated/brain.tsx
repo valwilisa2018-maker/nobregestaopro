@@ -34,16 +34,18 @@ Faça a pessoa sentir que conversa com um especialista humano, atencioso e exper
 
 function Page() {
   const [value, setValue] = useState("");
+  const [updatedAt, setUpdatedAt] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
   const load = async () => {
     setLoading(true);
     const { data, error } = await supabase
-      .from("internal_config").select("value").eq("key", "neural_core").maybeSingle();
+      .from("internal_config").select("value, updated_at").eq("key", "neural_core").maybeSingle();
     setLoading(false);
     if (error) return toast.error(error.message);
     setValue(data?.value ?? DEFAULT_NEURAL_CORE);
+    setUpdatedAt((data as { updated_at?: string } | null)?.updated_at ?? null);
   };
 
   useEffect(() => { load(); }, []);
@@ -57,6 +59,7 @@ function Page() {
     setSaving(false);
     if (error) return toast.error(error.message);
     toast.success("Cérebro atualizado — aplicado a todos os agentes");
+    load();
   };
 
   const reset = () => {
@@ -89,7 +92,12 @@ function Page() {
           ) : (
             <>
               <div className="flex justify-between text-xs text-muted-foreground">
-                <span>Suporta Markdown</span>
+                <span>
+                  Última atualização:{" "}
+                  {updatedAt
+                    ? new Date(updatedAt).toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "medium" })
+                    : "— (usando padrão)"}
+                </span>
                 <span>{value.length.toLocaleString("pt-BR")} chars · ~{Math.ceil(value.length / 4).toLocaleString("pt-BR")} tokens</span>
               </div>
               <Textarea
