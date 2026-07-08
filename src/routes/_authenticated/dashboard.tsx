@@ -885,14 +885,16 @@ function Dashboard() {
                     <div className="text-[11px] text-muted-foreground">
                       {p.entreguesMes} vídeo{p.entreguesMes === 1 ? "" : "s"} no mês
                       {p.segundosProntos > 0 ? ` • ${formatDuracao(p.segundosProntos)} prontos` : ""}
-                      {` • ${Math.floor((p.segundosProntos || 0) / 30)} pts`}
                     </div>
                     <div className="text-[11px] font-semibold text-emerald-500">
                       Total produzido: {formatCurrency(p.valorTotal)}
                     </div>
                   </div>
                 </div>
-                <span className="font-semibold">{p.entreguesHoje} vídeo{p.entreguesHoje === 1 ? "" : "s"}</span>
+                <div className="flex flex-col items-end leading-tight">
+                  <span className="font-semibold">{p.entreguesHoje} vídeo{p.entreguesHoje === 1 ? "" : "s"}</span>
+                  <span className="text-[11px] font-semibold text-amber-500">{Math.floor((p.segundosProntos || 0) / 30)} pts</span>
+                </div>
               </button>
             ))}
           </CardContent>
