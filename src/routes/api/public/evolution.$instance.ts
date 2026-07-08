@@ -1130,14 +1130,15 @@ export const Route = createFileRoute("/api/public/evolution/$instance")({
                   const receipts = files.receipts ?? "confirm";
                   const rr = (files.receiptReply ?? "Recebi seu comprovante, obrigado! Vou verificar e já te retorno.").replace(/"/g, '\\"');
                   return (
-                    "\n\n## Regras para arquivos recebidos\n" +
-                    `Tipo do arquivo atual: ${mediaKind}. Interpretação permitida: ${isAllowed ? "sim" : "NÃO — apenas confirme educadamente o recebimento e não descreva o conteúdo"}.\n` +
-                    "Fluxo obrigatório: 1) verifique se o cliente fez uma PERGUNTA (texto/caption). SIM → analise o arquivo e responda à pergunta. " +
-                    "NÃO → verifique se parece COMPROVANTE (pagamento, PIX, boleto, transferência, recibo). " +
-                    (receipts === "analyze" ? "Se for comprovante, analise normalmente." :
-                     receipts === "ignore" ? "Se for comprovante, NÃO responda nada (produza mensagem vazia)." :
-                     `Se for comprovante, NÃO analise o conteúdo — responda EXATAMENTE: "${rr}"`) +
-                    "\nSe o tipo não for permitido, apenas confirme o recebimento com naturalidade e não descreva o conteúdo."
+                    "\n\n## Regras para arquivos recebidos (imagem/vídeo/PDF)\n" +
+                    `Tipo do arquivo atual: ${mediaKind}. Interpretação permitida: ${isAllowed ? "sim" : "não"}.\n` +
+                    "NUNCA descreva o que aparece no arquivo (nada de 'vejo uma imagem com...', 'o cartaz diz...', 'no vídeo aparece...', 'o PDF contém...'). Não decifre textos, legendas, cartazes, placas ou frases visíveis. Não liste itens, cores, pessoas ou cenários.\n" +
+                    "Em vez disso, reaja de forma HUMANA e CURTA ao CONTEXTO/SENTIMENTO da mensagem, como uma pessoa reagiria no WhatsApp: se for religioso responda algo como 'Amém 🙏' ou 'Que benção!'; se for boas notícias 'Que legal!' ou 'Que máximo!'; se for triste 'Sinto muito 💙'; se for engraçado 'kkkk muito bom'; se for bom dia/tarde/noite retribua no mesmo tom. Uma frase só, natural, sem explicar o conteúdo.\n" +
+                    "Fluxo: 1) Se o cliente fez uma PERGUNTA direta no texto/caption sobre o arquivo, responda à pergunta de forma curta sem descrever o conteúdo todo. 2) Senão, se parecer COMPROVANTE (pagamento, PIX, boleto, transferência, recibo): " +
+                    (receipts === "analyze" ? "analise normalmente." :
+                     receipts === "ignore" ? "NÃO responda nada (produza mensagem vazia)." :
+                     `NÃO analise — responda EXATAMENTE: "${rr}".`) +
+                    "\n3) Nos demais casos, apenas reaja com naturalidade ao contexto, sem descrever."
                   );
                 })() : "";
                 const sys = neuralCore + "\n\n" + (agent.system_prompt ?? "") + kbText + filesRules + brevity;
@@ -1148,7 +1149,10 @@ export const Route = createFileRoute("/api/public/evolution/$instance")({
                 if (mediaB64 && (mediaKind === "image" || mediaKind === "document" || mediaKind === "video")) {
                   const dataUri = `data:${mediaMime ?? "application/octet-stream"};base64,${mediaB64}`;
                   const parts: Array<Record<string, unknown>> = [];
-                  const textPart = (mergedInbound ?? "").trim() || (mediaKind === "image" ? "Analise esta imagem." : mediaKind === "video" ? "Analise este vídeo." : "Analise este arquivo.");
+                  const caption = (mergedInbound ?? "").trim();
+                  const textPart = caption
+                    ? caption
+                    : "O cliente enviou um arquivo sem legenda. Reaja de forma curta e humana ao contexto/sentimento (ex.: 'Amém 🙏', 'Que benção!', 'Que legal!'). NÃO descreva nem decifre o conteúdo do arquivo.";
                   parts.push({ type: "text", text: textPart });
                   if (mediaKind === "image") {
                     parts.push({ type: "image_url", image_url: { url: dataUri } });
