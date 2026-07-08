@@ -66,6 +66,7 @@ const adminGroup = {
   label: "Admin",
   items: [
     { title: "Usuários", url: "/users", icon: UserCog },
+    { title: "Cérebro Universal", url: "/brain", icon: Brain },
     { title: "Permissões", url: "/permissions", icon: ShieldCheck },
     { title: "Conexões", url: "/connections", icon: Plug },
     { title: "Webhooks", url: "/webhooks", icon: Puzzle },

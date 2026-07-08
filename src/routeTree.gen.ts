@@ -38,6 +38,7 @@ import { Route as AuthenticatedConnectionsRouteImport } from './routes/_authenti
 import { Route as AuthenticatedClientsRouteImport } from './routes/_authenticated/clients'
 import { Route as AuthenticatedCalendarRouteImport } from './routes/_authenticated/calendar'
 import { Route as AuthenticatedBroadcastsRouteImport } from './routes/_authenticated/broadcasts'
+import { Route as AuthenticatedBrainRouteImport } from './routes/_authenticated/brain'
 import { Route as AuthenticatedBillingRouteImport } from './routes/_authenticated/billing'
 import { Route as AuthenticatedAudiosRouteImport } from './routes/_authenticated/audios'
 import { Route as AuthenticatedApiRouteImport } from './routes/_authenticated/api'
@@ -204,6 +205,11 @@ const AuthenticatedBroadcastsRoute = AuthenticatedBroadcastsRouteImport.update({
   path: '/broadcasts',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
+const AuthenticatedBrainRoute = AuthenticatedBrainRouteImport.update({
+  id: '/brain',
+  path: '/brain',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
 const AuthenticatedBillingRoute = AuthenticatedBillingRouteImport.update({
   id: '/billing',
   path: '/billing',
@@ -309,6 +315,7 @@ export interface FileRoutesByFullPath {
   '/api': typeof AuthenticatedApiRoute
   '/audios': typeof AuthenticatedAudiosRoute
   '/billing': typeof AuthenticatedBillingRoute
+  '/brain': typeof AuthenticatedBrainRoute
   '/broadcasts': typeof AuthenticatedBroadcastsRoute
   '/calendar': typeof AuthenticatedCalendarRoute
   '/clients': typeof AuthenticatedClientsRoute
@@ -357,6 +364,7 @@ export interface FileRoutesByTo {
   '/api': typeof AuthenticatedApiRoute
   '/audios': typeof AuthenticatedAudiosRoute
   '/billing': typeof AuthenticatedBillingRoute
+  '/brain': typeof AuthenticatedBrainRoute
   '/broadcasts': typeof AuthenticatedBroadcastsRoute
   '/calendar': typeof AuthenticatedCalendarRoute
   '/clients': typeof AuthenticatedClientsRoute
@@ -407,6 +415,7 @@ export interface FileRoutesById {
   '/_authenticated/api': typeof AuthenticatedApiRoute
   '/_authenticated/audios': typeof AuthenticatedAudiosRoute
   '/_authenticated/billing': typeof AuthenticatedBillingRoute
+  '/_authenticated/brain': typeof AuthenticatedBrainRoute
   '/_authenticated/broadcasts': typeof AuthenticatedBroadcastsRoute
   '/_authenticated/calendar': typeof AuthenticatedCalendarRoute
   '/_authenticated/clients': typeof AuthenticatedClientsRoute
@@ -457,6 +466,7 @@ export interface FileRouteTypes {
     | '/api'
     | '/audios'
     | '/billing'
+    | '/brain'
     | '/broadcasts'
     | '/calendar'
     | '/clients'
@@ -505,6 +515,7 @@ export interface FileRouteTypes {
     | '/api'
     | '/audios'
     | '/billing'
+    | '/brain'
     | '/broadcasts'
     | '/calendar'
     | '/clients'
@@ -554,6 +565,7 @@ export interface FileRouteTypes {
     | '/_authenticated/api'
     | '/_authenticated/audios'
     | '/_authenticated/billing'
+    | '/_authenticated/brain'
     | '/_authenticated/broadcasts'
     | '/_authenticated/calendar'
     | '/_authenticated/clients'
@@ -817,6 +829,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedBroadcastsRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
+    '/_authenticated/brain': {
+      id: '/_authenticated/brain'
+      path: '/brain'
+      fullPath: '/brain'
+      preLoaderRoute: typeof AuthenticatedBrainRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
     '/_authenticated/billing': {
       id: '/_authenticated/billing'
       path: '/billing'
@@ -953,6 +972,7 @@ interface AuthenticatedRouteChildren {
   AuthenticatedApiRoute: typeof AuthenticatedApiRoute
   AuthenticatedAudiosRoute: typeof AuthenticatedAudiosRoute
   AuthenticatedBillingRoute: typeof AuthenticatedBillingRoute
+  AuthenticatedBrainRoute: typeof AuthenticatedBrainRoute
   AuthenticatedBroadcastsRoute: typeof AuthenticatedBroadcastsRoute
   AuthenticatedCalendarRoute: typeof AuthenticatedCalendarRoute
   AuthenticatedClientsRoute: typeof AuthenticatedClientsRoute
@@ -987,6 +1007,7 @@ const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedApiRoute: AuthenticatedApiRoute,
   AuthenticatedAudiosRoute: AuthenticatedAudiosRoute,
   AuthenticatedBillingRoute: AuthenticatedBillingRoute,
+  AuthenticatedBrainRoute: AuthenticatedBrainRoute,
   AuthenticatedBroadcastsRoute: AuthenticatedBroadcastsRoute,
   AuthenticatedCalendarRoute: AuthenticatedCalendarRoute,
   AuthenticatedClientsRoute: AuthenticatedClientsRoute,
