@@ -6,11 +6,12 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Users, Loader2, Search, Ban, CheckCircle2, Coins, Crown } from "lucide-react";
+import { Users, Loader2, Search, Ban, CheckCircle2, Coins, Download } from "lucide-react";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
+import { toCSV, downloadCSV } from "@/lib/csv";
 
 // RPCs criadas na migração recente; tipos serão regenerados após approval
 const sbRpc = supabase.rpc.bind(supabase) as unknown as (
@@ -46,6 +47,7 @@ function Page() {
   const [plans, setPlans] = useState<Plan[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState<"all" | "active" | "suspended" | "pending">("all");
   const [selected, setSelected] = useState<Client | null>(null);
   const [action, setAction] = useState<"activate" | "suspend" | "credits" | null>(null);
 
@@ -62,10 +64,27 @@ function Page() {
   }, []);
   useEffect(() => { load(); }, [load]);
 
-  const filtered = items.filter((c) =>
-    !search || (c.full_name ?? "").toLowerCase().includes(search.toLowerCase())
-    || (c.phone ?? "").includes(search) || c.id.includes(search),
-  );
+  const filtered = items.filter((c) => {
+    if (statusFilter !== "all" && c.status !== statusFilter) return false;
+    if (!search) return true;
+    const q = search.toLowerCase();
+    return (c.full_name ?? "").toLowerCase().includes(q)
+      || (c.phone ?? "").includes(search) || c.id.includes(search);
+  });
+
+  const exportCSV = () => {
+    const rows = filtered.map((c) => ({
+      id: c.id,
+      nome: c.full_name ?? "",
+      telefone: c.phone ?? "",
+      status: c.status,
+      plano: plans.find((p) => p.id === c.plan_id)?.name ?? "",
+      ativado_em: c.plan_activated_at ?? "",
+      expira_em: c.plan_expires_at ?? "",
+      criado_em: c.created_at,
+    }));
+    downloadCSV(`clientes-${new Date().toISOString().slice(0, 10)}`, toCSV(rows));
+  };
 
   return (
     <PageShell
@@ -74,9 +93,23 @@ function Page() {
       icon={<Users className="h-6 w-6" />}
       status="ativo"
       actions={
-        <div className="relative">
-          <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-          <Input placeholder="Buscar cliente..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-8 w-64" />
+        <div className="flex items-center gap-2">
+          <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v as typeof statusFilter)}>
+            <SelectTrigger className="w-36"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todos</SelectItem>
+              <SelectItem value="active">Ativos</SelectItem>
+              <SelectItem value="pending">Pendentes</SelectItem>
+              <SelectItem value="suspended">Suspensos</SelectItem>
+            </SelectContent>
+          </Select>
+          <div className="relative">
+            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+            <Input placeholder="Buscar cliente..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-8 w-64" />
+          </div>
+          <Button variant="outline" size="sm" onClick={exportCSV} disabled={!filtered.length}>
+            <Download className="h-4 w-4" /> CSV
+          </Button>
         </div>
       }
     >
