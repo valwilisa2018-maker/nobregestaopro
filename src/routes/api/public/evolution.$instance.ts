@@ -1040,7 +1040,7 @@ export const Route = createFileRoute("/api/public/evolution/$instance")({
                   ? kbRules + "\n\n## Base de Conhecimento\n" + kbAll.join("\n\n")
                   : kbRules + "\n\n(Base de Conhecimento vazia no momento.)";
                 const brevity = "\n\n[REGRA DE RESPOSTA - OBRIGATÓRIA] Fale como uma pessoa no WhatsApp. Responda SEMPRE em 1 frase curta (máx. 2 quando for indispensável), no total até ~180 caracteres. Nunca use listas, tópicos, markdown, títulos ou parágrafos. No máximo 1 pergunta por mensagem, e só quando fizer sentido. Sem repetir o que o cliente disse, sem introduções longas, sem despedidas formais. Se a mensagem veio de áudio, ela já foi transcrita pelo sistema: responda ao conteúdo transcrito e nunca diga que não consegue ouvir ou transcrever áudio.";
-                const sys = (agent.system_prompt ?? "") + kbText + brevity;
+                const sys = NEURAL_CORE + "\n\n" + (agent.system_prompt ?? "") + kbText + brevity;
                 return sys.trim() ? [{ role: "system" as const, content: sys }] : [];
               })(),
               ...history,
