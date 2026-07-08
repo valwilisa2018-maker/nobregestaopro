@@ -967,9 +967,11 @@ function MessagesPage() {
     if (!convoId) { toast.error("Sem conversa vinculada ainda."); return; }
     const { data: row } = await supabase.from("conversations").select("metadata").eq("id", convoId).maybeSingle();
     const meta = (row?.metadata ?? {}) as Record<string, unknown>;
+    // Regra: quando o operador desliga a IA no chat, ela fica REALMENTE
+    // desligada (flag booleana persistente) e só volta se ele reativar.
     const next = agentPaused
-      ? { ...meta, agent_paused_until: null }
-      : { ...meta, agent_paused_until: new Date(Date.now() + 3650 * 24 * 3600_000).toISOString() };
+      ? { ...meta, agent_disabled: false, agent_paused_until: null }
+      : { ...meta, agent_disabled: true, agent_paused_until: null };
     const { error } = await supabase.from("conversations").update({ metadata: next } as never).eq("id", convoId);
     if (error) { toast.error("Não foi possível alterar a IA."); return; }
     setAgentPaused(!agentPaused);
