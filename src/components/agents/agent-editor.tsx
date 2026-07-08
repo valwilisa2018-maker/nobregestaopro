@@ -275,6 +275,18 @@ export function AgentEditor({ agent, onSaved, onCancel }: Props) {
       // 11) Conhecimento
       const kn = Array.isArray(form.knowledge) ? form.knowledge : [];
       push(11, "Base de Conhecimento", true, `${kn.length} item(ns)`);
+
+      // 12) Interpretação de Arquivos
+      const fi = (ext as { files?: { enabled?: boolean; receipts?: string; image?: boolean; pdf?: boolean; document?: boolean; audio?: boolean; video?: boolean } }).files ?? {};
+      const types = [
+        fi.image ?? true ? "img" : null,
+        fi.pdf ?? true ? "pdf" : null,
+        fi.document ?? true ? "doc" : null,
+        fi.audio ?? true ? "audio" : null,
+        fi.video ?? false ? "video" : null,
+      ].filter(Boolean);
+      push(12, "Interpretação de Arquivos", true,
+        fi.enabled === false ? "desativado" : `tipos=${types.join(",")} comprovantes=${fi.receipts ?? "confirm"}`);
     } finally {
       setValidationResults(results);
       setValidating(false);
