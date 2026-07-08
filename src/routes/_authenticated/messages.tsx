@@ -833,8 +833,10 @@ function MessagesPage() {
     persistConvCache(reqId, ids);
     const primary = matched[0] ?? null;
     setConvoId(primary?.id ?? null);
-    const pausedUntil = (primary?.metadata as { agent_paused_until?: string } | null)?.agent_paused_until ?? null;
-    setAgentPaused(!!pausedUntil && new Date(pausedUntil).getTime() > Date.now());
+    const pm = (primary?.metadata ?? {}) as { agent_paused_until?: string; agent_disabled?: boolean };
+    const pausedUntil = pm.agent_paused_until ?? null;
+    const disabled = !!pm.agent_disabled;
+    setAgentPaused(disabled || (!!pausedUntil && new Date(pausedUntil).getTime() > Date.now()));
     if (!ids.length) {
       // Don't wipe cached messages if lookup temporarily fails; only clear if we truly have nothing
       waDebug("loadMessages:no-convo-ids", { contactId: reqId, cached: cached?.length ?? 0, fast: fastData?.length ?? 0 });
