@@ -166,6 +166,77 @@ export type Database = {
         }
         Relationships: []
       }
+      announcement_reads: {
+        Row: {
+          announcement_id: string
+          read_at: string
+          user_id: string
+        }
+        Insert: {
+          announcement_id: string
+          read_at?: string
+          user_id: string
+        }
+        Update: {
+          announcement_id?: string
+          read_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "announcement_reads_announcement_id_fkey"
+            columns: ["announcement_id"]
+            isOneToOne: false
+            referencedRelation: "announcements"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      announcements: {
+        Row: {
+          body: string
+          created_at: string
+          created_by: string | null
+          cta_label: string | null
+          cta_url: string | null
+          ends_at: string | null
+          id: string
+          is_active: boolean
+          severity: string
+          starts_at: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          body: string
+          created_at?: string
+          created_by?: string | null
+          cta_label?: string | null
+          cta_url?: string | null
+          ends_at?: string | null
+          id?: string
+          is_active?: boolean
+          severity?: string
+          starts_at?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          body?: string
+          created_at?: string
+          created_by?: string | null
+          cta_label?: string | null
+          cta_url?: string | null
+          ends_at?: string | null
+          id?: string
+          is_active?: boolean
+          severity?: string
+          starts_at?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       api_keys: {
         Row: {
           created_at: string
@@ -1293,6 +1364,72 @@ export type Database = {
           },
         ]
       }
+      notifications: {
+        Row: {
+          body: string | null
+          created_at: string
+          created_by: string | null
+          id: string
+          link: string | null
+          read_at: string | null
+          title: string
+          type: string
+          user_id: string
+        }
+        Insert: {
+          body?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          link?: string | null
+          read_at?: string | null
+          title: string
+          type?: string
+          user_id: string
+        }
+        Update: {
+          body?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          link?: string | null
+          read_at?: string | null
+          title?: string
+          type?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      payment_settings: {
+        Row: {
+          config: Json
+          created_at: string
+          id: string
+          is_active: boolean
+          mode: string
+          provider: string
+          updated_at: string
+        }
+        Insert: {
+          config?: Json
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          mode?: string
+          provider: string
+          updated_at?: string
+        }
+        Update: {
+          config?: Json
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          mode?: string
+          provider?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       plans: {
         Row: {
           created_at: string
@@ -1373,9 +1510,12 @@ export type Database = {
           full_name: string | null
           id: string
           phone: string | null
+          plan_activated_at: string | null
           plan_expires_at: string | null
           plan_id: string | null
           plan_started_at: string | null
+          status: Database["public"]["Enums"]["account_status"]
+          suspended_reason: string | null
           updated_at: string
         }
         Insert: {
@@ -1385,9 +1525,12 @@ export type Database = {
           full_name?: string | null
           id: string
           phone?: string | null
+          plan_activated_at?: string | null
           plan_expires_at?: string | null
           plan_id?: string | null
           plan_started_at?: string | null
+          status?: Database["public"]["Enums"]["account_status"]
+          suspended_reason?: string | null
           updated_at?: string
         }
         Update: {
@@ -1397,9 +1540,12 @@ export type Database = {
           full_name?: string | null
           id?: string
           phone?: string | null
+          plan_activated_at?: string | null
           plan_expires_at?: string | null
           plan_id?: string | null
           plan_started_at?: string | null
+          status?: Database["public"]["Enums"]["account_status"]
+          suspended_reason?: string | null
           updated_at?: string
         }
         Relationships: [
@@ -1511,6 +1657,80 @@ export type Database = {
           updated_at?: string
           user_id?: string
           value?: Json
+        }
+        Relationships: []
+      }
+      support_messages: {
+        Row: {
+          attachments: Json
+          body: string
+          created_at: string
+          id: string
+          sender_id: string
+          sender_role: string
+          ticket_id: string
+        }
+        Insert: {
+          attachments?: Json
+          body: string
+          created_at?: string
+          id?: string
+          sender_id: string
+          sender_role?: string
+          ticket_id: string
+        }
+        Update: {
+          attachments?: Json
+          body?: string
+          created_at?: string
+          id?: string
+          sender_id?: string
+          sender_role?: string
+          ticket_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "support_messages_ticket_id_fkey"
+            columns: ["ticket_id"]
+            isOneToOne: false
+            referencedRelation: "support_tickets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      support_tickets: {
+        Row: {
+          assigned_to: string | null
+          created_at: string
+          id: string
+          last_message_at: string
+          priority: string
+          status: string
+          subject: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          assigned_to?: string | null
+          created_at?: string
+          id?: string
+          last_message_at?: string
+          priority?: string
+          status?: string
+          subject: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          assigned_to?: string | null
+          created_at?: string
+          id?: string
+          last_message_at?: string
+          priority?: string
+          status?: string
+          subject?: string
+          updated_at?: string
+          user_id?: string
         }
         Relationships: []
       }
@@ -1825,9 +2045,43 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      master_activate_account: {
+        Args: { _expires_at: string; _plan_id: string; _user_id: string }
+        Returns: undefined
+      }
+      master_grant_credits: {
+        Args: { _reason: string; _tokens: number; _user_id: string }
+        Returns: undefined
+      }
+      master_mark_order_paid: {
+        Args: { _order_id: string }
+        Returns: {
+          created_at: string
+          id: string
+          package_id: string
+          paid_at: string | null
+          price_cents: number
+          provider: string | null
+          status: string
+          tokens: number
+          updated_at: string
+          user_id: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "credit_orders"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      master_suspend_account: {
+        Args: { _reason: string; _user_id: string }
+        Returns: undefined
+      }
       purge_old_messages_media: { Args: never; Returns: undefined }
     }
     Enums: {
+      account_status: "active" | "suspended" | "pending"
       app_role: "admin" | "supervisor" | "atendente" | "viewer" | "master"
       conversation_status: "open" | "pending" | "closed" | "archived"
       message_direction: "inbound" | "outbound"
@@ -1967,6 +2221,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      account_status: ["active", "suspended", "pending"],
       app_role: ["admin", "supervisor", "atendente", "viewer", "master"],
       conversation_status: ["open", "pending", "closed", "archived"],
       message_direction: ["inbound", "outbound"],

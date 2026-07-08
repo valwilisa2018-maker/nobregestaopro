@@ -4,6 +4,8 @@ import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/app-sidebar";
 import { Toaster } from "@/components/ui/sonner";
 import { PlanExpiryBanner } from "@/components/plan-status";
+import { NotificationBell } from "@/components/notification-bell";
+import { AnnouncementModal } from "@/components/announcement-modal";
 import { useEffect } from "react";
 
 export const Route = createFileRoute("/_authenticated")({
@@ -30,10 +32,14 @@ function AuthedLayout() {
           <PlanExpiryBanner />
           <header className="h-12 flex items-center border-b px-2 gap-2">
             <SidebarTrigger />
+            <div className="ml-auto flex items-center gap-1">
+              <NotificationBell />
+            </div>
           </header>
           <main className="flex-1 p-3 sm:p-6 bg-muted/20 min-w-0">
             <Outlet />
           </main>
+          <AnnouncementModal />
         </div>
         <Toaster />
       </div>
