@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { AlertTriangle, Loader2, RefreshCw } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/pipeline-status")({
   head: () => ({ meta: [{ title: "Status de Automações — Pipeline CRM" }] }),
@@ -35,9 +36,11 @@ function PipelineStatusPage() {
   const [sort, setSort] = useState<"desc" | "asc">("desc");
   const [page, setPage] = useState(0);
   const [total, setTotal] = useState(0);
+  const [error, setError] = useState<string | null>(null);
 
   const load = async () => {
     setLoading(true);
+    setError(null);
     let q = supabase
       .from("pipeline_activities" as never)
       .select("id,deal_id,type,created_at,payload", { count: "exact" })
@@ -50,9 +53,14 @@ function PipelineStatusPage() {
       end.setHours(23, 59, 59, 999);
       q = q.lte("created_at", end.toISOString());
     }
-    const { data, count } = await q;
-    setItems(((data as never) || []) as FailedActivity[]);
-    setTotal(count ?? 0);
+    const { data, count, error: qErr } = await q;
+    if (qErr) {
+      setError(qErr.message);
+      toast.error("Falha ao carregar status", { description: qErr.message });
+    } else {
+      setItems(((data as never) || []) as FailedActivity[]);
+      setTotal(count ?? 0);
+    }
     setLoading(false);
   };
 
@@ -98,7 +106,19 @@ function PipelineStatusPage() {
         )}
       </div>
       {loading ? (
-        <div className="flex justify-center py-24"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>
+        <div className="flex flex-col items-center gap-2 py-24 text-muted-foreground">
+          <Loader2 className="h-6 w-6 animate-spin text-primary" />
+          <span className="text-sm">Carregando falhas…</span>
+        </div>
+      ) : error ? (
+        <div className="rounded-lg border border-destructive/40 bg-destructive/5 p-6 text-center space-y-3">
+          <AlertTriangle className="mx-auto h-6 w-6 text-destructive" />
+          <div className="text-sm font-medium text-destructive">Erro ao buscar dados</div>
+          <div className="text-xs text-muted-foreground break-words">{error}</div>
+          <Button variant="outline" size="sm" onClick={load}>
+            <RefreshCw className="h-4 w-4" /> Tentar novamente
+          </Button>
+        </div>
       ) : items.length === 0 ? (
         <div className="rounded-lg border border-dashed p-12 text-center text-muted-foreground">
           Nenhuma tarefa com falha nos últimos registros. 🎉
