@@ -579,6 +579,74 @@ function KnowledgeSection({ form, set, onSave, saving }: { form: AgentRow; set: 
   );
 }
 
+// ============ 12. Interpretação de Arquivos ============
+function FilesSection({ ext, setExt, onSave, saving }: ExtProps) {
+  const f = ext.files ?? {};
+  const receipts = f.receipts ?? "confirm";
+  return (
+    <div className="space-y-4">
+      <ToggleRow
+        label="Interpretar arquivos recebidos"
+        hint="Quando desligado, a IA ignora anexos e responde apenas ao texto."
+        checked={f.enabled ?? true}
+        onChange={(v) => setExt("files", { enabled: v })}
+      />
+
+      <div className="rounded-xl border border-border/50 bg-background/30 p-4 space-y-2">
+        <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Tipos permitidos</div>
+        <ToggleRow label="📷 Imagem" checked={f.image ?? true} onChange={(v) => setExt("files", { image: v })} />
+        <ToggleRow label="📄 PDF" checked={f.pdf ?? true} onChange={(v) => setExt("files", { pdf: v })} />
+        <ToggleRow label="📑 Documento (Word, Excel, TXT)" checked={f.document ?? true} onChange={(v) => setExt("files", { document: v })} />
+        <ToggleRow label="🎵 Áudio" checked={f.audio ?? true} onChange={(v) => setExt("files", { audio: v })} />
+        <ToggleRow label="🎥 Vídeo" checked={f.video ?? false} onChange={(v) => setExt("files", { video: v })} />
+      </div>
+
+      <div className="rounded-xl border border-border/50 bg-background/30 p-4 space-y-3">
+        <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Comprovantes</div>
+        <p className="text-[11px] text-muted-foreground">
+          Se o arquivo parece um comprovante (pagamento, PIX, boleto) e o cliente NÃO fez pergunta:
+        </p>
+        <Select value={receipts} onValueChange={(v) => setExt("files", { receipts: v as "analyze" | "ignore" | "confirm" })}>
+          <SelectTrigger><SelectValue /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="confirm">Confirmar recebimento (não analisar conteúdo)</SelectItem>
+            <SelectItem value="analyze">Analisar e responder normalmente</SelectItem>
+            <SelectItem value="ignore">Ignorar (não responder)</SelectItem>
+          </SelectContent>
+        </Select>
+        {receipts === "confirm" && (
+          <div className="space-y-1.5">
+            <Label className="text-xs text-muted-foreground">Mensagem de confirmação</Label>
+            <Input
+              value={f.receiptReply ?? "Recebi seu comprovante, obrigado! Vou verificar e já te retorno."}
+              onChange={(e) => setExt("files", { receiptReply: e.target.value })}
+              placeholder="Recebi seu comprovante, obrigado!"
+            />
+          </div>
+        )}
+      </div>
+
+      <ToggleRow
+        label="Enviar aviso de recebimento para outros arquivos"
+        hint="Ex.: 'Recebi seu arquivo, um momento...' antes de analisar."
+        checked={!!f.sendAck}
+        onChange={(v) => setExt("files", { sendAck: v })}
+      />
+      {f.sendAck && (
+        <div className="space-y-1.5">
+          <Label className="text-xs text-muted-foreground">Mensagem de aviso</Label>
+          <Input
+            value={f.ackReply ?? "Recebi seu arquivo, um instante enquanto analiso."}
+            onChange={(e) => setExt("files", { ackReply: e.target.value })}
+          />
+        </div>
+      )}
+
+      <SaveBar onSave={onSave} saving={saving} />
+    </div>
+  );
+}
+
 function ToggleRow({ label, hint, checked, onChange, right }: { label: string; hint?: string; checked: boolean; onChange: (v: boolean) => void; right?: ReactNode }) {
   return (
     <div className="flex items-center justify-between gap-3 rounded-xl border border-border/50 bg-background/40 px-4 py-3">
