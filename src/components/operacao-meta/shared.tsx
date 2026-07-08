@@ -1358,7 +1358,10 @@ export function ConquistasView({ delivered, producers, catName, prodOf }: any) {
                   <span className="text-xs font-bold text-muted-foreground w-4">{i + 1}</span>
                   <Avatar className="w-9 h-9 ring-2 ring-primary/30"><AvatarImage src={p.avatar} /><AvatarFallback className="text-[9px]">{initials(p.name)}</AvatarFallback></Avatar>
                   <span className="text-xs font-bold uppercase flex-1 truncate">{p.name}</span>
-                  <span className="text-xs font-bold text-rose-500">{p.count}</span>
+                  <div className="flex flex-col items-end leading-tight">
+                    <span className="text-xs font-bold text-rose-500">{p.count}</span>
+                    <span className="text-[10px] font-semibold text-muted-foreground">{formatDuracao(p.sec)}</span>
+                  </div>
                 </button>
               );
             })}
