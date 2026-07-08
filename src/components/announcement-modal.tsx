@@ -2,16 +2,25 @@ import { useEffect, useState } from "react";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
-import { Info, AlertTriangle, CheckCircle2, Sparkles, ArrowRight } from "lucide-react";
+import { Info, AlertTriangle, CheckCircle2, Sparkles, ArrowRight, type LucideIcon } from "lucide-react";
 
 type Ann = { id: string; title: string; body: string; severity: string; cta_label: string | null; cta_url: string | null };
 
-const SEVERITY = {
+type SeverityConfig = {
+  label: string;
+  Icon: LucideIcon;
+  accent: string;
+  ring: string;
+  glow: string;
+  chip: string;
+};
+
+const SEVERITY: Record<string, SeverityConfig> = {
   info:    { label: "Informação",  Icon: Info,           accent: "from-sky-500 via-blue-500 to-indigo-600",     ring: "ring-sky-500/30",     glow: "shadow-[0_0_60px_-10px_rgba(59,130,246,0.55)]",  chip: "bg-sky-500/15 text-sky-300 border-sky-500/30" },
   success: { label: "Novidade",    Icon: CheckCircle2,   accent: "from-emerald-500 via-teal-500 to-green-600",  ring: "ring-emerald-500/30", glow: "shadow-[0_0_60px_-10px_rgba(16,185,129,0.55)]", chip: "bg-emerald-500/15 text-emerald-300 border-emerald-500/30" },
   warning: { label: "Atenção",     Icon: AlertTriangle,  accent: "from-amber-500 via-orange-500 to-red-500",    ring: "ring-amber-500/30",   glow: "shadow-[0_0_60px_-10px_rgba(245,158,11,0.55)]", chip: "bg-amber-500/15 text-amber-300 border-amber-500/30" },
   promo:   { label: "Exclusivo",   Icon: Sparkles,       accent: "from-fuchsia-500 via-purple-600 to-indigo-600", ring: "ring-fuchsia-500/30", glow: "shadow-[0_0_60px_-10px_rgba(217,70,239,0.55)]", chip: "bg-fuchsia-500/15 text-fuchsia-300 border-fuchsia-500/30" },
-} as const;
+};
 
 export function AnnouncementModal() {
   const [current, setCurrent] = useState<Ann | null>(null);
@@ -42,7 +51,7 @@ export function AnnouncementModal() {
   };
 
   if (!current) return null;
-  const cfg = (SEVERITY as unknown as Record<string, typeof SEVERITY.info>)[current.severity] ?? SEVERITY.info;
+  const cfg = SEVERITY[current.severity] ?? SEVERITY.info;
   const { Icon } = cfg;
   return (
     <Dialog open onOpenChange={(v) => !v && close()}>
