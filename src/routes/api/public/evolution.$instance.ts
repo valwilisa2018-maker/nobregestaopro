@@ -865,18 +865,10 @@ export const Route = createFileRoute("/api/public/evolution/$instance")({
                 follow_up_step: 0, next_follow_up_at: null, follow_up_paused: false,
               } as never).eq("id", convo.id);
             }
-            if (!agent) return Response.json({ ok: true, noAgent: true });
-
-            // IA desligada manualmente pelo operador: fica desligada até ele reativar.
-            if (cmeta.agent_disabled) {
-              return Response.json({ ok: true, paused: true, reason: "agent_disabled" });
-            }
-            // Pausa temporária por intervenção humana (janela com tempo de reativação).
-            if (cmeta.agent_paused_until && new Date(cmeta.agent_paused_until).getTime() > Date.now()) {
-              return Response.json({ ok: true, paused: true });
-            }
-
             // ------- FLOW ENGINE -------
+            // Runs independently of the AI agent so that visual flows keep
+            // advancing even when the connection has no active agent bound
+            // (e.g. agent disabled after the flow started via broadcast).
             // If this connection has an active flow (with a valid START node), run it
             // instead of going straight to the AI. QUESTION/YESNO/CAPTURE_NAME pause
             // the flow and the next inbound resumes it via `flow_state` on the conversation.
@@ -929,6 +921,17 @@ export const Route = createFileRoute("/api/public/evolution/$instance")({
               }
             }
             // ------- /FLOW ENGINE -------
+
+            if (!agent) return Response.json({ ok: true, noAgent: true });
+
+            // IA desligada manualmente pelo operador: fica desligada até ele reativar.
+            if (cmeta.agent_disabled) {
+              return Response.json({ ok: true, paused: true, reason: "agent_disabled" });
+            }
+            // Pausa temporária por intervenção humana (janela com tempo de reativação).
+            if (cmeta.agent_paused_until && new Date(cmeta.agent_paused_until).getTime() > Date.now()) {
+              return Response.json({ ok: true, paused: true });
+            }
 
             // Keyword activation gate (allow/block/regex)
             if (ext.keywords?.enabled && Array.isArray(ext.keywords.list) && ext.keywords.list.length) {
