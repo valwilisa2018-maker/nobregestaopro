@@ -1312,8 +1312,15 @@ export function ConquistasView({ delivered, producers, catName, prodOf }: any) {
       m.set(o.producer_id, cur);
     }
     return Array.from(m.entries())
-      .map(([pid, v]) => ({ id: pid, name: prodOf(pid)?.name ?? "—", avatar: prodOf(pid)?.avatar_url, count: v.count, sec: v.sec }))
-      .sort((a, b) => (b.count - a.count) || (b.sec - a.sec));
+      .map(([pid, v]) => ({
+        id: pid,
+        name: prodOf(pid)?.name ?? "—",
+        avatar: prodOf(pid)?.avatar_url,
+        count: v.count,
+        sec: v.sec,
+        pts: Math.floor(v.sec / 30),
+      }))
+      .sort((a, b) => (b.count - a.count) || (b.pts - a.pts) || (b.sec - a.sec));
   }, [delivered, producers]);
 
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -1360,6 +1367,7 @@ export function ConquistasView({ delivered, producers, catName, prodOf }: any) {
                   <span className="text-xs font-bold uppercase flex-1 truncate">{p.name}</span>
                   <div className="flex flex-col items-end leading-tight">
                     <span className="text-xs font-bold text-rose-500">{p.count}</span>
+                    <span className="text-[10px] font-semibold text-amber-500">{p.pts} pts</span>
                     <span className="text-[10px] font-semibold text-muted-foreground">{formatDuracao(p.sec)}</span>
                   </div>
                 </button>
