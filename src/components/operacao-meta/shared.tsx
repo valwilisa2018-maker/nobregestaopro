@@ -14,6 +14,7 @@ import {
 import { toast } from "sonner";
 import { useTheme } from "@/hooks/use-theme";
 import { useMidnightRefresh } from "@/hooks/use-midnight-refresh";
+import { fmtDateTime } from "@/lib/format";
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid,
   RadialBarChart, RadialBar, PolarAngleAxis, LineChart, Line, Area, AreaChart,
@@ -1243,6 +1244,52 @@ function ProducerAchievements({ producer, delivered, onClose }: any) {
               <div className="text-[11px] text-muted-foreground">{a.desc}</div>
             </div>
           ))}
+        </div>
+
+        <div className="mt-6">
+          <SectionLabel icon={Calendar} iconClass="text-emerald-500">
+            Histórico completo de vídeos entregues ({orders.length})
+          </SectionLabel>
+          {orders.length === 0 ? (
+            <div className="mt-3 text-sm text-muted-foreground italic">Nenhum vídeo entregue ainda.</div>
+          ) : (
+            <div className="mt-3 max-h-[420px] overflow-y-auto pr-1 space-y-4">
+              {Array.from(byDay.entries())
+                .sort((a, b) => b[0].localeCompare(a[0]))
+                .map(([day, items]) => {
+                  const dt = new Date(day + "T12:00:00");
+                  const dayLabel = dt.toLocaleDateString("pt-BR", {
+                    weekday: "long", day: "2-digit", month: "long", year: "numeric",
+                  });
+                  return (
+                    <div key={day}>
+                      <div className="sticky top-0 z-10 bg-amber-400/20 border border-amber-400/50 text-amber-900 dark:text-amber-200 px-3 py-1.5 rounded-md text-xs font-extrabold uppercase tracking-wide mb-2 flex items-center justify-between">
+                        <span>📅 {dayLabel}</span>
+                        <span className="text-amber-950 dark:text-amber-100">{items.length} vídeo(s)</span>
+                      </div>
+                      <div className="space-y-1.5">
+                        {items
+                          .slice()
+                          .sort((a: any, b: any) => String(b.delivered_at).localeCompare(String(a.delivered_at)))
+                          .map((o: any) => (
+                            <div key={o.id} className="flex items-center justify-between gap-3 px-3 py-2 rounded-lg border border-border/50 bg-card hover:border-emerald-500/40 transition">
+                              <div className="min-w-0 flex-1">
+                                <div className="text-sm font-semibold truncate">{o.title || "Vídeo"}</div>
+                                {Number(o.redo_count ?? 0) > 0 && (
+                                  <div className="text-[10px] text-orange-500 font-bold uppercase mt-0.5">🔁 {o.redo_count} alteração(ões)</div>
+                                )}
+                              </div>
+                              <div className="shrink-0 flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-emerald-500/15 border border-emerald-500/40 text-emerald-600 dark:text-emerald-400 text-[11px] font-extrabold uppercase tracking-wide whitespace-nowrap">
+                                ✓ {fmtDateTime(o.delivered_at)}
+                              </div>
+                            </div>
+                          ))}
+                      </div>
+                    </div>
+                  );
+                })}
+            </div>
+          )}
         </div>
       </CardContent>
     </Card>
