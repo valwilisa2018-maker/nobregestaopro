@@ -46,7 +46,7 @@ function PipelineStatusPage() {
       title="Status de Automações"
       description="Tarefas que falharam ao mover cartões no pipeline, com mensagem de erro e detalhes técnicos."
       icon={<AlertTriangle className="h-6 w-6" />}
-      status={items.length > 0 ? "beta" : "ativo"}
+      status={(items.length > 0 ? "beta" : "ativo") as const}
       actions={
         <Button variant="outline" onClick={load} disabled={loading}>
           {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
