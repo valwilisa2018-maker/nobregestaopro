@@ -13,10 +13,11 @@ import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "sonner";
+import { MasterGuard } from "@/components/master-guard";
 
 export const Route = createFileRoute("/_authenticated/plans")({
   head: () => ({ meta: [{ title: "Planos — Plataforma IA WhatsApp" }] }),
-  component: Page,
+  component: () => <MasterGuard><Page /></MasterGuard>,
 });
 
 type Plan = {

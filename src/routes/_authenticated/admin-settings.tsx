@@ -14,10 +14,11 @@ import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem, SelectGr
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { validatePackage } from "@/lib/package-schema";
+import { MasterGuard } from "@/components/master-guard";
 
 export const Route = createFileRoute("/_authenticated/admin-settings")({
   head: () => ({ meta: [{ title: "Configurações Globais — Admin" }] }),
-  component: Page,
+  component: () => <MasterGuard><Page /></MasterGuard>,
 });
 
 type EvoCfg = { url_api: string; api_key: string; webhook_base_url: string };
