@@ -1124,7 +1124,7 @@ export function ProdutoresView({
     .filter((p: any) => p.name?.toLowerCase().includes(search.toLowerCase()))
     .sort((a: any, b: any) => {
       if (sortBy === "nome") return String(a.name).localeCompare(String(b.name));
-      if (sortBy === "videos") return b.videos - a.videos;
+      if (sortBy === "videos") return (b.videos - a.videos) || (b.segundos - a.segundos);
       if (sortBy === "minutagem") return b.segundos - a.segundos;
       return b.pontos - a.pontos;
     });
