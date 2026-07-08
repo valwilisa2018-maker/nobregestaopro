@@ -1181,8 +1181,8 @@ export const Route = createFileRoute("/api/public/evolution/$instance")({
                 model: modelId,
                 temperature: Number(agent.temperature ?? 0.7),
                 maxTokens: agent.max_tokens ?? 400,
-                timeoutMs: 12_000,
-                maxAttempts: 1,
+                timeoutMs: 45_000,
+                maxAttempts: 2,
                 messages: aiMessages,
               });
               aiJson = json;
@@ -1213,7 +1213,7 @@ export const Route = createFileRoute("/api/public/evolution/$instance")({
                 const { json: retryJson } = await retryCall({
                   endpoint, apiKey, model: modelId,
                   temperature: Number(agent.temperature ?? 0.7),
-                  maxTokens: 600, timeoutMs: 12_000, maxAttempts: 1,
+                  maxTokens: 600, timeoutMs: 45_000, maxAttempts: 1,
                   messages: retryMessages,
                 });
                 aiJson = retryJson;
