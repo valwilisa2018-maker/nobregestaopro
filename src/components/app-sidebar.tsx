@@ -4,7 +4,7 @@ import {
   LayoutDashboard, Bot, BookOpen, Workflow,
   MessageCircle, Brain, Users, MessagesSquare, History, ScrollText,
   Settings, UserCog, ShieldCheck, DollarSign, Palette, Contact2, Send, Puzzle, LogOut, Timer,
-  LineChart, Activity, CreditCard, Shield, User, Crown, Building2, Plug, CalendarDays, Bug, Coins, Package,
+  LineChart, Activity, CreditCard, Shield, User, Crown, Building2, Plug, CalendarDays, Bug, Coins, Package, Kanban,
   Sun, Moon, LifeBuoy,
 } from "lucide-react";
 import {
@@ -32,6 +32,7 @@ const groups = [
     items: [
       { title: "Follow-up", url: "/followups", icon: Timer },
       { title: "Contatos", url: "/contacts", icon: Contact2 },
+      { title: "Pipeline CRM", url: "/pipeline", icon: Kanban },
       { title: "Workflows", url: "/flows", icon: Workflow },
       { title: "Disparo em Massa", url: "/broadcasts", icon: Send },
       { title: "Conexão WhatsApp", url: "/whatsapp", icon: MessageCircle },
