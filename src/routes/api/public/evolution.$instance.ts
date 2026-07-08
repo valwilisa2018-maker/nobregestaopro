@@ -1089,7 +1089,7 @@ export const Route = createFileRoute("/api/public/evolution/$instance")({
                 const kbText = kbAll.length
                   ? kbRules + "\n\n## Base de Conhecimento\n" + kbAll.join("\n\n")
                   : kbRules + "\n\n(Base de Conhecimento vazia no momento.)";
-                const brevity = "\n\n[REGRA DE RESPOSTA - OBRIGATÓRIA] Fale como uma pessoa no WhatsApp. Responda SEMPRE em 1 frase curta (máx. 2 quando for indispensável), no total até ~180 caracteres. Nunca use listas, tópicos, markdown, títulos ou parágrafos. No máximo 1 pergunta por mensagem, e só quando fizer sentido. Sem repetir o que o cliente disse, sem introduções longas, sem despedidas formais. Se a mensagem veio de áudio, ela já foi transcrita pelo sistema: responda ao conteúdo transcrito e nunca diga que não consegue ouvir ou transcrever áudio.";
+                const brevity = "\n\n[REGRA DE RESPOSTA — OBRIGATÓRIA E INEGOCIÁVEL] Você está no WhatsApp trocando ideia como uma pessoa real. Cada mensagem sua deve ter NO MÁXIMO 1 frase curta (idealmente até 140 caracteres, nunca mais que 220). PROIBIDO: listas, tópicos, markdown, títulos, parágrafos, negrito, emojis em excesso, saudações longas, despedidas formais, repetir o que o cliente disse, resumos, explicações longas. Se o assunto exigir mais, envie SÓ a primeira parte curta e pergunte de forma natural se pode continuar (ex.: 'quer que eu te conte o resto?'). No máximo 1 pergunta por mensagem, e só quando fizer sentido. Se a mensagem veio de áudio, ela já foi transcrita pelo sistema: responda ao conteúdo transcrito como uma mensagem normal e nunca diga que não consegue ouvir/transcrever áudio.";
                 const files = ((agent.tools as { files?: { enabled?: boolean; image?: boolean; pdf?: boolean; document?: boolean; audio?: boolean; video?: boolean; receipts?: "analyze" | "ignore" | "confirm"; receiptReply?: string } } | null)?.files) ?? {};
                 const filesRules = mediaKind ? (() => {
                   const allowed: Record<string, boolean | undefined> = {
@@ -1146,7 +1146,7 @@ export const Route = createFileRoute("/api/public/evolution/$instance")({
                 apiKey,
                 model: modelId,
                 temperature: Number(agent.temperature ?? 0.7),
-                maxTokens: Math.min(agent.max_tokens ?? 220, 220),
+                maxTokens: Math.min(agent.max_tokens ?? 160, 160),
                 timeoutMs: 12_000,
                 maxAttempts: 1,
                 messages: aiMessages,
@@ -1221,6 +1221,18 @@ export const Route = createFileRoute("/api/public/evolution/$instance")({
                 user_id: conn.user_id, level: "warn", source: `evolution:${instance}`,
                 message: "AI empty response; fallback reply selected", metadata: { remoteJid, model: modelId, replyLength: reply.length } as never,
               } as never);
+            }
+            // Trim final para garantir mensagem curta no WhatsApp (evita respostas gigantes).
+            reply = reply
+              .replace(/\*\*(.*?)\*\*/g, "$1")
+              .replace(/^#{1,6}\s+/gm, "")
+              .replace(/^\s*[-*•]\s+/gm, "")
+              .replace(/\n{3,}/g, "\n\n")
+              .trim();
+            if (reply.length > 240) {
+              const cut = reply.slice(0, 240);
+              const lastPunct = Math.max(cut.lastIndexOf(". "), cut.lastIndexOf("! "), cut.lastIndexOf("? "));
+              reply = (lastPunct > 80 ? cut.slice(0, lastPunct + 1) : cut).trim() + " (quer que eu continue?)";
             }
 
             // Enforce plan send quota (daily/monthly) before dispatch
