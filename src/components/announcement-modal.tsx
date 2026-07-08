@@ -42,7 +42,7 @@ export function AnnouncementModal() {
   };
 
   if (!current) return null;
-  const cfg = (SEVERITY as Record<string, typeof SEVERITY.info>)[current.severity] ?? SEVERITY.info;
+  const cfg = (SEVERITY as unknown as Record<string, typeof SEVERITY.info>)[current.severity] ?? SEVERITY.info;
   const { Icon } = cfg;
   return (
     <Dialog open onOpenChange={(v) => !v && close()}>
