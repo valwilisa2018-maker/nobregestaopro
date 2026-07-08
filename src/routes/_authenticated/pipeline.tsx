@@ -1,6 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { useServerFn } from "@tanstack/react-start";
+import { runStageAutomations } from "@/lib/pipeline-automations.functions";
 import { PageShell } from "@/components/page-shell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -18,6 +20,7 @@ export const Route = createFileRoute("/_authenticated/pipeline")({
 });
 
 function PipelinePage() {
+  const runAutomations = useServerFn(runStageAutomations);
   const [stages, setStages] = useState<Stage[]>([]);
   const [deals, setDeals] = useState<Deal[]>([]);
   const [loading, setLoading] = useState(true);
@@ -57,22 +60,18 @@ function PipelinePage() {
   const move = async (dealId: string, toStageId: string) => {
     const deal = deals.find((d) => d.id === dealId);
     if (!deal) return;
+    const fromStageId = deal.stage_id;
     const toStage = stages.find((s) => s.id === toStageId);
 
     // optimistic
     setDeals((prev) => prev.map((d) => (d.id === dealId ? { ...d, stage_id: toStageId } : d)));
 
     const patch: Record<string, unknown> = { stage_id: toStageId };
-    // Automação: follow-up sem próximo contato → +2 dias
-    if (toStage?.name.toLowerCase().includes("follow") && !deal.next_contact_at) {
-      const dt = new Date(); dt.setDate(dt.getDate() + 2);
-      patch.next_contact_at = dt.toISOString();
-    }
 
     const { error } = await supabase.from("pipeline_deals" as never).update(patch as never).eq("id", dealId);
     if (error) {
       toast.error(error.message);
-      setDeals((prev) => prev.map((d) => (d.id === dealId ? { ...d, stage_id: deal.stage_id } : d)));
+      setDeals((prev) => prev.map((d) => (d.id === dealId ? { ...d, stage_id: fromStageId } : d)));
       return;
     }
     if (toStage?.is_lost) {
@@ -82,6 +81,26 @@ function PipelinePage() {
       setDrawerOpen(true);
     } else {
       toast.success(`Movido para ${toStage?.name}`);
+    }
+
+    // Automações da etapa (WhatsApp, lembrete, tarefa, histórico)
+    try {
+      const res = await runAutomations({ data: { dealId, fromStageId, toStageId } });
+      if (res?.ran?.length) {
+        const map: Record<string, string> = {
+          whatsapp_sent: "WhatsApp enviado",
+          whatsapp_failed: "WhatsApp falhou",
+          reminder: "Lembrete agendado",
+          email_queued: "E-mail registrado",
+          task_created: "Tarefa criada",
+        };
+        const labels = res.ran.map((r) => map[r] || r).join(" • ");
+        toast.message("Automações", { description: labels });
+        // Recarrega para refletir next_contact_at atualizado
+        load();
+      }
+    } catch (e) {
+      console.error("stage automations", e);
     }
   };
 
