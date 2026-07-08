@@ -24,7 +24,6 @@ import { Route as AuthenticatedPlansRouteImport } from './routes/_authenticated/
 import { Route as AuthenticatedPermissionsRouteImport } from './routes/_authenticated/permissions'
 import { Route as AuthenticatedMessagesRouteImport } from './routes/_authenticated/messages'
 import { Route as AuthenticatedLogsRouteImport } from './routes/_authenticated/logs'
-import { Route as AuthenticatedKnowledgeRouteImport } from './routes/_authenticated/knowledge'
 import { Route as AuthenticatedHistoryRouteImport } from './routes/_authenticated/history'
 import { Route as AuthenticatedFollowupsRouteImport } from './routes/_authenticated/followups'
 import { Route as AuthenticatedFlowsRouteImport } from './routes/_authenticated/flows'
@@ -130,11 +129,6 @@ const AuthenticatedMessagesRoute = AuthenticatedMessagesRouteImport.update({
 const AuthenticatedLogsRoute = AuthenticatedLogsRouteImport.update({
   id: '/logs',
   path: '/logs',
-  getParentRoute: () => AuthenticatedRoute,
-} as any)
-const AuthenticatedKnowledgeRoute = AuthenticatedKnowledgeRouteImport.update({
-  id: '/knowledge',
-  path: '/knowledge',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
 const AuthenticatedHistoryRoute = AuthenticatedHistoryRouteImport.update({
@@ -322,7 +316,6 @@ export interface FileRoutesByFullPath {
   '/flows': typeof AuthenticatedFlowsRoute
   '/followups': typeof AuthenticatedFollowupsRoute
   '/history': typeof AuthenticatedHistoryRoute
-  '/knowledge': typeof AuthenticatedKnowledgeRoute
   '/logs': typeof AuthenticatedLogsRoute
   '/messages': typeof AuthenticatedMessagesRoute
   '/permissions': typeof AuthenticatedPermissionsRoute
@@ -370,7 +363,6 @@ export interface FileRoutesByTo {
   '/flows': typeof AuthenticatedFlowsRoute
   '/followups': typeof AuthenticatedFollowupsRoute
   '/history': typeof AuthenticatedHistoryRoute
-  '/knowledge': typeof AuthenticatedKnowledgeRoute
   '/logs': typeof AuthenticatedLogsRoute
   '/messages': typeof AuthenticatedMessagesRoute
   '/permissions': typeof AuthenticatedPermissionsRoute
@@ -420,7 +412,6 @@ export interface FileRoutesById {
   '/_authenticated/flows': typeof AuthenticatedFlowsRoute
   '/_authenticated/followups': typeof AuthenticatedFollowupsRoute
   '/_authenticated/history': typeof AuthenticatedHistoryRoute
-  '/_authenticated/knowledge': typeof AuthenticatedKnowledgeRoute
   '/_authenticated/logs': typeof AuthenticatedLogsRoute
   '/_authenticated/messages': typeof AuthenticatedMessagesRoute
   '/_authenticated/permissions': typeof AuthenticatedPermissionsRoute
@@ -470,7 +461,6 @@ export interface FileRouteTypes {
     | '/flows'
     | '/followups'
     | '/history'
-    | '/knowledge'
     | '/logs'
     | '/messages'
     | '/permissions'
@@ -518,7 +508,6 @@ export interface FileRouteTypes {
     | '/flows'
     | '/followups'
     | '/history'
-    | '/knowledge'
     | '/logs'
     | '/messages'
     | '/permissions'
@@ -567,7 +556,6 @@ export interface FileRouteTypes {
     | '/_authenticated/flows'
     | '/_authenticated/followups'
     | '/_authenticated/history'
-    | '/_authenticated/knowledge'
     | '/_authenticated/logs'
     | '/_authenticated/messages'
     | '/_authenticated/permissions'
@@ -717,13 +705,6 @@ declare module '@tanstack/react-router' {
       path: '/logs'
       fullPath: '/logs'
       preLoaderRoute: typeof AuthenticatedLogsRouteImport
-      parentRoute: typeof AuthenticatedRoute
-    }
-    '/_authenticated/knowledge': {
-      id: '/_authenticated/knowledge'
-      path: '/knowledge'
-      fullPath: '/knowledge'
-      preLoaderRoute: typeof AuthenticatedKnowledgeRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
     '/_authenticated/history': {
@@ -966,7 +947,6 @@ interface AuthenticatedRouteChildren {
   AuthenticatedFlowsRoute: typeof AuthenticatedFlowsRoute
   AuthenticatedFollowupsRoute: typeof AuthenticatedFollowupsRoute
   AuthenticatedHistoryRoute: typeof AuthenticatedHistoryRoute
-  AuthenticatedKnowledgeRoute: typeof AuthenticatedKnowledgeRoute
   AuthenticatedLogsRoute: typeof AuthenticatedLogsRoute
   AuthenticatedMessagesRoute: typeof AuthenticatedMessagesRoute
   AuthenticatedPermissionsRoute: typeof AuthenticatedPermissionsRoute
@@ -1000,7 +980,6 @@ const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedFlowsRoute: AuthenticatedFlowsRoute,
   AuthenticatedFollowupsRoute: AuthenticatedFollowupsRoute,
   AuthenticatedHistoryRoute: AuthenticatedHistoryRoute,
-  AuthenticatedKnowledgeRoute: AuthenticatedKnowledgeRoute,
   AuthenticatedLogsRoute: AuthenticatedLogsRoute,
   AuthenticatedMessagesRoute: AuthenticatedMessagesRoute,
   AuthenticatedPermissionsRoute: AuthenticatedPermissionsRoute,
@@ -1039,13 +1018,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}
