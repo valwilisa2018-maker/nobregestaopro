@@ -1166,6 +1166,31 @@ export const Route = createFileRoute("/api/public/evolution/$instance")({
               } as never);
             }
             let reply = extractAssistantText(aiJson) ?? "";
+            // If the model truncated by token limit, retry once with more room and
+            // an explicit instruction to send just one short WhatsApp-style piece.
+            const finish = aiJson?.choices?.[0]?.finish_reason ?? null;
+            if (!reply && finish === "length") {
+              try {
+                const { callChatCompletions: retryCall } = await import("@/lib/ai-chat-request.server");
+                const retryMessages = [
+                  ...aiMessages,
+                  { role: "system" as const, content: "Responda AGORA em UMA única frase curta (máx. 180 caracteres), sem listas nem títulos. Se o assunto for longo, mande só a primeira parte e pergunte se pode continuar." },
+                ];
+                const { json: retryJson } = await retryCall({
+                  endpoint, apiKey, model: modelId,
+                  temperature: Number(agent.temperature ?? 0.7),
+                  maxTokens: 600, timeoutMs: 12_000, maxAttempts: 1,
+                  messages: retryMessages,
+                });
+                aiJson = retryJson;
+                reply = extractAssistantText(retryJson) ?? "";
+                try {
+                  const it = Number(retryJson?.usage?.prompt_tokens ?? 0);
+                  const ot = Number(retryJson?.usage?.completion_tokens ?? 0);
+                  if (it || ot) await consumeAiTokens(supabaseAdmin, { userId: conn.user_id, agentId: agent.id, model: modelId, inputTokens: it, outputTokens: ot });
+                } catch { /* ignore debit errors on retry */ }
+              } catch { /* fall through to fallback below */ }
+            }
             // Debit tokens consumed from the wallet. Block on 402/insufficient.
             try {
               const inputTokens = Number(aiJson?.usage?.prompt_tokens ?? 0);

@@ -83,9 +83,6 @@ export function extractAssistantText(json: ChatJson) {
   const text = choice?.message?.content ?? "";
   if (text.trim()) return text;
   if (choice?.message?.refusal) return choice.message.refusal;
-  if (choice?.finish_reason === "length") {
-    return "A resposta foi cortada por limite de tokens. Aumente Max Tokens e tente novamente.";
-  }
   return null;
 }
 
