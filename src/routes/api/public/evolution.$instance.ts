@@ -1007,14 +1007,38 @@ export const Route = createFileRoute("/api/public/evolution/$instance")({
             }
 
             const { callChatCompletions, extractAssistantText, chatErrorMessage } = await import("@/lib/ai-chat-request.server");
+            // Base de Conhecimento externa (tabela knowledge_documents), escopo user + agent (ou global do user).
+            const kbDocs = await (async () => {
+              try {
+                const { data } = await supabaseAdmin
+                  .from("knowledge_documents")
+                  .select("title,content,source_url,source_type,updated_at,agent_id")
+                  .eq("user_id", conn.user_id)
+                  .or(`agent_id.eq.${agent.id},agent_id.is.null`)
+                  .order("updated_at", { ascending: false })
+                  .limit(30);
+                return (data ?? []).filter((d) => (d.content ?? "").trim());
+              } catch { return []; }
+            })();
             const aiMessages = [
               ...(() => {
                 const kbEnabled = ((agent.memory as { knowledgeEnabled?: boolean } | null)?.knowledgeEnabled ?? true);
                 const items = (agent.knowledge as Array<{ title?: string; content?: string; enabled?: boolean }> | null) ?? [];
                 const kb = kbEnabled ? items.filter((k) => (k.enabled ?? true) && (k.content ?? "").trim()) : [];
-                const kbText = kb.length
-                  ? "\n\n## Base de Conhecimento\n" + kb.map((k) => `### ${k.title ?? "Item"}\n${k.content}`).join("\n\n")
-                  : "";
+                const kbInline = kb.map((k) => `### ${k.title ?? "Item"}\n${k.content}`);
+                const kbExternal = kbEnabled
+                  ? kbDocs.map((d) => `### ${d.title}${d.source_url ? ` (${d.source_url})` : ""}\n${d.content}`)
+                  : [];
+                const kbAll = [...kbInline, ...kbExternal];
+                const kbRules =
+                  "\n\n## Hierarquia de informação (obrigatória)\n" +
+                  "1) Memória da conversa 2) Memória permanente do usuário 3) Base de Conhecimento 4) Ferramentas 5) Conhecimento geral do modelo.\n" +
+                  "Sempre consulte a Base de Conhecimento quando houver conteúdo relacionado. Use exatamente os fatos da Base, sem inventar. " +
+                  "Se houver conflito entre documentos, use o mais recente. Se a Base não tiver a informação, diga com clareza que não foi localizada. " +
+                  "Explique com naturalidade, sem copiar literalmente; resuma e organize mantendo a precisão.";
+                const kbText = kbAll.length
+                  ? kbRules + "\n\n## Base de Conhecimento\n" + kbAll.join("\n\n")
+                  : kbRules + "\n\n(Base de Conhecimento vazia no momento.)";
                 const brevity = "\n\n[REGRA DE RESPOSTA - OBRIGATÓRIA] Fale como uma pessoa no WhatsApp. Responda SEMPRE em 1 frase curta (máx. 2 quando for indispensável), no total até ~180 caracteres. Nunca use listas, tópicos, markdown, títulos ou parágrafos. No máximo 1 pergunta por mensagem, e só quando fizer sentido. Sem repetir o que o cliente disse, sem introduções longas, sem despedidas formais. Se a mensagem veio de áudio, ela já foi transcrita pelo sistema: responda ao conteúdo transcrito e nunca diga que não consegue ouvir ou transcrever áudio.";
                 const sys = (agent.system_prompt ?? "") + kbText + brevity;
                 return sys.trim() ? [{ role: "system" as const, content: sys }] : [];
