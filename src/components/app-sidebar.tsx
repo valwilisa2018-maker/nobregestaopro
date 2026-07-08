@@ -5,7 +5,7 @@ import {
   MessageCircle, Brain, Users, MessagesSquare, History, ScrollText,
   Settings, UserCog, ShieldCheck, DollarSign, Palette, Contact2, Send, Puzzle, LogOut, Timer,
   LineChart, Activity, CreditCard, Shield, User, Crown, Building2, Plug, CalendarDays, Bug, Coins, Package, Kanban,
-  Sun, Moon, LifeBuoy,
+  Sun, Moon, LifeBuoy, AlertTriangle,
 } from "lucide-react";
 import {
   Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent, SidebarGroupLabel,
@@ -45,6 +45,7 @@ const groups = [
       { title: "Clientes", url: "/clients", icon: Users },
       { title: "Histórico", url: "/history", icon: History },
       { title: "Logs", url: "/logs", icon: ScrollText },
+      { title: "Status Pipeline", url: "/pipeline-status", icon: AlertTriangle },
       { title: "Debug de Fluxo", url: "/flow-debug", icon: Bug },
     ],
   },
