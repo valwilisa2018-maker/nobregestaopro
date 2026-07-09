@@ -884,7 +884,8 @@ export const Route = createFileRoute("/api/public/evolution/$instance")({
               const st = ((convo?.flow_state ?? {}) as import("@/lib/flow-runner.server").FlowState);
               // Abandonment: if user stopped replying mid-flow, hand back to AI
               // after N hours (default 24h). Configurable via connection ext.flow_timeout_hours.
-              const timeoutHours = Math.max(1, Number(ext.flow_timeout_hours ?? 24));
+              const connMeta = (conn as { metadata?: { flow_timeout_hours?: number } | null }).metadata ?? {};
+              const timeoutHours = Math.max(1, Number(connMeta.flow_timeout_hours ?? ext.flow_timeout_hours ?? 24));
               const stAge = st.updated_at ? (Date.now() - new Date(st.updated_at).getTime()) / 3600000 : 0;
               if (st.flow_id && !st.finished && st.updated_at && stAge >= timeoutHours) {
                 if (convo) await supabaseAdmin.from("conversations").update({
