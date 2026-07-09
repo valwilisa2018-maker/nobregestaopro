@@ -653,6 +653,7 @@ export type Database = {
           instance_name: string
           last_sync: string | null
           message_count: number
+          metadata: Json
           name: string
           notes: string | null
           phone_number: string | null
@@ -673,6 +674,7 @@ export type Database = {
           instance_name: string
           last_sync?: string | null
           message_count?: number
+          metadata?: Json
           name: string
           notes?: string | null
           phone_number?: string | null
@@ -693,6 +695,7 @@ export type Database = {
           instance_name?: string
           last_sync?: string | null
           message_count?: number
+          metadata?: Json
           name?: string
           notes?: string | null
           phone_number?: string | null
