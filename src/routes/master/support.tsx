@@ -5,8 +5,10 @@ import { PageShell } from "@/components/page-shell";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { LifeBuoy, Loader2, Send, CheckCircle2 } from "lucide-react";
+import { LifeBuoy, Loader2, Send, CheckCircle2, Phone, Mail, MessageCircle, Save } from "lucide-react";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/master/support")({
@@ -16,6 +18,7 @@ export const Route = createFileRoute("/master/support")({
 
 type Ticket = { id: string; user_id: string; subject: string; status: string; priority: string; last_message_at: string; created_at: string };
 type Msg = { id: string; ticket_id: string; sender_id: string; sender_role: string; body: string; created_at: string };
+type SupportContacts = { phone?: string; email?: string; whatsapp?: string; whatsapp_message?: string };
 
 function Page() {
   const [tickets, setTickets] = useState<Ticket[]>([]);
@@ -24,6 +27,8 @@ function Page() {
   const [messages, setMessages] = useState<Msg[]>([]);
   const [reply, setReply] = useState("");
   const [sending, setSending] = useState(false);
+  const [contacts, setContacts] = useState<SupportContacts>({});
+  const [savingContacts, setSavingContacts] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -32,6 +37,25 @@ function Page() {
     setLoading(false);
   }, []);
   useEffect(() => { load(); }, [load]);
+
+  useEffect(() => {
+    supabase.from("internal_config").select("value").eq("key", "support_contacts").maybeSingle()
+      .then(({ data }) => {
+        if (!data?.value) return;
+        try { setContacts(JSON.parse(data.value) as SupportContacts); } catch { /* ignore */ }
+      });
+  }, []);
+
+  const saveContacts = async () => {
+    setSavingContacts(true);
+    const value = JSON.stringify(contacts);
+    const { data: existing } = await supabase.from("internal_config").select("key").eq("key", "support_contacts").maybeSingle();
+    const { error } = existing
+      ? await supabase.from("internal_config").update({ value }).eq("key", "support_contacts")
+      : await supabase.from("internal_config").insert({ key: "support_contacts", value });
+    setSavingContacts(false);
+    if (error) toast.error(error.message); else toast.success("Contatos de suporte salvos");
+  };
 
   useEffect(() => {
     if (!selected) return;
@@ -68,6 +92,37 @@ function Page() {
 
   return (
     <PageShell title="Suporte" description="Atenda as solicitações dos clientes." icon={<LifeBuoy className="h-6 w-6" />} status="ativo">
+      <Card className="mb-4 border-primary/20 bg-gradient-to-br from-primary/5 to-transparent">
+        <CardContent className="p-5 space-y-4">
+          <div>
+            <h3 className="font-semibold flex items-center gap-2"><MessageCircle className="h-4 w-4 text-primary" /> Canais de contato exibidos ao cliente</h3>
+            <p className="text-xs text-muted-foreground mt-1">Estes dados aparecem no topo da página de Suporte de cada cliente.</p>
+          </div>
+          <div className="grid gap-3 md:grid-cols-3">
+            <div className="space-y-1.5">
+              <Label className="flex items-center gap-2 text-xs"><MessageCircle className="h-3.5 w-3.5 text-emerald-500" /> WhatsApp (com DDI)</Label>
+              <Input placeholder="+5511999999999" value={contacts.whatsapp ?? ""} onChange={e => setContacts(c => ({ ...c, whatsapp: e.target.value }))} />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="flex items-center gap-2 text-xs"><Phone className="h-3.5 w-3.5 text-primary" /> Telefone</Label>
+              <Input placeholder="(11) 9999-9999" value={contacts.phone ?? ""} onChange={e => setContacts(c => ({ ...c, phone: e.target.value }))} />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="flex items-center gap-2 text-xs"><Mail className="h-3.5 w-3.5 text-blue-500" /> E-mail</Label>
+              <Input type="email" placeholder="suporte@empresa.com" value={contacts.email ?? ""} onChange={e => setContacts(c => ({ ...c, email: e.target.value }))} />
+            </div>
+          </div>
+          <div className="space-y-1.5">
+            <Label className="text-xs">Mensagem inicial do WhatsApp (opcional)</Label>
+            <Input placeholder="Olá, preciso de ajuda com..." value={contacts.whatsapp_message ?? ""} onChange={e => setContacts(c => ({ ...c, whatsapp_message: e.target.value }))} />
+          </div>
+          <div className="flex justify-end">
+            <Button onClick={saveContacts} disabled={savingContacts} className="gap-2">
+              {savingContacts ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />} Salvar contatos
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
       {loading ? (
         <div className="p-12 flex justify-center"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>
       ) : (
