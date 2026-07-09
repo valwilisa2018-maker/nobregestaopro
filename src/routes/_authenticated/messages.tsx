@@ -2399,7 +2399,7 @@ function MessagesPage() {
                       className="hidden"
                       onChange={(e) => {
                         const f = e.target.files?.[0];
-                        if (f) setAttachment({ file: f, url: URL.createObjectURL(f) });
+                        if (f) sendOneFile(f);
                         e.target.value = "";
                       }}
                     />
@@ -2411,7 +2411,7 @@ function MessagesPage() {
                       className="hidden"
                       onChange={(e) => {
                         const f = e.target.files?.[0];
-                        if (f) setAttachment({ file: f, url: URL.createObjectURL(f) });
+                        if (f) sendOneFile(f);
                         e.target.value = "";
                       }}
                     />
