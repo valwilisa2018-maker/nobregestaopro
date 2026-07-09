@@ -278,6 +278,7 @@ export function DiariaView({ delivered, producers, computePts, catName, sumPts, 
               <div className="absolute inset-0 flex flex-col items-center justify-center">
                 <div className="text-7xl md:text-8xl font-extrabold tracking-tight" style={{ color: "#10b981" }}>{pct}%</div>
                 <div className="text-sm md:text-base text-muted-foreground mt-2 font-medium">{todayPts.toFixed(0)} / {totalGoalToday} pts</div>
+                <div className="text-xs text-muted-foreground/80">≡ {todayPts.toFixed(0)} vídeos</div>
               </div>
             </div>
             <div className="flex flex-col gap-3 w-full h-full justify-center">
@@ -305,7 +306,7 @@ export function DiariaView({ delivered, producers, computePts, catName, sumPts, 
           <CardContent className="p-5 flex flex-col items-center justify-center text-center h-full">
             <SectionLabel icon={Sparkles} iconClass="text-rose-500">Pontos (hoje)</SectionLabel>
             <div className="text-5xl font-extrabold mt-2">{todayPts.toFixed(0)}</div>
-            <div className="text-[11px] text-muted-foreground mt-1">pontuação acumulada</div>
+            <div className="text-[11px] text-muted-foreground mt-1">≡ {todayPts.toFixed(0)} vídeos (30s = 1 vídeo)</div>
           </CardContent>
         </Card>
       </div>
