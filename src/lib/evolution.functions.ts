@@ -509,6 +509,10 @@ export const startFlowForContact = createServerFn({ method: "POST" })
     const def = (flow as { definition: { nodes?: unknown[]; edges?: unknown[] } }).definition;
     if (!Array.isArray(def?.nodes) || !Array.isArray(def?.edges)) throw new Error("Definição de fluxo inválida");
 
+    const outputKinds = new Set(["MESSAGE", "IMAGE", "VIDEO", "AUDIO", "QUESTION", "YESNO", "CAPTURE_NAME"]);
+    const hasOutput = (def.nodes as Array<{ data?: { kind?: string } }>).some((n) => outputKinds.has(String(n?.data?.kind ?? "")));
+    if (!hasOutput) throw new Error("Este fluxo não tem blocos de Mensagem/Pergunta/Mídia — adicione ao menos um antes de iniciar.");
+
     const number = String(contact.phone).replace(/\D+/g, "");
     const conn = await pickConnectionForContact(context.supabase, context.userId, number);
     const apiKey = await loadEvolutionCommandKey(context.supabase, conn.api_key);
@@ -522,7 +526,7 @@ export const startFlowForContact = createServerFn({ method: "POST" })
       recipient: remoteJid,
       userText: "",
       def: def as { nodes: never[]; edges: never[] },
-      state: {},
+      state: {}, // fresh run — ignora estado antigo (ex: finished:true de rodadas anteriores)
       flowId: flow.id,
     });
 
