@@ -27,6 +27,7 @@ function PendingPaymentsPage() {
   const [amount, setAmount] = useState("");
   const [file, setFile] = useState<File | null>(null);
   const [saving, setSaving] = useState(false);
+  const [paidAt, setPaidAt] = useState<string>(() => new Date().toISOString().slice(0, 10));
 
   const q = useQuery({
     queryKey: ["pending-sales"],
@@ -84,6 +85,7 @@ function PendingPaymentsPage() {
     const remaining = Number(s.total_amount ?? 0) - Number(s.paid_amount ?? 0);
     setAmount(remaining.toFixed(2));
     setFile(null);
+    setPaidAt(new Date().toISOString().slice(0, 10));
   };
 
   const confirm = async () => {
@@ -122,7 +124,7 @@ function PendingPaymentsPage() {
           sale_id: selected.id,
           file_path: receipt_url,
           amount: value,
-          paid_at: new Date().toISOString().slice(0, 10),
+          paid_at: paidAt || new Date().toISOString().slice(0, 10),
           uploaded_by: user?.id ?? null,
         });
       }
@@ -319,6 +321,19 @@ function PendingPaymentsPage() {
                   onChange={(e) => setAmount(e.target.value)} 
                   placeholder="0,00"
                 />
+              </div>
+
+              <div className="space-y-2">
+                <Label>Data do recebimento</Label>
+                <Input
+                  type="date"
+                  value={paidAt}
+                  onChange={(e) => setPaidAt(e.target.value)}
+                  max={new Date().toISOString().slice(0, 10)}
+                />
+                <p className="text-xs text-muted-foreground">
+                  Selecione o dia em que o dinheiro entrou (ex.: entrou ontem, contabilize hoje escolhendo a data correta).
+                </p>
               </div>
             </div>
           )}
