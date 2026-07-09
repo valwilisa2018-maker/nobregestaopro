@@ -882,6 +882,18 @@ export const Route = createFileRoute("/api/public/evolution/$instance")({
               // Prefer flow already in progress; else match by connection + keyword; else first for this connection.
               const st = ((convo?.flow_state ?? {}) as { flow_id?: string; finished?: boolean });
               let active = st.flow_id && !st.finished ? candidates.find((f) => f.id === st.flow_id) : null;
+              // If the in-progress flow was deactivated after it started (or belongs
+              // to another connection), still resume it so the user's reply advances
+              // the awaiting node instead of being dropped.
+              if (st.flow_id && !st.finished && !active) {
+                const { data: inProgress } = await supabaseAdmin
+                  .from("flows")
+                  .select("id,definition,is_active,trigger,trigger_keywords,connection_id")
+                  .eq("id", st.flow_id)
+                  .eq("user_id", conn.user_id)
+                  .maybeSingle();
+                if (inProgress) active = inProgress as typeof candidates[number];
+              }
               if (!active) {
                 const forConn = candidates.filter((f) => !f.connection_id || f.connection_id === conn.id);
                 const kwList = (f: typeof forConn[number]) => [
