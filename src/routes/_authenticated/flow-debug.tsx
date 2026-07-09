@@ -1,173 +1,244 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { Bug, RefreshCw, Loader2, Inbox } from "lucide-react";
+import { Bug, Loader2, Play, Send, Trash2, AlertTriangle, CheckCircle2, PauseCircle } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 import { toast } from "sonner";
 import { PageShell } from "@/components/page-shell";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useServerFn } from "@tanstack/react-start";
+import { startSimulation, sendSimulationInput, listExecutions, deleteExecution, validateFlow } from "@/lib/flow-simulator.functions";
 
 export const Route = createFileRoute("/_authenticated/flow-debug")({
   head: () => ({ meta: [{ title: "Debug de Fluxo — Plataforma IA WhatsApp" }] }),
   component: Page,
 });
 
-type FlowState = {
-  flow_id?: string;
-  current_node?: string | null;
-  awaiting?: { node_id: string; variable?: string } | null;
-  variables?: Record<string, string>;
-  finished?: boolean;
-};
-type Row = {
+type LogRow = {
   id: string;
-  connection_id: string | null;
-  metadata: { remoteJid?: string } | null;
-  flow_state: FlowState | null;
-  last_message_at: string | null;
-  updated_at: string | null;
+  execution_id: string;
+  level: "info" | "warn" | "error";
+  event: string;
+  block_id: string | null;
+  message: string | null;
+  data: Record<string, unknown> | null;
+  duration_ms: number | null;
+  created_at: string;
 };
-type FlowMeta = { id: string; name: string; definition: { nodes?: Array<{ id: string; data?: { label?: string; kind?: string } }> } };
+type ExecRow = {
+  id: string; flow_id: string; status: string;
+  current_block_id: string | null; awaiting_variable: string | null;
+  variables: Record<string, string> | null;
+  is_simulation: boolean; started_at: string; updated_at: string; completed_at: string | null;
+  last_error: string | null;
+};
+type FlowLite = { id: string; name: string };
 
 function Page() {
   const { user } = useAuth();
-  const [rows, setRows] = useState<Row[]>([]);
-  const [flows, setFlows] = useState<Record<string, FlowMeta>>({});
+  const [flows, setFlows] = useState<FlowLite[]>([]);
+  const [pickedFlow, setPickedFlow] = useState<string>("");
+  const [execs, setExecs] = useState<ExecRow[]>([]);
+  const [selected, setSelected] = useState<ExecRow | null>(null);
+  const [logs, setLogs] = useState<LogRow[]>([]);
+  const [input, setInput] = useState("");
+  const [busy, setBusy] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [search, setSearch] = useState("");
-  const [onlyActive, setOnlyActive] = useState(true);
 
-  const load = async () => {
+  const startFn = useServerFn(startSimulation);
+  const sendFn = useServerFn(sendSimulationInput);
+  const listFn = useServerFn(listExecutions);
+  const delFn = useServerFn(deleteExecution);
+  const validateFn = useServerFn(validateFlow);
+
+  const reload = async () => {
     if (!user) return;
     setLoading(true);
-    const { data, error } = await supabase
-      .from("conversations")
-      .select("id,connection_id,metadata,flow_state,last_message_at,updated_at")
-      .eq("user_id", user.id)
-      .not("flow_state", "is", null)
-      .order("last_message_at", { ascending: false })
-      .limit(200);
-    if (error) { setLoading(false); return toast.error(error.message); }
-    const list = (data ?? []) as Row[];
-    setRows(list);
-    const ids = Array.from(new Set(list.map((r) => r.flow_state?.flow_id).filter(Boolean))) as string[];
-    if (ids.length) {
-      const { data: fdata } = await supabase.from("flows").select("id,name,definition").in("id", ids);
-      const map: Record<string, FlowMeta> = {};
-      for (const f of (fdata ?? []) as FlowMeta[]) map[f.id] = f;
-      setFlows(map);
-    }
+    const [f, e] = await Promise.all([
+      supabase.from("flows").select("id,name").eq("user_id", user.id).order("updated_at", { ascending: false }),
+      listFn(),
+    ]);
+    setFlows((f.data ?? []) as FlowLite[]);
+    setExecs((e.executions ?? []) as ExecRow[]);
     setLoading(false);
   };
+  useEffect(() => { void reload(); /* eslint-disable-next-line */ }, [user]);
 
-  useEffect(() => { void load(); /* eslint-disable-next-line */ }, [user]);
-
-  // Realtime updates on conversations
+  // Load logs for the selected execution
   useEffect(() => {
-    if (!user) return;
-    const ch = supabase
-      .channel(`flow-debug:${user.id}`)
-      .on("postgres_changes", { event: "*", schema: "public", table: "conversations", filter: `user_id=eq.${user.id}` }, (payload) => {
-        const newRow = payload.new as Row | null;
-        const oldRow = payload.old as Row | null;
-        const id = newRow?.id ?? oldRow?.id;
-        if (!id) return;
-        setRows((prev) => {
-          if (!newRow || !newRow.flow_state) return prev.filter((r) => r.id !== id);
-          const others = prev.filter((r) => r.id !== id);
-          return [newRow, ...others].slice(0, 200);
-        });
+    if (!selected) { setLogs([]); return; }
+    supabase.from("flow_execution_logs").select("*").eq("execution_id", selected.id).order("created_at", { ascending: true }).limit(500)
+      .then(({ data }) => setLogs((data ?? []) as LogRow[]));
+  }, [selected?.id]);
+
+  // Realtime: new logs + execution status changes
+  useEffect(() => {
+    if (!user || !selected) return;
+    const ch = supabase.channel(`flow-exec:${selected.id}`)
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "flow_execution_logs", filter: `execution_id=eq.${selected.id}` }, (payload) => {
+        setLogs((prev) => [...prev, payload.new as LogRow]);
+      })
+      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "flow_executions", filter: `id=eq.${selected.id}` }, (payload) => {
+        const nw = payload.new as ExecRow;
+        setSelected(nw);
+        setExecs((prev) => prev.map((x) => x.id === nw.id ? nw : x));
       })
       .subscribe();
     return () => { void supabase.removeChannel(ch); };
-  }, [user]);
+  }, [user, selected?.id]);
 
-  const filtered = useMemo(() => {
-    const term = search.trim().toLowerCase();
-    return rows.filter((r) => {
-      if (onlyActive && (r.flow_state?.finished || !r.flow_state?.current_node && !r.flow_state?.awaiting)) return false;
-      if (!term) return true;
-      const jid = r.metadata?.remoteJid ?? "";
-      const fname = flows[r.flow_state?.flow_id ?? ""]?.name ?? "";
-      return jid.toLowerCase().includes(term) || fname.toLowerCase().includes(term);
-    });
-  }, [rows, search, onlyActive, flows]);
+  const flowName = useMemo(() => Object.fromEntries(flows.map((f) => [f.id, f.name])), [flows]);
 
-  const nodeLabel = (flowId: string | undefined, nodeId: string | null | undefined) => {
-    if (!flowId || !nodeId) return null;
-    const n = flows[flowId]?.definition?.nodes?.find((x) => x.id === nodeId);
-    return n ? `${n.data?.kind ?? "?"}${n.data?.label ? ` · ${n.data.label}` : ""}` : nodeId;
+  async function onStart() {
+    if (!pickedFlow) return toast.error("Escolha um fluxo");
+    setBusy(true);
+    try {
+      const v = await validateFn({ data: { flowId: pickedFlow } });
+      if (!v.ok) toast.warning(`Validação: ${v.issues.filter((i) => i.level === "error").map((i) => i.message).join("; ")}`);
+      const r = await startFn({ data: { flowId: pickedFlow } });
+      toast.success(r.waiting ? "Simulação aguardando input" : "Simulação concluída");
+      await reload();
+      // auto-select the new execution
+      const { data: ex } = await supabase.from("flow_executions").select("*").eq("id", r.executionId).maybeSingle();
+      if (ex) setSelected(ex as ExecRow);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Falha ao iniciar");
+    } finally { setBusy(false); }
+  }
+
+  async function onSend() {
+    if (!selected || !input.trim()) return;
+    setBusy(true);
+    try {
+      await sendFn({ data: { executionId: selected.id, text: input.trim() } });
+      setInput("");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Falha ao enviar");
+    } finally { setBusy(false); }
+  }
+
+  async function onDelete(id: string) {
+    await delFn({ data: { executionId: id } });
+    if (selected?.id === id) setSelected(null);
+    await reload();
+  }
+
+  const statusBadge = (s: string) => {
+    const map: Record<string, { cls: string; icon: React.ReactNode; label: string }> = {
+      waiting_user_input: { cls: "bg-yellow-500/15 text-yellow-600 border-yellow-500/30", icon: <PauseCircle className="h-3 w-3" />, label: "aguardando" },
+      processing: { cls: "bg-blue-500/15 text-blue-600 border-blue-500/30", icon: <Loader2 className="h-3 w-3 animate-spin" />, label: "processando" },
+      completed: { cls: "bg-emerald-500/15 text-emerald-600 border-emerald-500/30", icon: <CheckCircle2 className="h-3 w-3" />, label: "concluído" },
+      failed: { cls: "bg-red-500/15 text-red-600 border-red-500/30", icon: <AlertTriangle className="h-3 w-3" />, label: "falhou" },
+      aborted: { cls: "bg-muted text-muted-foreground", icon: <AlertTriangle className="h-3 w-3" />, label: "abortado" },
+    };
+    const it = map[s] ?? { cls: "bg-muted text-muted-foreground", icon: null, label: s };
+    return <Badge variant="outline" className={`${it.cls} gap-1`}>{it.icon}{it.label}</Badge>;
   };
 
   return (
     <PageShell
       title="Debug de Fluxo"
-      description="Estado do fluxo por conversa em tempo real (nó atual, variáveis, aguardando resposta)."
+      description="Simule fluxos, acompanhe transições em tempo real e valide antes de publicar."
       icon={<Bug className="h-6 w-6" />}
       status="ativo"
-      actions={
-        <Button variant="outline" onClick={load}><RefreshCw className="h-4 w-4" /> Atualizar</Button>
-      }
     >
-      <div className="flex flex-col sm:flex-row gap-2 mb-4">
-        <Input placeholder="Buscar por telefone ou nome do fluxo…" value={search} onChange={(e) => setSearch(e.target.value)} className="sm:max-w-sm" />
-        <label className="flex items-center gap-2 text-sm text-muted-foreground">
-          <input type="checkbox" checked={onlyActive} onChange={(e) => setOnlyActive(e.target.checked)} />
-          Só ativos
-        </label>
+      {/* Simulator launcher */}
+      <div className="rounded-2xl border border-border/60 bg-card/40 p-3 mb-4 flex flex-wrap items-center gap-2">
+        <Select value={pickedFlow} onValueChange={setPickedFlow}>
+          <SelectTrigger className="w-72"><SelectValue placeholder="Escolha um fluxo para simular" /></SelectTrigger>
+          <SelectContent>{flows.map((f) => <SelectItem key={f.id} value={f.id}>{f.name}</SelectItem>)}</SelectContent>
+        </Select>
+        <Button onClick={onStart} disabled={busy || !pickedFlow} className="gap-2">
+          <Play className="h-4 w-4" /> Iniciar simulação
+        </Button>
+        <span className="text-xs text-muted-foreground ml-auto">{execs.length} execuções</span>
       </div>
-      <Card>
-        <CardContent className="p-0">
-          {loading ? (
-            <div className="p-12 flex justify-center"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>
-          ) : filtered.length === 0 ? (
-            <div className="p-12 text-center space-y-3">
-              <div className="mx-auto grid h-14 w-14 place-items-center rounded-full bg-primary/10 text-primary"><Inbox className="h-6 w-6" /></div>
-              <p className="text-muted-foreground">Nenhuma conversa com fluxo em execução.</p>
-            </div>
+
+      <div className="grid gap-3 md:grid-cols-[340px_1fr]">
+        {/* Executions list */}
+        <div className="rounded-2xl border border-border/60 bg-card/40 overflow-hidden">
+          <div className="border-b border-border/60 px-3 py-2 text-xs text-muted-foreground">Execuções</div>
+          <div className="max-h-[70vh] overflow-y-auto divide-y divide-border/50">
+            {loading && <div className="p-6 text-center text-xs text-muted-foreground">Carregando…</div>}
+            {!loading && !execs.length && <div className="p-6 text-center text-xs text-muted-foreground">Nenhuma execução ainda</div>}
+            {execs.map((e) => (
+              <button key={e.id} onClick={() => setSelected(e)} className={`w-full text-left p-3 hover:bg-accent/30 transition ${selected?.id === e.id ? "bg-accent/40" : ""}`}>
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-medium truncate flex-1">{flowName[e.flow_id] ?? e.flow_id.slice(0, 8)}</span>
+                  {e.is_simulation && <Badge variant="outline" className="text-[9px]">SIM</Badge>}
+                </div>
+                <div className="mt-1 flex items-center gap-2 text-[11px] text-muted-foreground">
+                  {statusBadge(e.status)}
+                  <span className="ml-auto">{new Date(e.started_at).toLocaleTimeString()}</span>
+                </div>
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Detail */}
+        <div className="rounded-2xl border border-border/60 bg-card/40 overflow-hidden flex flex-col">
+          {!selected ? (
+            <div className="grid place-items-center h-[70vh] text-sm text-muted-foreground">Selecione uma execução</div>
           ) : (
-            <div className="divide-y divide-border">
-              {filtered.map((r) => {
-                const st = r.flow_state ?? {};
-                const fname = flows[st.flow_id ?? ""]?.name ?? st.flow_id ?? "—";
-                const current = nodeLabel(st.flow_id, st.current_node);
-                const waiting = st.awaiting ? nodeLabel(st.flow_id, st.awaiting.node_id) : null;
-                return (
-                  <div key={r.id} className="px-4 py-3 text-sm hover:bg-muted/30">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <Badge variant="outline" className="font-mono">{(r.metadata?.remoteJid ?? "").split("@")[0] || "—"}</Badge>
-                      <span className="font-medium">{fname}</span>
-                      {st.finished ? (
-                        <Badge className="bg-muted text-muted-foreground">finalizado</Badge>
-                      ) : waiting ? (
-                        <Badge className="bg-yellow-500/15 text-yellow-600 border-yellow-500/30" variant="outline">aguardando: {waiting}{st.awaiting?.variable ? ` → ${st.awaiting.variable}` : ""}</Badge>
-                      ) : current ? (
-                        <Badge className="bg-primary/15 text-primary border-primary/30" variant="outline">nó atual: {current}</Badge>
-                      ) : (
-                        <Badge variant="outline">ocioso</Badge>
-                      )}
-                      <span className="ml-auto text-xs text-muted-foreground">{r.last_message_at ? new Date(r.last_message_at).toLocaleString("pt-BR") : ""}</span>
-                    </div>
-                    {st.variables && Object.keys(st.variables).length > 0 && (
-                      <details className="mt-2">
-                        <summary className="text-xs text-muted-foreground cursor-pointer">variáveis ({Object.keys(st.variables).length})</summary>
-                        <pre className="mt-1 rounded bg-muted/50 p-2 text-xs overflow-x-auto"><code>{JSON.stringify(st.variables, null, 2)}</code></pre>
-                      </details>
-                    )}
-                    <details className="mt-1">
-                      <summary className="text-xs text-muted-foreground cursor-pointer">flow_state (raw)</summary>
-                      <pre className="mt-1 rounded bg-muted/50 p-2 text-xs overflow-x-auto"><code>{JSON.stringify(st, null, 2)}</code></pre>
-                    </details>
+            <>
+              <div className="border-b border-border/60 px-4 py-3 flex items-center justify-between gap-2">
+                <div className="min-w-0">
+                  <div className="text-sm font-semibold truncate">{flowName[selected.flow_id] ?? selected.flow_id}</div>
+                  <div className="text-[11px] text-muted-foreground flex items-center gap-2">
+                    {statusBadge(selected.status)}
+                    {selected.awaiting_variable && <span>aguardando: <code>{selected.awaiting_variable}</code></span>}
+                    {selected.current_block_id && <span>· bloco: <code>{selected.current_block_id}</code></span>}
                   </div>
-                );
-              })}
-            </div>
+                </div>
+                <Button variant="ghost" size="icon" onClick={() => onDelete(selected.id)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
+              </div>
+
+              {/* Variables */}
+              {selected.variables && Object.keys(selected.variables).length > 0 && (
+                <div className="border-b border-border/60 px-4 py-2 text-xs">
+                  <span className="text-muted-foreground mr-2">Variáveis:</span>
+                  {Object.entries(selected.variables).map(([k, v]) => (
+                    <Badge key={k} variant="outline" className="mr-1 mb-1 font-mono text-[10px]">{k}={String(v).slice(0, 30)}</Badge>
+                  ))}
+                </div>
+              )}
+
+              {/* Logs stream */}
+              <div className="flex-1 overflow-y-auto p-3 space-y-1 max-h-[55vh]">
+                {logs.map((l) => (
+                  <div key={l.id} className={`text-xs rounded px-2 py-1.5 border ${l.level === "error" ? "border-red-500/30 bg-red-500/5" : l.level === "warn" ? "border-yellow-500/30 bg-yellow-500/5" : "border-border/40 bg-muted/20"}`}>
+                    <div className="flex items-center gap-2">
+                      <span className="text-muted-foreground shrink-0">{new Date(l.created_at).toLocaleTimeString()}</span>
+                      <Badge variant="outline" className="text-[9px] uppercase">{l.event}</Badge>
+                      {l.block_id && <code className="text-[10px] text-muted-foreground">{l.block_id}</code>}
+                      {l.duration_ms != null && <span className="text-[10px] text-muted-foreground ml-auto">{l.duration_ms}ms</span>}
+                    </div>
+                    {l.message && <div className="mt-0.5 whitespace-pre-wrap break-words">{l.message}</div>}
+                  </div>
+                ))}
+                {!logs.length && <div className="text-center text-xs text-muted-foreground py-6">Sem eventos ainda</div>}
+              </div>
+
+              {/* Simulator input */}
+              {selected.is_simulation && selected.status === "waiting_user_input" && (
+                <div className="border-t border-border/60 p-3 flex gap-2">
+                  <Input placeholder={`Digite a resposta para "${selected.awaiting_variable ?? "usuário"}"…`} value={input} onChange={(e) => setInput(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") onSend(); }} disabled={busy} />
+                  <Button onClick={onSend} disabled={busy || !input.trim()} className="gap-2"><Send className="h-4 w-4" /> Enviar</Button>
+                </div>
+              )}
+              {selected.last_error && (
+                <div className="border-t border-border/60 bg-destructive/5 px-4 py-2 text-xs text-destructive">
+                  <AlertTriangle className="h-3 w-3 inline mr-1" />{selected.last_error}
+                </div>
+              )}
+            </>
           )}
-        </CardContent>
-      </Card>
+        </div>
+      </div>
     </PageShell>
   );
 }
