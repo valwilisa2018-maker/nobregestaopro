@@ -2391,6 +2391,7 @@ function MessagesPage() {
                       </PopoverContent>
                     </Popover>
                     <QuickSendPopover contactId={selected?.id ?? null} />
+                    <FlowLauncher contactId={selected?.id ?? null} />
                     <input
                       ref={fileInputRef}
                       type="file"
