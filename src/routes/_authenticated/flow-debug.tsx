@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { Bug, Loader2, Play, Send, Trash2, AlertTriangle, CheckCircle2, PauseCircle, Activity, FlaskConical, RefreshCw } from "lucide-react";
+import { Bug, Loader2, Play, Send, Trash2, AlertTriangle, CheckCircle2, PauseCircle, Activity, FlaskConical, RefreshCw, Stethoscope, ArrowRightCircle, MessageSquare, PhoneForwarded, Info } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
@@ -38,6 +38,15 @@ type ExecRow = {
 };
 type FlowLite = { id: string; name: string };
 
+type DiagRow = {
+  id: string;
+  level: "info" | "warn" | "error" | string;
+  source: string | null;
+  message: string | null;
+  metadata: Record<string, unknown> | null;
+  created_at: string;
+};
+
 function Page() {
   const { user } = useAuth();
   const [flows, setFlows] = useState<FlowLite[]>([]);
@@ -48,7 +57,8 @@ function Page() {
   const [input, setInput] = useState("");
   const [busy, setBusy] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [tab, setTab] = useState<"live" | "sim">("live");
+  const [tab, setTab] = useState<"live" | "sim" | "diag">("live");
+  const [diag, setDiag] = useState<DiagRow[]>([]);
 
   const startFn = useServerFn(startSimulation);
   const sendFn = useServerFn(sendSimulationInput);
@@ -68,6 +78,26 @@ function Page() {
     setLoading(false);
   };
   useEffect(() => { void reload(); /* eslint-disable-next-line */ }, [user]);
+
+  // Diagnóstico: logs do correlacionador/runtime de fluxo
+  useEffect(() => {
+    if (!user) return;
+    supabase.from("logs")
+      .select("id,level,source,message,metadata,created_at")
+      .eq("user_id", user.id)
+      .or("source.ilike.flow%,source.ilike.flow-correlator%")
+      .order("created_at", { ascending: false })
+      .limit(200)
+      .then(({ data }) => setDiag((data ?? []) as DiagRow[]));
+    const ch = supabase.channel(`flow-diag:${user.id}`)
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "logs", filter: `user_id=eq.${user.id}` }, (payload) => {
+        const row = payload.new as DiagRow;
+        const src = (row.source ?? "").toLowerCase();
+        if (src.startsWith("flow")) setDiag((prev) => [row, ...prev].slice(0, 200));
+      })
+      .subscribe();
+    return () => { void supabase.removeChannel(ch); };
+  }, [user]);
 
   // Load logs for the selected execution
   useEffect(() => {
@@ -102,6 +132,7 @@ function Page() {
     if (!selected) return;
     if (tab === "live" && selected.is_simulation) setSelected(null);
     if (tab === "sim" && !selected.is_simulation) setSelected(null);
+    if (tab === "diag") setSelected(null);
   }, [tab, selected]);
 
   async function onStart() {
@@ -148,6 +179,19 @@ function Page() {
     };
     const it = map[s] ?? { cls: "bg-muted text-muted-foreground", icon: null, label: s };
     return <Badge variant="outline" className={`${it.cls} gap-1`}>{it.icon}{it.label}</Badge>;
+  };
+
+  const eventMeta: Record<string, { icon: React.ReactNode; label: string; cls: string }> = {
+    user_input: { icon: <MessageSquare className="h-3 w-3" />, label: "resposta do usuário", cls: "text-blue-600" },
+    step: { icon: <ArrowRightCircle className="h-3 w-3" />, label: "etapa executada", cls: "text-slate-600" },
+    wait: { icon: <PauseCircle className="h-3 w-3" />, label: "aguardando resposta", cls: "text-yellow-600" },
+    complete: { icon: <CheckCircle2 className="h-3 w-3" />, label: "finalizado", cls: "text-emerald-600" },
+    handoff: { icon: <PhoneForwarded className="h-3 w-3" />, label: "transferido", cls: "text-purple-600" },
+    error: { icon: <AlertTriangle className="h-3 w-3" />, label: "erro", cls: "text-red-600" },
+  };
+  const renderEvent = (ev: string) => {
+    const it = eventMeta[ev] ?? { icon: <Info className="h-3 w-3" />, label: ev, cls: "text-muted-foreground" };
+    return <span className={`inline-flex items-center gap-1 text-[10px] font-medium uppercase ${it.cls}`}>{it.icon}{it.label}</span>;
   };
 
   const renderList = (rows: ExecRow[], emptyMsg: string) => (
@@ -209,11 +253,14 @@ function Page() {
                   <div key={l.id} className={`text-xs rounded px-2 py-1.5 border ${l.level === "error" ? "border-red-500/30 bg-red-500/5" : l.level === "warn" ? "border-yellow-500/30 bg-yellow-500/5" : "border-border/40 bg-muted/20"}`}>
                     <div className="flex items-center gap-2">
                       <span className="text-muted-foreground shrink-0">{new Date(l.created_at).toLocaleTimeString()}</span>
-                      <Badge variant="outline" className="text-[9px] uppercase">{l.event}</Badge>
+                      {renderEvent(l.event)}
                       {l.block_id && <code className="text-[10px] text-muted-foreground">{l.block_id}</code>}
                       {l.duration_ms != null && <span className="text-[10px] text-muted-foreground ml-auto">{l.duration_ms}ms</span>}
                     </div>
                     {l.message && <div className="mt-0.5 whitespace-pre-wrap break-words">{l.message}</div>}
+                    {l.data && Object.keys(l.data).length > 0 && (
+                      <pre className="mt-1 text-[10px] text-muted-foreground bg-black/5 rounded p-1 overflow-x-auto">{JSON.stringify(l.data, null, 2)}</pre>
+                    )}
                   </div>
                 ))}
                 {!logs.length && <div className="text-center text-xs text-muted-foreground py-6">Sem eventos ainda</div>}
@@ -243,7 +290,7 @@ function Page() {
       icon={<Bug className="h-6 w-6" />}
       status="ativo"
     >
-      <Tabs value={tab} onValueChange={(v) => setTab(v as "live" | "sim")} className="w-full">
+      <Tabs value={tab} onValueChange={(v) => setTab(v as "live" | "sim" | "diag")} className="w-full">
         <TabsList className="mb-4">
           <TabsTrigger value="live" className="gap-2">
             <Activity className="h-4 w-4" /> Execuções ao vivo
@@ -253,6 +300,15 @@ function Page() {
           <TabsTrigger value="sim" className="gap-2">
             <FlaskConical className="h-4 w-4" /> Simulador
             <Badge variant="outline" className="ml-1 text-[10px]">{simExecs.length}</Badge>
+          </TabsTrigger>
+          <TabsTrigger value="diag" className="gap-2">
+            <Stethoscope className="h-4 w-4" /> Diagnóstico
+            <Badge variant="outline" className="ml-1 text-[10px]">{diag.length}</Badge>
+            {diag.some((d) => d.level === "error") && (
+              <Badge variant="outline" className="text-[10px] bg-red-500/15 text-red-600 border-red-500/30">
+                {diag.filter((d) => d.level === "error").length} erro{diag.filter((d) => d.level === "error").length === 1 ? "" : "s"}
+              </Badge>
+            )}
           </TabsTrigger>
         </TabsList>
 
@@ -280,6 +336,39 @@ function Page() {
           <div className="grid gap-3 md:grid-cols-[340px_1fr]">
             {renderList(simExecs, "Nenhuma simulação ainda. Escolha um fluxo acima e clique em Iniciar simulação.")}
             {renderDetail()}
+          </div>
+        </TabsContent>
+
+        <TabsContent value="diag" className="mt-0">
+          <div className="rounded-2xl border border-border/60 bg-card/40 p-3 mb-4 text-xs text-muted-foreground">
+            Logs de correlação e runtime dos fluxos. Se uma mensagem chegou mas nenhuma execução foi criada, o motivo aparece aqui (ex.: sem fluxo ativo, fluxo sem START, nenhuma palavra-chave correspondeu, erro em bloco).
+          </div>
+          <div className="rounded-2xl border border-border/60 bg-card/40 overflow-hidden">
+            <div className="max-h-[70vh] overflow-y-auto divide-y divide-border/50">
+              {!diag.length && <div className="p-6 text-center text-xs text-muted-foreground">Nenhum evento de diagnóstico ainda.</div>}
+              {diag.map((l) => {
+                const meta = (l.metadata ?? {}) as Record<string, unknown>;
+                const reason = typeof meta.reason === "string" ? meta.reason : null;
+                const instance = typeof meta.instance === "string" ? meta.instance : null;
+                const flowId = typeof meta.flow_id === "string" ? meta.flow_id : null;
+                return (
+                  <div key={l.id} className={`p-3 text-xs ${l.level === "error" ? "bg-red-500/5" : l.level === "warn" ? "bg-yellow-500/5" : ""}`}>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="text-muted-foreground shrink-0">{new Date(l.created_at).toLocaleString()}</span>
+                      <Badge variant="outline" className={`text-[9px] uppercase ${l.level === "error" ? "text-red-600 border-red-500/30" : l.level === "warn" ? "text-yellow-700 border-yellow-500/30" : ""}`}>{l.level}</Badge>
+                      {l.source && <code className="text-[10px] text-muted-foreground">{l.source}</code>}
+                      {instance && <Badge variant="outline" className="text-[10px]">instance: {instance}</Badge>}
+                      {flowId && <Badge variant="outline" className="text-[10px]">flow: {flowId.slice(0, 8)}</Badge>}
+                      {reason && <Badge variant="outline" className="text-[10px] bg-muted">{reason}</Badge>}
+                    </div>
+                    {l.message && <div className="mt-1 whitespace-pre-wrap break-words">{l.message}</div>}
+                    {Object.keys(meta).length > 0 && (
+                      <pre className="mt-1 text-[10px] text-muted-foreground bg-black/5 rounded p-2 overflow-x-auto">{JSON.stringify(meta, null, 2)}</pre>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
           </div>
         </TabsContent>
       </Tabs>
