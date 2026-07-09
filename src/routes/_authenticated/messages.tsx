@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Mic, Search, Send, Square, MessageCircle, Check, CheckCheck, Loader2, ArrowLeft, Smile, Play, Pause, Paperclip, ChevronLeft, ChevronRight, X, FileText, Image as ImageIcon, Video, Music, File as FileIcon, MoreVertical, Star, Archive, ArchiveRestore, Pin, PinOff, Tag, Info, Save, Bell, BellOff, Trash2, Forward, ChevronDown, Reply, CornerUpLeft, Download, Bot, BotOff, Camera, Pencil, Plug, Settings, RefreshCw } from "lucide-react";
+import { Mic, Search, Send, Square, MessageCircle, Check, CheckCheck, Loader2, ArrowLeft, Smile, Play, Pause, Paperclip, ChevronLeft, ChevronRight, X, FileText, Image as ImageIcon, Video, Music, File as FileIcon, MoreVertical, Star, Archive, ArchiveRestore, Pin, PinOff, Tag, Info, Save, Bell, BellOff, Trash2, Forward, ChevronDown, Reply, CornerUpLeft, Download, Bot, BotOff, Camera, Pencil, Plug, Settings, RefreshCw, Workflow } from "lucide-react";
 import EmojiPicker, { EmojiStyle, Theme } from "emoji-picker-react";
 import { PageShell } from "@/components/page-shell";
 import { supabase } from "@/integrations/supabase/client";
@@ -12,7 +12,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useServerFn } from "@tanstack/react-start";
-import { sendChatText, sendChatAudio, sendChatMedia, getProfilePicture, sendPresence, ensurePresenceWebhook, deleteChatMessage, forwardChatMessage, editChatMessage, reactChatMessage, syncContactNames } from "@/lib/evolution.functions";
+import { sendChatText, sendChatAudio, sendChatMedia, getProfilePicture, sendPresence, ensurePresenceWebhook, deleteChatMessage, forwardChatMessage, editChatMessage, reactChatMessage, syncContactNames, startFlowForContact } from "@/lib/evolution.functions";
 import { toast } from "sonner";
 import notificationSound from "@/assets/notification.mp3.asset.json";
 import { QuickSendPopover } from "@/components/quick-send-popover";
@@ -2391,6 +2391,7 @@ function MessagesPage() {
                       </PopoverContent>
                     </Popover>
                     <QuickSendPopover contactId={selected?.id ?? null} />
+                    <FlowLauncher contactId={selected?.id ?? null} />
                     <input
                       ref={fileInputRef}
                       type="file"
@@ -2898,5 +2899,83 @@ function AudioPlayer({
       </div>
       <audio ref={audioRef} src={src} preload="metadata" className="hidden" data-audio-id={id} />
     </div>
+  );
+}
+
+function FlowLauncher({ contactId }: { contactId: string | null }) {
+  const { user } = useAuth();
+  const startFlow = useServerFn(startFlowForContact);
+  const [open, setOpen] = useState(false);
+  const [flows, setFlows] = useState<Array<{ id: string; name: string; is_active: boolean | null }>>([]);
+  const [loading, setLoading] = useState(false);
+  const [startingId, setStartingId] = useState<string | null>(null);
+
+  async function openDialog() {
+    if (!contactId || !user) return;
+    setOpen(true);
+    setLoading(true);
+    const { data } = await supabase
+      .from("flows")
+      .select("id,name,is_active")
+      .eq("user_id", user.id)
+      .order("name");
+    setFlows((data ?? []) as typeof flows);
+    setLoading(false);
+  }
+
+  return (
+    <>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <button
+            onClick={openDialog}
+            disabled={!contactId}
+            className="p-2 text-gray-500 hover:text-gray-700 disabled:opacity-40 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 rounded-full transition"
+            aria-label="Iniciar fluxo"
+          >
+            <Workflow className="h-6 w-6" />
+          </button>
+        </TooltipTrigger>
+        <TooltipContent side="top">Iniciar fluxo</TooltipContent>
+      </Tooltip>
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Escolha um fluxo para iniciar</DialogTitle>
+          </DialogHeader>
+          <div className="max-h-[50vh] overflow-y-auto divide-y divide-border/50">
+            {loading && <div className="p-6 text-center text-xs text-muted-foreground">Carregando...</div>}
+            {!loading && flows.map((f) => (
+              <div key={f.id} className="flex items-center justify-between gap-2 py-2">
+                <div className="min-w-0">
+                  <div className="text-sm font-medium truncate">{f.name}</div>
+                  <div className="text-[11px] text-muted-foreground">{f.is_active ? "Ativo" : "Inativo"}</div>
+                </div>
+                <Button
+                  size="sm"
+                  disabled={!contactId || startingId === f.id}
+                  onClick={async () => {
+                    if (!contactId) return;
+                    setStartingId(f.id);
+                    try {
+                      await startFlow({ data: { contactId, flowId: f.id } });
+                      toast.success("Fluxo iniciado");
+                      setOpen(false);
+                    } catch (e) {
+                      toast.error(e instanceof Error ? e.message : "Falha ao iniciar fluxo");
+                    } finally {
+                      setStartingId(null);
+                    }
+                  }}
+                >
+                  {startingId === f.id ? "Iniciando..." : "Iniciar"}
+                </Button>
+              </div>
+            ))}
+            {!loading && !flows.length && <div className="p-6 text-center text-xs text-muted-foreground">Nenhum fluxo cadastrado</div>}
+          </div>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }
