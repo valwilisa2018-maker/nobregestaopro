@@ -488,6 +488,52 @@ export const sendChatText = createServerFn({ method: "POST" })
     return { ok: true, conversationId: convoId, message: messageDto(saved, nextMeta) };
   });
 
+// ===================== Start a visual flow for a contact =====================
+
+const StartFlowInput = z.object({
+  contactId: z.string().uuid(),
+  flowId: z.string().uuid(),
+});
+
+export const startFlowForContact = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((i: unknown) => StartFlowInput.parse(i))
+  .handler(async ({ data, context }) => {
+    const { data: contact } = await context.supabase.from("contacts")
+      .select("id,phone").eq("id", data.contactId).eq("user_id", context.userId).single();
+    if (!contact) throw new Error("Contato não encontrado");
+
+    const { data: flow } = await context.supabase.from("flows")
+      .select("id,definition").eq("id", data.flowId).eq("user_id", context.userId).single();
+    if (!flow) throw new Error("Fluxo não encontrado");
+    const def = (flow as { definition: { nodes?: unknown[]; edges?: unknown[] } }).definition;
+    if (!Array.isArray(def?.nodes) || !Array.isArray(def?.edges)) throw new Error("Definição de fluxo inválida");
+
+    const number = String(contact.phone).replace(/\D+/g, "");
+    const conn = await pickConnectionForContact(context.supabase, context.userId, number);
+    const apiKey = await loadEvolutionCommandKey(context.supabase, conn.api_key);
+    const remoteJid = `${number}@s.whatsapp.net`;
+    const convoId = await getOrCreateConversationForJid(context.supabase, context.userId, conn.id, remoteJid);
+
+    const { runFlow } = await import("@/lib/flow-runner.server");
+    const result = await runFlow({
+      db: context.supabase,
+      conn: { id: conn.id, user_id: context.userId, url_api: conn.url_api, api_key: apiKey, instance_name: conn.instance_name },
+      recipient: remoteJid,
+      userText: "",
+      def: def as { nodes: never[]; edges: never[] },
+      state: {},
+      flowId: flow.id,
+    });
+
+    await context.supabase.from("conversations").update({
+      flow_state: { ...result.state, updated_at: new Date().toISOString() } as never,
+      last_message_at: new Date().toISOString(),
+    } as never).eq("id", convoId);
+
+    return { ok: true, conversationId: convoId, finished: !!result.finished, waiting: !!result.waitingForUser };
+  });
+
 // ===================== Send media (image/video/audio/document) =====================
 
 const SendChatMediaInput = z.object({
