@@ -224,7 +224,7 @@ export const Route = createFileRoute("/api/public/evolution/$instance")({
 
         // Find connection by instance_name
         const { data: conn } = await supabaseAdmin
-          .from("connections").select("id,user_id,url_api,api_key,instance_name").eq("instance_name", instance).maybeSingle();
+          .from("connections").select("id,user_id,url_api,api_key,instance_name,metadata").eq("instance_name", instance).maybeSingle();
 
         if (!conn) return Response.json({ ok: false, reason: "instance not found" }, { status: 404 });
 
