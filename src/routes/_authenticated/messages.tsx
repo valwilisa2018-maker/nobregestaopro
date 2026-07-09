@@ -1001,7 +1001,14 @@ function MessagesPage() {
           const phone = openContact.phone.replace(/\D+/g, "");
           const jids = new Set([jidFromPhone(openContact.phone), ...jidVariants(openContact.phone)]);
           const remote = (row.metadata as { remoteJid?: string } | null)?.remoteJid ?? "";
-          const belongs = jids.has(remote) || (!!phone && remote.startsWith(`${phone}@`));
+          const remoteDigits = remote.split("@")[0]?.split(":")[0]?.replace(/\D+/g, "") ?? "";
+          const phoneAlts = new Set(phoneVariants(openContact.phone));
+          const convIds = new Set(conversationIdsRef.current);
+          const belongs =
+            jids.has(remote) ||
+            (!!phone && remote.startsWith(`${phone}@`)) ||
+            (!!remoteDigits && phoneAlts.has(remoteDigits)) ||
+            (!!row.conversation_id && convIds.has(row.conversation_id));
           if (belongs) {
             let hydrated: Msg = row as Msg;
             const path = storagePathFrom(row as Msg);
