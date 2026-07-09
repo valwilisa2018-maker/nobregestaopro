@@ -1,54 +1,79 @@
-# Módulo Pipeline CRM (Kanban)
+# Plano — Flows v2 (Editor + Motor + Debug + Simulador)
 
-Módulo completo de CRM em Kanban para o cliente, acessível em `/pipeline`, com 13 etapas padrão, cartões ricos, drag & drop, filtros, busca, automações básicas e mini-dashboard. Entrega em fases para não estourar o escopo.
+O projeto já tem `flows`, `flow_runner.server.ts`, editor em `/flows` e webhook em `evolution.$instance.ts`. Vou refatorar em cima do que existe (sem quebrar fluxos atuais), consolidando estado, corrigindo o bug de travar após a 1ª resposta e adicionando debug + simulador.
 
-## Fase 1 — Base funcional (esta rodada)
+## 1. Schema (migration)
 
-### Banco (1 migração)
-- `pipeline_stages` — etapas (nome, cor, ordem, `is_system`, `user_id`). Seed automático das 13 etapas ao 1º acesso via RPC `ensure_default_pipeline_stages()`.
-- `pipeline_deals` — cartões: `stage_id`, `contact_id?`, `client_id?`, `title`, `company`, `phone`, `whatsapp`, `email`, `value_cents`, `product`, `source`, `owner_id`, `priority` (low/med/high/urgent), `tags text[]`, `notes`, `next_contact_at`, `last_interaction_at`, `links jsonb` (conversa/proposta/contrato/drive/pagamento), `lost_reason`, `position`, `user_id`.
-- `pipeline_activities` — histórico de movimentação/eventos por deal (`deal_id`, `type`, `from_stage`, `to_stage`, `payload jsonb`).
-- `pipeline_attachments` — arquivos (`deal_id`, `name`, `url`, `mime`, `size`).
-- RLS: dono (`user_id = auth.uid()`) full, master full. GRANT SELECT/INSERT/UPDATE/DELETE p/ authenticated; ALL p/ service_role.
-- Trigger: ao inserir/alterar `stage_id`, registrar em `pipeline_activities` e atualizar `last_interaction_at`.
+Nova tabela `flow_executions` para persistir estado (hoje o estado fica só em `conversations.flow_state`, o que dificulta debug/replays):
 
-### Rotas / UI
-- `src/routes/_authenticated/pipeline.tsx` — tela Kanban.
-- Item "Pipeline" no `AppSidebar` (grupo Vendas/CRM).
-- Componentes em `src/components/pipeline/`:
-  - `kanban-board.tsx` — colunas com scroll horizontal, cores por etapa, contador e soma de valores.
-  - `deal-card.tsx` — avatar, nome, empresa, valor formatado, badges de prioridade e tags, próximo contato.
-  - `deal-drawer.tsx` — edição completa do cartão (todos os campos, links, anexos, histórico, checklist por etapa).
-  - `pipeline-filters.tsx` — busca + filtros (responsável, produto, origem, prioridade, tags, valor, data).
-  - `pipeline-stats.tsx` — cards no topo (leads, em andamento, ganhos, perdidos, taxa conversão, ticket médio, receita prevista/realizada).
-- Drag & drop: `@dnd-kit/core` + `@dnd-kit/sortable` (já leve, sem dependências pesadas).
-- Design: glassmorphism sutil usando tokens (`bg-card/60 backdrop-blur`), sombras, animações com classes existentes; cores das etapas via HSL nos tokens semânticos.
+- `flow_id`, `conversation_id`, `contact_id`, `connection_id`, `user_id`
+- `status`: `waiting_user_input | processing | completed | failed | aborted`
+- `current_block_id`, `awaiting_variable` (text)
+- `variables` (jsonb), `last_error` (text)
+- `started_at`, `updated_at`, `completed_at`
+- Índices: `(conversation_id, status)`, `(user_id, status)`
 
-### Automação básica (Fase 1)
-- Ao arrastar → update `stage_id` + registro em `pipeline_activities` (via trigger).
-- Ao entrar em "Follow-up" sem `next_contact_at` → seta +2 dias.
-- Ao entrar em "Perdido" → exige `lost_reason` no drawer.
+Nova tabela `flow_execution_logs` (append-only, para painel de Debug e Realtime):
+- `execution_id`, `level` (info|warn|error), `event` (block_enter|block_exit|var_set|condition|wait|resume|error|complete), `block_id`, `message`, `data` jsonb, `duration_ms`, `created_at`
+- Índice `(execution_id, created_at)`
+- `ALTER PUBLICATION supabase_realtime ADD TABLE ...` para stream ao vivo
 
-## Fase 2 — Automação avançada (próxima rodada, se aprovado)
-- Disparo de WhatsApp/e-mail por etapa (usar `broadcasts`/`quick_sends` existentes).
-- Tarefas automáticas por etapa + integração com `calendar`.
-- Geração de proposta/contrato (template).
-- Realtime (`supabase.channel`) para movimentações ao vivo.
-- Pipelines personalizados (múltiplos boards por usuário).
+RLS por `user_id` + GRANT `authenticated`/`service_role`. Nada para `anon`.
 
-## Fase 3 — Dashboard dedicado
-- Página `/pipeline/insights`: ranking vendedores, conversão por origem, tempo médio por etapa, meta do mês, gráficos (Recharts já instalado).
+## 2. Motor de execução (`src/lib/flow-engine.server.ts`)
 
-## Detalhes técnicos
-- Sem novas dependências além de `@dnd-kit/core` e `@dnd-kit/sortable`.
-- Queries via `supabase-js` direto (padrão do projeto), sem server functions novas.
-- Formatação de moeda em BRL, datas em pt-BR (`date-fns`).
-- Mobile: colunas em scroll horizontal + card tap abre drawer full-screen.
+Reescrever `flow_runner.server.ts` como máquina de estados pura, chamada pelo webhook e pelo simulador:
 
-## O que NÃO entra na Fase 1
-- Envio real de WhatsApp/e-mail automático por etapa.
-- Geração automática de PDF de proposta/contrato.
-- Realtime multi-usuário.
-- Pipelines customizados (só o padrão de 13 etapas).
+- `startExecution({ flowId, conversationId, contactId })` → cria row, roda até bater num bloco de espera (Pergunta) ou fim.
+- `resumeExecution({ executionId | conversationId, userInput })` → carrega estado, valida `status === waiting_user_input`, marca `processing`, salva resposta na variável (`awaiting_variable`), avalia condições, avança até novo `wait` ou `completed`. **Loop `while` explícito**, corrigindo o bug atual em que só um bloco roda por resposta.
+- Blocos suportados: `message`, `question`, `condition` (IF/ELSE, regex, IA via Lovable AI), `action` (set var, http, tag contato, mover pipeline).
+- Sandbox de variáveis: sistema (`contact.name`, `contact.phone`) + custom (definidas em blocos Pergunta) — interpolação `{{var}}` em mensagens.
+- Validação pré-execução (`validateFlow(nodes,edges)`): IDs vazios, arestas órfãs, nós inalcançáveis, ciclos sem condição de saída, blocos Pergunta sem `variable`. Executor recusa fluxo inválido e loga o motivo.
+- Cada transição escreve em `flow_execution_logs` (para debug/tempo real).
 
-Confirma seguir com a **Fase 1** exatamente assim?
+## 3. Webhook (`routes/api/public/evolution.$instance.ts`)
+
+Substituir a chamada atual a `runFlow` por:
+1. `resumeExecution` se existe execução `waiting_user_input` para aquela conversa.
+2. Senão, se conexão tem fluxo ativo padrão / gatilho casa → `startExecution`.
+3. Envio de mensagens outbound continua via `sendChatText/Media`.
+
+Respeitar `flow_timeout_hours` da conexão (abandono).
+
+## 4. Editor visual (`/flows`)
+
+Editor atual é lista de blocos — trocar por canvas React Flow (`@xyflow/react` já é padrão do stack):
+
+- Canvas com drag/drop, arestas tipadas (default / true / false / n-ways para condição).
+- Paleta lateral esquerda: Mensagem, Pergunta, Condição, Ação.
+- Painel direito (contextual ao bloco selecionado): campos do bloco + seletor de variáveis (autocomplete das existentes + criar nova).
+- Botão **Validar** roda `validateFlow` e destaca nós/arestas com erro.
+- Tema escuro, tokens do design system (sem cores hardcoded).
+
+## 5. Debug + Simulador (aba na página do fluxo)
+
+Layout split:
+- **Simulador** (esquerda): campo de mensagem, botões rápidos, escolha do "contato fake". Chama server fn `simulateFlow` que roda o motor com `conversation_id` sintético e sem enviar WhatsApp.
+- **Debug** (direita): stream de `flow_execution_logs` via Realtime, agrupado por bloco, com timing, variáveis atuais, último erro. Highlight do nó ativo no canvas.
+
+Teste de aceitação incluído: fluxo com 50 blocos + mídia roda até o fim reagindo a múltiplas respostas.
+
+## 6. Detalhes técnicos
+
+- Server fns novas em `src/lib/flows-engine.functions.ts`: `simulateFlow`, `resumeSimulation`, `validateFlowDefinition`, `listExecutions`, `getExecutionLogs`.
+- Todas com `requireSupabaseAuth`.
+- `supabaseAdmin` só dentro do webhook (import dinâmico), nunca no módulo.
+- IA das condições via Lovable AI Gateway (`google/gemini-2.5-flash`), sem chave do usuário.
+- Realtime: canal `flow_execution_logs:execution_id=eq.<id>` montado em `useEffect` com cleanup.
+- Migração de dados: fluxos existentes continuam funcionando; `flow_state` em `conversations` vira fallback read-only até primeira execução nova.
+
+## Entregáveis
+
+1. Migration (`flow_executions`, `flow_execution_logs`, realtime, RLS, grants).
+2. `src/lib/flow-engine.server.ts` + `flows-engine.functions.ts` (novo motor + server fns).
+3. Webhook `evolution.$instance.ts` usando o novo motor.
+4. `/flows` refatorado com canvas React Flow + painel de variáveis.
+5. `/flow-debug` (ou aba) com simulador + logs em tempo real.
+6. Remover `flow_runner.server.ts` antigo depois que tudo migrar.
+
+Confirma que posso seguir? Se quiser, corto escopo (ex.: manter editor atual e entregar só motor+debug+simulador primeiro).

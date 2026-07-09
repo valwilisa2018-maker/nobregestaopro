@@ -1047,6 +1047,107 @@ export type Database = {
           },
         ]
       }
+      flow_execution_logs: {
+        Row: {
+          block_id: string | null
+          created_at: string
+          data: Json | null
+          duration_ms: number | null
+          event: string
+          execution_id: string
+          id: string
+          level: string
+          message: string | null
+          user_id: string
+        }
+        Insert: {
+          block_id?: string | null
+          created_at?: string
+          data?: Json | null
+          duration_ms?: number | null
+          event: string
+          execution_id: string
+          id?: string
+          level?: string
+          message?: string | null
+          user_id: string
+        }
+        Update: {
+          block_id?: string | null
+          created_at?: string
+          data?: Json | null
+          duration_ms?: number | null
+          event?: string
+          execution_id?: string
+          id?: string
+          level?: string
+          message?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "flow_execution_logs_execution_id_fkey"
+            columns: ["execution_id"]
+            isOneToOne: false
+            referencedRelation: "flow_executions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      flow_executions: {
+        Row: {
+          awaiting_variable: string | null
+          completed_at: string | null
+          connection_id: string | null
+          contact_id: string | null
+          conversation_id: string | null
+          current_block_id: string | null
+          flow_id: string
+          id: string
+          is_simulation: boolean
+          last_error: string | null
+          started_at: string
+          status: string
+          updated_at: string
+          user_id: string
+          variables: Json
+        }
+        Insert: {
+          awaiting_variable?: string | null
+          completed_at?: string | null
+          connection_id?: string | null
+          contact_id?: string | null
+          conversation_id?: string | null
+          current_block_id?: string | null
+          flow_id: string
+          id?: string
+          is_simulation?: boolean
+          last_error?: string | null
+          started_at?: string
+          status?: string
+          updated_at?: string
+          user_id: string
+          variables?: Json
+        }
+        Update: {
+          awaiting_variable?: string | null
+          completed_at?: string | null
+          connection_id?: string | null
+          contact_id?: string | null
+          conversation_id?: string | null
+          current_block_id?: string | null
+          flow_id?: string
+          id?: string
+          is_simulation?: boolean
+          last_error?: string | null
+          started_at?: string
+          status?: string
+          updated_at?: string
+          user_id?: string
+          variables?: Json
+        }
+        Relationships: []
+      }
       flows: {
         Row: {
           connection_id: string | null

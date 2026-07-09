@@ -157,7 +157,7 @@ export async function runFlow(args: {
   // TYPING/RECORDING/WAIT nodes chained together.
   let hops = 0;
   const deadline = Date.now() + 25_000;
-  while (state.current_node && hops++ < 40) {
+  while (state.current_node && hops++ < 200) {
     if (Date.now() > deadline) break;
     const node = def.nodes.find((n) => n.id === state.current_node);
     if (!node) break;
