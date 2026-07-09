@@ -1536,16 +1536,22 @@ function MiniStat({ icon: Icon, label, value, suffix, valueClass, size }: any) {
   );
 }
 function BigKpi({ label, value, accent = "" }: any) {
+  const isPts = typeof label === "string" && /pontos/i.test(label);
+  const n = Number(value);
   return (
     <Card className="border-border/50" style={{ boxShadow: "var(--shadow-card)" }}>
       <CardContent className="p-5">
         <div className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground font-semibold">{label}</div>
         <div className={`text-4xl font-extrabold mt-2 ${accent}`}>{value}</div>
+        {isPts && Number.isFinite(n) && (
+          <div className="text-[11px] text-muted-foreground mt-1">≡ {n.toFixed(0)} vídeos</div>
+        )}
       </CardContent>
     </Card>
   );
 }
 function HighlightCard({ title, icon: Icon, producer, valueLabel }: any) {
+  const ptsMatch = typeof valueLabel === "string" ? valueLabel.match(/^(\d+)\s*pts$/i) : null;
   return (
     <div className="p-4 rounded-xl border border-border/40 bg-muted/20 text-center">
       <div className="text-[10px] uppercase text-muted-foreground flex items-center justify-center gap-1 font-semibold mb-2"><Icon className="w-3 h-3" /> {title}</div>
@@ -1554,6 +1560,9 @@ function HighlightCard({ title, icon: Icon, producer, valueLabel }: any) {
           <Avatar className="w-16 h-16 mx-auto mb-2 ring-2 ring-primary/30"><AvatarImage src={producer.avatar_url} /><AvatarFallback>{initials(producer.name)}</AvatarFallback></Avatar>
           <div className="font-bold text-sm uppercase truncate">{producer.name}</div>
           <div className="text-xs text-rose-500 font-bold mt-1">{valueLabel}</div>
+          {ptsMatch && (
+            <div className="text-[10px] text-muted-foreground">≡ {ptsMatch[1]} vídeos</div>
+          )}
         </>
       ) : (
         <div className="text-muted-foreground text-sm py-4">—</div>
@@ -1569,7 +1578,7 @@ function CompCol({ title, pts, projetos, alteracoes, produtores, approv, side, d
         {diff && <span className="text-[10px] text-emerald-500">{diff.pts}</span>}
       </div>
       <div className="space-y-1.5 text-sm">
-        <Row label="Pontuação" v={`${Math.round(pts)} pts`} accent="text-blue-400" />
+        <Row label="Pontuação" v={`${Math.round(pts)} pts`} accent="text-blue-400" sub={`≡ ${Math.round(pts)} vídeos`} />
         <Row label="Projetos" v={String(projetos)} />
         <Row label="Alterações" v={String(alteracoes)} />
         <Row label="Produtores" v={String(produtores)} />
@@ -1578,9 +1587,15 @@ function CompCol({ title, pts, projetos, alteracoes, produtores, approv, side, d
     </div>
   );
 }
-function Row({ label, v, accent = "" }: any) {
+function Row({ label, v, accent = "", sub }: any) {
   return (
-    <div className="flex justify-between"><span className="text-muted-foreground">{label}</span><span className={`font-bold ${accent}`}>{v}</span></div>
+    <div className="flex justify-between items-start">
+      <span className="text-muted-foreground">{label}</span>
+      <span className="text-right">
+        <span className={`font-bold ${accent}`}>{v}</span>
+        {sub && <span className="block text-[10px] text-muted-foreground font-normal">{sub}</span>}
+      </span>
+    </div>
   );
 }
 function RewardChip({ pct, label, active, highlight }: any) {
