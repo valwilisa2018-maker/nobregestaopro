@@ -914,11 +914,60 @@ export const Route = createFileRoute("/api/public/evolution/$instance")({
                 ];
                 active = forConn.find((f) => kwList(f).some((k) => k && text!.toLowerCase().includes(k.toLowerCase())))
                   ?? null;
+                // Correlation diagnostics: registra motivo claro no painel de logs
+                // para o usuário entender por que a mensagem não disparou fluxo.
+                if (!active) {
+                  const reason = candidates.length === 0
+                    ? "no_active_flows_for_user"
+                    : forConn.length === 0
+                      ? "no_flow_bound_to_this_connection"
+                      : "no_keyword_match";
+                  await supabaseAdmin.from("logs").insert({
+                    user_id: conn.user_id,
+                    level: "warn",
+                    source: `flow-correlator:${instance}`,
+                    message: `Não foi possível correlacionar um fluxo para esta mensagem (motivo: ${reason}).`,
+                    metadata: {
+                      instance,
+                      connection_id: conn.id,
+                      remoteJid,
+                      conversation_id: convo?.id ?? null,
+                      previous_flow_id: st.flow_id ?? null,
+                      previous_flow_finished: !!st.finished,
+                      total_active_flows: candidates.length,
+                      flows_for_connection: forConn.length,
+                      candidate_flow_ids: forConn.map((f) => f.id),
+                      keywords_by_flow: Object.fromEntries(forConn.map((f) => [f.id, kwList(f)])),
+                      user_text_preview: (text ?? "").slice(0, 120),
+                      reason,
+                    } as never,
+                  } as never);
+                }
               }
               if (active && convo) {
                 try {
                   const def = active.definition as { nodes?: any[]; edges?: any[] };
-                  if (Array.isArray(def?.nodes) && Array.isArray(def?.edges)) {
+                  const validDef = Array.isArray(def?.nodes) && Array.isArray(def?.edges);
+                  const hasStart = validDef && (def!.nodes as Array<{ data?: { kind?: string } }>).some((n) => n?.data?.kind === "START");
+                  if (!validDef || !hasStart) {
+                    await supabaseAdmin.from("logs").insert({
+                      user_id: conn.user_id,
+                      level: "error",
+                      source: `flow-correlator:${instance}`,
+                      message: !validDef
+                        ? "Fluxo correlacionado, mas a definição está inválida (nodes/edges ausentes)."
+                        : "Fluxo correlacionado, mas não possui bloco START.",
+                      metadata: {
+                        instance,
+                        connection_id: conn.id,
+                        flow_id: active.id,
+                        conversation_id: convo.id,
+                        validDef,
+                        hasStart,
+                      } as never,
+                    } as never);
+                  }
+                  if (validDef && hasStart) {
                     // --- Live execution tracking (Debug de Fluxo → Execuções ao vivo) ---
                     const { data: existingExec } = await supabaseAdmin
                       .from("flow_executions")
