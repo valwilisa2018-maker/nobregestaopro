@@ -42,10 +42,24 @@ export type RunnerConn = {
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 function nextNode(def: FlowDef, from: string, handle?: string): string | null {
-  const edge = def.edges.find(
-    (e) => e.source === from && (handle ? (e.sourceHandle ?? "out") === handle : true),
-  );
-  return edge?.target ?? null;
+  const outgoing = def.edges.filter((e) => e.source === from);
+  if (!outgoing.length) return null;
+  if (!handle || handle === "out") {
+    const plain = outgoing.find((e) => !e.sourceHandle || e.sourceHandle === "out");
+    return (plain ?? outgoing[0]).target;
+  }
+  // Exact handle match first
+  const exact = outgoing.find((e) => e.sourceHandle === handle);
+  if (exact) return exact.target;
+  // Fallback: match by edge id containing sim/não/nao (fluxos gerados por IA
+  // frequentemente omitem sourceHandle mas colocam a intenção no id da aresta)
+  const norm = (s: string) => s.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+  const target = norm(handle) === "sim" ? "sim" : "nao";
+  const byId = outgoing.find((e) => norm(e.id ?? "").includes(`-${target}-`) || norm(e.id ?? "").includes(target));
+  if (byId) return byId.target;
+  // Último recurso: se houver exatamente 2 saídas, assume ordem sim (1ª) / não (2ª)
+  if (outgoing.length === 2) return outgoing[target === "sim" ? 0 : 1].target;
+  return outgoing[0].target;
 }
 
 function interpolate(t: string | undefined, vars: Record<string, string>) {
