@@ -2901,3 +2901,81 @@ function AudioPlayer({
     </div>
   );
 }
+
+function FlowLauncher({ contactId }: { contactId: string | null }) {
+  const { user } = useAuth();
+  const startFlow = useServerFn(startFlowForContact);
+  const [open, setOpen] = useState(false);
+  const [flows, setFlows] = useState<Array<{ id: string; name: string; is_active: boolean | null }>>([]);
+  const [loading, setLoading] = useState(false);
+  const [startingId, setStartingId] = useState<string | null>(null);
+
+  async function openDialog() {
+    if (!contactId || !user) return;
+    setOpen(true);
+    setLoading(true);
+    const { data } = await supabase
+      .from("flows")
+      .select("id,name,is_active")
+      .eq("user_id", user.id)
+      .order("name");
+    setFlows((data ?? []) as typeof flows);
+    setLoading(false);
+  }
+
+  return (
+    <>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <button
+            onClick={openDialog}
+            disabled={!contactId}
+            className="p-2 text-gray-500 hover:text-gray-700 disabled:opacity-40 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 rounded-full transition"
+            aria-label="Iniciar fluxo"
+          >
+            <Workflow className="h-6 w-6" />
+          </button>
+        </TooltipTrigger>
+        <TooltipContent side="top">Iniciar fluxo</TooltipContent>
+      </Tooltip>
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Escolha um fluxo para iniciar</DialogTitle>
+          </DialogHeader>
+          <div className="max-h-[50vh] overflow-y-auto divide-y divide-border/50">
+            {loading && <div className="p-6 text-center text-xs text-muted-foreground">Carregando...</div>}
+            {!loading && flows.map((f) => (
+              <div key={f.id} className="flex items-center justify-between gap-2 py-2">
+                <div className="min-w-0">
+                  <div className="text-sm font-medium truncate">{f.name}</div>
+                  <div className="text-[11px] text-muted-foreground">{f.is_active ? "Ativo" : "Inativo"}</div>
+                </div>
+                <Button
+                  size="sm"
+                  disabled={!contactId || startingId === f.id}
+                  onClick={async () => {
+                    if (!contactId) return;
+                    setStartingId(f.id);
+                    try {
+                      await startFlow({ data: { contactId, flowId: f.id } });
+                      toast.success("Fluxo iniciado");
+                      setOpen(false);
+                    } catch (e) {
+                      toast.error(e instanceof Error ? e.message : "Falha ao iniciar fluxo");
+                    } finally {
+                      setStartingId(null);
+                    }
+                  }}
+                >
+                  {startingId === f.id ? "Iniciando..." : "Iniciar"}
+                </Button>
+              </div>
+            ))}
+            {!loading && !flows.length && <div className="p-6 text-center text-xs text-muted-foreground">Nenhum fluxo cadastrado</div>}
+          </div>
+        </DialogContent>
+      </Dialog>
+    </>
+  );
+}
