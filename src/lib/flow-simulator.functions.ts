@@ -166,7 +166,7 @@ export const startSimulation = createServerFn({ method: "POST" })
       user_id: context.userId,
       flow_id: flow.id,
       status: result.waiting ? "waiting_user_input" : "completed",
-      current_block_id: result.state.current_node ?? null,
+      current_block_id: result.state.current_node ?? result.state.awaiting?.node_id ?? null,
       awaiting_variable: result.state.awaiting?.variable ?? null,
       variables: result.state.variables ?? {},
       is_simulation: true,
