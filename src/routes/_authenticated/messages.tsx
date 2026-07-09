@@ -409,20 +409,49 @@ function MessagesPage() {
   // Forward dialog
   const [forwardMsg, setForwardMsg] = useState<Msg | null>(null);
   const [forwardSearch, setForwardSearch] = useState("");
-  const doForward = useCallback(async (target: Contact) => {
-    if (!forwardMsg) return;
-    const src = forwardMsg;
+  const [forwardSelected, setForwardSelected] = useState<Record<string, boolean>>({});
+  const [forwardSending, setForwardSending] = useState(false);
+  const FORWARD_LIMIT = 10;
+  const forwardSelectedCount = Object.values(forwardSelected).filter(Boolean).length;
+  const toggleForwardTarget = useCallback((c: Contact) => {
+    setForwardSelected((prev) => {
+      const next = { ...prev };
+      if (next[c.id]) { delete next[c.id]; return next; }
+      const count = Object.values(next).filter(Boolean).length;
+      if (count >= FORWARD_LIMIT) {
+        toast.error(`Máximo de ${FORWARD_LIMIT} contatos por encaminhamento`);
+        return prev;
+      }
+      next[c.id] = true;
+      return next;
+    });
+  }, []);
+  const closeForward = useCallback(() => {
     setForwardMsg(null);
     setForwardSearch("");
-    try {
-      const res = await forwardMsgFn({ data: { messageId: src.id, targetContactId: target.id } });
-      if (res && "ok" in res && res.ok === false) throw new Error((res as { error?: string }).error || "Falha ao encaminhar");
-      toast.success(`Encaminhada para ${target.name || target.phone}`);
-      if (target.id === selected?.id) await loadMessages();
-    } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Falha ao encaminhar");
+    setForwardSelected({});
+  }, []);
+  const doForward = useCallback(async () => {
+    if (!forwardMsg) return;
+    const targets = contacts.filter((c) => forwardSelected[c.id]);
+    if (!targets.length) { toast.error("Selecione ao menos um contato"); return; }
+    const src = forwardMsg;
+    setForwardSending(true);
+    let ok = 0; let fail = 0;
+    for (const t of targets) {
+      try {
+        const res = await forwardMsgFn({ data: { messageId: src.id, targetContactId: t.id } });
+        if (res && "ok" in res && res.ok === false) throw new Error((res as { error?: string }).error || "Falha");
+        ok++;
+        if (t.id === selected?.id) await loadMessages();
+      } catch { fail++; }
     }
-  }, [forwardMsg, selected, forwardMsgFn]);
+    setForwardSending(false);
+    closeForward();
+    if (ok && !fail) toast.success(`Encaminhada para ${ok} contato${ok > 1 ? "s" : ""}`);
+    else if (ok && fail) toast.warning(`${ok} enviada${ok > 1 ? "s" : ""}, ${fail} falharam`);
+    else toast.error("Falha ao encaminhar");
+  }, [forwardMsg, forwardSelected, contacts, selected, forwardMsgFn, closeForward]);
 
   const performEdit = useCallback(async () => {
     if (!editMsg) return;
