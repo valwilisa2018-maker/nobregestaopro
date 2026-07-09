@@ -2967,9 +2967,11 @@ function FlowLauncher({ contactId }: { contactId: string | null }) {
   const { user } = useAuth();
   const startFlow = useServerFn(startFlowForContact);
   const [open, setOpen] = useState(false);
-  const [flows, setFlows] = useState<Array<{ id: string; name: string; is_active: boolean | null }>>([]);
+  const [flows, setFlows] = useState<Array<{ id: string; name: string; is_active: boolean | null; trigger_keywords: string[] | null }>>([]);
   const [loading, setLoading] = useState(false);
   const [startingId, setStartingId] = useState<string | null>(null);
+  const [savingId, setSavingId] = useState<string | null>(null);
+  const [kwDraft, setKwDraft] = useState<Record<string, string>>({});
 
   async function openDialog() {
     if (!contactId || !user) return;
@@ -2977,11 +2979,42 @@ function FlowLauncher({ contactId }: { contactId: string | null }) {
     setLoading(true);
     const { data } = await supabase
       .from("flows")
-      .select("id,name,is_active")
+      .select("id,name,is_active,trigger_keywords")
       .eq("user_id", user.id)
       .order("name");
     setFlows((data ?? []) as typeof flows);
     setLoading(false);
+  }
+
+  async function toggleActive(f: { id: string; is_active: boolean | null }) {
+    const next = !f.is_active;
+    setFlows((prev) => prev.map((x) => (x.id === f.id ? { ...x, is_active: next } : x)));
+    const { error } = await supabase.from("flows").update({ is_active: next }).eq("id", f.id);
+    if (error) {
+      toast.error("Falha ao atualizar status");
+      setFlows((prev) => prev.map((x) => (x.id === f.id ? { ...x, is_active: !next } : x)));
+    } else {
+      toast.success(next ? "Fluxo ativado" : "Fluxo desativado");
+    }
+  }
+
+  async function saveKeywords(id: string) {
+    const raw = kwDraft[id] ?? "";
+    const list = raw.split(",").map((s) => s.trim()).filter(Boolean);
+    setSavingId(id);
+    const { error } = await supabase.from("flows").update({ trigger_keywords: list }).eq("id", id);
+    setSavingId(null);
+    if (error) {
+      toast.error("Falha ao salvar palavras-chave");
+      return;
+    }
+    setFlows((prev) => prev.map((x) => (x.id === id ? { ...x, trigger_keywords: list } : x)));
+    setKwDraft((prev) => {
+      const next = { ...prev };
+      delete next[id];
+      return next;
+    });
+    toast.success("Palavras-chave salvas");
   }
 
   return (
@@ -3000,40 +3033,93 @@ function FlowLauncher({ contactId }: { contactId: string | null }) {
         <TooltipContent side="top">Iniciar fluxo</TooltipContent>
       </Tooltip>
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle>Escolha um fluxo para iniciar</DialogTitle>
-          </DialogHeader>
-          <div className="max-h-[50vh] overflow-y-auto divide-y divide-border/50">
-            {loading && <div className="p-6 text-center text-xs text-muted-foreground">Carregando...</div>}
-            {!loading && flows.map((f) => (
-              <div key={f.id} className="flex items-center justify-between gap-2 py-2">
-                <div className="min-w-0">
-                  <div className="text-sm font-medium truncate">{f.name}</div>
-                  <div className="text-[11px] text-muted-foreground">{f.is_active ? "Ativo" : "Inativo"}</div>
+        <DialogContent className="max-w-lg p-0 overflow-hidden border-0 bg-gradient-to-br from-slate-900 via-slate-950 to-black text-white">
+          <div className="p-5 border-b border-white/10 bg-gradient-to-r from-emerald-500/10 to-transparent">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2 text-white">
+                <div className="h-8 w-8 rounded-lg bg-emerald-500/20 grid place-items-center ring-1 ring-emerald-400/30">
+                  <Workflow className="h-4 w-4 text-emerald-400" />
                 </div>
-                <Button
-                  size="sm"
-                  disabled={!contactId || startingId === f.id}
-                  onClick={async () => {
-                    if (!contactId) return;
-                    setStartingId(f.id);
-                    try {
-                      await startFlow({ data: { contactId, flowId: f.id } });
-                      toast.success("Fluxo iniciado");
-                      setOpen(false);
-                    } catch (e) {
-                      toast.error(e instanceof Error ? e.message : "Falha ao iniciar fluxo");
-                    } finally {
-                      setStartingId(null);
-                    }
-                  }}
+                Fluxos disponíveis
+              </DialogTitle>
+              <p className="text-xs text-white/60 mt-1">Ative, defina palavras-chave e inicie um fluxo para este contato.</p>
+            </DialogHeader>
+          </div>
+          <div className="max-h-[60vh] overflow-y-auto p-4 space-y-3">
+            {loading && <div className="p-6 text-center text-xs text-white/60">Carregando...</div>}
+            {!loading && flows.map((f) => {
+              const kws = f.trigger_keywords ?? [];
+              const draftValue = kwDraft[f.id];
+              const editing = draftValue !== undefined;
+              return (
+                <div
+                  key={f.id}
+                  className="rounded-xl border border-white/10 bg-white/[0.03] hover:bg-white/[0.05] transition p-4 space-y-3 shadow-lg shadow-black/20"
                 >
-                  {startingId === f.id ? "Iniciando..." : "Iniciar"}
-                </Button>
-              </div>
-            ))}
-            {!loading && !flows.length && <div className="p-6 text-center text-xs text-muted-foreground">Nenhum fluxo cadastrado</div>}
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2">
+                        <div className="text-sm font-semibold truncate">{f.name}</div>
+                        <Badge
+                          variant="outline"
+                          className={`text-[10px] px-1.5 py-0 h-4 border ${f.is_active ? "border-emerald-400/40 text-emerald-300 bg-emerald-500/10" : "border-white/20 text-white/50"}`}
+                        >
+                          {f.is_active ? "Ativo" : "Inativo"}
+                        </Badge>
+                      </div>
+                      <div className="text-[11px] text-white/50 mt-0.5">
+                        {kws.length ? `Dispara com: ${kws.join(", ")}` : "Sem palavras-chave configuradas"}
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2 shrink-0">
+                      <Switch checked={!!f.is_active} onCheckedChange={() => toggleActive(f)} />
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <Input
+                      placeholder="Palavras-chave separadas por vírgula (ex: oi, olá, começar)"
+                      value={editing ? draftValue : kws.join(", ")}
+                      onChange={(e) => setKwDraft((prev) => ({ ...prev, [f.id]: e.target.value }))}
+                      className="h-8 bg-white/5 border-white/10 text-white placeholder:text-white/30 text-xs"
+                    />
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      disabled={!editing || savingId === f.id}
+                      onClick={() => saveKeywords(f.id)}
+                      className="h-8 border-white/15 bg-white/5 text-white hover:bg-white/10"
+                    >
+                      {savingId === f.id ? "..." : "Salvar"}
+                    </Button>
+                  </div>
+
+                  <div className="flex justify-end">
+                    <Button
+                      size="sm"
+                      disabled={!contactId || startingId === f.id}
+                      onClick={async () => {
+                        if (!contactId) return;
+                        setStartingId(f.id);
+                        try {
+                          await startFlow({ data: { contactId, flowId: f.id } });
+                          toast.success("Fluxo iniciado");
+                          setOpen(false);
+                        } catch (e) {
+                          toast.error(e instanceof Error ? e.message : "Falha ao iniciar fluxo");
+                        } finally {
+                          setStartingId(null);
+                        }
+                      }}
+                      className="bg-emerald-500 hover:bg-emerald-400 text-black font-medium"
+                    >
+                      {startingId === f.id ? "Iniciando..." : "Iniciar agora"}
+                    </Button>
+                  </div>
+                </div>
+              );
+            })}
+            {!loading && !flows.length && <div className="p-6 text-center text-xs text-white/60">Nenhum fluxo cadastrado</div>}
           </div>
         </DialogContent>
       </Dialog>
