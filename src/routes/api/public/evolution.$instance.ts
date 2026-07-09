@@ -881,7 +881,7 @@ export const Route = createFileRoute("/api/public/evolution/$instance")({
                 .eq("is_active", true);
               const candidates = (flows ?? []) as Array<{ id: string; definition: any; trigger: string | null; trigger_keywords: string[] | null; connection_id: string | null }>;
               // Prefer flow already in progress; else match by connection + keyword; else first for this connection.
-              const st = ((convo?.flow_state ?? {}) as { flow_id?: string; finished?: boolean; updated_at?: string; awaiting?: unknown });
+              const st = ((convo?.flow_state ?? {}) as import("@/lib/flow-runner.server").FlowState);
               // Abandonment: if user stopped replying mid-flow, hand back to AI
               // after N hours (default 24h). Configurable via connection ext.flow_timeout_hours.
               const timeoutHours = Math.max(1, Number(ext.flow_timeout_hours ?? 24));
