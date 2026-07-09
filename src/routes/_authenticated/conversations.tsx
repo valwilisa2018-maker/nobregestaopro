@@ -8,10 +8,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { toast } from "sonner";
-import { useServerFn } from "@tanstack/react-start";
-import { startFlowForConversation } from "@/lib/conversations-flow.functions";
 
 export const Route = createFileRoute("/_authenticated/conversations")({
   head: () => ({ meta: [{ title: "Conversas — Plataforma IA WhatsApp" }] }),
