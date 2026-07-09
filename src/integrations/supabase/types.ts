@@ -1076,6 +1076,8 @@ export type Database = {
           color: string | null
           column_id: string
           created_at: string
+          customer_id: string | null
+          customer_seq: number | null
           delivered_at: string | null
           description: string | null
           due_date: string | null
@@ -1091,6 +1093,7 @@ export type Database = {
           redo_count: number
           sale_id: string | null
           service_index: number
+          service_type_id: string | null
           sort_order: number
           title: string
           trello_link: string | null
@@ -1101,6 +1104,8 @@ export type Database = {
           color?: string | null
           column_id: string
           created_at?: string
+          customer_id?: string | null
+          customer_seq?: number | null
           delivered_at?: string | null
           description?: string | null
           due_date?: string | null
@@ -1116,6 +1121,7 @@ export type Database = {
           redo_count?: number
           sale_id?: string | null
           service_index?: number
+          service_type_id?: string | null
           sort_order?: number
           title: string
           trello_link?: string | null
@@ -1126,6 +1132,8 @@ export type Database = {
           color?: string | null
           column_id?: string
           created_at?: string
+          customer_id?: string | null
+          customer_seq?: number | null
           delivered_at?: string | null
           description?: string | null
           due_date?: string | null
@@ -1141,6 +1149,7 @@ export type Database = {
           redo_count?: number
           sale_id?: string | null
           service_index?: number
+          service_type_id?: string | null
           sort_order?: number
           title?: string
           trello_link?: string | null
