@@ -880,7 +880,17 @@ export const Route = createFileRoute("/api/public/evolution/$instance")({
                 .eq("is_active", true);
               const candidates = (flows ?? []) as Array<{ id: string; definition: any; trigger: string | null; trigger_keywords: string[] | null; connection_id: string | null }>;
               // Prefer flow already in progress; else match by connection + keyword; else first for this connection.
-              const st = ((convo?.flow_state ?? {}) as { flow_id?: string; finished?: boolean });
+              const st = ((convo?.flow_state ?? {}) as { flow_id?: string; finished?: boolean; updated_at?: string; awaiting?: unknown });
+              // Abandonment: if user stopped replying mid-flow, hand back to AI
+              // after N hours (default 24h). Configurable via connection ext.flow_timeout_hours.
+              const timeoutHours = Math.max(1, Number(ext.flow_timeout_hours ?? 24));
+              const stAge = st.updated_at ? (Date.now() - new Date(st.updated_at).getTime()) / 3600000 : 0;
+              if (st.flow_id && !st.finished && st.updated_at && stAge >= timeoutHours) {
+                if (convo) await supabaseAdmin.from("conversations").update({
+                  flow_state: { finished: true, abandoned_at: new Date().toISOString() } as never,
+                } as never).eq("id", convo.id);
+                st.flow_id = undefined; st.finished = true;
+              }
               let active = st.flow_id && !st.finished ? candidates.find((f) => f.id === st.flow_id) : null;
               // If the in-progress flow was deactivated after it started (or belongs
               // to another connection), still resume it so the user's reply advances
@@ -918,7 +928,7 @@ export const Route = createFileRoute("/api/public/evolution/$instance")({
                       flowId: active.id,
                     });
                     await supabaseAdmin.from("conversations").update({
-                      flow_state: result.state as never,
+                      flow_state: { ...result.state, updated_at: new Date().toISOString() } as never,
                       last_message_at: new Date().toISOString(),
                     } as never).eq("id", convo.id);
                     return Response.json({ ok: true, flow: active.id, waiting: !!result.waitingForUser, finished: !!result.finished, handedOff: !!result.handedOff });
