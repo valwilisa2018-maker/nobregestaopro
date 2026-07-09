@@ -9,7 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { LifeBuoy, Loader2, Send, Plus } from "lucide-react";
+import { LifeBuoy, Loader2, Send, Plus, Phone, Mail, MessageCircle } from "lucide-react";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/support")({
@@ -19,6 +19,7 @@ export const Route = createFileRoute("/_authenticated/support")({
 
 type Ticket = { id: string; subject: string; status: string; last_message_at: string; created_at: string };
 type Msg = { id: string; sender_role: string; body: string; created_at: string };
+type SupportContacts = { phone?: string; email?: string; whatsapp?: string; whatsapp_message?: string };
 
 function Page() {
   const [tickets, setTickets] = useState<Ticket[]>([]);
@@ -30,6 +31,7 @@ function Page() {
   const [subject, setSubject] = useState("");
   const [firstMsg, setFirstMsg] = useState("");
   const [busy, setBusy] = useState(false);
+  const [contacts, setContacts] = useState<SupportContacts>({});
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -38,6 +40,14 @@ function Page() {
     setLoading(false);
   }, []);
   useEffect(() => { load(); }, [load]);
+
+  useEffect(() => {
+    supabase.from("internal_config").select("value").eq("key", "support_contacts").maybeSingle()
+      .then(({ data }) => {
+        if (!data?.value) return;
+        try { setContacts(JSON.parse(data.value) as SupportContacts); } catch { /* ignore */ }
+      });
+  }, []);
 
   useEffect(() => {
     if (!selected) return;
@@ -80,6 +90,42 @@ function Page() {
   return (
     <PageShell title="Suporte" description="Abra um ticket e nossa equipe responde por aqui." icon={<LifeBuoy className="h-6 w-6" />} status="ativo"
       actions={<Button onClick={() => setNewOpen(true)}><Plus className="h-4 w-4" /> Novo ticket</Button>}>
+      {(contacts.phone || contacts.email || contacts.whatsapp) && (
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 mb-4">
+          {contacts.whatsapp && (
+            <a
+              href={`https://wa.me/${contacts.whatsapp.replace(/\D/g, "")}${contacts.whatsapp_message ? `?text=${encodeURIComponent(contacts.whatsapp_message)}` : ""}`}
+              target="_blank" rel="noopener noreferrer"
+              className="group flex items-center gap-3 rounded-xl border border-emerald-500/30 bg-gradient-to-br from-emerald-500/10 to-emerald-500/5 p-4 transition hover:border-emerald-500/60 hover:shadow-lg hover:shadow-emerald-500/10">
+              <div className="grid h-11 w-11 place-items-center rounded-lg bg-emerald-500/20 text-emerald-500"><MessageCircle className="h-5 w-5" /></div>
+              <div className="min-w-0">
+                <div className="text-xs uppercase tracking-wide text-muted-foreground">WhatsApp</div>
+                <div className="truncate font-semibold text-sm">{contacts.whatsapp}</div>
+              </div>
+            </a>
+          )}
+          {contacts.phone && (
+            <a href={`tel:${contacts.phone.replace(/\s/g, "")}`}
+              className="group flex items-center gap-3 rounded-xl border border-primary/30 bg-gradient-to-br from-primary/10 to-primary/5 p-4 transition hover:border-primary/60 hover:shadow-lg hover:shadow-primary/10">
+              <div className="grid h-11 w-11 place-items-center rounded-lg bg-primary/20 text-primary"><Phone className="h-5 w-5" /></div>
+              <div className="min-w-0">
+                <div className="text-xs uppercase tracking-wide text-muted-foreground">Telefone</div>
+                <div className="truncate font-semibold text-sm">{contacts.phone}</div>
+              </div>
+            </a>
+          )}
+          {contacts.email && (
+            <a href={`mailto:${contacts.email}`}
+              className="group flex items-center gap-3 rounded-xl border border-blue-500/30 bg-gradient-to-br from-blue-500/10 to-blue-500/5 p-4 transition hover:border-blue-500/60 hover:shadow-lg hover:shadow-blue-500/10">
+              <div className="grid h-11 w-11 place-items-center rounded-lg bg-blue-500/20 text-blue-500"><Mail className="h-5 w-5" /></div>
+              <div className="min-w-0">
+                <div className="text-xs uppercase tracking-wide text-muted-foreground">E-mail</div>
+                <div className="truncate font-semibold text-sm">{contacts.email}</div>
+              </div>
+            </a>
+          )}
+        </div>
+      )}
       {loading ? <div className="p-12 flex justify-center"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div> : (
         <div className="grid gap-4 lg:grid-cols-[300px_1fr]">
           <Card><CardContent className="p-0 max-h-[70vh] overflow-y-auto">
