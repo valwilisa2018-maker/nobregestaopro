@@ -1006,7 +1006,7 @@ export const Route = createFileRoute("/api/public/evolution/$instance")({
                       conn: { id: conn.id, user_id: conn.user_id, url_api: conn.url_api, api_key: commandConn.api_key, instance_name: conn.instance_name },
                       recipient,
                       userText: text,
-                      def: { nodes: def.nodes, edges: def.edges },
+                      def: { nodes: def!.nodes as never, edges: def!.edges as never },
                       state: st,
                       flowId: active.id,
                       conversationId: convo.id,
