@@ -278,6 +278,12 @@ export const runBroadcastBatch = createServerFn({ method: "POST" })
         const number = `${(r.phone as string).replace(/\D/g, "")}@s.whatsapp.net`;
         if (b.flow_id && (!flowDef || !runFlow)) throw new Error("Fluxo inválido ou sem início configurado");
         if (flowDef && runFlow) {
+          const conversationId = await getOrCreateBroadcastConversation(
+            context.supabase,
+            context.userId,
+            conn.id as string,
+            number,
+          );
           const result = await runFlow({
             db: context.supabase as never,
             conn: {
@@ -292,13 +298,9 @@ export const runBroadcastBatch = createServerFn({ method: "POST" })
             def: flowDef as never,
             state: { variables: { nome: contactName || "cliente", telefone: r.phone as string } },
             flowId: b.flow_id as string,
+            conversationId,
+            userId: context.userId,
           });
-          const conversationId = await getOrCreateBroadcastConversation(
-            context.supabase,
-            context.userId,
-            conn.id as string,
-            number,
-          );
           await context.supabase.from("conversations").update({
             flow_state: result.state as never,
             last_message_at: new Date().toISOString(),
