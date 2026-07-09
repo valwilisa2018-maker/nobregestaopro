@@ -670,7 +670,10 @@ export function DinamicaView({ delivered, producers, computePts, sumPts, prodOf,
                 {topToday.map((p, i) => (
                   <div key={i} className="flex items-center justify-between p-3 rounded-lg bg-muted/30">
                     <div className="flex items-center gap-2"><span className="text-lg">{i === 0 ? "🥇" : "🥈"}</span><Avatar className="w-11 h-11 ring-2 ring-primary/30"><AvatarImage src={p.avatar_url} /><AvatarFallback className="text-xs">{initials(p.name)}</AvatarFallback></Avatar><span className="font-bold text-sm">{p.name}</span></div>
-                    <span className="font-bold text-sm">{p.points} <span className="text-[10px] text-muted-foreground">pts</span></span>
+                    <div className="text-right">
+                      <div className="font-bold text-sm">{p.points} <span className="text-[10px] text-muted-foreground">pts</span></div>
+                      <div className="text-[10px] text-muted-foreground">≡ {p.points} vídeos</div>
+                    </div>
                   </div>
                 ))}
               </div>
