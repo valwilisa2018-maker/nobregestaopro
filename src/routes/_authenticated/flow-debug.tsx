@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { Bug, Loader2, Play, Send, Trash2, AlertTriangle, CheckCircle2, PauseCircle } from "lucide-react";
+import { Bug, Loader2, Play, Send, Trash2, AlertTriangle, CheckCircle2, PauseCircle, Activity, FlaskConical, RefreshCw } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useServerFn } from "@tanstack/react-start";
 import { startSimulation, sendSimulationInput, listExecutions, deleteExecution, validateFlow } from "@/lib/flow-simulator.functions";
 
@@ -47,6 +48,7 @@ function Page() {
   const [input, setInput] = useState("");
   const [busy, setBusy] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [tab, setTab] = useState<"live" | "sim">("live");
 
   const startFn = useServerFn(startSimulation);
   const sendFn = useServerFn(sendSimulationInput);
@@ -91,6 +93,16 @@ function Page() {
   }, [user, selected?.id]);
 
   const flowName = useMemo(() => Object.fromEntries(flows.map((f) => [f.id, f.name])), [flows]);
+  const liveExecs = useMemo(() => execs.filter((e) => !e.is_simulation), [execs]);
+  const simExecs = useMemo(() => execs.filter((e) => e.is_simulation), [execs]);
+  const liveErrors = useMemo(() => liveExecs.filter((e) => e.status === "failed" || e.last_error).length, [liveExecs]);
+
+  // When switching tabs, clear selection if it no longer belongs to the tab
+  useEffect(() => {
+    if (!selected) return;
+    if (tab === "live" && selected.is_simulation) setSelected(null);
+    if (tab === "sim" && !selected.is_simulation) setSelected(null);
+  }, [tab, selected]);
 
   async function onStart() {
     if (!pickedFlow) return toast.error("Escolha um fluxo");
@@ -138,49 +150,33 @@ function Page() {
     return <Badge variant="outline" className={`${it.cls} gap-1`}>{it.icon}{it.label}</Badge>;
   };
 
-  return (
-    <PageShell
-      title="Debug de Fluxo"
-      description="Simule fluxos, acompanhe transições em tempo real e valide antes de publicar."
-      icon={<Bug className="h-6 w-6" />}
-      status="ativo"
-    >
-      {/* Simulator launcher */}
-      <div className="rounded-2xl border border-border/60 bg-card/40 p-3 mb-4 flex flex-wrap items-center gap-2">
-        <Select value={pickedFlow} onValueChange={setPickedFlow}>
-          <SelectTrigger className="w-72"><SelectValue placeholder="Escolha um fluxo para simular" /></SelectTrigger>
-          <SelectContent>{flows.map((f) => <SelectItem key={f.id} value={f.id}>{f.name}</SelectItem>)}</SelectContent>
-        </Select>
-        <Button onClick={onStart} disabled={busy || !pickedFlow} className="gap-2">
-          <Play className="h-4 w-4" /> Iniciar simulação
-        </Button>
-        <span className="text-xs text-muted-foreground ml-auto">{execs.length} execuções</span>
+  const renderList = (rows: ExecRow[], emptyMsg: string) => (
+    <div className="rounded-2xl border border-border/60 bg-card/40 overflow-hidden">
+      <div className="border-b border-border/60 px-3 py-2 text-xs text-muted-foreground flex items-center justify-between">
+        <span>{rows.length} execuç{rows.length === 1 ? "ão" : "ões"}</span>
+        <button onClick={() => void reload()} className="inline-flex items-center gap-1 text-muted-foreground hover:text-foreground transition"><RefreshCw className="h-3 w-3" /> atualizar</button>
       </div>
+      <div className="max-h-[70vh] overflow-y-auto divide-y divide-border/50">
+        {loading && <div className="p-6 text-center text-xs text-muted-foreground">Carregando…</div>}
+        {!loading && !rows.length && <div className="p-6 text-center text-xs text-muted-foreground">{emptyMsg}</div>}
+        {rows.map((e) => (
+          <button key={e.id} onClick={() => setSelected(e)} className={`w-full text-left p-3 hover:bg-accent/30 transition ${selected?.id === e.id ? "bg-accent/40" : ""}`}>
+            <div className="flex items-center gap-2">
+              <span className="text-sm font-medium truncate flex-1">{flowName[e.flow_id] ?? e.flow_id.slice(0, 8)}</span>
+              {e.last_error && <AlertTriangle className="h-3 w-3 text-red-500 shrink-0" />}
+            </div>
+            <div className="mt-1 flex items-center gap-2 text-[11px] text-muted-foreground">
+              {statusBadge(e.status)}
+              <span className="ml-auto">{new Date(e.started_at).toLocaleTimeString()}</span>
+            </div>
+          </button>
+        ))}
+      </div>
+    </div>
+  );
 
-      <div className="grid gap-3 md:grid-cols-[340px_1fr]">
-        {/* Executions list */}
-        <div className="rounded-2xl border border-border/60 bg-card/40 overflow-hidden">
-          <div className="border-b border-border/60 px-3 py-2 text-xs text-muted-foreground">Execuções</div>
-          <div className="max-h-[70vh] overflow-y-auto divide-y divide-border/50">
-            {loading && <div className="p-6 text-center text-xs text-muted-foreground">Carregando…</div>}
-            {!loading && !execs.length && <div className="p-6 text-center text-xs text-muted-foreground">Nenhuma execução ainda</div>}
-            {execs.map((e) => (
-              <button key={e.id} onClick={() => setSelected(e)} className={`w-full text-left p-3 hover:bg-accent/30 transition ${selected?.id === e.id ? "bg-accent/40" : ""}`}>
-                <div className="flex items-center gap-2">
-                  <span className="text-sm font-medium truncate flex-1">{flowName[e.flow_id] ?? e.flow_id.slice(0, 8)}</span>
-                  {e.is_simulation && <Badge variant="outline" className="text-[9px]">SIM</Badge>}
-                </div>
-                <div className="mt-1 flex items-center gap-2 text-[11px] text-muted-foreground">
-                  {statusBadge(e.status)}
-                  <span className="ml-auto">{new Date(e.started_at).toLocaleTimeString()}</span>
-                </div>
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* Detail */}
-        <div className="rounded-2xl border border-border/60 bg-card/40 overflow-hidden flex flex-col">
+  const renderDetail = () => (
+    <div className="rounded-2xl border border-border/60 bg-card/40 overflow-hidden flex flex-col">
           {!selected ? (
             <div className="grid place-items-center h-[70vh] text-sm text-muted-foreground">Selecione uma execução</div>
           ) : (
@@ -237,8 +233,56 @@ function Page() {
               )}
             </>
           )}
-        </div>
-      </div>
+    </div>
+  );
+
+  return (
+    <PageShell
+      title="Debug de Fluxo"
+      description="Acompanhe execuções reais em tempo real e simule fluxos antes de publicar."
+      icon={<Bug className="h-6 w-6" />}
+      status="ativo"
+    >
+      <Tabs value={tab} onValueChange={(v) => setTab(v as "live" | "sim")} className="w-full">
+        <TabsList className="mb-4">
+          <TabsTrigger value="live" className="gap-2">
+            <Activity className="h-4 w-4" /> Execuções ao vivo
+            <Badge variant="outline" className="ml-1 text-[10px]">{liveExecs.length}</Badge>
+            {liveErrors > 0 && <Badge variant="outline" className="text-[10px] bg-red-500/15 text-red-600 border-red-500/30">{liveErrors} erro{liveErrors === 1 ? "" : "s"}</Badge>}
+          </TabsTrigger>
+          <TabsTrigger value="sim" className="gap-2">
+            <FlaskConical className="h-4 w-4" /> Simulador
+            <Badge variant="outline" className="ml-1 text-[10px]">{simExecs.length}</Badge>
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="live" className="mt-0">
+          <div className="rounded-2xl border border-border/60 bg-card/40 p-3 mb-4 text-xs text-muted-foreground">
+            Aqui aparecem os fluxos disparados de verdade pelos seus contatos no WhatsApp. Clique em uma execução para ver o passo a passo, variáveis coletadas e eventuais erros.
+          </div>
+          <div className="grid gap-3 md:grid-cols-[340px_1fr]">
+            {renderList(liveExecs, "Nenhum fluxo executado ainda. Assim que um contato acionar um fluxo, ele aparece aqui.")}
+            {renderDetail()}
+          </div>
+        </TabsContent>
+
+        <TabsContent value="sim" className="mt-0">
+          <div className="rounded-2xl border border-border/60 bg-card/40 p-3 mb-4 flex flex-wrap items-center gap-2">
+            <Select value={pickedFlow} onValueChange={setPickedFlow}>
+              <SelectTrigger className="w-72"><SelectValue placeholder="Escolha um fluxo para simular" /></SelectTrigger>
+              <SelectContent>{flows.map((f) => <SelectItem key={f.id} value={f.id}>{f.name}</SelectItem>)}</SelectContent>
+            </Select>
+            <Button onClick={onStart} disabled={busy || !pickedFlow} className="gap-2">
+              <Play className="h-4 w-4" /> Iniciar simulação
+            </Button>
+            <span className="text-xs text-muted-foreground ml-auto">Teste o fluxo respondendo como se fosse o contato — nada é enviado no WhatsApp.</span>
+          </div>
+          <div className="grid gap-3 md:grid-cols-[340px_1fr]">
+            {renderList(simExecs, "Nenhuma simulação ainda. Escolha um fluxo acima e clique em Iniciar simulação.")}
+            {renderDetail()}
+          </div>
+        </TabsContent>
+      </Tabs>
     </PageShell>
   );
 }
