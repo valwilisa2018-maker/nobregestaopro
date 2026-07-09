@@ -215,7 +215,16 @@ export async function runFlow(args: {
     if (kind === "QUESTION") {
       const t = interpolate(node.data.text ?? node.data.label, vars);
       if (t) await sendText(conn, recipient, t);
-      state.awaiting = { node_id: node.id, variable: node.data.variable || "resposta" };
+      // Derive a variable name from the label when not explicitly set, so multiple
+      // QUESTION nodes don't clobber the same "resposta" slot. Ex.: "Pergunta Empresa" -> "empresa"
+      const derived = (node.data.label ?? "")
+        .toLowerCase()
+        .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+        .replace(/^\s*(pergunta|question)\s+/i, "")
+        .trim()
+        .replace(/[^a-z0-9]+/g, "_")
+        .replace(/^_+|_+$/g, "");
+      state.awaiting = { node_id: node.id, variable: node.data.variable || derived || "resposta" };
       return { state, waitingForUser: true };
     }
     if (kind === "CAPTURE_NAME") {
