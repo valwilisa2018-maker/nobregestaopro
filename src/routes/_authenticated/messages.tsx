@@ -2600,12 +2600,15 @@ function MessagesPage() {
           )}
         </div>
       )}
-      <Dialog open={!!forwardMsg} onOpenChange={(o) => { if (!o) { setForwardMsg(null); setForwardSearch(""); } }}>
+      <Dialog open={!!forwardMsg} onOpenChange={(o) => { if (!o && !forwardSending) closeForward(); }}>
         <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle>Encaminhar mensagem</DialogTitle>
           </DialogHeader>
           <Input placeholder="Buscar contato..." value={forwardSearch} onChange={(e) => setForwardSearch(e.target.value)} />
+          <div className="text-xs text-muted-foreground -mt-1">
+            {forwardSelectedCount}/{FORWARD_LIMIT} selecionado{forwardSelectedCount === 1 ? "" : "s"}
+          </div>
           <div className="max-h-80 overflow-y-auto -mx-2">
             {contacts
               .filter((c) => {
@@ -2614,21 +2617,41 @@ function MessagesPage() {
                 return (c.name ?? "").toLowerCase().includes(q) || c.phone.includes(q);
               })
               .slice(0, 50)
-              .map((c) => (
-                <button
-                  key={c.id}
-                  onClick={() => doForward(c)}
-                  className="w-full flex items-center gap-3 px-3 py-2 hover:bg-muted rounded text-left"
-                >
-                  <div className="h-9 w-9 rounded-full bg-muted grid place-items-center text-xs font-semibold shrink-0">
-                    {initials(c.name, c.phone)}
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <div className="text-sm font-medium truncate">{c.name || c.phone}</div>
-                    <div className="text-xs text-muted-foreground truncate">{c.phone}</div>
-                  </div>
-                </button>
-              ))}
+              .map((c) => {
+                const checked = !!forwardSelected[c.id];
+                return (
+                  <button
+                    key={c.id}
+                    type="button"
+                    onClick={() => toggleForwardTarget(c)}
+                    className={`w-full flex items-center gap-3 px-3 py-2 hover:bg-muted rounded text-left ${checked ? "bg-muted" : ""}`}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={checked}
+                      readOnly
+                      className="h-4 w-4 shrink-0 accent-primary"
+                    />
+                    {avatars[c.id] ? (
+                      <img src={avatars[c.id]!} alt="" className="h-9 w-9 rounded-full object-cover shrink-0" />
+                    ) : (
+                      <div className="h-9 w-9 rounded-full bg-muted grid place-items-center text-xs font-semibold shrink-0">
+                        {initials(c.name, c.phone)}
+                      </div>
+                    )}
+                    <div className="min-w-0 flex-1">
+                      <div className="text-sm font-medium truncate">{c.name || c.phone}</div>
+                      <div className="text-xs text-muted-foreground truncate">{c.phone}</div>
+                    </div>
+                  </button>
+                );
+              })}
+          </div>
+          <div className="flex justify-end gap-2 pt-2">
+            <Button variant="ghost" onClick={closeForward} disabled={forwardSending}>Cancelar</Button>
+            <Button onClick={doForward} disabled={forwardSending || forwardSelectedCount === 0}>
+              {forwardSending ? "Enviando..." : `Encaminhar${forwardSelectedCount ? ` (${forwardSelectedCount})` : ""}`}
+            </Button>
           </div>
         </DialogContent>
       </Dialog>
