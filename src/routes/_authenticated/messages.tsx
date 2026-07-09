@@ -2286,6 +2286,24 @@ function MessagesPage() {
                           {(m.metadata as { edited?: boolean } | null)?.edited && (
                             <span className="italic">editada</span>
                           )}
+                          {out && (() => {
+                            const meta = (m.metadata ?? {}) as { flow_id?: string; source?: string; agent_id?: string };
+                            if (meta.flow_id || meta.source === "flow") {
+                              return (
+                                <span title="Enviado pelo Fluxo" className="inline-flex text-emerald-600">
+                                  <Workflow className="h-3 w-3" />
+                                </span>
+                              );
+                            }
+                            if (meta.agent_id) {
+                              return (
+                                <span title="Resposta da IA" className="inline-flex text-violet-600">
+                                  <Bot className="h-3 w-3" />
+                                </span>
+                              );
+                            }
+                            return null;
+                          })()}
                           <span>{new Date(m.created_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</span>
                           {out && (() => {
                             const meta = (m.metadata ?? {}) as { status?: string; pending?: boolean; failed?: boolean };

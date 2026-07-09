@@ -139,8 +139,28 @@ export async function runFlow(args: {
   def: FlowDef;
   state: FlowState;
   flowId: string;
+  conversationId?: string | null;
+  userId?: string | null;
 }): Promise<RunResult> {
   const { conn, recipient, userText, def, flowId } = args;
+  const convoId = args.conversationId ?? null;
+  const userId = args.userId ?? conn.user_id ?? null;
+
+  async function logMsg(type: "text" | "image" | "video" | "audio" | "document", content: string, mediaUrl?: string | null) {
+    if (!convoId || !userId) return;
+    try {
+      await args.db.from("messages").insert({
+        user_id: userId,
+        conversation_id: convoId,
+        direction: "outbound",
+        type,
+        content,
+        media_url: mediaUrl ?? null,
+        metadata: { remoteJid: recipient, flow_id: flowId, source: "flow", pending: false, sent: true },
+      } as never);
+      await args.db.from("conversations").update({ last_message_at: new Date().toISOString() } as never).eq("id", convoId);
+    } catch { /* best-effort */ }
+  }
   const state: FlowState = {
     flow_id: flowId,
     variables: { ...(args.state.variables ?? {}) },
@@ -182,7 +202,7 @@ export async function runFlow(args: {
 
     if (kind === "MESSAGE") {
       const t = interpolate(node.data.text ?? node.data.label, vars);
-      if (t) await sendText(conn, recipient, t);
+      if (t) { await sendText(conn, recipient, t); await logMsg("text", t); }
       state.current_node = nextNode(def, node.id, "out");
       continue;
     }
@@ -190,7 +210,9 @@ export async function runFlow(args: {
       const url = node.data.url;
       if (url) {
         const k = kind === "IMAGE" ? "image" : kind === "VIDEO" ? "video" : "audio";
-        await sendMedia(conn, recipient, url, k, interpolate(node.data.text, vars));
+        const caption = interpolate(node.data.text, vars);
+        await sendMedia(conn, recipient, url, k, caption);
+        await logMsg(k, caption, url);
       }
       state.current_node = nextNode(def, node.id, "out");
       continue;
@@ -223,13 +245,13 @@ export async function runFlow(args: {
     if (kind === "YESNO") {
       // Ask (send text) then wait for user reply
       const t = interpolate(node.data.text ?? node.data.label, vars);
-      if (t) await sendText(conn, recipient, t);
+      if (t) { await sendText(conn, recipient, t); await logMsg("text", t); }
       state.awaiting = { node_id: node.id, variable: node.data.variable };
       return { state, waitingForUser: true };
     }
     if (kind === "QUESTION") {
       const t = interpolate(node.data.text ?? node.data.label, vars);
-      if (t) await sendText(conn, recipient, t);
+      if (t) { await sendText(conn, recipient, t); await logMsg("text", t); }
       // Derive a variable name from the label when not explicitly set, so multiple
       // QUESTION nodes don't clobber the same "resposta" slot. Ex.: "Pergunta Empresa" -> "empresa"
       const derived = (node.data.label ?? "")
@@ -245,6 +267,7 @@ export async function runFlow(args: {
     if (kind === "CAPTURE_NAME") {
       const t = interpolate(node.data.text || "Qual o seu nome?", vars);
       await sendText(conn, recipient, t);
+      await logMsg("text", t);
       state.awaiting = { node_id: node.id, variable: "nome" };
       return { state, waitingForUser: true };
     }
@@ -272,7 +295,9 @@ export async function runFlow(args: {
     if (kind === "SCHEDULE") {
       const link = node.data.url || "";
       const t = interpolate(node.data.text || "Agende um horário:", vars);
-      await sendText(conn, recipient, `${t}${link ? `\n${link}` : ""}`);
+      const msg = `${t}${link ? `\n${link}` : ""}`;
+      await sendText(conn, recipient, msg);
+      await logMsg("text", msg);
       state.current_node = nextNode(def, node.id, "out");
       continue;
     }
@@ -300,6 +325,7 @@ export async function runFlow(args: {
     if (kind === "HANDOFF") {
       const t = interpolate(node.data.text || "Vou transferir você para um atendente.", vars);
       await sendText(conn, recipient, t);
+      await logMsg("text", t);
       // Merge (do not clobber) conversation metadata; pause agent 24h.
       const { data: existing } = await args.db.from("conversations")
         .select("id,metadata")

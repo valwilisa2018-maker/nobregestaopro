@@ -528,6 +528,8 @@ export const startFlowForContact = createServerFn({ method: "POST" })
       def: def as { nodes: never[]; edges: never[] },
       state: {}, // fresh run — ignora estado antigo (ex: finished:true de rodadas anteriores)
       flowId: flow.id,
+      conversationId: convoId,
+      userId: context.userId,
     });
 
     await context.supabase.from("conversations").update({
