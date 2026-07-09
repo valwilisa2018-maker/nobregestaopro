@@ -70,6 +70,7 @@ type Ext = {
     enabled?: boolean;
     items?: Array<{ id: string; name: string; mode?: string; keywords?: string; description?: string; storage_path?: string; mime?: string }>;
   };
+  flow_timeout_hours?: number;
 };
 type ConvMeta = {
   remoteJid?: string;
