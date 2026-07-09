@@ -919,6 +919,38 @@ export const Route = createFileRoute("/api/public/evolution/$instance")({
                 try {
                   const def = active.definition as { nodes?: any[]; edges?: any[] };
                   if (Array.isArray(def?.nodes) && Array.isArray(def?.edges)) {
+                    // --- Live execution tracking (Debug de Fluxo → Execuções ao vivo) ---
+                    const { data: existingExec } = await supabaseAdmin
+                      .from("flow_executions")
+                      .select("id,started_at")
+                      .eq("user_id", conn.user_id)
+                      .eq("flow_id", active.id)
+                      .eq("conversation_id", convo.id)
+                      .eq("is_simulation", false)
+                      .order("started_at", { ascending: false })
+                      .limit(1)
+                      .maybeSingle();
+                    let execId = (existingExec as { id?: string } | null)?.id ?? null;
+                    if (!execId) {
+                      const { data: newExec } = await supabaseAdmin.from("flow_executions").insert({
+                        user_id: conn.user_id, flow_id: active.id,
+                        conversation_id: convo.id, connection_id: conn.id,
+                        status: "processing", is_simulation: false,
+                        current_block_id: st.current_node ?? st.awaiting?.node_id ?? null,
+                        awaiting_variable: st.awaiting?.variable ?? null,
+                        variables: (st.variables ?? {}) as never,
+                      } as never).select("id").single();
+                      execId = (newExec as { id?: string } | null)?.id ?? null;
+                    }
+                    if (execId) {
+                      await supabaseAdmin.from("flow_execution_logs").insert({
+                        execution_id: execId, user_id: conn.user_id,
+                        level: "info", event: "user_input",
+                        block_id: st.awaiting?.node_id ?? null,
+                        message: text.slice(0, 500), data: null as never,
+                      } as never);
+                    }
+                    const runStart = Date.now();
                     const { runFlow } = await import("@/lib/flow-runner.server");
                     const result = await runFlow({
                       db: supabaseAdmin,
@@ -933,6 +965,32 @@ export const Route = createFileRoute("/api/public/evolution/$instance")({
                       flow_state: { ...result.state, updated_at: new Date().toISOString() } as never,
                       last_message_at: new Date().toISOString(),
                     } as never).eq("id", convo.id);
+                    if (execId) {
+                      const finalStatus = result.handedOff ? "completed"
+                        : result.finished ? "completed"
+                        : result.waitingForUser ? "waiting_user_input"
+                        : "processing";
+                      await supabaseAdmin.from("flow_executions").update({
+                        status: finalStatus,
+                        current_block_id: result.state.current_node ?? result.state.awaiting?.node_id ?? null,
+                        awaiting_variable: result.state.awaiting?.variable ?? null,
+                        variables: (result.state.variables ?? {}) as never,
+                        completed_at: (finalStatus === "completed") ? new Date().toISOString() : null,
+                        last_error: null,
+                      } as never).eq("id", execId);
+                      await supabaseAdmin.from("flow_execution_logs").insert({
+                        execution_id: execId, user_id: conn.user_id,
+                        level: "info",
+                        event: result.handedOff ? "handoff" : result.finished ? "complete" : result.waitingForUser ? "wait" : "step",
+                        block_id: result.state.awaiting?.node_id ?? result.state.current_node ?? null,
+                        message: result.handedOff ? "Transferido para atendente"
+                          : result.finished ? "Fluxo finalizado"
+                          : result.waitingForUser ? `Aguardando resposta: ${result.state.awaiting?.variable ?? "usuário"}`
+                          : "Etapa executada",
+                        duration_ms: Date.now() - runStart,
+                        data: null as never,
+                      } as never);
+                    }
                     return Response.json({ ok: true, flow: active.id, waiting: !!result.waitingForUser, finished: !!result.finished, handedOff: !!result.handedOff });
                   }
                 } catch (e) {
@@ -940,6 +998,23 @@ export const Route = createFileRoute("/api/public/evolution/$instance")({
                     user_id: conn.user_id, level: "error", source: `flow:${active.id}`,
                     message: e instanceof Error ? e.message : "flow runtime error", metadata: {} as never,
                   } as never);
+                  // Also surface in Debug de Fluxo
+                  if (convo) {
+                    const { data: exId } = await supabaseAdmin.from("flow_executions")
+                      .select("id").eq("user_id", conn.user_id).eq("flow_id", active.id)
+                      .eq("conversation_id", convo.id).eq("is_simulation", false)
+                      .order("started_at", { ascending: false }).limit(1).maybeSingle();
+                    const errMsg = e instanceof Error ? e.message : "flow runtime error";
+                    if ((exId as { id?: string } | null)?.id) {
+                      await supabaseAdmin.from("flow_executions").update({
+                        status: "failed", last_error: errMsg,
+                      } as never).eq("id", (exId as { id: string }).id);
+                      await supabaseAdmin.from("flow_execution_logs").insert({
+                        execution_id: (exId as { id: string }).id, user_id: conn.user_id,
+                        level: "error", event: "error", message: errMsg, data: null as never,
+                      } as never);
+                    }
+                  }
                   // fall through to AI as safety net
                 }
               }
