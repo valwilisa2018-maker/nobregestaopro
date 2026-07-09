@@ -224,7 +224,7 @@ export const Route = createFileRoute("/api/public/evolution/$instance")({
 
         // Find connection by instance_name
         const { data: conn } = await supabaseAdmin
-          .from("connections").select("id,user_id,url_api,api_key,instance_name").eq("instance_name", instance).maybeSingle();
+          .from("connections").select("id,user_id,url_api,api_key,instance_name,metadata").eq("instance_name", instance).maybeSingle();
 
         if (!conn) return Response.json({ ok: false, reason: "instance not found" }, { status: 404 });
 
@@ -884,7 +884,8 @@ export const Route = createFileRoute("/api/public/evolution/$instance")({
               const st = ((convo?.flow_state ?? {}) as import("@/lib/flow-runner.server").FlowState);
               // Abandonment: if user stopped replying mid-flow, hand back to AI
               // after N hours (default 24h). Configurable via connection ext.flow_timeout_hours.
-              const timeoutHours = Math.max(1, Number(ext.flow_timeout_hours ?? 24));
+              const connMeta = (conn as { metadata?: { flow_timeout_hours?: number } | null }).metadata ?? {};
+              const timeoutHours = Math.max(1, Number(connMeta.flow_timeout_hours ?? ext.flow_timeout_hours ?? 24));
               const stAge = st.updated_at ? (Date.now() - new Date(st.updated_at).getTime()) / 3600000 : 0;
               if (st.flow_id && !st.finished && st.updated_at && stAge >= timeoutHours) {
                 if (convo) await supabaseAdmin.from("conversations").update({

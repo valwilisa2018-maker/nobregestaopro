@@ -26,6 +26,7 @@ type Connection = {
   phone_number: string | null; profile_name: string | null; profile_picture: string | null;
   notes: string | null; message_count: number; consumption: number; last_sync: string | null;
   created_at: string;
+  metadata: { flow_timeout_hours?: number } | null;
 };
 
 function statusBadge(status: string) {
@@ -138,6 +139,14 @@ function ConnectionsPage() {
     } finally { setBusyFor(c.id, null); }
   };
 
+  const saveTimeout = async (c: Connection, hours: number) => {
+    const meta = { ...(c.metadata ?? {}), flow_timeout_hours: hours };
+    const { error } = await supabase.from("connections").update({ metadata: meta }).eq("id", c.id);
+    if (error) return toast.error(error.message);
+    toast.success(`Tempo de abandono: ${hours}h`);
+    setItems((prev) => prev.map((x) => x.id === c.id ? { ...x, metadata: meta } : x));
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -195,6 +204,20 @@ function ConnectionsPage() {
                   <Button size="sm" variant="outline" disabled={!!busy[c.id]} onClick={() => doDisconnect(c)}><Power className="h-3.5 w-3.5 mr-1" />Desconectar</Button>
                   <Button size="sm" variant="outline" disabled={!!busy[c.id]} onClick={() => doTestWebhook(c)}><Webhook className="h-3.5 w-3.5 mr-1" />Testar webhook</Button>
                   <Button size="sm" variant="ghost" onClick={() => remove(c.id)}><Trash2 className="h-3.5 w-3.5" /></Button>
+                </div>
+
+                <div className="rounded-md border p-2 space-y-1.5">
+                  <Label className="text-xs">Abandono do fluxo (IA volta a responder depois de)</Label>
+                  <div className="flex flex-wrap gap-1.5">
+                    {[12, 24, 48, 72].map((h) => {
+                      const cur = Number(c.metadata?.flow_timeout_hours ?? 24);
+                      return (
+                        <Button key={h} size="sm" variant={cur === h ? "default" : "outline"} onClick={() => saveTimeout(c, h)}>
+                          {h}h
+                        </Button>
+                      );
+                    })}
+                  </div>
                 </div>
 
                 <div className="rounded-md border bg-muted/30 p-2 text-xs">
