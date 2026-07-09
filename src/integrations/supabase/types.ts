@@ -1363,6 +1363,10 @@ export type Database = {
     }
     Functions: {
       admin_reset_platform: { Args: never; Returns: Json }
+      compute_service_order_title: {
+        Args: { _service_order_id: string }
+        Returns: string
+      }
       get_sinal_totals: {
         Args: { _from: string; _to: string }
         Returns: {
@@ -1380,6 +1384,10 @@ export type Database = {
         Returns: boolean
       }
       purge_old_project_folders: { Args: never; Returns: Json }
+      renumber_service_orders_for_customer: {
+        Args: { _customer_id: string }
+        Returns: undefined
+      }
       user_can_access_card: {
         Args: { _card_id: string; _sale_id: string; _user_id: string }
         Returns: boolean
