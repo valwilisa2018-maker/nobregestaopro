@@ -960,6 +960,8 @@ export const Route = createFileRoute("/api/public/evolution/$instance")({
                       def: { nodes: def.nodes, edges: def.edges },
                       state: st,
                       flowId: active.id,
+                      conversationId: convo.id,
+                      userId: conn.user_id,
                     });
                     await supabaseAdmin.from("conversations").update({
                       flow_state: { ...result.state, updated_at: new Date().toISOString() } as never,
