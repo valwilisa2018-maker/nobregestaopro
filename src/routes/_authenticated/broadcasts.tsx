@@ -613,7 +613,20 @@ function BroadcastsPage() {
                       <tr key={b.id as string} className="border-t">
                         <td className="px-4 py-2 font-medium">{b.name as string}</td>
                         <td className="px-4 py-2 space-x-1">
-                          <Badge variant="secondary" className="capitalize">{b.status as string}</Badge>
+                          {(() => {
+                            const s = b.status as string;
+                            const map: Record<string, { label: string; cls: string }> = {
+                              done: { label: "Concluída", cls: "bg-green-500/15 text-green-600 border-green-500/30" },
+                              running: { label: "Em execução", cls: "bg-blue-500/15 text-blue-600 border-blue-500/30" },
+                              paused: { label: "Pausada", cls: "bg-yellow-500/15 text-yellow-600 border-yellow-500/30" },
+                              scheduled: { label: "Agendada", cls: "bg-purple-500/15 text-purple-600 border-purple-500/30" },
+                              canceled: { label: "Cancelada", cls: "bg-red-500/15 text-red-600 border-red-500/30" },
+                              draft: { label: "Rascunho", cls: "bg-muted text-muted-foreground" },
+                              error: { label: "Erro", cls: "bg-red-500/15 text-red-600 border-red-500/30" },
+                            };
+                            const it = map[s] ?? { label: s, cls: "" };
+                            return <Badge variant="outline" className={it.cls}>{it.label}</Badge>;
+                          })()}
                           {b.mode === "sequential" && <Badge variant="outline" className="text-[10px]">seq</Badge>}
                         </td>
                         <td className="px-4 py-2 tabular-nums min-w-[180px]">
