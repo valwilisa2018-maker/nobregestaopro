@@ -2972,8 +2972,6 @@ function FlowLauncher({ contactId }: { contactId: string | null }) {
   const [startingId, setStartingId] = useState<string | null>(null);
   const [savingId, setSavingId] = useState<string | null>(null);
   const [kwDraft, setKwDraft] = useState<Record<string, string>>({});
-  const [testText, setTestText] = useState("");
-  const [testResult, setTestResult] = useState<{ matched: Array<{ id: string; name: string; hit: string }>; ran: boolean }>({ matched: [], ran: false });
 
   async function openDialog() {
     if (!contactId || !user) return;
@@ -3019,22 +3017,6 @@ function FlowLauncher({ contactId }: { contactId: string | null }) {
     toast.success("Palavras-chave salvas");
   }
 
-  function runKeywordTest() {
-    const t = testText.trim().toLowerCase();
-    if (!t) {
-      toast.error("Digite uma mensagem para testar");
-      return;
-    }
-    const matched = flows
-      .filter((f) => f.is_active)
-      .map((f) => {
-        const hit = (f.trigger_keywords ?? []).find((k) => k && t.includes(k.toLowerCase()));
-        return hit ? { id: f.id, name: f.name, hit } : null;
-      })
-      .filter((x): x is { id: string; name: string; hit: string } => !!x);
-    setTestResult({ matched, ran: true });
-  }
-
   return (
     <>
       <Tooltip>
@@ -3064,33 +3046,6 @@ function FlowLauncher({ contactId }: { contactId: string | null }) {
             </DialogHeader>
           </div>
           <div className="max-h-[60vh] overflow-y-auto p-4 space-y-3">
-            <div className="rounded-xl border border-white/10 bg-white/[0.03] p-3 space-y-2">
-              <div className="text-[11px] font-medium text-white/70 uppercase tracking-wide">Testar palavras-chave</div>
-              <div className="flex items-center gap-2">
-                <Input
-                  placeholder="Digite uma mensagem (ex: oi tudo bem)"
-                  value={testText}
-                  onChange={(e) => setTestText(e.target.value)}
-                  onKeyDown={(e) => { if (e.key === "Enter") runKeywordTest(); }}
-                  className="h-8 bg-white/5 border-white/10 text-white placeholder:text-white/30 text-xs"
-                />
-                <Button size="sm" onClick={runKeywordTest} className="h-8 bg-emerald-500 hover:bg-emerald-400 text-black">Testar</Button>
-              </div>
-              {testResult.ran && (
-                testResult.matched.length ? (
-                  <div className="space-y-1">
-                    {testResult.matched.map((m, i) => (
-                      <div key={m.id} className="text-[11px] text-emerald-300 flex items-center gap-1">
-                        {i === 0 ? "→ Dispararia:" : "também:"} <span className="font-semibold">{m.name}</span>
-                        <span className="text-white/40">(via "{m.hit}")</span>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="text-[11px] text-amber-300/80">Nenhum fluxo ativo dispararia com esse texto.</div>
-                )
-              )}
-            </div>
             {loading && <div className="p-6 text-center text-xs text-white/60">Carregando...</div>}
             {!loading && flows.map((f) => {
               const kws = f.trigger_keywords ?? [];
