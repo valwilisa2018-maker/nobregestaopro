@@ -28,6 +28,7 @@ export type FlowState = {
   awaiting?: { node_id: string; variable?: string } | null;
   variables?: Record<string, string>;
   finished?: boolean;
+  updated_at?: string;
 };
 
 export type RunnerConn = {
