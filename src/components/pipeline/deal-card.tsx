@@ -6,19 +6,22 @@ import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
-export function DealCard({ deal, onClick }: { deal: Deal; onClick: () => void }) {
+export function DealCard({ deal, onClick, stageColor }: { deal: Deal; onClick: () => void; stageColor?: string }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: deal.id });
+  const color = stageColor || "hsl(var(--primary))";
   const style = {
     transform: CSS.Translate.toString(transform),
     transition,
     opacity: isDragging ? 0.5 : 1,
-  };
+    borderLeft: `3px solid ${color}`,
+    background: `linear-gradient(180deg, ${color}14, hsl(var(--card) / 0.8))`,
+  } as React.CSSProperties;
 
   return (
     <div
       ref={setNodeRef}
       style={style}
-      className="group rounded-xl border border-border/60 bg-card/80 backdrop-blur p-3 shadow-sm hover:shadow-md hover:border-primary/40 transition-all cursor-pointer"
+      className="group rounded-xl border border-border/60 backdrop-blur p-3 shadow-sm hover:shadow-md transition-all cursor-pointer"
       onClick={onClick}
     >
       <div className="flex items-start gap-2">
