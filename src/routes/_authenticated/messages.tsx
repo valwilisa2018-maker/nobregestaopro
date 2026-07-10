@@ -185,6 +185,8 @@ function MessagesPage() {
   }, [activeInstance]);
   // Map: phone digits -> Set of connection ids that have a conversation with that JID
   const [contactConnMap, setContactConnMap] = useState<Record<string, Set<string>>>({});
+  // Map: contact.id -> last activity timestamp (ms) — used for WhatsApp-style ordering
+  const [lastActivityMap, setLastActivityMap] = useState<Record<string, number>>({});
   const [instanceProfilePic, setInstanceProfilePic] = useState<Record<string, string | null>>({});
   const [profileUploading, setProfileUploading] = useState(false);
   const [profileNameEdit, setProfileNameEdit] = useState("");
