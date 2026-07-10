@@ -14,7 +14,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useServerFn } from "@tanstack/react-start";
-import { sendChatText, sendChatAudio, sendChatMedia, getProfilePicture, sendPresence, ensurePresenceWebhook, deleteChatMessage, forwardChatMessage, editChatMessage, reactChatMessage, syncContactNames, startFlowForContact } from "@/lib/evolution.functions";
+import { sendChatText, sendChatAudio, sendChatMedia, getProfilePicture, sendPresence, ensurePresenceWebhook, subscribeContactPresence, deleteChatMessage, forwardChatMessage, editChatMessage, reactChatMessage, syncContactNames, startFlowForContact } from "@/lib/evolution.functions";
 import { toast } from "sonner";
 import notificationSound from "@/assets/notification.mp3.asset.json";
 import { QuickSendPopover } from "@/components/quick-send-popover";
