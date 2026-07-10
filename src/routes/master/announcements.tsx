@@ -19,6 +19,19 @@ export const Route = createFileRoute("/master/announcements")({
   component: Page,
 });
 
+function toLocalInput(iso: string | null | undefined): string {
+  if (!iso) return "";
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "";
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+function fromLocalInput(v: string): string | null {
+  if (!v) return null;
+  const d = new Date(v);
+  return Number.isNaN(d.getTime()) ? null : d.toISOString();
+}
+
 type Announcement = {
   id: string; title: string; body: string; severity: string;
   cta_label: string | null; cta_url: string | null;
@@ -200,6 +213,40 @@ function Page() {
               <div className="text-sm">
                 <div className="font-semibold flex items-center gap-1.5"><Construction className="h-4 w-4 text-red-500" /> Manutenção total (bloquear plataforma)</div>
                 <div className="text-xs text-muted-foreground mt-0.5">Enquanto este anúncio estiver ativo, todos os clientes veem uma página de manutenção e não conseguem logar. Apenas usuários Master têm acesso.</div>
+              </div>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 rounded-lg border bg-muted/30 p-3">
+              <div className="sm:col-span-2 text-xs text-muted-foreground">
+                Agende início e fim. Fora dessa janela o anúncio (e o bloqueio de manutenção) desaparece automaticamente — sem precisar desativar manualmente.
+              </div>
+              <div className="space-y-2">
+                <Label>Início programado</Label>
+                <Input
+                  type="datetime-local"
+                  value={toLocalInput(form.starts_at)}
+                  onChange={e => setForm({ ...form, starts_at: fromLocalInput(e.target.value) ?? new Date().toISOString() })}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Fim programado (expira sozinho)</Label>
+                <div className="flex gap-2">
+                  <Input
+                    type="datetime-local"
+                    value={toLocalInput(form.ends_at)}
+                    onChange={e => setForm({ ...form, ends_at: fromLocalInput(e.target.value) })}
+                  />
+                  {form.ends_at && (
+                    <Button type="button" variant="outline" size="sm" onClick={() => setForm({ ...form, ends_at: null })}>Limpar</Button>
+                  )}
+                </div>
+                <div className="flex flex-wrap gap-1.5">
+                  {[15, 30, 60, 120, 240].map(m => (
+                    <Button key={m} type="button" size="sm" variant="secondary"
+                      onClick={() => setForm({ ...form, ends_at: new Date(Date.now() + m * 60_000).toISOString() })}>
+                      +{m < 60 ? `${m}min` : `${m / 60}h`}
+                    </Button>
+                  ))}
+                </div>
               </div>
             </div>
           </div>

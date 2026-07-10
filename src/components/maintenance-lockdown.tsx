@@ -4,7 +4,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { useLocation } from "@tanstack/react-router";
 import { Construction, ShieldAlert, Clock } from "lucide-react";
 
-type Lock = { title: string; body: string; ends_at: string | null };
+type Lock = { title: string; body: string; ends_at: string | null; starts_at: string };
 
 export function MaintenanceLockdown({ children }: { children: React.ReactNode }) {
   const { session } = useAuth();
@@ -18,9 +18,11 @@ export function MaintenanceLockdown({ children }: { children: React.ReactNode })
     const fetchLock = async () => {
       const { data } = await supabase
         .from("announcements")
-        .select("title,body,ends_at")
+        .select("title,body,ends_at,starts_at")
         .eq("is_active", true)
         .eq("lockdown", true)
+        .lte("starts_at", new Date().toISOString())
+        .or(`ends_at.is.null,ends_at.gte.${new Date().toISOString()}`)
         .order("created_at", { ascending: false })
         .limit(1)
         .maybeSingle();
