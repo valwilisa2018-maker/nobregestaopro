@@ -655,18 +655,32 @@ function MessagesPage() {
     if (!user) return;
     (async () => {
       const { data } = await supabase.from("conversations")
-        .select("connection_id,metadata")
+        .select("connection_id,metadata,last_message_at,updated_at")
         .eq("user_id", user.id)
-        .not("connection_id", "is", null)
         .limit(5000);
       const map: Record<string, Set<string>> = {};
+      // digits -> newest activity timestamp across all conversations for that phone
+      const digitsTs: Record<string, number> = {};
       for (const row of data ?? []) {
         const jid = (row.metadata as { remoteJid?: string } | null)?.remoteJid ?? "";
         const digits = String(jid).split("@")[0].replace(/\D+/g, "");
-        if (!digits || !row.connection_id) continue;
-        (map[digits] ??= new Set()).add(row.connection_id);
+        if (!digits) continue;
+        if (row.connection_id) (map[digits] ??= new Set()).add(row.connection_id);
+        const ts = new Date((row.last_message_at as string | null) ?? (row.updated_at as string | null) ?? 0).getTime() || 0;
+        if (ts > (digitsTs[digits] ?? 0)) digitsTs[digits] = ts;
       }
       setContactConnMap(map);
+      // Map contact.id -> latest activity by matching phone variants
+      const activity: Record<string, number> = {};
+      for (const c of contacts) {
+        let best = 0;
+        for (const d of phoneVariants(c.phone)) {
+          const ts = digitsTs[d] ?? 0;
+          if (ts > best) best = ts;
+        }
+        if (best) activity[c.id] = best;
+      }
+      setLastActivityMap(activity);
     })();
   }, [user, contacts.length]);
 
