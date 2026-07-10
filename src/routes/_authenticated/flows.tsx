@@ -91,6 +91,7 @@ async function uploadMediaFast(
   file: File,
   contentType: string,
   onProgress?: (pct: number) => void,
+  signal?: AbortSignal,
 ) {
   const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string | undefined;
   const publishableKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY as string | undefined;
@@ -103,6 +104,15 @@ async function uploadMediaFast(
   const url = `${supabaseUrl.replace(/\/+$/, "")}/storage/v1/object/agent-media/${encodeStoragePath(path)}`;
   await new Promise<void>((resolve, reject) => {
     const xhr = new XMLHttpRequest();
+    if (signal?.aborted) {
+      reject(new DOMException("Upload cancelado", "AbortError"));
+      return;
+    }
+    const onAbortSignal = () => {
+      xhr.abort();
+      reject(new DOMException("Upload cancelado", "AbortError"));
+    };
+    signal?.addEventListener("abort", onAbortSignal);
     const timeout = window.setTimeout(() => {
       xhr.abort();
       reject(new Error("O upload demorou demais. Reduza o vídeo para menos de 10 MB e tente novamente."));
@@ -120,6 +130,7 @@ async function uploadMediaFast(
     };
     xhr.onload = () => {
       window.clearTimeout(timeout);
+      signal?.removeEventListener("abort", onAbortSignal);
       if (xhr.status >= 200 && xhr.status < 300) {
         onProgress?.(100);
         resolve();
@@ -129,9 +140,13 @@ async function uploadMediaFast(
     };
     xhr.onerror = () => {
       window.clearTimeout(timeout);
+      signal?.removeEventListener("abort", onAbortSignal);
       reject(new Error("Falha de rede no upload"));
     };
-    xhr.onabort = () => window.clearTimeout(timeout);
+    xhr.onabort = () => {
+      window.clearTimeout(timeout);
+      signal?.removeEventListener("abort", onAbortSignal);
+    };
     xhr.send(file);
   });
 }
