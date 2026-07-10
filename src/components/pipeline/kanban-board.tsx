@@ -74,7 +74,13 @@ export function KanbanBoard({ stages, deals, onOpenDeal, onCreateInStage, onMove
         })}
       </div>
       <DragOverlay>
-        {activeDeal && <DealCard deal={activeDeal} onClick={() => {}} />}
+        {activeDeal && (
+          <DealCard
+            deal={activeDeal}
+            onClick={() => {}}
+            stageColor={stages.find((s) => s.id === activeDeal.stage_id)?.color}
+          />
+        )}
       </DragOverlay>
     </DndContext>
   );
@@ -108,7 +114,7 @@ function StageColumn({
       <div className="flex-1 overflow-y-auto p-2 space-y-2">
         <SortableContext items={deals.map((d) => d.id)} strategy={verticalListSortingStrategy}>
           {deals.map((d) => (
-            <DealCard key={d.id} deal={d} onClick={() => onOpenDeal(d)} />
+            <DealCard key={d.id} deal={d} onClick={() => onOpenDeal(d)} stageColor={stage.color} />
           ))}
         </SortableContext>
         {deals.length === 0 && (
