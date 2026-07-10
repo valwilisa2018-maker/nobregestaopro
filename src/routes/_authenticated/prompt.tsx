@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { Brain, Sparkles, Loader2, Send, Mic, Square, Copy, Save, Bot, User as UserIcon } from "lucide-react";
+import { Brain, Sparkles, Loader2, Send, Mic, Square, Copy, Save, Bot, User as UserIcon, Pencil } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { CrudResource } from "@/components/crud-resource";
@@ -225,6 +225,7 @@ function PromptChat({ userId }: { userId: string | null }) {
                       <span className="text-xs font-medium text-muted-foreground">Prompt gerado</span>
                       <div className="flex gap-1">
                         <Button size="sm" variant="ghost" className="h-7 gap-1" onClick={() => copyText(b)}><Copy className="h-3.5 w-3.5" />Copiar</Button>
+                        <Button size="sm" variant="ghost" className="h-7 gap-1" onClick={() => openSave(b)}><Pencil className="h-3.5 w-3.5" />Editar</Button>
                         <Button size="sm" variant="ghost" className="h-7 gap-1" onClick={() => openSave(b)}><Save className="h-3.5 w-3.5" />Salvar</Button>
                       </div>
                     </div>
@@ -272,15 +273,27 @@ function PromptChat({ userId }: { userId: string | null }) {
       </div>
 
       <Dialog open={saveOpen} onOpenChange={setSaveOpen}>
-        <DialogContent>
-          <DialogHeader><DialogTitle>Salvar prompt na biblioteca</DialogTitle></DialogHeader>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Editar prompt</DialogTitle>
+          </DialogHeader>
           <div className="space-y-3">
-            <Input placeholder="Nome do prompt" value={saveName} onChange={(e) => setSaveName(e.target.value)} />
-            <Textarea value={saveContent} onChange={(e) => setSaveContent(e.target.value)} rows={10} />
+            <div className="space-y-1">
+              <label className="text-xs font-medium text-muted-foreground">Nome</label>
+              <Input placeholder="Nome do prompt" value={saveName} onChange={(e) => setSaveName(e.target.value)} />
+            </div>
+            <div className="space-y-1">
+              <label className="text-xs font-medium text-muted-foreground">Conteúdo</label>
+              <Textarea value={saveContent} onChange={(e) => setSaveContent(e.target.value)} rows={16} className="font-mono text-xs" />
+              <p className="text-[11px] text-muted-foreground">{saveContent.length} caracteres</p>
+            </div>
           </div>
-          <DialogFooter>
+          <DialogFooter className="gap-2 sm:justify-between">
             <Button variant="outline" onClick={() => setSaveOpen(false)}>Cancelar</Button>
-            <Button onClick={confirmSave}>Salvar</Button>
+            <div className="flex gap-2">
+              <Button variant="secondary" onClick={() => { copyText(saveContent); }} className="gap-1"><Copy className="h-4 w-4" />Copiar</Button>
+              <Button onClick={confirmSave} className="gap-1"><Save className="h-4 w-4" />Salvar na biblioteca</Button>
+            </div>
           </DialogFooter>
         </DialogContent>
       </Dialog>
