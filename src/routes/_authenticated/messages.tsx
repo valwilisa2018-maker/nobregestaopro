@@ -295,6 +295,12 @@ function MessagesPage() {
 
   function mergeMessageIntoThread(incoming: Msg, replaceTmpId?: string, contactId?: string) {
     const targetId = contactId ?? selectedRef.current?.id;
+    if (targetId) {
+      const ts = new Date(incoming.created_at).getTime();
+      if (Number.isFinite(ts)) {
+        setLastActivityMap((prev) => (ts > (prev[targetId] ?? 0) ? { ...prev, [targetId]: ts } : prev));
+      }
+    }
     setMsgs((prev) => {
       const evoId = (incoming.metadata as { evoId?: unknown } | null)?.evoId;
       let idx = prev.findIndex((m) => {
