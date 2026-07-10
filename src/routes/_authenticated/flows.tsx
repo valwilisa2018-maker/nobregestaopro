@@ -173,6 +173,9 @@ function Builder() {
   const list = useServerFn(listFlows);
   const del = useServerFn(deleteFlow);
   const gen = useServerFn(generateFlow);
+  const { user } = useAuth();
+  const [uploading, setUploading] = useState(false);
+  const fileRef = useRef<HTMLInputElement>(null);
 
   const [nodes, setNodes, onNodesChange] = useNodesState<Node<BlockData>>([
     { id: "start", type: "block", position: { x: 80, y: 160 }, data: { kind: "START", label: "Início" } },
@@ -322,6 +325,26 @@ function Builder() {
 
   const kinds = useMemo(() => PALETTE_ORDER, []);
 
+  async function handleMediaUpload(file: File) {
+    if (!user || !selected) return;
+    setUploading(true);
+    try {
+      const path = `${user.id}/flows/${selected.id}-${Date.now()}-${file.name.replace(/[^\w.\-]+/g, "_")}`;
+      const up = await supabase.storage.from("agent-media").upload(path, file, { upsert: true, contentType: file.type });
+      if (up.error) throw up.error;
+      const signed = await supabase.storage.from("agent-media").createSignedUrl(path, 60 * 60 * 24 * 365);
+      const url = signed.data?.signedUrl;
+      if (!url) throw new Error("Falha ao gerar URL do arquivo");
+      updateSelected({ url, mediaName: file.name });
+      toast.success("Arquivo enviado");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Falha ao enviar arquivo");
+    } finally {
+      setUploading(false);
+      if (fileRef.current) fileRef.current.value = "";
+    }
+  }
+
   return (
     <div className="flex flex-col gap-3">
       {/* Top bar */}
@@ -445,15 +468,46 @@ function Builder() {
                   <Label className="text-xs">Rótulo</Label>
                   <Input value={selected.data.label} onChange={(e) => updateSelected({ label: e.target.value })} />
                 </div>
-                {["MESSAGE","QUESTION","YESNO","IMAGE","VIDEO","AUDIO","HANDOFF","TAGS","SCHEDULE","CAPTURE_NAME"].includes(selected.data.kind) && (
+                {["MESSAGE","QUESTION","YESNO","HANDOFF","TAGS","SCHEDULE","CAPTURE_NAME","SEQUENCE"].includes(selected.data.kind) && (
                   <div className="space-y-1">
                     <Label className="text-xs">
-                      {selected.data.kind === "TAGS" ? "Etiquetas (separadas por vírgula)" : "Texto"}
+                      {selected.data.kind === "TAGS" || selected.data.kind === "SEQUENCE"
+                        ? "Etiquetas (separadas por vírgula)"
+                        : "Texto"}
                     </Label>
                     <Textarea rows={3} value={selected.data.text ?? ""} onChange={(e) => updateSelected({ text: e.target.value })} />
                   </div>
                 )}
-                {["IMAGE","VIDEO","AUDIO","WEBHOOK","SCHEDULE"].includes(selected.data.kind) && (
+                {["IMAGE","VIDEO","AUDIO"].includes(selected.data.kind) && (
+                  <div className="space-y-1">
+                    <Label className="text-xs">Arquivo</Label>
+                    <input
+                      ref={fileRef}
+                      type="file"
+                      className="hidden"
+                      accept={selected.data.kind === "IMAGE" ? "image/*" : selected.data.kind === "VIDEO" ? "video/*" : "audio/*"}
+                      onChange={(e) => {
+                        const f = e.target.files?.[0];
+                        if (f) handleMediaUpload(f);
+                      }}
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="w-full gap-2"
+                      onClick={() => fileRef.current?.click()}
+                      disabled={uploading}
+                    >
+                      {uploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
+                      {selected.data.url ? "Substituir arquivo" : `Enviar ${selected.data.kind === "IMAGE" ? "imagem" : selected.data.kind === "VIDEO" ? "vídeo" : "áudio"}`}
+                    </Button>
+                    {selected.data.mediaName && (
+                      <p className="text-[11px] text-muted-foreground truncate">📎 {selected.data.mediaName}</p>
+                    )}
+                  </div>
+                )}
+                {["WEBHOOK","SCHEDULE"].includes(selected.data.kind) && (
                   <div className="space-y-1">
                     <Label className="text-xs">URL</Label>
                     <Input value={selected.data.url ?? ""} onChange={(e) => updateSelected({ url: e.target.value })} placeholder="https://..." />
@@ -463,6 +517,18 @@ function Builder() {
                   <div className="space-y-1">
                     <Label className="text-xs">Condição</Label>
                     <Input value={selected.data.condition ?? ""} onChange={(e) => updateSelected({ condition: e.target.value })} placeholder="ex.: {{cidade}} == 'SP'" />
+                    <p className="text-[10px] text-muted-foreground">Saídas: <b>Verdadeiro</b> quando a condição for atendida, <b>Falso</b> caso contrário.</p>
+                  </div>
+                )}
+                {selected.data.kind === "SEQUENCE" && (
+                  <div className="space-y-1">
+                    <Label className="text-xs">Inscrever em fluxo (gatilho do fluxo alvo)</Label>
+                    <Input
+                      value={selected.data.nextTrigger ?? ""}
+                      onChange={(e) => updateSelected({ nextTrigger: e.target.value })}
+                      placeholder="ex.: pos-venda"
+                    />
+                    <p className="text-[10px] text-muted-foreground">Ao passar por este bloco, o contato recebe as etiquetas acima e é inscrito no fluxo cujo gatilho corresponde. Esse fluxo inicia após o atual encerrar.</p>
                   </div>
                 )}
                 {(selected.data.kind === "QUESTION" || selected.data.kind === "YESNO") && (
