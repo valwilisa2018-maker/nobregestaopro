@@ -26,6 +26,7 @@ const groups = [
       { title: "Notificações", url: "/master/notifications", icon: Bell },
       { title: "Anúncios", url: "/master/announcements", icon: Megaphone },
       { title: "Suporte", url: "/master/support", icon: LifeBuoy },
+      { title: "Config. Suporte", url: "/master/support-settings", icon: Settings2 },
     ],
   },
   {
