@@ -30,17 +30,30 @@ function AuthPage() {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => {
-      if (data.session) navigate({ to: "/dashboard" });
-    });
+    (async () => {
+      const { data } = await supabase.auth.getSession();
+      if (!data.session) return;
+      const { data: isMaster } = await supabase.rpc("has_role", {
+        _user_id: data.session.user.id, _role: "master",
+      });
+      navigate({ to: isMaster ? "/master" : "/dashboard" });
+    })();
   }, [navigate]);
 
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     const { error } = await supabase.auth.signInWithPassword({ email, password });
-    setLoading(false);
     if (error) return toast.error(error.message);
+    const { data: u } = await supabase.auth.getUser();
+    const { data: isMaster } = await supabase.rpc("has_role", {
+      _user_id: u.user!.id, _role: "master",
+    });
+    setLoading(false);
+    if (isMaster) {
+      await supabase.auth.signOut();
+      return toast.error("Conta Master. Use o login exclusivo em /master-auth.");
+    }
     navigate({ to: "/dashboard" });
   };
 
