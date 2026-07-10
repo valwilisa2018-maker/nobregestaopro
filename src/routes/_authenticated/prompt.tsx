@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { Brain, Sparkles, Loader2, Send, Mic, Square, Copy, Save, Bot, User as UserIcon, Pencil } from "lucide-react";
+import { Brain, Sparkles, Loader2, Send, Mic, Square, Copy, Save, Bot, User as UserIcon, Pencil, Plus, MessageSquare, Trash2 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { CrudResource } from "@/components/crud-resource";
@@ -109,13 +109,14 @@ function extractPromptBlocks(text: string): string[] {
 function PromptChat({ userId }: { userId: string | null }) {
   const call = useServerFn(promptChat);
   const stt = useServerFn(transcribeAudio);
-  const [messages, setMessages] = useState<ChatMsg[]>([
-    {
-      role: "assistant",
-      content:
-        "Olá! 👋 Sou seu Especialista em Engenharia de Prompt. Me conte: qual é o seu negócio e qual agente de IA você quer criar (atendimento, vendas, suporte, agendamento, etc.)?",
-    },
-  ]);
+  const WELCOME: ChatMsg = {
+    role: "assistant",
+    content:
+      "Olá! 👋 Sou seu Especialista em Engenharia de Prompt. Me conte: qual é o seu negócio e qual agente de IA você quer criar (atendimento, vendas, suporte, agendamento, etc.)?",
+  };
+  const [threads, setThreads] = useState<Array<{ id: string; title: string; updated_at: string }>>([]);
+  const [threadId, setThreadId] = useState<string | null>(null);
+  const [messages, setMessages] = useState<ChatMsg[]>([WELCOME]);
   const [input, setInput] = useState("");
   const [sending, setSending] = useState(false);
   const [recording, setRecording] = useState(false);
@@ -131,16 +132,93 @@ function PromptChat({ userId }: { userId: string | null }) {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
   }, [messages, sending]);
 
+  // Load thread list
+  useEffect(() => {
+    if (!userId) return;
+    (async () => {
+      const { data } = await supabase
+        .from("prompt_chat_threads" as never)
+        .select("id,title,updated_at")
+        .eq("user_id", userId)
+        .order("updated_at", { ascending: false });
+      const list = (data as Array<{ id: string; title: string; updated_at: string }> | null) ?? [];
+      setThreads(list);
+      if (list.length && !threadId) selectThread(list[0].id);
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [userId]);
+
+  async function selectThread(id: string) {
+    setThreadId(id);
+    const { data } = await supabase
+      .from("prompt_chat_messages" as never)
+      .select("role,content")
+      .eq("thread_id", id)
+      .order("created_at", { ascending: true });
+    const msgs = (data as ChatMsg[] | null) ?? [];
+    setMessages(msgs.length ? msgs : [WELCOME]);
+  }
+
+  async function newThread() {
+    setThreadId(null);
+    setMessages([WELCOME]);
+    setInput("");
+  }
+
+  async function deleteThread(id: string) {
+    if (!confirm("Excluir esta conversa?")) return;
+    await supabase.from("prompt_chat_threads" as never).delete().eq("id", id);
+    setThreads((t) => t.filter((x) => x.id !== id));
+    if (threadId === id) newThread();
+  }
+
+  async function ensureThread(firstUserText: string): Promise<string | null> {
+    if (threadId || !userId) return threadId;
+    const title = firstUserText.slice(0, 60) || "Nova conversa";
+    const { data, error } = await supabase
+      .from("prompt_chat_threads" as never)
+      .insert({ user_id: userId, title } as never)
+      .select("id,title,updated_at")
+      .single();
+    if (error || !data) return null;
+    const row = data as { id: string; title: string; updated_at: string };
+    setThreadId(row.id);
+    setThreads((t) => [row, ...t]);
+    return row.id;
+  }
+
   async function send(text?: string) {
     const content = (text ?? input).trim();
     if (!content || sending) return;
+    if (!userId) { toast.error("Faça login para conversar"); return; }
     const next: ChatMsg[] = [...messages, { role: "user", content }];
     setMessages(next);
     setInput("");
     setSending(true);
     try {
+      const tid = await ensureThread(content);
+      if (tid) {
+        await supabase.from("prompt_chat_messages" as never).insert({
+          thread_id: tid, user_id: userId, role: "user", content,
+        } as never);
+      }
       const { text: reply } = await call({ data: { messages: next } });
-      setMessages((m) => [...m, { role: "assistant", content: reply || "(sem resposta)" }]);
+      const assistant = reply || "(sem resposta)";
+      setMessages((m) => [...m, { role: "assistant", content: assistant }]);
+      if (tid) {
+        await supabase.from("prompt_chat_messages" as never).insert({
+          thread_id: tid, user_id: userId, role: "assistant", content: assistant,
+        } as never);
+        await supabase.from("prompt_chat_threads" as never)
+          .update({ updated_at: new Date().toISOString() } as never).eq("id", tid);
+        setThreads((t) => {
+          const idx = t.findIndex((x) => x.id === tid);
+          if (idx < 0) return t;
+          const copy = [...t];
+          const [row] = copy.splice(idx, 1);
+          return [{ ...row, updated_at: new Date().toISOString() }, ...copy];
+        });
+      }
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Falha ao responder");
     } finally {
@@ -206,7 +284,43 @@ function PromptChat({ userId }: { userId: string | null }) {
   }
 
   return (
-    <Card className="flex h-[calc(100vh-14rem)] flex-col overflow-hidden">
+    <Card className="flex h-[calc(100vh-14rem)] overflow-hidden">
+      <aside className="hidden w-64 shrink-0 flex-col border-r bg-muted/30 md:flex">
+        <div className="p-3">
+          <Button onClick={newThread} className="w-full gap-2" size="sm">
+            <Plus className="h-4 w-4" /> Nova conversa
+          </Button>
+        </div>
+        <div className="flex-1 overflow-y-auto px-2 pb-2">
+          {threads.length === 0 && (
+            <p className="px-2 py-4 text-xs text-muted-foreground">Suas conversas aparecerão aqui.</p>
+          )}
+          {threads.map((t) => (
+            <div
+              key={t.id}
+              className={`group flex items-center gap-2 rounded-md px-2 py-2 text-sm hover:bg-muted ${threadId === t.id ? "bg-muted" : ""}`}
+            >
+              <button
+                type="button"
+                onClick={() => selectThread(t.id)}
+                className="flex flex-1 items-center gap-2 truncate text-left"
+              >
+                <MessageSquare className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+                <span className="truncate">{t.title}</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => deleteThread(t.id)}
+                className="opacity-0 transition group-hover:opacity-100"
+                title="Excluir"
+              >
+                <Trash2 className="h-3.5 w-3.5 text-muted-foreground hover:text-destructive" />
+              </button>
+            </div>
+          ))}
+        </div>
+      </aside>
+      <div className="flex flex-1 flex-col overflow-hidden">
       <div ref={scrollRef} className="flex-1 space-y-4 overflow-y-auto p-4">
         {messages.map((m, i) => {
           const blocks = m.role === "assistant" ? extractPromptBlocks(m.content) : [];
@@ -270,6 +384,7 @@ function PromptChat({ userId }: { userId: string | null }) {
           )}
           <Button onClick={() => send()} disabled={sending || !input.trim()} size="icon" title="Enviar"><Send className="h-4 w-4" /></Button>
         </div>
+      </div>
       </div>
 
       <Dialog open={saveOpen} onOpenChange={setSaveOpen}>
