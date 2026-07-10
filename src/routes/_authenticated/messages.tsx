@@ -185,6 +185,8 @@ function MessagesPage() {
   }, [activeInstance]);
   // Map: phone digits -> Set of connection ids that have a conversation with that JID
   const [contactConnMap, setContactConnMap] = useState<Record<string, Set<string>>>({});
+  // Map: contact.id -> last activity timestamp (ms) — used for WhatsApp-style ordering
+  const [lastActivityMap, setLastActivityMap] = useState<Record<string, number>>({});
   const [instanceProfilePic, setInstanceProfilePic] = useState<Record<string, string | null>>({});
   const [profileUploading, setProfileUploading] = useState(false);
   const [profileNameEdit, setProfileNameEdit] = useState("");
@@ -293,6 +295,12 @@ function MessagesPage() {
 
   function mergeMessageIntoThread(incoming: Msg, replaceTmpId?: string, contactId?: string) {
     const targetId = contactId ?? selectedRef.current?.id;
+    if (targetId) {
+      const ts = new Date(incoming.created_at).getTime();
+      if (Number.isFinite(ts)) {
+        setLastActivityMap((prev) => (ts > (prev[targetId] ?? 0) ? { ...prev, [targetId]: ts } : prev));
+      }
+    }
     setMsgs((prev) => {
       const evoId = (incoming.metadata as { evoId?: unknown } | null)?.evoId;
       let idx = prev.findIndex((m) => {
@@ -653,18 +661,32 @@ function MessagesPage() {
     if (!user) return;
     (async () => {
       const { data } = await supabase.from("conversations")
-        .select("connection_id,metadata")
+        .select("connection_id,metadata,last_message_at,updated_at")
         .eq("user_id", user.id)
-        .not("connection_id", "is", null)
         .limit(5000);
       const map: Record<string, Set<string>> = {};
+      // digits -> newest activity timestamp across all conversations for that phone
+      const digitsTs: Record<string, number> = {};
       for (const row of data ?? []) {
         const jid = (row.metadata as { remoteJid?: string } | null)?.remoteJid ?? "";
         const digits = String(jid).split("@")[0].replace(/\D+/g, "");
-        if (!digits || !row.connection_id) continue;
-        (map[digits] ??= new Set()).add(row.connection_id);
+        if (!digits) continue;
+        if (row.connection_id) (map[digits] ??= new Set()).add(row.connection_id);
+        const ts = new Date((row.last_message_at as string | null) ?? (row.updated_at as string | null) ?? 0).getTime() || 0;
+        if (ts > (digitsTs[digits] ?? 0)) digitsTs[digits] = ts;
       }
       setContactConnMap(map);
+      // Map contact.id -> latest activity by matching phone variants
+      const activity: Record<string, number> = {};
+      for (const c of contacts) {
+        let best = 0;
+        for (const d of phoneVariants(c.phone)) {
+          const ts = digitsTs[d] ?? 0;
+          if (ts > best) best = ts;
+        }
+        if (best) activity[c.id] = best;
+      }
+      setLastActivityMap(activity);
     })();
   }, [user, contacts.length]);
 
@@ -698,8 +720,14 @@ function MessagesPage() {
     else if (filterMode === "favorites") list = list.filter((c) => favorites.has(c.id));
     else if (filterMode === "groups") list = list.filter((c) => c.phone.includes("@g.us"));
     if (q) list = list.filter((c) => (c.name ?? "").toLowerCase().includes(q) || c.phone.includes(q));
-    return [...list].sort((a, b) => Number(pinned.has(b.id)) - Number(pinned.has(a.id)));
-  }, [contacts, search, filterMode, favorites, unreadMap, archived, pinned, activeInstance, contactConnMap]);
+    return [...list].sort((a, b) => {
+      const pinDiff = Number(pinned.has(b.id)) - Number(pinned.has(a.id));
+      if (pinDiff !== 0) return pinDiff;
+      const ta = lastActivityMap[a.id] ?? 0;
+      const tb = lastActivityMap[b.id] ?? 0;
+      return tb - ta;
+    });
+  }, [contacts, search, filterMode, favorites, unreadMap, archived, pinned, activeInstance, contactConnMap, lastActivityMap]);
   const unreadTotal = useMemo(
     () => Object.values(unreadMap).reduce((a, b) => a + b, 0),
     [unreadMap],
@@ -2192,9 +2220,25 @@ function MessagesPage() {
                           ) : <MediaMissing kind="sticker" onRetry={() => loadMessagesRef.current?.()} />
                         ) : isImage ? (
                           <div className="relative">
-                            <button onClick={() => !(m.metadata as { pending?: boolean } | null)?.pending && setLightbox({ type: "image", src: m.media_url! })} className="block focus:outline-none">
-                              <img src={m.media_url!} alt={m.content ?? ""} className={`rounded-md max-h-64 object-cover ${(m.metadata as { pending?: boolean } | null)?.pending ? "opacity-70" : "cursor-zoom-in"}`} />
-                            </button>
+                             <button onClick={() => !(m.metadata as { pending?: boolean } | null)?.pending && setLightbox({ type: "image", src: m.media_url! })} className="block focus:outline-none">
+                               <img
+                                 src={m.media_url!}
+                                 alt={m.content ?? ""}
+                                 loading="lazy"
+                                 decoding="async"
+                                 className={`rounded-md max-h-64 object-cover ${(m.metadata as { pending?: boolean } | null)?.pending ? "opacity-70" : "cursor-zoom-in"}`}
+                                 onError={(e) => {
+                                   const el = e.currentTarget;
+                                   if (el.dataset.retried) return;
+                                   el.dataset.retried = "1";
+                                   const path = storagePathFrom(m);
+                                   if (!path) return;
+                                   supabase.storage.from("agent-media").createSignedUrl(path, 60 * 60 * 24).then(({ data }) => {
+                                     if (data?.signedUrl) { signedUrlCacheRef.current.set(path, data.signedUrl); el.src = data.signedUrl; }
+                                   });
+                                 }}
+                               />
+                             </button>
                             {(m.metadata as { pending?: boolean } | null)?.pending ? (
                               <div className="absolute inset-0 grid place-items-center rounded-md bg-black/25">
                                 <Loader2 className="h-8 w-8 text-white animate-spin drop-shadow" />
