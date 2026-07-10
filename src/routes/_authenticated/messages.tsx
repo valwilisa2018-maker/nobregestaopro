@@ -199,6 +199,7 @@ function MessagesPage() {
   const syncNamesFn = useServerFn(syncContactNames);
   const pushPresence = useServerFn(sendPresence);
   const ensureWebhook = useServerFn(ensurePresenceWebhook);
+  const subscribePresenceFn = useServerFn(subscribeContactPresence);
   const deleteMsgFn = useServerFn(deleteChatMessage);
   const forwardMsgFn = useServerFn(forwardChatMessage);
   const editMsgFn = useServerFn(editChatMessage);
