@@ -101,8 +101,9 @@ async function uploadMediaFast(
   const token = data.session?.access_token;
   if (!token) throw new Error("Sessão expirada. Entre novamente para enviar mídia.");
 
-  // Arquivos maiores: TUS resumable com uploads paralelos (chunks simultâneos)
-  // acelera vídeos aproveitando múltiplas conexões HTTP.
+  // Arquivos maiores: TUS resumable sequencial.
+  // O backend não aceita a extensão de concatenação do TUS, então uploads paralelos
+  // fazem o vídeo falhar e voltar para zero.
   const PARALLEL_THRESHOLD = 2 * 1024 * 1024; // >2MB
   if (file.size > PARALLEL_THRESHOLD) {
     const tus = await import("tus-js-client");
@@ -124,7 +125,6 @@ async function uploadMediaFast(
           cacheControl: "31536000",
         },
         chunkSize: 6 * 1024 * 1024,
-        parallelUploads: Math.min(4, Math.max(2, Math.ceil(file.size / (6 * 1024 * 1024)))),
         onError: (err) => reject(err),
         onProgress: (sent, total) => {
           if (onProgress) onProgress(Math.min(99, Math.round((sent / total) * 100)));
