@@ -6,6 +6,7 @@ import {
   Plus, X, Play, Mic, Info, Trash2, ChevronDown, Upload, FileText, Send as SendIcon, Bot,
   RefreshCw, Database, Brain,
   CheckCircle2, XCircle, ShieldCheck,
+  CalendarCheck,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
