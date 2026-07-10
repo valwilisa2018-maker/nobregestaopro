@@ -438,6 +438,9 @@ function Builder() {
     setUploadPct(0);
     const controller = new AbortController();
     uploadAbortRef.current = controller;
+    // Preview otimista: mostra o arquivo já anexado com URL local (blob:) enquanto sobe em background
+    const localUrl = URL.createObjectURL(file);
+    updateSelected({ url: localUrl, mediaName: file.name });
     try {
       const safeName = file.name.replace(/[^\w.\-]+/g, "_");
       const path = `${user.id}/flows/${selected.id}-${Date.now()}-${safeName}`;
@@ -451,8 +454,13 @@ function Builder() {
       const url = signed.data?.signedUrl;
       if (!url) throw new Error("Falha ao gerar URL do arquivo");
       updateSelected({ url, mediaName: file.name });
+      // libera o blob local após trocar pela URL final
+      URL.revokeObjectURL(localUrl);
       toast.success("Arquivo enviado");
     } catch (e) {
+      // desfaz o preview otimista em caso de falha/cancelamento
+      URL.revokeObjectURL(localUrl);
+      updateSelected({ url: undefined, mediaName: undefined });
       if (e instanceof DOMException && e.name === "AbortError") {
         toast.info("Upload cancelado");
         return;
