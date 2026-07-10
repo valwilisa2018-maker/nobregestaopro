@@ -128,6 +128,7 @@ async function uploadMediaFast(
         onProgress(Math.min(99, Math.round((ev.loaded / ev.total) * 100)));
       }
     };
+    xhr.upload.onload = () => onProgress?.(100);
     xhr.onload = () => {
       window.clearTimeout(timeout);
       signal?.removeEventListener("abort", onAbortSignal);
