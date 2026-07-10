@@ -14,7 +14,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useServerFn } from "@tanstack/react-start";
-import { sendChatText, sendChatAudio, sendChatMedia, getProfilePicture, sendPresence, ensurePresenceWebhook, deleteChatMessage, forwardChatMessage, editChatMessage, reactChatMessage, syncContactNames, startFlowForContact } from "@/lib/evolution.functions";
+import { sendChatText, sendChatAudio, sendChatMedia, getProfilePicture, sendPresence, ensurePresenceWebhook, subscribeContactPresence, deleteChatMessage, forwardChatMessage, editChatMessage, reactChatMessage, syncContactNames, startFlowForContact } from "@/lib/evolution.functions";
 import { toast } from "sonner";
 import notificationSound from "@/assets/notification.mp3.asset.json";
 import { QuickSendPopover } from "@/components/quick-send-popover";
@@ -199,6 +199,7 @@ function MessagesPage() {
   const syncNamesFn = useServerFn(syncContactNames);
   const pushPresence = useServerFn(sendPresence);
   const ensureWebhook = useServerFn(ensurePresenceWebhook);
+  const subscribePresenceFn = useServerFn(subscribeContactPresence);
   const deleteMsgFn = useServerFn(deleteChatMessage);
   const forwardMsgFn = useServerFn(forwardChatMessage);
   const editMsgFn = useServerFn(editChatMessage);
@@ -514,6 +515,12 @@ function MessagesPage() {
     setRemotePresence(null);
     if (remotePresenceTimerRef.current) { clearTimeout(remotePresenceTimerRef.current); remotePresenceTimerRef.current = null; }
     if (!user || !selected) return;
+    // Ask Evolution/WhatsApp to start pushing presence for this contact,
+    // then re-subscribe every 45s (WhatsApp presence subscription expires).
+    subscribePresenceFn({ data: { contactId: selected.id } }).catch(() => {});
+    const resubTimer = setInterval(() => {
+      subscribePresenceFn({ data: { contactId: selected.id } }).catch(() => {});
+    }, 45_000);
     const jids = new Set(jidVariants(selected.phone));
     const lidJids = (selected.metadata as { lidJids?: unknown } | null)?.lidJids;
     if (Array.isArray(lidJids)) lidJids.forEach((jid) => { if (typeof jid === "string") jids.add(jid); });
@@ -545,9 +552,10 @@ function MessagesPage() {
       .subscribe();
     return () => {
       supabase.removeChannel(ch);
+      clearInterval(resubTimer);
       if (remotePresenceTimerRef.current) { clearTimeout(remotePresenceTimerRef.current); remotePresenceTimerRef.current = null; }
     };
-  }, [user, selected]);
+  }, [user, selected, subscribePresenceFn]);
 
   // Send "composing" while typing (throttled), "paused" when idle
   useEffect(() => {
