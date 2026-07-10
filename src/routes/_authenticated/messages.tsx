@@ -515,6 +515,12 @@ function MessagesPage() {
     setRemotePresence(null);
     if (remotePresenceTimerRef.current) { clearTimeout(remotePresenceTimerRef.current); remotePresenceTimerRef.current = null; }
     if (!user || !selected) return;
+    // Ask Evolution/WhatsApp to start pushing presence for this contact,
+    // then re-subscribe every 45s (WhatsApp presence subscription expires).
+    subscribePresenceFn({ data: { contactId: selected.id } }).catch(() => {});
+    const resubTimer = setInterval(() => {
+      subscribePresenceFn({ data: { contactId: selected.id } }).catch(() => {});
+    }, 45_000);
     const jids = new Set(jidVariants(selected.phone));
     const lidJids = (selected.metadata as { lidJids?: unknown } | null)?.lidJids;
     if (Array.isArray(lidJids)) lidJids.forEach((jid) => { if (typeof jid === "string") jids.add(jid); });
@@ -546,9 +552,10 @@ function MessagesPage() {
       .subscribe();
     return () => {
       supabase.removeChannel(ch);
+      clearInterval(resubTimer);
       if (remotePresenceTimerRef.current) { clearTimeout(remotePresenceTimerRef.current); remotePresenceTimerRef.current = null; }
     };
-  }, [user, selected]);
+  }, [user, selected, subscribePresenceFn]);
 
   // Send "composing" while typing (throttled), "paused" when idle
   useEffect(() => {
