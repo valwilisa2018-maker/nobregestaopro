@@ -21,7 +21,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   ReactFlow, ReactFlowProvider, Background, Controls, MiniMap, addEdge, useEdgesState,
-  useNodesState, Handle, Position, type Node, type Edge, type Connection, type NodeProps,
+  useNodesState, Handle, Position, reconnectEdge, type Node, type Edge, type Connection, type NodeProps,
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 import { generateFlow, saveFlow, listFlows, deleteFlow } from "@/lib/flows.functions";
@@ -270,6 +270,28 @@ function Builder() {
     (c: Connection) => setEdges((eds) => addEdge({ ...c, animated: true }, eds)),
     [setEdges],
   );
+
+  // Reconectar: arraste a ponta de uma conexão para outro bloco/handle para mudá-la
+  const reconnectDone = useRef(true);
+  const onReconnectStart = useCallback(() => { reconnectDone.current = false; }, []);
+  const onReconnect = useCallback((oldEdge: Edge, newConnection: Connection) => {
+    reconnectDone.current = true;
+    setEdges((eds) => reconnectEdge(oldEdge, newConnection, eds));
+  }, [setEdges]);
+  const onReconnectEnd = useCallback((_: unknown, edge: Edge) => {
+    // Se soltou fora de qualquer handle, remove a conexão
+    if (!reconnectDone.current) {
+      setEdges((eds) => eds.filter((e) => e.id !== edge.id));
+      toast.success("Conexão removida");
+    }
+    reconnectDone.current = true;
+  }, [setEdges]);
+
+  // Clique na linha para excluir a conexão
+  const onEdgeClick = useCallback((_: React.MouseEvent, edge: Edge) => {
+    setEdges((eds) => eds.filter((e) => e.id !== edge.id));
+    toast.success("Conexão removida");
+  }, [setEdges]);
 
   const addBlock = (kind: NodeKind) => {
     const pos = { x: 200 + Math.random() * 300, y: 100 + Math.random() * 250 };
@@ -534,6 +556,12 @@ function Builder() {
             nodes={nodes} edges={edges}
             onNodesChange={onNodesChange} onEdgesChange={onEdgesChange}
             onConnect={onConnect}
+            onReconnect={onReconnect}
+            onReconnectStart={onReconnectStart}
+            onReconnectEnd={onReconnectEnd}
+            onEdgeClick={onEdgeClick}
+            edgesReconnectable
+            deleteKeyCode={["Backspace", "Delete"]}
             nodeTypes={nodeTypes}
             onNodeClick={(_, n) => setSelected(n as Node<BlockData>)}
             onPaneClick={() => setSelected(null)}
