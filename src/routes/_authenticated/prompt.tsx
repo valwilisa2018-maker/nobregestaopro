@@ -232,6 +232,18 @@ function PromptChat({ userId }: { userId: string | null }) {
         toast.error("Microfone não suportado neste navegador");
         return;
       }
+      const inIframe = typeof window !== "undefined" && window.self !== window.top;
+      if (inIframe) {
+        toast.error("O microfone está bloqueado no preview.", {
+          description: "Abra o app em uma aba separada para gravar áudio.",
+          action: {
+            label: "Abrir em nova aba",
+            onClick: () => window.open(window.location.href, "_blank", "noopener"),
+          },
+          duration: 10000,
+        });
+        return;
+      }
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       const candidates = [
         "audio/webm;codecs=opus",
