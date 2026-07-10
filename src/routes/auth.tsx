@@ -1,5 +1,6 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
+import { ShieldCheck, RefreshCw } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -28,6 +29,23 @@ function AuthPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const [captcha, setCaptcha] = useState({ a: 0, b: 0 });
+  const [captchaAnswer, setCaptchaAnswer] = useState("");
+
+  const regenCaptcha = useCallback(() => {
+    setCaptcha({ a: Math.floor(Math.random() * 9) + 1, b: Math.floor(Math.random() * 9) + 1 });
+    setCaptchaAnswer("");
+  }, []);
+  useEffect(() => { regenCaptcha(); }, [regenCaptcha]);
+
+  const checkCaptcha = () => {
+    if (Number(captchaAnswer.trim()) !== captcha.a + captcha.b) {
+      toast.error("Verificação incorreta. Resolva a soma para continuar.");
+      regenCaptcha();
+      return false;
+    }
+    return true;
+  };
 
   useEffect(() => {
     (async () => {
@@ -42,6 +60,7 @@ function AuthPage() {
 
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!checkCaptcha()) return;
     setLoading(true);
     const { error } = await supabase.auth.signInWithPassword({ email, password });
     if (error) { setLoading(false); return toast.error(error.message); }
@@ -59,6 +78,7 @@ function AuthPage() {
 
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!checkCaptcha()) return;
     setLoading(true);
     const { data, error } = await supabase.auth.signUp({
       email,
@@ -90,7 +110,7 @@ function AuthPage() {
               <TabsTrigger value="signin">Entrar</TabsTrigger>
               <TabsTrigger value="signup">Criar conta</TabsTrigger>
             </TabsList>
-            <TabsContent value="signin">
+             <TabsContent value="signin">
               <form onSubmit={handleSignIn} className="space-y-4 pt-4">
                 <div className="space-y-2">
                   <Label htmlFor="email">E-mail</Label>
@@ -100,6 +120,7 @@ function AuthPage() {
                   <Label htmlFor="password">Senha</Label>
                   <Input id="password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required />
                 </div>
+                <CaptchaField captcha={captcha} value={captchaAnswer} onChange={setCaptchaAnswer} onRefresh={regenCaptcha} />
                 <Button type="submit" className="w-full" disabled={loading}>Entrar</Button>
               </form>
             </TabsContent>
@@ -113,12 +134,45 @@ function AuthPage() {
                   <Label htmlFor="password2">Senha</Label>
                   <Input id="password2" type="password" value={password} onChange={(e) => setPassword(e.target.value)} minLength={6} required />
                 </div>
+                <CaptchaField captcha={captcha} value={captchaAnswer} onChange={setCaptchaAnswer} onRefresh={regenCaptcha} />
                 <Button type="submit" className="w-full" disabled={loading}>Criar conta</Button>
               </form>
             </TabsContent>
           </Tabs>
         </CardContent>
       </Card>
+    </div>
+  );
+}
+
+function CaptchaField({
+  captcha, value, onChange, onRefresh,
+}: { captcha: { a: number; b: number }; value: string; onChange: (v: string) => void; onRefresh: () => void }) {
+  return (
+    <div className="space-y-2">
+      <Label htmlFor="captcha" className="flex items-center gap-1.5">
+        <ShieldCheck className="h-3.5 w-3.5 text-primary" /> Verificação de segurança
+      </Label>
+      <div className="flex items-center gap-2">
+        <div
+          className="select-none rounded-md border bg-gradient-to-br from-muted to-muted/40 px-4 py-2 font-mono text-lg font-bold tracking-widest italic"
+          style={{ textShadow: "1px 1px 0 hsl(var(--primary) / 0.25)", letterSpacing: "0.25em" }}
+        >
+          {captcha.a} + {captcha.b} = ?
+        </div>
+        <Button type="button" size="icon" variant="outline" onClick={onRefresh} title="Gerar outro">
+          <RefreshCw className="h-4 w-4" />
+        </Button>
+      </div>
+      <Input
+        id="captcha"
+        inputMode="numeric"
+        pattern="[0-9]*"
+        placeholder="Digite o resultado"
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        required
+      />
     </div>
   );
 }
