@@ -202,6 +202,7 @@ export type Database = {
           ends_at: string | null
           id: string
           is_active: boolean
+          lockdown: boolean
           severity: string
           starts_at: string
           title: string
@@ -216,6 +217,7 @@ export type Database = {
           ends_at?: string | null
           id?: string
           is_active?: boolean
+          lockdown?: boolean
           severity?: string
           starts_at?: string
           title: string
@@ -230,6 +232,7 @@ export type Database = {
           ends_at?: string | null
           id?: string
           is_active?: boolean
+          lockdown?: boolean
           severity?: string
           starts_at?: string
           title?: string
