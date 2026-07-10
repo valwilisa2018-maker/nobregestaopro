@@ -15,6 +15,7 @@ import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthenticatedRouteImport } from './routes/_authenticated'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as MasterIndexRouteImport } from './routes/master/index'
+import { Route as MasterSupportSettingsRouteImport } from './routes/master/support-settings'
 import { Route as MasterSupportRouteImport } from './routes/master/support'
 import { Route as MasterPaymentConfigRouteImport } from './routes/master/payment-config'
 import { Route as MasterOrdersRouteImport } from './routes/master/orders'
@@ -97,6 +98,11 @@ const IndexRoute = IndexRouteImport.update({
 const MasterIndexRoute = MasterIndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => MasterRoute,
+} as any)
+const MasterSupportSettingsRoute = MasterSupportSettingsRouteImport.update({
+  id: '/support-settings',
+  path: '/support-settings',
   getParentRoute: () => MasterRoute,
 } as any)
 const MasterSupportRoute = MasterSupportRouteImport.update({
@@ -425,6 +431,7 @@ export interface FileRoutesByFullPath {
   '/master/orders': typeof MasterOrdersRoute
   '/master/payment-config': typeof MasterPaymentConfigRoute
   '/master/support': typeof MasterSupportRoute
+  '/master/support-settings': typeof MasterSupportSettingsRoute
   '/master/': typeof MasterIndexRoute
   '/api/v1/buy': typeof ApiV1BuyRoute
   '/api/v1/consume': typeof ApiV1ConsumeRoute
@@ -485,6 +492,7 @@ export interface FileRoutesByTo {
   '/master/orders': typeof MasterOrdersRoute
   '/master/payment-config': typeof MasterPaymentConfigRoute
   '/master/support': typeof MasterSupportRoute
+  '/master/support-settings': typeof MasterSupportSettingsRoute
   '/master': typeof MasterIndexRoute
   '/api/v1/buy': typeof ApiV1BuyRoute
   '/api/v1/consume': typeof ApiV1ConsumeRoute
@@ -548,6 +556,7 @@ export interface FileRoutesById {
   '/master/orders': typeof MasterOrdersRoute
   '/master/payment-config': typeof MasterPaymentConfigRoute
   '/master/support': typeof MasterSupportRoute
+  '/master/support-settings': typeof MasterSupportSettingsRoute
   '/master/': typeof MasterIndexRoute
   '/api/v1/buy': typeof ApiV1BuyRoute
   '/api/v1/consume': typeof ApiV1ConsumeRoute
@@ -611,6 +620,7 @@ export interface FileRouteTypes {
     | '/master/orders'
     | '/master/payment-config'
     | '/master/support'
+    | '/master/support-settings'
     | '/master/'
     | '/api/v1/buy'
     | '/api/v1/consume'
@@ -671,6 +681,7 @@ export interface FileRouteTypes {
     | '/master/orders'
     | '/master/payment-config'
     | '/master/support'
+    | '/master/support-settings'
     | '/master'
     | '/api/v1/buy'
     | '/api/v1/consume'
@@ -733,6 +744,7 @@ export interface FileRouteTypes {
     | '/master/orders'
     | '/master/payment-config'
     | '/master/support'
+    | '/master/support-settings'
     | '/master/'
     | '/api/v1/buy'
     | '/api/v1/consume'
@@ -810,6 +822,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/master/'
       preLoaderRoute: typeof MasterIndexRouteImport
+      parentRoute: typeof MasterRoute
+    }
+    '/master/support-settings': {
+      id: '/master/support-settings'
+      path: '/support-settings'
+      fullPath: '/master/support-settings'
+      preLoaderRoute: typeof MasterSupportSettingsRouteImport
       parentRoute: typeof MasterRoute
     }
     '/master/support': {
@@ -1281,6 +1300,7 @@ interface MasterRouteChildren {
   MasterOrdersRoute: typeof MasterOrdersRoute
   MasterPaymentConfigRoute: typeof MasterPaymentConfigRoute
   MasterSupportRoute: typeof MasterSupportRoute
+  MasterSupportSettingsRoute: typeof MasterSupportSettingsRoute
   MasterIndexRoute: typeof MasterIndexRoute
 }
 
@@ -1292,6 +1312,7 @@ const MasterRouteChildren: MasterRouteChildren = {
   MasterOrdersRoute: MasterOrdersRoute,
   MasterPaymentConfigRoute: MasterPaymentConfigRoute,
   MasterSupportRoute: MasterSupportRoute,
+  MasterSupportSettingsRoute: MasterSupportSettingsRoute,
   MasterIndexRoute: MasterIndexRoute,
 }
 
