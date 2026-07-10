@@ -782,7 +782,8 @@ function TestSection({ form, setForm }: { form: AgentRow; setForm: React.Dispatc
         : "";
       // Contexto da Agenda — permite ao agente checar conflitos ao propor horários
       let agendaText = "";
-      try {
+      const schedulingEnabled = ((form.integrations as { scheduling?: { enabled?: boolean } } | null)?.scheduling?.enabled ?? true);
+      if (schedulingEnabled) try {
         const raw = localStorage.getItem("calendar.events.v1");
         const list = raw ? (JSON.parse(raw) as Array<{ title: string; start: string; end: string; calendar: string; connectionId?: string | null }>) : [];
         const now = Date.now();
@@ -794,8 +795,8 @@ function TestSection({ form, setForm }: { form: AgentRow; setForm: React.Dispatc
           .sort((a, b) => +new Date(a.start) - +new Date(b.start))
           .slice(0, 50);
         const fmt = (iso: string) => new Date(iso).toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" });
-        agendaText = "\n\n## Agenda (fuso America/Sao_Paulo)\n" +
-          "Antes de confirmar qualquer agendamento, verifique conflitos nesta lista. Se o horário solicitado colidir com um evento abaixo, avise o usuário e sugira o próximo horário livre.\n" +
+        agendaText = "\n\n## Agendamento habilitado — Agenda (fuso America/Sao_Paulo)\n" +
+          "Você PODE realizar agendamentos. Antes de confirmar qualquer horário, verifique conflitos nesta lista. Se colidir com um evento abaixo, avise o usuário e sugira o próximo horário livre. Ao confirmar, informe título, data, hora de início e término.\n" +
           (upcoming.length
             ? upcoming.map((e) => `- ${fmt(e.start)} → ${fmt(e.end)} · ${e.title} [${e.calendar}]`).join("\n")
             : "- (nenhum evento futuro)");
