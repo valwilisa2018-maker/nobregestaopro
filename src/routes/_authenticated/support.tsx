@@ -16,7 +16,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sh
 import { Progress } from "@/components/ui/progress";
 import {
   LifeBuoy, Loader2, Send, Plus, Phone, Mail, MessageCircle, Search, Paperclip,
-  X, FileText, ImageIcon, Sparkles, Star, Upload,
+  X, FileText, ImageIcon, Sparkles, Star, Upload, CheckCircle2,
   RefreshCw,
 } from "lucide-react";
 import { toast } from "sonner";
