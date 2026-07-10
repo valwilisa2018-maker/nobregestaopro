@@ -1026,7 +1026,7 @@ export const Route = createFileRoute("/api/public/evolution/$instance")({
                         if (pending) {
                           const { data: nextFlow } = await supabaseAdmin.from("flows")
                             .select("id,trigger_keywords,definition")
-                            .eq("user_id", conn.user_id).eq("active", true)
+                            .eq("user_id", conn.user_id).eq("is_active", true)
                             .contains("trigger_keywords", [pending] as never)
                             .maybeSingle();
                           const rest = { ...meta };
