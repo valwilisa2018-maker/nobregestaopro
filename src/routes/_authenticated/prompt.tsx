@@ -68,29 +68,9 @@ function Page() {
           Adicionar Prompt Mestre
         </Button>
       </div>
-      <Tabs defaultValue="chat" className="w-full">
-        <TabsList>
-          <TabsTrigger value="chat">Assistente</TabsTrigger>
-          <TabsTrigger value="library">Biblioteca</TabsTrigger>
-        </TabsList>
-        <TabsContent value="chat" className="mt-4">
-          <PromptChat userId={user?.id ?? null} />
-        </TabsContent>
-        <TabsContent value="library" className="mt-4">
-          <CrudResource
-            table="prompts"
-            title="Prompts"
-            description="Biblioteca de prompts reutilizáveis."
-            singular="Prompt"
-            icon={<Brain className="h-6 w-6" />}
-            fields={[
-              { name: "name", label: "Nome", type: "text", required: true },
-              { name: "content", label: "Conteúdo", type: "textarea", required: true },
-              { name: "is_default", label: "Padrão", type: "boolean" },
-            ]}
-          />
-        </TabsContent>
-      </Tabs>
+      <div className="mt-4">
+        <PromptChat userId={user?.id ?? null} />
+      </div>
     </div>
   );
 }
