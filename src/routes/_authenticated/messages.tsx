@@ -50,7 +50,7 @@ const WA = {
 };
 
 const STICKERS = ["😀","😂","😍","🥰","😎","🤩","🥳","😭","😡","🤔","👍","👏","🙏","🔥","💯","🎉","❤️","💔","😅","🤣","😴","🤗","🤝","👀","💪","🌹","🍀","⭐","☀️","🌙","🎂","🍕","☕","⚽","🎮","🎵","📸","💡","✅","❌"];
-const MESSAGE_PAGE_SIZE = 80;
+const MESSAGE_PAGE_SIZE = 30;
 
 function jidFromPhone(phone: string) {
   return `${String(phone).replace(/\D+/g, "")}@s.whatsapp.net`;
@@ -778,7 +778,10 @@ function MessagesPage() {
   }, [msgs]);
 
   const hydrateSignedUrls = useCallback((rows: Msg[], reqId: string) => {
-    const rowsWithStorage = rows.filter((m) => storagePathFrom(m));
+    // Only hydrate the most recent media rows first — the older ones are off-screen
+    // and can be hydrated lazily. Signing every URL up-front is the main reason
+    // the chat feels slow to open on threads with lots of media.
+    const rowsWithStorage = rows.filter((m) => storagePathFrom(m)).slice(-15);
     if (!rowsWithStorage.length) return;
     (async () => {
       const patches = await Promise.all(rowsWithStorage.map(async (m) => {
