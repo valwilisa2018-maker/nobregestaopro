@@ -271,6 +271,28 @@ function Builder() {
     [setEdges],
   );
 
+  // Reconectar: arraste a ponta de uma conexão para outro bloco/handle para mudá-la
+  const reconnectDone = useRef(true);
+  const onReconnectStart = useCallback(() => { reconnectDone.current = false; }, []);
+  const onReconnect = useCallback((oldEdge: Edge, newConnection: Connection) => {
+    reconnectDone.current = true;
+    setEdges((eds) => reconnectEdge(oldEdge, newConnection, eds));
+  }, [setEdges]);
+  const onReconnectEnd = useCallback((_: unknown, edge: Edge) => {
+    // Se soltou fora de qualquer handle, remove a conexão
+    if (!reconnectDone.current) {
+      setEdges((eds) => eds.filter((e) => e.id !== edge.id));
+      toast.success("Conexão removida");
+    }
+    reconnectDone.current = true;
+  }, [setEdges]);
+
+  // Clique na linha para excluir a conexão
+  const onEdgeClick = useCallback((_: React.MouseEvent, edge: Edge) => {
+    setEdges((eds) => eds.filter((e) => e.id !== edge.id));
+    toast.success("Conexão removida");
+  }, [setEdges]);
+
   const addBlock = (kind: NodeKind) => {
     const pos = { x: 200 + Math.random() * 300, y: 100 + Math.random() * 250 };
     setNodes((n) => [...n, makeNode(kind, pos)]);
