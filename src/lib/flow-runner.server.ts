@@ -17,6 +17,8 @@ type FlowNode = {
     condition?: string;
     variable?: string;
     seconds?: number;
+    nextTrigger?: string;
+    mediaName?: string;
   };
 };
 type FlowEdge = { id: string; source: string; target: string; sourceHandle?: string | null };
