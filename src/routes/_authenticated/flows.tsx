@@ -78,6 +78,51 @@ const PALETTE_ORDER: NodeKind[] = [
   "BROADCAST", "YESNO", "WEBHOOK", "HANDOFF", "END",
 ];
 
+const VIDEO_UPLOAD_LIMIT_BYTES = 20 * 1024 * 1024;
+const FAST_UPLOAD_TIMEOUT_MS = 35_000;
+
+function encodeStoragePath(path: string) {
+  return path.split("/").map(encodeURIComponent).join("/");
+}
+
+async function uploadMediaFast(path: string, file: File, contentType: string) {
+  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string | undefined;
+  const publishableKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY as string | undefined;
+  if (!supabaseUrl || !publishableKey) throw new Error("Configuração de upload indisponível.");
+
+  const { data } = await supabase.auth.getSession();
+  const token = data.session?.access_token;
+  if (!token) throw new Error("Sessão expirada. Entre novamente para enviar mídia.");
+
+  const controller = new AbortController();
+  const timeout = window.setTimeout(() => controller.abort(), FAST_UPLOAD_TIMEOUT_MS);
+  try {
+    const res = await fetch(`${supabaseUrl.replace(/\/+$/, "")}/storage/v1/object/agent-media/${encodeStoragePath(path)}`, {
+      method: "POST",
+      headers: {
+        apikey: publishableKey,
+        Authorization: `Bearer ${token}`,
+        "Content-Type": contentType,
+        "cache-control": "31536000",
+        "x-upsert": "false",
+      },
+      body: file,
+      signal: controller.signal,
+    });
+    if (!res.ok) {
+      const detail = await res.text().catch(() => "");
+      throw new Error(`HTTP ${res.status}${detail ? `: ${detail.slice(0, 180)}` : ""}`);
+    }
+  } catch (e) {
+    if (e instanceof DOMException && e.name === "AbortError") {
+      throw new Error("O upload demorou demais. Reduza o vídeo para menos de 10 MB e tente novamente.");
+    }
+    throw e;
+  } finally {
+    window.clearTimeout(timeout);
+  }
+}
+
 function BlockNode({ data, selected }: NodeProps) {
   const d = data as unknown as BlockData;
   const meta = KIND_META[d.kind];
@@ -327,7 +372,7 @@ function Builder() {
 
   async function handleMediaUpload(file: File) {
     if (!user || !selected) return;
-    if (selected.data.kind === "VIDEO" && file.size > 20 * 1024 * 1024) {
+    if (selected.data.kind === "VIDEO" && file.size > VIDEO_UPLOAD_LIMIT_BYTES) {
       const mb = (file.size / (1024 * 1024)).toFixed(1);
       toast.error(
         `Vídeo muito grande (${mb} MB). Limite máximo: 20 MB. Converta/reduza o vídeo (ex.: HandBrake, CloudConvert ou ffmpeg) e tente novamente.`,
@@ -347,26 +392,19 @@ function Builder() {
       const contentType = file.type && file.type.length > 0 ? file.type : kindGuess;
       let lastErr: unknown = null;
       let ok = false;
-      for (let attempt = 0; attempt < 3 && !ok; attempt++) {
-        const uploadPromise = supabase.storage.from("agent-media").upload(path, file, { upsert: true, contentType });
-        const timeoutMs = 60_000; // 60s por tentativa
-        let timedOut = false;
-        const timeoutPromise = new Promise<{ error: { message: string } }>((resolve) => {
-          setTimeout(() => { timedOut = true; resolve({ error: { message: "timeout: upload demorou demais" } }); }, timeoutMs);
-        });
-        const up = (await Promise.race([uploadPromise, timeoutPromise])) as { error: { message: string } | null };
-        if (!timedOut && !up.error) { ok = true; break; }
-        lastErr = up.error ?? { message: "timeout" };
-        const msg = String((up.error as { message?: string } | null)?.message ?? "timeout");
-        // Retry on transient Cloudflare/edge errors (520/522/524, network hiccups)
-        if (!/520|522|524|network|fetch|timeout/i.test(msg)) break;
-        await new Promise((r) => setTimeout(r, 800 * (attempt + 1)));
+      for (let attempt = 0; attempt < 2 && !ok; attempt++) {
+        try {
+          await uploadMediaFast(path, file, contentType);
+          ok = true;
+        } catch (e) {
+          lastErr = e;
+          const msg = e instanceof Error ? e.message : String(e);
+          if (!/520|522|524|network|fetch|failed to fetch/i.test(msg) || /demorou demais/i.test(msg)) break;
+          await new Promise((r) => setTimeout(r, 700));
+        }
       }
       if (!ok) {
         const msg = String((lastErr as { message?: string })?.message ?? "Erro desconhecido");
-        if (/timeout/i.test(msg)) {
-          throw new Error("O upload demorou demais. Verifique sua conexão ou reduza o tamanho do arquivo (recomendado < 10 MB para vídeos).");
-        }
         if (/520|522|524/.test(msg)) {
           throw new Error("O servidor de arquivos recusou o upload (erro temporário do CDN). Aguarde alguns segundos e tente novamente. Se persistir, reduza o tamanho do arquivo.");
         }
