@@ -1,9 +1,9 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useCallback, useMemo, useState, useEffect } from "react";
+import { useCallback, useMemo, useState, useEffect, useRef } from "react";
 import {
   Workflow, Sparkles, Bot, Save, Trash2, Loader2, MessageSquare, GitBranch,
   Image as ImageIcon, Video, Music, HelpCircle, Play, Square, Webhook, Clock, User,
-  Keyboard, Mic, Tag, UserPlus, Calendar, Send, ArrowLeft,
+  Keyboard, Mic, Tag, UserPlus, Calendar, Send, ArrowLeft, Upload, Layers,
 } from "lucide-react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
@@ -24,6 +24,8 @@ import {
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 import { generateFlow, saveFlow, listFlows, deleteFlow } from "@/lib/flows.functions";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/use-auth";
 
 export const Route = createFileRoute("/_authenticated/flows")({
   head: () => ({ meta: [{ title: "Fluxos de Conversa com IA — Plataforma" }] }),
@@ -33,7 +35,7 @@ export const Route = createFileRoute("/_authenticated/flows")({
 type NodeKind =
   | "START" | "MESSAGE" | "CONDITION" | "YESNO" | "IMAGE" | "VIDEO" | "AUDIO"
   | "QUESTION" | "WAIT" | "WEBHOOK" | "HANDOFF" | "END"
-  | "TYPING" | "RECORDING" | "TAGS" | "CAPTURE_NAME" | "SCHEDULE" | "BROADCAST";
+  | "TYPING" | "RECORDING" | "TAGS" | "CAPTURE_NAME" | "SCHEDULE" | "BROADCAST" | "SEQUENCE";
 
 type BlockData = {
   label: string;
@@ -43,39 +45,43 @@ type BlockData = {
   condition?: string;
   variable?: string;
   seconds?: number;
+  mediaName?: string;
+  nextTrigger?: string;
 };
 
-const KIND_META: Record<NodeKind, { label: string; sub: string; hint: string; icon: React.ReactNode; color: string; outputs: string[] }> = {
-  START:        { label: "Gatilho",       sub: "Inicia o fluxo",             hint: "Ponto de partida do fluxo. Define quando ele começa.", icon: <Play className="h-3.5 w-3.5" />,         color: "bg-emerald-500", outputs: ["out"] },
-  MESSAGE:      { label: "Mensagem",      sub: "Enviar texto",               hint: "Envia uma mensagem de texto ao contato. Ideal para saudações, informações e respostas automáticas.", icon: <MessageSquare className="h-3.5 w-3.5" />, color: "bg-blue-500", outputs: ["out"] },
-  CONDITION:    { label: "Condição",      sub: "Dividir fluxo",              hint: "Divide o fluxo em caminhos com base em uma condição.", icon: <GitBranch className="h-3.5 w-3.5" />,    color: "bg-amber-500",   outputs: ["true", "false"] },
-  WAIT:         { label: "Aguardar",      sub: "Tempo de espera",            hint: "Aguarda um tempo antes de seguir para o próximo bloco.", icon: <Clock className="h-3.5 w-3.5" />,        color: "bg-slate-500",   outputs: ["out"] },
-  VIDEO:        { label: "Vídeo",         sub: "Enviar vídeo",               hint: "Envia um arquivo de vídeo para o contato.", icon: <Video className="h-3.5 w-3.5" />,        color: "bg-rose-500",    outputs: ["out"] },
-  IMAGE:        { label: "Imagem",        sub: "Enviar imagem",              hint: "Envia uma imagem para o contato.", icon: <ImageIcon className="h-3.5 w-3.5" />,    color: "bg-pink-500",    outputs: ["out"] },
-  AUDIO:        { label: "Áudio",         sub: "Enviar áudio",               hint: "Envia um áudio para o contato.", icon: <Music className="h-3.5 w-3.5" />,        color: "bg-purple-500",  outputs: ["out"] },
-  TYPING:       { label: "Digitando",     sub: "Simular digitação",          hint: "Mostra 'digitando...' para simular uma resposta humana.", icon: <Keyboard className="h-3.5 w-3.5" />,     color: "bg-teal-500",    outputs: ["out"] },
-  RECORDING:    { label: "Gravando",      sub: "Simular gravação",           hint: "Mostra 'gravando áudio...' antes de enviar.", icon: <Mic className="h-3.5 w-3.5" />,          color: "bg-red-500",     outputs: ["out"] },
-  TAGS:         { label: "Etiquetas",     sub: "Atribuir tags ao contato",   hint: "Adiciona etiquetas ao contato para segmentação.", icon: <Tag className="h-3.5 w-3.5" />,          color: "bg-lime-500",    outputs: ["out"] },
-  QUESTION:     { label: "Resposta",      sub: "Aguardar resposta",          hint: "Aguarda o contato responder antes de continuar.", icon: <HelpCircle className="h-3.5 w-3.5" />,   color: "bg-indigo-500",  outputs: ["out"] },
-  CAPTURE_NAME: { label: "Capturar Nome", sub: "Pergunta e salva o nome",    hint: "Pergunta o nome do contato e salva na variável.", icon: <UserPlus className="h-3.5 w-3.5" />,     color: "bg-sky-500",     outputs: ["out"] },
-  SCHEDULE:     { label: "Agendamento",   sub: "Agendar reunião",            hint: "Cria um agendamento com o contato.", icon: <Calendar className="h-3.5 w-3.5" />,     color: "bg-yellow-500",  outputs: ["out"] },
-  BROADCAST:    { label: "Disparo",       sub: "Disparo em massa",           hint: "Envia mensagem para vários contatos.", icon: <Send className="h-3.5 w-3.5" />,         color: "bg-orange-500",  outputs: ["out"] },
-  YESNO:        { label: "Sim / Não",     sub: "Dividir por resposta",       hint: "Divide o fluxo com base em resposta sim/não.", icon: <GitBranch className="h-3.5 w-3.5" />,    color: "bg-amber-600",   outputs: ["sim", "não"] },
-  WEBHOOK:      { label: "Webhook",       sub: "Chamar API externa",         hint: "Faz uma requisição HTTP para um serviço externo.", icon: <Webhook className="h-3.5 w-3.5" />,      color: "bg-cyan-600",    outputs: ["out"] },
-  HANDOFF:      { label: "Atendente",     sub: "Transferir para humano",     hint: "Transfere a conversa para um atendente humano.", icon: <User className="h-3.5 w-3.5" />,         color: "bg-fuchsia-600", outputs: ["out"] },
+type OutputDef = { id: string; label: string };
+const KIND_META: Record<NodeKind, { label: string; sub: string; hint: string; icon: React.ReactNode; color: string; outputs: OutputDef[] }> = {
+  START:        { label: "Gatilho",       sub: "Inicia o fluxo",             hint: "Ponto de partida do fluxo. Define quando ele começa.", icon: <Play className="h-3.5 w-3.5" />,         color: "bg-emerald-500", outputs: [{ id: "out", label: "saída" }] },
+  MESSAGE:      { label: "Mensagem",      sub: "Enviar texto",               hint: "Envia uma mensagem de texto ao contato.", icon: <MessageSquare className="h-3.5 w-3.5" />, color: "bg-blue-500",  outputs: [{ id: "out", label: "saída" }] },
+  CONDITION:    { label: "Condição",      sub: "Dividir o fluxo",            hint: "Divide o fluxo em dois caminhos com base em uma condição.", icon: <GitBranch className="h-3.5 w-3.5" />,    color: "bg-amber-500",   outputs: [{ id: "true", label: "Verdadeiro" }, { id: "false", label: "Falso" }] },
+  WAIT:         { label: "Aguardar",      sub: "Tempo de espera",            hint: "Aguarda um tempo antes de seguir para o próximo bloco.", icon: <Clock className="h-3.5 w-3.5" />,        color: "bg-slate-500",   outputs: [{ id: "out", label: "saída" }] },
+  VIDEO:        { label: "Vídeo",         sub: "Enviar vídeo",               hint: "Envia um arquivo de vídeo para o contato (upload).", icon: <Video className="h-3.5 w-3.5" />,        color: "bg-rose-500",    outputs: [{ id: "out", label: "saída" }] },
+  IMAGE:        { label: "Imagem",        sub: "Enviar imagem",              hint: "Envia uma imagem para o contato (upload).", icon: <ImageIcon className="h-3.5 w-3.5" />,    color: "bg-pink-500",    outputs: [{ id: "out", label: "saída" }] },
+  AUDIO:        { label: "Áudio",         sub: "Enviar áudio",               hint: "Envia um áudio para o contato (upload).", icon: <Music className="h-3.5 w-3.5" />,        color: "bg-purple-500",  outputs: [{ id: "out", label: "saída" }] },
+  TYPING:       { label: "Digitando",     sub: "Simular digitação",          hint: "Mostra 'digitando...' para simular uma resposta humana.", icon: <Keyboard className="h-3.5 w-3.5" />,     color: "bg-teal-500",    outputs: [{ id: "out", label: "saída" }] },
+  RECORDING:    { label: "Gravando",      sub: "Simular gravação",           hint: "Mostra 'gravando áudio...' antes de enviar.", icon: <Mic className="h-3.5 w-3.5" />,          color: "bg-red-500",     outputs: [{ id: "out", label: "saída" }] },
+  TAGS:         { label: "Etiquetas",     sub: "Adicionar etiquetas",        hint: "Adiciona etiquetas ao contato para segmentação.", icon: <Tag className="h-3.5 w-3.5" />,          color: "bg-lime-500",    outputs: [{ id: "out", label: "saída" }] },
+  QUESTION:     { label: "Pergunta",      sub: "Aguardar resposta",          hint: "Envia uma pergunta e aguarda o contato responder.", icon: <HelpCircle className="h-3.5 w-3.5" />,   color: "bg-indigo-500",  outputs: [{ id: "out", label: "saída" }] },
+  CAPTURE_NAME: { label: "Capturar Nome", sub: "Pergunta e salva o nome",    hint: "Pergunta o nome do contato e salva na variável nome.", icon: <UserPlus className="h-3.5 w-3.5" />,     color: "bg-sky-500",     outputs: [{ id: "out", label: "saída" }] },
+  SCHEDULE:     { label: "Agendamento",   sub: "Agendar reunião",            hint: "Envia link/instrução de agendamento.", icon: <Calendar className="h-3.5 w-3.5" />,     color: "bg-yellow-500",  outputs: [{ id: "out", label: "saída" }] },
+  BROADCAST:    { label: "Disparo",       sub: "Disparo em massa",           hint: "Envia mensagem para vários contatos.", icon: <Send className="h-3.5 w-3.5" />,         color: "bg-orange-500",  outputs: [{ id: "out", label: "saída" }] },
+  YESNO:        { label: "Sim / Não",     sub: "Dividir por resposta",       hint: "Divide o fluxo com base em resposta Sim ou Não.", icon: <GitBranch className="h-3.5 w-3.5" />,    color: "bg-amber-600",   outputs: [{ id: "sim", label: "Sim" }, { id: "não", label: "Não" }] },
+  WEBHOOK:      { label: "Webhook",       sub: "Chamar API externa",         hint: "Faz uma requisição HTTP para um serviço externo.", icon: <Webhook className="h-3.5 w-3.5" />,      color: "bg-cyan-600",    outputs: [{ id: "out", label: "saída" }] },
+  HANDOFF:      { label: "Atendente",     sub: "Transferir para humano",     hint: "Transfere a conversa para um atendente humano.", icon: <User className="h-3.5 w-3.5" />,         color: "bg-fuchsia-600", outputs: [{ id: "out", label: "saída" }] },
+  SEQUENCE:     { label: "Sequência",     sub: "Etiqueta + inscrever em fluxo", hint: "Adiciona etiqueta ao contato e o inscreve em outro fluxo. Ao terminar este, o fluxo alvo é iniciado.", icon: <Layers className="h-3.5 w-3.5" />, color: "bg-violet-600", outputs: [{ id: "out", label: "saída" }] },
   END:          { label: "Fim",           sub: "Encerrar fluxo",             hint: "Finaliza o fluxo.", icon: <Square className="h-3.5 w-3.5" />,       color: "bg-neutral-700", outputs: [] },
 };
 
 const PALETTE_ORDER: NodeKind[] = [
   "START", "MESSAGE", "CONDITION", "WAIT", "VIDEO", "IMAGE", "AUDIO",
-  "TYPING", "RECORDING", "TAGS", "QUESTION", "CAPTURE_NAME", "SCHEDULE",
+  "TYPING", "RECORDING", "TAGS", "SEQUENCE", "QUESTION", "CAPTURE_NAME", "SCHEDULE",
   "BROADCAST", "YESNO", "WEBHOOK", "HANDOFF", "END",
 ];
 
 function BlockNode({ data, selected }: NodeProps) {
   const d = data as unknown as BlockData;
   const meta = KIND_META[d.kind];
-  const preview = d.text || d.url || d.condition || meta.sub;
+  const preview = d.text || d.mediaName || d.condition || d.nextTrigger || d.url || meta.sub;
   const invalid = (d as unknown as { _invalid?: boolean })._invalid;
   return (
     <div className={`rounded-lg border bg-card shadow-md w-[220px] max-w-[220px] transition ${selected ? "ring-2 ring-primary" : ""} ${invalid ? "border-destructive ring-2 ring-destructive animate-pulse" : "border-emerald-500/40"}`}>
@@ -88,12 +94,12 @@ function BlockNode({ data, selected }: NodeProps) {
         <div className="text-xs font-semibold text-foreground truncate">{d.label}</div>
         <div className="text-[11px] text-muted-foreground truncate">{preview}</div>
       </div>
-      {meta.outputs.length === 1 && <Handle type="source" position={Position.Right} id={meta.outputs[0]} />}
+      {meta.outputs.length === 1 && <Handle type="source" position={Position.Right} id={meta.outputs[0].id} />}
       {meta.outputs.length > 1 && meta.outputs.map((o, i) => (
-        <div key={o} className="relative">
-          <div className="text-[10px] text-muted-foreground px-3 py-0.5 text-right pr-6">{o}</div>
+        <div key={o.id} className="relative">
+          <div className="text-[10px] text-muted-foreground px-3 py-0.5 text-right pr-6">{o.label}</div>
           <Handle
-            type="source" position={Position.Right} id={o}
+            type="source" position={Position.Right} id={o.id}
             style={{ top: `${100 - (meta.outputs.length - i) * 18}%` }}
           />
         </div>
@@ -167,6 +173,9 @@ function Builder() {
   const list = useServerFn(listFlows);
   const del = useServerFn(deleteFlow);
   const gen = useServerFn(generateFlow);
+  const { user } = useAuth();
+  const [uploading, setUploading] = useState(false);
+  const fileRef = useRef<HTMLInputElement>(null);
 
   const [nodes, setNodes, onNodesChange] = useNodesState<Node<BlockData>>([
     { id: "start", type: "block", position: { x: 80, y: 160 }, data: { kind: "START", label: "Início" } },
@@ -316,6 +325,26 @@ function Builder() {
 
   const kinds = useMemo(() => PALETTE_ORDER, []);
 
+  async function handleMediaUpload(file: File) {
+    if (!user || !selected) return;
+    setUploading(true);
+    try {
+      const path = `${user.id}/flows/${selected.id}-${Date.now()}-${file.name.replace(/[^\w.\-]+/g, "_")}`;
+      const up = await supabase.storage.from("agent-media").upload(path, file, { upsert: true, contentType: file.type });
+      if (up.error) throw up.error;
+      const signed = await supabase.storage.from("agent-media").createSignedUrl(path, 60 * 60 * 24 * 365);
+      const url = signed.data?.signedUrl;
+      if (!url) throw new Error("Falha ao gerar URL do arquivo");
+      updateSelected({ url, mediaName: file.name });
+      toast.success("Arquivo enviado");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Falha ao enviar arquivo");
+    } finally {
+      setUploading(false);
+      if (fileRef.current) fileRef.current.value = "";
+    }
+  }
+
   return (
     <div className="flex flex-col gap-3">
       {/* Top bar */}
@@ -439,15 +468,46 @@ function Builder() {
                   <Label className="text-xs">Rótulo</Label>
                   <Input value={selected.data.label} onChange={(e) => updateSelected({ label: e.target.value })} />
                 </div>
-                {["MESSAGE","QUESTION","YESNO","IMAGE","VIDEO","AUDIO","HANDOFF","TAGS","SCHEDULE","CAPTURE_NAME"].includes(selected.data.kind) && (
+                {["MESSAGE","QUESTION","YESNO","HANDOFF","TAGS","SCHEDULE","CAPTURE_NAME","SEQUENCE"].includes(selected.data.kind) && (
                   <div className="space-y-1">
                     <Label className="text-xs">
-                      {selected.data.kind === "TAGS" ? "Etiquetas (separadas por vírgula)" : "Texto"}
+                      {selected.data.kind === "TAGS" || selected.data.kind === "SEQUENCE"
+                        ? "Etiquetas (separadas por vírgula)"
+                        : "Texto"}
                     </Label>
                     <Textarea rows={3} value={selected.data.text ?? ""} onChange={(e) => updateSelected({ text: e.target.value })} />
                   </div>
                 )}
-                {["IMAGE","VIDEO","AUDIO","WEBHOOK","SCHEDULE"].includes(selected.data.kind) && (
+                {["IMAGE","VIDEO","AUDIO"].includes(selected.data.kind) && (
+                  <div className="space-y-1">
+                    <Label className="text-xs">Arquivo</Label>
+                    <input
+                      ref={fileRef}
+                      type="file"
+                      className="hidden"
+                      accept={selected.data.kind === "IMAGE" ? "image/*" : selected.data.kind === "VIDEO" ? "video/*" : "audio/*"}
+                      onChange={(e) => {
+                        const f = e.target.files?.[0];
+                        if (f) handleMediaUpload(f);
+                      }}
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="w-full gap-2"
+                      onClick={() => fileRef.current?.click()}
+                      disabled={uploading}
+                    >
+                      {uploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
+                      {selected.data.url ? "Substituir arquivo" : `Enviar ${selected.data.kind === "IMAGE" ? "imagem" : selected.data.kind === "VIDEO" ? "vídeo" : "áudio"}`}
+                    </Button>
+                    {selected.data.mediaName && (
+                      <p className="text-[11px] text-muted-foreground truncate">📎 {selected.data.mediaName}</p>
+                    )}
+                  </div>
+                )}
+                {["WEBHOOK","SCHEDULE"].includes(selected.data.kind) && (
                   <div className="space-y-1">
                     <Label className="text-xs">URL</Label>
                     <Input value={selected.data.url ?? ""} onChange={(e) => updateSelected({ url: e.target.value })} placeholder="https://..." />
@@ -457,6 +517,18 @@ function Builder() {
                   <div className="space-y-1">
                     <Label className="text-xs">Condição</Label>
                     <Input value={selected.data.condition ?? ""} onChange={(e) => updateSelected({ condition: e.target.value })} placeholder="ex.: {{cidade}} == 'SP'" />
+                    <p className="text-[10px] text-muted-foreground">Saídas: <b>Verdadeiro</b> quando a condição for atendida, <b>Falso</b> caso contrário.</p>
+                  </div>
+                )}
+                {selected.data.kind === "SEQUENCE" && (
+                  <div className="space-y-1">
+                    <Label className="text-xs">Inscrever em fluxo (gatilho do fluxo alvo)</Label>
+                    <Input
+                      value={selected.data.nextTrigger ?? ""}
+                      onChange={(e) => updateSelected({ nextTrigger: e.target.value })}
+                      placeholder="ex.: pos-venda"
+                    />
+                    <p className="text-[10px] text-muted-foreground">Ao passar por este bloco, o contato recebe as etiquetas acima e é inscrito no fluxo cujo gatilho corresponde. Esse fluxo inicia após o atual encerrar.</p>
                   </div>
                 )}
                 {(selected.data.kind === "QUESTION" || selected.data.kind === "YESNO") && (

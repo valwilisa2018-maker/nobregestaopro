@@ -5,7 +5,7 @@
 type NodeKind =
   | "START" | "MESSAGE" | "CONDITION" | "YESNO" | "IMAGE" | "VIDEO" | "AUDIO"
   | "QUESTION" | "WAIT" | "WEBHOOK" | "HANDOFF" | "END"
-  | "TYPING" | "RECORDING" | "TAGS" | "CAPTURE_NAME" | "SCHEDULE" | "BROADCAST";
+  | "TYPING" | "RECORDING" | "TAGS" | "CAPTURE_NAME" | "SCHEDULE" | "BROADCAST" | "SEQUENCE";
 
 type FlowNode = {
   id: string;
@@ -17,6 +17,8 @@ type FlowNode = {
     condition?: string;
     variable?: string;
     seconds?: number;
+    nextTrigger?: string;
+    mediaName?: string;
   };
 };
 type FlowEdge = { id: string; source: string; target: string; sourceHandle?: string | null };
@@ -288,6 +290,29 @@ export async function runFlow(args: {
             metadata: { ...prev, tags: merged },
           } as never).eq("id", existing.id);
         }
+      }
+      state.current_node = nextNode(def, node.id, "out");
+      continue;
+    }
+    if (kind === "SEQUENCE") {
+      const tags = (node.data.text ?? "").split(",").map((s) => s.trim()).filter(Boolean);
+      const nextTrigger = (node.data.nextTrigger ?? "").trim();
+      const { data: existing } = await args.db.from("conversations")
+        .select("id,metadata")
+        .eq("connection_id", conn.id)
+        .eq("metadata->>remoteJid", recipient)
+        .maybeSingle();
+      if (existing) {
+        const prev = (existing.metadata ?? {}) as Record<string, unknown>;
+        const prevTags = Array.isArray((prev as { tags?: unknown[] }).tags) ? ((prev as { tags: string[] }).tags) : [];
+        const mergedTags = Array.from(new Set([...prevTags, ...tags]));
+        const prevSeqs = Array.isArray((prev as { sequences?: unknown[] }).sequences)
+          ? ((prev as { sequences: string[] }).sequences)
+          : [];
+        const mergedSeqs = nextTrigger ? Array.from(new Set([...prevSeqs, nextTrigger])) : prevSeqs;
+        const patch: Record<string, unknown> = { ...prev, tags: mergedTags, sequences: mergedSeqs };
+        if (nextTrigger) patch.pending_flow_trigger = nextTrigger;
+        await args.db.from("conversations").update({ metadata: patch } as never).eq("id", existing.id);
       }
       state.current_node = nextNode(def, node.id, "out");
       continue;
