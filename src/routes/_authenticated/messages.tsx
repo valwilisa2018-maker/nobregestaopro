@@ -2220,9 +2220,25 @@ function MessagesPage() {
                           ) : <MediaMissing kind="sticker" onRetry={() => loadMessagesRef.current?.()} />
                         ) : isImage ? (
                           <div className="relative">
-                            <button onClick={() => !(m.metadata as { pending?: boolean } | null)?.pending && setLightbox({ type: "image", src: m.media_url! })} className="block focus:outline-none">
-                              <img src={m.media_url!} alt={m.content ?? ""} className={`rounded-md max-h-64 object-cover ${(m.metadata as { pending?: boolean } | null)?.pending ? "opacity-70" : "cursor-zoom-in"}`} />
-                            </button>
+                             <button onClick={() => !(m.metadata as { pending?: boolean } | null)?.pending && setLightbox({ type: "image", src: m.media_url! })} className="block focus:outline-none">
+                               <img
+                                 src={m.media_url!}
+                                 alt={m.content ?? ""}
+                                 loading="lazy"
+                                 decoding="async"
+                                 className={`rounded-md max-h-64 object-cover ${(m.metadata as { pending?: boolean } | null)?.pending ? "opacity-70" : "cursor-zoom-in"}`}
+                                 onError={(e) => {
+                                   const el = e.currentTarget;
+                                   if (el.dataset.retried) return;
+                                   el.dataset.retried = "1";
+                                   const path = storagePathFrom(m);
+                                   if (!path) return;
+                                   supabase.storage.from("agent-media").createSignedUrl(path, 60 * 60 * 24).then(({ data }) => {
+                                     if (data?.signedUrl) { signedUrlCacheRef.current.set(path, data.signedUrl); el.src = data.signedUrl; }
+                                   });
+                                 }}
+                               />
+                             </button>
                             {(m.metadata as { pending?: boolean } | null)?.pending ? (
                               <div className="absolute inset-0 grid place-items-center rounded-md bg-black/25">
                                 <Loader2 className="h-8 w-8 text-white animate-spin drop-shadow" />
