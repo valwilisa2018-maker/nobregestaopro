@@ -120,7 +120,11 @@ function Page() {
       ticket_id: selected.id, sender_id: user.id, sender_role: "master", body: reply,
     });
     if (!error) {
-      const patch: Record<string, unknown> = { last_message_at: new Date().toISOString() };
+      const patch: {
+        last_message_at: string;
+        first_response_at?: string;
+        status?: string;
+      } = { last_message_at: new Date().toISOString() };
       if (!selected.first_response_at) patch.first_response_at = new Date().toISOString();
       if (selected.status === "open") patch.status = "in_progress";
       await supabase.from("support_tickets").update(patch).eq("id", selected.id);
@@ -134,7 +138,7 @@ function Page() {
 
   const setStatus = async (status: string) => {
     if (!selected) return;
-    const patch: Record<string, unknown> = { status };
+    const patch: { status: string; resolved_at?: string; closed_at?: string } = { status };
     if (status === "resolved") patch.resolved_at = new Date().toISOString();
     if (status === "closed") patch.closed_at = new Date().toISOString();
     const { error } = await supabase.from("support_tickets").update(patch).eq("id", selected.id);
