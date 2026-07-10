@@ -221,21 +221,23 @@ export async function runFlow(args: {
     }
     if (kind === "TYPING") {
       const ms = Math.min(20_000, Math.max(500, (Number(node.data.seconds ?? 2)) * 1000));
+      // Presence dura `ms` no WhatsApp, mas só bloqueamos o handler por até 2s
+      // para não estourar o deadline de execução e travar o fluxo no meio.
       await sendPresence(conn, recipient, "composing", ms);
-      await sleep(ms);
+      await sleep(Math.min(ms, 2000));
       state.current_node = nextNode(def, node.id, "out");
       continue;
     }
     if (kind === "RECORDING") {
       const ms = Math.min(20_000, Math.max(500, (Number(node.data.seconds ?? 3)) * 1000));
       await sendPresence(conn, recipient, "recording", ms);
-      await sleep(ms);
+      await sleep(Math.min(ms, 2000));
       state.current_node = nextNode(def, node.id, "out");
       continue;
     }
     if (kind === "WAIT") {
       const ms = Math.min(20_000, Math.max(0, (Number(node.data.seconds ?? 1)) * 1000));
-      if (ms) await sleep(ms);
+      if (ms) await sleep(Math.min(ms, 2000));
       state.current_node = nextNode(def, node.id, "out");
       continue;
     }
