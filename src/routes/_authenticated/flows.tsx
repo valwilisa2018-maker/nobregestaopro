@@ -556,6 +556,12 @@ function Builder() {
             nodes={nodes} edges={edges}
             onNodesChange={onNodesChange} onEdgesChange={onEdgesChange}
             onConnect={onConnect}
+            onReconnect={onReconnect}
+            onReconnectStart={onReconnectStart}
+            onReconnectEnd={onReconnectEnd}
+            onEdgeClick={onEdgeClick}
+            edgesReconnectable
+            deleteKeyCode={["Backspace", "Delete"]}
             nodeTypes={nodeTypes}
             onNodeClick={(_, n) => setSelected(n as Node<BlockData>)}
             onPaneClick={() => setSelected(null)}
