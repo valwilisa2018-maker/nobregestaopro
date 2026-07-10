@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { Sparkles, Loader2, Send, Mic, Square, Copy, Save, Bot, User as UserIcon, Pencil, Plus, MessageSquare, Trash2 } from "lucide-react";
+import { Brain, Sparkles, Loader2, Send, Mic, Square, Copy, Save, Bot, User as UserIcon, Pencil, Plus, MessageSquare, Trash2 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
