@@ -16,7 +16,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sh
 import { Progress } from "@/components/ui/progress";
 import {
   LifeBuoy, Loader2, Send, Plus, Phone, Mail, MessageCircle, Search, Paperclip,
-  X, FileText, ImageIcon, Sparkles, CheckCircle2, Clock, Activity, Star, Upload,
+  X, FileText, ImageIcon, Sparkles, Star, Upload,
   RefreshCw,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -112,9 +112,6 @@ function Page() {
   const [userId, setUserId] = useState<string | null>(null);
   const [newOpen, setNewOpen] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [filterStatus, setFilterStatus] = useState<string>("all");
-  const [filterPriority, setFilterPriority] = useState<string>("all");
-  const [filterCategory, setFilterCategory] = useState<string>("all");
   const [search, setSearch] = useState("");
 
   const load = useCallback(async () => {
@@ -155,38 +152,13 @@ function Page() {
     return () => { supabase.removeChannel(ch); };
   }, [userId, load]);
 
-  // ---------- KPIs ----------
-  const stats = useMemo(() => {
-    const c = (k: string | string[]) => {
-      const arr = Array.isArray(k) ? k : [k];
-      return tickets.filter(t => arr.includes(t.status)).length;
-    };
-    const responded = tickets.filter(t => t.first_response_at);
-    const avgResp = responded.length
-      ? responded.reduce((s, t) => s + (new Date(t.first_response_at!).getTime() - new Date(t.created_at).getTime()), 0) / responded.length
-      : 0;
-    const resolved = tickets.filter(t => t.resolved_at);
-    const avgRes = resolved.length
-      ? resolved.reduce((s, t) => s + (new Date(t.resolved_at!).getTime() - new Date(t.created_at).getTime()), 0) / resolved.length
-      : 0;
-    const fmt = (ms: number) => ms ? fmtDur(new Date(Date.now() - ms).toISOString()) : "—";
-    return {
-      open: c("open"), inProgress: c(["in_analysis", "in_progress", "waiting_dev"]),
-      pending: c("pending"), resolved: c("resolved"), closed: c("closed"),
-      avgResp: fmt(avgResp), avgRes: fmt(avgRes),
-    };
-  }, [tickets]);
-
   const filtered = useMemo(() => tickets.filter(t => {
-    if (filterStatus !== "all" && t.status !== filterStatus) return false;
-    if (filterPriority !== "all" && t.priority !== filterPriority) return false;
-    if (filterCategory !== "all" && t.category !== filterCategory) return false;
     if (search) {
       const q = search.toLowerCase();
       if (!t.subject.toLowerCase().includes(q) && !String(t.ticket_number ?? "").includes(q)) return false;
     }
     return true;
-  }), [tickets, filterStatus, filterPriority, filterCategory, search]);
+  }), [tickets, search]);
 
   const selected = tickets.find(t => t.id === selectedId) ?? null;
 
@@ -224,17 +196,6 @@ function Page() {
         </div>
       </motion.div>
 
-      {/* KPIs */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-7 gap-3">
-        <Kpi label="Abertos" value={stats.open} icon={<Activity className="h-4 w-4" />} tone="blue" />
-        <Kpi label="Em andamento" value={stats.inProgress} icon={<Loader2 className="h-4 w-4" />} tone="amber" />
-        <Kpi label="Aguardando" value={stats.pending} icon={<Clock className="h-4 w-4" />} tone="cyan" />
-        <Kpi label="Resolvidos" value={stats.resolved} icon={<CheckCircle2 className="h-4 w-4" />} tone="emerald" />
-        <Kpi label="Fechados" value={stats.closed} icon={<X className="h-4 w-4" />} tone="muted" />
-        <Kpi label="T. médio resposta" value={stats.avgResp} icon={<Clock className="h-4 w-4" />} tone="violet" small />
-        <Kpi label="T. médio resolução" value={stats.avgRes} icon={<CheckCircle2 className="h-4 w-4" />} tone="fuchsia" small />
-      </div>
-
       {/* Contatos rápidos */}
       {(contacts.phone || contacts.email || contacts.whatsapp) && (
         <div className="grid gap-3 sm:grid-cols-3">
@@ -271,27 +232,6 @@ function Page() {
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input placeholder="Buscar por título ou #número" className="pl-9" value={search} onChange={e => setSearch(e.target.value)} />
             </div>
-            <Select value={filterStatus} onValueChange={setFilterStatus}>
-              <SelectTrigger className="w-[170px]"><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Todos os status</SelectItem>
-                {Object.entries(STATUS_META).map(([k, v]) => <SelectItem key={k} value={k}>{v.label}</SelectItem>)}
-              </SelectContent>
-            </Select>
-            <Select value={filterPriority} onValueChange={setFilterPriority}>
-              <SelectTrigger className="w-[150px]"><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Todas prioridades</SelectItem>
-                {PRIORITIES.map(p => <SelectItem key={p.value} value={p.value}>{p.icon} {p.label}</SelectItem>)}
-              </SelectContent>
-            </Select>
-            <Select value={filterCategory} onValueChange={setFilterCategory}>
-              <SelectTrigger className="w-[200px]"><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Todas categorias</SelectItem>
-                {CATEGORIES.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
-              </SelectContent>
-            </Select>
             <Button variant="outline" size="icon" onClick={load} title="Atualizar"><RefreshCw className="h-4 w-4" /></Button>
           </div>
 
