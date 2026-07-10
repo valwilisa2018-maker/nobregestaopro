@@ -327,6 +327,15 @@ function Builder() {
 
   async function handleMediaUpload(file: File) {
     if (!user || !selected) return;
+    if (selected.data.kind === "VIDEO" && file.size > 20 * 1024 * 1024) {
+      const mb = (file.size / (1024 * 1024)).toFixed(1);
+      toast.error(
+        `Vídeo muito grande (${mb} MB). Limite máximo: 20 MB. Converta/reduza o vídeo (ex.: HandBrake, CloudConvert ou ffmpeg) e tente novamente.`,
+        { duration: 8000 },
+      );
+      if (fileRef.current) fileRef.current.value = "";
+      return;
+    }
     setUploading(true);
     try {
       const path = `${user.id}/flows/${selected.id}-${Date.now()}-${file.name.replace(/[^\w.\-]+/g, "_")}`;
