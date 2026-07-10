@@ -2048,6 +2048,7 @@ export type Database = {
           body: string
           created_at: string
           id: string
+          reply_to_id: string | null
           sender_id: string
           sender_role: string
           ticket_id: string
@@ -2057,6 +2058,7 @@ export type Database = {
           body: string
           created_at?: string
           id?: string
+          reply_to_id?: string | null
           sender_id: string
           sender_role?: string
           ticket_id: string
@@ -2066,11 +2068,19 @@ export type Database = {
           body?: string
           created_at?: string
           id?: string
+          reply_to_id?: string | null
           sender_id?: string
           sender_role?: string
           ticket_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "support_messages_reply_to_id_fkey"
+            columns: ["reply_to_id"]
+            isOneToOne: false
+            referencedRelation: "support_messages"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "support_messages_ticket_id_fkey"
             columns: ["ticket_id"]
@@ -2083,34 +2093,67 @@ export type Database = {
       support_tickets: {
         Row: {
           assigned_to: string | null
+          attachments: Json
+          browser: string | null
+          category: string | null
+          closed_at: string | null
           created_at: string
+          environment: string | null
+          first_response_at: string | null
           id: string
           last_message_at: string
+          page_url: string | null
           priority: string
+          rating: number | null
+          rating_comment: string | null
+          resolved_at: string | null
           status: string
           subject: string
+          ticket_number: number
           updated_at: string
           user_id: string
         }
         Insert: {
           assigned_to?: string | null
+          attachments?: Json
+          browser?: string | null
+          category?: string | null
+          closed_at?: string | null
           created_at?: string
+          environment?: string | null
+          first_response_at?: string | null
           id?: string
           last_message_at?: string
+          page_url?: string | null
           priority?: string
+          rating?: number | null
+          rating_comment?: string | null
+          resolved_at?: string | null
           status?: string
           subject: string
+          ticket_number?: number
           updated_at?: string
           user_id: string
         }
         Update: {
           assigned_to?: string | null
+          attachments?: Json
+          browser?: string | null
+          category?: string | null
+          closed_at?: string | null
           created_at?: string
+          environment?: string | null
+          first_response_at?: string | null
           id?: string
           last_message_at?: string
+          page_url?: string | null
           priority?: string
+          rating?: number | null
+          rating_comment?: string | null
+          resolved_at?: string | null
           status?: string
           subject?: string
+          ticket_number?: number
           updated_at?: string
           user_id?: string
         }
