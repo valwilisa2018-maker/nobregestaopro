@@ -233,6 +233,7 @@ function Builder() {
   const gen = useServerFn(generateFlow);
   const { user } = useAuth();
   const [uploading, setUploading] = useState(false);
+  const [uploadPct, setUploadPct] = useState(0);
   const fileRef = useRef<HTMLInputElement>(null);
 
   const [nodes, setNodes, onNodesChange] = useNodesState<Node<BlockData>>([
