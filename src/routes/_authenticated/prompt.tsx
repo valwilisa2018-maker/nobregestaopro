@@ -2,10 +2,8 @@ import { createFileRoute } from "@tanstack/react-router";
 import { Brain, Sparkles, Loader2, Send, Mic, Square, Copy, Save, Bot, User as UserIcon, Pencil, Plus, MessageSquare, Trash2 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
-import { CrudResource } from "@/components/crud-resource";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
@@ -68,29 +66,9 @@ function Page() {
           Adicionar Prompt Mestre
         </Button>
       </div>
-      <Tabs defaultValue="chat" className="w-full">
-        <TabsList>
-          <TabsTrigger value="chat">Assistente</TabsTrigger>
-          <TabsTrigger value="library">Biblioteca</TabsTrigger>
-        </TabsList>
-        <TabsContent value="chat" className="mt-4">
-          <PromptChat userId={user?.id ?? null} />
-        </TabsContent>
-        <TabsContent value="library" className="mt-4">
-          <CrudResource
-            table="prompts"
-            title="Prompts"
-            description="Biblioteca de prompts reutilizáveis."
-            singular="Prompt"
-            icon={<Brain className="h-6 w-6" />}
-            fields={[
-              { name: "name", label: "Nome", type: "text", required: true },
-              { name: "content", label: "Conteúdo", type: "textarea", required: true },
-              { name: "is_default", label: "Padrão", type: "boolean" },
-            ]}
-          />
-        </TabsContent>
-      </Tabs>
+      <div className="mt-4">
+        <PromptChat userId={user?.id ?? null} />
+      </div>
     </div>
   );
 }
