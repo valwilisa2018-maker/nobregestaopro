@@ -85,6 +85,13 @@ async function sendText(conn: RunnerConn, number: string, text: string) {
 async function sendMedia(conn: RunnerConn, number: string, url: string, kind: "image" | "video" | "audio" | "document", caption?: string) {
   return ev(conn, "/message/sendMedia", { number, mediatype: kind, media: url, caption });
 }
+async function sendWhatsAppAudio(conn: RunnerConn, number: string, url: string) {
+  // Evolution API expects PTT via a dedicated endpoint; sendMedia with mediatype=audio
+  // frequently fails on ogg/opus. Fallback to sendMedia if this endpoint is unavailable.
+  const r = await ev(conn, "/message/sendWhatsAppAudio", { number, audio: url });
+  if (r.ok) return r;
+  return ev(conn, "/message/sendMedia", { number, mediatype: "audio", media: url });
+}
 async function sendPresence(conn: RunnerConn, number: string, presence: "composing" | "recording", ms: number) {
   return ev(conn, "/chat/sendPresence", { number, delay: ms, presence });
 }
@@ -213,8 +220,16 @@ export async function runFlow(args: {
       if (url) {
         const k = kind === "IMAGE" ? "image" : kind === "VIDEO" ? "video" : "audio";
         const caption = interpolate(node.data.text, vars);
-        await sendMedia(conn, recipient, url, k, caption);
-        await logMsg(k, caption, url);
+        try {
+          if (k === "audio") {
+            await sendWhatsAppAudio(conn, recipient, url);
+          } else {
+            await sendMedia(conn, recipient, url, k, caption);
+          }
+          await logMsg(k, caption, url);
+        } catch (e) {
+          console.error("[flow-runner] media send failed", { kind: k, url, error: String(e) });
+        }
       }
       state.current_node = nextNode(def, node.id, "out");
       continue;
