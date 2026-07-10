@@ -21,7 +21,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   ReactFlow, ReactFlowProvider, Background, Controls, MiniMap, addEdge, useEdgesState,
-  useNodesState, Handle, Position, type Node, type Edge, type Connection, type NodeProps,
+  useNodesState, Handle, Position, reconnectEdge, type Node, type Edge, type Connection, type NodeProps,
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 import { generateFlow, saveFlow, listFlows, deleteFlow } from "@/lib/flows.functions";
