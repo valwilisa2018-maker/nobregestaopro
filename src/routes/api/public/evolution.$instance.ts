@@ -1016,6 +1016,30 @@ export const Route = createFileRoute("/api/public/evolution/$instance")({
                       flow_state: { ...result.state, updated_at: new Date().toISOString() } as never,
                       last_message_at: new Date().toISOString(),
                     } as never).eq("id", convo.id);
+                    // Sequence auto-enrollment: if flow finished and conversation has a pending_flow_trigger, start that flow
+                    if (result.finished) {
+                      try {
+                        const { data: convoNow } = await supabaseAdmin.from("conversations")
+                          .select("id,metadata").eq("id", convo.id).maybeSingle();
+                        const meta = (convoNow?.metadata ?? {}) as Record<string, unknown>;
+                        const pending = typeof meta.pending_flow_trigger === "string" ? meta.pending_flow_trigger : null;
+                        if (pending) {
+                          const { data: nextFlow } = await supabaseAdmin.from("flows")
+                            .select("id,trigger_keywords,definition")
+                            .eq("user_id", conn.user_id).eq("active", true)
+                            .contains("trigger_keywords", [pending] as never)
+                            .maybeSingle();
+                          const rest = { ...meta };
+                          delete (rest as Record<string, unknown>).pending_flow_trigger;
+                          await supabaseAdmin.from("conversations").update({
+                            metadata: rest as never,
+                            flow_state: nextFlow
+                              ? ({ flow_id: nextFlow.id, current_node: null, variables: {}, updated_at: new Date().toISOString() } as never)
+                              : (null as never),
+                          } as never).eq("id", convo.id);
+                        }
+                      } catch { /* non-fatal */ }
+                    }
                     if (execId) {
                       const finalStatus = result.handedOff ? "completed"
                         : result.finished ? "completed"
