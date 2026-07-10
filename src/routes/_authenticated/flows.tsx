@@ -396,6 +396,7 @@ function Builder() {
       return;
     }
     setUploading(true);
+    setUploadPct(0);
     try {
       const safeName = file.name.replace(/[^\w.\-]+/g, "_");
       const path = `${user.id}/flows/${selected.id}-${Date.now()}-${safeName}`;
@@ -408,7 +409,7 @@ function Builder() {
       let ok = false;
       for (let attempt = 0; attempt < 2 && !ok; attempt++) {
         try {
-          await uploadMediaFast(path, file, contentType);
+          await uploadMediaFast(path, file, contentType, setUploadPct);
           ok = true;
         } catch (e) {
           lastErr = e;
@@ -434,6 +435,7 @@ function Builder() {
       toast.error(e instanceof Error ? e.message : "Falha ao enviar arquivo", { duration: 8000 });
     } finally {
       setUploading(false);
+      setUploadPct(0);
       if (fileRef.current) fileRef.current.value = "";
     }
   }
