@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { Brain, Loader2, Send, Mic, Square, Copy, Save, Bot, User as UserIcon, Pencil, Plus, MessageSquare, Trash2 } from "lucide-react";
+import { Brain, Loader2, Send, Mic, Square, Copy, Save, Bot, User as UserIcon, Pencil, Plus, MessageSquare, Trash2, PanelLeftOpen, PanelLeftClose, SquarePen } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -24,15 +24,15 @@ function Page() {
   const { user } = useAuth();
 
   return (
-    <div className="p-6">
-      <div className="mb-4 flex items-center gap-3">
+    <div className="flex h-[100dvh] flex-col p-4">
+      <div className="mb-3 flex items-center gap-3">
         <div className="rounded-xl bg-primary/10 p-2 text-primary"><Brain className="h-6 w-6" /></div>
         <div>
           <h1 className="text-2xl font-semibold">Prompts</h1>
           <p className="text-sm text-muted-foreground">Converse com o Especialista e gere prompts prontos para seus agentes.</p>
         </div>
       </div>
-      <div className="mt-4">
+      <div className="min-h-0 flex-1">
         <PromptChat userId={user?.id ?? null} />
       </div>
     </div>
@@ -71,6 +71,7 @@ function PromptChat({ userId }: { userId: string | null }) {
   const [saveOpen, setSaveOpen] = useState(false);
   const [saveName, setSaveName] = useState("");
   const [saveContent, setSaveContent] = useState("");
+  const [sideOpen, setSideOpen] = useState(false);
 
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
@@ -267,11 +268,15 @@ function PromptChat({ userId }: { userId: string | null }) {
   }
 
   return (
-    <Card className="flex h-[calc(100vh-14rem)] overflow-hidden">
-      <aside className="hidden w-64 shrink-0 flex-col border-r bg-muted/30 md:flex">
-        <div className="p-3">
-          <Button onClick={newThread} className="w-full gap-2" size="sm">
+    <Card className="flex h-full overflow-hidden">
+      {sideOpen && (
+      <aside className="flex w-64 shrink-0 flex-col border-r bg-muted/30">
+        <div className="flex items-center gap-2 p-3">
+          <Button onClick={newThread} className="flex-1 gap-2" size="sm">
             <Plus className="h-4 w-4" /> Nova conversa
+          </Button>
+          <Button variant="ghost" size="icon" onClick={() => setSideOpen(false)} title="Fechar">
+            <PanelLeftClose className="h-4 w-4" />
           </Button>
         </div>
         <div className="flex-1 overflow-y-auto px-2 pb-2">
@@ -303,7 +308,20 @@ function PromptChat({ userId }: { userId: string | null }) {
           ))}
         </div>
       </aside>
+      )}
       <div className="flex flex-1 flex-col overflow-hidden">
+      <div className="flex items-center gap-1 border-b p-2">
+        {!sideOpen && (
+          <>
+            <Button variant="ghost" size="icon" onClick={() => setSideOpen(true)} title="Abrir conversas">
+              <PanelLeftOpen className="h-4 w-4" />
+            </Button>
+            <Button variant="ghost" size="icon" onClick={newThread} title="Nova conversa">
+              <SquarePen className="h-4 w-4" />
+            </Button>
+          </>
+        )}
+      </div>
       <div ref={scrollRef} className="flex-1 space-y-4 overflow-y-auto p-4">
         {messages.map((m, i) => {
           const blocks = m.role === "assistant" ? extractPromptBlocks(m.content) : [];
