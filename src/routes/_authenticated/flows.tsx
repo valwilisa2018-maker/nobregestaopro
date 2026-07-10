@@ -85,7 +85,12 @@ function encodeStoragePath(path: string) {
   return path.split("/").map(encodeURIComponent).join("/");
 }
 
-async function uploadMediaFast(path: string, file: File, contentType: string) {
+async function uploadMediaFast(
+  path: string,
+  file: File,
+  contentType: string,
+  onProgress?: (pct: number) => void,
+) {
   const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string | undefined;
   const publishableKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY as string | undefined;
   if (!supabaseUrl || !publishableKey) throw new Error("Configuração de upload indisponível.");
@@ -94,33 +99,40 @@ async function uploadMediaFast(path: string, file: File, contentType: string) {
   const token = data.session?.access_token;
   if (!token) throw new Error("Sessão expirada. Entre novamente para enviar mídia.");
 
-  const controller = new AbortController();
-  const timeout = window.setTimeout(() => controller.abort(), FAST_UPLOAD_TIMEOUT_MS);
-  try {
-    const res = await fetch(`${supabaseUrl.replace(/\/+$/, "")}/storage/v1/object/agent-media/${encodeStoragePath(path)}`, {
-      method: "POST",
-      headers: {
-        apikey: publishableKey,
-        Authorization: `Bearer ${token}`,
-        "Content-Type": contentType,
-        "cache-control": "31536000",
-        "x-upsert": "false",
-      },
-      body: file,
-      signal: controller.signal,
-    });
-    if (!res.ok) {
-      const detail = await res.text().catch(() => "");
-      throw new Error(`HTTP ${res.status}${detail ? `: ${detail.slice(0, 180)}` : ""}`);
-    }
-  } catch (e) {
-    if (e instanceof DOMException && e.name === "AbortError") {
-      throw new Error("O upload demorou demais. Reduza o vídeo para menos de 10 MB e tente novamente.");
-    }
-    throw e;
-  } finally {
-    window.clearTimeout(timeout);
-  }
+  const url = `${supabaseUrl.replace(/\/+$/, "")}/storage/v1/object/agent-media/${encodeStoragePath(path)}`;
+  await new Promise<void>((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    const timeout = window.setTimeout(() => {
+      xhr.abort();
+      reject(new Error("O upload demorou demais. Reduza o vídeo para menos de 10 MB e tente novamente."));
+    }, FAST_UPLOAD_TIMEOUT_MS);
+    xhr.open("POST", url, true);
+    xhr.setRequestHeader("apikey", publishableKey);
+    xhr.setRequestHeader("Authorization", `Bearer ${token}`);
+    xhr.setRequestHeader("Content-Type", contentType);
+    xhr.setRequestHeader("cache-control", "31536000");
+    xhr.setRequestHeader("x-upsert", "false");
+    xhr.upload.onprogress = (ev) => {
+      if (ev.lengthComputable && onProgress) {
+        onProgress(Math.min(99, Math.round((ev.loaded / ev.total) * 100)));
+      }
+    };
+    xhr.onload = () => {
+      window.clearTimeout(timeout);
+      if (xhr.status >= 200 && xhr.status < 300) {
+        onProgress?.(100);
+        resolve();
+      } else {
+        reject(new Error(`HTTP ${xhr.status}${xhr.responseText ? `: ${xhr.responseText.slice(0, 180)}` : ""}`));
+      }
+    };
+    xhr.onerror = () => {
+      window.clearTimeout(timeout);
+      reject(new Error("Falha de rede no upload"));
+    };
+    xhr.onabort = () => window.clearTimeout(timeout);
+    xhr.send(file);
+  });
 }
 
 function BlockNode({ data, selected }: NodeProps) {
