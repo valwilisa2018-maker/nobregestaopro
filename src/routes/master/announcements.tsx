@@ -11,7 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Megaphone, Loader2, Plus, Pencil, Trash2, Eye, EyeOff, Info, CheckCircle2, AlertTriangle, Wrench, Sparkles } from "lucide-react";
+import { Megaphone, Loader2, Plus, Pencil, Trash2, Eye, EyeOff, Info, CheckCircle2, AlertTriangle, Wrench, Sparkles, Construction } from "lucide-react";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/master/announcements")({
@@ -23,10 +23,11 @@ type Announcement = {
   id: string; title: string; body: string; severity: string;
   cta_label: string | null; cta_url: string | null;
   starts_at: string; ends_at: string | null; is_active: boolean;
+  lockdown: boolean;
 };
 const empty: Omit<Announcement, "id"> = {
   title: "", body: "", severity: "info", cta_label: "", cta_url: "",
-  starts_at: new Date().toISOString(), ends_at: null, is_active: true,
+  starts_at: new Date().toISOString(), ends_at: null, is_active: true, lockdown: false,
 };
 
 type Template = {
@@ -37,6 +38,10 @@ const TEMPLATES: Template[] = [
   { key: "maintenance", label: "Manutenção", icon: Wrench, accent: "from-amber-500 to-orange-600",
     data: { ...empty, severity: "maintenance", title: "Estamos em manutenção",
       body: "Nossa equipe está trabalhando em melhorias na plataforma. Algumas funções podem ficar temporariamente indisponíveis. Obrigado pela paciência!",
+      cta_label: "", cta_url: "" } },
+  { key: "lockdown", label: "Manutenção Total", icon: Construction, accent: "from-red-500 to-amber-600",
+    data: { ...empty, severity: "maintenance", lockdown: true, title: "Plataforma em manutenção",
+      body: "Estamos trabalhando para melhorias na plataforma, para que você não tenha instabilidades ou frustrações no uso. Foi necessário tirar a plataforma do ar por um período curto para manutenção periódica e necessária, garantindo que tudo funcione 100% redondo. Obrigado pela paciência!",
       cta_label: "", cta_url: "" } },
   { key: "update", label: "Atualização", icon: Sparkles, accent: "from-fuchsia-500 to-indigo-600",
     data: { ...empty, severity: "success", title: "Nova atualização disponível",
@@ -97,14 +102,25 @@ function Page() {
     load();
   };
   const openTemplate = (t: Template) => { setEditing(null); setForm(t.data); setOpen(true); };
+  const lockdownActive = items.some(a => a.is_active && a.lockdown);
 
   return (
     <PageShell title="Anúncios" description="Recados e atualizações exibidos como modal aos clientes."
       icon={<Megaphone className="h-6 w-6" />} status="ativo"
       actions={<Button onClick={() => { setEditing(null); setForm(empty); setOpen(true); }}><Plus className="h-4 w-4" /> Novo anúncio</Button>}
     >
+      {lockdownActive && (
+        <div className="rounded-xl border border-red-500/40 bg-gradient-to-r from-red-500/10 via-amber-500/10 to-red-500/10 p-4 flex items-start gap-3">
+          <Construction className="h-5 w-5 text-red-500 mt-0.5 shrink-0" />
+          <div className="text-sm">
+            <div className="font-semibold text-red-500">Manutenção Total ativa</div>
+            <div className="text-muted-foreground">Todos os clientes veem a página de manutenção e não conseguem logar. Apenas usuários Master têm acesso. Desative o anúncio para liberar a plataforma.</div>
+          </div>
+        </div>
+      )}
+
       {/* Templates prontos */}
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-6">
         {TEMPLATES.map(t => {
           const Icon = t.icon;
           return (
@@ -133,6 +149,7 @@ function Page() {
                     <Badge variant="outline">{a.severity}</Badge>
                     {!a.is_active && <Badge variant="secondary">Inativo</Badge>}
                     {a.severity === "maintenance" && a.is_active && <Badge className="bg-amber-500/15 text-amber-600 border-amber-500/30" variant="outline">Barra ativa</Badge>}
+                    {a.lockdown && a.is_active && <Badge className="bg-red-500/15 text-red-500 border-red-500/40" variant="outline"><Construction className="h-3 w-3 mr-1" /> Manutenção total</Badge>}
                   </div>
                   <p className="text-sm text-muted-foreground mt-1 line-clamp-2">{a.body}</p>
                 </div>
@@ -177,6 +194,13 @@ function Page() {
                 <Input value={form.cta_label ?? ""} onChange={e => setForm({ ...form, cta_label: e.target.value })} /></div>
               <div className="space-y-2"><Label>URL do botão</Label>
                 <Input value={form.cta_url ?? ""} onChange={e => setForm({ ...form, cta_url: e.target.value })} /></div>
+            </div>
+            <div className="rounded-lg border border-red-500/30 bg-red-500/5 p-3 flex items-start gap-3">
+              <Switch checked={form.lockdown} onCheckedChange={v => setForm({ ...form, lockdown: v, severity: v ? "maintenance" : form.severity })} />
+              <div className="text-sm">
+                <div className="font-semibold flex items-center gap-1.5"><Construction className="h-4 w-4 text-red-500" /> Manutenção total (bloquear plataforma)</div>
+                <div className="text-xs text-muted-foreground mt-0.5">Enquanto este anúncio estiver ativo, todos os clientes veem uma página de manutenção e não conseguem logar. Apenas usuários Master têm acesso.</div>
+              </div>
             </div>
           </div>
           <DialogFooter>
