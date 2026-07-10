@@ -348,16 +348,25 @@ function Builder() {
       let lastErr: unknown = null;
       let ok = false;
       for (let attempt = 0; attempt < 3 && !ok; attempt++) {
-        const up = await supabase.storage.from("agent-media").upload(path, file, { upsert: true, contentType });
-        if (!up.error) { ok = true; break; }
-        lastErr = up.error;
-        const msg = String((up.error as { message?: string })?.message ?? "");
+        const uploadPromise = supabase.storage.from("agent-media").upload(path, file, { upsert: true, contentType });
+        const timeoutMs = 60_000; // 60s por tentativa
+        let timedOut = false;
+        const timeoutPromise = new Promise<{ error: { message: string } }>((resolve) => {
+          setTimeout(() => { timedOut = true; resolve({ error: { message: "timeout: upload demorou demais" } }); }, timeoutMs);
+        });
+        const up = (await Promise.race([uploadPromise, timeoutPromise])) as { error: { message: string } | null };
+        if (!timedOut && !up.error) { ok = true; break; }
+        lastErr = up.error ?? { message: "timeout" };
+        const msg = String((up.error as { message?: string } | null)?.message ?? "timeout");
         // Retry on transient Cloudflare/edge errors (520/522/524, network hiccups)
         if (!/520|522|524|network|fetch|timeout/i.test(msg)) break;
         await new Promise((r) => setTimeout(r, 800 * (attempt + 1)));
       }
       if (!ok) {
         const msg = String((lastErr as { message?: string })?.message ?? "Erro desconhecido");
+        if (/timeout/i.test(msg)) {
+          throw new Error("O upload demorou demais. Verifique sua conexão ou reduza o tamanho do arquivo (recomendado < 10 MB para vídeos).");
+        }
         if (/520|522|524/.test(msg)) {
           throw new Error("O servidor de arquivos recusou o upload (erro temporário do CDN). Aguarde alguns segundos e tente novamente. Se persistir, reduza o tamanho do arquivo.");
         }
