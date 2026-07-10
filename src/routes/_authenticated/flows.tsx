@@ -91,6 +91,7 @@ async function uploadMediaFast(
   file: File,
   contentType: string,
   onProgress?: (pct: number) => void,
+  signal?: AbortSignal,
 ) {
   const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string | undefined;
   const publishableKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY as string | undefined;
@@ -103,6 +104,15 @@ async function uploadMediaFast(
   const url = `${supabaseUrl.replace(/\/+$/, "")}/storage/v1/object/agent-media/${encodeStoragePath(path)}`;
   await new Promise<void>((resolve, reject) => {
     const xhr = new XMLHttpRequest();
+    if (signal?.aborted) {
+      reject(new DOMException("Upload cancelado", "AbortError"));
+      return;
+    }
+    const onAbortSignal = () => {
+      xhr.abort();
+      reject(new DOMException("Upload cancelado", "AbortError"));
+    };
+    signal?.addEventListener("abort", onAbortSignal);
     const timeout = window.setTimeout(() => {
       xhr.abort();
       reject(new Error("O upload demorou demais. Reduza o vídeo para menos de 10 MB e tente novamente."));
@@ -120,6 +130,7 @@ async function uploadMediaFast(
     };
     xhr.onload = () => {
       window.clearTimeout(timeout);
+      signal?.removeEventListener("abort", onAbortSignal);
       if (xhr.status >= 200 && xhr.status < 300) {
         onProgress?.(100);
         resolve();
@@ -129,9 +140,13 @@ async function uploadMediaFast(
     };
     xhr.onerror = () => {
       window.clearTimeout(timeout);
+      signal?.removeEventListener("abort", onAbortSignal);
       reject(new Error("Falha de rede no upload"));
     };
-    xhr.onabort = () => window.clearTimeout(timeout);
+    xhr.onabort = () => {
+      window.clearTimeout(timeout);
+      signal?.removeEventListener("abort", onAbortSignal);
+    };
     xhr.send(file);
   });
 }
@@ -234,6 +249,7 @@ function Builder() {
   const { user } = useAuth();
   const [uploading, setUploading] = useState(false);
   const [uploadPct, setUploadPct] = useState(0);
+  const uploadAbortRef = useRef<AbortController | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
   const [nodes, setNodes, onNodesChange] = useNodesState<Node<BlockData>>([
@@ -397,6 +413,8 @@ function Builder() {
     }
     setUploading(true);
     setUploadPct(0);
+    const controller = new AbortController();
+    uploadAbortRef.current = controller;
     try {
       const safeName = file.name.replace(/[^\w.\-]+/g, "_");
       const path = `${user.id}/flows/${selected.id}-${Date.now()}-${safeName}`;
@@ -409,16 +427,21 @@ function Builder() {
       let ok = false;
       for (let attempt = 0; attempt < 2 && !ok; attempt++) {
         try {
-          await uploadMediaFast(path, file, contentType, setUploadPct);
+          await uploadMediaFast(path, file, contentType, setUploadPct, controller.signal);
           ok = true;
         } catch (e) {
           lastErr = e;
+          if (e instanceof DOMException && e.name === "AbortError") break;
           const msg = e instanceof Error ? e.message : String(e);
           if (!/520|522|524|network|fetch|failed to fetch/i.test(msg) || /demorou demais/i.test(msg)) break;
           await new Promise((r) => setTimeout(r, 700));
         }
       }
       if (!ok) {
+        if (controller.signal.aborted) {
+          toast.info("Upload cancelado");
+          return;
+        }
         const msg = String((lastErr as { message?: string })?.message ?? "Erro desconhecido");
         if (/520|522|524/.test(msg)) {
           throw new Error("O servidor de arquivos recusou o upload (erro temporário do CDN). Aguarde alguns segundos e tente novamente. Se persistir, reduza o tamanho do arquivo.");
@@ -431,9 +454,14 @@ function Builder() {
       updateSelected({ url, mediaName: file.name });
       toast.success("Arquivo enviado");
     } catch (e) {
+      if (e instanceof DOMException && e.name === "AbortError") {
+        toast.info("Upload cancelado");
+        return;
+      }
       console.error("[flows] upload failed", e);
       toast.error(e instanceof Error ? e.message : "Falha ao enviar arquivo", { duration: 8000 });
     } finally {
+      uploadAbortRef.current = null;
       setUploading(false);
       setUploadPct(0);
       if (fileRef.current) fileRef.current.value = "";
@@ -602,7 +630,18 @@ function Builder() {
                           : `Enviar ${selected.data.kind === "IMAGE" ? "imagem" : selected.data.kind === "VIDEO" ? "vídeo" : "áudio"}`}
                     </Button>
                     {uploading && (
-                      <Progress value={uploadPct} className="h-1.5" />
+                      <div className="flex items-center gap-2">
+                        <Progress value={uploadPct} className="h-1.5 flex-1" />
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          className="h-6 px-2 text-[11px] text-destructive hover:text-destructive"
+                          onClick={() => uploadAbortRef.current?.abort()}
+                        >
+                          Cancelar
+                        </Button>
+                      </div>
                     )}
                     {selected.data.mediaName && (
                       <p className="text-[11px] text-muted-foreground truncate">📎 {selected.data.mediaName}</p>
