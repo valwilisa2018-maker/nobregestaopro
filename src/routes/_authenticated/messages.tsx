@@ -784,18 +784,31 @@ function MessagesPage() {
     const rowsWithStorage = rows.filter((m) => storagePathFrom(m)).slice(-15);
     if (!rowsWithStorage.length) return;
     (async () => {
-      const patches = await Promise.all(rowsWithStorage.map(async (m) => {
+      // Split cached vs uncached, then batch-sign the uncached in a single request.
+      const patches: Array<{ id: string; url: string }> = [];
+      const toSign: Array<{ id: string; path: string }> = [];
+      for (const m of rowsWithStorage) {
         const path = storagePathFrom(m);
-        if (!path) return null;
+        if (!path) continue;
         const cached = signedUrlCacheRef.current.get(path);
-        if (cached) return { id: m.id, url: cached };
-        const { data: signed } = await supabase.storage.from("agent-media").createSignedUrl(path, 60 * 60 * 24);
-        if (!signed?.signedUrl) return null;
-        signedUrlCacheRef.current.set(path, signed.signedUrl);
-        return { id: m.id, url: signed.signedUrl };
-      }));
+        if (cached) patches.push({ id: m.id, url: cached });
+        else toSign.push({ id: m.id, path });
+      }
+      if (toSign.length) {
+        const paths = Array.from(new Set(toSign.map((r) => r.path)));
+        const { data } = await supabase.storage.from("agent-media").createSignedUrls(paths, 60 * 60 * 24);
+        const byPath = new Map<string, string>();
+        for (const s of data ?? []) if (s.path && s.signedUrl) {
+          byPath.set(s.path, s.signedUrl);
+          signedUrlCacheRef.current.set(s.path, s.signedUrl);
+        }
+        for (const r of toSign) {
+          const url = byPath.get(r.path);
+          if (url) patches.push({ id: r.id, url });
+        }
+      }
       if (selectedRef.current?.id !== reqId) return;
-      const map = new Map(patches.filter(Boolean).map((p) => [p!.id, p!.url]));
+      const map = new Map(patches.map((p) => [p.id, p.url]));
       if (!map.size) return;
       setMsgs((cur) => {
         const next = cur.map((m) => (map.has(m.id) ? { ...m, media_url: map.get(m.id)! } : m));
