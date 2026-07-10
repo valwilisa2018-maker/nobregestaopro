@@ -14,8 +14,8 @@ export function DealCard({ deal, onClick, stageColor }: { deal: Deal; onClick: (
     transform: CSS.Translate.toString(transform),
     transition,
     opacity: isDragging ? 0.5 : 1,
-    borderLeft: `3px solid ${color}`,
-    background: `linear-gradient(180deg, ${color}14, hsl(var(--card) / 0.8))`,
+    background: color,
+    borderColor: color,
   } satisfies CSSProperties;
 
   return (
