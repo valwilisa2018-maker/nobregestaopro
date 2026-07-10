@@ -1,3 +1,4 @@
+import type { CSSProperties } from "react";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { Deal, PRIORITY_COLOR, PRIORITY_LABEL, formatBRL } from "./types";
@@ -15,7 +16,7 @@ export function DealCard({ deal, onClick, stageColor }: { deal: Deal; onClick: (
     opacity: isDragging ? 0.5 : 1,
     borderLeft: `3px solid ${color}`,
     background: `linear-gradient(180deg, ${color}14, hsl(var(--card) / 0.8))`,
-  } as React.CSSProperties;
+  } satisfies CSSProperties;
 
   return (
     <div
