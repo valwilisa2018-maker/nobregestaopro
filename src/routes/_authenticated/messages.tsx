@@ -714,8 +714,14 @@ function MessagesPage() {
     else if (filterMode === "favorites") list = list.filter((c) => favorites.has(c.id));
     else if (filterMode === "groups") list = list.filter((c) => c.phone.includes("@g.us"));
     if (q) list = list.filter((c) => (c.name ?? "").toLowerCase().includes(q) || c.phone.includes(q));
-    return [...list].sort((a, b) => Number(pinned.has(b.id)) - Number(pinned.has(a.id)));
-  }, [contacts, search, filterMode, favorites, unreadMap, archived, pinned, activeInstance, contactConnMap]);
+    return [...list].sort((a, b) => {
+      const pinDiff = Number(pinned.has(b.id)) - Number(pinned.has(a.id));
+      if (pinDiff !== 0) return pinDiff;
+      const ta = lastActivityMap[a.id] ?? 0;
+      const tb = lastActivityMap[b.id] ?? 0;
+      return tb - ta;
+    });
+  }, [contacts, search, filterMode, favorites, unreadMap, archived, pinned, activeInstance, contactConnMap, lastActivityMap]);
   const unreadTotal = useMemo(
     () => Object.values(unreadMap).reduce((a, b) => a + b, 0),
     [unreadMap],
