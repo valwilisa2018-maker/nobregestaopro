@@ -338,16 +338,39 @@ function Builder() {
     }
     setUploading(true);
     try {
-      const path = `${user.id}/flows/${selected.id}-${Date.now()}-${file.name.replace(/[^\w.\-]+/g, "_")}`;
-      const up = await supabase.storage.from("agent-media").upload(path, file, { upsert: true, contentType: file.type });
-      if (up.error) throw up.error;
+      const safeName = file.name.replace(/[^\w.\-]+/g, "_");
+      const path = `${user.id}/flows/${selected.id}-${Date.now()}-${safeName}`;
+      const kindGuess =
+        selected.data.kind === "IMAGE" ? "image/jpeg" :
+        selected.data.kind === "VIDEO" ? "video/mp4" :
+        selected.data.kind === "AUDIO" ? "audio/mpeg" : "application/octet-stream";
+      const contentType = file.type && file.type.length > 0 ? file.type : kindGuess;
+      let lastErr: unknown = null;
+      let ok = false;
+      for (let attempt = 0; attempt < 3 && !ok; attempt++) {
+        const up = await supabase.storage.from("agent-media").upload(path, file, { upsert: true, contentType });
+        if (!up.error) { ok = true; break; }
+        lastErr = up.error;
+        const msg = String((up.error as { message?: string })?.message ?? "");
+        // Retry on transient Cloudflare/edge errors (520/522/524, network hiccups)
+        if (!/520|522|524|network|fetch|timeout/i.test(msg)) break;
+        await new Promise((r) => setTimeout(r, 800 * (attempt + 1)));
+      }
+      if (!ok) {
+        const msg = String((lastErr as { message?: string })?.message ?? "Erro desconhecido");
+        if (/520|522|524/.test(msg)) {
+          throw new Error("O servidor de arquivos recusou o upload (erro temporário do CDN). Aguarde alguns segundos e tente novamente. Se persistir, reduza o tamanho do arquivo.");
+        }
+        throw new Error(msg);
+      }
       const signed = await supabase.storage.from("agent-media").createSignedUrl(path, 60 * 60 * 24 * 365);
       const url = signed.data?.signedUrl;
       if (!url) throw new Error("Falha ao gerar URL do arquivo");
       updateSelected({ url, mediaName: file.name });
       toast.success("Arquivo enviado");
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Falha ao enviar arquivo");
+      console.error("[flows] upload failed", e);
+      toast.error(e instanceof Error ? e.message : "Falha ao enviar arquivo", { duration: 8000 });
     } finally {
       setUploading(false);
       if (fileRef.current) fileRef.current.value = "";
