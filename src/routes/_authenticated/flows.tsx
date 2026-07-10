@@ -16,6 +16,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
+import { Progress } from "@/components/ui/progress";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
@@ -85,7 +86,12 @@ function encodeStoragePath(path: string) {
   return path.split("/").map(encodeURIComponent).join("/");
 }
 
-async function uploadMediaFast(path: string, file: File, contentType: string) {
+async function uploadMediaFast(
+  path: string,
+  file: File,
+  contentType: string,
+  onProgress?: (pct: number) => void,
+) {
   const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string | undefined;
   const publishableKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY as string | undefined;
   if (!supabaseUrl || !publishableKey) throw new Error("Configuração de upload indisponível.");
@@ -94,33 +100,40 @@ async function uploadMediaFast(path: string, file: File, contentType: string) {
   const token = data.session?.access_token;
   if (!token) throw new Error("Sessão expirada. Entre novamente para enviar mídia.");
 
-  const controller = new AbortController();
-  const timeout = window.setTimeout(() => controller.abort(), FAST_UPLOAD_TIMEOUT_MS);
-  try {
-    const res = await fetch(`${supabaseUrl.replace(/\/+$/, "")}/storage/v1/object/agent-media/${encodeStoragePath(path)}`, {
-      method: "POST",
-      headers: {
-        apikey: publishableKey,
-        Authorization: `Bearer ${token}`,
-        "Content-Type": contentType,
-        "cache-control": "31536000",
-        "x-upsert": "false",
-      },
-      body: file,
-      signal: controller.signal,
-    });
-    if (!res.ok) {
-      const detail = await res.text().catch(() => "");
-      throw new Error(`HTTP ${res.status}${detail ? `: ${detail.slice(0, 180)}` : ""}`);
-    }
-  } catch (e) {
-    if (e instanceof DOMException && e.name === "AbortError") {
-      throw new Error("O upload demorou demais. Reduza o vídeo para menos de 10 MB e tente novamente.");
-    }
-    throw e;
-  } finally {
-    window.clearTimeout(timeout);
-  }
+  const url = `${supabaseUrl.replace(/\/+$/, "")}/storage/v1/object/agent-media/${encodeStoragePath(path)}`;
+  await new Promise<void>((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    const timeout = window.setTimeout(() => {
+      xhr.abort();
+      reject(new Error("O upload demorou demais. Reduza o vídeo para menos de 10 MB e tente novamente."));
+    }, FAST_UPLOAD_TIMEOUT_MS);
+    xhr.open("POST", url, true);
+    xhr.setRequestHeader("apikey", publishableKey);
+    xhr.setRequestHeader("Authorization", `Bearer ${token}`);
+    xhr.setRequestHeader("Content-Type", contentType);
+    xhr.setRequestHeader("cache-control", "31536000");
+    xhr.setRequestHeader("x-upsert", "false");
+    xhr.upload.onprogress = (ev) => {
+      if (ev.lengthComputable && onProgress) {
+        onProgress(Math.min(99, Math.round((ev.loaded / ev.total) * 100)));
+      }
+    };
+    xhr.onload = () => {
+      window.clearTimeout(timeout);
+      if (xhr.status >= 200 && xhr.status < 300) {
+        onProgress?.(100);
+        resolve();
+      } else {
+        reject(new Error(`HTTP ${xhr.status}${xhr.responseText ? `: ${xhr.responseText.slice(0, 180)}` : ""}`));
+      }
+    };
+    xhr.onerror = () => {
+      window.clearTimeout(timeout);
+      reject(new Error("Falha de rede no upload"));
+    };
+    xhr.onabort = () => window.clearTimeout(timeout);
+    xhr.send(file);
+  });
 }
 
 function BlockNode({ data, selected }: NodeProps) {
@@ -220,6 +233,7 @@ function Builder() {
   const gen = useServerFn(generateFlow);
   const { user } = useAuth();
   const [uploading, setUploading] = useState(false);
+  const [uploadPct, setUploadPct] = useState(0);
   const fileRef = useRef<HTMLInputElement>(null);
 
   const [nodes, setNodes, onNodesChange] = useNodesState<Node<BlockData>>([
@@ -382,6 +396,7 @@ function Builder() {
       return;
     }
     setUploading(true);
+    setUploadPct(0);
     try {
       const safeName = file.name.replace(/[^\w.\-]+/g, "_");
       const path = `${user.id}/flows/${selected.id}-${Date.now()}-${safeName}`;
@@ -394,7 +409,7 @@ function Builder() {
       let ok = false;
       for (let attempt = 0; attempt < 2 && !ok; attempt++) {
         try {
-          await uploadMediaFast(path, file, contentType);
+          await uploadMediaFast(path, file, contentType, setUploadPct);
           ok = true;
         } catch (e) {
           lastErr = e;
@@ -420,6 +435,7 @@ function Builder() {
       toast.error(e instanceof Error ? e.message : "Falha ao enviar arquivo", { duration: 8000 });
     } finally {
       setUploading(false);
+      setUploadPct(0);
       if (fileRef.current) fileRef.current.value = "";
     }
   }
@@ -579,8 +595,15 @@ function Builder() {
                       disabled={uploading}
                     >
                       {uploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
-                      {selected.data.url ? "Substituir arquivo" : `Enviar ${selected.data.kind === "IMAGE" ? "imagem" : selected.data.kind === "VIDEO" ? "vídeo" : "áudio"}`}
+                      {uploading
+                        ? `Enviando... ${uploadPct}%`
+                        : selected.data.url
+                          ? "Substituir arquivo"
+                          : `Enviar ${selected.data.kind === "IMAGE" ? "imagem" : selected.data.kind === "VIDEO" ? "vídeo" : "áudio"}`}
                     </Button>
+                    {uploading && (
+                      <Progress value={uploadPct} className="h-1.5" />
+                    )}
                     {selected.data.mediaName && (
                       <p className="text-[11px] text-muted-foreground truncate">📎 {selected.data.mediaName}</p>
                     )}
