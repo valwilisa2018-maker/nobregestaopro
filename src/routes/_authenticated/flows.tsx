@@ -630,7 +630,18 @@ function Builder() {
                           : `Enviar ${selected.data.kind === "IMAGE" ? "imagem" : selected.data.kind === "VIDEO" ? "vídeo" : "áudio"}`}
                     </Button>
                     {uploading && (
-                      <Progress value={uploadPct} className="h-1.5" />
+                      <div className="flex items-center gap-2">
+                        <Progress value={uploadPct} className="h-1.5 flex-1" />
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          className="h-6 px-2 text-[11px] text-destructive hover:text-destructive"
+                          onClick={() => uploadAbortRef.current?.abort()}
+                        >
+                          Cancelar
+                        </Button>
+                      </div>
                     )}
                     {selected.data.mediaName && (
                       <p className="text-[11px] text-muted-foreground truncate">📎 {selected.data.mediaName}</p>
