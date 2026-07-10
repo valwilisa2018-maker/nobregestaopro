@@ -595,8 +595,15 @@ function Builder() {
                       disabled={uploading}
                     >
                       {uploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
-                      {selected.data.url ? "Substituir arquivo" : `Enviar ${selected.data.kind === "IMAGE" ? "imagem" : selected.data.kind === "VIDEO" ? "vídeo" : "áudio"}`}
+                      {uploading
+                        ? `Enviando... ${uploadPct}%`
+                        : selected.data.url
+                          ? "Substituir arquivo"
+                          : `Enviar ${selected.data.kind === "IMAGE" ? "imagem" : selected.data.kind === "VIDEO" ? "vídeo" : "áudio"}`}
                     </Button>
+                    {uploading && (
+                      <Progress value={uploadPct} className="h-1.5" />
+                    )}
                     {selected.data.mediaName && (
                       <p className="text-[11px] text-muted-foreground truncate">📎 {selected.data.mediaName}</p>
                     )}
