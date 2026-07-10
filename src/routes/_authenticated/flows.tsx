@@ -78,6 +78,51 @@ const PALETTE_ORDER: NodeKind[] = [
   "BROADCAST", "YESNO", "WEBHOOK", "HANDOFF", "END",
 ];
 
+const VIDEO_UPLOAD_LIMIT_BYTES = 20 * 1024 * 1024;
+const FAST_UPLOAD_TIMEOUT_MS = 35_000;
+
+function encodeStoragePath(path: string) {
+  return path.split("/").map(encodeURIComponent).join("/");
+}
+
+async function uploadMediaFast(path: string, file: File, contentType: string) {
+  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string | undefined;
+  const publishableKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY as string | undefined;
+  if (!supabaseUrl || !publishableKey) throw new Error("Configuração de upload indisponível.");
+
+  const { data } = await supabase.auth.getSession();
+  const token = data.session?.access_token;
+  if (!token) throw new Error("Sessão expirada. Entre novamente para enviar mídia.");
+
+  const controller = new AbortController();
+  const timeout = window.setTimeout(() => controller.abort(), FAST_UPLOAD_TIMEOUT_MS);
+  try {
+    const res = await fetch(`${supabaseUrl.replace(/\/+$/, "")}/storage/v1/object/agent-media/${encodeStoragePath(path)}`, {
+      method: "POST",
+      headers: {
+        apikey: publishableKey,
+        Authorization: `Bearer ${token}`,
+        "Content-Type": contentType,
+        "cache-control": "31536000",
+        "x-upsert": "false",
+      },
+      body: file,
+      signal: controller.signal,
+    });
+    if (!res.ok) {
+      const detail = await res.text().catch(() => "");
+      throw new Error(`HTTP ${res.status}${detail ? `: ${detail.slice(0, 180)}` : ""}`);
+    }
+  } catch (e) {
+    if (e instanceof DOMException && e.name === "AbortError") {
+      throw new Error("O upload demorou demais. Reduza o vídeo para menos de 10 MB e tente novamente.");
+    }
+    throw e;
+  } finally {
+    window.clearTimeout(timeout);
+  }
+}
+
 function BlockNode({ data, selected }: NodeProps) {
   const d = data as unknown as BlockData;
   const meta = KIND_META[d.kind];
