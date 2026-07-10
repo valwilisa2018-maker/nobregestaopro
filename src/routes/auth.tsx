@@ -44,7 +44,7 @@ function AuthPage() {
     e.preventDefault();
     setLoading(true);
     const { error } = await supabase.auth.signInWithPassword({ email, password });
-    if (error) return toast.error(error.message);
+    if (error) { setLoading(false); return toast.error(error.message); }
     const { data: u } = await supabase.auth.getUser();
     const { data: isMaster } = await supabase.rpc("has_role", {
       _user_id: u.user!.id, _role: "master",
