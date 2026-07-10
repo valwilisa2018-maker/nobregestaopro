@@ -228,13 +228,34 @@ function PromptChat({ userId }: { userId: string | null }) {
 
   async function startRec() {
     try {
+      if (!navigator.mediaDevices?.getUserMedia) {
+        toast.error("Microfone não suportado neste navegador");
+        return;
+      }
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      const mr = new MediaRecorder(stream);
+      const candidates = [
+        "audio/webm;codecs=opus",
+        "audio/webm",
+        "audio/mp4;codecs=mp4a.40.2",
+        "audio/mp4",
+        "audio/ogg;codecs=opus",
+      ];
+      const pick = candidates.find((t) =>
+        typeof MediaRecorder !== "undefined" &&
+        typeof MediaRecorder.isTypeSupported === "function" &&
+        MediaRecorder.isTypeSupported(t),
+      );
+      const mr = pick ? new MediaRecorder(stream, { mimeType: pick }) : new MediaRecorder(stream);
       const chunks: Blob[] = [];
       mr.ondataavailable = (e) => e.data.size > 0 && chunks.push(e.data);
       mr.onstop = async () => {
         stream.getTracks().forEach((t) => t.stop());
-        const blob = new Blob(chunks, { type: mr.mimeType || "audio/webm" });
+        const type = mr.mimeType || pick || "audio/webm";
+        const blob = new Blob(chunks, { type });
+        if (blob.size < 1200) {
+          toast.info("Gravação muito curta — segure para falar e solte para enviar.");
+          return;
+        }
         setTranscribing(true);
         try {
           const b64 = await blobToBase64(blob);
@@ -250,8 +271,14 @@ function PromptChat({ userId }: { userId: string | null }) {
       recRef.current = { mr, chunks, stream };
       mr.start();
       setRecording(true);
-    } catch {
-      toast.error("Não foi possível acessar o microfone");
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      const isPerm = /permission|denied|NotAllowed/i.test(msg);
+      toast.error(
+        isPerm
+          ? "Permissão de microfone negada. Libere o microfone para o site (ou abra em nova aba)."
+          : `Não foi possível acessar o microfone: ${msg}`,
+      );
     }
   }
   function stopRec() {
@@ -354,8 +381,16 @@ function PromptChat({ userId }: { userId: string | null }) {
           );
         })}
         {sending && (
-          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-            <Loader2 className="h-4 w-4 animate-spin" /> Pensando…
+          <div className="flex items-start gap-3">
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary"><Bot className="h-4 w-4" /></div>
+            <div className="rounded-2xl border bg-muted/40 px-4 py-3">
+              <div className="flex items-center gap-1.5">
+                <span className="h-2 w-2 animate-bounce rounded-full bg-primary/60 [animation-delay:-0.3s]" />
+                <span className="h-2 w-2 animate-bounce rounded-full bg-primary/60 [animation-delay:-0.15s]" />
+                <span className="h-2 w-2 animate-bounce rounded-full bg-primary/60" />
+                <span className="ml-2 text-xs text-muted-foreground">digitando…</span>
+              </div>
+            </div>
           </div>
         )}
         {transcribing && (
