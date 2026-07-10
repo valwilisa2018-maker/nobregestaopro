@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { Brain, Sparkles, Loader2, Send, Mic, Square, Copy, Save, Bot, User as UserIcon, Pencil, Plus, MessageSquare, Trash2 } from "lucide-react";
+import { Brain, Loader2, Send, Mic, Square, Copy, Save, Bot, User as UserIcon, Pencil, Plus, MessageSquare, Trash2 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -9,7 +9,6 @@ import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
-import { MASTER_PROMPT_CONTENT, MASTER_PROMPT_NAME } from "@/lib/master-prompt";
 import { useServerFn } from "@tanstack/react-start";
 import { promptChat } from "@/lib/prompt-chat.functions";
 import { transcribeAudio } from "@/lib/agent-stt.functions";
@@ -23,48 +22,15 @@ type ChatMsg = { role: "user" | "assistant"; content: string };
 
 function Page() {
   const { user } = useAuth();
-  const [busy, setBusy] = useState(false);
-
-  async function insertMaster() {
-    if (!user) return;
-    setBusy(true);
-    const { data: existing } = await supabase
-      .from("prompts")
-      .select("id")
-      .eq("user_id", user.id)
-      .eq("name", MASTER_PROMPT_NAME)
-      .maybeSingle();
-    if (existing?.id) {
-      setBusy(false);
-      toast.info("Prompt Mestre já existe na sua biblioteca.");
-      return;
-    }
-    const { error } = await supabase.from("prompts").insert({
-      user_id: user.id,
-      name: MASTER_PROMPT_NAME,
-      content: MASTER_PROMPT_CONTENT,
-      is_default: false,
-    } as never);
-    setBusy(false);
-    if (error) { toast.error("Falha ao adicionar Prompt Mestre"); return; }
-    toast.success("Prompt Mestre adicionado — recarregue a lista.");
-    window.location.reload();
-  }
 
   return (
     <div className="p-6">
-      <div className="mb-4 flex items-center justify-between gap-3">
-        <div className="flex items-center gap-3">
-          <div className="rounded-xl bg-primary/10 p-2 text-primary"><Brain className="h-6 w-6" /></div>
-          <div>
-            <h1 className="text-2xl font-semibold">Prompts</h1>
-            <p className="text-sm text-muted-foreground">Converse com o Especialista e gere prompts prontos para seus agentes.</p>
-          </div>
+      <div className="mb-4 flex items-center gap-3">
+        <div className="rounded-xl bg-primary/10 p-2 text-primary"><Brain className="h-6 w-6" /></div>
+        <div>
+          <h1 className="text-2xl font-semibold">Prompts</h1>
+          <p className="text-sm text-muted-foreground">Converse com o Especialista e gere prompts prontos para seus agentes.</p>
         </div>
-        <Button onClick={insertMaster} disabled={busy} variant="outline" className="gap-2">
-          {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
-          Adicionar Prompt Mestre
-        </Button>
       </div>
       <div className="mt-4">
         <PromptChat userId={user?.id ?? null} />
