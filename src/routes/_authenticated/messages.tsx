@@ -1391,8 +1391,14 @@ function MessagesPage() {
   async function startRecording() {
     if (!selected) return;
     try {
-      pushPresence({ data: { contactId: selected.id, presence: "recording" } }).catch(() => {});
+      if (!navigator.mediaDevices?.getUserMedia) {
+        toast.error("Seu navegador não suporta gravação de áudio.");
+        return;
+      }
+      // Chame getUserMedia PRIMEIRO (dentro do gesto do usuário) — qualquer
+      // await antes quebra a cadeia de gesto no Chrome/Safari.
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      pushPresence({ data: { contactId: selected.id, presence: "recording" } }).catch(() => {});
       const mr = new MediaRecorder(stream, { mimeType: MediaRecorder.isTypeSupported("audio/webm;codecs=opus") ? "audio/webm;codecs=opus" : "audio/webm" });
       const chunks: BlobPart[] = [];
       mr.ondataavailable = (e) => { if (e.data.size) chunks.push(e.data); };
@@ -1458,7 +1464,21 @@ function MessagesPage() {
       setRecording(true);
       setRecTime(0);
     } catch (e) {
-      toast.error("Não foi possível acessar o microfone");
+      const err = e as { name?: string; message?: string } | undefined;
+      const inIframe = typeof window !== "undefined" && window.self !== window.top;
+      if (err?.name === "NotAllowedError" || err?.name === "SecurityError") {
+        toast.error(
+          inIframe
+            ? "Microfone bloqueado no preview. Abra o app em uma nova aba para gravar áudio."
+            : "Permissão de microfone negada. Habilite nas configurações do navegador."
+        );
+      } else if (err?.name === "NotFoundError") {
+        toast.error("Nenhum microfone encontrado.");
+      } else if (err?.name === "NotReadableError") {
+        toast.error("Microfone em uso por outro aplicativo.");
+      } else {
+        toast.error(`Não foi possível acessar o microfone${err?.message ? `: ${err.message}` : ""}`);
+      }
     }
   }
   function stopRecording() {
