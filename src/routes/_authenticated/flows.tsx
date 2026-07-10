@@ -128,6 +128,7 @@ async function uploadMediaFast(
         onProgress(Math.min(99, Math.round((ev.loaded / ev.total) * 100)));
       }
     };
+    xhr.upload.onload = () => onProgress?.(100);
     xhr.onload = () => {
       window.clearTimeout(timeout);
       signal?.removeEventListener("abort", onAbortSignal);
@@ -423,31 +424,7 @@ function Builder() {
         selected.data.kind === "VIDEO" ? "video/mp4" :
         selected.data.kind === "AUDIO" ? "audio/mpeg" : "application/octet-stream";
       const contentType = file.type && file.type.length > 0 ? file.type : kindGuess;
-      let lastErr: unknown = null;
-      let ok = false;
-      for (let attempt = 0; attempt < 2 && !ok; attempt++) {
-        try {
-          await uploadMediaFast(path, file, contentType, setUploadPct, controller.signal);
-          ok = true;
-        } catch (e) {
-          lastErr = e;
-          if (e instanceof DOMException && e.name === "AbortError") break;
-          const msg = e instanceof Error ? e.message : String(e);
-          if (!/520|522|524|network|fetch|failed to fetch/i.test(msg) || /demorou demais/i.test(msg)) break;
-          await new Promise((r) => setTimeout(r, 700));
-        }
-      }
-      if (!ok) {
-        if (controller.signal.aborted) {
-          toast.info("Upload cancelado");
-          return;
-        }
-        const msg = String((lastErr as { message?: string })?.message ?? "Erro desconhecido");
-        if (/520|522|524/.test(msg)) {
-          throw new Error("O servidor de arquivos recusou o upload (erro temporário do CDN). Aguarde alguns segundos e tente novamente. Se persistir, reduza o tamanho do arquivo.");
-        }
-        throw new Error(msg);
-      }
+      await uploadMediaFast(path, file, contentType, setUploadPct, controller.signal);
       const signed = await supabase.storage.from("agent-media").createSignedUrl(path, 60 * 60 * 24 * 365);
       const url = signed.data?.signedUrl;
       if (!url) throw new Error("Falha ao gerar URL do arquivo");
