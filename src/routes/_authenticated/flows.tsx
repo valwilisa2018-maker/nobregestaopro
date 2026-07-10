@@ -413,6 +413,8 @@ function Builder() {
     }
     setUploading(true);
     setUploadPct(0);
+    const controller = new AbortController();
+    uploadAbortRef.current = controller;
     try {
       const safeName = file.name.replace(/[^\w.\-]+/g, "_");
       const path = `${user.id}/flows/${selected.id}-${Date.now()}-${safeName}`;
@@ -425,16 +427,21 @@ function Builder() {
       let ok = false;
       for (let attempt = 0; attempt < 2 && !ok; attempt++) {
         try {
-          await uploadMediaFast(path, file, contentType, setUploadPct);
+          await uploadMediaFast(path, file, contentType, setUploadPct, controller.signal);
           ok = true;
         } catch (e) {
           lastErr = e;
+          if (e instanceof DOMException && e.name === "AbortError") break;
           const msg = e instanceof Error ? e.message : String(e);
           if (!/520|522|524|network|fetch|failed to fetch/i.test(msg) || /demorou demais/i.test(msg)) break;
           await new Promise((r) => setTimeout(r, 700));
         }
       }
       if (!ok) {
+        if (controller.signal.aborted) {
+          toast.info("Upload cancelado");
+          return;
+        }
         const msg = String((lastErr as { message?: string })?.message ?? "Erro desconhecido");
         if (/520|522|524/.test(msg)) {
           throw new Error("O servidor de arquivos recusou o upload (erro temporário do CDN). Aguarde alguns segundos e tente novamente. Se persistir, reduza o tamanho do arquivo.");
@@ -447,9 +454,14 @@ function Builder() {
       updateSelected({ url, mediaName: file.name });
       toast.success("Arquivo enviado");
     } catch (e) {
+      if (e instanceof DOMException && e.name === "AbortError") {
+        toast.info("Upload cancelado");
+        return;
+      }
       console.error("[flows] upload failed", e);
       toast.error(e instanceof Error ? e.message : "Falha ao enviar arquivo", { duration: 8000 });
     } finally {
+      uploadAbortRef.current = null;
       setUploading(false);
       setUploadPct(0);
       if (fileRef.current) fileRef.current.value = "";
