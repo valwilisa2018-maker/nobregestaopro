@@ -43,6 +43,20 @@ export type RunnerConn = {
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
+function abortSignal(ms: number) {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), ms);
+  return { signal: controller.signal, clear: () => clearTimeout(timeout) };
+}
+
+function arrayBufferToBase64(buffer: ArrayBuffer) {
+  const bytes = new Uint8Array(buffer);
+  let binary = "";
+  const chunk = 0x8000;
+  for (let i = 0; i < bytes.length; i += chunk) binary += String.fromCharCode(...bytes.subarray(i, i + chunk));
+  return btoa(binary);
+}
+
 function nextNode(def: FlowDef, from: string, handle?: string): string | null {
   const outgoing = def.edges.filter((e) => e.source === from);
   if (!outgoing.length) return null;
@@ -69,14 +83,20 @@ function interpolate(t: string | undefined, vars: Record<string, string>) {
   return t.replace(/\{\{\s*(\w+)\s*\}\}/g, (_, k) => vars[k] ?? "");
 }
 
-async function ev(conn: RunnerConn, path: string, body: unknown) {
+async function ev(conn: RunnerConn, path: string, body: unknown, timeoutMs = 12_000) {
   let base = (conn.url_api ?? "").trim().replace(/\/+$/, "");
   if (base && !/^https?:\/\//i.test(base)) base = `https://${base}`;
-  return fetch(`${base}${path}/${conn.instance_name}`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json", apikey: conn.api_key ?? "" },
-    body: JSON.stringify(body),
-  });
+  const timeout = abortSignal(timeoutMs);
+  try {
+    return await fetch(`${base}${path}/${conn.instance_name}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", apikey: conn.api_key ?? "" },
+      body: JSON.stringify(body),
+      signal: timeout.signal,
+    });
+  } finally {
+    timeout.clear();
+  }
 }
 
 async function sendText(conn: RunnerConn, number: string, text: string) {
@@ -86,14 +106,31 @@ async function sendMedia(conn: RunnerConn, number: string, url: string, kind: "i
   return ev(conn, "/message/sendMedia", { number, mediatype: kind, media: url, caption });
 }
 async function sendWhatsAppAudio(conn: RunnerConn, number: string, url: string) {
-  // Evolution API expects PTT via a dedicated endpoint; sendMedia with mediatype=audio
-  // frequently fails on ogg/opus. Fallback to sendMedia if this endpoint is unavailable.
-  const r = await ev(conn, "/message/sendWhatsAppAudio", { number, audio: url });
-  if (r.ok) return r;
-  return ev(conn, "/message/sendMedia", { number, mediatype: "audio", media: url });
+  // O endpoint de voz da Evolution é mais estável com base64 + encoding=true.
+  // Se a URL demorar/falhar, cai para sendMedia sem travar o fluxo.
+  try {
+    const timeout = abortSignal(8_000);
+    const media = await fetch(url, { signal: timeout.signal });
+    timeout.clear();
+    if (media.ok) {
+      const audio = arrayBufferToBase64(await media.arrayBuffer());
+      const r = await ev(conn, "/message/sendWhatsAppAudio", { number, audio, encoding: true }, 10_000);
+      if (r.ok) return r;
+      const body = await r.clone().text().catch(() => "");
+      console.error("[flow-runner] audio ptt failed", { status: r.status, body: body.slice(0, 500) });
+    }
+  } catch (e) {
+    console.error("[flow-runner] audio base64 failed", { error: String(e) });
+  }
+  return ev(conn, "/message/sendMedia", { number, mediatype: "audio", media: url }, 8_000);
 }
 async function sendPresence(conn: RunnerConn, number: string, presence: "composing" | "recording", ms: number) {
-  return ev(conn, "/chat/sendPresence", { number, delay: ms, presence });
+  try {
+    return await ev(conn, "/chat/sendPresence", { number, delay: ms, presence }, 4_000);
+  } catch (e) {
+    console.error("[flow-runner] presence failed", { presence, error: String(e) });
+    return null;
+  }
 }
 
 // Very small, safe expression evaluator: supports ==, !=, contains, >, <, and vars.
