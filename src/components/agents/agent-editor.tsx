@@ -676,6 +676,45 @@ function ToggleRow({ label, hint, checked, onChange, right }: { label: string; h
   );
 }
 
+// ============ 13. Agendamento & Agenda ============
+function SchedulingSection({ form, set, onSave, saving }: { form: AgentRow; set: <K extends keyof AgentRow>(k: K, v: AgentRow[K]) => void; onSave: () => void; saving: boolean }) {
+  const sch = ((form.integrations as { scheduling?: { enabled?: boolean; defaultDuration?: number; bufferMin?: number; workingHours?: string; instructions?: string } } | null)?.scheduling) ?? {};
+  const enabled = sch.enabled ?? true;
+  const update = (patch: Partial<typeof sch>) => {
+    const cur = (form.integrations as Record<string, unknown> | null) ?? {};
+    set("integrations", { ...cur, scheduling: { ...sch, ...patch } } as AgentRow["integrations"]);
+  };
+  return (
+    <div className="space-y-4">
+      <div className="flex items-start gap-2 rounded-xl border border-primary/30 bg-primary/[.05] px-3 py-2.5 text-xs text-muted-foreground">
+        <Info className="h-4 w-4 flex-shrink-0 text-primary mt-0.5" />
+        <span>Quando ativado, o agente conhece todos os eventos da <b>Agenda</b> (aba Agenda) e pode propor, confirmar e evitar conflitos de horários automaticamente.</span>
+      </div>
+      <ToggleRow
+        label="Permitir agendamento"
+        hint="A IA poderá marcar compromissos e usar a agenda como contexto."
+        checked={enabled}
+        onChange={(v) => update({ enabled: v })}
+      />
+      <div className="grid gap-4 md:grid-cols-2">
+        <FieldRow label="Duração padrão (min)">
+          <Input type="number" min={5} value={sch.defaultDuration ?? 30} onChange={(e) => update({ defaultDuration: Number(e.target.value) })} disabled={!enabled} />
+        </FieldRow>
+        <FieldRow label="Intervalo entre compromissos (min)">
+          <Input type="number" min={0} value={sch.bufferMin ?? 10} onChange={(e) => update({ bufferMin: Number(e.target.value) })} disabled={!enabled} />
+        </FieldRow>
+      </div>
+      <FieldRow label="Horário de atendimento">
+        <Input placeholder="Ex.: Seg–Sex 09:00–18:00" value={sch.workingHours ?? ""} onChange={(e) => update({ workingHours: e.target.value })} disabled={!enabled} />
+      </FieldRow>
+      <FieldRow label="Instruções extras para agendar">
+        <Textarea rows={3} placeholder="Ex.: Confirme sempre nome completo e telefone antes de marcar." value={sch.instructions ?? ""} onChange={(e) => update({ instructions: e.target.value })} disabled={!enabled} />
+      </FieldRow>
+      <SaveBar onSave={onSave} saving={saving} />
+    </div>
+  );
+}
+
 // ============ 3. Tempo e Mensagens ============
 function TimingSection({ ext, setExt, onSave, saving }: ExtProps) {
   const t = ext.timing ?? {};
