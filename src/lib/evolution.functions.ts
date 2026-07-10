@@ -1242,6 +1242,40 @@ export const sendPresence = createServerFn({ method: "POST" })
     }
   });
 
+// Subscribe to a contact's presence so WhatsApp starts pushing composing/recording
+// updates for that JID (Baileys/Evolution requires this before PRESENCE_UPDATE
+// events start flowing per-chat).
+const SubscribePresenceInput = z.object({ contactId: z.string().uuid() });
+export const subscribeContactPresence = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((i: unknown) => SubscribePresenceInput.parse(i))
+  .handler(async ({ data, context }) => {
+    const { data: contact } = await context.supabase.from("contacts")
+      .select("phone").eq("id", data.contactId).eq("user_id", context.userId).single();
+    if (!contact) return { ok: false as const, error: "Contato não encontrado" };
+    try {
+      const conn = await pickActiveConnection(context.supabase, context.userId);
+      const apiKey = await loadEvolutionCommandKey(context.supabase, conn.api_key);
+      const number = String(contact.phone).replace(/\D+/g, "");
+      // Try both spellings used across Evolution versions; ignore individual failures.
+      const paths = [
+        `/chat/subscribePresence/${conn.instance_name}`,
+        `/chat/presenceSubscribe/${conn.instance_name}`,
+      ];
+      for (const p of paths) {
+        try {
+          await evoFetch(`${baseUrl(conn.url_api)}${p}`, apiKey, {
+            method: "POST",
+            body: JSON.stringify({ number }),
+          });
+        } catch { /* try next */ }
+      }
+      return { ok: true as const };
+    } catch (e) {
+      return { ok: false as const, error: e instanceof Error ? e.message : "Falha" };
+    }
+  });
+
 export const ensurePresenceWebhook = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
