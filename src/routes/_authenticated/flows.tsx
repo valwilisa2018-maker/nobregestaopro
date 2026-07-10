@@ -601,12 +601,14 @@ function Builder() {
                     >
                       {uploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
                       {uploading
-                        ? `Enviando... ${uploadPct}%`
+                        ? uploadPct >= 100
+                          ? "Enviado"
+                          : `Enviando... ${uploadPct}%`
                         : selected.data.url
                           ? "Substituir arquivo"
                           : `Enviar ${selected.data.kind === "IMAGE" ? "imagem" : selected.data.kind === "VIDEO" ? "vídeo" : "áudio"}`}
                     </Button>
-                    {uploading && (
+                    {uploading && uploadPct < 100 && (
                       <div className="flex items-center gap-2">
                         <Progress value={uploadPct} className="h-1.5 flex-1" />
                         <Button
