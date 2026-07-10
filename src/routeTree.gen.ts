@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
+import { Route as MasterAuthRouteImport } from './routes/master-auth'
 import { Route as MasterRouteImport } from './routes/master'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthenticatedRouteImport } from './routes/_authenticated'
@@ -74,6 +75,11 @@ import { Route as ApiPublicEvolutionInstanceRouteImport } from './routes/api/pub
 const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
   id: '/sitemap.xml',
   path: '/sitemap.xml',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const MasterAuthRoute = MasterAuthRouteImport.update({
+  id: '/master-auth',
+  path: '/master-auth',
   getParentRoute: () => rootRouteImport,
 } as any)
 const MasterRoute = MasterRouteImport.update({
@@ -388,6 +394,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/master': typeof MasterRouteWithChildren
+  '/master-auth': typeof MasterAuthRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/admin-settings': typeof AuthenticatedAdminSettingsRoute
   '/agents': typeof AuthenticatedAgentsRoute
@@ -449,6 +456,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
+  '/master-auth': typeof MasterAuthRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/admin-settings': typeof AuthenticatedAdminSettingsRoute
   '/agents': typeof AuthenticatedAgentsRoute
@@ -513,6 +521,7 @@ export interface FileRoutesById {
   '/_authenticated': typeof AuthenticatedRouteWithChildren
   '/auth': typeof AuthRoute
   '/master': typeof MasterRouteWithChildren
+  '/master-auth': typeof MasterAuthRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/_authenticated/admin-settings': typeof AuthenticatedAdminSettingsRoute
   '/_authenticated/agents': typeof AuthenticatedAgentsRoute
@@ -577,6 +586,7 @@ export interface FileRouteTypes {
     | '/'
     | '/auth'
     | '/master'
+    | '/master-auth'
     | '/sitemap.xml'
     | '/admin-settings'
     | '/agents'
@@ -638,6 +648,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/auth'
+    | '/master-auth'
     | '/sitemap.xml'
     | '/admin-settings'
     | '/agents'
@@ -701,6 +712,7 @@ export interface FileRouteTypes {
     | '/_authenticated'
     | '/auth'
     | '/master'
+    | '/master-auth'
     | '/sitemap.xml'
     | '/_authenticated/admin-settings'
     | '/_authenticated/agents'
@@ -765,6 +777,7 @@ export interface RootRouteChildren {
   AuthenticatedRoute: typeof AuthenticatedRouteWithChildren
   AuthRoute: typeof AuthRoute
   MasterRoute: typeof MasterRouteWithChildren
+  MasterAuthRoute: typeof MasterAuthRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   ApiV1BuyRoute: typeof ApiV1BuyRoute
   ApiV1ConsumeRoute: typeof ApiV1ConsumeRoute
@@ -787,6 +800,13 @@ declare module '@tanstack/react-router' {
       path: '/sitemap.xml'
       fullPath: '/sitemap.xml'
       preLoaderRoute: typeof SitemapDotxmlRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/master-auth': {
+      id: '/master-auth'
+      path: '/master-auth'
+      fullPath: '/master-auth'
+      preLoaderRoute: typeof MasterAuthRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/master': {
@@ -1324,6 +1344,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthenticatedRoute: AuthenticatedRouteWithChildren,
   AuthRoute: AuthRoute,
   MasterRoute: MasterRouteWithChildren,
+  MasterAuthRoute: MasterAuthRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
   ApiV1BuyRoute: ApiV1BuyRoute,
   ApiV1ConsumeRoute: ApiV1ConsumeRoute,

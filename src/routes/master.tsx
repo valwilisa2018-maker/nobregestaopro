@@ -18,12 +18,17 @@ function MasterLayout() {
 
   useEffect(() => {
     if (loading) return;
-    if (!session) { navigate({ to: "/auth" }); return; }
+    if (!session) { navigate({ to: "/master-auth" }); return; }
     let cancelled = false;
     (async () => {
       const { data } = await supabase.rpc("has_role", { _user_id: session.user.id, _role: "master" });
       if (cancelled) return;
-      if (data) setCheck("ok"); else { setCheck("deny"); navigate({ to: "/dashboard" }); }
+      if (data) setCheck("ok");
+      else {
+        setCheck("deny");
+        await supabase.auth.signOut();
+        navigate({ to: "/master-auth" });
+      }
     })();
     return () => { cancelled = true; };
   }, [loading, session, navigate]);
