@@ -125,7 +125,12 @@ async function sendWhatsAppAudio(conn: RunnerConn, number: string, url: string) 
   return ev(conn, "/message/sendMedia", { number, mediatype: "audio", media: url }, 8_000);
 }
 async function sendPresence(conn: RunnerConn, number: string, presence: "composing" | "recording", ms: number) {
-  return ev(conn, "/chat/sendPresence", { number, delay: ms, presence });
+  try {
+    return await ev(conn, "/chat/sendPresence", { number, delay: ms, presence }, 4_000);
+  } catch (e) {
+    console.error("[flow-runner] presence failed", { presence, error: String(e) });
+    return null;
+  }
 }
 
 // Very small, safe expression evaluator: supports ==, !=, contains, >, <, and vars.
