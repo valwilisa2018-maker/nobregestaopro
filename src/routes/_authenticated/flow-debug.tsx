@@ -340,8 +340,32 @@ function Page() {
         </TabsContent>
 
         <TabsContent value="diag" className="mt-0">
-          <div className="rounded-2xl border border-border/60 bg-card/40 p-3 mb-4 text-xs text-muted-foreground">
-            Logs de correlação e runtime dos fluxos. Se uma mensagem chegou mas nenhuma execução foi criada, o motivo aparece aqui (ex.: sem fluxo ativo, fluxo sem START, nenhuma palavra-chave correspondeu, erro em bloco).
+          <div className="rounded-2xl border border-border/60 bg-card/40 p-3 mb-4 flex items-center gap-2">
+            <span className="text-xs text-muted-foreground flex-1">
+              Logs de correlação e runtime dos fluxos. Se uma mensagem chegou mas nenhuma execução foi criada, o motivo aparece aqui (ex.: sem fluxo ativo, fluxo sem START, nenhuma palavra-chave correspondeu, erro em bloco).
+            </span>
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-2 shrink-0"
+              disabled={busy || !diag.length}
+              onClick={async () => {
+                if (!user) return;
+                if (!confirm("Limpar todos os logs de diagnóstico de fluxo?")) return;
+                setBusy(true);
+                const { error } = await supabase
+                  .from("logs")
+                  .delete()
+                  .eq("user_id", user.id)
+                  .or("source.ilike.flow%,source.ilike.flow-correlator%");
+                setBusy(false);
+                if (error) { toast.error("Falha ao limpar logs"); return; }
+                setDiag([]);
+                toast.success("Logs de diagnóstico limpos");
+              }}
+            >
+              <Trash2 className="h-3 w-3" /> Limpar logs antigos
+            </Button>
           </div>
           <div className="rounded-2xl border border-border/60 bg-card/40 overflow-hidden">
             <div className="max-h-[70vh] overflow-y-auto divide-y divide-border/50">
