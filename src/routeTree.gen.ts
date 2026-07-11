@@ -19,6 +19,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as MasterIndexRouteImport } from './routes/master/index'
 import { Route as MasterSupportSettingsRouteImport } from './routes/master/support-settings'
 import { Route as MasterSupportRouteImport } from './routes/master/support'
+import { Route as MasterPermissionsRouteImport } from './routes/master/permissions'
 import { Route as MasterPaymentConfigRouteImport } from './routes/master/payment-config'
 import { Route as MasterOrdersRouteImport } from './routes/master/orders'
 import { Route as MasterNotificationsRouteImport } from './routes/master/notifications'
@@ -38,7 +39,6 @@ import { Route as AuthenticatedPromptRouteImport } from './routes/_authenticated
 import { Route as AuthenticatedPlansRouteImport } from './routes/_authenticated/plans'
 import { Route as AuthenticatedPipelineStatusRouteImport } from './routes/_authenticated/pipeline-status'
 import { Route as AuthenticatedPipelineRouteImport } from './routes/_authenticated/pipeline'
-import { Route as AuthenticatedPermissionsRouteImport } from './routes/_authenticated/permissions'
 import { Route as AuthenticatedMessagesRouteImport } from './routes/_authenticated/messages'
 import { Route as AuthenticatedLogsRouteImport } from './routes/_authenticated/logs'
 import { Route as AuthenticatedKnowledgeRouteImport } from './routes/_authenticated/knowledge'
@@ -122,6 +122,11 @@ const MasterSupportSettingsRoute = MasterSupportSettingsRouteImport.update({
 const MasterSupportRoute = MasterSupportRouteImport.update({
   id: '/support',
   path: '/support',
+  getParentRoute: () => MasterRoute,
+} as any)
+const MasterPermissionsRoute = MasterPermissionsRouteImport.update({
+  id: '/permissions',
+  path: '/permissions',
   getParentRoute: () => MasterRoute,
 } as any)
 const MasterPaymentConfigRoute = MasterPaymentConfigRouteImport.update({
@@ -220,12 +225,6 @@ const AuthenticatedPipelineRoute = AuthenticatedPipelineRouteImport.update({
   path: '/pipeline',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
-const AuthenticatedPermissionsRoute =
-  AuthenticatedPermissionsRouteImport.update({
-    id: '/permissions',
-    path: '/permissions',
-    getParentRoute: () => AuthenticatedRoute,
-  } as any)
 const AuthenticatedMessagesRoute = AuthenticatedMessagesRouteImport.update({
   id: '/messages',
   path: '/messages',
@@ -438,7 +437,6 @@ export interface FileRoutesByFullPath {
   '/knowledge': typeof AuthenticatedKnowledgeRoute
   '/logs': typeof AuthenticatedLogsRoute
   '/messages': typeof AuthenticatedMessagesRoute
-  '/permissions': typeof AuthenticatedPermissionsRoute
   '/pipeline': typeof AuthenticatedPipelineRoute
   '/pipeline-status': typeof AuthenticatedPipelineStatusRoute
   '/plans': typeof AuthenticatedPlansRoute
@@ -458,6 +456,7 @@ export interface FileRoutesByFullPath {
   '/master/notifications': typeof MasterNotificationsRoute
   '/master/orders': typeof MasterOrdersRoute
   '/master/payment-config': typeof MasterPaymentConfigRoute
+  '/master/permissions': typeof MasterPermissionsRoute
   '/master/support': typeof MasterSupportRoute
   '/master/support-settings': typeof MasterSupportSettingsRoute
   '/master/': typeof MasterIndexRoute
@@ -503,7 +502,6 @@ export interface FileRoutesByTo {
   '/knowledge': typeof AuthenticatedKnowledgeRoute
   '/logs': typeof AuthenticatedLogsRoute
   '/messages': typeof AuthenticatedMessagesRoute
-  '/permissions': typeof AuthenticatedPermissionsRoute
   '/pipeline': typeof AuthenticatedPipelineRoute
   '/pipeline-status': typeof AuthenticatedPipelineStatusRoute
   '/plans': typeof AuthenticatedPlansRoute
@@ -523,6 +521,7 @@ export interface FileRoutesByTo {
   '/master/notifications': typeof MasterNotificationsRoute
   '/master/orders': typeof MasterOrdersRoute
   '/master/payment-config': typeof MasterPaymentConfigRoute
+  '/master/permissions': typeof MasterPermissionsRoute
   '/master/support': typeof MasterSupportRoute
   '/master/support-settings': typeof MasterSupportSettingsRoute
   '/master': typeof MasterIndexRoute
@@ -571,7 +570,6 @@ export interface FileRoutesById {
   '/_authenticated/knowledge': typeof AuthenticatedKnowledgeRoute
   '/_authenticated/logs': typeof AuthenticatedLogsRoute
   '/_authenticated/messages': typeof AuthenticatedMessagesRoute
-  '/_authenticated/permissions': typeof AuthenticatedPermissionsRoute
   '/_authenticated/pipeline': typeof AuthenticatedPipelineRoute
   '/_authenticated/pipeline-status': typeof AuthenticatedPipelineStatusRoute
   '/_authenticated/plans': typeof AuthenticatedPlansRoute
@@ -591,6 +589,7 @@ export interface FileRoutesById {
   '/master/notifications': typeof MasterNotificationsRoute
   '/master/orders': typeof MasterOrdersRoute
   '/master/payment-config': typeof MasterPaymentConfigRoute
+  '/master/permissions': typeof MasterPermissionsRoute
   '/master/support': typeof MasterSupportRoute
   '/master/support-settings': typeof MasterSupportSettingsRoute
   '/master/': typeof MasterIndexRoute
@@ -639,7 +638,6 @@ export interface FileRouteTypes {
     | '/knowledge'
     | '/logs'
     | '/messages'
-    | '/permissions'
     | '/pipeline'
     | '/pipeline-status'
     | '/plans'
@@ -659,6 +657,7 @@ export interface FileRouteTypes {
     | '/master/notifications'
     | '/master/orders'
     | '/master/payment-config'
+    | '/master/permissions'
     | '/master/support'
     | '/master/support-settings'
     | '/master/'
@@ -704,7 +703,6 @@ export interface FileRouteTypes {
     | '/knowledge'
     | '/logs'
     | '/messages'
-    | '/permissions'
     | '/pipeline'
     | '/pipeline-status'
     | '/plans'
@@ -724,6 +722,7 @@ export interface FileRouteTypes {
     | '/master/notifications'
     | '/master/orders'
     | '/master/payment-config'
+    | '/master/permissions'
     | '/master/support'
     | '/master/support-settings'
     | '/master'
@@ -771,7 +770,6 @@ export interface FileRouteTypes {
     | '/_authenticated/knowledge'
     | '/_authenticated/logs'
     | '/_authenticated/messages'
-    | '/_authenticated/permissions'
     | '/_authenticated/pipeline'
     | '/_authenticated/pipeline-status'
     | '/_authenticated/plans'
@@ -791,6 +789,7 @@ export interface FileRouteTypes {
     | '/master/notifications'
     | '/master/orders'
     | '/master/payment-config'
+    | '/master/permissions'
     | '/master/support'
     | '/master/support-settings'
     | '/master/'
@@ -900,6 +899,13 @@ declare module '@tanstack/react-router' {
       path: '/support'
       fullPath: '/master/support'
       preLoaderRoute: typeof MasterSupportRouteImport
+      parentRoute: typeof MasterRoute
+    }
+    '/master/permissions': {
+      id: '/master/permissions'
+      path: '/permissions'
+      fullPath: '/master/permissions'
+      preLoaderRoute: typeof MasterPermissionsRouteImport
       parentRoute: typeof MasterRoute
     }
     '/master/payment-config': {
@@ -1033,13 +1039,6 @@ declare module '@tanstack/react-router' {
       path: '/pipeline'
       fullPath: '/pipeline'
       preLoaderRoute: typeof AuthenticatedPipelineRouteImport
-      parentRoute: typeof AuthenticatedRoute
-    }
-    '/_authenticated/permissions': {
-      id: '/_authenticated/permissions'
-      path: '/permissions'
-      fullPath: '/permissions'
-      preLoaderRoute: typeof AuthenticatedPermissionsRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
     '/_authenticated/messages': {
@@ -1314,7 +1313,6 @@ interface AuthenticatedRouteChildren {
   AuthenticatedKnowledgeRoute: typeof AuthenticatedKnowledgeRoute
   AuthenticatedLogsRoute: typeof AuthenticatedLogsRoute
   AuthenticatedMessagesRoute: typeof AuthenticatedMessagesRoute
-  AuthenticatedPermissionsRoute: typeof AuthenticatedPermissionsRoute
   AuthenticatedPipelineRoute: typeof AuthenticatedPipelineRoute
   AuthenticatedPipelineStatusRoute: typeof AuthenticatedPipelineStatusRoute
   AuthenticatedPlansRoute: typeof AuthenticatedPlansRoute
@@ -1352,7 +1350,6 @@ const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedKnowledgeRoute: AuthenticatedKnowledgeRoute,
   AuthenticatedLogsRoute: AuthenticatedLogsRoute,
   AuthenticatedMessagesRoute: AuthenticatedMessagesRoute,
-  AuthenticatedPermissionsRoute: AuthenticatedPermissionsRoute,
   AuthenticatedPipelineRoute: AuthenticatedPipelineRoute,
   AuthenticatedPipelineStatusRoute: AuthenticatedPipelineStatusRoute,
   AuthenticatedPlansRoute: AuthenticatedPlansRoute,
@@ -1379,6 +1376,7 @@ interface MasterRouteChildren {
   MasterNotificationsRoute: typeof MasterNotificationsRoute
   MasterOrdersRoute: typeof MasterOrdersRoute
   MasterPaymentConfigRoute: typeof MasterPaymentConfigRoute
+  MasterPermissionsRoute: typeof MasterPermissionsRoute
   MasterSupportRoute: typeof MasterSupportRoute
   MasterSupportSettingsRoute: typeof MasterSupportSettingsRoute
   MasterIndexRoute: typeof MasterIndexRoute
@@ -1393,6 +1391,7 @@ const MasterRouteChildren: MasterRouteChildren = {
   MasterNotificationsRoute: MasterNotificationsRoute,
   MasterOrdersRoute: MasterOrdersRoute,
   MasterPaymentConfigRoute: MasterPaymentConfigRoute,
+  MasterPermissionsRoute: MasterPermissionsRoute,
   MasterSupportRoute: MasterSupportRoute,
   MasterSupportSettingsRoute: MasterSupportSettingsRoute,
   MasterIndexRoute: MasterIndexRoute,

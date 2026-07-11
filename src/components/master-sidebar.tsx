@@ -22,7 +22,7 @@ const groups = [
     label: "Contas",
     items: [
       { title: "Clientes", url: "/master/clients", icon: Users },
-      { title: "Permissões", url: "/permissions", icon: ShieldCheck },
+      { title: "Permissões", url: "/master/permissions", icon: ShieldCheck },
       { title: "Notificações", url: "/master/notifications", icon: Bell },
       { title: "Anúncios", url: "/master/announcements", icon: Megaphone },
       { title: "Suporte", url: "/master/support", icon: LifeBuoy },
