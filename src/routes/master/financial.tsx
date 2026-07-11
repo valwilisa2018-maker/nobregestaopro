@@ -201,9 +201,13 @@ function Page() {
     const doc = new jsPDF();
     doc.setFontSize(16); doc.text("Relatório Financeiro", 14, 18);
     doc.setFontSize(10);
+    const statusLabel = statusFilter === "all" ? "Todos" : statusFilter === "paid" ? "Pagos/Aprovados" : statusFilter === "pending" ? "Pendentes" : "Cancelados";
+    const typeLabel = typeFilter === "all" ? "Planos + Créditos" : typeFilter === "plans" ? "Somente Planos" : "Somente Créditos";
     doc.text(`Período: ${from} a ${to}`, 14, 26);
-    doc.text(`Receita paga: ${formatBRL(totalPaid)}   |   Pendente: ${formatBRL(totalPending)}`, 14, 32);
-    doc.text(`Gastos IA: ${formatBRL(aiCostCents)}   |   Tokens: ${aiTokens.toLocaleString("pt-BR")}`, 14, 38);
+    doc.text(`Filtros — Status: ${statusLabel}   |   Tipo: ${typeLabel}`, 14, 32);
+    doc.text(`Entradas: ${formatBRL(totalPaid)}   |   Pendente: ${formatBRL(totalPending)}   |   Saídas IA: ${formatBRL(aiCostCents)}`, 14, 38);
+    doc.text(`Lucro: ${formatBRL(totalPaid - aiCostCents)}   |   Margem: ${margemPct.toFixed(1)}%   |   Ticket médio: ${formatBRL(ticketMedio)}   |   Conversão: ${conversao.toFixed(1)}%`, 14, 44);
+    doc.text(`Planos pagos: ${formatBRL(plansPaid)}   |   Créditos pagos: ${formatBRL(creditsPaid)}   |   Tokens IA: ${aiTokens.toLocaleString("pt-BR")}`, 14, 50);
 
     const body: string[][] = [];
     if (showCredits) for (const o of filteredOrders) body.push([
@@ -218,7 +222,19 @@ function Page() {
       planName.get(r.plan_id) ?? "—",
       formatBRL(planPrice.get(r.plan_id) ?? 0), r.status,
     ]);
-    autoTable(doc, { startY: 44, head: [["Data","Tipo","Cliente","Descrição","Valor","Status"]], body, styles: { fontSize: 8 } });
+    body.sort((a, b) => {
+      const da = a[0].split("/").reverse().join("-");
+      const db = b[0].split("/").reverse().join("-");
+      return db.localeCompare(da);
+    });
+    autoTable(doc, {
+      startY: 58,
+      head: [["Data","Tipo","Cliente","Descrição","Valor","Status"]],
+      body,
+      styles: { fontSize: 8 },
+      foot: [["", "", "", `Total (${body.length})`, formatBRL(totalPaid + totalPending), ""]],
+      footStyles: { fillColor: [240,240,240], textColor: 20, fontStyle: "bold" },
+    });
     doc.save(`financeiro-${new Date().toISOString().slice(0,10)}.pdf`);
   };
 
