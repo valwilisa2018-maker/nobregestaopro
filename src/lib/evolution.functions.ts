@@ -519,8 +519,8 @@ export const startFlowForContact = createServerFn({ method: "POST" })
     const remoteJid = `${number}@s.whatsapp.net`;
     const convoId = await getOrCreateConversationForJid(context.supabase, context.userId, conn.id, remoteJid);
 
-    const { runFlow } = await import("@/lib/flow-runner.server");
-    const result = await runFlow({
+    const { runFlowTracked } = await import("@/lib/flow-tracking.server");
+    const result = await runFlowTracked({
       db: context.supabase,
       conn: { id: conn.id, user_id: context.userId, url_api: conn.url_api, api_key: apiKey, instance_name: conn.instance_name },
       recipient: remoteJid,
@@ -529,7 +529,9 @@ export const startFlowForContact = createServerFn({ method: "POST" })
       state: {}, // fresh run — ignora estado antigo (ex: finished:true de rodadas anteriores)
       flowId: flow.id,
       conversationId: convoId,
+      connectionId: conn.id,
       userId: context.userId,
+      source: "chat",
     });
 
     await context.supabase.from("conversations").update({
