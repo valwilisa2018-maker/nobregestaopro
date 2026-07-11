@@ -221,19 +221,20 @@ function CaptchaField({
         >
           {captcha.a} + {captcha.b} = ?
         </div>
+        <Input
+          id="captcha"
+          inputMode="numeric"
+          pattern="[0-9]*"
+          placeholder="="
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          required
+          className="w-20 text-center font-mono text-lg"
+        />
         <Button type="button" size="icon" variant="outline" onClick={onRefresh} title="Gerar outro">
           <RefreshCw className="h-4 w-4" />
         </Button>
       </div>
-      <Input
-        id="captcha"
-        inputMode="numeric"
-        pattern="[0-9]*"
-        placeholder="Digite o resultado"
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        required
-      />
     </div>
   );
 }
