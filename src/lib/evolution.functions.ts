@@ -13,9 +13,20 @@ async function loadConnection(supabase: any, userId: string, id: string) {
     .select("*")
     .eq("id", id)
     .eq("user_id", userId)
-    .single();
-  if (error || !data) throw new Error("Conexão não encontrada");
-  return data;
+    .maybeSingle();
+  if (error) throw new Error(error.message);
+  return data ?? null;
+}
+
+function missingConnectionResult() {
+  return {
+    ok: false,
+    status: "offline" as const,
+    state: "missing" as const,
+    missing: true,
+    message: "Conexão não encontrada",
+    raw: null,
+  };
 }
 
 function baseUrl(url: string) {
@@ -147,6 +158,7 @@ export const connectInstance = createServerFn({ method: "POST" })
   .inputValidator((i: unknown) => IdInput.parse(i))
   .handler(async ({ data, context }) => {
     const c = await loadConnection(context.supabase, context.userId, data.connectionId);
+    if (!c) return { ...missingConnectionResult(), qr: null, pairingCode: null };
     const apiKey = await loadEvolutionCommandKey(context.supabase, c.api_key);
     const r = await evoFetch(`${baseUrl(c.url_api)}/instance/connect/${c.instance_name}`, apiKey);
     const j = r.json ?? {};
@@ -167,6 +179,7 @@ export const disconnectInstance = createServerFn({ method: "POST" })
   .inputValidator((i: unknown) => IdInput.parse(i))
   .handler(async ({ data, context }) => {
     const c = await loadConnection(context.supabase, context.userId, data.connectionId);
+    if (!c) return missingConnectionResult();
     const apiKey = await loadEvolutionCommandKey(context.supabase, c.api_key);
     const r = await evoFetch(`${baseUrl(c.url_api)}/instance/logout/${c.instance_name}`, apiKey, { method: "DELETE" });
     await context.supabase.from("connections").update({ status: "offline", last_sync: new Date().toISOString() }).eq("id", c.id);
@@ -184,6 +197,7 @@ export const sendTestMessage = createServerFn({ method: "POST" })
   .inputValidator((i: unknown) => SendTestInput.parse(i))
   .handler(async ({ data, context }) => {
     const c = await loadConnection(context.supabase, context.userId, data.connectionId);
+    if (!c) return missingConnectionResult();
     const raw = (data.number ?? c.phone_number ?? "").toString().replace(/\D+/g, "");
     if (!raw) throw new Error("Informe um número de destino (a instância ainda não tem número conectado).");
     const text = data.text ?? "oi";
@@ -215,6 +229,7 @@ export const deleteInstance = createServerFn({ method: "POST" })
   .inputValidator((i: unknown) => IdInput.parse(i))
   .handler(async ({ data, context }) => {
     const c = await loadConnection(context.supabase, context.userId, data.connectionId);
+    if (!c) return { ok: true, missing: true };
     // Best-effort: logout then delete on Evolution before dropping the local row
     const apiKey = await loadEvolutionCommandKey(context.supabase, c.api_key);
     try { await evoFetch(`${baseUrl(c.url_api)}/instance/logout/${c.instance_name}`, apiKey, { method: "DELETE" }); } catch { /* ignore */ }
@@ -229,6 +244,7 @@ export const testWebhook = createServerFn({ method: "POST" })
   .inputValidator((i: unknown) => IdInput.parse(i))
   .handler(async ({ data, context }) => {
     const c = await loadConnection(context.supabase, context.userId, data.connectionId);
+    if (!c) return { ...missingConnectionResult(), url: null, response: null };
     // Build the same public webhook URL used at instance creation
     const { data: setting } = await context.supabase
       .from("settings").select("value").eq("key", "evolution_api").maybeSingle();
