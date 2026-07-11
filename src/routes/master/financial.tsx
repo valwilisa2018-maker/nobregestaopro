@@ -499,9 +499,16 @@ function Page() {
                       <td className="p-3 text-muted-foreground">{row.desc}</td>
                       <td className="p-3 font-medium">{formatBRL(row.valor)}</td>
                       <td className="p-3">
-                        <Badge variant={row.status === "paid" || row.status === "approved" ? "default" : row.status === "pending" ? "secondary" : "outline"}>
-                          {row.status}
-                        </Badge>
+                        {(() => {
+                          const s = row.status;
+                          const label = s === "paid" ? "Pago" : s === "approved" ? "Aprovado" : s === "pending" ? "Pendente" : s === "rejected" ? "Rejeitado" : s === "canceled" || s === "cancelled" ? "Cancelado" : s;
+                          const isGreen = s === "paid" || s === "approved";
+                          return (
+                            <Badge className={isGreen ? "bg-emerald-500 hover:bg-emerald-500 text-white border-transparent" : ""} variant={isGreen ? "default" : s === "pending" ? "secondary" : "outline"}>
+                              {label}
+                            </Badge>
+                          );
+                        })()}
                       </td>
                     </tr>
                   ))}
@@ -531,7 +538,7 @@ function Page() {
                     <Row k="User ID" v={<code className="text-xs">{o.user_id}</code>} />
                     <Row k="Tokens comprados" v={o.tokens.toLocaleString("pt-BR")} />
                     <Row k="Valor" v={<span className="font-bold text-emerald-500">{formatBRL(o.price_cents)}</span>} />
-                    <Row k="Status" v={<Badge variant={o.status === "paid" ? "default" : o.status === "pending" ? "secondary" : "outline"}>{o.status}</Badge>} />
+                    <Row k="Status" v={<Badge className={o.status === "paid" ? "bg-emerald-500 hover:bg-emerald-500 text-white border-transparent" : ""} variant={o.status === "paid" ? "default" : o.status === "pending" ? "secondary" : "outline"}>{o.status === "paid" ? "Pago" : o.status === "pending" ? "Pendente" : o.status === "canceled" || o.status === "cancelled" ? "Cancelado" : o.status}</Badge>} />
                     <Row k="Origem" v="Compra de créditos (credit_orders)" />
                     <Row k="Criado em" v={new Date(o.created_at).toLocaleString("pt-BR")} />
                     <Row k="Pago em" v={o.paid_at ? new Date(o.paid_at).toLocaleString("pt-BR") : "—"} />
@@ -553,7 +560,7 @@ function Page() {
                     <Row k="User ID" v={<code className="text-xs">{r.user_id}</code>} />
                     <Row k="Plano" v={planName.get(r.plan_id) ?? "—"} />
                     <Row k="Valor do plano" v={<span className="font-bold text-emerald-500">{formatBRL(price)}</span>} />
-                    <Row k="Status" v={<Badge variant={r.status === "approved" ? "default" : r.status === "pending" ? "secondary" : "outline"}>{r.status}</Badge>} />
+                    <Row k="Status" v={<Badge className={r.status === "approved" ? "bg-emerald-500 hover:bg-emerald-500 text-white border-transparent" : ""} variant={r.status === "approved" ? "default" : r.status === "pending" ? "secondary" : "outline"}>{r.status === "approved" ? "Aprovado" : r.status === "pending" ? "Pendente" : r.status === "rejected" ? "Rejeitado" : r.status}</Badge>} />
                     <Row k="Origem" v="Solicitação de ativação de plano (plan_activation_requests)" />
                     <Row k="Solicitado em" v={new Date(r.created_at).toLocaleString("pt-BR")} />
                     <Row k="Aprovado em" v={r.approved_at ? new Date(r.approved_at).toLocaleString("pt-BR") : "—"} />
