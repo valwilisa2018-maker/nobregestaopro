@@ -219,10 +219,20 @@ export function AgentEditor({ agent, onSaved, onCancel }: Props) {
     const results: Array<{ n: number; title: string; ok: boolean; msg: string }> = [];
     const push = (n: number, title: string, ok: boolean, msg: string) => results.push({ n, title, ok, msg });
     try {
-      // 1) Modelo
-      const { data: prov } = await supabase.from("ai_providers").select("id, provider, model").eq("user_id", user.id).eq("is_active", true).limit(1).maybeSingle();
-      const hasModel = !!prov && !!form.system_prompt && (form.max_tokens ?? 0) > 0;
-      push(1, "Configuração do Modelo", hasModel, hasModel ? `Provedor ativo (${prov?.provider}/${prov?.model ?? "?"}), prompt e tokens OK` : "Sem provedor ativo ou prompt/tokens vazios");
+      // 1) Modelo — checa provedor do usuário e, se não houver, fallback global (admin/master)
+      let { data: prov } = await supabase.from("ai_providers").select("id, provider, model").eq("user_id", user.id).eq("is_active", true).limit(1).maybeSingle();
+      if (!prov) {
+        const { data: adminIds } = await supabase.from("user_roles").select("user_id").in("role", ["admin", "master"]);
+        const ids = (adminIds ?? []).map((r) => r.user_id);
+        if (ids.length) {
+          const { data: globalRow } = await supabase.from("ai_providers").select("id, provider, model").in("user_id", ids).eq("is_active", true).order("updated_at", { ascending: false }).limit(1).maybeSingle();
+          if (globalRow) prov = globalRow;
+        }
+      }
+      const hasPrompt = !!form.system_prompt && (form.max_tokens ?? 0) > 0;
+      const hasModel = !!prov && hasPrompt;
+      const reason = !prov ? "Sem provedor de IA ativo (nem próprio, nem global)" : !form.system_prompt ? "Prompt do sistema vazio" : "max_tokens não configurado";
+      push(1, "Configuração do Modelo", hasModel, hasModel ? `Provedor ativo (${prov?.provider}/${prov?.model ?? "?"}), prompt e tokens OK` : reason);
 
       // 2) Conversas
       const conv = ext.conversation ?? {};
