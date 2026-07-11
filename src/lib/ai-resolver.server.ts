@@ -19,7 +19,7 @@ export async function resolveAIConfig(
   const lovableKey = process.env.LOVABLE_API_KEY ?? "";
   const fallback: ResolvedAI = { endpoint: LOVABLE_GATEWAY, apiKey: lovableKey, model: DEFAULT_MODEL };
 
-  const { data } = await supabase
+  let { data } = await supabase
     .from("ai_providers")
     .select("provider,api_key,model")
     .eq("user_id", userId)
@@ -27,6 +27,28 @@ export async function resolveAIConfig(
     .order("updated_at", { ascending: false })
     .limit(1)
     .maybeSingle();
+
+  // Global fallback: use the active provider configured by any admin/master
+  // account so every new user inherits the platform-wide AI key automatically.
+  if (!data) {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: adminIds } = await supabaseAdmin
+      .from("user_roles")
+      .select("user_id")
+      .in("role", ["admin", "master"]);
+    const ids = (adminIds ?? []).map((r) => r.user_id);
+    if (ids.length) {
+      const { data: globalRow } = await supabaseAdmin
+        .from("ai_providers")
+        .select("provider,api_key,model")
+        .in("user_id", ids)
+        .eq("is_active", true)
+        .order("updated_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (globalRow) data = globalRow;
+    }
+  }
 
   if (!data) return fallback;
   const provider = (data.provider ?? "lovable").toLowerCase();
