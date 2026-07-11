@@ -2,7 +2,7 @@ import { Link, useRouterState } from "@tanstack/react-router";
 import {
   Crown, LayoutDashboard, Users, DollarSign, Package, CreditCard, Megaphone,
   LifeBuoy, Bell, Settings2, Brain, Plug, KeyRound, Webhook, Cpu, Palette,
-  ShieldCheck, LogOut, Sun, Moon, ArrowLeft, Zap, Mail,
+  ShieldCheck, LogOut, Sun, Moon, ArrowLeft, Zap, Mail, Video,
 } from "lucide-react";
 import {
   Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent, SidebarGroupLabel,
@@ -50,6 +50,7 @@ const groups = [
       { title: "E-mails (Brevo)", url: "/master/email-config", icon: Mail },
       { title: "White Label", url: "/white-label", icon: Palette },
       { title: "Personalização", url: "/master/branding", icon: Palette },
+      { title: "Tutoriais em vídeo", url: "/master/tutorials", icon: Video },
       { title: "Config. Global", url: "/admin-settings", icon: Settings2 },
     ],
   },
