@@ -203,7 +203,7 @@ function ConnectionsPage() {
           </DialogContent>
         </Dialog>
       </div>
-      <TutorialVideo moduleKey="whatsapp_evolution" title="Como conectar o WhatsApp" />
+      <TutorialVideo moduleKey="modulo_02" title="Como conectar o WhatsApp" />
 
       {loading ? (
         <p className="text-muted-foreground">Carregando…</p>

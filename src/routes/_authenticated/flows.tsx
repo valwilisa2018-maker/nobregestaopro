@@ -281,7 +281,7 @@ function Page() {
       icon={<Workflow className="h-6 w-6" />}
       status="ativo"
     >
-      <div className="mb-4"><TutorialVideo moduleKey="flows" title="Como criar Fluxos" /></div>
+      <div className="mb-4"><TutorialVideo moduleKey="modulo_03" title="Como criar Fluxos" /></div>
       <ReactFlowProvider>
         <Builder />
       </ReactFlowProvider>
