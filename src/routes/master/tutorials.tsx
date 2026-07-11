@@ -102,11 +102,35 @@ function Page() {
     });
   };
 
+  const ALLOWED_TYPES = ["image/png", "image/jpeg", "image/webp", "image/gif"];
+  const MAX_BYTES = 2 * 1024 * 1024;
+
   const onFile = (key: string, f: File | null) => {
     if (!f) return;
-    if (f.size > 2 * 1024 * 1024) { toast.error("Imagem acima de 2MB. Use uma URL."); return; }
+    if (!ALLOWED_TYPES.includes(f.type)) {
+      toast.error("Formato inválido", { description: "Use PNG, JPG, WEBP ou GIF." });
+      return;
+    }
+    if (f.size > MAX_BYTES) {
+      const mb = (f.size / (1024 * 1024)).toFixed(2);
+      toast.error(`Arquivo muito grande (${mb}MB)`, { description: "Tamanho máximo permitido: 2MB. Reduza a imagem ou informe uma URL." });
+      return;
+    }
     const reader = new FileReader();
-    reader.onload = () => setCovers((c) => ({ ...c, [key]: String(reader.result) }));
+    reader.onload = () => {
+      const img = new Image();
+      img.onload = () => {
+        const ratio = img.width / img.height;
+        if (ratio > 0.85) {
+          toast.warning("Proporção fora do padrão 9:16", { description: `A capa tem ${img.width}×${img.height}px. O ideal é vertical (ex.: 720×1280).` });
+        }
+        setCovers((c) => ({ ...c, [key]: String(reader.result) }));
+        toast.success("Capa carregada", { description: `${f.name} · ${(f.size / 1024).toFixed(0)} KB` });
+      };
+      img.onerror = () => toast.error("Não foi possível ler a imagem", { description: "Arquivo corrompido ou formato não suportado." });
+      img.src = String(reader.result);
+    };
+    reader.onerror = () => toast.error("Falha ao ler o arquivo", { description: "Tente novamente ou use outro arquivo." });
     reader.readAsDataURL(f);
   };
 
