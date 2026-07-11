@@ -12,6 +12,17 @@ import { DndContext, PointerSensor, KeyboardSensor, useSensor, useSensors, close
 import { SortableContext, arrayMove, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { GripVertical } from "lucide-react";
+import cover01 from "@/assets/modulo-01.png.asset.json";
+import cover02 from "@/assets/modulo-02.png.asset.json";
+import cover03 from "@/assets/modulo-03.png.asset.json";
+import cover04 from "@/assets/modulo-04.png.asset.json";
+
+const DEFAULT_COVERS: Record<string, string> = {
+  modulo_01: cover01.url,
+  modulo_02: cover02.url,
+  modulo_03: cover03.url,
+  modulo_04: cover04.url,
+};
 
 export const Route = createFileRoute("/master/tutorials")({
   head: () => ({ meta: [{ title: "Tutoriais em vídeo — Master" }] }),
@@ -175,7 +186,7 @@ function Page() {
                     m={m}
                     idx={idx}
                     total={modules.length}
-                    cover={covers[m.key]}
+                    cover={covers[m.key] || DEFAULT_COVERS[m.key]}
                     videoUrl={videos[m.key] ?? ""}
                     coverUrl={covers[m.key] ?? ""}
                     onMove={move}
