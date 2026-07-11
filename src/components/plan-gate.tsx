@@ -132,7 +132,7 @@ function PlanModal({ variant, dismissible, onClose, daysLeft, planName, expiresA
     : variant === "expired" ? "Renovar Meu Plano Agora"
     : "Renovar Meu Plano Agora";
 
-  const goPlan = () => { navigate({ to: "/billing" }); onClose?.(); };
+  const goPlan = () => { onClose?.(); navigate({ to: "/plans" }); };
 
   return (
     <div className="fixed inset-0 z-[70] grid place-items-center p-4 bg-black/70 backdrop-blur-sm">
