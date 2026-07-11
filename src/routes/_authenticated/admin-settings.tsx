@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { Settings, Save, Loader2, Zap, ShieldAlert, Brain, Sparkles, MessageSquare, Package, Plus, Trash2, Star, Coins, TrendingUp, DollarSign } from "lucide-react";
+import { Settings, Save, Loader2, Zap, ShieldAlert, Brain, Sparkles, MessageSquare, Package, Plus, Trash2, Star, Coins, TrendingUp, DollarSign, CheckCircle2, XCircle, ShieldCheck } from "lucide-react";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
@@ -15,6 +15,8 @@ import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { validatePackage } from "@/lib/package-schema";
 import { MasterGuard } from "@/components/master-guard";
+import { verifyAIProvider } from "@/lib/verify-ai.functions";
+import { useServerFn } from "@tanstack/react-start";
 
 export const Route = createFileRoute("/_authenticated/admin-settings")({
   head: () => ({ meta: [{ title: "Configurações Globais — Admin" }] }),
@@ -136,6 +138,7 @@ const PROVIDERS: { key: ProviderKey; name: string; icon: typeof Brain; desc: str
 function Page() {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const verifyFn = useServerFn(verifyAIProvider);
   const [isAdmin, setIsAdmin] = useState<boolean | null>(null);
   const [cfg, setCfg] = useState<EvoCfg>({ url_api: "", api_key: "", webhook_base_url: "" });
   const [providers, setProviders] = useState<Record<ProviderKey, ProviderCfg>>({
@@ -147,6 +150,10 @@ function Page() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [savingProv, setSavingProv] = useState<ProviderKey | null>(null);
+  const [verifying, setVerifying] = useState<ProviderKey | null>(null);
+  const [verifyStatus, setVerifyStatus] = useState<Record<ProviderKey, { ok: boolean; msg: string } | null>>({
+    lovable: null, openai: null, gemini: null, anthropic: null,
+  });
   const [plans, setPlans] = useState<PlanRow[]>([]);
   const [savingPlan, setSavingPlan] = useState<string | null>(null);
   const [packages, setPackages] = useState<PackageRow[]>([]);
@@ -324,6 +331,19 @@ function Page() {
     const p = providers[k];
     const meta = PROVIDERS.find((x) => x.key === k)!;
     if (k !== "lovable" && p.is_active && !p.api_key) return toast.error("API Key obrigatória para ativar");
+    // Verifica a chave antes de salvar quando o provedor está ativo
+    let verified: { ok: boolean; msg: string } | null = null;
+    if (p.is_active) {
+      setVerifying(k);
+      const res = await verifyFn({ data: { provider: k, api_key: p.api_key, model: p.model } });
+      setVerifying(null);
+      verified = { ok: !!res.ok, msg: res.ok ? (res.message ?? "Verificado") : (res.error ?? "Falhou") };
+      setVerifyStatus((s) => ({ ...s, [k]: verified }));
+      if (!res.ok) {
+        toast.error(`${meta.name}: ${verified.msg}`);
+        return;
+      }
+    }
     setSavingProv(k);
     const payload = {
       user_id: user.id,
@@ -341,7 +361,7 @@ function Page() {
     setSavingProv(null);
     if (error) return toast.error(error.message);
     if (!p.id && data && "id" in data) setProviders((prev) => ({ ...prev, [k]: { ...prev[k], id: (data as { id: string }).id } }));
-    toast.success(`${meta.name} salvo`);
+    toast.success(verified?.ok ? `${meta.name} ativo · ${verified.msg}` : `${meta.name} salvo`);
   };
 
   const updateProv = (k: ProviderKey, patch: Partial<ProviderCfg>) =>
@@ -434,7 +454,18 @@ function Page() {
                           <Icon className="h-4 w-4" />
                         </div>
                         <div className="min-w-0">
-                          <CardTitle className="truncate">{meta.name}</CardTitle>
+                          <div className="flex items-center gap-2">
+                            <CardTitle className="truncate">{meta.name}</CardTitle>
+                            {p.is_active && (verifyStatus[meta.key]?.ok || (isLovable && p.is_active)) ? (
+                              <Badge className="bg-emerald-500/15 text-emerald-400 border-emerald-500/30 text-[10px] gap-1">
+                                <ShieldCheck className="h-3 w-3" /> Ativo
+                              </Badge>
+                            ) : p.is_active ? (
+                              <Badge variant="secondary" className="text-[10px]">Aguardando teste</Badge>
+                            ) : (
+                              <Badge variant="outline" className="text-[10px]">Inativo</Badge>
+                            )}
+                          </div>
                           <CardDescription className="text-xs">{meta.desc}</CardDescription>
                         </div>
                       </div>
@@ -447,6 +478,12 @@ function Page() {
                         <Label>API Key</Label>
                         <Input type="password" placeholder={meta.placeholder} value={p.api_key}
                           onChange={(e) => updateProv(meta.key, { api_key: e.target.value })} />
+                        {verifyStatus[meta.key] && (
+                          <p className={`text-xs flex items-center gap-1 ${verifyStatus[meta.key]!.ok ? "text-emerald-400" : "text-destructive"}`}>
+                            {verifyStatus[meta.key]!.ok ? <CheckCircle2 className="h-3 w-3" /> : <XCircle className="h-3 w-3" />}
+                            {verifyStatus[meta.key]!.msg}
+                          </p>
+                        )}
                       </div>
                     )}
                     <div className="space-y-1.5">
@@ -477,10 +514,24 @@ function Page() {
                         </SelectContent>
                       </Select>
                     </div>
-                    <div className="flex justify-end pt-1">
-                      <Button size="sm" onClick={() => saveProvider(meta.key)} disabled={savingProv === meta.key}>
-                        {savingProv === meta.key ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-                        Salvar
+                    <div className="flex justify-end gap-2 pt-1">
+                      {!isLovable && (
+                        <Button size="sm" variant="outline" disabled={verifying === meta.key || !p.api_key}
+                          onClick={async () => {
+                            setVerifying(meta.key);
+                            const res = await verifyFn({ data: { provider: meta.key, api_key: p.api_key, model: p.model } });
+                            setVerifying(null);
+                            setVerifyStatus((s) => ({ ...s, [meta.key]: { ok: !!res.ok, msg: res.ok ? (res.message ?? "Verificado") : (res.error ?? "Falhou") } }));
+                            if (res.ok) toast.success(`${meta.name}: chave válida`);
+                            else toast.error(`${meta.name}: ${res.error}`);
+                          }}>
+                          {verifying === meta.key ? <Loader2 className="h-4 w-4 animate-spin" /> : <ShieldCheck className="h-4 w-4" />}
+                          Testar chave
+                        </Button>
+                      )}
+                      <Button size="sm" onClick={() => saveProvider(meta.key)} disabled={savingProv === meta.key || verifying === meta.key}>
+                        {savingProv === meta.key || verifying === meta.key ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+                        {p.is_active ? "Verificar & Ativar" : "Salvar"}
                       </Button>
                     </div>
                   </CardContent>
