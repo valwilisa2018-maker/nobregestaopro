@@ -40,7 +40,7 @@ function usePlanInfo(): PlanInfo | null {
       const daysLeft = expiresAt
         ? Math.ceil((expiresAt.getTime() - Date.now()) / 86400000)
         : null;
-      const expired = !!(expiresAt && daysLeft !== null && daysLeft < 0);
+      const expired = !!(expiresAt && expiresAt.getTime() <= Date.now());
       const hasActivePlan = !!(data?.plan_id && data.status === "active" && !expired);
       setInfo({
         planName,
