@@ -307,9 +307,9 @@ function Page() {
             <div className="mx-auto grid h-14 w-14 place-items-center rounded-full bg-primary/10 text-primary">
               <Smartphone className="h-6 w-6" />
             </div>
-            <h3 className="text-lg font-semibold">Nenhuma instância ainda</h3>
+            <h3 className="text-lg font-semibold">Conecte seu WhatsApp em segundos</h3>
             <p className="text-sm text-muted-foreground max-w-md mx-auto">
-              Configure a Evolution API em <Link to="/settings" className="text-primary underline">Configurações</Link> e crie sua primeira instância.
+              Clique em <span className="font-medium text-foreground">Nova instância</span>, escaneie o QR Code e pronto — seu WhatsApp estará conectado em menos de 1 minuto.
             </p>
           </CardContent>
         </Card>
