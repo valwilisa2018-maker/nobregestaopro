@@ -319,7 +319,19 @@ function MessagesPage() {
           return Number.isFinite(incomingTs) && Number.isFinite(mts) && Math.abs(incomingTs - mts) < 180_000;
         });
       }
-      const next = idx === -1 ? [...prev, incoming] : prev.map((m, i) => (i === idx ? incoming : m));
+      const next = idx === -1 ? [...prev, incoming] : prev.map((m, i) => {
+        if (i !== idx) return m;
+        // Preserve a local blob:/object URL on the outgoing optimistic bubble
+        // until the server-side media URL is a real fetchable http(s) URL.
+        // Otherwise the video/image visibly "disappears" the moment the row
+        // is replaced by the DB record whose media_url is just a storage path.
+        const prevUrl = m.media_url ?? "";
+        const incUrl = incoming.media_url ?? "";
+        const prevIsLocal = prevUrl.startsWith("blob:") || prevUrl.startsWith("data:");
+        const incIsRemote = /^https?:\/\//.test(incUrl);
+        const keepLocal = prevIsLocal && !incIsRemote;
+        return keepLocal ? { ...incoming, media_url: prevUrl } : incoming;
+      });
       next.sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
       if (targetId) persistMsgCache(targetId, next);
       return next;
