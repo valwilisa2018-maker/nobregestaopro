@@ -203,23 +203,6 @@ function CommentsPanel({ moduleKey }: { moduleKey: string }) {
   return <CommentsPanelInner moduleKey={moduleKey} user={user} />;
 }
 
-function ModuleEditor({
-  module: mod,
-  videoUrl,
-  coverUrl,
-  onCancel,
-  onSave,
-}: {
-  module: Module;
-  videoUrl: string;
-  coverUrl: string;
-  onCancel: () => void;
-  onSave: (patch: Module, videoUrl: string, coverUrl: string) => void | Promise<void>;
-}) {
-  void mod; void videoUrl; void coverUrl; void onCancel; void onSave;
-  return null;
-}
-
 function CommentsPanelInner({ moduleKey, user }: { moduleKey: string; user: ReturnType<typeof useAuth>["user"] }) {
   const [items, setItems] = useState<Comment[]>([]);
   const [body, setBody] = useState("");
