@@ -103,6 +103,7 @@ export function AgentEditor({ agent, onSaved, onCancel }: Props) {
   const [validating, setValidating] = useState(false);
   const [validationOpen, setValidationOpen] = useState(false);
   const [validationResults, setValidationResults] = useState<Array<{ n: number; title: string; ok: boolean; msg: string }>>([]);
+  const [activatingLovable, setActivatingLovable] = useState(false);
 
   useEffect(() => { setForm(agent ?? emptyAgent(user?.id ?? "")); }, [agent, user?.id]);
 
