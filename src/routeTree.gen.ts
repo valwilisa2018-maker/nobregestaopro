@@ -34,6 +34,7 @@ import { Route as AuthenticatedWhiteLabelRouteImport } from './routes/_authentic
 import { Route as AuthenticatedWhatsappRouteImport } from './routes/_authenticated/whatsapp'
 import { Route as AuthenticatedWebhooksRouteImport } from './routes/_authenticated/webhooks'
 import { Route as AuthenticatedUsersRouteImport } from './routes/_authenticated/users'
+import { Route as AuthenticatedTrainingRouteImport } from './routes/_authenticated/training'
 import { Route as AuthenticatedToolsRouteImport } from './routes/_authenticated/tools'
 import { Route as AuthenticatedSupportRouteImport } from './routes/_authenticated/support'
 import { Route as AuthenticatedSettingsRouteImport } from './routes/_authenticated/settings'
@@ -201,6 +202,11 @@ const AuthenticatedWebhooksRoute = AuthenticatedWebhooksRouteImport.update({
 const AuthenticatedUsersRoute = AuthenticatedUsersRouteImport.update({
   id: '/users',
   path: '/users',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
+const AuthenticatedTrainingRoute = AuthenticatedTrainingRouteImport.update({
+  id: '/training',
+  path: '/training',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
 const AuthenticatedToolsRoute = AuthenticatedToolsRouteImport.update({
@@ -470,6 +476,7 @@ export interface FileRoutesByFullPath {
   '/settings': typeof AuthenticatedSettingsRoute
   '/support': typeof AuthenticatedSupportRoute
   '/tools': typeof AuthenticatedToolsRoute
+  '/training': typeof AuthenticatedTrainingRoute
   '/users': typeof AuthenticatedUsersRoute
   '/webhooks': typeof AuthenticatedWebhooksRoute
   '/whatsapp': typeof AuthenticatedWhatsappRoute
@@ -539,6 +546,7 @@ export interface FileRoutesByTo {
   '/settings': typeof AuthenticatedSettingsRoute
   '/support': typeof AuthenticatedSupportRoute
   '/tools': typeof AuthenticatedToolsRoute
+  '/training': typeof AuthenticatedTrainingRoute
   '/users': typeof AuthenticatedUsersRoute
   '/webhooks': typeof AuthenticatedWebhooksRoute
   '/whatsapp': typeof AuthenticatedWhatsappRoute
@@ -611,6 +619,7 @@ export interface FileRoutesById {
   '/_authenticated/settings': typeof AuthenticatedSettingsRoute
   '/_authenticated/support': typeof AuthenticatedSupportRoute
   '/_authenticated/tools': typeof AuthenticatedToolsRoute
+  '/_authenticated/training': typeof AuthenticatedTrainingRoute
   '/_authenticated/users': typeof AuthenticatedUsersRoute
   '/_authenticated/webhooks': typeof AuthenticatedWebhooksRoute
   '/_authenticated/whatsapp': typeof AuthenticatedWhatsappRoute
@@ -683,6 +692,7 @@ export interface FileRouteTypes {
     | '/settings'
     | '/support'
     | '/tools'
+    | '/training'
     | '/users'
     | '/webhooks'
     | '/whatsapp'
@@ -752,6 +762,7 @@ export interface FileRouteTypes {
     | '/settings'
     | '/support'
     | '/tools'
+    | '/training'
     | '/users'
     | '/webhooks'
     | '/whatsapp'
@@ -823,6 +834,7 @@ export interface FileRouteTypes {
     | '/_authenticated/settings'
     | '/_authenticated/support'
     | '/_authenticated/tools'
+    | '/_authenticated/training'
     | '/_authenticated/users'
     | '/_authenticated/webhooks'
     | '/_authenticated/whatsapp'
@@ -1054,6 +1066,13 @@ declare module '@tanstack/react-router' {
       path: '/users'
       fullPath: '/users'
       preLoaderRoute: typeof AuthenticatedUsersRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/training': {
+      id: '/_authenticated/training'
+      path: '/training'
+      fullPath: '/training'
+      preLoaderRoute: typeof AuthenticatedTrainingRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
     '/_authenticated/tools': {
@@ -1399,6 +1418,7 @@ interface AuthenticatedRouteChildren {
   AuthenticatedSettingsRoute: typeof AuthenticatedSettingsRoute
   AuthenticatedSupportRoute: typeof AuthenticatedSupportRoute
   AuthenticatedToolsRoute: typeof AuthenticatedToolsRoute
+  AuthenticatedTrainingRoute: typeof AuthenticatedTrainingRoute
   AuthenticatedUsersRoute: typeof AuthenticatedUsersRoute
   AuthenticatedWebhooksRoute: typeof AuthenticatedWebhooksRoute
   AuthenticatedWhatsappRoute: typeof AuthenticatedWhatsappRoute
@@ -1437,6 +1457,7 @@ const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedSettingsRoute: AuthenticatedSettingsRoute,
   AuthenticatedSupportRoute: AuthenticatedSupportRoute,
   AuthenticatedToolsRoute: AuthenticatedToolsRoute,
+  AuthenticatedTrainingRoute: AuthenticatedTrainingRoute,
   AuthenticatedUsersRoute: AuthenticatedUsersRoute,
   AuthenticatedWebhooksRoute: AuthenticatedWebhooksRoute,
   AuthenticatedWhatsappRoute: AuthenticatedWhatsappRoute,
