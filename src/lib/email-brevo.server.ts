@@ -42,7 +42,7 @@ function renderTemplate(opts: {
     : "";
   const banner = bannerImg && ctaUrl ? `<a href="${ctaUrl}" target="_blank" style="display:block;text-decoration:none">${bannerImg}</a>` : bannerImg;
   const cta = ctaLabel && ctaUrl
-    ? `<a href="${ctaUrl}" style="display:inline-block;background:${brandColor};color:#111;font-weight:700;padding:14px 26px;border-radius:10px;text-decoration:none;font-family:Arial,sans-serif">${ctaLabel}</a>`
+    ? `<a href="${ctaUrl}" style="display:inline-block;background:linear-gradient(135deg,#3b82f6,#22d3ee);background-color:#3b82f6;color:#ffffff;font-weight:800;font-size:16px;letter-spacing:.3px;padding:16px 32px;border-radius:12px;text-decoration:none;font-family:Arial,sans-serif;box-shadow:0 8px 24px rgba(59,130,246,.45);border:1px solid rgba(255,255,255,.15)">${ctaLabel}</a>`
     : "";
   return `<!doctype html><html><body style="margin:0;padding:0;background:#0b0b12;font-family:Arial,sans-serif;color:#e8e8ee">
     <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#0b0b12;padding:24px 12px">
