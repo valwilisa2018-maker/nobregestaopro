@@ -36,7 +36,7 @@ function Page() {
 
   async function load() {
     setLoading(true);
-    const { data, error } = await supabase.rpc("master_list_users_with_roles", { _search: search || null });
+    const { data, error } = await supabase.rpc("master_list_users_with_roles", { _search: search || undefined });
     setLoading(false);
     if (error) return toast.error(error.message);
     setRows((data ?? []) as unknown as Row[]);
