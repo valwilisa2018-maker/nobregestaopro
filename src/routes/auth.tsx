@@ -35,6 +35,7 @@ function AuthPage() {
   const [resetLoading, setResetLoading] = useState(false);
   const [captcha, setCaptcha] = useState<{ a: number; b: number; token: string }>({ a: 0, b: 0, token: "" });
   const [captchaAnswer, setCaptchaAnswer] = useState("");
+  const [authError, setAuthError] = useState("");
 
   const regenCaptcha = useCallback(async () => {
     setCaptchaAnswer("");
@@ -61,27 +62,44 @@ function AuthPage() {
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    const res = await signInWithCaptcha({
-      data: { email, password, token: captcha.token, answer: Number(captchaAnswer.trim()) },
-    });
-    if (!res.ok) {
+    setAuthError("");
+    try {
+      const res = await signInWithCaptcha({
+        data: { email, password, token: captcha.token, answer: Number(captchaAnswer.trim()) },
+      });
+      if (!res.ok) {
+        const message = formatAuthError(res.error);
+        setAuthError(message);
+        toast.error(message);
+        regenCaptcha();
+        return;
+      }
+      const { error } = await supabase.auth.setSession(res.session);
+      if (error) {
+        const message = formatAuthError(error.message);
+        setAuthError(message);
+        toast.error(message);
+        return;
+      }
+      const { data: u } = await supabase.auth.getUser();
+      const { data: isMaster } = await supabase.rpc("has_role", {
+        _user_id: u.user!.id, _role: "master",
+      });
+      if (isMaster) {
+        await supabase.auth.signOut();
+        const message = "Conta Master. Use o login exclusivo em /master-auth.";
+        setAuthError(message);
+        toast.error(message);
+        return;
+      }
+      navigate({ to: "/dashboard" });
+    } catch {
+      const message = "Não foi possível entrar agora. Tente novamente.";
+      setAuthError(message);
+      toast.error(message);
+    } finally {
       setLoading(false);
-      toast.error(res.error);
-      regenCaptcha();
-      return;
     }
-    const { error } = await supabase.auth.setSession(res.session);
-    if (error) { setLoading(false); return toast.error(error.message); }
-    const { data: u } = await supabase.auth.getUser();
-    const { data: isMaster } = await supabase.rpc("has_role", {
-      _user_id: u.user!.id, _role: "master",
-    });
-    setLoading(false);
-    if (isMaster) {
-      await supabase.auth.signOut();
-      return toast.error("Conta Master. Use o login exclusivo em /master-auth.");
-    }
-    navigate({ to: "/dashboard" });
   };
 
   const handleSignUp = async (e: React.FormEvent) => {
@@ -127,14 +145,19 @@ function AuthPage() {
               <form onSubmit={handleSignIn} className="space-y-4 pt-4">
                 <div className="space-y-2">
                   <Label htmlFor="email">E-mail</Label>
-                  <Input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
+                  <Input id="email" type="email" value={email} onChange={(e) => { setEmail(e.target.value); setAuthError(""); }} required />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="password">Senha</Label>
-                  <Input id="password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required />
+                  <Input id="password" type="password" value={password} onChange={(e) => { setPassword(e.target.value); setAuthError(""); }} required />
                 </div>
                 <CaptchaField captcha={captcha} value={captchaAnswer} onChange={setCaptchaAnswer} onRefresh={regenCaptcha} />
-                <Button type="submit" className="w-full" disabled={loading}>Entrar</Button>
+                {authError && (
+                  <div role="alert" className="rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-center text-sm text-destructive">
+                    {authError}
+                  </div>
+                )}
+                <Button type="submit" className="w-full" disabled={loading}>{loading ? "Entrando..." : "Entrar"}</Button>
                 <button
                   type="button"
                   onClick={() => { setResetEmail(email); setResetOpen(true); }}
@@ -204,6 +227,14 @@ function AuthPage() {
       )}
     </div>
   );
+}
+
+function formatAuthError(error: string) {
+  const msg = error.toLowerCase();
+  if (msg.includes("invalid login credentials")) return "E-mail ou senha incorretos.";
+  if (msg.includes("email not confirmed")) return "Confirme seu e-mail antes de entrar.";
+  if (msg.includes("verificação") || msg.includes("captcha")) return "Verificação de segurança incorreta.";
+  return error || "Não foi possível entrar.";
 }
 
 function CaptchaField({
