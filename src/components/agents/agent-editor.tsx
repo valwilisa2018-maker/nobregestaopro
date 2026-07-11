@@ -103,6 +103,7 @@ export function AgentEditor({ agent, onSaved, onCancel }: Props) {
   const [validating, setValidating] = useState(false);
   const [validationOpen, setValidationOpen] = useState(false);
   const [validationResults, setValidationResults] = useState<Array<{ n: number; title: string; ok: boolean; msg: string }>>([]);
+  const [activatingLovable, setActivatingLovable] = useState(false);
 
   useEffect(() => { setForm(agent ?? emptyAgent(user?.id ?? "")); }, [agent, user?.id]);
 
@@ -352,6 +353,29 @@ export function AgentEditor({ agent, onSaved, onCancel }: Props) {
                 <div className="flex-1 min-w-0">
                   <div className="font-medium">{r.n}. {r.title}</div>
                   <div className="text-[11px] text-muted-foreground break-words">{r.msg}</div>
+                  {!r.ok && r.n === 1 && r.msg.toLowerCase().includes("provedor") && (
+                    <Button
+                      size="sm"
+                      className="mt-2 h-7 gap-1"
+                      disabled={activatingLovable}
+                      onClick={async () => {
+                        setActivatingLovable(true);
+                        try {
+                          const { activateLovableProvider } = await import("@/lib/ai-provider-check.functions");
+                          const res = await activateLovableProvider();
+                          toast.success(`Lovable AI ativada (${res.model}). Rodando validação novamente…`);
+                          await runValidation();
+                        } catch (e) {
+                          toast.error(e instanceof Error ? e.message : "Falha ao ativar Lovable AI");
+                        } finally {
+                          setActivatingLovable(false);
+                        }
+                      }}
+                    >
+                      {activatingLovable ? <Loader2 className="h-3 w-3 animate-spin" /> : <ShieldCheck className="h-3 w-3" />}
+                      Ativar Lovable AI (sem chave)
+                    </Button>
+                  )}
                 </div>
               </div>
             ))}
