@@ -56,6 +56,8 @@ function Page() {
   const [form, setForm] = useState<Omit<Plan, "id">>(empty);
   const [featuresText, setFeaturesText] = useState("");
   const [saving, setSaving] = useState(false);
+  const [pendingRequest, setPendingRequest] = useState<{ id: string; plan_id: string } | null>(null);
+  const [requesting, setRequesting] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -74,6 +76,44 @@ function Page() {
     if (!user) return;
     supabase.rpc("has_role", { _user_id: user.id, _role: "admin" }).then(({ data }) => setIsAdmin(!!data));
   }, [user]);
+
+  const loadPending = useCallback(async () => {
+    if (!user) return;
+    const { data } = await supabase
+      .from("plan_activation_requests")
+      .select("id,plan_id")
+      .eq("user_id", user.id)
+      .eq("status", "pending")
+      .maybeSingle();
+    setPendingRequest(data ? { id: data.id, plan_id: data.plan_id } : null);
+  }, [user]);
+  useEffect(() => { loadPending(); }, [loadPending]);
+
+  const requestActivation = async (p: Plan) => {
+    if (!user) return toast.error("Faça login para continuar");
+    setRequesting(p.id);
+    const { error } = await supabase
+      .from("plan_activation_requests")
+      .insert({ user_id: user.id, plan_id: p.id });
+    setRequesting(null);
+    if (error) {
+      if (error.code === "23505") return toast.info("Você já tem uma solicitação pendente. Aguarde a ativação.");
+      return toast.error(error.message);
+    }
+    toast.success("Solicitação enviada! Aguarde a liberação do administrador.");
+    loadPending();
+  };
+
+  const cancelRequest = async () => {
+    if (!pendingRequest) return;
+    const { error } = await supabase
+      .from("plan_activation_requests")
+      .update({ status: "cancelled" })
+      .eq("id", pendingRequest.id);
+    if (error) return toast.error(error.message);
+    toast.success("Solicitação cancelada");
+    loadPending();
+  };
 
   const openCreate = () => {
     setEditing(null);
@@ -156,7 +196,25 @@ function Page() {
                     <li key={i} className="flex gap-2"><Check className="h-4 w-4 text-primary shrink-0 mt-0.5" /><span>{f}</span></li>
                   ))}
                 </ul>
-                <Button className="w-full" variant={p.highlight ? "default" : "outline"}>Assinar</Button>
+                {pendingRequest?.plan_id === p.id ? (
+                  <div className="space-y-2">
+                    <div className="w-full rounded-md bg-amber-500/10 border border-amber-500/30 text-amber-600 dark:text-amber-400 text-xs font-medium px-3 py-2 text-center">
+                      ⏳ Aguardando ativação pelo administrador
+                    </div>
+                    <Button className="w-full" variant="ghost" size="sm" onClick={cancelRequest}>Cancelar solicitação</Button>
+                  </div>
+                ) : pendingRequest ? (
+                  <Button className="w-full" variant="outline" disabled>Você já tem uma solicitação pendente</Button>
+                ) : (
+                  <Button
+                    className="w-full"
+                    variant={p.highlight ? "default" : "outline"}
+                    disabled={requesting === p.id}
+                    onClick={() => requestActivation(p)}
+                  >
+                    {requesting === p.id ? <Loader2 className="h-4 w-4 animate-spin" /> : "Assinar"}
+                  </Button>
+                )}
                 {isAdmin && (
                   <div className="flex gap-1 pt-2 border-t">
                     {!p.is_active && <Badge variant="outline">Inativo</Badge>}

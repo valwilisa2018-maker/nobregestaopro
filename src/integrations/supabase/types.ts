@@ -1756,6 +1756,47 @@ export type Database = {
         }
         Relationships: []
       }
+      plan_activation_requests: {
+        Row: {
+          approved_at: string | null
+          approved_by: string | null
+          created_at: string
+          id: string
+          note: string | null
+          plan_id: string
+          status: string
+          user_id: string
+        }
+        Insert: {
+          approved_at?: string | null
+          approved_by?: string | null
+          created_at?: string
+          id?: string
+          note?: string | null
+          plan_id: string
+          status?: string
+          user_id: string
+        }
+        Update: {
+          approved_at?: string | null
+          approved_by?: string | null
+          created_at?: string
+          id?: string
+          note?: string | null
+          plan_id?: string
+          status?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "plan_activation_requests_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "plans"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       plans: {
         Row: {
           created_at: string
@@ -2478,6 +2519,10 @@ export type Database = {
         Args: { _expires_at: string; _plan_id: string; _user_id: string }
         Returns: undefined
       }
+      master_approve_plan_request: {
+        Args: { _days?: number; _request_id: string }
+        Returns: undefined
+      }
       master_grant_credits: {
         Args: { _reason: string; _tokens: number; _user_id: string }
         Returns: undefined
@@ -2502,6 +2547,10 @@ export type Database = {
           isOneToOne: true
           isSetofReturn: false
         }
+      }
+      master_reject_plan_request: {
+        Args: { _note?: string; _request_id: string }
+        Returns: undefined
       }
       master_suspend_account: {
         Args: { _reason: string; _user_id: string }
