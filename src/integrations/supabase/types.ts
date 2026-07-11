@@ -2427,6 +2427,66 @@ export type Database = {
         }
         Relationships: []
       }
+      training_comments: {
+        Row: {
+          body: string
+          created_at: string
+          id: string
+          module_key: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          body: string
+          created_at?: string
+          id?: string
+          module_key: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          body?: string
+          created_at?: string
+          id?: string
+          module_key?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      training_progress: {
+        Row: {
+          completed: boolean
+          created_at: string
+          id: string
+          module_key: string
+          progress_seconds: number
+          updated_at: string
+          user_id: string
+          watched_at: string
+        }
+        Insert: {
+          completed?: boolean
+          created_at?: string
+          id?: string
+          module_key: string
+          progress_seconds?: number
+          updated_at?: string
+          user_id: string
+          watched_at?: string
+        }
+        Update: {
+          completed?: boolean
+          created_at?: string
+          id?: string
+          module_key?: string
+          progress_seconds?: number
+          updated_at?: string
+          user_id?: string
+          watched_at?: string
+        }
+        Relationships: []
+      }
       usage_counters: {
         Row: {
           day: string

@@ -25,26 +25,34 @@ const MODULES: Array<{ key: string; label: string; hint: string }> = [
 
 function Page() {
   const [videos, setVideos] = useState<Tutorials>({});
+  const [covers, setCovers] = useState<Tutorials>({});
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    supabase.from("internal_config").select("value").eq("key", "tutorials").maybeSingle()
-      .then(({ data }) => {
-        if (data?.value) { try { setVideos(JSON.parse(data.value) as Tutorials); } catch { /* ignore */ } }
-        setLoading(false);
-      });
+    (async () => {
+      const { data: v } = await supabase.from("internal_config").select("value").eq("key", "tutorials").maybeSingle();
+      if (v?.value) { try { setVideos(JSON.parse(v.value) as Tutorials); } catch { /* ignore */ } }
+      const { data: c } = await supabase.from("internal_config").select("value").eq("key", "tutorial_covers").maybeSingle();
+      if (c?.value) { try { setCovers(JSON.parse(c.value) as Tutorials); } catch { /* ignore */ } }
+      setLoading(false);
+    })();
   }, []);
+
+  const saveKey = async (key: string, value: string) => {
+    const { data: existing } = await supabase.from("internal_config").select("key").eq("key", key).maybeSingle();
+    return existing
+      ? await supabase.from("internal_config").update({ value }).eq("key", key)
+      : await supabase.from("internal_config").insert({ key, value });
+  };
 
   const save = async () => {
     setSaving(true);
-    const value = JSON.stringify(videos);
-    const { data: existing } = await supabase.from("internal_config").select("key").eq("key", "tutorials").maybeSingle();
-    const { error } = existing
-      ? await supabase.from("internal_config").update({ value }).eq("key", "tutorials")
-      : await supabase.from("internal_config").insert({ key: "tutorials", value });
+    const r1 = await saveKey("tutorials", JSON.stringify(videos));
+    const r2 = await saveKey("tutorial_covers", JSON.stringify(covers));
     setSaving(false);
-    if (error) toast.error(error.message); else toast.success("Tutoriais salvos");
+    const err = r1.error || r2.error;
+    if (err) toast.error(err.message); else toast.success("Tutoriais salvos");
   };
 
   return (
@@ -60,7 +68,7 @@ function Page() {
         <Card className="border-primary/20 bg-gradient-to-br from-primary/5 to-transparent">
           <CardContent className="p-6 space-y-5">
             {MODULES.map((m) => (
-              <div key={m.key} className="space-y-2">
+              <div key={m.key} className="space-y-2 rounded-lg border border-border/60 p-3">
                 <Label className="flex items-center gap-2 text-sm">
                   <PlayCircle className="h-4 w-4 text-primary" /> {m.label}
                 </Label>
@@ -68,6 +76,11 @@ function Page() {
                   placeholder="https://www.youtube.com/watch?v=... ou https://player.vimeo.com/video/... ou .mp4"
                   value={videos[m.key] ?? ""}
                   onChange={(e) => setVideos((v) => ({ ...v, [m.key]: e.target.value }))}
+                />
+                <Input
+                  placeholder="URL da capa vertical 9:16 (jpg/png)"
+                  value={covers[m.key] ?? ""}
+                  onChange={(e) => setCovers((v) => ({ ...v, [m.key]: e.target.value }))}
                 />
                 <p className="text-xs text-muted-foreground">{m.hint}</p>
               </div>
