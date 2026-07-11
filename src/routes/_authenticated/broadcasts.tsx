@@ -226,7 +226,7 @@ function BroadcastsPage() {
           <p className="text-xs text-muted-foreground">Campanhas em massa com humanização, janela de horário e limites</p>
         </div>
       </div>
-      <TutorialVideo moduleKey="broadcasts" title="Como fazer Disparos em massa" />
+      <TutorialVideo moduleKey="modulo_03" title="Como fazer Disparos em massa" />
 
       {runningId && progress && (
         <Card className="border-primary/40">

@@ -149,7 +149,7 @@ function Page() {
           <TabsTrigger value="test">Teste de envio</TabsTrigger>
           <TabsTrigger value="guide">Como configurar</TabsTrigger>
         </TabsList>
-        <TutorialVideo moduleKey="meta_api" title="Tutorial — Meta API Oficial" />
+        <TutorialVideo moduleKey="modulo_02" title="Tutorial — Meta API Oficial" />
 
         {/* Credentials */}
         <TabsContent value="credentials">

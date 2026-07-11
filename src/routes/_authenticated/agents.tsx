@@ -10,7 +10,7 @@ export const Route = createFileRoute("/_authenticated/agents")({
 function AgentsWithTutorial() {
   return (
     <div className="space-y-4">
-      <div className="px-4 md:px-6 pt-4"><TutorialVideo moduleKey="agents" title="Como criar Agentes de IA" /></div>
+      <div className="px-4 md:px-6 pt-4"><TutorialVideo moduleKey="modulo_04" title="Como criar Agentes de IA" /></div>
       <AgentsPage />
     </div>
   );

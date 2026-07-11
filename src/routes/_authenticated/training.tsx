@@ -11,12 +11,10 @@ export const Route = createFileRoute("/_authenticated/training")({
 });
 
 const MODULES: Array<{ key: string; label: string }> = [
-  { key: "meta_api", label: "Meta API Oficial (WhatsApp Cloud)" },
-  { key: "whatsapp_evolution", label: "Conexão WhatsApp (Evolution)" },
-  { key: "agents", label: "Agentes de IA" },
-  { key: "flows", label: "Fluxos de Conversa" },
-  { key: "pipeline", label: "Pipeline CRM" },
-  { key: "broadcasts", label: "Disparos em massa" },
+  { key: "modulo_01", label: "Módulo 01 — Conhecendo a Plataforma" },
+  { key: "modulo_02", label: "Módulo 02 — Conectando seu WhatsApp" },
+  { key: "modulo_03", label: "Módulo 03 — Automações Inteligentes" },
+  { key: "modulo_04", label: "Módulo 04 — Configurando seu Agente IA" },
 ];
 
 function TrainingPage() {
