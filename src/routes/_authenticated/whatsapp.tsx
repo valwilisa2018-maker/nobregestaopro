@@ -72,9 +72,11 @@ function Page() {
   const deleteFn = useServerFn(deleteInstance);
 
   const load = async () => {
+    if (!user) return;
     setLoading(true);
     const { data } = await supabase
       .from("connections").select("id,name,instance_name,status,phone_number,profile_name,last_sync")
+      .eq("user_id", user.id)
       .order("created_at", { ascending: false });
     setItems((data ?? []) as Connection[]);
     setLoading(false);
