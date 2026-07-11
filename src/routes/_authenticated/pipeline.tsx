@@ -13,6 +13,7 @@ import { KanbanBoard } from "@/components/pipeline/kanban-board";
 import { DealDrawer } from "@/components/pipeline/deal-drawer";
 import { PipelineStats } from "@/components/pipeline/pipeline-stats";
 import { Deal, Stage, PRIORITY_LABEL, Priority } from "@/components/pipeline/types";
+import { TutorialVideo } from "@/components/tutorial-video";
 
 export const Route = createFileRoute("/_authenticated/pipeline")({
   head: () => ({ meta: [{ title: "Pipeline CRM — Plataforma IA WhatsApp" }] }),
@@ -192,6 +193,7 @@ function PipelinePage() {
         <div className="flex justify-center py-24"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>
       ) : (
         <div className="space-y-4">
+          <TutorialVideo moduleKey="pipeline" title="Como usar o Pipeline CRM" />
           <PipelineStats deals={deals} stages={stages} />
 
           <div className="flex flex-wrap gap-2 items-center">
