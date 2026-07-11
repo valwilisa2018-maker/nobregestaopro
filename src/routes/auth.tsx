@@ -9,6 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import logoAsset from "@/assets/agent-ia-logo.png.asset.json";
+import { issueCaptcha, signInWithCaptcha, signUpWithCaptcha } from "@/lib/captcha.functions";
 
 export const Route = createFileRoute("/auth")({
   head: () => ({
@@ -29,23 +30,19 @@ function AuthPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
-  const [captcha, setCaptcha] = useState({ a: 0, b: 0 });
+  const [captcha, setCaptcha] = useState<{ a: number; b: number; token: string }>({ a: 0, b: 0, token: "" });
   const [captchaAnswer, setCaptchaAnswer] = useState("");
 
-  const regenCaptcha = useCallback(() => {
-    setCaptcha({ a: Math.floor(Math.random() * 9) + 1, b: Math.floor(Math.random() * 9) + 1 });
+  const regenCaptcha = useCallback(async () => {
     setCaptchaAnswer("");
+    try {
+      const c = await issueCaptcha();
+      setCaptcha({ a: c.a, b: c.b, token: c.token });
+    } catch {
+      toast.error("Falha ao carregar verificação. Recarregue a página.");
+    }
   }, []);
   useEffect(() => { regenCaptcha(); }, [regenCaptcha]);
-
-  const checkCaptcha = () => {
-    if (Number(captchaAnswer.trim()) !== captcha.a + captcha.b) {
-      toast.error("Verificação incorreta. Resolva a soma para continuar.");
-      regenCaptcha();
-      return false;
-    }
-    return true;
-  };
 
   useEffect(() => {
     (async () => {
@@ -60,9 +57,17 @@ function AuthPage() {
 
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!checkCaptcha()) return;
     setLoading(true);
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    const res = await signInWithCaptcha({
+      data: { email, password, token: captcha.token, answer: Number(captchaAnswer.trim()) },
+    });
+    if (!res.ok) {
+      setLoading(false);
+      toast.error(res.error);
+      regenCaptcha();
+      return;
+    }
+    const { error } = await supabase.auth.setSession(res.session);
     if (error) { setLoading(false); return toast.error(error.message); }
     const { data: u } = await supabase.auth.getUser();
     const { data: isMaster } = await supabase.rpc("has_role", {
@@ -78,20 +83,25 @@ function AuthPage() {
 
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!checkCaptcha()) return;
     setLoading(true);
-    const { data, error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: { emailRedirectTo: `${window.location.origin}/dashboard` },
+    const res = await signUpWithCaptcha({
+      data: {
+        email,
+        password,
+        token: captcha.token,
+        answer: Number(captchaAnswer.trim()),
+        emailRedirectTo: `${window.location.origin}/dashboard`,
+      },
     });
     setLoading(false);
-    if (error) return toast.error(error.message);
-    if (data.session) {
+    if (!res.ok) { toast.error(res.error); regenCaptcha(); return; }
+    if (res.session) {
+      await supabase.auth.setSession(res.session);
       toast.success("Conta criada!");
       navigate({ to: "/dashboard" });
     } else {
       toast.success("Conta criada. Verifique seu e-mail para confirmar.");
+      regenCaptcha();
     }
   };
 
