@@ -15,16 +15,56 @@ export const Route = createFileRoute("/reset-password")({
 function ResetPasswordPage() {
   const navigate = useNavigate();
   const [ready, setReady] = useState(false);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
+    let cancelled = false;
     const { data: sub } = supabase.auth.onAuthStateChange((event) => {
       if (event === "PASSWORD_RECOVERY" || event === "SIGNED_IN") setReady(true);
     });
-    supabase.auth.getSession().then(({ data }) => { if (data.session) setReady(true); });
-    return () => { sub.subscription.unsubscribe(); };
+
+    (async () => {
+      try {
+        const url = new URL(window.location.href);
+        const hash = new URLSearchParams(window.location.hash.replace(/^#/, ""));
+        const code = url.searchParams.get("code");
+        const access_token = hash.get("access_token");
+        const refresh_token = hash.get("refresh_token");
+        const hashError = hash.get("error_description") || url.searchParams.get("error_description");
+
+        if (hashError) {
+          if (!cancelled) setErrorMsg(decodeURIComponent(hashError));
+          return;
+        }
+
+        if (access_token && refresh_token) {
+          const { error } = await supabase.auth.setSession({ access_token, refresh_token });
+          if (error) throw error;
+          window.history.replaceState({}, "", url.pathname);
+          if (!cancelled) setReady(true);
+          return;
+        }
+
+        if (code) {
+          const { error } = await supabase.auth.exchangeCodeForSession(code);
+          if (error) throw error;
+          window.history.replaceState({}, "", url.pathname);
+          if (!cancelled) setReady(true);
+          return;
+        }
+
+        const { data } = await supabase.auth.getSession();
+        if (data.session && !cancelled) setReady(true);
+        else if (!cancelled) setErrorMsg("Link inválido ou expirado. Solicite um novo e-mail de recuperação.");
+      } catch (err: any) {
+        if (!cancelled) setErrorMsg(err?.message ?? "Não foi possível validar o link.");
+      }
+    })();
+
+    return () => { cancelled = true; sub.subscription.unsubscribe(); };
   }, []);
 
   async function onSubmit(e: React.FormEvent) {
@@ -35,8 +75,8 @@ function ResetPasswordPage() {
     const { error } = await supabase.auth.updateUser({ password });
     setLoading(false);
     if (error) return toast.error(error.message);
-    toast.success("Senha redefinida com sucesso!");
-    navigate({ to: "/auth" });
+    toast.success("Senha redefinida! Entrando...");
+    navigate({ to: "/dashboard" });
   }
 
   return (
@@ -45,7 +85,7 @@ function ResetPasswordPage() {
         <CardHeader>
           <CardTitle>Redefinir senha</CardTitle>
           <CardDescription>
-            {ready ? "Defina sua nova senha." : "Validando link de recuperação..."}
+            {errorMsg ? errorMsg : ready ? "Defina sua nova senha." : "Validando link de recuperação..."}
           </CardDescription>
         </CardHeader>
         <CardContent>
