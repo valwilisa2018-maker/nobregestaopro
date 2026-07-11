@@ -2,7 +2,7 @@ import { Link, useRouterState } from "@tanstack/react-router";
 import {
   Crown, LayoutDashboard, Users, DollarSign, Package, CreditCard, Megaphone,
   LifeBuoy, Bell, Settings2, Brain, Plug, KeyRound, Webhook, Cpu, Palette,
-  ShieldCheck, LogOut, Sun, Moon, ArrowLeft,
+  ShieldCheck, LogOut, Sun, Moon, ArrowLeft, Zap,
 } from "lucide-react";
 import {
   Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent, SidebarGroupLabel,
@@ -33,6 +33,7 @@ const groups = [
     label: "Financeiro",
     items: [
       { title: "Visão Geral", url: "/master/financial", icon: DollarSign },
+      { title: "Ativações", url: "/master/activations", icon: Zap },
       { title: "Pedidos", url: "/master/orders", icon: CreditCard },
       { title: "Planos", url: "/plans", icon: Crown },
       { title: "Config. Pagamento", url: "/master/payment-config", icon: Settings2 },

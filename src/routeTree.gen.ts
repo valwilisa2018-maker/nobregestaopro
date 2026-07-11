@@ -26,6 +26,7 @@ import { Route as MasterFinancialRouteImport } from './routes/master/financial'
 import { Route as MasterClientsRouteImport } from './routes/master/clients'
 import { Route as MasterBrandingRouteImport } from './routes/master/branding'
 import { Route as MasterAnnouncementsRouteImport } from './routes/master/announcements'
+import { Route as MasterActivationsRouteImport } from './routes/master/activations'
 import { Route as AuthenticatedWhiteLabelRouteImport } from './routes/_authenticated/white-label'
 import { Route as AuthenticatedWhatsappRouteImport } from './routes/_authenticated/whatsapp'
 import { Route as AuthenticatedWebhooksRouteImport } from './routes/_authenticated/webhooks'
@@ -156,6 +157,11 @@ const MasterBrandingRoute = MasterBrandingRouteImport.update({
 const MasterAnnouncementsRoute = MasterAnnouncementsRouteImport.update({
   id: '/announcements',
   path: '/announcements',
+  getParentRoute: () => MasterRoute,
+} as any)
+const MasterActivationsRoute = MasterActivationsRouteImport.update({
+  id: '/activations',
+  path: '/activations',
   getParentRoute: () => MasterRoute,
 } as any)
 const AuthenticatedWhiteLabelRoute = AuthenticatedWhiteLabelRouteImport.update({
@@ -444,6 +450,7 @@ export interface FileRoutesByFullPath {
   '/webhooks': typeof AuthenticatedWebhooksRoute
   '/whatsapp': typeof AuthenticatedWhatsappRoute
   '/white-label': typeof AuthenticatedWhiteLabelRoute
+  '/master/activations': typeof MasterActivationsRoute
   '/master/announcements': typeof MasterAnnouncementsRoute
   '/master/branding': typeof MasterBrandingRoute
   '/master/clients': typeof MasterClientsRoute
@@ -508,6 +515,7 @@ export interface FileRoutesByTo {
   '/webhooks': typeof AuthenticatedWebhooksRoute
   '/whatsapp': typeof AuthenticatedWhatsappRoute
   '/white-label': typeof AuthenticatedWhiteLabelRoute
+  '/master/activations': typeof MasterActivationsRoute
   '/master/announcements': typeof MasterAnnouncementsRoute
   '/master/branding': typeof MasterBrandingRoute
   '/master/clients': typeof MasterClientsRoute
@@ -575,6 +583,7 @@ export interface FileRoutesById {
   '/_authenticated/webhooks': typeof AuthenticatedWebhooksRoute
   '/_authenticated/whatsapp': typeof AuthenticatedWhatsappRoute
   '/_authenticated/white-label': typeof AuthenticatedWhiteLabelRoute
+  '/master/activations': typeof MasterActivationsRoute
   '/master/announcements': typeof MasterAnnouncementsRoute
   '/master/branding': typeof MasterBrandingRoute
   '/master/clients': typeof MasterClientsRoute
@@ -642,6 +651,7 @@ export interface FileRouteTypes {
     | '/webhooks'
     | '/whatsapp'
     | '/white-label'
+    | '/master/activations'
     | '/master/announcements'
     | '/master/branding'
     | '/master/clients'
@@ -706,6 +716,7 @@ export interface FileRouteTypes {
     | '/webhooks'
     | '/whatsapp'
     | '/white-label'
+    | '/master/activations'
     | '/master/announcements'
     | '/master/branding'
     | '/master/clients'
@@ -772,6 +783,7 @@ export interface FileRouteTypes {
     | '/_authenticated/webhooks'
     | '/_authenticated/whatsapp'
     | '/_authenticated/white-label'
+    | '/master/activations'
     | '/master/announcements'
     | '/master/branding'
     | '/master/clients'
@@ -937,6 +949,13 @@ declare module '@tanstack/react-router' {
       path: '/announcements'
       fullPath: '/master/announcements'
       preLoaderRoute: typeof MasterAnnouncementsRouteImport
+      parentRoute: typeof MasterRoute
+    }
+    '/master/activations': {
+      id: '/master/activations'
+      path: '/activations'
+      fullPath: '/master/activations'
+      preLoaderRoute: typeof MasterActivationsRouteImport
       parentRoute: typeof MasterRoute
     }
     '/_authenticated/white-label': {
@@ -1352,6 +1371,7 @@ const AuthenticatedRouteWithChildren = AuthenticatedRoute._addFileChildren(
 )
 
 interface MasterRouteChildren {
+  MasterActivationsRoute: typeof MasterActivationsRoute
   MasterAnnouncementsRoute: typeof MasterAnnouncementsRoute
   MasterBrandingRoute: typeof MasterBrandingRoute
   MasterClientsRoute: typeof MasterClientsRoute
@@ -1365,6 +1385,7 @@ interface MasterRouteChildren {
 }
 
 const MasterRouteChildren: MasterRouteChildren = {
+  MasterActivationsRoute: MasterActivationsRoute,
   MasterAnnouncementsRoute: MasterAnnouncementsRoute,
   MasterBrandingRoute: MasterBrandingRoute,
   MasterClientsRoute: MasterClientsRoute,
