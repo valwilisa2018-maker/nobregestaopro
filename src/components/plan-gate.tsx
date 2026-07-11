@@ -168,7 +168,7 @@ function PlanModal({ variant, dismissible, onClose, daysLeft, planName, expiresA
           <div className="relative mt-6 mx-auto grid h-40 w-40 place-items-center">
             <div className={`absolute inset-0 rounded-full blur-3xl ${orange ? "bg-orange-500/40" : "bg-sky-500/40"}`} />
             <img
-              src={robotImg}
+              src={variant === "welcome" ? robotWelcome : variant === "expired" ? robotExpired : robotExpiring}
               alt="Mascote AGENTIA"
               className="relative h-40 w-40 object-contain drop-shadow-[0_10px_30px_rgba(0,0,0,0.5)]"
             />
