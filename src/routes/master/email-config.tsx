@@ -31,6 +31,7 @@ const DEFAULT: EmailSettingsInput = {
 function EmailConfigPage() {
   const [form, setForm] = useState<EmailSettingsInput>(DEFAULT);
   const [hasKey, setHasKey] = useState(false);
+  const [keyStatus, setKeyStatus] = useState<"missing" | "smtp" | "valid" | "invalid">("missing");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [testTo, setTestTo] = useState("");
@@ -40,6 +41,7 @@ function EmailConfigPage() {
     getEmailSettings().then((res) => {
       if (res.settings) setForm({ ...DEFAULT, ...res.settings });
       setHasKey(res.hasBrevoKey);
+      setKeyStatus(res.brevoKeyStatus ?? (res.hasBrevoKey ? "valid" : "missing"));
     }).catch((e) => toast.error(e.message)).finally(() => setLoading(false));
   }, []);
 
@@ -97,7 +99,13 @@ function EmailConfigPage() {
           ) : (
             <>
               <AlertTriangle className="h-5 w-5 text-amber-500" />
-              <div className="text-sm">Falta a chave da API Brevo (deve começar com <code>xkeysib-</code>). Configure em Secrets.</div>
+              <div className="text-sm">
+                {keyStatus === "smtp"
+                  ? "A chave salva é SMTP da Brevo (xsmtpsib-) e não serve para envio via API. Troque por uma API Key v3 que começa com xkeysib-."
+                  : keyStatus === "invalid"
+                    ? "A chave Brevo salva é inválida. Use uma API Key v3 que começa com xkeysib-."
+                    : "Falta a chave da API Brevo (deve começar com xkeysib-). Configure em Secrets."}
+              </div>
             </>
           )}
         </CardContent>
