@@ -1519,6 +1519,122 @@ export type Database = {
           },
         ]
       }
+      meta_wa_configs: {
+        Row: {
+          access_token: string | null
+          app_id: string | null
+          app_secret: string | null
+          business_account_id: string | null
+          created_at: string
+          display_phone: string | null
+          graph_version: string
+          id: string
+          is_active: boolean
+          is_default: boolean
+          last_status: string | null
+          last_verified_at: string | null
+          name: string
+          phone_number_id: string | null
+          updated_at: string
+          user_id: string
+          webhook_verify_token: string | null
+        }
+        Insert: {
+          access_token?: string | null
+          app_id?: string | null
+          app_secret?: string | null
+          business_account_id?: string | null
+          created_at?: string
+          display_phone?: string | null
+          graph_version?: string
+          id?: string
+          is_active?: boolean
+          is_default?: boolean
+          last_status?: string | null
+          last_verified_at?: string | null
+          name?: string
+          phone_number_id?: string | null
+          updated_at?: string
+          user_id: string
+          webhook_verify_token?: string | null
+        }
+        Update: {
+          access_token?: string | null
+          app_id?: string | null
+          app_secret?: string | null
+          business_account_id?: string | null
+          created_at?: string
+          display_phone?: string | null
+          graph_version?: string
+          id?: string
+          is_active?: boolean
+          is_default?: boolean
+          last_status?: string | null
+          last_verified_at?: string | null
+          name?: string
+          phone_number_id?: string | null
+          updated_at?: string
+          user_id?: string
+          webhook_verify_token?: string | null
+        }
+        Relationships: []
+      }
+      meta_wa_templates: {
+        Row: {
+          category: string
+          components: Json
+          config_id: string | null
+          created_at: string
+          id: string
+          language: string
+          last_synced_at: string | null
+          meta_template_id: string | null
+          name: string
+          rejection_reason: string | null
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          category?: string
+          components?: Json
+          config_id?: string | null
+          created_at?: string
+          id?: string
+          language?: string
+          last_synced_at?: string | null
+          meta_template_id?: string | null
+          name: string
+          rejection_reason?: string | null
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          category?: string
+          components?: Json
+          config_id?: string | null
+          created_at?: string
+          id?: string
+          language?: string
+          last_synced_at?: string | null
+          meta_template_id?: string | null
+          name?: string
+          rejection_reason?: string | null
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "meta_wa_templates_config_id_fkey"
+            columns: ["config_id"]
+            isOneToOne: false
+            referencedRelation: "meta_wa_configs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       notifications: {
         Row: {
           body: string | null
