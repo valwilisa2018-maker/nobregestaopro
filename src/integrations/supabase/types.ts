@@ -2537,6 +2537,23 @@ export type Database = {
         Args: { _reason: string; _tokens: number; _user_id: string }
         Returns: undefined
       }
+      master_grant_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: undefined
+      }
+      master_list_users_with_roles: {
+        Args: { _search?: string }
+        Returns: {
+          email: string
+          full_name: string
+          roles: Database["public"]["Enums"]["app_role"][]
+          status: string
+          user_id: string
+        }[]
+      }
       master_mark_order_paid: {
         Args: { _order_id: string }
         Returns: {
@@ -2564,6 +2581,13 @@ export type Database = {
       }
       master_reject_plan_request: {
         Args: { _note?: string; _request_id: string }
+        Returns: undefined
+      }
+      master_revoke_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
         Returns: undefined
       }
       master_suspend_account: {
