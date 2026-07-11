@@ -40,6 +40,7 @@ import { Route as AuthenticatedPromptRouteImport } from './routes/_authenticated
 import { Route as AuthenticatedPlansRouteImport } from './routes/_authenticated/plans'
 import { Route as AuthenticatedPipelineStatusRouteImport } from './routes/_authenticated/pipeline-status'
 import { Route as AuthenticatedPipelineRouteImport } from './routes/_authenticated/pipeline'
+import { Route as AuthenticatedMetaApiRouteImport } from './routes/_authenticated/meta-api'
 import { Route as AuthenticatedMessagesRouteImport } from './routes/_authenticated/messages'
 import { Route as AuthenticatedLogsRouteImport } from './routes/_authenticated/logs'
 import { Route as AuthenticatedKnowledgeRouteImport } from './routes/_authenticated/knowledge'
@@ -230,6 +231,11 @@ const AuthenticatedPipelineStatusRoute =
 const AuthenticatedPipelineRoute = AuthenticatedPipelineRouteImport.update({
   id: '/pipeline',
   path: '/pipeline',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
+const AuthenticatedMetaApiRoute = AuthenticatedMetaApiRouteImport.update({
+  id: '/meta-api',
+  path: '/meta-api',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
 const AuthenticatedMessagesRoute = AuthenticatedMessagesRouteImport.update({
@@ -450,6 +456,7 @@ export interface FileRoutesByFullPath {
   '/knowledge': typeof AuthenticatedKnowledgeRoute
   '/logs': typeof AuthenticatedLogsRoute
   '/messages': typeof AuthenticatedMessagesRoute
+  '/meta-api': typeof AuthenticatedMetaApiRoute
   '/pipeline': typeof AuthenticatedPipelineRoute
   '/pipeline-status': typeof AuthenticatedPipelineStatusRoute
   '/plans': typeof AuthenticatedPlansRoute
@@ -517,6 +524,7 @@ export interface FileRoutesByTo {
   '/knowledge': typeof AuthenticatedKnowledgeRoute
   '/logs': typeof AuthenticatedLogsRoute
   '/messages': typeof AuthenticatedMessagesRoute
+  '/meta-api': typeof AuthenticatedMetaApiRoute
   '/pipeline': typeof AuthenticatedPipelineRoute
   '/pipeline-status': typeof AuthenticatedPipelineStatusRoute
   '/plans': typeof AuthenticatedPlansRoute
@@ -587,6 +595,7 @@ export interface FileRoutesById {
   '/_authenticated/knowledge': typeof AuthenticatedKnowledgeRoute
   '/_authenticated/logs': typeof AuthenticatedLogsRoute
   '/_authenticated/messages': typeof AuthenticatedMessagesRoute
+  '/_authenticated/meta-api': typeof AuthenticatedMetaApiRoute
   '/_authenticated/pipeline': typeof AuthenticatedPipelineRoute
   '/_authenticated/pipeline-status': typeof AuthenticatedPipelineStatusRoute
   '/_authenticated/plans': typeof AuthenticatedPlansRoute
@@ -657,6 +666,7 @@ export interface FileRouteTypes {
     | '/knowledge'
     | '/logs'
     | '/messages'
+    | '/meta-api'
     | '/pipeline'
     | '/pipeline-status'
     | '/plans'
@@ -724,6 +734,7 @@ export interface FileRouteTypes {
     | '/knowledge'
     | '/logs'
     | '/messages'
+    | '/meta-api'
     | '/pipeline'
     | '/pipeline-status'
     | '/plans'
@@ -793,6 +804,7 @@ export interface FileRouteTypes {
     | '/_authenticated/knowledge'
     | '/_authenticated/logs'
     | '/_authenticated/messages'
+    | '/_authenticated/meta-api'
     | '/_authenticated/pipeline'
     | '/_authenticated/pipeline-status'
     | '/_authenticated/plans'
@@ -1074,6 +1086,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedPipelineRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
+    '/_authenticated/meta-api': {
+      id: '/_authenticated/meta-api'
+      path: '/meta-api'
+      fullPath: '/meta-api'
+      preLoaderRoute: typeof AuthenticatedMetaApiRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
     '/_authenticated/messages': {
       id: '/_authenticated/messages'
       path: '/messages'
@@ -1353,6 +1372,7 @@ interface AuthenticatedRouteChildren {
   AuthenticatedKnowledgeRoute: typeof AuthenticatedKnowledgeRoute
   AuthenticatedLogsRoute: typeof AuthenticatedLogsRoute
   AuthenticatedMessagesRoute: typeof AuthenticatedMessagesRoute
+  AuthenticatedMetaApiRoute: typeof AuthenticatedMetaApiRoute
   AuthenticatedPipelineRoute: typeof AuthenticatedPipelineRoute
   AuthenticatedPipelineStatusRoute: typeof AuthenticatedPipelineStatusRoute
   AuthenticatedPlansRoute: typeof AuthenticatedPlansRoute
@@ -1390,6 +1410,7 @@ const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedKnowledgeRoute: AuthenticatedKnowledgeRoute,
   AuthenticatedLogsRoute: AuthenticatedLogsRoute,
   AuthenticatedMessagesRoute: AuthenticatedMessagesRoute,
+  AuthenticatedMetaApiRoute: AuthenticatedMetaApiRoute,
   AuthenticatedPipelineRoute: AuthenticatedPipelineRoute,
   AuthenticatedPipelineStatusRoute: AuthenticatedPipelineStatusRoute,
   AuthenticatedPlansRoute: AuthenticatedPlansRoute,
