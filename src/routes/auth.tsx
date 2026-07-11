@@ -233,7 +233,15 @@ function formatAuthError(error: string) {
   const msg = error.toLowerCase();
   if (msg.includes("invalid login credentials")) return "E-mail ou senha incorretos.";
   if (msg.includes("email not confirmed")) return "Confirme seu e-mail antes de entrar.";
-  if (msg.includes("verificação") || msg.includes("captcha")) return "Verificação de segurança incorreta.";
+  if (msg.includes("captcha_expired") || msg.includes("expirad")) return "Verificação de segurança expirou. Gere outra soma.";
+  if (msg.includes("captcha_invalid") || msg.includes("verificação") || msg.includes("captcha") || msg.includes("resultado")) return "Resultado da verificação incorreto. Tente novamente.";
+  if (msg.includes("captcha_missing")) return "Preencha a verificação de segurança.";
+  if (msg.includes("too many") || msg.includes("rate limit")) return "Muitas tentativas. Aguarde alguns minutos e tente novamente.";
+  if (msg.includes("user not found")) return "Usuário não encontrado.";
+  if (msg.includes("user banned") || msg.includes("banned")) return "Conta bloqueada. Entre em contato com o suporte.";
+  if (msg.includes("session") && (msg.includes("expired") || msg.includes("invalid") || msg.includes("missing"))) return "Sessão inválida ou expirada. Faça login novamente.";
+  if (msg.includes("refresh_token") || msg.includes("refresh token")) return "Não foi possível renovar sua sessão. Faça login novamente.";
+  if (msg.includes("network") || msg.includes("failed to fetch")) return "Falha de conexão. Verifique sua internet e tente novamente.";
   return error || "Não foi possível entrar.";
 }
 
