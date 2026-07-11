@@ -61,27 +61,36 @@ function usePlanInfo(): PlanInfo | null {
   return info;
 }
 
-const ALLOWED_WHEN_BLOCKED = ["/billing", "/plans", "/settings", "/support"];
+const isPlansRoute = (path: string) => path === "/plans" || path.startsWith("/plans/");
 
 export function PlanGate({ children }: { children: React.ReactNode }) {
   const info = usePlanInfo();
   const path = useRouterState({ select: (s) => s.location.pathname });
   const [dismissedExpiring, setDismissedExpiring] = useState(false);
+  const [openingPlans, setOpeningPlans] = useState(false);
 
   // Reset dismiss on each fresh mount (i.e., new entry into platform)
   useEffect(() => { setDismissedExpiring(false); }, []);
+  useEffect(() => {
+    if (isPlansRoute(path)) setOpeningPlans(false);
+  }, [path]);
 
   if (!info) return <>{children}</>;
 
-  const onSafePath = ALLOWED_WHEN_BLOCKED.some((p) => path.startsWith(p));
-  const showWelcome = !info.hasActivePlan && !info.expired && !onSafePath;
-  const showExpired = info.expired && !onSafePath;
-  const showExpiring = info.expiring && !dismissedExpiring && !onSafePath;
-  const blocking = (showWelcome || showExpired) && !onSafePath;
+  const onPlansPath = isPlansRoute(path);
+  const transitioningToPlans = openingPlans && !onPlansPath;
+  const showWelcome = !info.hasActivePlan && !info.expired && !onPlansPath && !transitioningToPlans;
+  const showExpired = info.expired && !onPlansPath && !transitioningToPlans;
+  const showExpiring = info.expiring && !dismissedExpiring && !onPlansPath && !transitioningToPlans;
+  const blocking = (showWelcome || showExpired) && !onPlansPath;
 
   return (
     <>
-      {blocking ? (
+      {transitioningToPlans ? (
+        <div className="min-h-[70vh] grid place-items-center p-6 text-sm text-muted-foreground">
+          Abrindo planos…
+        </div>
+      ) : blocking ? (
         <div className="min-h-[70vh] grid place-items-center p-6 opacity-40 pointer-events-none select-none">
           {children}
         </div>
@@ -89,13 +98,13 @@ export function PlanGate({ children }: { children: React.ReactNode }) {
 
       <AnimatePresence>
         {showWelcome && (
-          <PlanModal key="welcome" variant="welcome" dismissible={false} />
+          <PlanModal key="welcome" variant="welcome" dismissible={false} onNavigateToPlans={() => setOpeningPlans(true)} />
         )}
         {showExpired && (
-          <PlanModal key="expired" variant="expired" dismissible={false} daysLeft={info.daysLeft} planName={info.planName} expiresAt={info.expiresAt} />
+          <PlanModal key="expired" variant="expired" dismissible={false} onNavigateToPlans={() => setOpeningPlans(true)} daysLeft={info.daysLeft} planName={info.planName} expiresAt={info.expiresAt} />
         )}
         {!showWelcome && !showExpired && showExpiring && (
-          <PlanModal key="expiring" variant="expiring" dismissible onClose={() => setDismissedExpiring(true)} daysLeft={info.daysLeft} planName={info.planName} expiresAt={info.expiresAt} />
+          <PlanModal key="expiring" variant="expiring" dismissible onClose={() => setDismissedExpiring(true)} onNavigateToPlans={() => setOpeningPlans(true)} daysLeft={info.daysLeft} planName={info.planName} expiresAt={info.expiresAt} />
         )}
       </AnimatePresence>
     </>
@@ -106,12 +115,13 @@ type ModalProps = {
   variant: "welcome" | "expiring" | "expired";
   dismissible: boolean;
   onClose?: () => void;
+  onNavigateToPlans?: () => void;
   daysLeft?: number | null;
   planName?: string | null;
   expiresAt?: Date | null;
 };
 
-function PlanModal({ variant, dismissible, onClose, daysLeft, planName, expiresAt }: ModalProps) {
+function PlanModal({ variant, dismissible, onClose, onNavigateToPlans, daysLeft, planName, expiresAt }: ModalProps) {
   const navigate = useNavigate();
   const orange = variant !== "welcome";
 
@@ -136,13 +146,12 @@ function PlanModal({ variant, dismissible, onClose, daysLeft, planName, expiresA
   const goPlan = async () => {
     if (navigating) return;
     setNavigating(true);
+    onNavigateToPlans?.();
     try {
       onClose?.();
-      await navigate({ to: "/plans" });
+      await navigate({ to: "/plans", replace: true });
     } catch {
       if (typeof window !== "undefined") window.location.assign("/plans");
-    } finally {
-      setNavigating(false);
     }
   };
 
