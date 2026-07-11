@@ -498,11 +498,24 @@ export const Route = createFileRoute("/api/public/evolution/$instance")({
               if (isValidPhone) {
                 const variants = phoneVariants(phone);
                 const { data: existingContact } = await supabaseAdmin.from("contacts")
-                  .select("id,name")
+                  .select("id,name,metadata")
                   .eq("user_id", conn.user_id)
                   .in("phone", variants)
                   .limit(1)
                   .maybeSingle();
+                // Collect any @lid identifiers seen for this message so that
+                // WhatsApp PRESENCE_UPDATE events (which arrive as "<lid>@lid",
+                // never as the phone JID) can be correlated back to this contact.
+                const lidCandidates = new Set<string>();
+                const pushLid = (v: unknown) => {
+                  if (typeof v === "string" && v.includes("@lid")) lidCandidates.add(v);
+                };
+                pushLid(msg?.key?.senderLid);
+                pushLid(msg?.key?.participantLid);
+                pushLid(msg?.key?.participant);
+                pushLid(msg?.participant);
+                pushLid(msg?.senderLid);
+                if (remoteJid.includes("@lid")) pushLid(remoteJid);
                 if (existingContact?.id) {
                   // Never overwrite an existing name here — pushName can be the
                   // operator's own profile name when fromMe is misreported.
@@ -513,6 +526,18 @@ export const Route = createFileRoute("/api/public/evolution/$instance")({
                   if (!existingContact.name && pushName && !fromMe) {
                     patch.name = pushName;
                   }
+                  if (lidCandidates.size > 0) {
+                    const prevMeta = (existingContact.metadata && typeof existingContact.metadata === "object")
+                      ? existingContact.metadata as Record<string, unknown>
+                      : {};
+                    const prevLids = Array.isArray((prevMeta as { lidJids?: unknown }).lidJids)
+                      ? ((prevMeta as { lidJids: unknown[] }).lidJids.filter((v) => typeof v === "string") as string[])
+                      : [];
+                    const merged = Array.from(new Set([...prevLids, ...lidCandidates]));
+                    if (merged.length !== prevLids.length) {
+                      patch.metadata = { ...prevMeta, lidJids: merged };
+                    }
+                  }
                   await supabaseAdmin.from("contacts").update(patch as never).eq("id", existingContact.id);
                 } else {
                   await supabaseAdmin.from("contacts").insert({
@@ -521,6 +546,7 @@ export const Route = createFileRoute("/api/public/evolution/$instance")({
                     name: fromMe ? null : (pushName ?? null),
                     source: "whatsapp",
                     status: "active",
+                    metadata: lidCandidates.size > 0 ? { lidJids: Array.from(lidCandidates) } : null,
                   } as never);
                 }
               }
