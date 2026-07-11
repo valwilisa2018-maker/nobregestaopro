@@ -24,6 +24,7 @@ import { Route as MasterPaymentConfigRouteImport } from './routes/master/payment
 import { Route as MasterOrdersRouteImport } from './routes/master/orders'
 import { Route as MasterNotificationsRouteImport } from './routes/master/notifications'
 import { Route as MasterFinancialRouteImport } from './routes/master/financial'
+import { Route as MasterEmailConfigRouteImport } from './routes/master/email-config'
 import { Route as MasterClientsRouteImport } from './routes/master/clients'
 import { Route as MasterBrandingRouteImport } from './routes/master/branding'
 import { Route as MasterAnnouncementsRouteImport } from './routes/master/announcements'
@@ -147,6 +148,11 @@ const MasterNotificationsRoute = MasterNotificationsRouteImport.update({
 const MasterFinancialRoute = MasterFinancialRouteImport.update({
   id: '/financial',
   path: '/financial',
+  getParentRoute: () => MasterRoute,
+} as any)
+const MasterEmailConfigRoute = MasterEmailConfigRouteImport.update({
+  id: '/email-config',
+  path: '/email-config',
   getParentRoute: () => MasterRoute,
 } as any)
 const MasterClientsRoute = MasterClientsRouteImport.update({
@@ -452,6 +458,7 @@ export interface FileRoutesByFullPath {
   '/master/announcements': typeof MasterAnnouncementsRoute
   '/master/branding': typeof MasterBrandingRoute
   '/master/clients': typeof MasterClientsRoute
+  '/master/email-config': typeof MasterEmailConfigRoute
   '/master/financial': typeof MasterFinancialRoute
   '/master/notifications': typeof MasterNotificationsRoute
   '/master/orders': typeof MasterOrdersRoute
@@ -517,6 +524,7 @@ export interface FileRoutesByTo {
   '/master/announcements': typeof MasterAnnouncementsRoute
   '/master/branding': typeof MasterBrandingRoute
   '/master/clients': typeof MasterClientsRoute
+  '/master/email-config': typeof MasterEmailConfigRoute
   '/master/financial': typeof MasterFinancialRoute
   '/master/notifications': typeof MasterNotificationsRoute
   '/master/orders': typeof MasterOrdersRoute
@@ -585,6 +593,7 @@ export interface FileRoutesById {
   '/master/announcements': typeof MasterAnnouncementsRoute
   '/master/branding': typeof MasterBrandingRoute
   '/master/clients': typeof MasterClientsRoute
+  '/master/email-config': typeof MasterEmailConfigRoute
   '/master/financial': typeof MasterFinancialRoute
   '/master/notifications': typeof MasterNotificationsRoute
   '/master/orders': typeof MasterOrdersRoute
@@ -653,6 +662,7 @@ export interface FileRouteTypes {
     | '/master/announcements'
     | '/master/branding'
     | '/master/clients'
+    | '/master/email-config'
     | '/master/financial'
     | '/master/notifications'
     | '/master/orders'
@@ -718,6 +728,7 @@ export interface FileRouteTypes {
     | '/master/announcements'
     | '/master/branding'
     | '/master/clients'
+    | '/master/email-config'
     | '/master/financial'
     | '/master/notifications'
     | '/master/orders'
@@ -785,6 +796,7 @@ export interface FileRouteTypes {
     | '/master/announcements'
     | '/master/branding'
     | '/master/clients'
+    | '/master/email-config'
     | '/master/financial'
     | '/master/notifications'
     | '/master/orders'
@@ -934,6 +946,13 @@ declare module '@tanstack/react-router' {
       path: '/financial'
       fullPath: '/master/financial'
       preLoaderRoute: typeof MasterFinancialRouteImport
+      parentRoute: typeof MasterRoute
+    }
+    '/master/email-config': {
+      id: '/master/email-config'
+      path: '/email-config'
+      fullPath: '/master/email-config'
+      preLoaderRoute: typeof MasterEmailConfigRouteImport
       parentRoute: typeof MasterRoute
     }
     '/master/clients': {
@@ -1372,6 +1391,7 @@ interface MasterRouteChildren {
   MasterAnnouncementsRoute: typeof MasterAnnouncementsRoute
   MasterBrandingRoute: typeof MasterBrandingRoute
   MasterClientsRoute: typeof MasterClientsRoute
+  MasterEmailConfigRoute: typeof MasterEmailConfigRoute
   MasterFinancialRoute: typeof MasterFinancialRoute
   MasterNotificationsRoute: typeof MasterNotificationsRoute
   MasterOrdersRoute: typeof MasterOrdersRoute
@@ -1387,6 +1407,7 @@ const MasterRouteChildren: MasterRouteChildren = {
   MasterAnnouncementsRoute: MasterAnnouncementsRoute,
   MasterBrandingRoute: MasterBrandingRoute,
   MasterClientsRoute: MasterClientsRoute,
+  MasterEmailConfigRoute: MasterEmailConfigRoute,
   MasterFinancialRoute: MasterFinancialRoute,
   MasterNotificationsRoute: MasterNotificationsRoute,
   MasterOrdersRoute: MasterOrdersRoute,
@@ -1424,13 +1445,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}
