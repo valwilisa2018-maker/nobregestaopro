@@ -17,12 +17,10 @@ export const Route = createFileRoute("/master/tutorials")({
 type Tutorials = Record<string, string>;
 
 const MODULES: Array<{ key: string; label: string; hint: string }> = [
-  { key: "meta_api", label: "Meta API Oficial (WhatsApp Cloud)", hint: "Explique como obter Phone ID, WABA ID, Access Token e configurar webhook." },
-  { key: "whatsapp_evolution", label: "WhatsApp (Evolution)", hint: "Conexão via QR code e uso da instância." },
-  { key: "agents", label: "Agentes de IA", hint: "Criar e configurar agentes." },
-  { key: "flows", label: "Fluxos", hint: "Montar automações e gatilhos." },
-  { key: "pipeline", label: "Pipeline CRM", hint: "Kanban, estágios e automações." },
-  { key: "broadcasts", label: "Disparos em massa", hint: "Preparar e enviar campanhas." },
+  { key: "modulo_01", label: "Módulo 01 — Conhecendo a Plataforma", hint: "Dashboard moderno, IA, gráficos e interface da plataforma." },
+  { key: "modulo_02", label: "Módulo 02 — Conectando seu WhatsApp", hint: "Smartphone, WhatsApp, QR Code, conexões e integração." },
+  { key: "modulo_03", label: "Módulo 03 — Automações Inteligentes", hint: "Fluxos, robô de IA, automações, gatilhos e conexões entre blocos." },
+  { key: "modulo_04", label: "Módulo 04 — Configurando seu Agente IA", hint: "Cérebro de IA, chatbot, configurações, prompt e inteligência artificial." },
 ];
 
 function Page() {
