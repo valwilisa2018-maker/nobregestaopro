@@ -40,6 +40,7 @@ import { Route as AuthenticatedPromptRouteImport } from './routes/_authenticated
 import { Route as AuthenticatedPlansRouteImport } from './routes/_authenticated/plans'
 import { Route as AuthenticatedPipelineStatusRouteImport } from './routes/_authenticated/pipeline-status'
 import { Route as AuthenticatedPipelineRouteImport } from './routes/_authenticated/pipeline'
+import { Route as AuthenticatedMetaApiRouteImport } from './routes/_authenticated/meta-api'
 import { Route as AuthenticatedMessagesRouteImport } from './routes/_authenticated/messages'
 import { Route as AuthenticatedLogsRouteImport } from './routes/_authenticated/logs'
 import { Route as AuthenticatedKnowledgeRouteImport } from './routes/_authenticated/knowledge'
@@ -71,6 +72,7 @@ import { Route as ApiV1HistoryRouteImport } from './routes/api/v1/history'
 import { Route as ApiV1CreditsRouteImport } from './routes/api/v1/credits'
 import { Route as ApiV1ConsumeRouteImport } from './routes/api/v1/consume'
 import { Route as ApiV1BuyRouteImport } from './routes/api/v1/buy'
+import { Route as ApiPublicMetaWebhookConfigIdRouteImport } from './routes/api/public/meta-webhook.$configId'
 import { Route as ApiPublicHooksProcessVideoJobsRouteImport } from './routes/api/public/hooks/process-video-jobs'
 import { Route as ApiPublicHooksFollowUpsRouteImport } from './routes/api/public/hooks/follow-ups'
 import { Route as ApiPublicHooksBroadcastsRouteImport } from './routes/api/public/hooks/broadcasts'
@@ -231,6 +233,11 @@ const AuthenticatedPipelineRoute = AuthenticatedPipelineRouteImport.update({
   path: '/pipeline',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
+const AuthenticatedMetaApiRoute = AuthenticatedMetaApiRouteImport.update({
+  id: '/meta-api',
+  path: '/meta-api',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
 const AuthenticatedMessagesRoute = AuthenticatedMessagesRouteImport.update({
   id: '/messages',
   path: '/messages',
@@ -389,6 +396,12 @@ const ApiV1BuyRoute = ApiV1BuyRouteImport.update({
   path: '/api/v1/buy',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicMetaWebhookConfigIdRoute =
+  ApiPublicMetaWebhookConfigIdRouteImport.update({
+    id: '/api/public/meta-webhook/$configId',
+    path: '/api/public/meta-webhook/$configId',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicHooksProcessVideoJobsRoute =
   ApiPublicHooksProcessVideoJobsRouteImport.update({
     id: '/api/public/hooks/process-video-jobs',
@@ -443,6 +456,7 @@ export interface FileRoutesByFullPath {
   '/knowledge': typeof AuthenticatedKnowledgeRoute
   '/logs': typeof AuthenticatedLogsRoute
   '/messages': typeof AuthenticatedMessagesRoute
+  '/meta-api': typeof AuthenticatedMetaApiRoute
   '/pipeline': typeof AuthenticatedPipelineRoute
   '/pipeline-status': typeof AuthenticatedPipelineStatusRoute
   '/plans': typeof AuthenticatedPlansRoute
@@ -479,6 +493,7 @@ export interface FileRoutesByFullPath {
   '/api/public/hooks/broadcasts': typeof ApiPublicHooksBroadcastsRoute
   '/api/public/hooks/follow-ups': typeof ApiPublicHooksFollowUpsRoute
   '/api/public/hooks/process-video-jobs': typeof ApiPublicHooksProcessVideoJobsRoute
+  '/api/public/meta-webhook/$configId': typeof ApiPublicMetaWebhookConfigIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -509,6 +524,7 @@ export interface FileRoutesByTo {
   '/knowledge': typeof AuthenticatedKnowledgeRoute
   '/logs': typeof AuthenticatedLogsRoute
   '/messages': typeof AuthenticatedMessagesRoute
+  '/meta-api': typeof AuthenticatedMetaApiRoute
   '/pipeline': typeof AuthenticatedPipelineRoute
   '/pipeline-status': typeof AuthenticatedPipelineStatusRoute
   '/plans': typeof AuthenticatedPlansRoute
@@ -545,6 +561,7 @@ export interface FileRoutesByTo {
   '/api/public/hooks/broadcasts': typeof ApiPublicHooksBroadcastsRoute
   '/api/public/hooks/follow-ups': typeof ApiPublicHooksFollowUpsRoute
   '/api/public/hooks/process-video-jobs': typeof ApiPublicHooksProcessVideoJobsRoute
+  '/api/public/meta-webhook/$configId': typeof ApiPublicMetaWebhookConfigIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -578,6 +595,7 @@ export interface FileRoutesById {
   '/_authenticated/knowledge': typeof AuthenticatedKnowledgeRoute
   '/_authenticated/logs': typeof AuthenticatedLogsRoute
   '/_authenticated/messages': typeof AuthenticatedMessagesRoute
+  '/_authenticated/meta-api': typeof AuthenticatedMetaApiRoute
   '/_authenticated/pipeline': typeof AuthenticatedPipelineRoute
   '/_authenticated/pipeline-status': typeof AuthenticatedPipelineStatusRoute
   '/_authenticated/plans': typeof AuthenticatedPlansRoute
@@ -614,6 +632,7 @@ export interface FileRoutesById {
   '/api/public/hooks/broadcasts': typeof ApiPublicHooksBroadcastsRoute
   '/api/public/hooks/follow-ups': typeof ApiPublicHooksFollowUpsRoute
   '/api/public/hooks/process-video-jobs': typeof ApiPublicHooksProcessVideoJobsRoute
+  '/api/public/meta-webhook/$configId': typeof ApiPublicMetaWebhookConfigIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -647,6 +666,7 @@ export interface FileRouteTypes {
     | '/knowledge'
     | '/logs'
     | '/messages'
+    | '/meta-api'
     | '/pipeline'
     | '/pipeline-status'
     | '/plans'
@@ -683,6 +703,7 @@ export interface FileRouteTypes {
     | '/api/public/hooks/broadcasts'
     | '/api/public/hooks/follow-ups'
     | '/api/public/hooks/process-video-jobs'
+    | '/api/public/meta-webhook/$configId'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -713,6 +734,7 @@ export interface FileRouteTypes {
     | '/knowledge'
     | '/logs'
     | '/messages'
+    | '/meta-api'
     | '/pipeline'
     | '/pipeline-status'
     | '/plans'
@@ -749,6 +771,7 @@ export interface FileRouteTypes {
     | '/api/public/hooks/broadcasts'
     | '/api/public/hooks/follow-ups'
     | '/api/public/hooks/process-video-jobs'
+    | '/api/public/meta-webhook/$configId'
   id:
     | '__root__'
     | '/'
@@ -781,6 +804,7 @@ export interface FileRouteTypes {
     | '/_authenticated/knowledge'
     | '/_authenticated/logs'
     | '/_authenticated/messages'
+    | '/_authenticated/meta-api'
     | '/_authenticated/pipeline'
     | '/_authenticated/pipeline-status'
     | '/_authenticated/plans'
@@ -817,6 +841,7 @@ export interface FileRouteTypes {
     | '/api/public/hooks/broadcasts'
     | '/api/public/hooks/follow-ups'
     | '/api/public/hooks/process-video-jobs'
+    | '/api/public/meta-webhook/$configId'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -839,6 +864,7 @@ export interface RootRouteChildren {
   ApiPublicHooksBroadcastsRoute: typeof ApiPublicHooksBroadcastsRoute
   ApiPublicHooksFollowUpsRoute: typeof ApiPublicHooksFollowUpsRoute
   ApiPublicHooksProcessVideoJobsRoute: typeof ApiPublicHooksProcessVideoJobsRoute
+  ApiPublicMetaWebhookConfigIdRoute: typeof ApiPublicMetaWebhookConfigIdRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -1060,6 +1086,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedPipelineRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
+    '/_authenticated/meta-api': {
+      id: '/_authenticated/meta-api'
+      path: '/meta-api'
+      fullPath: '/meta-api'
+      preLoaderRoute: typeof AuthenticatedMetaApiRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
     '/_authenticated/messages': {
       id: '/_authenticated/messages'
       path: '/messages'
@@ -1277,6 +1310,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiV1BuyRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/meta-webhook/$configId': {
+      id: '/api/public/meta-webhook/$configId'
+      path: '/api/public/meta-webhook/$configId'
+      fullPath: '/api/public/meta-webhook/$configId'
+      preLoaderRoute: typeof ApiPublicMetaWebhookConfigIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/hooks/process-video-jobs': {
       id: '/api/public/hooks/process-video-jobs'
       path: '/api/public/hooks/process-video-jobs'
@@ -1332,6 +1372,7 @@ interface AuthenticatedRouteChildren {
   AuthenticatedKnowledgeRoute: typeof AuthenticatedKnowledgeRoute
   AuthenticatedLogsRoute: typeof AuthenticatedLogsRoute
   AuthenticatedMessagesRoute: typeof AuthenticatedMessagesRoute
+  AuthenticatedMetaApiRoute: typeof AuthenticatedMetaApiRoute
   AuthenticatedPipelineRoute: typeof AuthenticatedPipelineRoute
   AuthenticatedPipelineStatusRoute: typeof AuthenticatedPipelineStatusRoute
   AuthenticatedPlansRoute: typeof AuthenticatedPlansRoute
@@ -1369,6 +1410,7 @@ const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedKnowledgeRoute: AuthenticatedKnowledgeRoute,
   AuthenticatedLogsRoute: AuthenticatedLogsRoute,
   AuthenticatedMessagesRoute: AuthenticatedMessagesRoute,
+  AuthenticatedMetaApiRoute: AuthenticatedMetaApiRoute,
   AuthenticatedPipelineRoute: AuthenticatedPipelineRoute,
   AuthenticatedPipelineStatusRoute: AuthenticatedPipelineStatusRoute,
   AuthenticatedPlansRoute: AuthenticatedPlansRoute,
@@ -1441,6 +1483,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicHooksBroadcastsRoute: ApiPublicHooksBroadcastsRoute,
   ApiPublicHooksFollowUpsRoute: ApiPublicHooksFollowUpsRoute,
   ApiPublicHooksProcessVideoJobsRoute: ApiPublicHooksProcessVideoJobsRoute,
+  ApiPublicMetaWebhookConfigIdRoute: ApiPublicMetaWebhookConfigIdRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
