@@ -68,8 +68,14 @@ export async function sendBrevoEmail(input: {
   html: string;
   settings: EmailSettings;
 }) {
-  const apiKey = process.env.BREVO_API_KEY;
+  const apiKey = process.env.BREVO_API_KEY?.trim();
   if (!apiKey) throw new Error("BREVO_API_KEY não configurada.");
+  if (apiKey.startsWith("xsmtpsib-")) {
+    throw new Error("A chave configurada é SMTP da Brevo (começa com xsmtpsib-) e não funciona aqui. Configure uma API Key v3 da Brevo, que começa com xkeysib-.");
+  }
+  if (!apiKey.startsWith("xkeysib-")) {
+    throw new Error("Chave Brevo inválida. Use uma API Key v3 da Brevo, que começa com xkeysib-.");
+  }
   if (!input.settings.sender_email) throw new Error("Remetente não configurado. Configure em Admin › E-mails.");
 
   const res = await fetch(BREVO_API, {
