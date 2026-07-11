@@ -3,13 +3,13 @@ import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { PageShell } from "@/components/page-shell";
 import { Card, CardContent } from "@/components/ui/card";
-import { DollarSign, TrendingUp, ShoppingCart, Coins, Loader2, Download, FileText, Brain, Clock, CheckCircle2 } from "lucide-react";
+import { DollarSign, TrendingUp, TrendingDown, ShoppingCart, Coins, Loader2, Download, FileText, Brain, Clock, CheckCircle2, PieChart as PieIcon, Activity, Wallet, Target } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip, CartesianGrid } from "recharts";
+import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip, CartesianGrid, PieChart, Pie, Cell, Legend, BarChart, Bar, ComposedChart, Line } from "recharts";
 import { toCSV, downloadCSV } from "@/lib/csv";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
@@ -120,6 +120,67 @@ function Page() {
     }));
   }, [filteredOrders, filteredPlanReqs, fromDate, toDate, showCredits, showPlans, planPrice]);
 
+  // Daily cashflow: entradas (receita) vs saídas (custo IA) e lucro
+  const dailyData = useMemo(() => {
+    const map = new Map<string, { entrada: number; saida: number }>();
+    const start = new Date(fromDate); start.setHours(0,0,0,0);
+    const end = new Date(toDate); end.setHours(0,0,0,0);
+    for (let d = new Date(start); d <= end; d.setDate(d.getDate()+1)) {
+      const k = d.toISOString().slice(0,10);
+      map.set(k, { entrada: 0, saida: 0 });
+    }
+    const addIn = (iso: string, cents: number) => {
+      const k = new Date(iso).toISOString().slice(0,10);
+      if (map.has(k)) map.get(k)!.entrada += cents;
+    };
+    const addOut = (iso: string, cents: number) => {
+      const k = new Date(iso).toISOString().slice(0,10);
+      if (map.has(k)) map.get(k)!.saida += cents;
+    };
+    if (showCredits) for (const o of filteredOrders) if (o.status === "paid" && o.paid_at) addIn(o.paid_at, o.price_cents);
+    if (showPlans) for (const r of filteredPlanReqs) if (r.status === "approved" && r.approved_at) addIn(r.approved_at, planPrice.get(r.plan_id) ?? 0);
+    for (const u of usage) if (inRange(u.occurred_at)) addOut(u.occurred_at, u.cost_cents ?? 0);
+    return Array.from(map.entries()).map(([k, v]) => ({
+      dia: k.slice(8,10) + "/" + k.slice(5,7),
+      entrada: v.entrada / 100,
+      saida: v.saida / 100,
+      lucro: (v.entrada - v.saida) / 100,
+    }));
+  }, [filteredOrders, filteredPlanReqs, usage, fromDate, toDate, showCredits, showPlans, planPrice, from, to]);
+
+  // Pizza: composição da receita
+  const pieData = useMemo(() => ([
+    { name: "Planos pagos", value: plansPaid / 100, color: "hsl(var(--primary))" },
+    { name: "Créditos pagos", value: creditsPaid / 100, color: "hsl(142 76% 45%)" },
+    { name: "Planos pendentes", value: plansPending / 100, color: "hsl(48 96% 53%)" },
+    { name: "Créditos pendentes", value: creditsPending / 100, color: "hsl(24 95% 53%)" },
+  ].filter(x => x.value > 0)), [plansPaid, creditsPaid, plansPending, creditsPending]);
+
+  // Pizza: gastos IA por modelo
+  const modelPieData = useMemo(() => {
+    const map = new Map<string, number>();
+    for (const u of usage) if (inRange(u.occurred_at)) {
+      const k = u.model || "desconhecido";
+      map.set(k, (map.get(k) || 0) + (u.cost_cents ?? 0));
+    }
+    const palette = ["hsl(var(--primary))", "hsl(280 80% 60%)", "hsl(200 80% 55%)", "hsl(340 80% 60%)", "hsl(48 96% 53%)", "hsl(142 70% 45%)"];
+    return Array.from(map.entries())
+      .sort((a,b) => b[1] - a[1])
+      .slice(0, 6)
+      .map(([name, cents], i) => ({ name, value: cents / 100, color: palette[i % palette.length] }));
+  }, [usage, from, to]);
+
+  const ticketMedio = (() => {
+    const n = (showCredits ? filteredOrders.filter(o=>o.status==="paid").length : 0)
+            + (showPlans ? filteredPlanReqs.filter(r=>r.status==="approved").length : 0);
+    return n > 0 ? totalPaid / n : 0;
+  })();
+  const totalTransactions = (showCredits ? filteredOrders.length : 0) + (showPlans ? filteredPlanReqs.length : 0);
+  const paidTransactions = (showCredits ? filteredOrders.filter(o=>o.status==="paid").length : 0)
+                         + (showPlans ? filteredPlanReqs.filter(r=>r.status==="approved").length : 0);
+  const conversao = totalTransactions > 0 ? (paidTransactions / totalTransactions) * 100 : 0;
+  const margemPct = totalPaid > 0 ? ((totalPaid - aiCostCents) / totalPaid) * 100 : 0;
+
   const exportCSV = () => {
     const rows = [
       ...(showCredits ? filteredOrders.map(o => ({
@@ -162,14 +223,14 @@ function Page() {
   };
 
   const cards = [
-    { label: "Receita paga", value: formatBRL(totalPaid), icon: DollarSign, sub: "Planos + Créditos" },
-    { label: "Aguardando pagamento", value: formatBRL(totalPending), icon: Clock, sub: "Pendentes" },
-    { label: "Receita — Planos", value: formatBRL(plansPaid), icon: CheckCircle2, sub: `${filteredPlanReqs.filter(r=>r.status==="approved").length} aprovados` },
-    { label: "Receita — Créditos", value: formatBRL(creditsPaid), icon: Coins, sub: `${filteredOrders.filter(o=>o.status==="paid").length} pagos` },
-    { label: "Pendentes — Planos", value: formatBRL(plansPending), icon: ShoppingCart, sub: `${filteredPlanReqs.filter(r=>r.status==="pending").length} solicitações` },
-    { label: "Pendentes — Créditos", value: formatBRL(creditsPending), icon: ShoppingCart, sub: `${filteredOrders.filter(o=>o.status==="pending").length} pedidos` },
-    { label: "Gastos IA (custo)", value: formatBRL(aiCostCents), icon: Brain, sub: `${aiTokens.toLocaleString("pt-BR")} tokens` },
-    { label: "Lucro estimado", value: formatBRL(totalPaid - aiCostCents), icon: TrendingUp, sub: "Receita − IA" },
+    { label: "Entradas (pago)", value: formatBRL(totalPaid), icon: TrendingUp, sub: "Planos + Créditos", accent: "from-emerald-500/20 to-emerald-500/0", color: "text-emerald-500" },
+    { label: "Saídas (custo IA)", value: formatBRL(aiCostCents), icon: TrendingDown, sub: `${aiTokens.toLocaleString("pt-BR")} tokens`, accent: "from-rose-500/20 to-rose-500/0", color: "text-rose-500" },
+    { label: "Lucro líquido", value: formatBRL(totalPaid - aiCostCents), icon: Wallet, sub: `Margem ${margemPct.toFixed(1)}%`, accent: "from-primary/25 to-primary/0", color: "text-primary" },
+    { label: "Aguardando", value: formatBRL(totalPending), icon: Clock, sub: "A receber", accent: "from-amber-500/20 to-amber-500/0", color: "text-amber-500" },
+    { label: "Receita Planos", value: formatBRL(plansPaid), icon: CheckCircle2, sub: `${filteredPlanReqs.filter(r=>r.status==="approved").length} aprovados`, accent: "from-primary/15 to-transparent", color: "text-primary" },
+    { label: "Receita Créditos", value: formatBRL(creditsPaid), icon: Coins, sub: `${filteredOrders.filter(o=>o.status==="paid").length} pagos`, accent: "from-primary/15 to-transparent", color: "text-primary" },
+    { label: "Ticket médio", value: formatBRL(ticketMedio), icon: Target, sub: `${paidTransactions} vendas`, accent: "from-primary/15 to-transparent", color: "text-primary" },
+    { label: "Conversão", value: `${conversao.toFixed(1)}%`, icon: Activity, sub: `${paidTransactions}/${totalTransactions}`, accent: "from-primary/15 to-transparent", color: "text-primary" },
   ];
 
   return (
@@ -223,15 +284,16 @@ function Page() {
 
           <div className="grid gap-4 grid-cols-2 lg:grid-cols-4">
             {cards.map(c => (
-              <Card key={c.label}>
-                <CardContent className="p-5">
+              <Card key={c.label} className="relative overflow-hidden border-border/60">
+                <div className={`absolute inset-0 bg-gradient-to-br ${c.accent} pointer-events-none`} />
+                <CardContent className="p-5 relative">
                   <div className="flex items-start justify-between">
                     <div>
                       <p className="text-xs text-muted-foreground">{c.label}</p>
-                      <p className="text-2xl font-black mt-1">{c.value}</p>
+                      <p className={`text-2xl font-black mt-1 ${c.color}`}>{c.value}</p>
                       <p className="text-[10px] text-muted-foreground mt-1">{c.sub}</p>
                     </div>
-                    <div className="h-9 w-9 grid place-items-center rounded-lg bg-primary/10 text-primary"><c.icon className="h-4 w-4" /></div>
+                    <div className={`h-9 w-9 grid place-items-center rounded-lg bg-background/60 backdrop-blur ${c.color}`}><c.icon className="h-4 w-4" /></div>
                   </div>
                 </CardContent>
               </Card>
@@ -239,13 +301,97 @@ function Page() {
           </div>
           <Card className="mt-4">
             <CardContent className="p-5">
-              <p className="text-sm font-semibold mb-3">Receita no período (por mês)</p>
+              <div className="flex items-center justify-between mb-3">
+                <p className="text-sm font-semibold flex items-center gap-2"><Activity className="h-4 w-4 text-primary" /> Fluxo de caixa diário — entradas × saídas</p>
+                <Badge variant="outline" className="text-[10px]">Lucro em linha</Badge>
+              </div>
+              <div className="h-72">
+                <ResponsiveContainer width="100%" height="100%">
+                  <ComposedChart data={dailyData} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
+                    <defs>
+                      <linearGradient id="entrada" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor="hsl(142 76% 45%)" stopOpacity={0.5} />
+                        <stop offset="100%" stopColor="hsl(142 76% 45%)" stopOpacity={0} />
+                      </linearGradient>
+                      <linearGradient id="saida" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor="hsl(0 84% 60%)" stopOpacity={0.5} />
+                        <stop offset="100%" stopColor="hsl(0 84% 60%)" stopOpacity={0} />
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                    <XAxis dataKey="dia" stroke="hsl(var(--muted-foreground))" fontSize={11} />
+                    <YAxis stroke="hsl(var(--muted-foreground))" fontSize={11} tickFormatter={(v) => `R$${v}`} />
+                    <Tooltip
+                      contentStyle={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: 8 }}
+                      formatter={(v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
+                    />
+                    <Legend wrapperStyle={{ fontSize: 12 }} />
+                    <Area type="monotone" name="Entradas" dataKey="entrada" stroke="hsl(142 76% 45%)" fill="url(#entrada)" strokeWidth={2} />
+                    <Area type="monotone" name="Saídas" dataKey="saida" stroke="hsl(0 84% 60%)" fill="url(#saida)" strokeWidth={2} />
+                    <Line type="monotone" name="Lucro" dataKey="lucro" stroke="hsl(var(--primary))" strokeWidth={2} dot={false} />
+                  </ComposedChart>
+                </ResponsiveContainer>
+              </div>
+            </CardContent>
+          </Card>
+
+          <div className="grid gap-4 mt-4 lg:grid-cols-2">
+            <Card>
+              <CardContent className="p-5">
+                <p className="text-sm font-semibold mb-3 flex items-center gap-2"><PieIcon className="h-4 w-4 text-primary" /> Composição da receita</p>
+                <div className="h-72">
+                  {pieData.length === 0 ? (
+                    <div className="h-full grid place-items-center text-xs text-muted-foreground">Sem dados no período</div>
+                  ) : (
+                    <ResponsiveContainer width="100%" height="100%">
+                      <PieChart>
+                        <Pie data={pieData} dataKey="value" nameKey="name" innerRadius={55} outerRadius={95} paddingAngle={2}>
+                          {pieData.map((e, i) => <Cell key={i} fill={e.color} />)}
+                        </Pie>
+                        <Tooltip
+                          contentStyle={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: 8 }}
+                          formatter={(v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
+                        />
+                        <Legend wrapperStyle={{ fontSize: 11 }} />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="p-5">
+                <p className="text-sm font-semibold mb-3 flex items-center gap-2"><Brain className="h-4 w-4 text-primary" /> Custo IA por modelo</p>
+                <div className="h-72">
+                  {modelPieData.length === 0 ? (
+                    <div className="h-full grid place-items-center text-xs text-muted-foreground">Sem uso registrado</div>
+                  ) : (
+                    <ResponsiveContainer width="100%" height="100%">
+                      <PieChart>
+                        <Pie data={modelPieData} dataKey="value" nameKey="name" outerRadius={95} label={(e:any)=>e.name}>
+                          {modelPieData.map((e, i) => <Cell key={i} fill={e.color} />)}
+                        </Pie>
+                        <Tooltip
+                          contentStyle={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: 8 }}
+                          formatter={(v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
+                        />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          <Card className="mt-4">
+            <CardContent className="p-5">
+              <p className="text-sm font-semibold mb-3 flex items-center gap-2"><TrendingUp className="h-4 w-4 text-primary" /> Receita mensal (montanha)</p>
               <div className="h-64">
                 <ResponsiveContainer width="100%" height="100%">
                   <AreaChart data={chartData} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
                     <defs>
                       <linearGradient id="rev" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stopColor="hsl(var(--primary))" stopOpacity={0.4} />
+                        <stop offset="0%" stopColor="hsl(var(--primary))" stopOpacity={0.5} />
                         <stop offset="100%" stopColor="hsl(var(--primary))" stopOpacity={0} />
                       </linearGradient>
                     </defs>
@@ -258,6 +404,28 @@ function Page() {
                     />
                     <Area type="monotone" dataKey="valor" stroke="hsl(var(--primary))" fill="url(#rev)" strokeWidth={2} />
                   </AreaChart>
+                </ResponsiveContainer>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="mt-4">
+            <CardContent className="p-5">
+              <p className="text-sm font-semibold mb-3 flex items-center gap-2"><Coins className="h-4 w-4 text-primary" /> Entradas × Saídas por dia (barras)</p>
+              <div className="h-64">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={dailyData} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                    <XAxis dataKey="dia" stroke="hsl(var(--muted-foreground))" fontSize={11} />
+                    <YAxis stroke="hsl(var(--muted-foreground))" fontSize={11} tickFormatter={(v) => `R$${v}`} />
+                    <Tooltip
+                      contentStyle={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: 8 }}
+                      formatter={(v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
+                    />
+                    <Legend wrapperStyle={{ fontSize: 12 }} />
+                    <Bar name="Entradas" dataKey="entrada" fill="hsl(142 76% 45%)" radius={[4,4,0,0]} />
+                    <Bar name="Saídas" dataKey="saida" fill="hsl(0 84% 60%)" radius={[4,4,0,0]} />
+                  </BarChart>
                 </ResponsiveContainer>
               </div>
             </CardContent>
