@@ -25,6 +25,7 @@ type Profile = {
   suspended_reason: string | null;
 };
 type Wallet = { user_id: string; plan_tokens_remaining: number; extra_tokens_remaining: number };
+type PlanRequest = { id: string; user_id: string; plan_id: string; status: string; created_at: string; note: string | null };
 
 const sbRpc = supabase.rpc.bind(supabase) as unknown as (fn: string, args?: Record<string, unknown>) =>
   Promise<{ data: unknown; error: { message: string } | null }>;
@@ -66,6 +67,7 @@ function Page() {
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [plans, setPlans] = useState<Plan[]>([]);
   const [wallets, setWallets] = useState<Record<string, Wallet>>({});
+  const [requests, setRequests] = useState<PlanRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState<string | null>(null);
   const [q, setQ] = useState("");
@@ -83,11 +85,12 @@ function Page() {
 
   const load = useCallback(async () => {
     setLoading(true);
-    const [o, p, pl, w] = await Promise.all([
+    const [o, p, pl, w, r] = await Promise.all([
       supabase.from("credit_orders").select("*").order("created_at", { ascending: false }).limit(500),
       supabase.from("profiles").select("id,full_name,phone,status,plan_id,plan_expires_at,plan_activated_at,suspended_reason").order("created_at", { ascending: false }).limit(1000),
       supabase.from("plans").select("id,name,tokens_included,price_cents").eq("is_active", true).order("sort_order"),
       supabase.from("credit_wallets").select("user_id,plan_tokens_remaining,extra_tokens_remaining"),
+      supabase.from("plan_activation_requests").select("id,user_id,plan_id,status,created_at,note").order("created_at", { ascending: false }).limit(500),
     ]);
     setOrders((o.data as Order[]) ?? []);
     setProfiles((p.data as Profile[]) ?? []);
@@ -95,11 +98,13 @@ function Page() {
     const wm: Record<string, Wallet> = {};
     ((w.data as Wallet[]) ?? []).forEach(x => { wm[x.user_id] = x; });
     setWallets(wm);
+    setRequests((r.data as PlanRequest[]) ?? []);
     setLoading(false);
   }, []);
   useEffect(() => { load(); }, [load]);
 
   const pending = useMemo(() => orders.filter(o => o.status === "pending"), [orders]);
+  const pendingRequests = useMemo(() => requests.filter(r => r.status === "pending"), [requests]);
   const paid = useMemo(() => orders.filter(o => o.status === "paid"), [orders]);
   const pendingValue = pending.reduce((a, b) => a + b.price_cents, 0);
   const paidValue = paid.reduce((a, b) => a + b.price_cents, 0);
@@ -122,6 +127,25 @@ function Page() {
     setBusy(null);
     if (error) return toast.error(error.message);
     toast.success("Pedido aprovado e tokens creditados");
+    load();
+  };
+
+  const approveRequest = async (r: PlanRequest, days = 30) => {
+    setBusy(r.id);
+    const { error } = await sbRpc("master_approve_plan_request", { _request_id: r.id, _days: days });
+    setBusy(null);
+    if (error) return toast.error(error.message);
+    toast.success("Plano ativado para o cliente");
+    load();
+  };
+
+  const rejectRequest = async (r: PlanRequest) => {
+    if (!confirm("Recusar esta solicitação?")) return;
+    setBusy(r.id);
+    const { error } = await sbRpc("master_reject_plan_request", { _request_id: r.id, _note: null });
+    setBusy(null);
+    if (error) return toast.error(error.message);
+    toast.success("Solicitação recusada");
     load();
   };
 
@@ -179,6 +203,7 @@ function Page() {
       <Tabs defaultValue="pending" className="mt-6">
         <TabsList>
           <TabsTrigger value="pending">Pedidos pendentes {pending.length > 0 && <Badge className="ml-2 bg-amber-500/20 text-amber-500 border-amber-500/30">{pending.length}</Badge>}</TabsTrigger>
+          <TabsTrigger value="requests">Solicitações de plano {pendingRequests.length > 0 && <Badge className="ml-2 bg-sky-500/20 text-sky-500 border-sky-500/30">{pendingRequests.length}</Badge>}</TabsTrigger>
           <TabsTrigger value="users">Ativação de contas</TabsTrigger>
           <TabsTrigger value="history">Histórico</TabsTrigger>
         </TabsList>
@@ -208,6 +233,40 @@ function Page() {
                   );
                 })}
                 {pending.length === 0 && <tr><td colSpan={5} className="p-10 text-center text-muted-foreground">Nenhum pedido pendente. 🎉</td></tr>}
+              </tbody>
+            </table>
+          </CardContent></Card>
+        </TabsContent>
+
+        <TabsContent value="requests" className="mt-4">
+          <Card><CardContent className="p-0 overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead className="bg-muted/40 text-xs uppercase text-muted-foreground">
+                <tr><th className="text-left p-3">Data</th><th className="text-left p-3">Cliente</th><th className="text-left p-3">Plano solicitado</th><th className="text-left p-3">Valor</th><th className="text-right p-3">Ação</th></tr>
+              </thead>
+              <tbody>
+                {pendingRequests.map(r => {
+                  const u = profiles.find(p => p.id === r.user_id);
+                  const pl = plans.find(p => p.id === r.plan_id);
+                  return (
+                    <tr key={r.id} className="border-t">
+                      <td className="p-3 text-xs">{new Date(r.created_at).toLocaleString("pt-BR")}</td>
+                      <td className="p-3"><div className="font-medium">{u?.full_name ?? "—"}</div><div className="text-xs text-muted-foreground">{u?.phone ?? r.user_id.slice(0, 8)}</div></td>
+                      <td className="p-3"><div className="font-medium">{pl?.name ?? "—"}</div><div className="text-xs text-muted-foreground">{nf(pl?.tokens_included ?? 0)} tokens</div></td>
+                      <td className="p-3 font-semibold">{brl(pl?.price_cents ?? 0)}</td>
+                      <td className="p-3 text-right space-x-1">
+                        <Button size="sm" onClick={() => approveRequest(r, 30)} disabled={busy === r.id} className="bg-emerald-500 hover:bg-emerald-600">
+                          {busy === r.id ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-1" /> : <Check className="h-3.5 w-3.5 mr-1" />}
+                          Ativar (30d)
+                        </Button>
+                        <Button size="sm" variant="ghost" className="text-rose-500" onClick={() => rejectRequest(r)} disabled={busy === r.id}>
+                          <X className="h-3.5 w-3.5" />
+                        </Button>
+                      </td>
+                    </tr>
+                  );
+                })}
+                {pendingRequests.length === 0 && <tr><td colSpan={5} className="p-10 text-center text-muted-foreground">Nenhuma solicitação pendente.</td></tr>}
               </tbody>
             </table>
           </CardContent></Card>
