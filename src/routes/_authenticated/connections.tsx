@@ -10,7 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
-import { Plus, RefreshCw, Play, Power, Trash2, QrCode, CheckCircle2, XCircle, Activity, Webhook } from "lucide-react";
+import { Plus, RefreshCw, Play, Power, Trash2, QrCode, CheckCircle2, XCircle, Activity, Webhook, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { testConnection, connectInstance, disconnectInstance, testWebhook, createAndConnectInstance, deleteInstance } from "@/lib/evolution.functions";
 
@@ -174,18 +174,30 @@ function ConnectionsPage() {
           <h1 className="text-2xl font-bold">Conexões</h1>
           <p className="text-muted-foreground">Gerencie as instâncias de WhatsApp via Evolution API.</p>
         </div>
-        <Dialog open={open} onOpenChange={setOpen}>
+        <Dialog open={open} onOpenChange={(v) => { if (!creating) setOpen(v); }}>
           <DialogTrigger asChild>
             <Button><Plus className="h-4 w-4 mr-1" /> Nova conexão</Button>
           </DialogTrigger>
           <DialogContent>
             <DialogHeader><DialogTitle>Nova conexão de WhatsApp</DialogTitle></DialogHeader>
             <form onSubmit={create} className="space-y-3">
-              <p className="text-xs text-muted-foreground">A API da Evolution já está configurada pelo administrador. Informe apenas um nome e um identificador da instância para gerar o QR Code.</p>
-              <div className="space-y-1"><Label>Nome</Label><Input required value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} /></div>
-              <div className="space-y-1"><Label>Identificador da instância</Label><Input required placeholder="minha-empresa" pattern="[a-zA-Z0-9_-]+" value={form.instance_name} onChange={(e) => setForm({ ...form, instance_name: e.target.value })} /></div>
-              <div className="space-y-1"><Label>Observações</Label><Textarea value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} /></div>
-              <DialogFooter><Button type="submit" disabled={creating}>{creating ? "Criando…" : "Criar e gerar QR"}</Button></DialogFooter>
+              <fieldset disabled={creating} className="space-y-3 group">
+                <p className="text-xs text-muted-foreground">A API da Evolution já está configurada pelo administrador. Informe apenas um nome e um identificador da instância para gerar o QR Code.</p>
+                <div className="space-y-1"><Label>Nome</Label><Input required value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} /></div>
+                <div className="space-y-1"><Label>Identificador da instância</Label><Input required placeholder="minha-empresa" pattern="[a-zA-Z0-9_-]+" value={form.instance_name} onChange={(e) => setForm({ ...form, instance_name: e.target.value })} /></div>
+                <div className="space-y-1"><Label>Observações</Label><Textarea value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} /></div>
+                {creating && (
+                  <div className="flex items-center gap-2 rounded-md border border-primary/30 bg-primary/5 px-3 py-2 text-sm text-primary">
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Criando instância e gerando QR Code…
+                  </div>
+                )}
+                <DialogFooter>
+                  <Button type="submit" disabled={creating}>
+                    {creating ? (<><Loader2 className="h-4 w-4 mr-2 animate-spin" />Gerando QR…</>) : "Criar e gerar QR"}
+                  </Button>
+                </DialogFooter>
+              </fieldset>
             </form>
           </DialogContent>
         </Dialog>
