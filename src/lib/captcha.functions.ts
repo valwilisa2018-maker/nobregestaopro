@@ -1,5 +1,5 @@
 import { createServerFn } from "@tanstack/react-start";
-import { issueCaptchaChallenge, signInWithPassword, signUpWithPassword, verifyCaptchaToken } from "./captcha.server";
+import { issueCaptchaChallenge, sendPasswordResetWithBrevo, signInWithPassword, signUpWithPassword, verifyCaptchaToken } from "./captcha.server";
 
 export const issueCaptcha = createServerFn({ method: "GET" }).handler(async () => {
   return issueCaptchaChallenge();
@@ -59,8 +59,15 @@ export const signUpWithCaptcha = createServerFn({ method: "POST" })
     if (error) return { ok: false as const, error: error.message };
     return {
       ok: true as const,
-      session: res.session
-        ? { access_token: res.session.access_token, refresh_token: res.session.refresh_token }
-        : null,
+      session: null,
     };
+  });
+
+export const resetPasswordWithCaptcha = createServerFn({ method: "POST" })
+  .inputValidator((d: { email: string; token: string; answer: number; redirectTo: string }) => d)
+  .handler(async ({ data }) => {
+    if (!verifyCaptchaToken(data.token, Number(data.answer))) {
+      return { ok: false as const, error: "Verificação incorreta. Tente novamente." };
+    }
+    return sendPasswordResetWithBrevo(data.email, data.redirectTo);
   });
