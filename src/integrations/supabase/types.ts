@@ -1050,6 +1050,54 @@ export type Database = {
           },
         ]
       }
+      email_settings: {
+        Row: {
+          brand_color: string
+          id: boolean
+          provider: string
+          reply_to: string | null
+          reset_banner_url: string | null
+          reset_enabled: boolean
+          reset_subject: string
+          sender_email: string | null
+          sender_name: string
+          signup_banner_url: string | null
+          signup_enabled: boolean
+          signup_subject: string
+          updated_at: string
+        }
+        Insert: {
+          brand_color?: string
+          id?: boolean
+          provider?: string
+          reply_to?: string | null
+          reset_banner_url?: string | null
+          reset_enabled?: boolean
+          reset_subject?: string
+          sender_email?: string | null
+          sender_name?: string
+          signup_banner_url?: string | null
+          signup_enabled?: boolean
+          signup_subject?: string
+          updated_at?: string
+        }
+        Update: {
+          brand_color?: string
+          id?: boolean
+          provider?: string
+          reply_to?: string | null
+          reset_banner_url?: string | null
+          reset_enabled?: boolean
+          reset_subject?: string
+          sender_email?: string | null
+          sender_name?: string
+          signup_banner_url?: string | null
+          signup_enabled?: boolean
+          signup_subject?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       flow_execution_logs: {
         Row: {
           block_id: string | null
