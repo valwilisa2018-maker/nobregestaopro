@@ -347,12 +347,39 @@ export const Route = createFileRoute("/api/public/evolution/$instance")({
             if (jid) {
               const p = presences[jid]?.lastKnownPresence ?? d.presence ?? "available";
               const now = new Date().toISOString();
-              const rows = [jid, ...Object.keys(presences)].filter(Boolean).map((presenceJid) => ({
-                user_id: conn.user_id,
-                jid: presenceJid,
-                presence: String(presences[presenceJid]?.lastKnownPresence ?? p),
-                updated_at: now,
-              }));
+              const jidList = Array.from(new Set([jid, ...Object.keys(presences)].filter(Boolean)));
+              // If any @lid JIDs arrive, resolve them back to the contact's phone JID
+              // (stored in contacts.metadata.lidJids) and mirror the presence there —
+              // the client subscribes by phone JID variants.
+              const extraJids: Array<{ jid: string; presence: string }> = [];
+              const lidOnly = jidList.filter((j) => j.includes("@lid"));
+              if (lidOnly.length) {
+                const { data: contacts } = await supabaseAdmin
+                  .from("contacts")
+                  .select("phone,metadata")
+                  .eq("user_id", conn.user_id)
+                  .not("metadata->lidJids", "is", null)
+                  .limit(500);
+                for (const lid of lidOnly) {
+                  const match = (contacts ?? []).find((c) => {
+                    const meta = (c.metadata && typeof c.metadata === "object") ? c.metadata as { lidJids?: unknown } : {};
+                    return Array.isArray(meta.lidJids) && (meta.lidJids as unknown[]).includes(lid);
+                  });
+                  if (match?.phone) {
+                    const digits = String(match.phone).replace(/\D+/g, "");
+                    if (digits) extraJids.push({ jid: `${digits}@s.whatsapp.net`, presence: String(presences[lid]?.lastKnownPresence ?? p) });
+                  }
+                }
+              }
+              const rows = [
+                ...jidList.map((presenceJid) => ({
+                  user_id: conn.user_id,
+                  jid: presenceJid,
+                  presence: String(presences[presenceJid]?.lastKnownPresence ?? p),
+                  updated_at: now,
+                })),
+                ...extraJids.map((r) => ({ user_id: conn.user_id, jid: r.jid, presence: r.presence, updated_at: now })),
+              ];
               await supabaseAdmin.from("presence").upsert(rows as never, { onConflict: "user_id,jid" });
             }
           } catch { /* ignore */ }

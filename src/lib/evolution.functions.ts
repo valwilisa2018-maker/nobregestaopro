@@ -1264,10 +1264,11 @@ export const sendPresence = createServerFn({ method: "POST" })
       await evoFetch(`${baseUrl(conn.url_api)}/chat/sendPresence/${conn.instance_name}`, apiKey, {
         method: "POST",
         // WhatsApp only shows the indicator for `delay` ms and then clears it.
-        // Keep it visible for ~6s so successive client pings (every ~4s) overlap
-        // and the receiver sees a continuous "digitando…/gravando…" instead of
-        // the flicker (grava/para/grava) the user reported.
-        body: JSON.stringify({ number, delay: 6000, presence: data.presence }),
+        // Use a long delay (25s) so the state stays visible well beyond any
+        // client re-send interval — this removes the "grava/para/grava" flicker
+        // seen on the receiver's phone. The client resends every ~3s while
+        // recording, so the indicator is refreshed long before it expires.
+        body: JSON.stringify({ number, delay: 25000, presence: data.presence }),
       });
       return { ok: true as const };
     } catch (e) {
