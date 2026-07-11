@@ -363,17 +363,17 @@ export function AgentEditor({ agent, onSaved, onCancel }: Props) {
                         try {
                           const { activateLovableProvider } = await import("@/lib/ai-provider-check.functions");
                           const res = await activateLovableProvider();
-                          toast.success(`Lovable AI ativada (${res.model}). Rodando validação novamente…`);
+                          toast.success(`Token ativado (${res.model}). Rodando validação novamente…`);
                           await runValidation();
                         } catch (e) {
-                          toast.error(e instanceof Error ? e.message : "Falha ao ativar Lovable AI");
+                          toast.error(e instanceof Error ? e.message : "Falha ao ativar token");
                         } finally {
                           setActivatingLovable(false);
                         }
                       }}
                     >
                       {activatingLovable ? <Loader2 className="h-3 w-3 animate-spin" /> : <ShieldCheck className="h-3 w-3" />}
-                      Ativar Lovable AI (sem chave)
+                      Ativar Token
                     </Button>
                   )}
                 </div>
