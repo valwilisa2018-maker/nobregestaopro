@@ -8,6 +8,10 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Loader2, Save, PlayCircle, Video, Plus, Trash2, Upload, ArrowUp, ArrowDown } from "lucide-react";
 import { toast } from "sonner";
+import { DndContext, PointerSensor, KeyboardSensor, useSensor, useSensors, closestCenter, type DragEndEvent } from "@dnd-kit/core";
+import { SortableContext, arrayMove, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy } from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
+import { GripVertical } from "lucide-react";
 
 export const Route = createFileRoute("/master/tutorials")({
   head: () => ({ meta: [{ title: "Tutoriais em vídeo — Master" }] }),
