@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Zap, Loader2, Check, Search, Coins, ShieldOff, Sparkles, Clock, DollarSign, Users as UsersIcon, X } from "lucide-react";
+import { Zap, Loader2, Check, Search, Coins, ShieldOff, Sparkles, Clock, DollarSign, Users as UsersIcon, X, Trash2, Ban, RotateCcw } from "lucide-react";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/master/activations")({
@@ -149,6 +149,55 @@ function Page() {
     load();
   };
 
+  const deleteRequest = async (r: PlanRequest) => {
+    if (!confirm("Excluir esta solicitação permanentemente?")) return;
+    setBusy(r.id);
+    const { error } = await sbRpc("master_delete_plan_request", { _request_id: r.id });
+    setBusy(null);
+    if (error) return toast.error(error.message);
+    toast.success("Solicitação excluída");
+    load();
+  };
+
+  const cancelOrder = async (id: string) => {
+    if (!confirm("Cancelar este pedido?")) return;
+    setBusy(id);
+    const { error } = await sbRpc("master_cancel_order", { _order_id: id });
+    setBusy(null);
+    if (error) return toast.error(error.message);
+    toast.success("Pedido cancelado");
+    load();
+  };
+
+  const deleteOrder = async (id: string) => {
+    if (!confirm("Excluir este pedido permanentemente?")) return;
+    setBusy(id);
+    const { error } = await sbRpc("master_delete_order", { _order_id: id });
+    setBusy(null);
+    if (error) return toast.error(error.message);
+    toast.success("Pedido excluído");
+    load();
+  };
+
+  const cancelPlan = async (p: Profile) => {
+    if (!confirm(`Cancelar o plano de ${p.full_name ?? "usuário"}?`)) return;
+    setBusy(p.id);
+    const { error } = await sbRpc("master_cancel_plan", { _user_id: p.id, _reason: "cancelado pelo admin" });
+    setBusy(null);
+    if (error) return toast.error(error.message);
+    toast.success("Plano cancelado");
+    load();
+  };
+
+  const reactivate = async (p: Profile) => {
+    setBusy(p.id);
+    const { error } = await sbRpc("master_reactivate_account", { _user_id: p.id });
+    setBusy(null);
+    if (error) return toast.error(error.message);
+    toast.success("Conta reativada");
+    load();
+  };
+
   const doActivate = async () => {
     if (!activateFor || !actPlan) return;
     setBusy("activate");
@@ -224,10 +273,18 @@ function Page() {
                       <td className="p-3"><Coins className="inline h-3.5 w-3.5 mr-1 text-amber-500" />{nf(o.tokens)}</td>
                       <td className="p-3 font-semibold">{brl(o.price_cents)}</td>
                       <td className="p-3 text-right">
+                        <div className="inline-flex gap-1">
                         <Button size="sm" onClick={() => approveOrder(o.id)} disabled={busy === o.id} className="bg-emerald-500 hover:bg-emerald-600">
                           {busy === o.id ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-1" /> : <Check className="h-3.5 w-3.5 mr-1" />}
                           Aprovar
                         </Button>
+                        <Button size="sm" variant="outline" onClick={() => cancelOrder(o.id)} disabled={busy === o.id} title="Cancelar">
+                          <Ban className="h-3.5 w-3.5" />
+                        </Button>
+                        <Button size="sm" variant="ghost" className="text-rose-500" onClick={() => deleteOrder(o.id)} disabled={busy === o.id} title="Excluir">
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </Button>
+                        </div>
                       </td>
                     </tr>
                   );
@@ -261,6 +318,9 @@ function Page() {
                         </Button>
                         <Button size="sm" variant="ghost" className="text-rose-500" onClick={() => rejectRequest(r)} disabled={busy === r.id}>
                           <X className="h-3.5 w-3.5" />
+                        </Button>
+                        <Button size="sm" variant="ghost" className="text-muted-foreground" onClick={() => deleteRequest(r)} disabled={busy === r.id} title="Excluir">
+                          <Trash2 className="h-3.5 w-3.5" />
                         </Button>
                       </td>
                     </tr>
@@ -300,7 +360,16 @@ function Page() {
                         <Button size="sm" variant="outline" onClick={() => { setGrantFor(p); setGrantTokens(100000); }}>
                           <Coins className="h-3.5 w-3.5 mr-1" />Tokens
                         </Button>
-                        {p.status !== "suspended" && (
+                        {p.plan_id && (
+                          <Button size="sm" variant="outline" className="text-amber-500" onClick={() => cancelPlan(p)} disabled={busy === p.id} title="Cancelar plano">
+                            <Ban className="h-3.5 w-3.5" />
+                          </Button>
+                        )}
+                        {p.status === "suspended" ? (
+                          <Button size="sm" variant="outline" className="text-emerald-500" onClick={() => reactivate(p)} disabled={busy === p.id} title="Reativar">
+                            <RotateCcw className="h-3.5 w-3.5" />
+                          </Button>
+                        ) : (
                           <Button size="sm" variant="ghost" className="text-rose-500 hover:text-rose-500" onClick={() => setSuspendFor(p)}>
                             <ShieldOff className="h-3.5 w-3.5" />
                           </Button>
