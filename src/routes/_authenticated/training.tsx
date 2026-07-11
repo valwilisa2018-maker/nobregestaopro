@@ -92,10 +92,29 @@ function TrainingPage() {
   const embed = openUrl ? toEmbed(openUrl) : null;
   const totalWatched = Object.values(progress).filter(Boolean).length;
 
+  const nextModule = (() => {
+    if (!openKey) return null;
+    const idx = modules.findIndex((m) => m.key === openKey);
+    if (idx < 0) return null;
+    for (let i = idx + 1; i < modules.length; i++) {
+      if (videos[modules[i].key]?.trim()) return modules[i];
+    }
+    return null;
+  })();
+
   const markWatched = async (key: string) => {
-    if (!user || progress[key]) return;
-    setProgress((p) => ({ ...p, [key]: true }));
-    await supabase.from("training_progress").upsert({ user_id: user.id, module_key: key, completed: true }, { onConflict: "user_id,module_key" });
+    if (!user) return;
+    if (!progress[key]) {
+      setProgress((p) => ({ ...p, [key]: true }));
+      await supabase.from("training_progress").upsert({ user_id: user.id, module_key: key, completed: true }, { onConflict: "user_id,module_key" });
+    }
+  };
+
+  const goNext = async () => {
+    if (!openKey) return;
+    await markWatched(openKey);
+    if (nextModule) setOpenKey(nextModule.key);
+    else toast.success("Você concluiu todos os módulos disponíveis! 🎉");
   };
 
   return (
@@ -201,15 +220,25 @@ function TrainingPage() {
                   {embed?.kind === "iframe" ? (
                     <iframe src={embed.src} title={openModule?.label} allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen className="absolute inset-0 h-full w-full" />
                   ) : embed?.kind === "video" ? (
-                    <video src={embed.src} controls autoPlay className="absolute inset-0 h-full w-full" />
+                    <video src={embed.src} controls autoPlay onEnded={goNext} className="absolute inset-0 h-full w-full" />
                   ) : null}
                 </div>
                 <div className="flex items-center justify-between gap-3 border-t p-4 bg-background">
-                  <p className="text-sm text-muted-foreground">Marque como concluído após assistir a aula.</p>
-                  <Button onClick={() => openKey && markWatched(openKey)} disabled={!openKey || !!progress[openKey]} className="gap-2">
-                    <CheckCircle2 className="h-4 w-4" />
-                    {openKey && progress[openKey] ? "Concluído" : "Marcar como assistido"}
-                  </Button>
+                  <div className="min-w-0">
+                    <p className="text-sm text-muted-foreground">
+                      {nextModule ? <>A seguir: <span className="font-semibold text-foreground">{nextModule.label}</span></> : "Esta é a última aula disponível."}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Button variant="outline" onClick={() => openKey && markWatched(openKey)} disabled={!openKey || !!progress[openKey]} className="gap-2">
+                      <CheckCircle2 className="h-4 w-4" />
+                      {openKey && progress[openKey] ? "Concluído" : "Marcar assistido"}
+                    </Button>
+                    <Button onClick={goNext} disabled={!nextModule && !!(openKey && progress[openKey])} className="gap-2">
+                      <Play className="h-4 w-4 fill-current" />
+                      {nextModule ? "Próxima aula" : "Concluir"}
+                    </Button>
+                  </div>
                 </div>
               </div>
               <CommentsPanel moduleKey={openKey} />
