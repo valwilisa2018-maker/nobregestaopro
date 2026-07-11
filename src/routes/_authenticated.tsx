@@ -10,6 +10,7 @@ import { PlanGate } from "@/components/plan-gate";
 import { useEffect } from "react";
 
 export const Route = createFileRoute("/_authenticated")({
+  ssr: false,
   component: AuthedLayout,
 });
 
