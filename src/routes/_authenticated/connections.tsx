@@ -12,12 +12,11 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, Dialog
 import { Badge } from "@/components/ui/badge";
 import { Plus, RefreshCw, Play, Power, Trash2, QrCode, CheckCircle2, XCircle, Activity, Webhook } from "lucide-react";
 import { toast } from "sonner";
-import { testConnection, connectInstance, disconnectInstance, testWebhook } from "@/lib/evolution.functions";
-import { MasterGuard } from "@/components/master-guard";
+import { testConnection, connectInstance, disconnectInstance, testWebhook, createAndConnectInstance } from "@/lib/evolution.functions";
 
 export const Route = createFileRoute("/_authenticated/connections")({
   head: () => ({ meta: [{ title: "Conexões — Plataforma IA WhatsApp" }] }),
-  component: () => <MasterGuard><ConnectionsPage /></MasterGuard>,
+  component: ConnectionsPage,
 });
 
 type Connection = {
@@ -44,7 +43,8 @@ function ConnectionsPage() {
   const [loading, setLoading] = useState(true);
   const [open, setOpen] = useState(false);
   const [qr, setQr] = useState<{ open: boolean; data: string | null; name: string }>({ open: false, data: null, name: "" });
-  const [form, setForm] = useState({ name: "", description: "", url_api: "", api_key: "", instance_name: "", notes: "" });
+  const [form, setForm] = useState({ name: "", instance_name: "", notes: "" });
+  const [creating, setCreating] = useState(false);
 
   type Diag = { ok: boolean; action: string; message: string; details?: string; at: string };
   const [diagnostics, setDiagnostics] = useState<Record<string, Diag>>({});
@@ -57,6 +57,7 @@ function ConnectionsPage() {
   const connectFn = useServerFn(connectInstance);
   const disconnectFn = useServerFn(disconnectInstance);
   const testWebhookFn = useServerFn(testWebhook);
+  const createFn = useServerFn(createAndConnectInstance);
 
   const load = async () => {
     setLoading(true);
@@ -71,12 +72,22 @@ function ConnectionsPage() {
   const create = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user) return;
-    const { error } = await supabase.from("connections").insert({ ...form, user_id: user.id, provider: "evolution" });
-    if (error) return toast.error(error.message);
-    toast.success("Conexão criada");
-    setOpen(false);
-    setForm({ name: "", description: "", url_api: "", api_key: "", instance_name: "", notes: "" });
-    load();
+    setCreating(true);
+    try {
+      const r = await createFn({ data: { name: form.name, instanceName: form.instance_name } });
+      if (form.notes) {
+        await supabase.from("connections").update({ notes: form.notes }).eq("id", r.connectionId);
+      }
+      toast.success("Instância criada");
+      if (r.qr) setQr({ open: true, data: r.qr, name: form.name });
+      setOpen(false);
+      setForm({ name: "", instance_name: "", notes: "" });
+      load();
+    } catch (err: any) {
+      toast.error(err?.message ?? "Falha ao criar instância");
+    } finally {
+      setCreating(false);
+    }
   };
 
   const remove = async (id: string) => {
@@ -159,15 +170,13 @@ function ConnectionsPage() {
             <Button><Plus className="h-4 w-4 mr-1" /> Nova conexão</Button>
           </DialogTrigger>
           <DialogContent>
-            <DialogHeader><DialogTitle>Nova conexão (Evolution API)</DialogTitle></DialogHeader>
+            <DialogHeader><DialogTitle>Nova conexão de WhatsApp</DialogTitle></DialogHeader>
             <form onSubmit={create} className="space-y-3">
+              <p className="text-xs text-muted-foreground">A API da Evolution já está configurada pelo administrador. Informe apenas um nome e um identificador da instância para gerar o QR Code.</p>
               <div className="space-y-1"><Label>Nome</Label><Input required value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} /></div>
-              <div className="space-y-1"><Label>Descrição</Label><Input value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} /></div>
-              <div className="space-y-1"><Label>URL da API</Label><Input required placeholder="https://evo.exemplo.com" value={form.url_api} onChange={(e) => setForm({ ...form, url_api: e.target.value })} /></div>
-              <div className="space-y-1"><Label>API Key</Label><Input required value={form.api_key} onChange={(e) => setForm({ ...form, api_key: e.target.value })} /></div>
-              <div className="space-y-1"><Label>Nome da Instância</Label><Input required value={form.instance_name} onChange={(e) => setForm({ ...form, instance_name: e.target.value })} /></div>
+              <div className="space-y-1"><Label>Identificador da instância</Label><Input required placeholder="minha-empresa" pattern="[a-zA-Z0-9_-]+" value={form.instance_name} onChange={(e) => setForm({ ...form, instance_name: e.target.value })} /></div>
               <div className="space-y-1"><Label>Observações</Label><Textarea value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} /></div>
-              <DialogFooter><Button type="submit">Salvar</Button></DialogFooter>
+              <DialogFooter><Button type="submit" disabled={creating}>{creating ? "Criando…" : "Criar e gerar QR"}</Button></DialogFooter>
             </form>
           </DialogContent>
         </Dialog>
