@@ -26,6 +26,16 @@ export const getEmailSettings = createServerFn({ method: "GET" })
     return { settings: s, hasBrevoKey: brevoKeyStatus === "valid", brevoKeyStatus };
   });
 
+export const checkBrevoStatus = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { data: isMaster } = await context.supabase.rpc("has_role", { _user_id: context.userId, _role: "master" });
+    if (!isMaster) throw new Error("forbidden");
+    const { loadEmailSettings, checkBrevoSender } = await import("./email-brevo.server");
+    const settings = await loadEmailSettings();
+    return checkBrevoSender(settings);
+  });
+
 export const saveEmailSettings = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: EmailSettingsInput) => d)
@@ -46,9 +56,11 @@ export const sendTestEmail = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const { data: isMaster } = await context.supabase.rpc("has_role", { _user_id: context.userId, _role: "master" });
     if (!isMaster) throw new Error("forbidden");
-    const { loadEmailSettings, sendBrevoEmail } = await import("./email-brevo.server");
+    const { loadEmailSettings, sendBrevoEmail, checkBrevoSender } = await import("./email-brevo.server");
     const settings = await loadEmailSettings();
     if (!settings) throw new Error("Configurações não encontradas.");
+    const senderStatus = await checkBrevoSender(settings);
+    if (!senderStatus.ok) throw new Error(senderStatus.message);
     const isSignup = data.kind === "signup";
     const bannerUrl = isSignup ? settings.signup_banner_url : settings.reset_banner_url;
     const html = `<!doctype html><html><body style="margin:0;padding:0;background:#0b0b12;font-family:Arial,sans-serif;color:#e8e8ee">
