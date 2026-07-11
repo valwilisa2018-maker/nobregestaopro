@@ -51,3 +51,54 @@ export const masterSetBlocked = createServerFn({ method: "POST" })
     }
     return { ok: true };
   });
+
+async function findUserIdByEmail(email: string): Promise<{ userId: string; email: string; fullName: string | null }> {
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  const normalized = email.trim().toLowerCase();
+  // Paginate through auth users to find by email (Supabase admin has no direct getByEmail)
+  for (let page = 1; page <= 20; page++) {
+    const { data, error } = await supabaseAdmin.auth.admin.listUsers({ page, perPage: 200 });
+    if (error) throw new Error(error.message);
+    const found = data.users.find(u => (u.email ?? "").toLowerCase() === normalized);
+    if (found) {
+      const { data: prof } = await supabaseAdmin.from("profiles").select("full_name").eq("id", found.id).maybeSingle();
+      return { userId: found.id, email: found.email ?? normalized, fullName: prof?.full_name ?? null };
+    }
+    if (data.users.length < 200) break;
+  }
+  throw new Error("Usuário não encontrado para este e-mail");
+}
+
+export const masterLookupByEmail = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: { email: string }) => d)
+  .handler(async ({ data, context }) => {
+    await assertMaster(context.supabase, context.userId);
+    return findUserIdByEmail(data.email);
+  });
+
+export const masterActivateByEmail = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: { email: string; planId?: string | null; days?: number; tokens?: number; reason?: string }) => d)
+  .handler(async ({ data, context }) => {
+    await assertMaster(context.supabase, context.userId);
+    const target = await findUserIdByEmail(data.email);
+    const results: { plan?: boolean; tokens?: number } = {};
+    if (data.planId) {
+      const days = Math.max(1, Number(data.days ?? 30));
+      const expires = new Date(Date.now() + days * 86400000).toISOString();
+      const { error } = await context.supabase.rpc("master_activate_account", {
+        _user_id: target.userId, _plan_id: data.planId, _expires_at: expires,
+      });
+      if (error) throw new Error(error.message);
+      results.plan = true;
+    }
+    if (data.tokens && data.tokens > 0) {
+      const { error } = await context.supabase.rpc("master_grant_credits", {
+        _user_id: target.userId, _tokens: data.tokens, _reason: data.reason ?? "ativação manual por e-mail",
+      });
+      if (error) throw new Error(error.message);
+      results.tokens = data.tokens;
+    }
+    return { ...target, ...results };
+  });
