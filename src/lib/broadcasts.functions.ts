@@ -259,7 +259,7 @@ export const runBroadcastBatch = createServerFn({ method: "POST" })
         flowDef = { nodes: def.nodes, edges: def.edges };
       }
     }
-    const { runFlow } = flowDef ? await import("@/lib/flow-runner.server") : { runFlow: null as never };
+    const { runFlowTracked } = flowDef ? await import("@/lib/flow-tracking.server") : { runFlowTracked: null as never };
 
     let sent = b.sent_count as number;
     let errored = b.error_count as number;
@@ -276,15 +276,15 @@ export const runBroadcastBatch = createServerFn({ method: "POST" })
       try {
         if (!conn?.url_api || !conn?.instance_name) throw new Error("Instância inválida");
         const number = `${(r.phone as string).replace(/\D/g, "")}@s.whatsapp.net`;
-        if (b.flow_id && (!flowDef || !runFlow)) throw new Error("Fluxo inválido ou sem início configurado");
-        if (flowDef && runFlow) {
+        if (b.flow_id && (!flowDef || !runFlowTracked)) throw new Error("Fluxo inválido ou sem início configurado");
+        if (flowDef && runFlowTracked) {
           const conversationId = await getOrCreateBroadcastConversation(
             context.supabase,
             context.userId,
             conn.id as string,
             number,
           );
-          const result = await runFlow({
+          const result = await runFlowTracked({
             db: context.supabase as never,
             conn: {
               id: (conn.id as string) ?? "",
@@ -299,7 +299,9 @@ export const runBroadcastBatch = createServerFn({ method: "POST" })
             state: { variables: { nome: contactName || "cliente", telefone: r.phone as string } },
             flowId: b.flow_id as string,
             conversationId,
+            connectionId: (conn.id as string) ?? null,
             userId: context.userId,
+            source: "broadcast",
           });
           await context.supabase.from("conversations").update({
             flow_state: result.state as never,
