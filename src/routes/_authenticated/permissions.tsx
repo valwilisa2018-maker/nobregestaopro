@@ -1,26 +1,158 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { ShieldCheck } from "lucide-react";
-import { CrudResource } from "@/components/crud-resource";
+import { ShieldCheck, Search, Loader2, Plus, X, Crown, User } from "lucide-react";
+import { useEffect, useState } from "react";
 import { MasterGuard } from "@/components/master-guard";
+import { PageShell } from "@/components/page-shell";
+import { Card, CardContent } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/permissions")({
-  head: () => ({ meta: [{ title: "Permissões — Plataforma IA WhatsApp" }] }),
-  component: Page,
+  head: () => ({ meta: [{ title: "Permissões — Admin Master" }] }),
+  component: () => <MasterGuard><Page /></MasterGuard>,
 });
 
+type Role = "admin" | "master" | "supervisor" | "atendente" | "viewer";
+const ROLES: { value: Role; label: string; color: string }[] = [
+  { value: "master", label: "Master", color: "bg-amber-500/15 text-amber-400 border-amber-500/30" },
+  { value: "admin", label: "Admin", color: "bg-purple-500/15 text-purple-400 border-purple-500/30" },
+  { value: "supervisor", label: "Supervisor", color: "bg-blue-500/15 text-blue-400 border-blue-500/30" },
+  { value: "atendente", label: "Atendente", color: "bg-emerald-500/15 text-emerald-400 border-emerald-500/30" },
+  { value: "viewer", label: "Viewer", color: "bg-muted text-muted-foreground border-border" },
+];
+
+type Row = { user_id: string; full_name: string | null; email: string; status: string | null; roles: Role[] };
+
 function Page() {
+  const [search, setSearch] = useState("");
+  const [rows, setRows] = useState<Row[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [busy, setBusy] = useState<string | null>(null);
+  const [newRole, setNewRole] = useState<Record<string, Role>>({});
+
+  async function load() {
+    setLoading(true);
+    const { data, error } = await supabase.rpc("master_list_users_with_roles", { _search: search || null });
+    setLoading(false);
+    if (error) return toast.error(error.message);
+    setRows((data ?? []) as unknown as Row[]);
+  }
+
+  useEffect(() => { load(); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, []);
+
+  async function grant(userId: string, role: Role) {
+    setBusy(userId + role);
+    const { error } = await supabase.rpc("master_grant_role", { _user_id: userId, _role: role });
+    setBusy(null);
+    if (error) return toast.error(error.message);
+    toast.success(`Papel "${role}" concedido`);
+    load();
+  }
+  async function revoke(userId: string, role: Role) {
+    if (!confirm(`Remover papel "${role}" deste usuário?`)) return;
+    setBusy(userId + role);
+    const { error } = await supabase.rpc("master_revoke_role", { _user_id: userId, _role: role });
+    setBusy(null);
+    if (error) return toast.error(error.message);
+    toast.success("Papel removido");
+    load();
+  }
+
   return (
-    <MasterGuard>
-    <CrudResource
-      table="user_roles"
+    <PageShell
       title="Permissões"
-      description="Papéis por usuário."
-      singular="Permissão"
+      description="Conceda ou remova papéis (roles) para cada usuário da plataforma."
       icon={<ShieldCheck className="h-6 w-6" />}
-      fields={[
-    {name:"role", label:"Papel", type:"select", required:true, options:[{value:"admin",label:"Admin"},{value:"supervisor",label:"Supervisor"},{value:"atendente",label:"Atendente"},{value:"viewer",label:"Viewer"}]}
-      ]}
-    />
-    </MasterGuard>
+    >
+      <Card className="border-primary/20">
+        <CardContent className="pt-6 space-y-4">
+          <div className="flex gap-2">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                className="pl-9"
+                placeholder="Buscar por e-mail ou nome…"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && load()}
+              />
+            </div>
+            <Button onClick={load} disabled={loading}>
+              {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Buscar"}
+            </Button>
+          </div>
+
+          {loading ? (
+            <div className="py-10 flex justify-center"><Loader2 className="h-5 w-5 animate-spin text-primary" /></div>
+          ) : rows.length === 0 ? (
+            <div className="py-10 text-center text-muted-foreground text-sm">Nenhum usuário encontrado.</div>
+          ) : (
+            <div className="space-y-2">
+              {rows.map((u) => (
+                <div key={u.user_id} className="rounded-lg border border-border/60 p-3 flex flex-col sm:flex-row sm:items-center gap-3">
+                  <div className="flex items-center gap-2 min-w-0 flex-1">
+                    <div className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-primary/15 text-primary">
+                      {u.roles.includes("master") ? <Crown className="h-4 w-4" /> : <User className="h-4 w-4" />}
+                    </div>
+                    <div className="min-w-0">
+                      <div className="font-medium truncate text-sm">{u.full_name || u.email}</div>
+                      <div className="text-xs text-muted-foreground truncate">{u.email}</div>
+                    </div>
+                  </div>
+                  <div className="flex flex-wrap gap-1.5">
+                    {u.roles.length === 0 && <span className="text-xs text-muted-foreground italic">sem papéis</span>}
+                    {u.roles.map((r) => {
+                      const meta = ROLES.find((x) => x.value === r);
+                      return (
+                        <Badge key={r} className={`gap-1 ${meta?.color ?? ""}`}>
+                          {meta?.label ?? r}
+                          <button
+                            onClick={() => revoke(u.user_id, r)}
+                            disabled={busy === u.user_id + r}
+                            className="ml-1 hover:opacity-70"
+                            aria-label={`Remover ${r}`}
+                          >
+                            {busy === u.user_id + r ? <Loader2 className="h-3 w-3 animate-spin" /> : <X className="h-3 w-3" />}
+                          </button>
+                        </Badge>
+                      );
+                    })}
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Select value={newRole[u.user_id] ?? ""} onValueChange={(v) => setNewRole((s) => ({ ...s, [u.user_id]: v as Role }))}>
+                      <SelectTrigger className="h-8 w-32 text-xs"><SelectValue placeholder="Adicionar…" /></SelectTrigger>
+                      <SelectContent>
+                        {ROLES.filter((r) => !u.roles.includes(r.value)).map((r) => (
+                          <SelectItem key={r.value} value={r.value}>{r.label}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      disabled={!newRole[u.user_id] || busy === u.user_id + newRole[u.user_id]}
+                      onClick={() => {
+                        const r = newRole[u.user_id];
+                        if (r) grant(u.user_id, r);
+                      }}
+                    >
+                      {busy === u.user_id + newRole[u.user_id] ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
+                    </Button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+          <p className="text-xs text-muted-foreground pt-2">
+            <strong>Master:</strong> acesso total. <strong>Admin:</strong> gerencia clientes, planos e configurações.
+            <strong> Supervisor/Atendente/Viewer:</strong> reservados para permissões futuras por módulo.
+          </p>
+        </CardContent>
+      </Card>
+    </PageShell>
   );
 }
