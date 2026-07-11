@@ -29,24 +29,64 @@ export function NotificationBell() {
   const [items, setItems] = useState<Notification[]>([]);
   const [open, setOpen] = useState(false);
 
-  const load = async () => {
-    const { data } = await supabase.from("notifications").select("*").order("created_at", { ascending: false }).limit(30);
-    setItems((data as Notification[]) ?? []);
-  };
   useEffect(() => {
-    load();
-    const channel = supabase.channel("notifications-bell")
-      .on("postgres_changes", { event: "*", schema: "public", table: "notifications" }, () => load())
-      .subscribe();
-    return () => { supabase.removeChannel(channel); };
+    let userId: string | null = null;
+    let channel: ReturnType<typeof supabase.channel> | null = null;
+    let cancelled = false;
+
+    const dedupe = (arr: Notification[]) => {
+      const seen = new Set<string>();
+      return arr.filter(n => (seen.has(n.id) ? false : (seen.add(n.id), true)));
+    };
+
+    (async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user || cancelled) return;
+      userId = user.id;
+      const { data } = await supabase
+        .from("notifications")
+        .select("*")
+        .eq("user_id", userId)
+        .order("created_at", { ascending: false })
+        .limit(30);
+      if (cancelled) return;
+      setItems(dedupe((data as Notification[]) ?? []));
+
+      channel = supabase.channel(`notifications-bell-${userId}`)
+        .on("postgres_changes",
+          { event: "INSERT", schema: "public", table: "notifications", filter: `user_id=eq.${userId}` },
+          (payload) => {
+            const n = payload.new as Notification;
+            setItems(prev => dedupe([n, ...prev]).slice(0, 30));
+          })
+        .on("postgres_changes",
+          { event: "UPDATE", schema: "public", table: "notifications", filter: `user_id=eq.${userId}` },
+          (payload) => {
+            const n = payload.new as Notification;
+            setItems(prev => prev.map(x => x.id === n.id ? { ...x, ...n } : x));
+          })
+        .on("postgres_changes",
+          { event: "DELETE", schema: "public", table: "notifications", filter: `user_id=eq.${userId}` },
+          (payload) => {
+            const oldId = (payload.old as { id?: string }).id;
+            if (oldId) setItems(prev => prev.filter(x => x.id !== oldId));
+          })
+        .subscribe();
+    })();
+
+    return () => {
+      cancelled = true;
+      if (channel) supabase.removeChannel(channel);
+    };
   }, []);
 
   const visible = useMemo(() => items.filter(n => !n.read_at), [items]);
   const unread = visible.length;
 
   const markOne = async (id: string) => {
-    setItems(prev => prev.map(n => n.id === id ? { ...n, read_at: new Date().toISOString() } : n));
-    await supabase.from("notifications").update({ read_at: new Date().toISOString() }).eq("id", id);
+    const now = new Date().toISOString();
+    setItems(prev => prev.map(n => n.id === id ? { ...n, read_at: now } : n));
+    await supabase.from("notifications").update({ read_at: now }).eq("id", id).is("read_at", null);
   };
 
   const markAll = async () => {
