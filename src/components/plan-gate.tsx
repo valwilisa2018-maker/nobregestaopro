@@ -56,7 +56,21 @@ function usePlanInfo(): PlanInfo | null {
     const ch = supabase.channel("plan-gate")
       .on("postgres_changes", { event: "*", schema: "public", table: "profiles" }, load)
       .subscribe();
-    return () => { cancel = true; supabase.removeChannel(ch); };
+    // Fallback: profiles table is not in the realtime publication, so poll
+    // and refetch on focus/visibility so approval by admin unlocks the UI
+    // without requiring a manual reload.
+    const interval = window.setInterval(load, 5000);
+    const onFocus = () => load();
+    const onVisibility = () => { if (document.visibilityState === "visible") load(); };
+    window.addEventListener("focus", onFocus);
+    document.addEventListener("visibilitychange", onVisibility);
+    return () => {
+      cancel = true;
+      supabase.removeChannel(ch);
+      window.clearInterval(interval);
+      window.removeEventListener("focus", onFocus);
+      document.removeEventListener("visibilitychange", onVisibility);
+    };
   }, []);
   return info;
 }
