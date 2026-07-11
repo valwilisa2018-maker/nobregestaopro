@@ -30,6 +30,9 @@ function AuthPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const [resetOpen, setResetOpen] = useState(false);
+  const [resetEmail, setResetEmail] = useState("");
+  const [resetLoading, setResetLoading] = useState(false);
   const [captcha, setCaptcha] = useState<{ a: number; b: number; token: string }>({ a: 0, b: 0, token: "" });
   const [captchaAnswer, setCaptchaAnswer] = useState("");
 
@@ -132,6 +135,13 @@ function AuthPage() {
                 </div>
                 <CaptchaField captcha={captcha} value={captchaAnswer} onChange={setCaptchaAnswer} onRefresh={regenCaptcha} />
                 <Button type="submit" className="w-full" disabled={loading}>Entrar</Button>
+                <button
+                  type="button"
+                  onClick={() => { setResetEmail(email); setResetOpen(true); }}
+                  className="w-full text-sm text-orange-500 hover:text-orange-400 hover:underline"
+                >
+                  Esqueceu a senha?
+                </button>
               </form>
             </TabsContent>
             <TabsContent value="signup">
@@ -151,6 +161,41 @@ function AuthPage() {
           </Tabs>
         </CardContent>
       </Card>
+      {resetOpen && (
+        <div className="fixed inset-0 z-50 grid place-items-center bg-black/60 p-4" onClick={() => setResetOpen(false)}>
+          <Card className="w-full max-w-sm" onClick={(e) => e.stopPropagation()}>
+            <CardHeader>
+              <CardTitle className="text-lg">Recuperar senha</CardTitle>
+              <CardDescription>Enviaremos um link para redefinir sua senha.</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <form
+                className="space-y-3"
+                onSubmit={async (e) => {
+                  e.preventDefault();
+                  setResetLoading(true);
+                  const { error } = await supabase.auth.resetPasswordForEmail(resetEmail, {
+                    redirectTo: `${window.location.origin}/reset-password`,
+                  });
+                  setResetLoading(false);
+                  if (error) return toast.error(error.message);
+                  toast.success("Link enviado! Verifique seu e-mail.");
+                  setResetOpen(false);
+                }}
+              >
+                <div className="space-y-2">
+                  <Label htmlFor="resetEmail">E-mail</Label>
+                  <Input id="resetEmail" type="email" value={resetEmail} onChange={(e) => setResetEmail(e.target.value)} required />
+                </div>
+                <div className="flex gap-2">
+                  <Button type="button" variant="outline" className="flex-1" onClick={() => setResetOpen(false)}>Cancelar</Button>
+                  <Button type="submit" className="flex-1" disabled={resetLoading}>Enviar link</Button>
+                </div>
+              </form>
+            </CardContent>
+          </Card>
+        </div>
+      )}
     </div>
   );
 }
@@ -160,17 +205,17 @@ function CaptchaField({
 }: { captcha: { a: number; b: number }; value: string; onChange: (v: string) => void; onRefresh: () => void }) {
   return (
     <div className="space-y-2">
-      <Label htmlFor="captcha" className="flex items-center gap-1.5">
-        <ShieldCheck className="h-3.5 w-3.5 text-primary" /> Verificação de segurança
+      <Label htmlFor="captcha" className="flex items-center gap-1.5 text-orange-500">
+        <ShieldCheck className="h-3.5 w-3.5" /> Verificação de segurança
       </Label>
       <div className="flex items-center gap-2">
         <div
-          className="select-none rounded-md border bg-gradient-to-br from-muted to-muted/40 px-4 py-2 font-mono text-lg font-bold tracking-widest italic"
-          style={{ textShadow: "1px 1px 0 hsl(var(--primary) / 0.25)", letterSpacing: "0.25em" }}
+          className="select-none rounded-md border border-orange-500/40 bg-gradient-to-br from-orange-500/15 to-amber-500/5 px-4 py-2 font-mono text-lg font-bold tracking-widest italic text-orange-400"
+          style={{ textShadow: "1px 1px 0 rgba(249, 115, 22, 0.35)", letterSpacing: "0.25em" }}
         >
           {captcha.a} + {captcha.b} = ?
         </div>
-        <Button type="button" size="icon" variant="outline" onClick={onRefresh} title="Gerar outro">
+        <Button type="button" size="icon" variant="outline" onClick={onRefresh} title="Gerar outro" className="border-orange-500/40 text-orange-500 hover:bg-orange-500/10 hover:text-orange-400">
           <RefreshCw className="h-4 w-4" />
         </Button>
       </div>
@@ -182,6 +227,7 @@ function CaptchaField({
         value={value}
         onChange={(e) => onChange(e.target.value)}
         required
+        className="border-orange-500/30 focus-visible:ring-orange-500/60"
       />
     </div>
   );
