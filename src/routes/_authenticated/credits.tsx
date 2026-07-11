@@ -477,10 +477,25 @@ function Page() {
                             t.kind === "usage" ? "text-rose-400 border-rose-500/30" :
                             t.kind === "purchase" ? "text-emerald-400 border-emerald-500/30" :
                             "text-primary border-primary/30"
-                          }>{t.kind}</Badge>
+                          }>{
+                            t.kind === "usage" ? "consumo" :
+                            t.kind === "purchase" ? "compra" :
+                            t.kind === "plan_grant" ? "plano" :
+                            t.kind === "grant" ? "concessão" :
+                            t.kind === "adjustment" ? "ajuste" :
+                            t.kind
+                          }</Badge>
                         </td>
                         <td className="py-2 px-2">
-                          <span className={t.status === "ok" ? "text-emerald-400" : "text-rose-400"}>{t.status}</span>
+                          <span className={
+                            t.status === "ok" ? "text-emerald-400" :
+                            t.status === "pending" ? "text-amber-400" :
+                            "text-rose-400"
+                          }>{
+                            t.status === "ok" ? "ok" :
+                            t.status === "pending" ? "aguardando pagamento" :
+                            t.status
+                          }</span>
                         </td>
                       </tr>
                     ))}
