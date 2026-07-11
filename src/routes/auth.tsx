@@ -9,7 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import logoAsset from "@/assets/agent-ia-logo.png.asset.json";
-import { issueCaptcha, signInWithCaptcha, signUpWithCaptcha } from "@/lib/captcha.functions";
+import { issueCaptcha, resetPasswordWithCaptcha, signInWithCaptcha, signUpWithCaptcha } from "@/lib/captcha.functions";
 
 export const Route = createFileRoute("/auth")({
   head: () => ({
@@ -120,14 +120,8 @@ function AuthPage() {
     });
     setLoading(false);
     if (!res.ok) { toast.error(res.error); regenCaptcha(); return; }
-    if (res.session) {
-      await supabase.auth.setSession(res.session);
-      toast.success("Conta criada!");
-      navigate({ to: "/dashboard" });
-    } else {
-      toast.success("Conta criada. Verifique seu e-mail para confirmar.");
-      regenCaptcha();
-    }
+    toast.success("Conta criada. Verifique seu e-mail para confirmar.");
+    regenCaptcha();
   };
 
   return (
@@ -221,11 +215,14 @@ function AuthPage() {
                     return toast.error("Verificação de segurança incorreta.");
                   }
                   setResetLoading(true);
-                  const { error } = await supabase.auth.resetPasswordForEmail(resetEmail, {
+                  const res = await resetPasswordWithCaptcha({ data: {
+                    email: resetEmail,
+                    token: captcha.token,
+                    answer: Number(captchaAnswer.trim()),
                     redirectTo: `${window.location.origin}/reset-password`,
-                  });
+                  } });
                   setResetLoading(false);
-                  if (error) return toast.error(error.message);
+                  if (!res.ok) return toast.error(res.error);
                   toast.success("Link enviado! Verifique seu e-mail.");
                   setResetOpen(false);
                   regenCaptcha();
