@@ -90,9 +90,6 @@ function LockdownScreen({ lock, logoUrl }: { lock: Lock; logoUrl: string }) {
   ];
   return (
     <div className="relative min-h-screen w-full overflow-hidden bg-[#07061a] px-4 py-8 sm:py-12">
-      {/* backdrop */}
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top,rgba(99,102,241,0.25),transparent_60%),radial-gradient(ellipse_at_bottom,rgba(168,85,247,0.2),transparent_60%)]" />
-      <div className="pointer-events-none absolute inset-0 opacity-[0.08] [background-image:linear-gradient(rgba(255,255,255,0.6)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.6)_1px,transparent_1px)] [background-size:40px_40px]" />
 
       <div className="relative mx-auto flex w-full max-w-3xl flex-col items-center text-center">
         <img
