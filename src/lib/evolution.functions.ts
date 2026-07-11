@@ -255,13 +255,14 @@ export const createAndConnectInstance = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((i: unknown) => CreateInput.parse(i))
   .handler(async ({ data, context }) => {
-    // Load global Evolution config from settings
-    const { data: setting } = await context.supabase
+    // Load global Evolution config from settings (admin-owned; read with service role so clients can use it)
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: setting } = await supabaseAdmin
       .from("settings").select("value").eq("key", "evolution_api").maybeSingle();
-    if (!setting?.value) throw new Error("Configure a Evolution API em Configurações antes de criar instâncias.");
+    if (!setting?.value) throw new Error("A plataforma ainda não está pronta para gerar instâncias. Tente novamente em instantes.");
     let cfg: { url_api?: string; api_key?: string; webhook_base_url?: string } = {};
-    try { cfg = typeof setting.value === "string" ? JSON.parse(setting.value) : setting.value; } catch { throw new Error("Configuração da Evolution API inválida (JSON)."); }
-    if (!cfg.url_api || !cfg.api_key) throw new Error("URL da API e API Key são obrigatórias em Configurações.");
+    try { cfg = typeof setting.value === "string" ? JSON.parse(setting.value as any) : (setting.value as any); } catch { throw new Error("Configuração interna inválida. Contate o suporte."); }
+    if (!cfg.url_api || !cfg.api_key) throw new Error("A plataforma ainda não está pronta para gerar instâncias. Tente novamente em instantes.");
 
     let webhookBase = cfg.webhook_base_url || data.webhookBaseUrl;
     if (!webhookBase) {
