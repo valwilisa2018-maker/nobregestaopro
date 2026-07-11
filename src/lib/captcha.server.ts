@@ -1,6 +1,8 @@
 import { createClient } from "@supabase/supabase-js";
 import { createHmac, timingSafeEqual } from "node:crypto";
 import type { Database } from "@/integrations/supabase/types";
+import { supabaseAdmin } from "@/integrations/supabase/client.server";
+import { sendPasswordReset, sendSignupWelcome } from "./email-brevo.server";
 
 const TTL_MS = 5 * 60 * 1000;
 
@@ -57,13 +59,37 @@ export async function signUpWithPassword(
   emailRedirectTo?: string,
   metadata?: Record<string, unknown>,
 ) {
-  const supabase = anonClient();
-  return supabase.auth.signUp({
+  const { data, error } = await supabaseAdmin.auth.admin.generateLink({
+    type: "signup",
     email,
     password,
     options: {
-      ...(emailRedirectTo ? { emailRedirectTo } : {}),
+      ...(emailRedirectTo ? { redirectTo: emailRedirectTo } : {}),
       ...(metadata ? { data: metadata } : {}),
     },
   });
+  if (error) return { data, error };
+  try {
+    await sendSignupWelcome(email, typeof metadata?.full_name === "string" ? metadata.full_name : undefined, data.properties?.action_link);
+  } catch (sendError) {
+    console.error("Brevo signup email failed", sendError);
+    return { data, error: { message: sendError instanceof Error ? sendError.message : "Falha ao enviar e-mail de confirmação." } };
+  }
+  return { data, error: null };
+}
+
+export async function sendPasswordResetWithBrevo(email: string, redirectTo: string) {
+  const { data, error } = await supabaseAdmin.auth.admin.generateLink({
+    type: "recovery",
+    email,
+    options: { redirectTo },
+  });
+  if (error) return { ok: false as const, error: error.message };
+  try {
+    await sendPasswordReset(email, data.properties?.action_link ?? redirectTo);
+    return { ok: true as const };
+  } catch (sendError) {
+    console.error("Brevo reset email failed", sendError);
+    return { ok: false as const, error: sendError instanceof Error ? sendError.message : "Falha ao enviar e-mail de recuperação." };
+  }
 }
