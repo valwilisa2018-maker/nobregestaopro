@@ -219,16 +219,13 @@ export function AgentEditor({ agent, onSaved, onCancel }: Props) {
     const results: Array<{ n: number; title: string; ok: boolean; msg: string }> = [];
     const push = (n: number, title: string, ok: boolean, msg: string) => results.push({ n, title, ok, msg });
     try {
-      // 1) Modelo — checa provedor do usuário e, se não houver, fallback global (admin/master)
-      let { data: prov } = await supabase.from("ai_providers").select("id, provider, model").eq("user_id", user.id).eq("is_active", true).limit(1).maybeSingle();
-      if (!prov) {
-        const { data: adminIds } = await supabase.from("user_roles").select("user_id").in("role", ["admin", "master"]);
-        const ids = (adminIds ?? []).map((r) => r.user_id);
-        if (ids.length) {
-          const { data: globalRow } = await supabase.from("ai_providers").select("id, provider, model").in("user_id", ids).eq("is_active", true).order("updated_at", { ascending: false }).limit(1).maybeSingle();
-          if (globalRow) prov = globalRow;
-        }
-      }
+      // 1) Modelo — resolvido no servidor (considera provedor próprio e global do admin/master)
+      const { checkActiveAIProvider } = await import("@/lib/ai-provider-check.functions");
+      let prov: { provider: string; model: string } | null = null;
+      try {
+        const r = await checkActiveAIProvider();
+        if (r.ok) prov = { provider: r.provider, model: r.model };
+      } catch { /* sem sessão / falha rede — trata como sem provedor */ }
       const hasPrompt = !!form.system_prompt && (form.max_tokens ?? 0) > 0;
       const hasModel = !!prov && hasPrompt;
       const reason = !prov ? "Sem provedor de IA ativo (nem próprio, nem global)" : !form.system_prompt ? "Prompt do sistema vazio" : "max_tokens não configurado";
