@@ -12,7 +12,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, Dialog
 import { Badge } from "@/components/ui/badge";
 import { Plus, RefreshCw, Play, Power, Trash2, QrCode, CheckCircle2, XCircle, Activity, Webhook } from "lucide-react";
 import { toast } from "sonner";
-import { testConnection, connectInstance, disconnectInstance, testWebhook, createAndConnectInstance } from "@/lib/evolution.functions";
+import { testConnection, connectInstance, disconnectInstance, testWebhook, createAndConnectInstance, deleteInstance } from "@/lib/evolution.functions";
 
 export const Route = createFileRoute("/_authenticated/connections")({
   head: () => ({ meta: [{ title: "Conexões — Plataforma IA WhatsApp" }] }),
@@ -58,6 +58,7 @@ function ConnectionsPage() {
   const disconnectFn = useServerFn(disconnectInstance);
   const testWebhookFn = useServerFn(testWebhook);
   const createFn = useServerFn(createAndConnectInstance);
+  const deleteFn = useServerFn(deleteInstance);
 
   const load = async () => {
     setLoading(true);
@@ -96,11 +97,14 @@ function ConnectionsPage() {
   };
 
   const remove = async (id: string) => {
-    if (!confirm("Excluir esta conexão?")) return;
-    const { error } = await supabase.from("connections").delete().eq("id", id);
-    if (error) return toast.error(error.message);
-    toast.success("Conexão removida");
-    load();
+    if (!confirm("Excluir esta conexão? A instância também será removida da Evolution API.")) return;
+    try {
+      await deleteFn({ data: { connectionId: id } });
+      toast.success("Conexão removida (local e Evolution)");
+      load();
+    } catch (e: any) {
+      toast.error(e?.message ?? "Falha ao excluir");
+    }
   };
 
   const doTest = async (c: Connection) => {
