@@ -2,6 +2,7 @@ import { createClient } from "@supabase/supabase-js";
 import type { Database } from "@/integrations/supabase/types";
 
 const BREVO_API = "https://api.brevo.com/v3/smtp/email";
+const BREVO_SENDERS_API = "https://api.brevo.com/v3/senders";
 
 export type EmailSettings = {
   sender_email: string | null;
@@ -36,9 +37,10 @@ function renderTemplate(opts: {
   senderName: string;
 }) {
   const { title, body, ctaLabel, ctaUrl, bannerUrl, brandColor, senderName } = opts;
-  const banner = bannerUrl
+  const bannerImg = bannerUrl
     ? `<img src="${bannerUrl}" alt="${senderName}" style="width:100%;max-width:600px;display:block;border:0;border-radius:12px 12px 0 0" />`
     : "";
+  const banner = bannerImg && ctaUrl ? `<a href="${ctaUrl}" target="_blank" style="display:block;text-decoration:none">${bannerImg}</a>` : bannerImg;
   const cta = ctaLabel && ctaUrl
     ? `<a href="${ctaUrl}" style="display:inline-block;background:${brandColor};color:#111;font-weight:700;padding:14px 26px;border-radius:10px;text-decoration:none;font-family:Arial,sans-serif">${ctaLabel}</a>`
     : "";
@@ -102,14 +104,40 @@ export async function sendBrevoEmail(input: {
   return (await res.json()) as { messageId?: string };
 }
 
+export async function checkBrevoSender(settings: EmailSettings | null) {
+  const apiKey = process.env.BREVO_API_KEY?.trim();
+  if (!apiKey) return { ok: false as const, status: "missing_key" as const, message: "Chave Brevo não configurada." };
+  if (apiKey.startsWith("xsmtpsib-")) return { ok: false as const, status: "smtp_key" as const, message: "A chave salva é SMTP; use uma API Key v3 iniciada por xkeysib-." };
+  if (!apiKey.startsWith("xkeysib-")) return { ok: false as const, status: "invalid_key" as const, message: "Chave Brevo inválida." };
+  if (!settings?.sender_email) return { ok: false as const, status: "missing_sender" as const, message: "Remetente não configurado." };
+
+  const res = await fetch(BREVO_SENDERS_API, {
+    method: "GET",
+    headers: { "api-key": apiKey, accept: "application/json" },
+  });
+  const text = await res.text();
+  if (!res.ok) {
+    return { ok: false as const, status: "api_error" as const, message: `Brevo [${res.status}]: ${text}` };
+  }
+  const payload = JSON.parse(text || "{}") as { senders?: Array<{ email?: string; name?: string; active?: boolean }> };
+  const sender = payload.senders?.find((s) => s.email?.toLowerCase() === settings.sender_email?.toLowerCase());
+  if (!sender) {
+    return { ok: false as const, status: "sender_not_found" as const, message: `O remetente ${settings.sender_email} não aparece como remetente verificado na Brevo.` };
+  }
+  if (sender.active === false) {
+    return { ok: false as const, status: "sender_inactive" as const, message: `O remetente ${settings.sender_email} existe na Brevo, mas ainda não está ativo/verificado.` };
+  }
+  return { ok: true as const, status: "ready" as const, message: `API e remetente ${settings.sender_email} estão prontos na Brevo.` };
+}
+
 export async function sendSignupWelcome(email: string, name: string | undefined, ctaUrl?: string) {
   const settings = await loadEmailSettings();
   if (!settings || !settings.signup_enabled) return { skipped: true as const };
   const html = renderTemplate({
-    title: `Bem-vindo(a)${name ? `, ${name}` : ""}! 🎉`,
-    body: `<p>Sua conta na <strong>${settings.sender_name}</strong> foi criada com sucesso.</p>
-           <p>Acesse a plataforma, ative seu plano e comece a automatizar seu WhatsApp com IA.</p>`,
-    ctaLabel: ctaUrl ? "Acessar plataforma" : undefined,
+    title: `Confirme seu e-mail${name ? `, ${name.split(" ")[0]}` : ""}`,
+    body: `<p>Seu cadastro na <strong>${settings.sender_name}</strong> foi realizado com sucesso.</p>
+           <p>Falta apenas confirmar seu e-mail para ativar sua conta com segurança.</p>`,
+    ctaLabel: ctaUrl ? "Confirmar e-mail" : undefined,
     ctaUrl,
     bannerUrl: settings.signup_banner_url,
     brandColor: settings.brand_color,
