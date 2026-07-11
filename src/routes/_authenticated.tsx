@@ -6,6 +6,7 @@ import { PlanExpiryBanner } from "@/components/plan-status";
 import { NotificationBell } from "@/components/notification-bell";
 import { AnnouncementModal } from "@/components/announcement-modal";
 import { MaintenanceBanner } from "@/components/maintenance-banner";
+import { PlanGate } from "@/components/plan-gate";
 import { useEffect } from "react";
 
 export const Route = createFileRoute("/_authenticated")({
@@ -38,7 +39,9 @@ function AuthedLayout() {
             </div>
           </header>
           <main className="flex-1 p-3 sm:p-6 bg-muted/20 min-w-0">
-            <Outlet />
+            <PlanGate>
+              <Outlet />
+            </PlanGate>
           </main>
           <AnnouncementModal />
         </div>
