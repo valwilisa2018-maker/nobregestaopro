@@ -8,7 +8,9 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import logoAsset from "@/assets/agent-ia-logo.png.asset.json";
-import robotImg from "@/assets/maintenance-robot.png";
+import robotWelcome from "@/assets/robot-welcome.png";
+import robotExpiring from "@/assets/robot-expiring.png";
+import robotExpired from "@/assets/robot-expired.png";
 
 type PlanInfo = {
   planName: string | null;
