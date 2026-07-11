@@ -24,6 +24,7 @@ import {
   saveBroadcastSteps, runSequentialBatch, listRecipientsTimeline,
 } from "@/lib/broadcasts.functions";
 import { listFlows } from "@/lib/flows.functions";
+import { TutorialVideo } from "@/components/tutorial-video";
 
 export const Route = createFileRoute("/_authenticated/broadcasts")({
   component: BroadcastsPage,
@@ -225,6 +226,7 @@ function BroadcastsPage() {
           <p className="text-xs text-muted-foreground">Campanhas em massa com humanização, janela de horário e limites</p>
         </div>
       </div>
+      <TutorialVideo moduleKey="broadcasts" title="Como fazer Disparos em massa" />
 
       {runningId && progress && (
         <Card className="border-primary/40">

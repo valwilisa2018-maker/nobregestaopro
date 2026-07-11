@@ -27,6 +27,7 @@ import "@xyflow/react/dist/style.css";
 import { generateFlow, saveFlow, listFlows, deleteFlow } from "@/lib/flows.functions";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
+import { TutorialVideo } from "@/components/tutorial-video";
 
 export const Route = createFileRoute("/_authenticated/flows")({
   head: () => ({ meta: [{ title: "Fluxos de Conversa com IA — Plataforma" }] }),
@@ -280,6 +281,7 @@ function Page() {
       icon={<Workflow className="h-6 w-6" />}
       status="ativo"
     >
+      <div className="mb-4"><TutorialVideo moduleKey="flows" title="Como criar Fluxos" /></div>
       <ReactFlowProvider>
         <Builder />
       </ReactFlowProvider>
