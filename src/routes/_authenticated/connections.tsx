@@ -78,8 +78,13 @@ function ConnectionsPage() {
       if (form.notes) {
         await supabase.from("connections").update({ notes: form.notes }).eq("id", r.connectionId);
       }
-      toast.success("Instância criada");
-      if (r.qr) setQr({ open: true, data: r.qr, name: form.name });
+      let qrData = r.qr as string | null;
+      if (!qrData) {
+        const c = await connectFn({ data: { connectionId: r.connectionId } });
+        qrData = c.qr ?? null;
+      }
+      if (qrData) setQr({ open: true, data: qrData, name: form.name });
+      else toast.info("Instância criada — aguarde alguns segundos e clique em Conectar para gerar o QR.");
       setOpen(false);
       setForm({ name: "", instance_name: "", notes: "" });
       load();
