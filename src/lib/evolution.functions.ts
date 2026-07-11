@@ -1,5 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { getRequestHost } from "@tanstack/react-start/server";
 import { z } from "zod";
 
 const MEDIA_BUCKET = "agent-media";
@@ -262,7 +263,13 @@ export const createAndConnectInstance = createServerFn({ method: "POST" })
     try { cfg = typeof setting.value === "string" ? JSON.parse(setting.value) : setting.value; } catch { throw new Error("Configuração da Evolution API inválida (JSON)."); }
     if (!cfg.url_api || !cfg.api_key) throw new Error("URL da API e API Key são obrigatórias em Configurações.");
 
-    const webhookBase = cfg.webhook_base_url || data.webhookBaseUrl;
+    let webhookBase = cfg.webhook_base_url || data.webhookBaseUrl;
+    if (!webhookBase) {
+      try {
+        const host = getRequestHost({ xForwardedHost: true });
+        if (host) webhookBase = `https://${host}`;
+      } catch { /* ignore */ }
+    }
     const webhookSecret = process.env.FOLLOWUP_TRIGGER_SECRET ?? "";
     const webhookUrl = webhookBase ? `${webhookBase.replace(/\/+$/, "")}/api/public/evolution/${data.instanceName}${webhookSecret ? `?token=${encodeURIComponent(webhookSecret)}` : ""}` : undefined;
 
