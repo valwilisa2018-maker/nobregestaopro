@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip, CartesianGrid, PieChart, Pie, Cell, Legend, BarChart, Bar, ComposedChart, Line } from "recharts";
 import { toCSV, downloadCSV } from "@/lib/csv";
 import jsPDF from "jspdf";
@@ -40,6 +41,7 @@ function Page() {
   const [to, setTo] = useState<string>(() => new Date().toISOString().slice(0,10));
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [typeFilter, setTypeFilter] = useState<string>("all");
+  const [detail, setDetail] = useState<null | { tipo: "Crédito" | "Plano"; order?: Order; req?: PlanReq }>(null);
 
   useEffect(() => {
     (async () => {
@@ -478,7 +480,19 @@ function Page() {
                       valor: planPrice.get(r.plan_id) ?? 0, status: r.status,
                     })) : []),
                   ].sort((a,b) => +new Date(b.date) - +new Date(a.date)).slice(0, 100).map(row => (
-                    <tr key={row.k} className="border-t">
+                    <tr
+                      key={row.k}
+                      className="border-t cursor-pointer hover:bg-muted/40 transition-colors"
+                      onClick={() => {
+                        if (row.k.startsWith("o-")) {
+                          const o = orders.find(x => x.id === row.k.slice(2));
+                          if (o) setDetail({ tipo: "Crédito", order: o });
+                        } else {
+                          const r = planReqs.find(x => x.id === row.k.slice(2));
+                          if (r) setDetail({ tipo: "Plano", req: r });
+                        }
+                      }}
+                    >
                       <td className="p-3">{new Date(row.date).toLocaleDateString("pt-BR")}</td>
                       <td className="p-3">{row.tipo}</td>
                       <td className="p-3">{row.cliente}</td>
@@ -495,8 +509,70 @@ function Page() {
               </table>
             </CardContent>
           </Card>
+
+          <Dialog open={!!detail} onOpenChange={(o) => !o && setDetail(null)}>
+            <DialogContent className="max-w-lg">
+              <DialogHeader>
+                <DialogTitle className="flex items-center gap-2">
+                  {detail?.tipo === "Crédito" ? <Coins className="h-4 w-4 text-primary" /> : <CheckCircle2 className="h-4 w-4 text-primary" />}
+                  Detalhamento — {detail?.tipo}
+                </DialogTitle>
+                <DialogDescription>Origem, datas e valores do lançamento selecionado.</DialogDescription>
+              </DialogHeader>
+              {detail?.order && (() => {
+                const o = detail.order;
+                const userUsage = usage.filter(u => u.user_id === o.user_id && inRange(u.occurred_at));
+                const userAiCost = userUsage.reduce((a,u)=>a+(u.cost_cents??0),0);
+                const userTokens = userUsage.reduce((a,u)=>a+(u.total_tokens??0),0);
+                return (
+                  <div className="text-sm space-y-2">
+                    <Row k="ID do pedido" v={<code className="text-xs">{o.id}</code>} />
+                    <Row k="Cliente" v={`${userName.get(o.user_id) ?? "—"}`} />
+                    <Row k="User ID" v={<code className="text-xs">{o.user_id}</code>} />
+                    <Row k="Tokens comprados" v={o.tokens.toLocaleString("pt-BR")} />
+                    <Row k="Valor" v={<span className="font-bold text-emerald-500">{formatBRL(o.price_cents)}</span>} />
+                    <Row k="Status" v={<Badge variant={o.status === "paid" ? "default" : o.status === "pending" ? "secondary" : "outline"}>{o.status}</Badge>} />
+                    <Row k="Origem" v="Compra de créditos (credit_orders)" />
+                    <Row k="Criado em" v={new Date(o.created_at).toLocaleString("pt-BR")} />
+                    <Row k="Pago em" v={o.paid_at ? new Date(o.paid_at).toLocaleString("pt-BR") : "—"} />
+                    <div className="mt-3 pt-3 border-t">
+                      <p className="text-xs text-muted-foreground mb-2">Consumo deste cliente no período</p>
+                      <Row k="Custo IA" v={<span className="text-rose-500">{formatBRL(userAiCost)}</span>} />
+                      <Row k="Tokens consumidos" v={userTokens.toLocaleString("pt-BR")} />
+                    </div>
+                  </div>
+                );
+              })()}
+              {detail?.req && (() => {
+                const r = detail.req;
+                const price = planPrice.get(r.plan_id) ?? 0;
+                return (
+                  <div className="text-sm space-y-2">
+                    <Row k="ID da solicitação" v={<code className="text-xs">{r.id}</code>} />
+                    <Row k="Cliente" v={`${userName.get(r.user_id) ?? "—"}`} />
+                    <Row k="User ID" v={<code className="text-xs">{r.user_id}</code>} />
+                    <Row k="Plano" v={planName.get(r.plan_id) ?? "—"} />
+                    <Row k="Valor do plano" v={<span className="font-bold text-emerald-500">{formatBRL(price)}</span>} />
+                    <Row k="Status" v={<Badge variant={r.status === "approved" ? "default" : r.status === "pending" ? "secondary" : "outline"}>{r.status}</Badge>} />
+                    <Row k="Origem" v="Solicitação de ativação de plano (plan_activation_requests)" />
+                    <Row k="Solicitado em" v={new Date(r.created_at).toLocaleString("pt-BR")} />
+                    <Row k="Aprovado em" v={r.approved_at ? new Date(r.approved_at).toLocaleString("pt-BR") : "—"} />
+                  </div>
+                );
+              })()}
+            </DialogContent>
+          </Dialog>
         </>
       )}
     </PageShell>
+  );
+}
+
+function Row({ k, v }: { k: string; v: React.ReactNode }) {
+  return (
+    <div className="flex justify-between gap-4 py-1">
+      <span className="text-muted-foreground text-xs">{k}</span>
+      <span className="text-right">{v}</span>
+    </div>
   );
 }
