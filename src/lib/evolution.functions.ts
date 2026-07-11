@@ -1258,7 +1258,7 @@ export const sendPresence = createServerFn({ method: "POST" })
       .select("phone").eq("id", data.contactId).eq("user_id", context.userId).single();
     if (!contact) return { ok: false as const, error: "Contato não encontrado" };
     try {
-      const conn = await pickActiveConnection(context.supabase, context.userId);
+      const conn = await pickConnectionForContact(context.supabase, context.userId, contact.phone);
       const apiKey = await loadEvolutionCommandKey(context.supabase, conn.api_key);
       const number = String(contact.phone).replace(/\D+/g, "");
       await evoFetch(`${baseUrl(conn.url_api)}/chat/sendPresence/${conn.instance_name}`, apiKey, {
@@ -1283,7 +1283,7 @@ export const subscribeContactPresence = createServerFn({ method: "POST" })
       .select("phone").eq("id", data.contactId).eq("user_id", context.userId).single();
     if (!contact) return { ok: false as const, error: "Contato não encontrado" };
     try {
-      const conn = await pickActiveConnection(context.supabase, context.userId);
+      const conn = await pickConnectionForContact(context.supabase, context.userId, contact.phone);
       const apiKey = await loadEvolutionCommandKey(context.supabase, conn.api_key);
       const number = String(contact.phone).replace(/\D+/g, "");
       // Try both spellings used across Evolution versions; ignore individual failures.
@@ -1308,34 +1308,54 @@ export const subscribeContactPresence = createServerFn({ method: "POST" })
 export const ensurePresenceWebhook = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
+    const { data: conns } = await context.supabase
+      .from("connections")
+      .select("*")
+      .eq("user_id", context.userId)
+      .order("last_sync", { ascending: false, nullsFirst: false })
+      .limit(50);
+    if (!conns?.length) return { ok: false as const, error: "Nenhuma conexão WhatsApp encontrada." };
+    let configured = 0;
+    let lastError = "Falha";
     try {
-      const conn = await pickActiveConnection(context.supabase, context.userId);
-      const apiKey = await loadEvolutionCommandKey(context.supabase, conn.api_key);
-      const found = await evoFetch(`${baseUrl(conn.url_api)}/webhook/find/${conn.instance_name}`, apiKey);
-      const cur = found.json?.webhook ?? found.json ?? {};
-      const events: string[] = Array.isArray(cur.events) ? cur.events : [];
-      const required = ["MESSAGES_UPSERT", "MESSAGES_UPDATE", "CONNECTION_UPDATE", "PRESENCE_UPDATE"];
-      const base64Enabled = cur.webhookBase64 ?? cur.webhook_base64 ?? cur.base64;
-      if (required.every((event) => events.includes(event)) && base64Enabled === false) return { ok: true as const, alreadyEnabled: true };
-      const url = cur.url || cur.webhookUrl;
-      if (!url) return { ok: false as const, error: "Webhook não configurado" };
-      const byEvents = cur.webhookByEvents ?? cur.webhook_by_events ?? cur.byEvents ?? false;
-      const webhook = {
-        enabled: true,
-        url,
-        webhookByEvents: byEvents,
-        webhook_by_events: byEvents,
-        byEvents,
-        webhookBase64: false,
-        webhook_base64: false,
-        base64: false,
-        events: [...new Set([...events, ...required])],
-      };
-      await evoFetch(`${baseUrl(conn.url_api)}/webhook/set/${conn.instance_name}`, apiKey, {
-        method: "POST",
-        body: JSON.stringify({ ...webhook, webhook }),
-      });
-      return { ok: true as const };
+      for (const conn of conns) {
+        try {
+          const apiKey = await loadEvolutionCommandKey(context.supabase, conn.api_key);
+          const found = await evoFetch(`${baseUrl(conn.url_api)}/webhook/find/${conn.instance_name}`, apiKey);
+          const cur = found.json?.webhook ?? found.json ?? {};
+          const events: string[] = Array.isArray(cur.events) ? cur.events : [];
+          const required = ["MESSAGES_UPSERT", "MESSAGES_UPDATE", "CONNECTION_UPDATE", "PRESENCE_UPDATE"];
+          const base64Enabled = cur.webhookBase64 ?? cur.webhook_base64 ?? cur.base64;
+          if (required.every((event) => events.includes(event)) && base64Enabled === false) {
+            configured += 1;
+            continue;
+          }
+          const url = cur.url || cur.webhookUrl;
+          if (!url) { lastError = "Webhook não configurado"; continue; }
+          const byEvents = cur.webhookByEvents ?? cur.webhook_by_events ?? cur.byEvents ?? false;
+          const webhook = {
+            enabled: true,
+            url,
+            webhookByEvents: byEvents,
+            webhook_by_events: byEvents,
+            byEvents,
+            webhookBase64: false,
+            webhook_base64: false,
+            base64: false,
+            events: [...new Set([...events, ...required])],
+          };
+          await evoFetch(`${baseUrl(conn.url_api)}/webhook/set/${conn.instance_name}`, apiKey, {
+            method: "POST",
+            body: JSON.stringify({ ...webhook, webhook }),
+          });
+          configured += 1;
+        } catch (e) {
+          lastError = e instanceof Error ? e.message : "Falha";
+        }
+      }
+      return configured > 0
+        ? { ok: true as const, configured }
+        : { ok: false as const, error: lastError };
     } catch (e) {
       return { ok: false as const, error: e instanceof Error ? e.message : "Falha" };
     }
