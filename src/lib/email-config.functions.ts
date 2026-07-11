@@ -14,16 +14,6 @@ export type EmailSettingsInput = {
   brand_color: string;
 };
 
-type BrevoKeyStatus = "missing" | "smtp" | "valid" | "invalid";
-
-function getBrevoKeyStatus(): BrevoKeyStatus {
-  const key = process.env.BREVO_API_KEY?.trim();
-  if (!key) return "missing";
-  if (key.startsWith("xsmtpsib-")) return "smtp";
-  if (key.startsWith("xkeysib-")) return "valid";
-  return "invalid";
-}
-
 export const getEmailSettings = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
@@ -31,7 +21,8 @@ export const getEmailSettings = createServerFn({ method: "GET" })
     if (!isMaster) throw new Error("forbidden");
     const { loadEmailSettings } = await import("./email-brevo.server");
     const s = await loadEmailSettings();
-    const brevoKeyStatus = getBrevoKeyStatus();
+    const key = process.env.BREVO_API_KEY?.trim();
+    const brevoKeyStatus = !key ? "missing" : key.startsWith("xsmtpsib-") ? "smtp" : key.startsWith("xkeysib-") ? "valid" : "invalid";
     return { settings: s, hasBrevoKey: brevoKeyStatus === "valid", brevoKeyStatus };
   });
 
