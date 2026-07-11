@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
+import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as MasterAuthRouteImport } from './routes/master-auth'
 import { Route as MasterRouteImport } from './routes/master'
 import { Route as AuthRouteImport } from './routes/auth'
@@ -75,6 +76,11 @@ import { Route as ApiPublicEvolutionInstanceRouteImport } from './routes/api/pub
 const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
   id: '/sitemap.xml',
   path: '/sitemap.xml',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ResetPasswordRoute = ResetPasswordRouteImport.update({
+  id: '/reset-password',
+  path: '/reset-password',
   getParentRoute: () => rootRouteImport,
 } as any)
 const MasterAuthRoute = MasterAuthRouteImport.update({
@@ -395,6 +401,7 @@ export interface FileRoutesByFullPath {
   '/auth': typeof AuthRoute
   '/master': typeof MasterRouteWithChildren
   '/master-auth': typeof MasterAuthRoute
+  '/reset-password': typeof ResetPasswordRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/admin-settings': typeof AuthenticatedAdminSettingsRoute
   '/agents': typeof AuthenticatedAgentsRoute
@@ -457,6 +464,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/master-auth': typeof MasterAuthRoute
+  '/reset-password': typeof ResetPasswordRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/admin-settings': typeof AuthenticatedAdminSettingsRoute
   '/agents': typeof AuthenticatedAgentsRoute
@@ -522,6 +530,7 @@ export interface FileRoutesById {
   '/auth': typeof AuthRoute
   '/master': typeof MasterRouteWithChildren
   '/master-auth': typeof MasterAuthRoute
+  '/reset-password': typeof ResetPasswordRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/_authenticated/admin-settings': typeof AuthenticatedAdminSettingsRoute
   '/_authenticated/agents': typeof AuthenticatedAgentsRoute
@@ -587,6 +596,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/master'
     | '/master-auth'
+    | '/reset-password'
     | '/sitemap.xml'
     | '/admin-settings'
     | '/agents'
@@ -649,6 +659,7 @@ export interface FileRouteTypes {
     | '/'
     | '/auth'
     | '/master-auth'
+    | '/reset-password'
     | '/sitemap.xml'
     | '/admin-settings'
     | '/agents'
@@ -713,6 +724,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/master'
     | '/master-auth'
+    | '/reset-password'
     | '/sitemap.xml'
     | '/_authenticated/admin-settings'
     | '/_authenticated/agents'
@@ -778,6 +790,7 @@ export interface RootRouteChildren {
   AuthRoute: typeof AuthRoute
   MasterRoute: typeof MasterRouteWithChildren
   MasterAuthRoute: typeof MasterAuthRoute
+  ResetPasswordRoute: typeof ResetPasswordRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   ApiV1BuyRoute: typeof ApiV1BuyRoute
   ApiV1ConsumeRoute: typeof ApiV1ConsumeRoute
@@ -800,6 +813,13 @@ declare module '@tanstack/react-router' {
       path: '/sitemap.xml'
       fullPath: '/sitemap.xml'
       preLoaderRoute: typeof SitemapDotxmlRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/reset-password': {
+      id: '/reset-password'
+      path: '/reset-password'
+      fullPath: '/reset-password'
+      preLoaderRoute: typeof ResetPasswordRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/master-auth': {
@@ -1345,6 +1365,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthRoute: AuthRoute,
   MasterRoute: MasterRouteWithChildren,
   MasterAuthRoute: MasterAuthRoute,
+  ResetPasswordRoute: ResetPasswordRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
   ApiV1BuyRoute: ApiV1BuyRoute,
   ApiV1ConsumeRoute: ApiV1ConsumeRoute,
