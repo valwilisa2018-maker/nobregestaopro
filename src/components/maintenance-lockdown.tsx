@@ -14,6 +14,26 @@ export function MaintenanceLockdown({ children }: { children: React.ReactNode })
   const [lock, setLock] = useState<Lock | null>(null);
   const [isMaster, setIsMaster] = useState(false);
   const [checked, setChecked] = useState(false);
+  const [logoUrl, setLogoUrl] = useState<string>(logoAsset.url);
+
+  useEffect(() => {
+    let cancelled = false;
+    const loadBranding = async () => {
+      const { data } = await supabase.from("internal_config").select("value").eq("key", "branding").maybeSingle();
+      if (cancelled) return;
+      try {
+        const parsed = data?.value ? (JSON.parse(data.value) as { maintenance_logo_url?: string }) : null;
+        const url = parsed?.maintenance_logo_url?.trim();
+        setLogoUrl(url || logoAsset.url);
+      } catch { setLogoUrl(logoAsset.url); }
+    };
+    loadBranding();
+    const ch = supabase
+      .channel("branding-gate")
+      .on("postgres_changes", { event: "*", schema: "public", table: "internal_config", filter: "key=eq.branding" }, loadBranding)
+      .subscribe();
+    return () => { cancelled = true; supabase.removeChannel(ch); };
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -55,10 +75,10 @@ export function MaintenanceLockdown({ children }: { children: React.ReactNode })
   const path = location.pathname || "";
   if (isMaster || path.startsWith("/master")) return <>{children}</>;
 
-  return <LockdownScreen lock={lock} />;
+  return <LockdownScreen lock={lock} logoUrl={logoUrl} />;
 }
 
-function LockdownScreen({ lock }: { lock: Lock }) {
+function LockdownScreen({ lock, logoUrl }: { lock: Lock; logoUrl: string }) {
   const ends = lock.ends_at ? new Date(lock.ends_at) : null;
   const title = lock.title?.trim() || "Estamos em Manutenção";
   const body = lock.body?.trim() || "Estamos trabalhando para melhorar a plataforma e trazer uma experiência ainda mais incrível para você!";
@@ -75,7 +95,12 @@ function LockdownScreen({ lock }: { lock: Lock }) {
       <div className="pointer-events-none absolute inset-0 opacity-[0.08] [background-image:linear-gradient(rgba(255,255,255,0.6)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.6)_1px,transparent_1px)] [background-size:40px_40px]" />
 
       <div className="relative mx-auto flex w-full max-w-3xl flex-col items-center text-center">
-        <img src={logoAsset.url} alt="Agent IA" className="h-20 w-20 sm:h-24 sm:w-24 rounded-2xl object-cover ring-1 ring-white/10" />
+        <img
+          src={logoUrl}
+          alt="Agent IA"
+          className="h-20 w-20 sm:h-24 sm:w-24 rounded-2xl object-cover ring-1 ring-white/10"
+          onError={(e) => { (e.currentTarget as HTMLImageElement).src = logoAsset.url; }}
+        />
         <div className="mt-3 text-[10px] sm:text-xs tracking-[0.35em] text-white/60">PLATAFORMA INTELIGENTE</div>
 
         <h1 className="mt-6 text-3xl sm:text-5xl font-extrabold leading-tight bg-gradient-to-r from-sky-400 via-indigo-400 to-fuchsia-400 bg-clip-text text-transparent">
