@@ -211,7 +211,7 @@ function CaptchaField({
 }: { captcha: { a: number; b: number }; value: string; onChange: (v: string) => void; onRefresh: () => void }) {
   return (
     <div className="space-y-2">
-      <Label htmlFor="captcha" className="flex items-center gap-1.5">
+      <Label htmlFor="captcha" className="flex items-center justify-center gap-1.5">
         <ShieldCheck className="h-3.5 w-3.5" /> Verificação de segurança
       </Label>
       <div className="flex items-center justify-center gap-2">
