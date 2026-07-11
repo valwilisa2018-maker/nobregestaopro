@@ -47,6 +47,7 @@ const groups = [
       { title: "API Keys", url: "/api", icon: KeyRound },
       { title: "Webhooks", url: "/webhooks", icon: Webhook },
       { title: "White Label", url: "/white-label", icon: Palette },
+      { title: "Personalização", url: "/master/branding", icon: Palette },
       { title: "Config. Global", url: "/admin-settings", icon: Settings2 },
     ],
   },
