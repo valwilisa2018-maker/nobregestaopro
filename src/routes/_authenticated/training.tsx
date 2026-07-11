@@ -11,6 +11,10 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { GraduationCap, Loader2, Play, CheckCircle2, MessageCircle, Trash2, Send, Lock } from "lucide-react";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
+import cover01 from "@/assets/modulo-01.png.asset.json";
+import cover02 from "@/assets/modulo-02.png.asset.json";
+import cover03 from "@/assets/modulo-03.png.asset.json";
+import cover04 from "@/assets/modulo-04.png.asset.json";
 
 export const Route = createFileRoute("/_authenticated/training")({
   head: () => ({ meta: [{ title: "Central de Treinamento — Plataforma" }] }),
@@ -25,6 +29,13 @@ const MODULES: Module[] = [
   { key: "modulo_03", label: "Automações Inteligentes", subtitle: "Módulo 03", gradient: "from-amber-500 via-orange-600 to-rose-700" },
   { key: "modulo_04", label: "Configurando seu Agente IA", subtitle: "Módulo 04", gradient: "from-fuchsia-600 via-purple-700 to-indigo-800" },
 ];
+
+const DEFAULT_COVERS: Record<string, string> = {
+  modulo_01: cover01.url,
+  modulo_02: cover02.url,
+  modulo_03: cover03.url,
+  modulo_04: cover04.url,
+};
 
 function toEmbed(url: string): { kind: "iframe" | "video"; src: string } | null {
   if (!url) return null;
@@ -94,7 +105,7 @@ function TrainingPage() {
         <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
           {MODULES.map((m, idx) => {
             const url = videos[m.key]?.trim();
-            const cover = covers[m.key]?.trim();
+            const cover = covers[m.key]?.trim() || DEFAULT_COVERS[m.key];
             const watched = !!progress[m.key];
             const locked = !url;
             return (
