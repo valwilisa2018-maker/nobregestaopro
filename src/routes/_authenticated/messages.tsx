@@ -1253,9 +1253,11 @@ function MessagesPage() {
       requestAnimationFrame(jump);
       const t1 = setTimeout(jump, 120);
       const t2 = setTimeout(jump, 400);
+      const t3 = setTimeout(jump, 900);
+      const t4 = setTimeout(jump, 1800);
       if (msgs.length > 0) settledForContactRef.current = contactId;
       msgsCountRef.current = msgs.length;
-      return () => { clearTimeout(t1); clearTimeout(t2); };
+      return () => { clearTimeout(t1); clearTimeout(t2); clearTimeout(t3); clearTimeout(t4); };
     }
     const prev = msgsCountRef.current;
     msgsCountRef.current = msgs.length;
