@@ -36,6 +36,14 @@ function EmailConfigPage() {
   const [saving, setSaving] = useState(false);
   const [testTo, setTestTo] = useState("");
   const [testing, setTesting] = useState<"signup" | "reset" | null>(null);
+  const [lastTest, setLastTest] = useState<{
+    ok: boolean;
+    kind: "signup" | "reset";
+    to: string;
+    message?: string;
+    messageId?: string;
+    at: string;
+  } | null>(null);
 
   useEffect(() => {
     getEmailSettings().then((res) => {
@@ -65,10 +73,20 @@ function EmailConfigPage() {
     setTesting(kind);
     try {
       await saveEmailSettings({ data: form });
-      await sendTestEmail({ data: { to: testTo, kind } });
-      toast.success(`E-mail de teste (${kind === "signup" ? "cadastro" : "reset"}) enviado!`);
+      const result = await sendTestEmail({ data: { to: testTo.trim(), kind } });
+      setLastTest({
+        ok: true,
+        kind,
+        to: testTo.trim(),
+        messageId: result.messageId,
+        message: "A Brevo aceitou o envio. Se não aparecer na caixa de entrada, verifique Spam/Promoções ou o status do remetente na Brevo.",
+        at: new Date().toLocaleString("pt-BR"),
+      });
+      toast.success(`Brevo aceitou o teste (${kind === "signup" ? "cadastro" : "reset"}).`);
     } catch (e: any) {
-      toast.error(e.message);
+      const message = e?.message || "Falha ao enviar o teste.";
+      setLastTest({ ok: false, kind, to: testTo.trim(), message, at: new Date().toLocaleString("pt-BR") });
+      toast.error(message);
     } finally {
       setTesting(null);
     }
@@ -203,6 +221,16 @@ function EmailConfigPage() {
               <Send className="h-4 w-4 mr-2" /> {testing === "reset" ? "Enviando…" : "Testar Reset"}
             </Button>
           </div>
+          {lastTest && (
+            <div className={lastTest.ok ? "rounded-lg border border-emerald-500/40 bg-emerald-500/10 p-3 text-sm" : "rounded-lg border border-destructive/40 bg-destructive/10 p-3 text-sm"}>
+              <div className="font-medium">
+                {lastTest.ok ? "Envio aceito pela Brevo" : "Falha no envio"} — {lastTest.kind === "signup" ? "Cadastro" : "Reset"}
+              </div>
+              <div className="mt-1 text-muted-foreground">Destino: {lastTest.to} • {lastTest.at}</div>
+              {lastTest.messageId && <div className="mt-1 break-all text-muted-foreground">ID Brevo: {lastTest.messageId}</div>}
+              {lastTest.message && <div className="mt-2">{lastTest.message}</div>}
+            </div>
+          )}
         </CardContent>
       </Card>
 
