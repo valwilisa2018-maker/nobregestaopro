@@ -138,7 +138,7 @@ function AuthPage() {
                 <button
                   type="button"
                   onClick={() => { setResetEmail(email); setResetOpen(true); }}
-                  className="w-full text-sm text-orange-500 hover:text-orange-400 hover:underline"
+                  className="w-full text-sm text-primary hover:underline"
                 >
                   Esqueceu a senha?
                 </button>
@@ -187,6 +187,7 @@ function AuthPage() {
                   <Label htmlFor="resetEmail">E-mail</Label>
                   <Input id="resetEmail" type="email" value={resetEmail} onChange={(e) => setResetEmail(e.target.value)} required />
                 </div>
+                <CaptchaField captcha={captcha} value={captchaAnswer} onChange={setCaptchaAnswer} onRefresh={regenCaptcha} />
                 <div className="flex gap-2">
                   <Button type="button" variant="outline" className="flex-1" onClick={() => setResetOpen(false)}>Cancelar</Button>
                   <Button type="submit" className="flex-1" disabled={resetLoading}>Enviar link</Button>
@@ -215,7 +216,7 @@ function CaptchaField({
         >
           {captcha.a} + {captcha.b} = ?
         </div>
-        <Button type="button" size="icon" variant="outline" onClick={onRefresh} title="Gerar outro" className="border-orange-500/40 text-orange-500 hover:bg-orange-500/10 hover:text-orange-400">
+        <Button type="button" size="icon" variant="outline" onClick={onRefresh} title="Gerar outro">
           <RefreshCw className="h-4 w-4" />
         </Button>
       </div>
@@ -227,7 +228,6 @@ function CaptchaField({
         value={value}
         onChange={(e) => onChange(e.target.value)}
         required
-        className="border-orange-500/30 focus-visible:ring-orange-500/60"
       />
     </div>
   );
