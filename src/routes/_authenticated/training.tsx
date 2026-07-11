@@ -8,7 +8,9 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { GraduationCap, Loader2, Play, CheckCircle2, MessageCircle, Trash2, Send, Lock } from "lucide-react";
+import { GraduationCap, Loader2, Play, CheckCircle2, MessageCircle, Trash2, Send, Lock, Pencil, Plus, Upload, Save, X } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
 import cover01 from "@/assets/modulo-01.png.asset.json";
@@ -23,11 +25,20 @@ export const Route = createFileRoute("/_authenticated/training")({
 
 type Module = { key: string; label: string; subtitle: string; gradient: string };
 
-const MODULES: Module[] = [
+const DEFAULT_MODULES: Module[] = [
   { key: "modulo_01", label: "Conhecendo a Plataforma", subtitle: "Módulo 01", gradient: "from-blue-600 via-indigo-600 to-purple-700" },
   { key: "modulo_02", label: "Conectando seu WhatsApp", subtitle: "Módulo 02", gradient: "from-emerald-500 via-teal-600 to-cyan-700" },
   { key: "modulo_03", label: "Automações Inteligentes", subtitle: "Módulo 03", gradient: "from-amber-500 via-orange-600 to-rose-700" },
   { key: "modulo_04", label: "Configurando seu Agente IA", subtitle: "Módulo 04", gradient: "from-fuchsia-600 via-purple-700 to-indigo-800" },
+];
+
+const GRADIENTS = [
+  "from-blue-600 via-indigo-600 to-purple-700",
+  "from-emerald-500 via-teal-600 to-cyan-700",
+  "from-amber-500 via-orange-600 to-rose-700",
+  "from-fuchsia-600 via-purple-700 to-indigo-800",
+  "from-pink-500 via-rose-600 to-red-700",
+  "from-slate-600 via-slate-700 to-slate-900",
 ];
 
 const DEFAULT_COVERS: Record<string, string> = {
@@ -59,32 +70,94 @@ type Comment = { id: string; user_id: string; module_key: string; body: string; 
 
 function TrainingPage() {
   const { user } = useAuth();
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [modules, setModules] = useState<Module[]>(DEFAULT_MODULES);
   const [videos, setVideos] = useState<Record<string, string>>({});
   const [covers, setCovers] = useState<Record<string, string>>({});
   const [progress, setProgress] = useState<Record<string, boolean>>({});
   const [loading, setLoading] = useState(true);
   const [openKey, setOpenKey] = useState<string | null>(null);
+  const [editKey, setEditKey] = useState<string | null>(null);
 
   useEffect(() => {
     (async () => {
-      const [{ data: v }, { data: c }, prog] = await Promise.all([
+      const [{ data: v }, { data: c }, { data: mods }, prog, roleRes] = await Promise.all([
         supabase.from("internal_config").select("value").eq("key", "tutorials").maybeSingle(),
         supabase.from("internal_config").select("value").eq("key", "tutorial_covers").maybeSingle(),
+        supabase.from("internal_config").select("value").eq("key", "training_modules").maybeSingle(),
         user ? supabase.from("training_progress").select("module_key").eq("user_id", user.id) : Promise.resolve({ data: [] as { module_key: string }[] }),
+        user
+          ? Promise.all([
+              supabase.rpc("has_role", { _user_id: user.id, _role: "master" }),
+              supabase.rpc("has_role", { _user_id: user.id, _role: "admin" }),
+            ]).then(([m, a]) => ({ data: !!m.data || !!a.data }))
+          : Promise.resolve({ data: false }),
       ]);
       if (v?.value) { try { setVideos(JSON.parse(v.value)); } catch { /* ignore */ } }
       if (c?.value) { try { setCovers(JSON.parse(c.value)); } catch { /* ignore */ } }
+      if (mods?.value) { try {
+        const parsed = JSON.parse(mods.value) as Module[];
+        if (Array.isArray(parsed) && parsed.length) setModules(parsed);
+      } catch { /* ignore */ } }
       const p: Record<string, boolean> = {};
       (prog.data ?? []).forEach((r) => { p[r.module_key] = true; });
       setProgress(p);
+      setIsAdmin(!!roleRes.data);
       setLoading(false);
     })();
   }, [user]);
 
-  const openModule = MODULES.find((m) => m.key === openKey) ?? null;
+  const openModule = modules.find((m) => m.key === openKey) ?? null;
+  const editModule = modules.find((m) => m.key === editKey) ?? null;
   const openUrl = openKey ? videos[openKey] : "";
   const embed = openUrl ? toEmbed(openUrl) : null;
   const totalWatched = Object.values(progress).filter(Boolean).length;
+
+  const saveConfig = async (key: string, value: string) => {
+    const { data: existing } = await supabase.from("internal_config").select("key").eq("key", key).maybeSingle();
+    const res = existing
+      ? await supabase.from("internal_config").update({ value }).eq("key", key)
+      : await supabase.from("internal_config").insert({ key, value });
+    return res.error;
+  };
+
+  const persistModules = async (next: Module[]) => {
+    setModules(next);
+    const err = await saveConfig("training_modules", JSON.stringify(next));
+    if (err) toast.error(err.message);
+  };
+
+  const saveModule = async (patch: Module, videoUrl: string, coverUrl: string) => {
+    const exists = modules.some((m) => m.key === patch.key);
+    const nextModules = exists ? modules.map((m) => (m.key === patch.key ? patch : m)) : [...modules, patch];
+    const nextVideos = { ...videos, [patch.key]: videoUrl };
+    const nextCovers = { ...covers, [patch.key]: coverUrl };
+    setVideos(nextVideos); setCovers(nextCovers);
+    const [e1, e2, e3] = await Promise.all([
+      saveConfig("training_modules", JSON.stringify(nextModules)),
+      saveConfig("tutorials", JSON.stringify(nextVideos)),
+      saveConfig("tutorial_covers", JSON.stringify(nextCovers)),
+    ]);
+    const err = e1 || e2 || e3;
+    if (err) { toast.error(err.message); return; }
+    setModules(nextModules);
+    toast.success("Módulo salvo");
+    setEditKey(null);
+  };
+
+  const deleteModule = async (key: string) => {
+    if (!confirm("Excluir este módulo?")) return;
+    const next = modules.filter((m) => m.key !== key);
+    await persistModules(next);
+    toast.success("Módulo removido");
+  };
+
+  const addModule = () => {
+    const n = modules.length + 1;
+    const key = `modulo_${String(n).padStart(2, "0")}_${Date.now().toString(36)}`;
+    setEditKey(key);
+    setModules((prev) => [...prev, { key, label: "Novo módulo", subtitle: `Módulo ${String(n).padStart(2, "0")}`, gradient: GRADIENTS[n % GRADIENTS.length] }]);
+  };
 
   const markWatched = async (key: string) => {
     if (!user || progress[key]) return;
@@ -95,15 +168,24 @@ function TrainingPage() {
   return (
     <PageShell
       title="Central de Treinamento"
-      description={`Aprenda a dominar cada módulo da plataforma. ${totalWatched}/${MODULES.length} aulas concluídas.`}
+      description={`Aprenda a dominar cada módulo da plataforma. ${totalWatched}/${modules.length} aulas concluídas.`}
       icon={<GraduationCap className="h-6 w-6" />}
       status="ativo"
     >
+      {isAdmin && (
+        <div className="mb-4 flex items-center justify-between rounded-xl border border-primary/30 bg-primary/5 px-4 py-3">
+          <div className="text-sm">
+            <span className="font-semibold text-primary">Modo administrador</span>
+            <span className="text-muted-foreground ml-2">Edite capas, vídeos e adicione novos módulos.</span>
+          </div>
+          <Button size="sm" onClick={addModule} className="gap-2"><Plus className="h-4 w-4" /> Novo módulo</Button>
+        </div>
+      )}
       {loading ? (
         <div className="flex justify-center py-24"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>
       ) : (
         <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
-          {MODULES.map((m, idx) => {
+          {modules.map((m, idx) => {
             const url = videos[m.key]?.trim();
             const cover = covers[m.key]?.trim() || DEFAULT_COVERS[m.key];
             const watched = !!progress[m.key];
@@ -116,7 +198,7 @@ function TrainingPage() {
                 transition={{ delay: idx * 0.08 }}
                 whileHover={{ y: -6 }}
                 onClick={() => !locked && setOpenKey(m.key)}
-                disabled={locked}
+                disabled={locked && !isAdmin}
                 className="group relative overflow-hidden rounded-2xl border border-border/60 bg-card text-left shadow-lg disabled:opacity-60 disabled:cursor-not-allowed"
                 style={{ aspectRatio: "9 / 16" }}
               >
@@ -140,6 +222,29 @@ function TrainingPage() {
                   </div>
                 )}
 
+                {isAdmin && (
+                  <div className="absolute top-3 left-3 flex gap-1.5" onClick={(e) => e.stopPropagation()}>
+                    <span
+                      role="button"
+                      tabIndex={0}
+                      onClick={(e) => { e.stopPropagation(); setEditKey(m.key); }}
+                      className="grid h-8 w-8 place-items-center rounded-full bg-black/70 text-white hover:bg-primary transition-colors cursor-pointer"
+                      aria-label="Editar módulo"
+                    >
+                      <Pencil className="h-3.5 w-3.5" />
+                    </span>
+                    <span
+                      role="button"
+                      tabIndex={0}
+                      onClick={(e) => { e.stopPropagation(); deleteModule(m.key); }}
+                      className="grid h-8 w-8 place-items-center rounded-full bg-black/70 text-white hover:bg-destructive transition-colors cursor-pointer"
+                      aria-label="Excluir módulo"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </span>
+                  </div>
+                )}
+
                 <div className="absolute inset-0 grid place-items-center opacity-0 transition-opacity duration-300 group-hover:opacity-100">
                   <motion.div whileHover={{ scale: 1.1 }} className="grid h-20 w-20 place-items-center rounded-full bg-primary/95 text-primary-foreground shadow-2xl ring-4 ring-white/30">
                     <Play className="h-9 w-9 fill-current ml-1" />
@@ -154,6 +259,16 @@ function TrainingPage() {
             );
           })}
         </div>
+      )}
+
+      {isAdmin && editModule && (
+        <ModuleEditor
+          module={editModule}
+          videoUrl={videos[editModule.key] ?? ""}
+          coverUrl={covers[editModule.key] ?? DEFAULT_COVERS[editModule.key] ?? ""}
+          onCancel={() => setEditKey(null)}
+          onSave={saveModule}
+        />
       )}
 
       <Dialog open={!!openKey} onOpenChange={(o) => !o && setOpenKey(null)}>
