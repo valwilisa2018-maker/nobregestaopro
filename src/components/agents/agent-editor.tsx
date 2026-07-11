@@ -110,14 +110,13 @@ export function AgentEditor({ agent, onSaved, onCancel }: Props) {
   useEffect(() => {
     if (!user) return;
     (async () => {
-      const { data } = await supabase
-        .from("ai_providers")
-        .select("id")
-        .eq("user_id", user.id)
-        .eq("is_active", true)
-        .limit(1)
-        .maybeSingle();
-      setAiConnected(!!data);
+      try {
+        const { checkActiveAIProvider } = await import("@/lib/ai-provider-check.functions");
+        const r = await checkActiveAIProvider();
+        setAiConnected(!!r.ok);
+      } catch {
+        setAiConnected(false);
+      }
     })();
   }, [user]);
 
