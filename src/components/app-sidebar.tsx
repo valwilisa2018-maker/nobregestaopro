@@ -6,7 +6,7 @@ import {
   MessageCircle, Brain, Users, MessagesSquare, History, ScrollText,
   Settings, UserCog, ShieldCheck, DollarSign, Palette, Contact2, Send, Puzzle, LogOut, Timer,
   LineChart, Activity, CreditCard, Shield, User, Crown, Building2, Plug, CalendarDays, Bug, Coins, Package, Kanban,
-  Sun, Moon, LifeBuoy, AlertTriangle,
+  Sun, Moon, LifeBuoy, AlertTriangle, GraduationCap,
 } from "lucide-react";
 import {
   Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent, SidebarGroupLabel,
@@ -59,6 +59,7 @@ const groups = [
   {
     label: "Conta",
     items: [
+      { title: "Treinamento", url: "/training", icon: GraduationCap },
       { title: "Suporte", url: "/support", icon: LifeBuoy },
       { title: "Configurações", url: "/settings", icon: Settings },
     ],
