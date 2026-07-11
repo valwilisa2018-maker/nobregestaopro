@@ -51,11 +51,19 @@ export async function signInWithPassword(email: string, password: string) {
   return supabase.auth.signInWithPassword({ email, password });
 }
 
-export async function signUpWithPassword(email: string, password: string, emailRedirectTo?: string) {
+export async function signUpWithPassword(
+  email: string,
+  password: string,
+  emailRedirectTo?: string,
+  metadata?: Record<string, unknown>,
+) {
   const supabase = anonClient();
   return supabase.auth.signUp({
     email,
     password,
-    options: emailRedirectTo ? { emailRedirectTo } : undefined,
+    options: {
+      ...(emailRedirectTo ? { emailRedirectTo } : {}),
+      ...(metadata ? { data: metadata } : {}),
+    },
   });
 }

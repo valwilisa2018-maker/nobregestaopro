@@ -29,6 +29,8 @@ function AuthPage() {
   const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [fullName, setFullName] = useState("");
+  const [phone, setPhone] = useState("");
   const [loading, setLoading] = useState(false);
   const [resetOpen, setResetOpen] = useState(false);
   const [resetEmail, setResetEmail] = useState("");
@@ -109,6 +111,8 @@ function AuthPage() {
       data: {
         email,
         password,
+        fullName,
+        phone,
         token: captcha.token,
         answer: Number(captchaAnswer.trim()),
         emailRedirectTo: `${window.location.origin}/dashboard`,
@@ -170,8 +174,24 @@ function AuthPage() {
             <TabsContent value="signup">
               <form onSubmit={handleSignUp} className="space-y-4 pt-4">
                 <div className="space-y-2">
+                  <Label htmlFor="fullName">Nome completo</Label>
+                  <Input id="fullName" type="text" value={fullName} onChange={(e) => setFullName(e.target.value)} placeholder="Ex.: Maria da Silva" minLength={3} maxLength={120} required />
+                </div>
+                <div className="space-y-2">
                   <Label htmlFor="email2">E-mail</Label>
                   <Input id="email2" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="phone2">WhatsApp</Label>
+                  <Input
+                    id="phone2"
+                    type="tel"
+                    value={phone}
+                    onChange={(e) => setPhone(e.target.value.replace(/[^\d+\s()-]/g, ""))}
+                    placeholder="DDD + número (ex.: 11 99999-9999)"
+                    inputMode="tel"
+                    required
+                  />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="password2">Senha</Label>
