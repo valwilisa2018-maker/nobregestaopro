@@ -17,16 +17,8 @@ export const Route = createFileRoute("/api/public/meta-webhook/$configId")({
         }
         return new Response("forbidden", { status: 403 });
       },
-      POST: async ({ request, params }) => {
-        const body = await request.text();
-        try {
-          const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-          await supabaseAdmin.from("logs").insert({
-            level: "info", source: "meta_webhook",
-            message: `payload cfg=${params.configId}`,
-            metadata: { body: body.slice(0, 8000) } as never,
-          } as never);
-        } catch { /* ignore */ }
+      POST: async ({ request }) => {
+        await request.text(); // ack; TODO: processar mensagens e status de templates
         return new Response("ok", { status: 200 });
       },
     },
