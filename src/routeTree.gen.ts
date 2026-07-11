@@ -17,6 +17,7 @@ import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthenticatedRouteImport } from './routes/_authenticated'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as MasterIndexRouteImport } from './routes/master/index'
+import { Route as MasterTutorialsRouteImport } from './routes/master/tutorials'
 import { Route as MasterSupportSettingsRouteImport } from './routes/master/support-settings'
 import { Route as MasterSupportRouteImport } from './routes/master/support'
 import { Route as MasterPermissionsRouteImport } from './routes/master/permissions'
@@ -115,6 +116,11 @@ const IndexRoute = IndexRouteImport.update({
 const MasterIndexRoute = MasterIndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => MasterRoute,
+} as any)
+const MasterTutorialsRoute = MasterTutorialsRouteImport.update({
+  id: '/tutorials',
+  path: '/tutorials',
   getParentRoute: () => MasterRoute,
 } as any)
 const MasterSupportSettingsRoute = MasterSupportSettingsRouteImport.update({
@@ -480,6 +486,7 @@ export interface FileRoutesByFullPath {
   '/master/permissions': typeof MasterPermissionsRoute
   '/master/support': typeof MasterSupportRoute
   '/master/support-settings': typeof MasterSupportSettingsRoute
+  '/master/tutorials': typeof MasterTutorialsRoute
   '/master/': typeof MasterIndexRoute
   '/api/v1/buy': typeof ApiV1BuyRoute
   '/api/v1/consume': typeof ApiV1ConsumeRoute
@@ -548,6 +555,7 @@ export interface FileRoutesByTo {
   '/master/permissions': typeof MasterPermissionsRoute
   '/master/support': typeof MasterSupportRoute
   '/master/support-settings': typeof MasterSupportSettingsRoute
+  '/master/tutorials': typeof MasterTutorialsRoute
   '/master': typeof MasterIndexRoute
   '/api/v1/buy': typeof ApiV1BuyRoute
   '/api/v1/consume': typeof ApiV1ConsumeRoute
@@ -619,6 +627,7 @@ export interface FileRoutesById {
   '/master/permissions': typeof MasterPermissionsRoute
   '/master/support': typeof MasterSupportRoute
   '/master/support-settings': typeof MasterSupportSettingsRoute
+  '/master/tutorials': typeof MasterTutorialsRoute
   '/master/': typeof MasterIndexRoute
   '/api/v1/buy': typeof ApiV1BuyRoute
   '/api/v1/consume': typeof ApiV1ConsumeRoute
@@ -690,6 +699,7 @@ export interface FileRouteTypes {
     | '/master/permissions'
     | '/master/support'
     | '/master/support-settings'
+    | '/master/tutorials'
     | '/master/'
     | '/api/v1/buy'
     | '/api/v1/consume'
@@ -758,6 +768,7 @@ export interface FileRouteTypes {
     | '/master/permissions'
     | '/master/support'
     | '/master/support-settings'
+    | '/master/tutorials'
     | '/master'
     | '/api/v1/buy'
     | '/api/v1/consume'
@@ -828,6 +839,7 @@ export interface FileRouteTypes {
     | '/master/permissions'
     | '/master/support'
     | '/master/support-settings'
+    | '/master/tutorials'
     | '/master/'
     | '/api/v1/buy'
     | '/api/v1/consume'
@@ -923,6 +935,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/master/'
       preLoaderRoute: typeof MasterIndexRouteImport
+      parentRoute: typeof MasterRoute
+    }
+    '/master/tutorials': {
+      id: '/master/tutorials'
+      path: '/tutorials'
+      fullPath: '/master/tutorials'
+      preLoaderRoute: typeof MasterTutorialsRouteImport
       parentRoute: typeof MasterRoute
     }
     '/master/support-settings': {
@@ -1441,6 +1460,7 @@ interface MasterRouteChildren {
   MasterPermissionsRoute: typeof MasterPermissionsRoute
   MasterSupportRoute: typeof MasterSupportRoute
   MasterSupportSettingsRoute: typeof MasterSupportSettingsRoute
+  MasterTutorialsRoute: typeof MasterTutorialsRoute
   MasterIndexRoute: typeof MasterIndexRoute
 }
 
@@ -1457,6 +1477,7 @@ const MasterRouteChildren: MasterRouteChildren = {
   MasterPermissionsRoute: MasterPermissionsRoute,
   MasterSupportRoute: MasterSupportRoute,
   MasterSupportSettingsRoute: MasterSupportSettingsRoute,
+  MasterTutorialsRoute: MasterTutorialsRoute,
   MasterIndexRoute: MasterIndexRoute,
 }
 

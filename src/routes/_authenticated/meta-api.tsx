@@ -4,6 +4,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 import { PageShell } from "@/components/page-shell";
+import { TutorialVideo } from "@/components/tutorial-video";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -148,6 +149,7 @@ function Page() {
           <TabsTrigger value="test">Teste de envio</TabsTrigger>
           <TabsTrigger value="guide">Como configurar</TabsTrigger>
         </TabsList>
+        <TutorialVideo moduleKey="meta_api" title="Tutorial — Meta API Oficial" />
 
         {/* Credentials */}
         <TabsContent value="credentials">

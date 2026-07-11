@@ -1,0 +1,87 @@
+import { createFileRoute } from "@tanstack/react-router";
+import { useEffect, useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { PageShell } from "@/components/page-shell";
+import { Card, CardContent } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Button } from "@/components/ui/button";
+import { Loader2, Save, PlayCircle, Video } from "lucide-react";
+import { toast } from "sonner";
+
+export const Route = createFileRoute("/master/tutorials")({
+  head: () => ({ meta: [{ title: "Tutoriais em vídeo — Master" }] }),
+  component: Page,
+});
+
+type Tutorials = Record<string, string>;
+
+const MODULES: Array<{ key: string; label: string; hint: string }> = [
+  { key: "meta_api", label: "Meta API Oficial (WhatsApp Cloud)", hint: "Explique como obter Phone ID, WABA ID, Access Token e configurar webhook." },
+  { key: "whatsapp_evolution", label: "WhatsApp (Evolution)", hint: "Conexão via QR code e uso da instância." },
+  { key: "agents", label: "Agentes de IA", hint: "Criar e configurar agentes." },
+  { key: "flows", label: "Fluxos", hint: "Montar automações e gatilhos." },
+  { key: "pipeline", label: "Pipeline CRM", hint: "Kanban, estágios e automações." },
+  { key: "broadcasts", label: "Disparos em massa", hint: "Preparar e enviar campanhas." },
+];
+
+function Page() {
+  const [videos, setVideos] = useState<Tutorials>({});
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    supabase.from("internal_config").select("value").eq("key", "tutorials").maybeSingle()
+      .then(({ data }) => {
+        if (data?.value) { try { setVideos(JSON.parse(data.value) as Tutorials); } catch { /* ignore */ } }
+        setLoading(false);
+      });
+  }, []);
+
+  const save = async () => {
+    setSaving(true);
+    const value = JSON.stringify(videos);
+    const { data: existing } = await supabase.from("internal_config").select("key").eq("key", "tutorials").maybeSingle();
+    const { error } = existing
+      ? await supabase.from("internal_config").update({ value }).eq("key", "tutorials")
+      : await supabase.from("internal_config").insert({ key: "tutorials", value });
+    setSaving(false);
+    if (error) toast.error(error.message); else toast.success("Tutoriais salvos");
+  };
+
+  return (
+    <PageShell
+      title="Tutoriais em vídeo"
+      description="Cole o link (YouTube, Vimeo, MP4) do tutorial de cada módulo. Ficará visível para os clientes na respectiva página."
+      icon={<Video className="h-6 w-6" />}
+      status="ativo"
+    >
+      {loading ? (
+        <div className="p-12 flex justify-center"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>
+      ) : (
+        <Card className="border-primary/20 bg-gradient-to-br from-primary/5 to-transparent">
+          <CardContent className="p-6 space-y-5">
+            {MODULES.map((m) => (
+              <div key={m.key} className="space-y-2">
+                <Label className="flex items-center gap-2 text-sm">
+                  <PlayCircle className="h-4 w-4 text-primary" /> {m.label}
+                </Label>
+                <Input
+                  placeholder="https://www.youtube.com/watch?v=... ou https://player.vimeo.com/video/... ou .mp4"
+                  value={videos[m.key] ?? ""}
+                  onChange={(e) => setVideos((v) => ({ ...v, [m.key]: e.target.value }))}
+                />
+                <p className="text-xs text-muted-foreground">{m.hint}</p>
+              </div>
+            ))}
+            <div className="flex justify-end">
+              <Button onClick={save} disabled={saving} size="lg" className="gap-2">
+                {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />} Salvar
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+    </PageShell>
+  );
+}
