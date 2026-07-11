@@ -141,13 +141,6 @@ function PlanModal({ variant, dismissible, onClose, daysLeft, planName, expiresA
         transition={{ type: "spring", stiffness: 220, damping: 22 }}
         className="relative w-full max-w-md overflow-hidden rounded-3xl border border-white/10 bg-[#07061a] text-white shadow-[0_40px_120px_-20px_rgba(0,0,0,0.8)]"
       >
-        {/* Glow backdrop */}
-        <div className={`pointer-events-none absolute inset-0 ${
-          orange
-            ? "bg-[radial-gradient(ellipse_at_top,rgba(249,115,22,0.35),transparent_60%),radial-gradient(ellipse_at_bottom,rgba(234,88,12,0.2),transparent_60%)]"
-            : "bg-[radial-gradient(ellipse_at_top,rgba(56,189,248,0.35),transparent_60%),radial-gradient(ellipse_at_bottom,rgba(168,85,247,0.22),transparent_60%)]"
-        }`} />
-        <div className="pointer-events-none absolute inset-0 opacity-[0.06] [background-image:linear-gradient(rgba(255,255,255,0.6)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.6)_1px,transparent_1px)] [background-size:32px_32px]" />
 
         {dismissible && (
           <button
