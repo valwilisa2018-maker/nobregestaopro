@@ -1,16 +1,15 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 import { PageShell } from "@/components/page-shell";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { GraduationCap, Loader2, Play, CheckCircle2, MessageCircle, Trash2, Send, Lock } from "lucide-react";
+import { GraduationCap, Loader2, Play, CheckCircle2, MessageCircle, Trash2, Send, Lock, ArrowLeft, RotateCcw, ChevronRight, Circle } from "lucide-react";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
+import { cn } from "@/lib/utils";
 import cover01 from "@/assets/modulo-01.png.asset.json";
 import cover02 from "@/assets/modulo-02.png.asset.json";
 import cover03 from "@/assets/modulo-03.png.asset.json";
@@ -65,6 +64,8 @@ function TrainingPage() {
   const [progress, setProgress] = useState<Record<string, boolean>>({});
   const [loading, setLoading] = useState(true);
   const [openKey, setOpenKey] = useState<string | null>(null);
+  const [ended, setEnded] = useState(false);
+  const videoRef = useRef<HTMLVideoElement | null>(null);
 
   useEffect(() => {
     (async () => {
@@ -91,6 +92,7 @@ function TrainingPage() {
   const openUrl = openKey ? videos[openKey] : "";
   const embed = openUrl ? toEmbed(openUrl) : null;
   const totalWatched = Object.values(progress).filter(Boolean).length;
+  const pct = modules.length ? Math.round((totalWatched / modules.length) * 100) : 0;
 
   const nextModule = (() => {
     if (!openKey) return null;
@@ -113,9 +115,158 @@ function TrainingPage() {
   const goNext = async () => {
     if (!openKey) return;
     await markWatched(openKey);
-    if (nextModule) setOpenKey(nextModule.key);
+    if (nextModule) { setOpenKey(nextModule.key); setEnded(false); }
     else toast.success("Você concluiu todos os módulos disponíveis! 🎉");
   };
+
+  const replay = () => {
+    setEnded(false);
+    if (videoRef.current) { videoRef.current.currentTime = 0; void videoRef.current.play(); }
+  };
+
+  useEffect(() => { setEnded(false); }, [openKey]);
+
+  if (openKey && openModule) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-[#0b0d1a] via-[#0f1130] to-[#1a0b2e] text-white">
+        {/* Top bar */}
+        <div className="sticky top-0 z-30 border-b border-white/10 bg-black/40 backdrop-blur-xl">
+          <div className="mx-auto flex max-w-[1600px] items-center gap-4 px-4 py-3 sm:px-6">
+            <Button variant="ghost" size="sm" onClick={() => setOpenKey(null)} className="gap-2 text-white/80 hover:bg-white/10 hover:text-white">
+              <ArrowLeft className="h-4 w-4" /> Voltar
+            </Button>
+            <div className="hidden min-w-0 flex-1 sm:block">
+              <div className="truncate text-xs uppercase tracking-widest text-white/50">Curso AgentIA</div>
+              <div className="truncate text-sm font-semibold">{openModule.label}</div>
+            </div>
+            <div className="flex min-w-[140px] items-center gap-3 sm:min-w-[220px]">
+              <div className="hidden text-right sm:block">
+                <div className="text-[10px] uppercase tracking-widest text-white/50">Progresso</div>
+                <div className="text-sm font-bold tabular-nums">{pct}%</div>
+              </div>
+              <div className="h-2 flex-1 overflow-hidden rounded-full bg-white/10">
+                <motion.div initial={{ width: 0 }} animate={{ width: `${pct}%` }} transition={{ duration: 0.6 }} className="h-full rounded-full bg-gradient-to-r from-sky-400 via-indigo-500 to-fuchsia-500" />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="mx-auto grid max-w-[1600px] gap-6 px-4 py-6 sm:px-6 lg:grid-cols-[minmax(0,1fr)_360px]">
+          {/* Player + info */}
+          <div className="min-w-0 space-y-5">
+            <div className="relative overflow-hidden rounded-2xl bg-black shadow-2xl ring-1 ring-white/10">
+              <div className="relative w-full" style={{ aspectRatio: "16 / 9" }}>
+                {embed?.kind === "iframe" ? (
+                  <iframe src={embed.src} title={openModule.label} allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen className="absolute inset-0 h-full w-full" />
+                ) : embed?.kind === "video" ? (
+                  <video ref={videoRef} src={embed.src} controls autoPlay controlsList="nodownload" onEnded={() => { setEnded(true); if (openKey) void markWatched(openKey); }} className="absolute inset-0 h-full w-full" />
+                ) : (
+                  <div className="absolute inset-0 grid place-items-center text-white/60">Vídeo indisponível</div>
+                )}
+
+                <AnimatePresence>
+                  {ended && (
+                    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 grid place-items-center bg-black/80 backdrop-blur-sm">
+                      <motion.div initial={{ scale: 0.9, y: 10 }} animate={{ scale: 1, y: 0 }} className="max-w-md p-6 text-center">
+                        <div className="mx-auto grid h-16 w-16 place-items-center rounded-full bg-gradient-to-br from-emerald-400 to-teal-600 shadow-xl">
+                          <CheckCircle2 className="h-8 w-8 text-white" />
+                        </div>
+                        <h3 className="mt-4 text-2xl font-black">🎉 Parabéns!</h3>
+                        <p className="mt-1 text-sm text-white/70">Você concluiu esta aula.</p>
+                        <div className="mt-5 flex flex-wrap justify-center gap-2">
+                          <Button variant="outline" onClick={replay} className="gap-2 border-white/20 bg-white/5 text-white hover:bg-white/10">
+                            <RotateCcw className="h-4 w-4" /> Assistir novamente
+                          </Button>
+                          <Button onClick={goNext} className="gap-2 bg-gradient-to-r from-sky-500 to-fuchsia-500 hover:opacity-90">
+                            Próxima aula <ChevronRight className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </motion.div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+            </div>
+
+            <div className="rounded-2xl border border-white/10 bg-white/5 p-5 backdrop-blur-xl">
+              <div className="flex flex-wrap items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <div className="text-xs uppercase tracking-widest text-white/50">{openModule.subtitle}</div>
+                  <h1 className="mt-1 text-xl font-bold sm:text-2xl">{openModule.label}</h1>
+                  <p className="mt-2 text-sm text-white/60">Instrutor: Equipe AgentIA · Atualizado recentemente</p>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  <Button variant="outline" onClick={() => openKey && markWatched(openKey)} disabled={!!(openKey && progress[openKey])} className="gap-2 border-white/20 bg-white/5 text-white hover:bg-white/10">
+                    <CheckCircle2 className="h-4 w-4" /> {openKey && progress[openKey] ? "Concluída" : "Aula concluída"}
+                  </Button>
+                  <Button onClick={goNext} disabled={!nextModule && !!(openKey && progress[openKey])} className="gap-2 bg-gradient-to-r from-sky-500 to-fuchsia-500 hover:opacity-90">
+                    {nextModule ? "Próxima" : "Concluir"} <ChevronRight className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+            </div>
+
+            <div className="rounded-2xl border border-white/10 bg-white/5 backdrop-blur-xl">
+              <CommentsPanel moduleKey={openKey} />
+            </div>
+          </div>
+
+          {/* Lesson list */}
+          <aside className="lg:sticky lg:top-[76px] lg:self-start">
+            <div className="overflow-hidden rounded-2xl border border-white/10 bg-white/5 backdrop-blur-xl">
+              <div className="border-b border-white/10 px-4 py-3">
+                <div className="text-xs uppercase tracking-widest text-white/50">Curso AgentIA</div>
+                <div className="text-sm font-semibold">Aulas do curso</div>
+              </div>
+              <ScrollArea className="max-h-[70vh]">
+                <ul className="divide-y divide-white/5">
+                  {modules.map((m, idx) => {
+                    const active = m.key === openKey;
+                    const done = !!progress[m.key];
+                    const url = videos[m.key]?.trim();
+                    const cover = covers[m.key]?.trim() || DEFAULT_COVERS[m.key];
+                    return (
+                      <li key={m.key}>
+                        <button
+                          disabled={!url}
+                          onClick={() => { setOpenKey(m.key); setEnded(false); }}
+                          className={cn(
+                            "flex w-full items-center gap-3 p-3 text-left transition-colors disabled:opacity-50 disabled:cursor-not-allowed",
+                            active ? "bg-gradient-to-r from-sky-500/20 to-fuchsia-500/10" : "hover:bg-white/5",
+                          )}
+                        >
+                          <div className="relative h-14 w-24 shrink-0 overflow-hidden rounded-lg bg-black">
+                            {cover && <img src={cover} alt="" className="h-full w-full object-cover" />}
+                            {active && <div className="absolute inset-0 grid place-items-center bg-black/50"><Play className="h-5 w-5 fill-white text-white" /></div>}
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <div className="flex items-center gap-1.5 text-[10px] uppercase tracking-widest text-white/50">
+                              Aula {String(idx + 1).padStart(2, "0")}
+                              {!url && <Lock className="h-3 w-3" />}
+                            </div>
+                            <div className="mt-0.5 truncate text-sm font-semibold">{m.label}</div>
+                          </div>
+                          <div className="shrink-0">
+                            {done ? (
+                              <CheckCircle2 className="h-5 w-5 text-emerald-400" />
+                            ) : active ? (
+                              <Play className="h-4 w-4 fill-sky-400 text-sky-400" />
+                            ) : (
+                              <Circle className="h-4 w-4 text-white/30" />
+                            )}
+                          </div>
+                        </button>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </ScrollArea>
+            </div>
+          </aside>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <PageShell
@@ -137,13 +288,13 @@ function TrainingPage() {
               </div>
             </div>
             <div className="text-2xl font-bold text-primary tabular-nums">
-              {modules.length ? Math.round((totalWatched / modules.length) * 100) : 0}%
+              {pct}%
             </div>
           </div>
           <div className="h-2.5 w-full overflow-hidden rounded-full bg-muted">
             <motion.div
               initial={{ width: 0 }}
-              animate={{ width: `${modules.length ? (totalWatched / modules.length) * 100 : 0}%` }}
+              animate={{ width: `${pct}%` }}
               transition={{ duration: 0.6, ease: "easeOut" }}
               className="h-full rounded-full bg-gradient-to-r from-primary via-indigo-500 to-purple-600"
             />
@@ -203,49 +354,6 @@ function TrainingPage() {
         </div>
         </>
       )}
-
-      <Dialog open={!!openKey} onOpenChange={(o) => !o && setOpenKey(null)}>
-        <DialogContent className="max-w-5xl p-0 gap-0 overflow-hidden">
-          <DialogHeader className="px-6 pt-5 pb-3 border-b">
-            <DialogTitle className="flex items-center gap-2 text-lg">
-              <GraduationCap className="h-5 w-5 text-primary" />
-              {openModule?.subtitle} — {openModule?.label}
-              {openKey && progress[openKey] && <Badge className="bg-emerald-500/15 text-emerald-600 border-emerald-500/30 ml-2">Assistido</Badge>}
-            </DialogTitle>
-          </DialogHeader>
-          {openKey && (
-            <div className="grid lg:grid-cols-[1fr_360px] max-h-[80vh]">
-              <div className="bg-black">
-                <div className="relative w-full" style={{ aspectRatio: "16 / 9" }}>
-                  {embed?.kind === "iframe" ? (
-                    <iframe src={embed.src} title={openModule?.label} allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen className="absolute inset-0 h-full w-full" />
-                  ) : embed?.kind === "video" ? (
-                    <video src={embed.src} controls autoPlay onEnded={goNext} className="absolute inset-0 h-full w-full" />
-                  ) : null}
-                </div>
-                <div className="flex items-center justify-between gap-3 border-t p-4 bg-background">
-                  <div className="min-w-0">
-                    <p className="text-sm text-muted-foreground">
-                      {nextModule ? <>A seguir: <span className="font-semibold text-foreground">{nextModule.label}</span></> : "Esta é a última aula disponível."}
-                    </p>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Button variant="outline" onClick={() => openKey && markWatched(openKey)} disabled={!openKey || !!progress[openKey]} className="gap-2">
-                      <CheckCircle2 className="h-4 w-4" />
-                      {openKey && progress[openKey] ? "Concluído" : "Marcar assistido"}
-                    </Button>
-                    <Button onClick={goNext} disabled={!nextModule && !!(openKey && progress[openKey])} className="gap-2">
-                      <Play className="h-4 w-4 fill-current" />
-                      {nextModule ? "Próxima aula" : "Concluir"}
-                    </Button>
-                  </div>
-                </div>
-              </div>
-              <CommentsPanel moduleKey={openKey} />
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
     </PageShell>
   );
 }
