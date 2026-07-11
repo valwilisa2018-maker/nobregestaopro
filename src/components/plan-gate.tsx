@@ -8,6 +8,7 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import logoAsset from "@/assets/agent-ia-logo.png.asset.json";
+import robotImg from "@/assets/maintenance-robot.png";
 
 type PlanInfo = {
   planName: string | null;
@@ -169,14 +170,19 @@ function PlanModal({ variant, dismissible, onClose, daysLeft, planName, expiresA
           </div>
 
           {/* Hero icon */}
-          <div className="relative mt-6 mx-auto grid h-24 w-24 place-items-center">
-            <div className={`absolute inset-0 rounded-full blur-2xl ${orange ? "bg-orange-500/40" : "bg-sky-500/40"}`} />
-            <div className={`relative grid h-24 w-24 place-items-center rounded-3xl ring-1 ${
-              orange ? "bg-gradient-to-br from-orange-500 to-amber-600 ring-orange-300/40" : "bg-gradient-to-br from-sky-500 to-indigo-600 ring-sky-300/40"
-            } shadow-2xl`}>
-              {variant === "welcome" ? <PartyPopper className="h-10 w-10 text-white" />
-                : variant === "expired" ? <AlertTriangle className="h-10 w-10 text-white" />
-                : <Hourglass className="h-10 w-10 text-white" />}
+          <div className="relative mt-6 mx-auto grid h-40 w-40 place-items-center">
+            <div className={`absolute inset-0 rounded-full blur-3xl ${orange ? "bg-orange-500/40" : "bg-sky-500/40"}`} />
+            <img
+              src={robotImg}
+              alt="Mascote AGENTIA"
+              className="relative h-40 w-40 object-contain drop-shadow-[0_10px_30px_rgba(0,0,0,0.5)]"
+            />
+            <div className={`absolute -bottom-1 -right-1 grid h-9 w-9 place-items-center rounded-full ring-2 ring-slate-950 shadow-lg ${
+              orange ? "bg-gradient-to-br from-orange-500 to-amber-600" : "bg-gradient-to-br from-sky-500 to-indigo-600"
+            }`}>
+              {variant === "welcome" ? <PartyPopper className="h-4 w-4 text-white" />
+                : variant === "expired" ? <AlertTriangle className="h-4 w-4 text-white" />
+                : <Hourglass className="h-4 w-4 text-white" />}
             </div>
           </div>
 
