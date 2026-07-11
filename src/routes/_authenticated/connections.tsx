@@ -62,8 +62,11 @@ function ConnectionsPage() {
   const deleteFn = useServerFn(deleteInstance);
 
   const load = async () => {
+    if (!user) return;
     setLoading(true);
-    const { data, error } = await supabase.from("connections").select("*").order("created_at", { ascending: false });
+    const { data, error } = await supabase.from("connections").select("*")
+      .eq("user_id", user.id)
+      .order("created_at", { ascending: false });
     if (error) toast.error(error.message);
     else setItems((data ?? []) as Connection[]);
     setLoading(false);

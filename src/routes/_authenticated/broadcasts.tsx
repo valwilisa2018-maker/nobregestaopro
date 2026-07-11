@@ -63,7 +63,13 @@ function BroadcastsPage() {
 
   const [connections, setConnections] = useState<Array<{ id: string; instance_name: string | null }>>([]);
   useEffect(() => {
-    supabase.from("connections").select("id,instance_name").eq("status", "online").then(({ data }) => setConnections(data ?? []));
+    (async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      const { data } = await supabase.from("connections").select("id,instance_name")
+        .eq("user_id", user.id).eq("status", "online");
+      setConnections(data ?? []);
+    })();
   }, []);
 
   // Wizard state
