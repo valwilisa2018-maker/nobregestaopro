@@ -238,6 +238,16 @@ function formatAuthError(error: string) {
   if (msg.includes("captcha_missing")) return "Preencha a verificação de segurança.";
   if (msg.includes("too many") || msg.includes("rate limit")) return "Muitas tentativas. Aguarde alguns minutos e tente novamente.";
   if (msg.includes("user not found")) return "Usuário não encontrado.";
+  if (msg.includes("password is known") || msg.includes("pwned") || msg.includes("weak") || msg.includes("compromised"))
+    return "Essa senha é fácil de adivinhar e já apareceu em vazamentos. Escolha outra senha mais forte.";
+  if (msg.includes("password should be at least") || msg.includes("password is too short"))
+    return "A senha é muito curta. Use pelo menos 6 caracteres.";
+  if (msg.includes("user already registered") || msg.includes("already been registered"))
+    return "Este e-mail já está cadastrado. Faça login ou recupere sua senha.";
+  if (msg.includes("email address") && msg.includes("invalid")) return "E-mail inválido.";
+  if (msg.includes("signup") && msg.includes("disabled")) return "Novos cadastros estão desativados no momento.";
+  if (msg.includes("unsupported provider") || msg.includes("provider is not enabled"))
+    return "Este método de login não está habilitado.";
   if (msg.includes("user banned") || msg.includes("banned")) return "Conta bloqueada. Entre em contato com o suporte.";
   if (msg.includes("session") && (msg.includes("expired") || msg.includes("invalid") || msg.includes("missing"))) return "Sessão inválida ou expirada. Faça login novamente.";
   if (msg.includes("refresh_token") || msg.includes("refresh token")) return "Não foi possível renovar sua sessão. Faça login novamente.";
