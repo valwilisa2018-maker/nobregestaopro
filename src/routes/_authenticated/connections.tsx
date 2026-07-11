@@ -13,6 +13,7 @@ import { Badge } from "@/components/ui/badge";
 import { Plus, RefreshCw, Play, Power, Trash2, QrCode, CheckCircle2, XCircle, Activity, Webhook, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { testConnection, connectInstance, disconnectInstance, testWebhook, createAndConnectInstance, deleteInstance } from "@/lib/evolution.functions";
+import { TutorialVideo } from "@/components/tutorial-video";
 
 export const Route = createFileRoute("/_authenticated/connections")({
   head: () => ({ meta: [{ title: "Conexões — Plataforma IA WhatsApp" }] }),
@@ -202,6 +203,7 @@ function ConnectionsPage() {
           </DialogContent>
         </Dialog>
       </div>
+      <TutorialVideo moduleKey="whatsapp_evolution" title="Como conectar o WhatsApp" />
 
       {loading ? (
         <p className="text-muted-foreground">Carregando…</p>
