@@ -130,7 +130,10 @@ export const testConnection = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((i: unknown) => IdInput.parse(i))
   .handler(async ({ data, context }) => {
-    const c = await loadConnection(context.supabase, context.userId, data.connectionId);
+    const { data: c } = await context.supabase
+      .from("connections").select("*")
+      .eq("id", data.connectionId).eq("user_id", context.userId).maybeSingle();
+    if (!c) return { ok: false, status: "offline" as const, state: "missing", missing: true, raw: null };
     const apiKey = await loadEvolutionCommandKey(context.supabase, c.api_key);
     const r = await evoFetch(`${baseUrl(c.url_api)}/instance/connectionState/${c.instance_name}`, apiKey);
     const state = r.json?.instance?.state ?? r.json?.state ?? (r.ok ? "unknown" : "error");
