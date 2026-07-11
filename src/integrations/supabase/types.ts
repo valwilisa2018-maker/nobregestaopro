@@ -2523,6 +2523,16 @@ export type Database = {
         Args: { _days?: number; _request_id: string }
         Returns: undefined
       }
+      master_cancel_order: { Args: { _order_id: string }; Returns: undefined }
+      master_cancel_plan: {
+        Args: { _reason?: string; _user_id: string }
+        Returns: undefined
+      }
+      master_delete_order: { Args: { _order_id: string }; Returns: undefined }
+      master_delete_plan_request: {
+        Args: { _request_id: string }
+        Returns: undefined
+      }
       master_grant_credits: {
         Args: { _reason: string; _tokens: number; _user_id: string }
         Returns: undefined
@@ -2547,6 +2557,10 @@ export type Database = {
           isOneToOne: true
           isSetofReturn: false
         }
+      }
+      master_reactivate_account: {
+        Args: { _user_id: string }
+        Returns: undefined
       }
       master_reject_plan_request: {
         Args: { _note?: string; _request_id: string }
