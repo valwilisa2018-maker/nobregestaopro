@@ -67,16 +67,14 @@ export const syncMetaTemplates = createServerFn({ method: "POST" })
       { version: cfg.graph_version, qs: { limit: "200" } },
     );
     if (!r.ok || !r.data) return { ok: false, error: r.error };
-    let count = 0;
-    for (const t of r.data.data) {
-      await supabase.from("meta_wa_templates").upsert({
-        user_id: userId, config_id: cfg.id, meta_template_id: t.id, name: t.name,
-        language: t.language, status: t.status, category: t.category,
-        components: t.components as never, last_synced_at: new Date().toISOString(),
-      } as never, { onConflict: "meta_template_id" } as never);
-      count++;
-    }
-    return { ok: true, count };
+    await supabase.from("meta_wa_templates").delete().eq("user_id", userId).eq("config_id", cfg.id);
+    const rows = r.data.data.map((t) => ({
+      user_id: userId, config_id: cfg.id, meta_template_id: t.id, name: t.name,
+      language: t.language, status: t.status, category: t.category,
+      components: t.components as never, last_synced_at: new Date().toISOString(),
+    }));
+    if (rows.length) await supabase.from("meta_wa_templates").insert(rows as never);
+    return { ok: true, count: rows.length };
   });
 
 /* ─────────── Create template on Meta ─────────── */
