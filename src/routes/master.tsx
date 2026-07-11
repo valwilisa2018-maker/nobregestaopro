@@ -2,7 +2,6 @@ import { createFileRoute, Outlet, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { MasterSidebar } from "@/components/master-sidebar";
-import { Toaster } from "@/components/ui/sonner";
 import { useAuth } from "@/hooks/use-auth";
 import { supabase } from "@/integrations/supabase/client";
 import { Crown } from "lucide-react";
@@ -54,7 +53,6 @@ function MasterLayout() {
             <Outlet />
           </main>
         </div>
-        <Toaster />
       </div>
     </SidebarProvider>
   );

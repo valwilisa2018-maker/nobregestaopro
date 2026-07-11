@@ -2,7 +2,6 @@ import { createFileRoute, Outlet, useNavigate } from "@tanstack/react-router";
 import { useAuth } from "@/hooks/use-auth";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/app-sidebar";
-import { Toaster } from "@/components/ui/sonner";
 import { PlanExpiryBanner } from "@/components/plan-status";
 import { NotificationBell } from "@/components/notification-bell";
 import { AnnouncementModal } from "@/components/announcement-modal";
@@ -43,7 +42,6 @@ function AuthedLayout() {
           </main>
           <AnnouncementModal />
         </div>
-        <Toaster />
       </div>
     </SidebarProvider>
   );
