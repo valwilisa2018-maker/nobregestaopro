@@ -74,9 +74,9 @@ export function PlanGate({ children }: { children: React.ReactNode }) {
   if (!info) return <>{children}</>;
 
   const onSafePath = ALLOWED_WHEN_BLOCKED.some((p) => path.startsWith(p));
-  const showWelcome = !info.hasActivePlan && !info.expired;
-  const showExpired = info.expired;
-  const showExpiring = info.expiring && !dismissedExpiring;
+  const showWelcome = !info.hasActivePlan && !info.expired && !onSafePath;
+  const showExpired = info.expired && !onSafePath;
+  const showExpiring = info.expiring && !dismissedExpiring && !onSafePath;
   const blocking = (showWelcome || showExpired) && !onSafePath;
 
   return (
