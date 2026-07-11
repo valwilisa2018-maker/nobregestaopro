@@ -9,8 +9,10 @@ import { Input } from "@/components/ui/input";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Zap, Loader2, Check, Search, Coins, ShieldOff, Sparkles, Clock, DollarSign, Users as UsersIcon, X, Trash2, Ban, RotateCcw } from "lucide-react";
+import { Zap, Loader2, Check, Search, Coins, ShieldOff, Sparkles, Clock, DollarSign, Users as UsersIcon, X, Trash2, Ban, RotateCcw, Mail } from "lucide-react";
 import { toast } from "sonner";
+import { useServerFn } from "@tanstack/react-start";
+import { masterActivateByEmail } from "@/lib/master-users.functions";
 
 export const Route = createFileRoute("/master/activations")({
   head: () => ({ meta: [{ title: "Ativações — Admin Master" }] }),
@@ -26,6 +28,7 @@ type Profile = {
 };
 type Wallet = { user_id: string; plan_tokens_remaining: number; extra_tokens_remaining: number };
 type PlanRequest = { id: string; user_id: string; plan_id: string; status: string; created_at: string; note: string | null };
+type CreditPackage = { id: string; name: string; tokens: number; price_cents: number };
 
 const sbRpc = supabase.rpc.bind(supabase) as unknown as (fn: string, args?: Record<string, unknown>) =>
   Promise<{ data: unknown; error: { message: string } | null }>;
@@ -83,14 +86,23 @@ function Page() {
   const [suspendFor, setSuspendFor] = useState<Profile | null>(null);
   const [suspendReason, setSuspendReason] = useState<string>("");
 
+  const [packages, setPackages] = useState<CreditPackage[]>([]);
+  const [emailInput, setEmailInput] = useState("");
+  const [emailPlan, setEmailPlan] = useState<string>("__none");
+  const [emailDays, setEmailDays] = useState<number>(30);
+  const [emailPkg, setEmailPkg] = useState<string>("__none");
+  const [emailCustomTokens, setEmailCustomTokens] = useState<number>(0);
+  const activateByEmailFn = useServerFn(masterActivateByEmail);
+
   const load = useCallback(async () => {
     setLoading(true);
-    const [o, p, pl, w, r] = await Promise.all([
+    const [o, p, pl, w, r, pk] = await Promise.all([
       supabase.from("credit_orders").select("*").order("created_at", { ascending: false }).limit(500),
       supabase.from("profiles").select("id,full_name,phone,status,plan_id,plan_expires_at,plan_activated_at,suspended_reason").order("created_at", { ascending: false }).limit(1000),
       supabase.from("plans").select("id,name,tokens_included,price_cents").eq("is_active", true).order("sort_order"),
       supabase.from("credit_wallets").select("user_id,plan_tokens_remaining,extra_tokens_remaining"),
       supabase.from("plan_activation_requests").select("id,user_id,plan_id,status,created_at,note").order("created_at", { ascending: false }).limit(500),
+      supabase.from("credit_packages").select("id,name,tokens,price_cents").eq("is_active", true).order("price_cents"),
     ]);
     setOrders((o.data as Order[]) ?? []);
     setProfiles((p.data as Profile[]) ?? []);
@@ -99,6 +111,7 @@ function Page() {
     ((w.data as Wallet[]) ?? []).forEach(x => { wm[x.user_id] = x; });
     setWallets(wm);
     setRequests((r.data as PlanRequest[]) ?? []);
+    setPackages((pk.data as CreditPackage[]) ?? []);
     setLoading(false);
   }, []);
   useEffect(() => { load(); }, [load]);
@@ -232,6 +245,26 @@ function Page() {
     load();
   };
 
+  const doActivateByEmail = async () => {
+    const email = emailInput.trim();
+    if (!email) return toast.error("Informe o e-mail do cliente");
+    const planId = emailPlan !== "__none" ? emailPlan : null;
+    const pkgTokens = emailPkg !== "__none" ? (packages.find(p => p.id === emailPkg)?.tokens ?? 0) : 0;
+    const tokens = pkgTokens || Number(emailCustomTokens || 0);
+    if (!planId && !tokens) return toast.error("Selecione um plano ou uma quantidade de créditos");
+    setBusy("email");
+    try {
+      const res = await activateByEmailFn({ data: { email, planId, days: emailDays, tokens } }) as { fullName: string | null };
+      toast.success(`Ativação concluída para ${res.fullName ?? email}`);
+      setEmailInput(""); setEmailPlan("__none"); setEmailPkg("__none"); setEmailCustomTokens(0);
+      load();
+    } catch (e) {
+      toast.error((e as Error).message);
+    } finally {
+      setBusy(null);
+    }
+  };
+
   return (
     <PageShell
       title="Ativações"
@@ -333,6 +366,66 @@ function Page() {
         </TabsContent>
 
         <TabsContent value="users" className="mt-4 space-y-3">
+          <Card className="border-primary/30 bg-gradient-to-br from-primary/10 via-primary/5 to-transparent">
+            <CardContent className="p-4 space-y-3">
+              <div className="flex items-center gap-2">
+                <div className="grid h-9 w-9 place-items-center rounded-xl bg-primary/15 text-primary ring-1 ring-primary/30"><Mail className="h-4 w-4" /></div>
+                <div>
+                  <h3 className="text-sm font-bold">Ativar por e-mail</h3>
+                  <p className="text-[11px] text-muted-foreground">Cole o e-mail do cliente, escolha o plano e/ou créditos e ative na hora.</p>
+                </div>
+              </div>
+              <div className="grid gap-3 md:grid-cols-[2fr_2fr_1fr_2fr_auto]">
+                <div>
+                  <label className="text-[10px] uppercase text-muted-foreground">E-mail do cliente</label>
+                  <Input type="email" value={emailInput} onChange={e => setEmailInput(e.target.value)} placeholder="cliente@email.com" />
+                </div>
+                <div>
+                  <label className="text-[10px] uppercase text-muted-foreground">Plano</label>
+                  <Select value={emailPlan} onValueChange={setEmailPlan}>
+                    <SelectTrigger><SelectValue placeholder="Nenhum" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="__none">Nenhum plano</SelectItem>
+                      {plans.map(p => <SelectItem key={p.id} value={p.id}>{p.name} — {brl(p.price_cents)}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <label className="text-[10px] uppercase text-muted-foreground">Dias</label>
+                  <Input type="number" min={1} value={emailDays} onChange={e => setEmailDays(Number(e.target.value))} />
+                </div>
+                <div>
+                  <label className="text-[10px] uppercase text-muted-foreground">Créditos</label>
+                  <Select value={emailPkg} onValueChange={(v) => { setEmailPkg(v); if (v !== "__none") setEmailCustomTokens(0); }}>
+                    <SelectTrigger><SelectValue placeholder="Pacote" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="__none">Nenhum pacote</SelectItem>
+                      {packages.map(p => <SelectItem key={p.id} value={p.id}>{p.name} — {nf(p.tokens)} tokens · {brl(p.price_cents)}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="flex items-end">
+                  <Button onClick={doActivateByEmail} disabled={busy === "email"} className="w-full md:w-auto bg-emerald-500 hover:bg-emerald-600">
+                    {busy === "email" ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <Zap className="h-4 w-4 mr-1" />}Ativar
+                  </Button>
+                </div>
+              </div>
+              {emailPkg === "__none" && (
+                <div className="grid gap-2 md:grid-cols-[1fr_auto]">
+                  <div>
+                    <label className="text-[10px] uppercase text-muted-foreground">Ou quantidade personalizada de tokens</label>
+                    <Input type="number" min={0} value={emailCustomTokens} onChange={e => setEmailCustomTokens(Number(e.target.value))} placeholder="Ex.: 100000" />
+                  </div>
+                  <div className="flex items-end gap-2 flex-wrap">
+                    {[10000, 100000, 1000000, 20000000].map(v => (
+                      <Button key={v} type="button" size="sm" variant="outline" onClick={() => setEmailCustomTokens(v)}>{nf(v)}</Button>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input value={q} onChange={e => setQ(e.target.value)} placeholder="Buscar por nome, telefone ou ID…" className="pl-9" />
