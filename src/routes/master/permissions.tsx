@@ -14,7 +14,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { masterDeleteUser, masterGenerateAccessLink, masterSetBlocked } from "@/lib/master-users.functions";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 
-export const Route = createFileRoute("/_authenticated/permissions")({
+export const Route = createFileRoute("/master/permissions")({
   head: () => ({ meta: [{ title: "Permissões — Admin Master" }] }),
   component: () => <MasterGuard><Page /></MasterGuard>,
 });
