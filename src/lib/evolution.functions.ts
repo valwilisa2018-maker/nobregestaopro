@@ -1263,7 +1263,11 @@ export const sendPresence = createServerFn({ method: "POST" })
       const number = String(contact.phone).replace(/\D+/g, "");
       await evoFetch(`${baseUrl(conn.url_api)}/chat/sendPresence/${conn.instance_name}`, apiKey, {
         method: "POST",
-        body: JSON.stringify({ number, delay: 1200, presence: data.presence }),
+        // WhatsApp only shows the indicator for `delay` ms and then clears it.
+        // Keep it visible for ~6s so successive client pings (every ~4s) overlap
+        // and the receiver sees a continuous "digitando…/gravando…" instead of
+        // the flicker (grava/para/grava) the user reported.
+        body: JSON.stringify({ number, delay: 6000, presence: data.presence }),
       });
       return { ok: true as const };
     } catch (e) {
