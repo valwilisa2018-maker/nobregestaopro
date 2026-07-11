@@ -7,9 +7,9 @@ import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
-import { Mail, Send, Save, CheckCircle2, AlertTriangle, Image as ImageIcon } from "lucide-react";
+import { Mail, Send, Save, CheckCircle2, AlertTriangle, Image as ImageIcon, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
-import { getEmailSettings, saveEmailSettings, sendTestEmail, type EmailSettingsInput } from "@/lib/email-config.functions";
+import { checkBrevoStatus, getEmailSettings, saveEmailSettings, sendTestEmail, type EmailSettingsInput } from "@/lib/email-config.functions";
 
 export const Route = createFileRoute("/master/email-config")({
   component: EmailConfigPage,
@@ -36,6 +36,8 @@ function EmailConfigPage() {
   const [saving, setSaving] = useState(false);
   const [testTo, setTestTo] = useState("");
   const [testing, setTesting] = useState<"signup" | "reset" | null>(null);
+  const [checking, setChecking] = useState(false);
+  const [brevoStatus, setBrevoStatus] = useState<{ ok: boolean; status: string; message: string } | null>(null);
   const [lastTest, setLastTest] = useState<{
     ok: boolean;
     kind: "signup" | "reset";
@@ -92,6 +94,22 @@ function EmailConfigPage() {
     }
   }
 
+  async function onCheckBrevo() {
+    setChecking(true);
+    try {
+      await saveEmailSettings({ data: form });
+      const status = await checkBrevoStatus();
+      setBrevoStatus(status);
+      status.ok ? toast.success(status.message) : toast.error(status.message);
+    } catch (e: any) {
+      const message = e?.message || "Falha ao verificar a Brevo.";
+      setBrevoStatus({ ok: false, status: "error", message });
+      toast.error(message);
+    } finally {
+      setChecking(false);
+    }
+  }
+
   if (loading) return <div className="text-muted-foreground">Carregando…</div>;
 
   return (
@@ -112,7 +130,12 @@ function EmailConfigPage() {
             <>
               <CheckCircle2 className="h-5 w-5 text-emerald-500" />
               <div className="text-sm">Chave <code className="rounded bg-muted px-1.5 py-0.5">BREVO_API_KEY</code> configurada.</div>
-              <Badge variant="outline" className="ml-auto border-emerald-500/40 text-emerald-500">Conectado</Badge>
+              <div className="ml-auto flex items-center gap-2">
+                <Button type="button" variant="outline" size="sm" onClick={onCheckBrevo} disabled={checking}>
+                  <RefreshCw className={checking ? "mr-2 h-4 w-4 animate-spin" : "mr-2 h-4 w-4"} /> Verificar Brevo
+                </Button>
+                <Badge variant="outline" className="border-emerald-500/40 text-emerald-500">Conectado</Badge>
+              </div>
             </>
           ) : (
             <>
@@ -128,6 +151,18 @@ function EmailConfigPage() {
           )}
         </CardContent>
       </Card>
+
+      {brevoStatus && (
+        <Card className={brevoStatus.ok ? "border-emerald-500/40" : "border-destructive/50"}>
+          <CardContent className="flex items-start gap-3 py-4 text-sm">
+            {brevoStatus.ok ? <CheckCircle2 className="mt-0.5 h-5 w-5 text-emerald-500" /> : <AlertTriangle className="mt-0.5 h-5 w-5 text-destructive" />}
+            <div>
+              <div className="font-medium">Status Brevo: {brevoStatus.ok ? "Pronto" : "Atenção"}</div>
+              <div className="mt-1 text-muted-foreground">{brevoStatus.message}</div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       <Card>
         <CardHeader>
