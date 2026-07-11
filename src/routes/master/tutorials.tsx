@@ -8,6 +8,10 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Loader2, Save, PlayCircle, Video, Plus, Trash2, Upload, ArrowUp, ArrowDown } from "lucide-react";
 import { toast } from "sonner";
+import { DndContext, PointerSensor, KeyboardSensor, useSensor, useSensors, closestCenter, type DragEndEvent } from "@dnd-kit/core";
+import { SortableContext, arrayMove, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy } from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
+import { GripVertical } from "lucide-react";
 
 export const Route = createFileRoute("/master/tutorials")({
   head: () => ({ meta: [{ title: "Tutoriais em vídeo — Master" }] }),
@@ -102,6 +106,23 @@ function Page() {
     });
   };
 
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
+  );
+
+  const onDragEnd = (e: DragEndEvent) => {
+    const { active, over } = e;
+    if (!over || active.id === over.id) return;
+    setModules((prev) => {
+      const oldIndex = prev.findIndex((m) => m.key === active.id);
+      const newIndex = prev.findIndex((m) => m.key === over.id);
+      if (oldIndex < 0 || newIndex < 0) return prev;
+      return arrayMove(prev, oldIndex, newIndex);
+    });
+    toast.success("Ordem atualizada — clique em Salvar para confirmar.");
+  };
+
   const ALLOWED_TYPES = ["image/png", "image/jpeg", "image/webp", "image/gif"];
   const MAX_BYTES = 2 * 1024 * 1024;
 
@@ -146,62 +167,27 @@ function Page() {
       ) : (
         <Card className="border-primary/20 bg-gradient-to-br from-primary/5 to-transparent">
           <CardContent className="p-6 space-y-5">
-            {modules.map((m, idx) => {
-              const cover = covers[m.key];
-              return (
-                <div key={m.key} className="rounded-lg border border-border/60 p-4 space-y-3">
-                  <div className="flex items-center justify-between gap-2">
-                    <div className="flex items-center gap-2 text-sm font-semibold">
-                      <PlayCircle className="h-4 w-4 text-primary" /> {m.subtitle} — {m.label}
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <Button variant="ghost" size="icon" onClick={() => move(m.key, -1)} disabled={idx === 0} aria-label="Subir"><ArrowUp className="h-4 w-4" /></Button>
-                      <Button variant="ghost" size="icon" onClick={() => move(m.key, 1)} disabled={idx === modules.length - 1} aria-label="Descer"><ArrowDown className="h-4 w-4" /></Button>
-                      <Button variant="ghost" size="icon" onClick={() => removeModule(m.key)} className="text-destructive hover:text-destructive" aria-label="Excluir"><Trash2 className="h-4 w-4" /></Button>
-                    </div>
-                  </div>
-                  <div className="grid gap-3 md:grid-cols-[140px_1fr]">
-                    <div className="space-y-2">
-                      <div className="overflow-hidden rounded-lg border bg-muted" style={{ aspectRatio: "9/16" }}>
-                        {cover ? <img src={cover} alt="capa" className="h-full w-full object-cover" /> : <div className="h-full w-full grid place-items-center text-xs text-muted-foreground">Sem capa</div>}
-                      </div>
-                      <label className="flex items-center justify-center gap-1 rounded-md border border-input bg-background px-2 py-1.5 text-xs cursor-pointer hover:bg-accent">
-                        <Upload className="h-3.5 w-3.5" /> Enviar capa
-                        <input type="file" accept="image/*" className="hidden" onChange={(e) => onFile(m.key, e.target.files?.[0] ?? null)} />
-                      </label>
-                    </div>
-                    <div className="space-y-2">
-                      <div className="grid grid-cols-[110px_1fr] gap-2">
-                        <div className="space-y-1">
-                          <Label className="text-xs">Rótulo</Label>
-                          <Input value={m.subtitle} onChange={(e) => patchModule(m.key, { subtitle: e.target.value })} placeholder="Módulo 01" />
-                        </div>
-                        <div className="space-y-1">
-                          <Label className="text-xs">Título</Label>
-                          <Input value={m.label} onChange={(e) => patchModule(m.key, { label: e.target.value })} placeholder="Nome do módulo" />
-                        </div>
-                      </div>
-                      <div className="space-y-1">
-                        <Label className="text-xs">URL do vídeo (YouTube, Vimeo ou MP4)</Label>
-                        <Input
-                          placeholder="https://www.youtube.com/watch?v=..."
-                          value={videos[m.key] ?? ""}
-                          onChange={(e) => setVideos((v) => ({ ...v, [m.key]: e.target.value }))}
-                        />
-                      </div>
-                      <div className="space-y-1">
-                        <Label className="text-xs">URL da capa (opcional se você enviou o arquivo)</Label>
-                        <Input
-                          placeholder="https://.../capa.jpg"
-                          value={covers[m.key] ?? ""}
-                          onChange={(e) => setCovers((v) => ({ ...v, [m.key]: e.target.value }))}
-                        />
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
+            <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>
+              <SortableContext items={modules.map((m) => m.key)} strategy={verticalListSortingStrategy}>
+                {modules.map((m, idx) => (
+                  <SortableRow
+                    key={m.key}
+                    m={m}
+                    idx={idx}
+                    total={modules.length}
+                    cover={covers[m.key]}
+                    videoUrl={videos[m.key] ?? ""}
+                    coverUrl={covers[m.key] ?? ""}
+                    onMove={move}
+                    onRemove={removeModule}
+                    onPatch={patchModule}
+                    onVideo={(k, v) => setVideos((prev) => ({ ...prev, [k]: v }))}
+                    onCoverUrl={(k, v) => setCovers((prev) => ({ ...prev, [k]: v }))}
+                    onFile={onFile}
+                  />
+                ))}
+              </SortableContext>
+            </DndContext>
             <div className="flex justify-between">
               <Button variant="outline" onClick={addModule} className="gap-2"><Plus className="h-4 w-4" /> Novo módulo</Button>
               <Button onClick={save} disabled={saving} size="lg" className="gap-2">
@@ -212,5 +198,73 @@ function Page() {
         </Card>
       )}
     </PageShell>
+  );
+}
+
+type RowProps = {
+  m: Module;
+  idx: number;
+  total: number;
+  cover?: string;
+  videoUrl: string;
+  coverUrl: string;
+  onMove: (key: string, dir: -1 | 1) => void;
+  onRemove: (key: string) => void;
+  onPatch: (key: string, patch: Partial<Module>) => void;
+  onVideo: (key: string, v: string) => void;
+  onCoverUrl: (key: string, v: string) => void;
+  onFile: (key: string, f: File | null) => void;
+};
+
+function SortableRow({ m, idx, total, cover, videoUrl, coverUrl, onMove, onRemove, onPatch, onVideo, onCoverUrl, onFile }: RowProps) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: m.key });
+  const style = { transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0.6 : 1 };
+  return (
+    <div ref={setNodeRef} style={style} className="rounded-lg border border-border/60 p-4 space-y-3 bg-background">
+      <div className="flex items-center justify-between gap-2">
+        <div className="flex items-center gap-2 text-sm font-semibold">
+          <button {...attributes} {...listeners} className="cursor-grab active:cursor-grabbing text-muted-foreground hover:text-foreground" aria-label="Arrastar para reordenar">
+            <GripVertical className="h-4 w-4" />
+          </button>
+          <PlayCircle className="h-4 w-4 text-primary" /> {m.subtitle} — {m.label}
+        </div>
+        <div className="flex items-center gap-1">
+          <Button variant="ghost" size="icon" onClick={() => onMove(m.key, -1)} disabled={idx === 0} aria-label="Subir"><ArrowUp className="h-4 w-4" /></Button>
+          <Button variant="ghost" size="icon" onClick={() => onMove(m.key, 1)} disabled={idx === total - 1} aria-label="Descer"><ArrowDown className="h-4 w-4" /></Button>
+          <Button variant="ghost" size="icon" onClick={() => onRemove(m.key)} className="text-destructive hover:text-destructive" aria-label="Excluir"><Trash2 className="h-4 w-4" /></Button>
+        </div>
+      </div>
+      <div className="grid gap-3 md:grid-cols-[140px_1fr]">
+        <div className="space-y-2">
+          <div className="overflow-hidden rounded-lg border bg-muted" style={{ aspectRatio: "9/16" }}>
+            {cover ? <img src={cover} alt="capa" className="h-full w-full object-cover" /> : <div className="h-full w-full grid place-items-center text-xs text-muted-foreground">Sem capa</div>}
+          </div>
+          <label className="flex items-center justify-center gap-1 rounded-md border border-input bg-background px-2 py-1.5 text-xs cursor-pointer hover:bg-accent">
+            <Upload className="h-3.5 w-3.5" /> Enviar capa
+            <input type="file" accept="image/*" className="hidden" onChange={(e) => onFile(m.key, e.target.files?.[0] ?? null)} />
+          </label>
+        </div>
+        <div className="space-y-2">
+          <div className="grid grid-cols-[110px_1fr] gap-2">
+            <div className="space-y-1">
+              <Label className="text-xs">Rótulo</Label>
+              <Input value={m.subtitle} onChange={(e) => onPatch(m.key, { subtitle: e.target.value })} placeholder="Módulo 01" />
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs">Título</Label>
+              <Input value={m.label} onChange={(e) => onPatch(m.key, { label: e.target.value })} placeholder="Nome do módulo" />
+            </div>
+          </div>
+          <div className="space-y-1">
+            <Label className="text-xs">URL do vídeo (YouTube, Vimeo ou MP4)</Label>
+            <Input placeholder="https://www.youtube.com/watch?v=..." value={videoUrl} onChange={(e) => onVideo(m.key, e.target.value)} />
+          </div>
+          <div className="space-y-1">
+            <Label className="text-xs">URL da capa (opcional se você enviou o arquivo)</Label>
+            <Input placeholder="https://.../capa.jpg" value={coverUrl} onChange={(e) => onCoverUrl(m.key, e.target.value)} />
+          </div>
+        </div>
+      </div>
+    </div>
   );
 }
