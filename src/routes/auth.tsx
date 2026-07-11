@@ -173,6 +173,10 @@ function AuthPage() {
                 className="space-y-3"
                 onSubmit={async (e) => {
                   e.preventDefault();
+                  if (!captcha.token || String(captcha.a + captcha.b) !== captchaAnswer.trim()) {
+                    regenCaptcha();
+                    return toast.error("Verificação de segurança incorreta.");
+                  }
                   setResetLoading(true);
                   const { error } = await supabase.auth.resetPasswordForEmail(resetEmail, {
                     redirectTo: `${window.location.origin}/reset-password`,
@@ -181,6 +185,7 @@ function AuthPage() {
                   if (error) return toast.error(error.message);
                   toast.success("Link enviado! Verifique seu e-mail.");
                   setResetOpen(false);
+                  regenCaptcha();
                 }}
               >
                 <div className="space-y-2">
