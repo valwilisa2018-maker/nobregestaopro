@@ -216,72 +216,8 @@ function ModuleEditor({
   onCancel: () => void;
   onSave: (patch: Module, videoUrl: string, coverUrl: string) => void | Promise<void>;
 }) {
-  const [label, setLabel] = useState(mod.label);
-  const [subtitle, setSubtitle] = useState(mod.subtitle);
-  const [video, setVideo] = useState(videoUrl);
-  const [cover, setCover] = useState(coverUrl);
-  const [saving, setSaving] = useState(false);
-
-  const onFile = (f: File | null) => {
-    if (!f) return;
-    if (f.size > 2 * 1024 * 1024) { toast.error("Imagem acima de 2MB. Use uma URL."); return; }
-    const reader = new FileReader();
-    reader.onload = () => setCover(String(reader.result));
-    reader.readAsDataURL(f);
-  };
-
-  const submit = async () => {
-    setSaving(true);
-    await onSave({ ...mod, label: label.trim() || mod.label, subtitle: subtitle.trim() || mod.subtitle }, video.trim(), cover.trim());
-    setSaving(false);
-  };
-
-  return (
-    <Dialog open onOpenChange={(o) => !o && onCancel()}>
-      <DialogContent className="max-w-lg">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2"><Pencil className="h-4 w-4" /> Editar módulo</DialogTitle>
-        </DialogHeader>
-        <div className="space-y-4">
-          <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-1.5">
-              <Label>Rótulo</Label>
-              <Input value={subtitle} onChange={(e) => setSubtitle(e.target.value)} placeholder="Módulo 01" />
-            </div>
-            <div className="space-y-1.5">
-              <Label>Título</Label>
-              <Input value={label} onChange={(e) => setLabel(e.target.value)} placeholder="Nome do módulo" />
-            </div>
-          </div>
-          <div className="space-y-1.5">
-            <Label>URL do vídeo (YouTube, Vimeo ou MP4)</Label>
-            <Input value={video} onChange={(e) => setVideo(e.target.value)} placeholder="https://youtube.com/watch?v=..." />
-          </div>
-          <div className="space-y-1.5">
-            <Label>Capa (9:16)</Label>
-            <div className="flex gap-2">
-              <Input value={cover} onChange={(e) => setCover(e.target.value)} placeholder="URL da imagem" />
-              <label className="inline-flex items-center gap-1 rounded-md border border-input bg-background px-3 text-sm cursor-pointer hover:bg-accent">
-                <Upload className="h-4 w-4" />
-                <input type="file" accept="image/*" className="hidden" onChange={(e) => onFile(e.target.files?.[0] ?? null)} />
-              </label>
-            </div>
-            {cover && (
-              <div className="mt-2 overflow-hidden rounded-lg border" style={{ aspectRatio: "9/16", maxWidth: 140 }}>
-                <img src={cover} alt="preview" className="h-full w-full object-cover" />
-              </div>
-            )}
-          </div>
-          <div className="flex justify-end gap-2 pt-2">
-            <Button variant="ghost" onClick={onCancel} disabled={saving} className="gap-2"><X className="h-4 w-4" /> Cancelar</Button>
-            <Button onClick={submit} disabled={saving} className="gap-2">
-              {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />} Salvar
-            </Button>
-          </div>
-        </div>
-      </DialogContent>
-    </Dialog>
-  );
+  void mod; void videoUrl; void coverUrl; void onCancel; void onSave;
+  return null;
 }
 
 function CommentsPanelInner({ moduleKey, user }: { moduleKey: string; user: ReturnType<typeof useAuth>["user"] }) {
