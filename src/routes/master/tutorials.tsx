@@ -6,7 +6,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { Loader2, Save, PlayCircle, Video } from "lucide-react";
+import { Loader2, Save, PlayCircle, Video, Plus, Trash2, Upload, ArrowUp, ArrowDown } from "lucide-react";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/master/tutorials")({
@@ -15,15 +15,26 @@ export const Route = createFileRoute("/master/tutorials")({
 });
 
 type Tutorials = Record<string, string>;
+type Module = { key: string; label: string; subtitle: string; gradient: string };
 
-const MODULES: Array<{ key: string; label: string; hint: string }> = [
-  { key: "modulo_01", label: "Módulo 01 — Conhecendo a Plataforma", hint: "Dashboard moderno, IA, gráficos e interface da plataforma." },
-  { key: "modulo_02", label: "Módulo 02 — Conectando seu WhatsApp", hint: "Smartphone, WhatsApp, QR Code, conexões e integração." },
-  { key: "modulo_03", label: "Módulo 03 — Automações Inteligentes", hint: "Fluxos, robô de IA, automações, gatilhos e conexões entre blocos." },
-  { key: "modulo_04", label: "Módulo 04 — Configurando seu Agente IA", hint: "Cérebro de IA, chatbot, configurações, prompt e inteligência artificial." },
+const DEFAULT_MODULES: Module[] = [
+  { key: "modulo_01", label: "Conhecendo a Plataforma", subtitle: "Módulo 01", gradient: "from-blue-600 via-indigo-600 to-purple-700" },
+  { key: "modulo_02", label: "Conectando seu WhatsApp", subtitle: "Módulo 02", gradient: "from-emerald-500 via-teal-600 to-cyan-700" },
+  { key: "modulo_03", label: "Automações Inteligentes", subtitle: "Módulo 03", gradient: "from-amber-500 via-orange-600 to-rose-700" },
+  { key: "modulo_04", label: "Configurando seu Agente IA", subtitle: "Módulo 04", gradient: "from-fuchsia-600 via-purple-700 to-indigo-800" },
+];
+
+const GRADIENTS = [
+  "from-blue-600 via-indigo-600 to-purple-700",
+  "from-emerald-500 via-teal-600 to-cyan-700",
+  "from-amber-500 via-orange-600 to-rose-700",
+  "from-fuchsia-600 via-purple-700 to-indigo-800",
+  "from-pink-500 via-rose-600 to-red-700",
+  "from-slate-600 via-slate-700 to-slate-900",
 ];
 
 function Page() {
+  const [modules, setModules] = useState<Module[]>(DEFAULT_MODULES);
   const [videos, setVideos] = useState<Tutorials>({});
   const [covers, setCovers] = useState<Tutorials>({});
   const [loading, setLoading] = useState(true);
@@ -31,10 +42,17 @@ function Page() {
 
   useEffect(() => {
     (async () => {
-      const { data: v } = await supabase.from("internal_config").select("value").eq("key", "tutorials").maybeSingle();
+      const [{ data: v }, { data: c }, { data: m }] = await Promise.all([
+        supabase.from("internal_config").select("value").eq("key", "tutorials").maybeSingle(),
+        supabase.from("internal_config").select("value").eq("key", "tutorial_covers").maybeSingle(),
+        supabase.from("internal_config").select("value").eq("key", "training_modules").maybeSingle(),
+      ]);
       if (v?.value) { try { setVideos(JSON.parse(v.value) as Tutorials); } catch { /* ignore */ } }
-      const { data: c } = await supabase.from("internal_config").select("value").eq("key", "tutorial_covers").maybeSingle();
       if (c?.value) { try { setCovers(JSON.parse(c.value) as Tutorials); } catch { /* ignore */ } }
+      if (m?.value) { try {
+        const parsed = JSON.parse(m.value) as Module[];
+        if (Array.isArray(parsed) && parsed.length) setModules(parsed);
+      } catch { /* ignore */ } }
       setLoading(false);
     })();
   }, []);
@@ -50,15 +68,52 @@ function Page() {
     setSaving(true);
     const r1 = await saveKey("tutorials", JSON.stringify(videos));
     const r2 = await saveKey("tutorial_covers", JSON.stringify(covers));
+    const r3 = await saveKey("training_modules", JSON.stringify(modules));
     setSaving(false);
-    const err = r1.error || r2.error;
+    const err = r1.error || r2.error || r3.error;
     if (err) toast.error(err.message); else toast.success("Tutoriais salvos");
+  };
+
+  const addModule = () => {
+    const n = modules.length + 1;
+    const key = `modulo_${Date.now().toString(36)}`;
+    setModules((prev) => [...prev, { key, label: "Novo módulo", subtitle: `Módulo ${String(n).padStart(2, "0")}`, gradient: GRADIENTS[n % GRADIENTS.length] }]);
+  };
+
+  const removeModule = (key: string) => {
+    if (!confirm("Excluir este módulo?")) return;
+    setModules((prev) => prev.filter((m) => m.key !== key));
+    setVideos((v) => { const { [key]: _v, ...rest } = v; return rest; });
+    setCovers((v) => { const { [key]: _c, ...rest } = v; return rest; });
+  };
+
+  const patchModule = (key: string, patch: Partial<Module>) => {
+    setModules((prev) => prev.map((m) => (m.key === key ? { ...m, ...patch } : m)));
+  };
+
+  const move = (key: string, dir: -1 | 1) => {
+    setModules((prev) => {
+      const i = prev.findIndex((m) => m.key === key);
+      const j = i + dir;
+      if (i < 0 || j < 0 || j >= prev.length) return prev;
+      const next = [...prev];
+      [next[i], next[j]] = [next[j], next[i]];
+      return next;
+    });
+  };
+
+  const onFile = (key: string, f: File | null) => {
+    if (!f) return;
+    if (f.size > 2 * 1024 * 1024) { toast.error("Imagem acima de 2MB. Use uma URL."); return; }
+    const reader = new FileReader();
+    reader.onload = () => setCovers((c) => ({ ...c, [key]: String(reader.result) }));
+    reader.readAsDataURL(f);
   };
 
   return (
     <PageShell
       title="Tutoriais em vídeo"
-      description="Cole o link (YouTube, Vimeo, MP4) do tutorial de cada módulo. Ficará visível para os clientes na respectiva página."
+      description="Adicione, edite ou reordene os módulos da Central de Treinamento. Suba a capa (9:16) e cole o link do vídeo."
       icon={<Video className="h-6 w-6" />}
       status="ativo"
     >
@@ -67,25 +122,64 @@ function Page() {
       ) : (
         <Card className="border-primary/20 bg-gradient-to-br from-primary/5 to-transparent">
           <CardContent className="p-6 space-y-5">
-            {MODULES.map((m) => (
-              <div key={m.key} className="space-y-2 rounded-lg border border-border/60 p-3">
-                <Label className="flex items-center gap-2 text-sm">
-                  <PlayCircle className="h-4 w-4 text-primary" /> {m.label}
-                </Label>
-                <Input
-                  placeholder="https://www.youtube.com/watch?v=... ou https://player.vimeo.com/video/... ou .mp4"
-                  value={videos[m.key] ?? ""}
-                  onChange={(e) => setVideos((v) => ({ ...v, [m.key]: e.target.value }))}
-                />
-                <Input
-                  placeholder="URL da capa vertical 9:16 (jpg/png)"
-                  value={covers[m.key] ?? ""}
-                  onChange={(e) => setCovers((v) => ({ ...v, [m.key]: e.target.value }))}
-                />
-                <p className="text-xs text-muted-foreground">{m.hint}</p>
-              </div>
-            ))}
-            <div className="flex justify-end">
+            {modules.map((m, idx) => {
+              const cover = covers[m.key];
+              return (
+                <div key={m.key} className="rounded-lg border border-border/60 p-4 space-y-3">
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-2 text-sm font-semibold">
+                      <PlayCircle className="h-4 w-4 text-primary" /> {m.subtitle} — {m.label}
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <Button variant="ghost" size="icon" onClick={() => move(m.key, -1)} disabled={idx === 0} aria-label="Subir"><ArrowUp className="h-4 w-4" /></Button>
+                      <Button variant="ghost" size="icon" onClick={() => move(m.key, 1)} disabled={idx === modules.length - 1} aria-label="Descer"><ArrowDown className="h-4 w-4" /></Button>
+                      <Button variant="ghost" size="icon" onClick={() => removeModule(m.key)} className="text-destructive hover:text-destructive" aria-label="Excluir"><Trash2 className="h-4 w-4" /></Button>
+                    </div>
+                  </div>
+                  <div className="grid gap-3 md:grid-cols-[140px_1fr]">
+                    <div className="space-y-2">
+                      <div className="overflow-hidden rounded-lg border bg-muted" style={{ aspectRatio: "9/16" }}>
+                        {cover ? <img src={cover} alt="capa" className="h-full w-full object-cover" /> : <div className="h-full w-full grid place-items-center text-xs text-muted-foreground">Sem capa</div>}
+                      </div>
+                      <label className="flex items-center justify-center gap-1 rounded-md border border-input bg-background px-2 py-1.5 text-xs cursor-pointer hover:bg-accent">
+                        <Upload className="h-3.5 w-3.5" /> Enviar capa
+                        <input type="file" accept="image/*" className="hidden" onChange={(e) => onFile(m.key, e.target.files?.[0] ?? null)} />
+                      </label>
+                    </div>
+                    <div className="space-y-2">
+                      <div className="grid grid-cols-[110px_1fr] gap-2">
+                        <div className="space-y-1">
+                          <Label className="text-xs">Rótulo</Label>
+                          <Input value={m.subtitle} onChange={(e) => patchModule(m.key, { subtitle: e.target.value })} placeholder="Módulo 01" />
+                        </div>
+                        <div className="space-y-1">
+                          <Label className="text-xs">Título</Label>
+                          <Input value={m.label} onChange={(e) => patchModule(m.key, { label: e.target.value })} placeholder="Nome do módulo" />
+                        </div>
+                      </div>
+                      <div className="space-y-1">
+                        <Label className="text-xs">URL do vídeo (YouTube, Vimeo ou MP4)</Label>
+                        <Input
+                          placeholder="https://www.youtube.com/watch?v=..."
+                          value={videos[m.key] ?? ""}
+                          onChange={(e) => setVideos((v) => ({ ...v, [m.key]: e.target.value }))}
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <Label className="text-xs">URL da capa (opcional se você enviou o arquivo)</Label>
+                        <Input
+                          placeholder="https://.../capa.jpg"
+                          value={covers[m.key] ?? ""}
+                          onChange={(e) => setCovers((v) => ({ ...v, [m.key]: e.target.value }))}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+            <div className="flex justify-between">
+              <Button variant="outline" onClick={addModule} className="gap-2"><Plus className="h-4 w-4" /> Novo módulo</Button>
               <Button onClick={save} disabled={saving} size="lg" className="gap-2">
                 {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />} Salvar
               </Button>
