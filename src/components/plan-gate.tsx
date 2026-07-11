@@ -3,7 +3,7 @@ import { useRouterState, useNavigate } from "@tanstack/react-router";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Sparkles, Rocket, Zap, ShieldCheck, Headphones, Brain, X,
-  Hourglass, AlertTriangle, CreditCard, CalendarDays, PartyPopper,
+  Hourglass, AlertTriangle, CreditCard, CalendarDays, PartyPopper, Loader2,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -132,7 +132,17 @@ function PlanModal({ variant, dismissible, onClose, daysLeft, planName, expiresA
     : variant === "expired" ? "Renovar Meu Plano Agora"
     : "Renovar Meu Plano Agora";
 
-  const goPlan = () => { onClose?.(); navigate({ to: "/plans" }); };
+  const [navigating, setNavigating] = useState(false);
+  const goPlan = async () => {
+    if (navigating) return;
+    setNavigating(true);
+    try {
+      onClose?.();
+      await navigate({ to: "/plans" });
+    } finally {
+      setNavigating(false);
+    }
+  };
 
   return (
     <div className="fixed inset-0 z-[70] grid place-items-center p-4 bg-black/70 backdrop-blur-sm">
@@ -247,18 +257,20 @@ function PlanModal({ variant, dismissible, onClose, daysLeft, planName, expiresA
                 <div className="mt-1 text-xs text-white/70">Escolha o plano ideal para desbloquear todo o potencial da AgentIA.</div>
                 <Button
                   onClick={goPlan}
+                  disabled={navigating}
                   className="mt-3 w-full h-11 rounded-xl bg-gradient-to-r from-sky-500 via-indigo-500 to-fuchsia-500 hover:opacity-95 shadow-lg shadow-indigo-500/30 font-semibold"
                 >
-                  {cta}
+                  {navigating ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Abrindo…</> : cta}
                 </Button>
                 <div className="mt-2 text-[10px] text-white/50">🔒 Pagamento seguro • Cancelamento fácil</div>
               </div>
             ) : (
               <Button
                 onClick={goPlan}
+                disabled={navigating}
                 className="w-full h-12 rounded-xl bg-gradient-to-r from-orange-500 to-amber-600 hover:opacity-95 shadow-lg shadow-orange-500/30 font-semibold text-base"
               >
-                <Rocket className="h-4 w-4 mr-2" /> {cta}
+                {navigating ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Abrindo…</> : <><Rocket className="h-4 w-4 mr-2" /> {cta}</>}
               </Button>
             )}
           </div>
