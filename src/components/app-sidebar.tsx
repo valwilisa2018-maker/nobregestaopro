@@ -36,6 +36,7 @@ const groups = [
       { title: "Workflows", url: "/flows", icon: Workflow },
       { title: "Disparo em Massa", url: "/broadcasts", icon: Send },
       { title: "Conexão WhatsApp", url: "/whatsapp", icon: MessageCircle },
+      { title: "Meta API Oficial", url: "/meta-api", icon: MessageCircle },
     ],
   },
   {
