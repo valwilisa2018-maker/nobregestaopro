@@ -139,6 +139,8 @@ function PlanModal({ variant, dismissible, onClose, daysLeft, planName, expiresA
     try {
       onClose?.();
       await navigate({ to: "/plans" });
+    } catch {
+      if (typeof window !== "undefined") window.location.assign("/plans");
     } finally {
       setNavigating(false);
     }
