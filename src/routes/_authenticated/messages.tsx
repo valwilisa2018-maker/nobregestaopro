@@ -1533,7 +1533,7 @@ function MessagesPage() {
     if (!recording || !selected) return;
     const i = setInterval(() => {
       pushPresence({ data: { contactId: selected.id, presence: "recording" } }).catch(() => {});
-    }, 2500);
+    }, 4000);
     return () => clearInterval(i);
   }, [recording, selected, pushPresence]);
 
