@@ -214,7 +214,7 @@ function CaptchaField({
       <Label htmlFor="captcha" className="flex items-center gap-1.5 text-primary">
         <ShieldCheck className="h-3.5 w-3.5" /> Verificação de segurança
       </Label>
-      <div className="flex items-center gap-2">
+      <div className="flex items-center justify-center gap-2">
         <div
           className="select-none rounded-md border border-primary/40 bg-gradient-to-br from-primary/15 to-primary/5 px-4 py-2 font-mono text-lg font-bold tracking-widest italic text-primary"
           style={{ textShadow: "1px 1px 0 hsl(var(--primary) / 0.35)", letterSpacing: "0.25em" }}
