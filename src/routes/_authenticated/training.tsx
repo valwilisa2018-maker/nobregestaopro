@@ -108,6 +108,28 @@ function TrainingPage() {
       {loading ? (
         <div className="flex justify-center py-24"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>
       ) : (
+        <>
+        <div className="mb-6 rounded-2xl border border-border/60 bg-card p-5 shadow-sm">
+          <div className="flex items-center justify-between gap-3 mb-3">
+            <div>
+              <div className="text-sm font-semibold">Seu progresso</div>
+              <div className="text-xs text-muted-foreground">
+                {totalWatched} de {modules.length} aulas concluídas · {modules.length - totalWatched} restante{modules.length - totalWatched === 1 ? "" : "s"}
+              </div>
+            </div>
+            <div className="text-2xl font-bold text-primary tabular-nums">
+              {modules.length ? Math.round((totalWatched / modules.length) * 100) : 0}%
+            </div>
+          </div>
+          <div className="h-2.5 w-full overflow-hidden rounded-full bg-muted">
+            <motion.div
+              initial={{ width: 0 }}
+              animate={{ width: `${modules.length ? (totalWatched / modules.length) * 100 : 0}%` }}
+              transition={{ duration: 0.6, ease: "easeOut" }}
+              className="h-full rounded-full bg-gradient-to-r from-primary via-indigo-500 to-purple-600"
+            />
+          </div>
+        </div>
         <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
           {modules.map((m, idx) => {
             const url = videos[m.key]?.trim();
@@ -160,6 +182,7 @@ function TrainingPage() {
             );
           })}
         </div>
+        </>
       )}
 
       <Dialog open={!!openKey} onOpenChange={(o) => !o && setOpenKey(null)}>
