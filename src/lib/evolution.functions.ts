@@ -149,7 +149,7 @@ export const testConnection = createServerFn({ method: "POST" })
     const r = await evoFetch(`${baseUrl(c.url_api)}/instance/connectionState/${c.instance_name}`, apiKey);
     const state = r.json?.instance?.state ?? r.json?.state ?? (r.ok ? "unknown" : "error");
     const status = state === "open" ? "online" : state === "connecting" ? "connecting" : "offline";
-    await context.supabase.from("connections").update({ status, last_sync: new Date().toISOString() }).eq("id", c.id);
+    await context.supabase.from("connections").update({ status, last_sync: new Date().toISOString() }).eq("id", c.id).eq("user_id", context.userId);
     return { ok: r.ok, status, state, raw: r.json };
   });
 
@@ -170,7 +170,7 @@ export const connectInstance = createServerFn({ method: "POST" })
       j.qr ||
       j.code ||
       null;
-    await context.supabase.from("connections").update({ status: "connecting", last_sync: new Date().toISOString() }).eq("id", c.id);
+    await context.supabase.from("connections").update({ status: "connecting", last_sync: new Date().toISOString() }).eq("id", c.id).eq("user_id", context.userId);
     return { ok: r.ok, qr, pairingCode: j.pairingCode ?? null, raw: r.json };
   });
 
@@ -182,7 +182,7 @@ export const disconnectInstance = createServerFn({ method: "POST" })
     if (!c) return missingConnectionResult();
     const apiKey = await loadEvolutionCommandKey(context.supabase, c.api_key);
     const r = await evoFetch(`${baseUrl(c.url_api)}/instance/logout/${c.instance_name}`, apiKey, { method: "DELETE" });
-    await context.supabase.from("connections").update({ status: "offline", last_sync: new Date().toISOString() }).eq("id", c.id);
+    await context.supabase.from("connections").update({ status: "offline", last_sync: new Date().toISOString() }).eq("id", c.id).eq("user_id", context.userId);
     return { ok: r.ok, raw: r.json };
   });
 
@@ -338,7 +338,7 @@ export const createAndConnectInstance = createServerFn({ method: "POST" })
 
     if (!createRes.ok) {
       // rollback
-      await context.supabase.from("connections").delete().eq("id", conn.id);
+      await context.supabase.from("connections").delete().eq("id", conn.id).eq("user_id", context.userId);
       throw new Error(createRes.json?.response?.message?.[0] ?? createRes.json?.message ?? "Falha ao criar instância na Evolution API");
     }
 
@@ -872,7 +872,7 @@ export const editChatMessage = createServerFn({ method: "POST" })
     await context.supabase.from("messages").update({
       content: data.text,
       metadata: { ...meta, edited: true, editedAt: new Date().toISOString() } as never,
-    }).eq("id", data.messageId);
+    }).eq("id", data.messageId).eq("user_id", context.userId);
     return { ok: true as const };
   });
 
@@ -914,7 +914,7 @@ export const reactChatMessage = createServerFn({ method: "POST" })
     }
     const next = { ...meta, reaction: data.reaction || undefined } as Record<string, unknown>;
     if (!data.reaction) delete next.reaction;
-    await context.supabase.from("messages").update({ metadata: next as never }).eq("id", data.messageId);
+    await context.supabase.from("messages").update({ metadata: next as never }).eq("id", data.messageId).eq("user_id", context.userId);
     return { ok: true as const };
   });
 
