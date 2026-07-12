@@ -38,6 +38,21 @@ type Product = {
   service_location: string | null;
   warranty: string | null;
   notes: string | null;
+  barcode: string | null;
+  ncm: string | null;
+  tax_percent: number | null;
+  discount_percent: number | null;
+  stock_min: number | null;
+  supplier: string | null;
+  delivery_days: number | null;
+  shipping_cents: number | null;
+  license_type: string | null;
+  file_size_mb: number | null;
+  download_limit: number | null;
+  service_modality: string | null;
+  service_recurrence: string | null;
+  max_attendees: number | null;
+  tags: string | null;
 };
 
 const IMG_KEY = (uid: string, pid: string) => `sale_product_img:${uid}:${pid}`;
@@ -64,6 +79,21 @@ const emptyForm = {
   service_location: "",
   warranty: "",
   notes: "",
+  barcode: "",
+  ncm: "",
+  tax_percent: "",
+  discount_percent: "",
+  stock_min: "",
+  supplier: "",
+  delivery_days: "",
+  shipping: "",
+  license_type: "",
+  file_size_mb: "",
+  download_limit: "",
+  service_modality: "",
+  service_recurrence: "",
+  max_attendees: "",
+  tags: "",
 };
 
 const typeMeta: Record<Exclude<ProductType, "">, { label: string; icon: typeof Box; color: string }> = {
@@ -135,6 +165,21 @@ export function SaleProductsConfig() {
       service_location: p.service_location || "",
       warranty: p.warranty || "",
       notes: p.notes || "",
+      barcode: p.barcode || "",
+      ncm: p.ncm || "",
+      tax_percent: p.tax_percent?.toString() ?? "",
+      discount_percent: p.discount_percent?.toString() ?? "",
+      stock_min: p.stock_min?.toString() ?? "",
+      supplier: p.supplier || "",
+      delivery_days: p.delivery_days?.toString() ?? "",
+      shipping: p.shipping_cents != null ? (p.shipping_cents / 100).toFixed(2) : "",
+      license_type: p.license_type || "",
+      file_size_mb: p.file_size_mb?.toString() ?? "",
+      download_limit: p.download_limit?.toString() ?? "",
+      service_modality: p.service_modality || "",
+      service_recurrence: p.service_recurrence || "",
+      max_attendees: p.max_attendees?.toString() ?? "",
+      tags: p.tags || "",
     });
     setImage(uid ? localStorage.getItem(IMG_KEY(uid, p.id)) : null);
     setOpen(true);
@@ -182,6 +227,21 @@ export function SaleProductsConfig() {
         service_location: form.service_location.trim() || null,
         warranty: form.warranty.trim() || null,
         notes: form.notes.trim() || null,
+        barcode: form.barcode.trim() || null,
+        ncm: form.ncm.trim() || null,
+        tax_percent: num(form.tax_percent),
+        discount_percent: num(form.discount_percent),
+        stock_min: int(form.stock_min),
+        supplier: form.supplier.trim() || null,
+        delivery_days: int(form.delivery_days),
+        shipping_cents: form.shipping.trim() ? Math.round(parseFloat(form.shipping) * 100) : null,
+        license_type: form.license_type.trim() || null,
+        file_size_mb: num(form.file_size_mb),
+        download_limit: int(form.download_limit),
+        service_modality: form.service_modality.trim() || null,
+        service_recurrence: form.service_recurrence.trim() || null,
+        max_attendees: int(form.max_attendees),
+        tags: form.tags.trim() || null,
       };
       let productId = editing?.id;
       if (editing) {
@@ -375,6 +435,30 @@ export function SaleProductsConfig() {
                   <Label>Garantia</Label>
                   <Input placeholder="Ex: 12 meses" value={form.warranty} onChange={(e) => setForm({ ...form, warranty: e.target.value })} />
                 </div>
+                <div className="grid gap-2">
+                  <Label>Código de barras</Label>
+                  <Input placeholder="EAN/UPC" value={form.barcode} onChange={(e) => setForm({ ...form, barcode: e.target.value })} />
+                </div>
+                <div className="grid gap-2">
+                  <Label>NCM</Label>
+                  <Input placeholder="0000.00.00" value={form.ncm} onChange={(e) => setForm({ ...form, ncm: e.target.value })} />
+                </div>
+                <div className="grid gap-2">
+                  <Label>Fornecedor</Label>
+                  <Input placeholder="Nome do fornecedor" value={form.supplier} onChange={(e) => setForm({ ...form, supplier: e.target.value })} />
+                </div>
+                <div className="grid gap-2">
+                  <Label>Imposto (%)</Label>
+                  <Input type="number" min={0} step="0.01" value={form.tax_percent} onChange={(e) => setForm({ ...form, tax_percent: e.target.value })} />
+                </div>
+                <div className="grid gap-2">
+                  <Label>Desconto padrão (%)</Label>
+                  <Input type="number" min={0} step="0.01" value={form.discount_percent} onChange={(e) => setForm({ ...form, discount_percent: e.target.value })} />
+                </div>
+              </div>
+              <div className="grid gap-2">
+                <Label>Tags (separadas por vírgula)</Label>
+                <Input placeholder="promocao, top-vendas, novo" value={form.tags} onChange={(e) => setForm({ ...form, tags: e.target.value })} />
               </div>
               <div className="grid gap-2">
                 <Label>Observações internas</Label>
@@ -393,6 +477,18 @@ export function SaleProductsConfig() {
                     <div className="grid gap-2">
                       <Label>Peso (g)</Label>
                       <Input type="number" min={0} value={form.weight_grams} onChange={(e) => setForm({ ...form, weight_grams: e.target.value })} />
+                    </div>
+                    <div className="grid gap-2">
+                      <Label>Estoque mínimo</Label>
+                      <Input type="number" min={0} value={form.stock_min} onChange={(e) => setForm({ ...form, stock_min: e.target.value })} />
+                    </div>
+                    <div className="grid gap-2">
+                      <Label>Prazo de entrega (dias)</Label>
+                      <Input type="number" min={0} value={form.delivery_days} onChange={(e) => setForm({ ...form, delivery_days: e.target.value })} />
+                    </div>
+                    <div className="grid gap-2 col-span-2">
+                      <Label>Frete padrão (R$)</Label>
+                      <Input type="number" min={0} step="0.01" value={form.shipping} onChange={(e) => setForm({ ...form, shipping: e.target.value })} />
                     </div>
                   </div>
                   <div className="grid grid-cols-3 gap-3">
@@ -417,9 +513,32 @@ export function SaleProductsConfig() {
                     <Label>URL de entrega / acesso</Label>
                     <Input placeholder="https://..." value={form.digital_url} onChange={(e) => setForm({ ...form, digital_url: e.target.value })} />
                   </div>
-                  <div className="grid gap-2">
-                    <Label>Duração do acesso (dias)</Label>
-                    <Input type="number" min={0} placeholder="Vazio = vitalício" value={form.access_duration_days} onChange={(e) => setForm({ ...form, access_duration_days: e.target.value })} />
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="grid gap-2">
+                      <Label>Duração do acesso (dias)</Label>
+                      <Input type="number" min={0} placeholder="Vazio = vitalício" value={form.access_duration_days} onChange={(e) => setForm({ ...form, access_duration_days: e.target.value })} />
+                    </div>
+                    <div className="grid gap-2">
+                      <Label>Tipo de licença</Label>
+                      <Select value={form.license_type || "none"} onValueChange={(v) => setForm({ ...form, license_type: v === "none" ? "" : v })}>
+                        <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="none">—</SelectItem>
+                          <SelectItem value="single">Uso único</SelectItem>
+                          <SelectItem value="multi">Multiusuário</SelectItem>
+                          <SelectItem value="subscription">Assinatura</SelectItem>
+                          <SelectItem value="lifetime">Vitalícia</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="grid gap-2">
+                      <Label>Tamanho do arquivo (MB)</Label>
+                      <Input type="number" min={0} step="0.1" value={form.file_size_mb} onChange={(e) => setForm({ ...form, file_size_mb: e.target.value })} />
+                    </div>
+                    <div className="grid gap-2">
+                      <Label>Limite de downloads</Label>
+                      <Input type="number" min={0} placeholder="Vazio = ilimitado" value={form.download_limit} onChange={(e) => setForm({ ...form, download_limit: e.target.value })} />
+                    </div>
                   </div>
                 </>
               )}
@@ -433,6 +552,36 @@ export function SaleProductsConfig() {
                     <div className="grid gap-2">
                       <Label>Local do serviço</Label>
                       <Input placeholder="Presencial, Online..." value={form.service_location} onChange={(e) => setForm({ ...form, service_location: e.target.value })} />
+                    </div>
+                    <div className="grid gap-2">
+                      <Label>Modalidade</Label>
+                      <Select value={form.service_modality || "none"} onValueChange={(v) => setForm({ ...form, service_modality: v === "none" ? "" : v })}>
+                        <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="none">—</SelectItem>
+                          <SelectItem value="presencial">Presencial</SelectItem>
+                          <SelectItem value="online">Online</SelectItem>
+                          <SelectItem value="hibrido">Híbrido</SelectItem>
+                          <SelectItem value="domicilio">A domicílio</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="grid gap-2">
+                      <Label>Recorrência</Label>
+                      <Select value={form.service_recurrence || "none"} onValueChange={(v) => setForm({ ...form, service_recurrence: v === "none" ? "" : v })}>
+                        <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="none">Avulso</SelectItem>
+                          <SelectItem value="weekly">Semanal</SelectItem>
+                          <SelectItem value="biweekly">Quinzenal</SelectItem>
+                          <SelectItem value="monthly">Mensal</SelectItem>
+                          <SelectItem value="yearly">Anual</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="grid gap-2">
+                      <Label>Capacidade máxima</Label>
+                      <Input type="number" min={0} placeholder="Nº de participantes" value={form.max_attendees} onChange={(e) => setForm({ ...form, max_attendees: e.target.value })} />
                     </div>
                   </div>
                 </>

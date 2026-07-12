@@ -1,0 +1,16 @@
+ALTER TABLE public.sale_products
+  ADD COLUMN IF NOT EXISTS barcode text,
+  ADD COLUMN IF NOT EXISTS ncm text,
+  ADD COLUMN IF NOT EXISTS tax_percent numeric,
+  ADD COLUMN IF NOT EXISTS discount_percent numeric,
+  ADD COLUMN IF NOT EXISTS stock_min integer,
+  ADD COLUMN IF NOT EXISTS supplier text,
+  ADD COLUMN IF NOT EXISTS delivery_days integer,
+  ADD COLUMN IF NOT EXISTS shipping_cents integer,
+  ADD COLUMN IF NOT EXISTS license_type text,
+  ADD COLUMN IF NOT EXISTS file_size_mb numeric,
+  ADD COLUMN IF NOT EXISTS download_limit integer,
+  ADD COLUMN IF NOT EXISTS service_modality text,
+  ADD COLUMN IF NOT EXISTS service_recurrence text,
+  ADD COLUMN IF NOT EXISTS max_attendees integer,
+  ADD COLUMN IF NOT EXISTS tags text;
