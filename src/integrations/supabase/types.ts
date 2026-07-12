@@ -2299,40 +2299,88 @@ export type Database = {
       }
       sale_products: {
         Row: {
+          access_duration_days: number | null
           active: boolean
+          brand: string | null
+          category: string | null
+          cost_cents: number | null
           created_at: string
           description: string | null
+          digital_url: string | null
+          height_cm: number | null
           id: string
+          length_cm: number | null
           name: string
+          notes: string | null
           price_cents: number
           product_type: string | null
           seller_name: string | null
+          service_duration_minutes: number | null
+          service_location: string | null
+          sku: string | null
+          stock_quantity: number | null
+          unit: string | null
           updated_at: string
           user_id: string
+          warranty: string | null
+          weight_grams: number | null
+          width_cm: number | null
         }
         Insert: {
+          access_duration_days?: number | null
           active?: boolean
+          brand?: string | null
+          category?: string | null
+          cost_cents?: number | null
           created_at?: string
           description?: string | null
+          digital_url?: string | null
+          height_cm?: number | null
           id?: string
+          length_cm?: number | null
           name: string
+          notes?: string | null
           price_cents?: number
           product_type?: string | null
           seller_name?: string | null
+          service_duration_minutes?: number | null
+          service_location?: string | null
+          sku?: string | null
+          stock_quantity?: number | null
+          unit?: string | null
           updated_at?: string
           user_id: string
+          warranty?: string | null
+          weight_grams?: number | null
+          width_cm?: number | null
         }
         Update: {
+          access_duration_days?: number | null
           active?: boolean
+          brand?: string | null
+          category?: string | null
+          cost_cents?: number | null
           created_at?: string
           description?: string | null
+          digital_url?: string | null
+          height_cm?: number | null
           id?: string
+          length_cm?: number | null
           name?: string
+          notes?: string | null
           price_cents?: number
           product_type?: string | null
           seller_name?: string | null
+          service_duration_minutes?: number | null
+          service_location?: string | null
+          sku?: string | null
+          stock_quantity?: number | null
+          unit?: string | null
           updated_at?: string
           user_id?: string
+          warranty?: string | null
+          weight_grams?: number | null
+          width_cm?: number | null
         }
         Relationships: []
       }
