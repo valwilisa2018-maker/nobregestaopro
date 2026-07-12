@@ -3132,7 +3132,7 @@ function FlowLauncher({ contactId }: { contactId: string | null }) {
   async function toggleActive(f: { id: string; is_active: boolean | null }) {
     const next = !f.is_active;
     setFlows((prev) => prev.map((x) => (x.id === f.id ? { ...x, is_active: next } : x)));
-    const { error } = await supabase.from("flows").update({ is_active: next }).eq("id", f.id);
+    const { error } = await supabase.from("flows").update({ is_active: next }).eq("id", f.id).eq("user_id", user.id);
     if (error) {
       toast.error("Falha ao atualizar status");
       setFlows((prev) => prev.map((x) => (x.id === f.id ? { ...x, is_active: !next } : x)));
@@ -3145,7 +3145,7 @@ function FlowLauncher({ contactId }: { contactId: string | null }) {
     const raw = kwDraft[id] ?? "";
     const list = raw.split(",").map((s) => s.trim()).filter(Boolean);
     setSavingId(id);
-    const { error } = await supabase.from("flows").update({ trigger_keywords: list }).eq("id", id);
+    const { error } = await supabase.from("flows").update({ trigger_keywords: list }).eq("id", id).eq("user_id", user.id);
     setSavingId(null);
     if (error) {
       toast.error("Falha ao salvar palavras-chave");
