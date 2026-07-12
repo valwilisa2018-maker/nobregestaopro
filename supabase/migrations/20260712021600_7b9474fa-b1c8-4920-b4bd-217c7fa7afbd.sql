@@ -1,0 +1,1 @@
+CREATE POLICY "read_tutorials_config" ON public.internal_config FOR SELECT TO authenticated USING (key IN ('tutorials','tutorial_covers','training_modules'));
