@@ -29,6 +29,7 @@ export function NewSaleModal({
   const [company, setCompany] = useState("");
   const [document, setDocument] = useState("");
   const [invoiceNumber, setInvoiceNumber] = useState("");
+  const [sellerName, setSellerName] = useState("");
   const [payment, setPayment] = useState<string>("Pix");
   const [paymentStatus, setPaymentStatus] = useState<"paid" | "partial" | "pending">("paid");
   const [downPayment, setDownPayment] = useState<string>("");
@@ -83,6 +84,7 @@ export function NewSaleModal({
     setContactId(""); setName(""); setPhone(""); setPayment("Pix");
     setNote(""); setItems([]); setStageId("");
     setCompany(""); setDocument(""); setInvoiceNumber("");
+    setSellerName("");
     setPaymentStatus("paid"); setDownPayment("");
   };
 
@@ -126,6 +128,7 @@ export function NewSaleModal({
         company: company.trim() || null,
         document: document.trim() || null,
         invoice_number: invoiceNumber.trim() || null,
+        seller_name: sellerName.trim() || null,
         payment_method: payment,
         payment_status: paymentStatus,
         down_payment_cents: paymentStatus === "partial" ? Math.round((parseFloat(downPayment) || 0) * 100) : (paymentStatus === "paid" ? total : 0),
@@ -231,6 +234,11 @@ export function NewSaleModal({
           <div className="grid gap-2">
             <Label>Nº da Nota Fiscal</Label>
             <Input value={invoiceNumber} onChange={(e) => setInvoiceNumber(e.target.value)} placeholder="Ex: 000123" />
+          </div>
+
+          <div className="grid gap-2">
+            <Label>Vendedor</Label>
+            <Input value={sellerName} onChange={(e) => setSellerName(e.target.value)} placeholder="Nome do vendedor" />
           </div>
 
           <div className="grid gap-2">
