@@ -52,6 +52,35 @@ const WA = {
 const STICKERS = ["😀","😂","😍","🥰","😎","🤩","🥳","😭","😡","🤔","👍","👏","🙏","🔥","💯","🎉","❤️","💔","😅","🤣","😴","🤗","🤝","👀","💪","🌹","🍀","⭐","☀️","🌙","🎂","🍕","☕","⚽","🎮","🎵","📸","💡","✅","❌"];
 const MESSAGE_PAGE_SIZE = 30;
 
+function scopedWaKey(key: string, userId?: string | null) {
+  return userId ? `${key}:${userId}` : `${key}:anon`;
+}
+
+function readScopedJson<T>(key: string, userId: string | undefined | null, fallback: T): T {
+  if (typeof window === "undefined" || !userId) return fallback;
+  try {
+    const raw = localStorage.getItem(scopedWaKey(key, userId));
+    return raw ? JSON.parse(raw) as T : fallback;
+  } catch {
+    return fallback;
+  }
+}
+
+function writeScopedJson(key: string, userId: string | undefined | null, value: unknown) {
+  if (typeof window === "undefined" || !userId) return;
+  try { localStorage.setItem(scopedWaKey(key, userId), JSON.stringify(value)); } catch { /* quota */ }
+}
+
+function readScopedString(key: string, userId: string | undefined | null, fallback: string) {
+  if (typeof window === "undefined" || !userId) return fallback;
+  try { return localStorage.getItem(scopedWaKey(key, userId)) ?? fallback; } catch { return fallback; }
+}
+
+function writeScopedString(key: string, userId: string | undefined | null, value: string) {
+  if (typeof window === "undefined" || !userId) return;
+  try { localStorage.setItem(scopedWaKey(key, userId), value); } catch { /* ignore */ }
+}
+
 function jidFromPhone(phone: string) {
   return `${String(phone).replace(/\D+/g, "")}@s.whatsapp.net`;
 }
@@ -147,42 +176,32 @@ function MessagesPage() {
   const dragDepthRef = useRef(0);
   const [filterMode, setFilterMode] = useState<"all" | "unread" | "favorites" | "groups" | "archived">("all");
   const [archived, setArchived] = useState<Set<string>>(() => {
-    if (typeof window === "undefined") return new Set();
-    try { return new Set(JSON.parse(localStorage.getItem("wa-arch") ?? "[]")); } catch { return new Set(); }
+    return new Set(readScopedJson<string[]>("wa-arch", user?.id, []));
   });
   const [favorites, setFavorites] = useState<Set<string>>(() => {
-    if (typeof window === "undefined") return new Set();
-    try { return new Set(JSON.parse(localStorage.getItem("wa-fav") ?? "[]")); } catch { return new Set(); }
+    return new Set(readScopedJson<string[]>("wa-fav", user?.id, []));
   });
   const [unreadMap, setUnreadMap] = useState<Record<string, number>>(() => {
-    if (typeof window === "undefined") return {};
-    try { return JSON.parse(localStorage.getItem("wa-unread") ?? "{}"); } catch { return {}; }
+    return readScopedJson<Record<string, number>>("wa-unread", user?.id, {});
   });
   const unreadMapRef = useRef<Record<string, number>>({});
   useEffect(() => {
     unreadMapRef.current = unreadMap;
-    if (typeof window !== "undefined") {
-      try { localStorage.setItem("wa-unread", JSON.stringify(unreadMap)); } catch { /* quota */ }
-    }
-  }, [unreadMap]);
+    writeScopedJson("wa-unread", user?.id, unreadMap);
+  }, [unreadMap, user?.id]);
   const [pinned, setPinned] = useState<Set<string>>(() => {
-    if (typeof window === "undefined") return new Set();
-    try { return new Set(JSON.parse(localStorage.getItem("wa-pin") ?? "[]")); } catch { return new Set(); }
+    return new Set(readScopedJson<string[]>("wa-pin", user?.id, []));
   });
   const [labels, setLabels] = useState<Record<string, string>>(() => {
-    if (typeof window === "undefined") return {};
-    try { return JSON.parse(localStorage.getItem("wa-labels") ?? "{}"); } catch { return {}; }
+    return readScopedJson<Record<string, string>>("wa-labels", user?.id, {});
   });
   const [instances, setInstances] = useState<Array<{ id: string; name: string; instance_name: string; profile_name: string | null; profile_picture: string | null; phone_number: string | null }>>([]);
   const [activeInstance, setActiveInstance] = useState<string>(() => {
-    if (typeof window === "undefined") return "all";
-    try { return localStorage.getItem("wa-instance") ?? "all"; } catch { return "all"; }
+    return readScopedString("wa-instance", user?.id, "all");
   });
   useEffect(() => {
-    if (typeof window !== "undefined") {
-      try { localStorage.setItem("wa-instance", activeInstance); } catch { /* ignore */ }
-    }
-  }, [activeInstance]);
+    writeScopedString("wa-instance", user?.id, activeInstance);
+  }, [activeInstance, user?.id]);
   // Map: phone digits -> Set of connection ids that have a conversation with that JID
   const [contactConnMap, setContactConnMap] = useState<Record<string, Set<string>>>({});
   // Map: contact.id -> last activity timestamp (ms) — used for WhatsApp-style ordering
@@ -241,20 +260,25 @@ function MessagesPage() {
   const conversationIdsCacheRef = useRef<Map<string, string[]>>(new Map());
   // Hydrate persistent caches so messages appear instantly on reload / repeat opens
   useEffect(() => {
-    if (typeof window === "undefined") return;
+    messagesCacheRef.current.clear();
+    conversationIdsCacheRef.current.clear();
+    if (!user?.id) return;
     try {
-      const raw = localStorage.getItem("wa-msg-cache");
-      if (raw) {
-        const obj = JSON.parse(raw) as Record<string, Msg[]>;
-        for (const [k, v] of Object.entries(obj)) messagesCacheRef.current.set(k, v);
-      }
-      const rawIds = localStorage.getItem("wa-conv-cache");
-      if (rawIds) {
-        const obj = JSON.parse(rawIds) as Record<string, string[]>;
-        for (const [k, v] of Object.entries(obj)) conversationIdsCacheRef.current.set(k, v);
-      }
+      const obj = readScopedJson<Record<string, Msg[]>>("wa-msg-cache", user.id, {});
+      for (const [k, v] of Object.entries(obj)) messagesCacheRef.current.set(k, v);
+      const objIds = readScopedJson<Record<string, string[]>>("wa-conv-cache", user.id, {});
+      for (const [k, v] of Object.entries(objIds)) conversationIdsCacheRef.current.set(k, v);
     } catch { /* ignore */ }
-  }, []);
+    setArchived(new Set(readScopedJson<string[]>("wa-arch", user.id, [])));
+    setFavorites(new Set(readScopedJson<string[]>("wa-fav", user.id, [])));
+    setPinned(new Set(readScopedJson<string[]>("wa-pin", user.id, [])));
+    setLabels(readScopedJson<Record<string, string>>("wa-labels", user.id, {}));
+    setUnreadMap(readScopedJson<Record<string, number>>("wa-unread", user.id, {}));
+    setActiveInstance(readScopedString("wa-instance", user.id, "all"));
+    setMsgs([]);
+    setSelected(null);
+    setConvoId(null);
+  }, [user?.id]);
   const persistMsgCache = useCallback((contactId: string, rows: Msg[]) => {
     messagesCacheRef.current.set(contactId, rows);
     if (typeof window !== "undefined" && localStorage.getItem("wa-debug") === "1") {
@@ -267,18 +291,18 @@ function MessagesPage() {
       // Cap: only persist last 40 msgs per contact and last 30 contacts to keep storage small
       const entries = [...messagesCacheRef.current.entries()].slice(-30);
       for (const [k, v] of entries) obj[k] = v.slice(-40);
-      localStorage.setItem("wa-msg-cache", JSON.stringify(obj));
+      writeScopedJson("wa-msg-cache", user?.id, obj);
     } catch { /* quota */ }
-  }, []);
+  }, [user?.id]);
   const persistConvCache = useCallback((contactId: string, ids: string[]) => {
     conversationIdsCacheRef.current.set(contactId, ids);
     if (typeof window === "undefined") return;
     try {
       const obj: Record<string, string[]> = {};
       for (const [k, v] of conversationIdsCacheRef.current.entries()) obj[k] = v;
-      localStorage.setItem("wa-conv-cache", JSON.stringify(obj));
+      writeScopedJson("wa-conv-cache", user?.id, obj);
     } catch { /* quota */ }
-  }, []);
+  }, [user?.id]);
   const signedUrlCacheRef = useRef<Map<string, string>>(new Map());
   const prependScrollRef = useRef(false);
   const [editPhone, setEditPhone] = useState("");
@@ -404,17 +428,16 @@ function MessagesPage() {
 
   // Starred messages (local only)
   const [starred, setStarred] = useState<Set<string>>(() => {
-    if (typeof window === "undefined") return new Set();
-    try { return new Set(JSON.parse(localStorage.getItem("wa-starred") ?? "[]")); } catch { return new Set(); }
+    return new Set(readScopedJson<string[]>("wa-starred", user?.id, []));
   });
   const toggleStar = useCallback((id: string) => {
     setStarred((prev) => {
       const next = new Set(prev);
       if (next.has(id)) next.delete(id); else next.add(id);
-      if (typeof window !== "undefined") localStorage.setItem("wa-starred", JSON.stringify([...next]));
+      writeScopedJson("wa-starred", user?.id, [...next]);
       return next;
     });
-  }, []);
+  }, [user?.id]);
 
   const performDelete = useCallback(async (m: Msg, forEveryone: boolean) => {
     setDeleteConfirm(null);
@@ -995,14 +1018,11 @@ function MessagesPage() {
       // 2) cache persistido em localStorage
       if (!cached?.length && typeof window !== "undefined") {
         try {
-          const raw = localStorage.getItem("wa-msg-cache");
-          if (raw) {
-            const obj = JSON.parse(raw) as Record<string, Msg[]>;
-            const fromDisk = obj[selected.id];
-            if (Array.isArray(fromDisk) && fromDisk.length) {
-              messagesCacheRef.current.set(selected.id, fromDisk);
-              cached = fromDisk;
-            }
+          const obj = readScopedJson<Record<string, Msg[]>>("wa-msg-cache", user?.id, {});
+          const fromDisk = obj[selected.id];
+          if (Array.isArray(fromDisk) && fromDisk.length) {
+            messagesCacheRef.current.set(selected.id, fromDisk);
+            cached = fromDisk;
           }
         } catch { /* ignore */ }
       }
@@ -1833,7 +1853,7 @@ function MessagesPage() {
                         <button
                           onClick={() => setPinned((prev) => {
                             const n = new Set(prev); n.has(c.id) ? n.delete(c.id) : n.add(c.id);
-                            try { localStorage.setItem("wa-pin", JSON.stringify([...n])); } catch { /* ignore */ }
+                            writeScopedJson("wa-pin", user?.id, [...n]);
                             return n;
                           })}
                           className="w-full flex items-center gap-2 px-3 py-2 rounded-md hover:bg-accent text-sm"
@@ -1844,7 +1864,7 @@ function MessagesPage() {
                         <button
                           onClick={() => setFavorites((prev) => {
                             const n = new Set(prev); n.has(c.id) ? n.delete(c.id) : n.add(c.id);
-                            try { localStorage.setItem("wa-fav", JSON.stringify([...n])); } catch { /* ignore */ }
+                            writeScopedJson("wa-fav", user?.id, [...n]);
                             return n;
                           })}
                           className="w-full flex items-center gap-2 px-3 py-2 rounded-md hover:bg-accent text-sm"
@@ -1855,7 +1875,7 @@ function MessagesPage() {
                         <button
                           onClick={() => setArchived((prev) => {
                             const n = new Set(prev); n.has(c.id) ? n.delete(c.id) : n.add(c.id);
-                            try { localStorage.setItem("wa-arch", JSON.stringify([...n])); } catch { /* ignore */ }
+                            writeScopedJson("wa-arch", user?.id, [...n]);
                             return n;
                           })}
                           className="w-full flex items-center gap-2 px-3 py-2 rounded-md hover:bg-accent text-sm"
@@ -1873,7 +1893,7 @@ function MessagesPage() {
                               onClick={() => setLabels((prev) => {
                                 const n = { ...prev };
                                 if (n[c.id] === color) delete n[c.id]; else n[c.id] = color;
-                                try { localStorage.setItem("wa-labels", JSON.stringify(n)); } catch { /* ignore */ }
+                                writeScopedJson("wa-labels", user?.id, n);
                                 return n;
                               })}
                               className={`h-5 w-5 rounded-full border-2 transition ${label === color ? "border-gray-900 scale-110" : "border-white shadow"}`}
@@ -1885,7 +1905,7 @@ function MessagesPage() {
                             <button
                               onClick={() => setLabels((prev) => {
                                 const n = { ...prev }; delete n[c.id];
-                                try { localStorage.setItem("wa-labels", JSON.stringify(n)); } catch { /* ignore */ }
+                                writeScopedJson("wa-labels", user?.id, n);
                                 return n;
                               })}
                               className="h-5 w-5 rounded-full border grid place-items-center text-gray-500 hover:bg-gray-100"

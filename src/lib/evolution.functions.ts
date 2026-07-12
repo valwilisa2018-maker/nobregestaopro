@@ -283,6 +283,15 @@ export const createAndConnectInstance = createServerFn({ method: "POST" })
     try { cfg = typeof setting.value === "string" ? JSON.parse(setting.value as any) : (setting.value as any); } catch { throw new Error("Configuração interna inválida. Contate o suporte."); }
     if (!cfg.url_api || !cfg.api_key) throw new Error("A plataforma ainda não está pronta para gerar instâncias. Tente novamente em instantes.");
 
+    const platformInstanceName = `${context.userId.slice(0, 8)}_${data.instanceName}`;
+    const { data: existingConnection } = await context.supabase
+      .from("connections")
+      .select("id")
+      .eq("user_id", context.userId)
+      .eq("instance_name", platformInstanceName)
+      .maybeSingle();
+    if (existingConnection) throw new Error("Já existe uma conexão com este nome nesta conta.");
+
     let webhookBase = cfg.webhook_base_url || data.webhookBaseUrl;
     if (!webhookBase) {
       try {
@@ -291,13 +300,13 @@ export const createAndConnectInstance = createServerFn({ method: "POST" })
       } catch { /* ignore */ }
     }
     const webhookSecret = process.env.FOLLOWUP_TRIGGER_SECRET ?? "";
-    const webhookUrl = webhookBase ? `${webhookBase.replace(/\/+$/, "")}/api/public/evolution/${data.instanceName}${webhookSecret ? `?token=${encodeURIComponent(webhookSecret)}` : ""}` : undefined;
+    const webhookUrl = webhookBase ? `${webhookBase.replace(/\/+$/, "")}/api/public/evolution/${platformInstanceName}${webhookSecret ? `?token=${encodeURIComponent(webhookSecret)}` : ""}` : undefined;
 
     // Insert local connection row
     const { data: conn, error: insErr } = await context.supabase.from("connections").insert({
       user_id: context.userId,
       name: data.name,
-      instance_name: data.instanceName,
+      instance_name: platformInstanceName,
       provider: "evolution",
       url_api: cfg.url_api,
       api_key: cfg.api_key,
@@ -309,7 +318,7 @@ export const createAndConnectInstance = createServerFn({ method: "POST" })
     const createRes = await evoFetch(`${baseUrl(cfg.url_api)}/instance/create`, cfg.api_key, {
       method: "POST",
       body: JSON.stringify({
-        instanceName: data.instanceName,
+        instanceName: platformInstanceName,
         qrcode: true,
         integration: "WHATSAPP-BAILEYS",
         ...(webhookUrl ? {
