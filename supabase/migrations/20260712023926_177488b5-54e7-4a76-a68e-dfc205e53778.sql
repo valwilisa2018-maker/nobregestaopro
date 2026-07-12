@@ -1,0 +1,1 @@
+CREATE POLICY "master read all progress" ON public.training_progress FOR SELECT TO authenticated USING (has_role(auth.uid(),'admin'::app_role) OR has_role(auth.uid(),'master'::app_role));
