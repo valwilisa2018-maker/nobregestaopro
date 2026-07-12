@@ -428,17 +428,16 @@ function MessagesPage() {
 
   // Starred messages (local only)
   const [starred, setStarred] = useState<Set<string>>(() => {
-    if (typeof window === "undefined") return new Set();
-    try { return new Set(JSON.parse(localStorage.getItem("wa-starred") ?? "[]")); } catch { return new Set(); }
+    return new Set(readScopedJson<string[]>("wa-starred", user?.id, []));
   });
   const toggleStar = useCallback((id: string) => {
     setStarred((prev) => {
       const next = new Set(prev);
       if (next.has(id)) next.delete(id); else next.add(id);
-      if (typeof window !== "undefined") localStorage.setItem("wa-starred", JSON.stringify([...next]));
+      writeScopedJson("wa-starred", user?.id, [...next]);
       return next;
     });
-  }, []);
+  }, [user?.id]);
 
   const performDelete = useCallback(async (m: Msg, forEveryone: boolean) => {
     setDeleteConfirm(null);
@@ -1019,14 +1018,11 @@ function MessagesPage() {
       // 2) cache persistido em localStorage
       if (!cached?.length && typeof window !== "undefined") {
         try {
-          const raw = localStorage.getItem("wa-msg-cache");
-          if (raw) {
-            const obj = JSON.parse(raw) as Record<string, Msg[]>;
-            const fromDisk = obj[selected.id];
-            if (Array.isArray(fromDisk) && fromDisk.length) {
-              messagesCacheRef.current.set(selected.id, fromDisk);
-              cached = fromDisk;
-            }
+          const obj = readScopedJson<Record<string, Msg[]>>("wa-msg-cache", user?.id, {});
+          const fromDisk = obj[selected.id];
+          if (Array.isArray(fromDisk) && fromDisk.length) {
+            messagesCacheRef.current.set(selected.id, fromDisk);
+            cached = fromDisk;
           }
         } catch { /* ignore */ }
       }
@@ -1857,7 +1853,7 @@ function MessagesPage() {
                         <button
                           onClick={() => setPinned((prev) => {
                             const n = new Set(prev); n.has(c.id) ? n.delete(c.id) : n.add(c.id);
-                            try { localStorage.setItem("wa-pin", JSON.stringify([...n])); } catch { /* ignore */ }
+                            writeScopedJson("wa-pin", user?.id, [...n]);
                             return n;
                           })}
                           className="w-full flex items-center gap-2 px-3 py-2 rounded-md hover:bg-accent text-sm"
@@ -1868,7 +1864,7 @@ function MessagesPage() {
                         <button
                           onClick={() => setFavorites((prev) => {
                             const n = new Set(prev); n.has(c.id) ? n.delete(c.id) : n.add(c.id);
-                            try { localStorage.setItem("wa-fav", JSON.stringify([...n])); } catch { /* ignore */ }
+                            writeScopedJson("wa-fav", user?.id, [...n]);
                             return n;
                           })}
                           className="w-full flex items-center gap-2 px-3 py-2 rounded-md hover:bg-accent text-sm"
@@ -1879,7 +1875,7 @@ function MessagesPage() {
                         <button
                           onClick={() => setArchived((prev) => {
                             const n = new Set(prev); n.has(c.id) ? n.delete(c.id) : n.add(c.id);
-                            try { localStorage.setItem("wa-arch", JSON.stringify([...n])); } catch { /* ignore */ }
+                            writeScopedJson("wa-arch", user?.id, [...n]);
                             return n;
                           })}
                           className="w-full flex items-center gap-2 px-3 py-2 rounded-md hover:bg-accent text-sm"
@@ -1897,7 +1893,7 @@ function MessagesPage() {
                               onClick={() => setLabels((prev) => {
                                 const n = { ...prev };
                                 if (n[c.id] === color) delete n[c.id]; else n[c.id] = color;
-                                try { localStorage.setItem("wa-labels", JSON.stringify(n)); } catch { /* ignore */ }
+                                writeScopedJson("wa-labels", user?.id, n);
                                 return n;
                               })}
                               className={`h-5 w-5 rounded-full border-2 transition ${label === color ? "border-gray-900 scale-110" : "border-white shadow"}`}
@@ -1909,7 +1905,7 @@ function MessagesPage() {
                             <button
                               onClick={() => setLabels((prev) => {
                                 const n = { ...prev }; delete n[c.id];
-                                try { localStorage.setItem("wa-labels", JSON.stringify(n)); } catch { /* ignore */ }
+                                writeScopedJson("wa-labels", user?.id, n);
                                 return n;
                               })}
                               className="h-5 w-5 rounded-full border grid place-items-center text-gray-500 hover:bg-gray-100"
