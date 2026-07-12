@@ -14,6 +14,7 @@ import { formatBRL } from "./types";
 type Product = {
   id: string; name: string; description: string | null;
   price_cents: number; active: boolean;
+  seller_name: string | null; product_type: string | null;
 };
 
 export function SaleProductsConfig() {
@@ -21,7 +22,7 @@ export function SaleProductsConfig() {
   const [loading, setLoading] = useState(true);
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<Product | null>(null);
-  const [form, setForm] = useState({ name: "", description: "", price: "", active: true });
+  const [form, setForm] = useState({ name: "", description: "", price: "", active: true, seller_name: "", product_type: "" });
   const [saving, setSaving] = useState(false);
 
   const load = async () => {
@@ -39,13 +40,13 @@ export function SaleProductsConfig() {
 
   const openCreate = () => {
     setEditing(null);
-    setForm({ name: "", description: "", price: "", active: true });
+    setForm({ name: "", description: "", price: "", active: true, seller_name: "", product_type: "" });
     setOpen(true);
   };
 
   const openEdit = (p: Product) => {
     setEditing(p);
-    setForm({ name: p.name, description: p.description || "", price: (p.price_cents / 100).toFixed(2), active: p.active });
+    setForm({ name: p.name, description: p.description || "", price: (p.price_cents / 100).toFixed(2), active: p.active, seller_name: p.seller_name || "", product_type: p.product_type || "" });
     setOpen(true);
   };
 
@@ -62,6 +63,8 @@ export function SaleProductsConfig() {
         description: form.description.trim() || null,
         price_cents: Math.round((parseFloat(form.price) || 0) * 100),
         active: form.active,
+        seller_name: form.seller_name.trim() || null,
+        product_type: form.product_type.trim() || null,
       };
       if (editing) {
         const { error } = await supabase.from("sale_products" as never).update(payload as never).eq("id", editing.id).eq("user_id", uid);
@@ -116,6 +119,10 @@ export function SaleProductsConfig() {
                 <div className="flex items-start justify-between gap-2">
                   <div className="min-w-0">
                     <p className="font-bold truncate">{p.name}</p>
+                    <div className="flex flex-wrap gap-1 mt-1">
+                      {p.product_type && <Badge variant="outline" className="text-[10px]">{p.product_type}</Badge>}
+                      {p.seller_name && <Badge variant="outline" className="text-[10px]">👤 {p.seller_name}</Badge>}
+                    </div>
                     {p.description && <p className="text-xs text-muted-foreground line-clamp-2 mt-1">{p.description}</p>}
                   </div>
                   <Badge variant={p.active ? "default" : "secondary"} className="shrink-0">{p.active ? "Ativo" : "Inativo"}</Badge>
@@ -146,6 +153,16 @@ export function SaleProductsConfig() {
             <div className="grid gap-2">
               <Label>Descrição</Label>
               <Textarea value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} rows={3} />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="grid gap-2">
+                <Label>Vendedor</Label>
+                <Input placeholder="Nome do vendedor" value={form.seller_name} onChange={(e) => setForm({ ...form, seller_name: e.target.value })} />
+              </div>
+              <div className="grid gap-2">
+                <Label>Tipo de produto</Label>
+                <Input placeholder="Ex: Serviço, Físico, Digital" value={form.product_type} onChange={(e) => setForm({ ...form, product_type: e.target.value })} />
+              </div>
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div className="grid gap-2">

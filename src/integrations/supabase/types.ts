@@ -2305,6 +2305,8 @@ export type Database = {
           id: string
           name: string
           price_cents: number
+          product_type: string | null
+          seller_name: string | null
           updated_at: string
           user_id: string
         }
@@ -2315,6 +2317,8 @@ export type Database = {
           id?: string
           name: string
           price_cents?: number
+          product_type?: string | null
+          seller_name?: string | null
           updated_at?: string
           user_id: string
         }
@@ -2325,6 +2329,8 @@ export type Database = {
           id?: string
           name?: string
           price_cents?: number
+          product_type?: string | null
+          seller_name?: string | null
           updated_at?: string
           user_id?: string
         }
