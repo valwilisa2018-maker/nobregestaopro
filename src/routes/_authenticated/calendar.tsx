@@ -7,7 +7,7 @@ import {
 import { ptBR } from "date-fns/locale";
 import {
   Plus, ChevronLeft, ChevronRight, Menu, Sparkles, Send, Trash2, Edit3, Bot,
-  CalendarDays, Clock, Users as UsersIcon, AlignLeft, X,
+  CalendarDays, Clock, Users as UsersIcon, AlignLeft, X, Link2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -90,13 +90,27 @@ function CalendarPage() {
   const [modalOpen, setModalOpen] = useState(false);
   const [connections, setConnections] = useState<Array<{ id: string; name: string; phone_number: string | null; status: string | null }>>([]);
   const [activeConn, setActiveConn] = useState<string>("all"); // "all" | connection id
+  const [userId, setUserId] = useState<string | null>(null);
 
   useEffect(() => {
     (async () => {
       const { data } = await supabase.from("connections").select("id,name,phone_number,status").order("created_at", { ascending: true });
       setConnections(data ?? []);
+      const { data: u } = await supabase.auth.getUser();
+      setUserId(u.user?.id ?? null);
     })();
   }, []);
+
+  async function copyBookingLink() {
+    if (!userId) return toast.error("Sessão expirada");
+    const url = `${window.location.origin}/agendar/${userId}`;
+    try {
+      await navigator.clipboard.writeText(url);
+      toast.success("Link de agendamento copiado!", { description: url });
+    } catch {
+      toast.message("Link de agendamento", { description: url });
+    }
+  }
 
   const visible = useMemo(
     () => events.filter((e) => enabledCals[e.calendar] && (activeConn === "all" || (e.connectionId ?? null) === activeConn)),
@@ -142,6 +156,9 @@ function CalendarPage() {
     <aside className="w-72 shrink-0 border-r bg-background p-4 flex flex-col gap-4">
       <Button onClick={() => openCreate()} className="rounded-full shadow-md">
         <Plus className="h-4 w-4" /> Criar evento
+      </Button>
+      <Button variant="outline" onClick={copyBookingLink} className="rounded-full">
+        <Link2 className="h-4 w-4" /> Link de agendamento
       </Button>
       <MiniCalendar value={cursor} onChange={setCursor} events={visible} />
       <div className="space-y-1">

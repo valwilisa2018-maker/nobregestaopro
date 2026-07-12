@@ -31,6 +31,7 @@ import { Route as MasterClientsRouteImport } from './routes/master/clients'
 import { Route as MasterBrandingRouteImport } from './routes/master/branding'
 import { Route as MasterAnnouncementsRouteImport } from './routes/master/announcements'
 import { Route as MasterActivationsRouteImport } from './routes/master/activations'
+import { Route as AgendarUserIdRouteImport } from './routes/agendar.$userId'
 import { Route as AuthenticatedWhiteLabelRouteImport } from './routes/_authenticated/white-label'
 import { Route as AuthenticatedWhatsappRouteImport } from './routes/_authenticated/whatsapp'
 import { Route as AuthenticatedWebhooksRouteImport } from './routes/_authenticated/webhooks'
@@ -75,6 +76,7 @@ import { Route as ApiV1HistoryRouteImport } from './routes/api/v1/history'
 import { Route as ApiV1CreditsRouteImport } from './routes/api/v1/credits'
 import { Route as ApiV1ConsumeRouteImport } from './routes/api/v1/consume'
 import { Route as ApiV1BuyRouteImport } from './routes/api/v1/buy'
+import { Route as ApiPublicBookingRouteImport } from './routes/api/public/booking'
 import { Route as ApiPublicMetaWebhookConfigIdRouteImport } from './routes/api/public/meta-webhook.$configId'
 import { Route as ApiPublicHooksProcessVideoJobsRouteImport } from './routes/api/public/hooks/process-video-jobs'
 import { Route as ApiPublicHooksFollowUpsRouteImport } from './routes/api/public/hooks/follow-ups'
@@ -189,6 +191,11 @@ const MasterActivationsRoute = MasterActivationsRouteImport.update({
   id: '/activations',
   path: '/activations',
   getParentRoute: () => MasterRoute,
+} as any)
+const AgendarUserIdRoute = AgendarUserIdRouteImport.update({
+  id: '/agendar/$userId',
+  path: '/agendar/$userId',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const AuthenticatedWhiteLabelRoute = AuthenticatedWhiteLabelRouteImport.update({
   id: '/white-label',
@@ -414,6 +421,11 @@ const ApiV1BuyRoute = ApiV1BuyRouteImport.update({
   path: '/api/v1/buy',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicBookingRoute = ApiPublicBookingRouteImport.update({
+  id: '/api/public/booking',
+  path: '/api/public/booking',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiPublicMetaWebhookConfigIdRoute =
   ApiPublicMetaWebhookConfigIdRouteImport.update({
     id: '/api/public/meta-webhook/$configId',
@@ -487,6 +499,7 @@ export interface FileRoutesByFullPath {
   '/webhooks': typeof AuthenticatedWebhooksRoute
   '/whatsapp': typeof AuthenticatedWhatsappRoute
   '/white-label': typeof AuthenticatedWhiteLabelRoute
+  '/agendar/$userId': typeof AgendarUserIdRoute
   '/master/activations': typeof MasterActivationsRoute
   '/master/announcements': typeof MasterAnnouncementsRoute
   '/master/branding': typeof MasterBrandingRoute
@@ -502,6 +515,7 @@ export interface FileRoutesByFullPath {
   '/master/training-feedback': typeof MasterTrainingFeedbackRoute
   '/master/tutorials': typeof MasterTutorialsRoute
   '/master/': typeof MasterIndexRoute
+  '/api/public/booking': typeof ApiPublicBookingRoute
   '/api/v1/buy': typeof ApiV1BuyRoute
   '/api/v1/consume': typeof ApiV1ConsumeRoute
   '/api/v1/credits': typeof ApiV1CreditsRoute
@@ -558,6 +572,7 @@ export interface FileRoutesByTo {
   '/webhooks': typeof AuthenticatedWebhooksRoute
   '/whatsapp': typeof AuthenticatedWhatsappRoute
   '/white-label': typeof AuthenticatedWhiteLabelRoute
+  '/agendar/$userId': typeof AgendarUserIdRoute
   '/master/activations': typeof MasterActivationsRoute
   '/master/announcements': typeof MasterAnnouncementsRoute
   '/master/branding': typeof MasterBrandingRoute
@@ -573,6 +588,7 @@ export interface FileRoutesByTo {
   '/master/training-feedback': typeof MasterTrainingFeedbackRoute
   '/master/tutorials': typeof MasterTutorialsRoute
   '/master': typeof MasterIndexRoute
+  '/api/public/booking': typeof ApiPublicBookingRoute
   '/api/v1/buy': typeof ApiV1BuyRoute
   '/api/v1/consume': typeof ApiV1ConsumeRoute
   '/api/v1/credits': typeof ApiV1CreditsRoute
@@ -632,6 +648,7 @@ export interface FileRoutesById {
   '/_authenticated/webhooks': typeof AuthenticatedWebhooksRoute
   '/_authenticated/whatsapp': typeof AuthenticatedWhatsappRoute
   '/_authenticated/white-label': typeof AuthenticatedWhiteLabelRoute
+  '/agendar/$userId': typeof AgendarUserIdRoute
   '/master/activations': typeof MasterActivationsRoute
   '/master/announcements': typeof MasterAnnouncementsRoute
   '/master/branding': typeof MasterBrandingRoute
@@ -647,6 +664,7 @@ export interface FileRoutesById {
   '/master/training-feedback': typeof MasterTrainingFeedbackRoute
   '/master/tutorials': typeof MasterTutorialsRoute
   '/master/': typeof MasterIndexRoute
+  '/api/public/booking': typeof ApiPublicBookingRoute
   '/api/v1/buy': typeof ApiV1BuyRoute
   '/api/v1/consume': typeof ApiV1ConsumeRoute
   '/api/v1/credits': typeof ApiV1CreditsRoute
@@ -706,6 +724,7 @@ export interface FileRouteTypes {
     | '/webhooks'
     | '/whatsapp'
     | '/white-label'
+    | '/agendar/$userId'
     | '/master/activations'
     | '/master/announcements'
     | '/master/branding'
@@ -721,6 +740,7 @@ export interface FileRouteTypes {
     | '/master/training-feedback'
     | '/master/tutorials'
     | '/master/'
+    | '/api/public/booking'
     | '/api/v1/buy'
     | '/api/v1/consume'
     | '/api/v1/credits'
@@ -777,6 +797,7 @@ export interface FileRouteTypes {
     | '/webhooks'
     | '/whatsapp'
     | '/white-label'
+    | '/agendar/$userId'
     | '/master/activations'
     | '/master/announcements'
     | '/master/branding'
@@ -792,6 +813,7 @@ export interface FileRouteTypes {
     | '/master/training-feedback'
     | '/master/tutorials'
     | '/master'
+    | '/api/public/booking'
     | '/api/v1/buy'
     | '/api/v1/consume'
     | '/api/v1/credits'
@@ -850,6 +872,7 @@ export interface FileRouteTypes {
     | '/_authenticated/webhooks'
     | '/_authenticated/whatsapp'
     | '/_authenticated/white-label'
+    | '/agendar/$userId'
     | '/master/activations'
     | '/master/announcements'
     | '/master/branding'
@@ -865,6 +888,7 @@ export interface FileRouteTypes {
     | '/master/training-feedback'
     | '/master/tutorials'
     | '/master/'
+    | '/api/public/booking'
     | '/api/v1/buy'
     | '/api/v1/consume'
     | '/api/v1/credits'
@@ -888,6 +912,8 @@ export interface RootRouteChildren {
   MasterAuthRoute: typeof MasterAuthRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
+  AgendarUserIdRoute: typeof AgendarUserIdRoute
+  ApiPublicBookingRoute: typeof ApiPublicBookingRoute
   ApiV1BuyRoute: typeof ApiV1BuyRoute
   ApiV1ConsumeRoute: typeof ApiV1ConsumeRoute
   ApiV1CreditsRoute: typeof ApiV1CreditsRoute
@@ -1058,6 +1084,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/master/activations'
       preLoaderRoute: typeof MasterActivationsRouteImport
       parentRoute: typeof MasterRoute
+    }
+    '/agendar/$userId': {
+      id: '/agendar/$userId'
+      path: '/agendar/$userId'
+      fullPath: '/agendar/$userId'
+      preLoaderRoute: typeof AgendarUserIdRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/_authenticated/white-label': {
       id: '/_authenticated/white-label'
@@ -1367,6 +1400,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiV1BuyRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/booking': {
+      id: '/api/public/booking'
+      path: '/api/public/booking'
+      fullPath: '/api/public/booking'
+      preLoaderRoute: typeof ApiPublicBookingRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/meta-webhook/$configId': {
       id: '/api/public/meta-webhook/$configId'
       path: '/api/public/meta-webhook/$configId'
@@ -1534,6 +1574,8 @@ const rootRouteChildren: RootRouteChildren = {
   MasterAuthRoute: MasterAuthRoute,
   ResetPasswordRoute: ResetPasswordRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
+  AgendarUserIdRoute: AgendarUserIdRoute,
+  ApiPublicBookingRoute: ApiPublicBookingRoute,
   ApiV1BuyRoute: ApiV1BuyRoute,
   ApiV1ConsumeRoute: ApiV1ConsumeRoute,
   ApiV1CreditsRoute: ApiV1CreditsRoute,
