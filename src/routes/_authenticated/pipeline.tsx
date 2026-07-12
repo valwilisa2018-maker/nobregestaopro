@@ -36,10 +36,18 @@ function PipelinePage() {
 
   const load = async () => {
     setLoading(true);
+    const { data: userRes } = await supabase.auth.getUser();
+    const uid = userRes.user?.id;
+    if (!uid) {
+      setStages([]);
+      setDeals([]);
+      setLoading(false);
+      return;
+    }
     await supabase.rpc("ensure_default_pipeline_stages");
     const [{ data: st }, { data: dl }] = await Promise.all([
-      supabase.from("pipeline_stages" as never).select("*").order("position"),
-      supabase.from("pipeline_deals" as never).select("*").order("created_at", { ascending: false }),
+      supabase.from("pipeline_stages" as never).select("*").eq("user_id", uid).order("position"),
+      supabase.from("pipeline_deals" as never).select("*").eq("user_id", uid).order("created_at", { ascending: false }),
     ]);
     setStages((st as never) || []);
     setDeals((dl as never) || []);
@@ -119,7 +127,10 @@ function PipelinePage() {
 
     const patch: Record<string, unknown> = { stage_id: toStageId };
 
-    const { error } = await supabase.from("pipeline_deals" as never).update(patch as never).eq("id", dealId);
+    const { data: userRes } = await supabase.auth.getUser();
+    const uid = userRes.user?.id;
+    if (!uid) return;
+    const { error } = await supabase.from("pipeline_deals" as never).update(patch as never).eq("id", dealId).eq("user_id", uid);
     if (error) {
       toast.error(error.message);
       setDeals((prev) => prev.map((d) => (d.id === dealId ? { ...d, stage_id: fromStageId } : d)));

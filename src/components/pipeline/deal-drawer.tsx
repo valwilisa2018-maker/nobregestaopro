@@ -86,6 +86,7 @@ export function DealDrawer({ open, onClose, deal, stages, defaultStageId, onSave
       .from("pipeline_activities" as never)
       .select("id,type,created_at,from_stage,to_stage")
       .eq("deal_id", dealId)
+      .eq("user_id", deal?.user_id || "")
       .order("created_at", { ascending: false })
       .limit(30);
     setActivities((data as never) || []);
@@ -122,7 +123,7 @@ export function DealDrawer({ open, onClose, deal, stages, defaultStageId, onSave
     };
 
     const q = deal
-      ? supabase.from("pipeline_deals" as never).update(payload as never).eq("id", deal.id)
+      ? supabase.from("pipeline_deals" as never).update(payload as never).eq("id", deal.id).eq("user_id", user.id)
       : supabase.from("pipeline_deals" as never).insert(payload as never);
     const { error } = await q;
     setSaving(false);
@@ -134,7 +135,7 @@ export function DealDrawer({ open, onClose, deal, stages, defaultStageId, onSave
 
   const remove = async () => {
     if (!deal || !confirm("Excluir este cartão?")) return;
-    const { error } = await supabase.from("pipeline_deals" as never).delete().eq("id", deal.id);
+    const { error } = await supabase.from("pipeline_deals" as never).delete().eq("id", deal.id).eq("user_id", deal.user_id);
     if (error) return toast.error(error.message);
     toast.success("Excluído");
     onSaved();
