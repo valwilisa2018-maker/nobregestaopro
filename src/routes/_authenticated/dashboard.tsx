@@ -362,15 +362,39 @@ function Dashboard() {
             <CardDescription>Valor em aberto</CardDescription>
           </CardHeader>
           <CardContent className="h-72">
-            <ResponsiveContainer width="100%" height="100%">
-              <PieChart>
-                <Pie data={(d?.pipeline.stageAgg ?? []).filter((s) => s.value > 0)} dataKey="value" nameKey="name" innerRadius={50} outerRadius={90} paddingAngle={2}>
-                  {(d?.pipeline.stageAgg ?? []).map((s, i) => <Cell key={s.id} fill={s.color || CHART_COLORS[i % CHART_COLORS.length]} />)}
-                </Pie>
-                <Tooltip formatter={(v: number) => cf.format(v)} contentStyle={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: 8 }} />
-                <Legend wrapperStyle={{ fontSize: 11 }} />
-              </PieChart>
-            </ResponsiveContainer>
+            <div className="grid grid-cols-[160px_1fr] gap-4 h-full items-center">
+              <div className="relative h-full">
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie data={(d?.pipeline.stageAgg ?? []).filter((s) => s.value > 0)} dataKey="value" nameKey="name" innerRadius={55} outerRadius={78} paddingAngle={2} stroke="none">
+                      {(d?.pipeline.stageAgg ?? []).map((s, i) => <Cell key={s.id} fill={s.color || CHART_COLORS[i % CHART_COLORS.length]} />)}
+                    </Pie>
+                    <Tooltip formatter={(v: number) => cf.format(v)} contentStyle={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: 8 }} />
+                  </PieChart>
+                </ResponsiveContainer>
+                <div className="absolute inset-0 grid place-items-center pointer-events-none">
+                  <div className="text-center">
+                    <div className="text-lg font-black">{cf.format(d?.pipeline.openValue ?? 0)}</div>
+                    <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Total</div>
+                  </div>
+                </div>
+              </div>
+              <ul className="space-y-2 text-sm max-h-full overflow-auto pr-1">
+                {(d?.pipeline.stageAgg ?? []).map((s, i) => {
+                  const total = (d?.pipeline.stageAgg ?? []).reduce((a, x) => a + x.value, 0) || 1;
+                  const pct = Math.round((s.value / total) * 100);
+                  return (
+                    <li key={s.id} className="flex items-center gap-2">
+                      <span className="h-2.5 w-2.5 rounded-full shrink-0" style={{ background: s.color || CHART_COLORS[i % CHART_COLORS.length] }} />
+                      <span className="truncate flex-1">{s.name}</span>
+                      <span className="tabular-nums text-muted-foreground">{cf.format(s.value)}</span>
+                      <span className="tabular-nums text-xs text-muted-foreground w-10 text-right">{pct}%</span>
+                    </li>
+                  );
+                })}
+                {!(d?.pipeline.stageAgg?.length) && <li className="text-sm text-muted-foreground">Sem dados.</li>}
+              </ul>
+            </div>
           </CardContent>
         </Card>
       </div>
@@ -383,17 +407,7 @@ function Dashboard() {
             <CardDescription>Destinatários do período</CardDescription>
           </CardHeader>
           <CardContent className="h-64">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={d?.bcStatusChart ?? []}>
-                <CartesianGrid strokeDasharray="3 3" opacity={0.2} />
-                <XAxis dataKey="name" fontSize={11} />
-                <YAxis fontSize={11} />
-                <Tooltip contentStyle={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: 8 }} />
-                <Bar dataKey="value" radius={[6, 6, 0, 0]}>
-                  {(d?.bcStatusChart ?? []).map((_, i) => <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />)}
-                </Bar>
-              </BarChart>
-            </ResponsiveContainer>
+            <DonutWithLegend data={d?.bcStatusChart ?? []} />
           </CardContent>
         </Card>
 
@@ -403,14 +417,7 @@ function Dashboard() {
             <CardDescription>Top canais</CardDescription>
           </CardHeader>
           <CardContent className="h-64">
-            <ResponsiveContainer width="100%" height="100%">
-              <PieChart>
-                <Pie data={d?.contactsBySource ?? []} dataKey="value" nameKey="name" outerRadius={90} label={{ fontSize: 11 }}>
-                  {(d?.contactsBySource ?? []).map((_, i) => <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />)}
-                </Pie>
-                <Tooltip contentStyle={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: 8 }} />
-              </PieChart>
-            </ResponsiveContainer>
+            <DonutWithLegend data={d?.contactsBySource ?? []} />
           </CardContent>
         </Card>
 
@@ -421,16 +428,16 @@ function Dashboard() {
           </CardHeader>
           <CardContent className="h-64">
             <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={d?.series ?? []}>
+              <ComposedChart data={d?.series ?? []}>
                 <CartesianGrid strokeDasharray="3 3" opacity={0.2} />
                 <XAxis dataKey="label" fontSize={11} />
                 <YAxis yAxisId="left" fontSize={11} />
                 <YAxis yAxisId="right" orientation="right" fontSize={11} />
                 <Tooltip contentStyle={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: 8 }} />
                 <Legend />
-                <Line yAxisId="left" type="monotone" dataKey="tokens" name="Tokens" stroke="hsl(var(--primary))" strokeWidth={2} dot={false} />
-                <Line yAxisId="right" type="monotone" dataKey="cost" name="Custo (R$)" stroke="hsl(var(--accent))" strokeWidth={2} dot={false} />
-              </LineChart>
+                <Bar yAxisId="left" dataKey="tokens" name="Tokens" fill="hsl(var(--primary))" radius={[6, 6, 0, 0]} barSize={14} />
+                <Line yAxisId="right" type="monotone" dataKey="cost" name="Custo (R$)" stroke="#f59e0b" strokeWidth={2} dot={{ r: 3 }} />
+              </ComposedChart>
             </ResponsiveContainer>
           </CardContent>
         </Card>
@@ -443,16 +450,27 @@ function Dashboard() {
             <CardTitle className="text-base flex items-center gap-2"><Bot className="h-4 w-4 text-primary" /> Top agentes</CardTitle>
             <CardDescription>Mensagens enviadas no período</CardDescription>
           </CardHeader>
-          <CardContent className="h-64">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={d?.topAgents ?? []} layout="vertical" margin={{ left: 20 }}>
-                <CartesianGrid strokeDasharray="3 3" opacity={0.2} />
-                <XAxis type="number" fontSize={11} />
-                <YAxis dataKey="name" type="category" fontSize={11} width={100} />
-                <Tooltip contentStyle={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: 8 }} />
-                <Bar dataKey="msgs" name="Mensagens" fill="hsl(var(--primary))" radius={[0, 6, 6, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
+          <CardContent className="h-64 overflow-auto pr-1">
+            {d && d.topAgents.length ? (
+              <ul className="space-y-3">
+                {(() => {
+                  const max = Math.max(...d.topAgents.map((a) => a.msgs), 1);
+                  return d.topAgents.map((a, i) => (
+                    <li key={a.name} className="space-y-1">
+                      <div className="flex items-center justify-between text-xs">
+                        <span className="truncate font-medium">{i + 1}. {a.name}</span>
+                        <span className="tabular-nums text-muted-foreground">{nf.format(a.msgs)}</span>
+                      </div>
+                      <div className="h-2 rounded-full bg-muted/40 overflow-hidden">
+                        <div className="h-full rounded-full" style={{ width: `${(a.msgs / max) * 100}%`, background: "var(--gradient-primary)" }} />
+                      </div>
+                    </li>
+                  ));
+                })()}
+              </ul>
+            ) : (
+              <div className="h-full grid place-items-center text-sm text-muted-foreground">Sem dados no período.</div>
+            )}
           </CardContent>
         </Card>
 
