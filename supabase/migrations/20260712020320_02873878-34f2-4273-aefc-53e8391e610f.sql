@@ -1,0 +1,2 @@
+DROP POLICY IF EXISTS "read all comments" ON public.training_comments;
+CREATE POLICY "read own or admin comments" ON public.training_comments FOR SELECT USING (auth.uid() = user_id OR has_role(auth.uid(), 'admin'::app_role) OR has_role(auth.uid(), 'master'::app_role));
