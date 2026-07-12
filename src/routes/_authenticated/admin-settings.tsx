@@ -355,7 +355,7 @@ function Page() {
       is_active: p.is_active,
     };
     const q = p.id
-      ? supabase.from("ai_providers").update(payload).eq("id", p.id)
+      ? supabase.from("ai_providers").update(payload).eq("id", p.id).eq("user_id", user.id)
       : supabase.from("ai_providers").insert(payload).select("id").single();
     const { data, error } = await q;
     setSavingProv(null);
