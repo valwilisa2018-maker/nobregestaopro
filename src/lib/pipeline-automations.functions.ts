@@ -50,6 +50,7 @@ export const runStageAutomations = createServerFn({ method: "POST" })
       .from("pipeline_stages")
       .select("id,name")
       .eq("id", data.toStageId)
+      .eq("user_id", userId)
       .maybeSingle();
     if (!stage) return { ok: false, reason: "stage_not_found" };
 

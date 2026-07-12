@@ -49,8 +49,17 @@ function PipelinePage() {
       supabase.from("pipeline_stages" as never).select("*").eq("user_id", uid).order("position"),
       supabase.from("pipeline_deals" as never).select("*").eq("user_id", uid).order("created_at", { ascending: false }),
     ]);
-    setStages((st as never) || []);
-    setDeals((dl as never) || []);
+    // Defensive isolation: descarta qualquer linha que não pertença ao login atual
+    const safeStages = (((st as unknown) as Stage[]) || []).filter((s) => s.user_id === uid);
+    const safeDeals = (((dl as unknown) as Deal[]) || []).filter((d) => d.user_id === uid);
+    if (safeStages.length !== (st?.length ?? 0) || safeDeals.length !== (dl?.length ?? 0)) {
+      console.warn("[pipeline] rows de outro user descartados", {
+        stages: (st?.length ?? 0) - safeStages.length,
+        deals: (dl?.length ?? 0) - safeDeals.length,
+      });
+    }
+    setStages(safeStages as never);
+    setDeals(safeDeals as never);
     setLoading(false);
   };
 
