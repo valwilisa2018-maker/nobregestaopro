@@ -41,7 +41,7 @@ function Page() {
   const load = async () => {
     if (!user) return;
     setLoading(true);
-    const { data, error } = await supabase.from("api_keys").select("*").order("created_at", { ascending: false });
+    const { data, error } = await supabase.from("api_keys").select("*").eq("user_id", user.id).order("created_at", { ascending: false });
     setLoading(false);
     if (error) return toast.error(error.message);
     setRows((data ?? []) as KeyRow[]);
