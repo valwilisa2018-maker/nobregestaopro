@@ -2391,6 +2391,7 @@ export type Database = {
           contact_name: string
           created_at: string
           deal_id: string | null
+          deleted_at: string | null
           document: string | null
           down_payment_cents: number
           id: string
@@ -2412,6 +2413,7 @@ export type Database = {
           contact_name: string
           created_at?: string
           deal_id?: string | null
+          deleted_at?: string | null
           document?: string | null
           down_payment_cents?: number
           id?: string
@@ -2433,6 +2435,7 @@ export type Database = {
           contact_name?: string
           created_at?: string
           deal_id?: string | null
+          deleted_at?: string | null
           document?: string | null
           down_payment_cents?: number
           id?: string
