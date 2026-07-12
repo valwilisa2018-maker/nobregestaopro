@@ -48,22 +48,27 @@ const CAL_META: Record<CalId, { label: string; color: string; ring: string; bg: 
   personal: { label: "Pessoal",   color: "#f59e0b", ring: "ring-amber-500", bg: "bg-amber-500" },
   ai:       { label: "IA",        color: "#a855f7", ring: "ring-purple-500", bg: "bg-purple-500" },
 };
-const LS_KEY = "calendar.events.v1";
+const calendarStorageKey = (userId: string) => `calendar.events.v1.${userId}`;
 const uid = () => Math.random().toString(36).slice(2, 10);
 
-function useEvents() {
+function useEvents(userId: string | null) {
   const [events, setEvents] = useState<EventItem[]>([]);
   const [loaded, setLoaded] = useState(false);
   useEffect(() => {
+    if (!userId) {
+      setEvents([]);
+      setLoaded(false);
+      return;
+    }
     try {
-      const raw = localStorage.getItem(LS_KEY);
-      if (raw) setEvents(JSON.parse(raw));
+      const raw = localStorage.getItem(calendarStorageKey(userId));
+      setEvents(raw ? JSON.parse(raw) : []);
     } catch { /* ignore */ }
     setLoaded(true);
-  }, []);
+  }, [userId]);
   useEffect(() => {
-    if (loaded) localStorage.setItem(LS_KEY, JSON.stringify(events));
-  }, [events, loaded]);
+    if (loaded && userId) localStorage.setItem(calendarStorageKey(userId), JSON.stringify(events));
+  }, [events, loaded, userId]);
   return { events, setEvents, loaded };
 }
 
@@ -80,7 +85,8 @@ function overlaps(a: EventItem, b: EventItem) {
 type ViewMode = "day" | "week" | "month" | "agenda";
 
 function CalendarPage() {
-  const { events, setEvents, loaded } = useEvents();
+  const [userId, setUserId] = useState<string | null>(null);
+  const { events, setEvents, loaded } = useEvents(userId);
   const [view, setView] = useState<ViewMode>("week");
   const [cursor, setCursor] = useState<Date>(new Date());
   const [enabledCals, setEnabledCals] = useState<Record<CalId, boolean>>({
@@ -90,14 +96,18 @@ function CalendarPage() {
   const [modalOpen, setModalOpen] = useState(false);
   const [connections, setConnections] = useState<Array<{ id: string; name: string; phone_number: string | null; status: string | null }>>([]);
   const [activeConn, setActiveConn] = useState<string>("all"); // "all" | connection id
-  const [userId, setUserId] = useState<string | null>(null);
 
   useEffect(() => {
     (async () => {
-      const { data } = await supabase.from("connections").select("id,name,phone_number,status").order("created_at", { ascending: true });
-      setConnections(data ?? []);
       const { data: u } = await supabase.auth.getUser();
-      setUserId(u.user?.id ?? null);
+      const uid = u.user?.id ?? null;
+      setUserId(uid);
+      if (!uid) return;
+      const { data } = await supabase.from("connections")
+        .select("id,name,phone_number,status")
+        .eq("user_id", uid)
+        .order("created_at", { ascending: true });
+      setConnections(data ?? []);
     })();
   }, []);
 

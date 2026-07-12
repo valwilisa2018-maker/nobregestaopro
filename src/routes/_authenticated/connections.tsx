@@ -81,7 +81,7 @@ function ConnectionsPage() {
     try {
       const r = await createFn({ data: { name: form.name, instanceName: form.instance_name } });
       if (form.notes) {
-        await supabase.from("connections").update({ notes: form.notes }).eq("id", r.connectionId);
+        await supabase.from("connections").update({ notes: form.notes }).eq("id", r.connectionId).eq("user_id", user.id);
       }
       let qrData = r.qr as string | null;
       if (!qrData) {
@@ -164,8 +164,9 @@ function ConnectionsPage() {
   };
 
   const saveTimeout = async (c: Connection, hours: number) => {
+    if (!user) return;
     const meta = { ...(c.metadata ?? {}), flow_timeout_hours: hours };
-    const { error } = await supabase.from("connections").update({ metadata: meta }).eq("id", c.id);
+    const { error } = await supabase.from("connections").update({ metadata: meta }).eq("id", c.id).eq("user_id", user.id);
     if (error) return toast.error(error.message);
     toast.success(`Tempo de abandono: ${hours}h`);
     setItems((prev) => prev.map((x) => x.id === c.id ? { ...x, metadata: meta } : x));

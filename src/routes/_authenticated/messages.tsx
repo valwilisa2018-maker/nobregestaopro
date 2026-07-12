@@ -640,11 +640,12 @@ function MessagesPage() {
       const { data: dupes } = await supabase.from("contacts")
         .select("id").eq("user_id", user.id).in("phone", variants).neq("id", selected.id);
       if (dupes && dupes.length) {
-        await supabase.from("contacts").delete().in("id", dupes.map((d) => d.id));
+        await supabase.from("contacts").delete().eq("user_id", user.id).in("id", dupes.map((d) => d.id));
       }
       const { error } = await supabase.from("contacts")
         .update({ name: name || null, phone })
-        .eq("id", selected.id);
+        .eq("id", selected.id)
+        .eq("user_id", user.id);
       if (error) throw error;
       const updated = { ...selected, name: name || null, phone };
       setSelected(updated);
@@ -913,6 +914,7 @@ function MessagesPage() {
       if (!ids.length) return [] as Msg[];
       const { data } = await supabase.from("messages")
         .select("id,direction,type,content,media_url,created_at,metadata")
+        .eq("user_id", user.id)
         .in("conversation_id", ids)
         .order("created_at", { ascending: false })
         .limit(MESSAGE_PAGE_SIZE + 1);
@@ -1052,6 +1054,7 @@ function MessagesPage() {
     try {
       const { data } = await supabase.from("messages")
         .select("id,direction,type,content,media_url,created_at,metadata")
+        .eq("user_id", user.id)
         .in("conversation_id", ids)
         .lt("created_at", oldest)
         .order("created_at", { ascending: false })
@@ -1079,19 +1082,19 @@ function MessagesPage() {
   }, [user, selected, olderLoading, messagesLoading, hasOlder, msgs, hydrateSignedUrls]);
 
   const toggleAgent = useCallback(async () => {
-    if (!convoId) { toast.error("Sem conversa vinculada ainda."); return; }
-    const { data: row } = await supabase.from("conversations").select("metadata").eq("id", convoId).maybeSingle();
+    if (!convoId || !user) { toast.error("Sem conversa vinculada ainda."); return; }
+    const { data: row } = await supabase.from("conversations").select("metadata").eq("id", convoId).eq("user_id", user.id).maybeSingle();
     const meta = (row?.metadata ?? {}) as Record<string, unknown>;
     // Regra: quando o operador desliga a IA no chat, ela fica REALMENTE
     // desligada (flag booleana persistente) e só volta se ele reativar.
     const next = agentPaused
       ? { ...meta, agent_disabled: false, agent_paused_until: null }
       : { ...meta, agent_disabled: true, agent_paused_until: null };
-    const { error } = await supabase.from("conversations").update({ metadata: next } as never).eq("id", convoId);
+    const { error } = await supabase.from("conversations").update({ metadata: next } as never).eq("id", convoId).eq("user_id", user.id);
     if (error) { toast.error("Não foi possível alterar a IA."); return; }
     setAgentPaused(!agentPaused);
     toast.success(agentPaused ? "IA ativada nesta conversa" : "IA desativada nesta conversa");
-  }, [convoId, agentPaused]);
+  }, [convoId, agentPaused, user]);
 
   // Realtime refresh on new messages
   useEffect(() => {
@@ -1924,10 +1927,10 @@ function MessagesPage() {
                                 const { data: convs } = await supabase.from("conversations").select("id").eq("user_id", user!.id).or(`remote_jid.ilike.%${phone}%,contact_id.eq.${c.id}`);
                                 const convIds = (convs || []).map((r) => r.id);
                                 if (convIds.length) {
-                                  await supabase.from("messages").delete().in("conversation_id", convIds);
-                                  await supabase.from("conversations").delete().in("id", convIds);
+                                  await supabase.from("messages").delete().eq("user_id", user!.id).in("conversation_id", convIds);
+                                  await supabase.from("conversations").delete().eq("user_id", user!.id).in("id", convIds);
                                 }
-                                const { error } = await supabase.from("contacts").delete().eq("id", c.id);
+                                const { error } = await supabase.from("contacts").delete().eq("id", c.id).eq("user_id", user!.id);
                                 if (error) throw error;
                                 setContacts((prev) => prev.filter((x) => x.id !== c.id));
                                 if (selected?.id === c.id) setSelected(null);

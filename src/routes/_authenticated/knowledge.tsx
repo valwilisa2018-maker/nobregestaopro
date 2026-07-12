@@ -66,8 +66,8 @@ function Page() {
     if (!user) return;
     setLoading(true);
     const [{ data: kb, error }, { data: ag }] = await Promise.all([
-      supabase.from("knowledge_documents").select("*").order("updated_at", { ascending: false }),
-      supabase.from("agents").select("id,name").order("name"),
+      supabase.from("knowledge_documents").select("*").eq("user_id", user.id).order("updated_at", { ascending: false }),
+      supabase.from("agents").select("id,name").eq("user_id", user.id).order("name"),
     ]);
     setLoading(false);
     if (error) return toast.error(error.message);
@@ -140,7 +140,7 @@ function Page() {
       tokens: estimateTokens(content),
     };
     const q = editing
-      ? supabase.from("knowledge_documents").update(payload).eq("id", editing.id)
+      ? supabase.from("knowledge_documents").update(payload).eq("id", editing.id).eq("user_id", user.id)
       : supabase.from("knowledge_documents").insert(payload);
     const { error } = await q;
     setSaving(false);
@@ -153,7 +153,8 @@ function Page() {
 
   const remove = async (r: KbDoc) => {
     if (!confirm(`Excluir "${r.title}"?`)) return;
-    const { error } = await supabase.from("knowledge_documents").delete().eq("id", r.id);
+    if (!user) return;
+    const { error } = await supabase.from("knowledge_documents").delete().eq("id", r.id).eq("user_id", user.id);
     if (error) return toast.error(error.message);
     toast.success("Excluído");
     load();

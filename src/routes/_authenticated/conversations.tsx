@@ -86,14 +86,15 @@ function Page() {
   useEffect(() => { load(); /* eslint-disable-next-line */ }, [user, agentFilter, statusFilter, from, to]);
 
   useEffect(() => {
-    if (!selected) { setMsgs([]); setLogs([]); return; }
+    if (!selected || !user) { setMsgs([]); setLogs([]); return; }
     supabase.from("messages")
       .select("id,conversation_id,direction,type,content,created_at,metadata")
       .eq("conversation_id", selected.id)
+      .eq("user_id", user.id)
       .order("created_at", { ascending: true })
       .limit(500)
       .then(({ data }) => setMsgs((data ?? []) as Msg[]));
-  }, [selected]);
+  }, [selected, user]);
 
   // Load evolution logs relevant to the selected conversation (matched by remoteJid)
   useEffect(() => {

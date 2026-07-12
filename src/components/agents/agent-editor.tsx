@@ -169,7 +169,7 @@ export function AgentEditor({ agent, onSaved, onCancel }: Props) {
       void created_at; void updated_at;
       const payload = { ...rest, user_id: user.id };
       if (agent?.id) {
-        const { error } = await supabase.from("agents").update(payload as never).eq("id", agent.id);
+        const { error } = await supabase.from("agents").update(payload as never).eq("id", agent.id).eq("user_id", user.id);
         if (error) throw error;
         toast.success("Agente atualizado");
       } else {
@@ -189,7 +189,8 @@ export function AgentEditor({ agent, onSaved, onCancel }: Props) {
   async function toggleActive(v: boolean) {
     set("is_active", v);
     if (!agent?.id) return; // novo agente só persiste ao salvar
-    const { error } = await supabase.from("agents").update({ is_active: v } as never).eq("id", agent.id);
+    if (!user) return;
+    const { error } = await supabase.from("agents").update({ is_active: v } as never).eq("id", agent.id).eq("user_id", user.id);
     if (error) { toast.error(`Falha ao ${v ? "ativar" : "pausar"}: ${error.message}`); return; }
     toast.success(v ? "Agente ativado" : "Agente pausado");
   }
@@ -199,11 +200,12 @@ export function AgentEditor({ agent, onSaved, onCancel }: Props) {
     if (!confirm("Limpar toda a memória (mensagens salvas) deste agente?")) return;
     setClearingMem(true);
     try {
-      const { data: convs, error: e1 } = await supabase.from("conversations").select("id").eq("agent_id", agent.id);
+      if (!user) throw new Error("Sessão expirada");
+      const { data: convs, error: e1 } = await supabase.from("conversations").select("id").eq("agent_id", agent.id).eq("user_id", user.id);
       if (e1) throw e1;
       const ids = (convs ?? []).map((c) => c.id);
       if (ids.length) {
-        const { error: e2 } = await supabase.from("messages").delete().in("conversation_id", ids);
+        const { error: e2 } = await supabase.from("messages").delete().eq("user_id", user.id).in("conversation_id", ids);
         if (e2) throw e2;
       }
       toast.success(`Memória limpa (${ids.length} conversa(s))`);
@@ -853,7 +855,7 @@ function TestSection({ form, setForm }: { form: AgentRow; setForm: React.Dispatc
       let agendaText = "";
       const schedulingEnabled = ((form.integrations as { scheduling?: { enabled?: boolean } } | null)?.scheduling?.enabled ?? true);
       if (schedulingEnabled) try {
-        const raw = localStorage.getItem("calendar.events.v1");
+        const raw = form.user_id ? localStorage.getItem(`calendar.events.v1.${form.user_id}`) : null;
         const list = raw ? (JSON.parse(raw) as Array<{ title: string; start: string; end: string; calendar: string; connectionId?: string | null }>) : [];
         const now = Date.now();
         const connId = form.connection_id ?? null;

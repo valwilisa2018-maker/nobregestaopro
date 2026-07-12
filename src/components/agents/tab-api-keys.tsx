@@ -48,7 +48,7 @@ export function TabApiKeys() {
           .limit(1)
           .maybeSingle();
         if (existing?.id) {
-          await supabase.from("ai_providers").update({ api_key: v, is_active: true }).eq("id", existing.id);
+          await supabase.from("ai_providers").update({ api_key: v, is_active: true }).eq("id", existing.id).eq("user_id", user.id);
         } else {
           await supabase.from("ai_providers").insert({ user_id: user.id, name: row.label, provider: row.provider, api_key: v, is_active: true });
         }

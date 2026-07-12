@@ -2,20 +2,23 @@ import { useEffect, useState } from "react";
 import { Save, MessageCircle, Cable } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { useAuth } from "@/hooks/use-auth";
 
 type WaProvider = "meta" | "evolution";
 const KEY = "wa_provider";
 
 export function TabProviders() {
+  const { user } = useAuth();
   const [choice, setChoice] = useState<WaProvider>("evolution");
+  const storageKey = user?.id ? `${KEY}.${user.id}` : KEY;
 
   useEffect(() => {
-    const v = localStorage.getItem(KEY) as WaProvider | null;
+    const v = localStorage.getItem(storageKey) as WaProvider | null;
     if (v) setChoice(v);
-  }, []);
+  }, [storageKey]);
 
   function save() {
-    localStorage.setItem(KEY, choice);
+    localStorage.setItem(storageKey, choice);
     toast.success("Provedor salvo");
   }
 
