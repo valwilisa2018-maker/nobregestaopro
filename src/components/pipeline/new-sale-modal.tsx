@@ -193,6 +193,17 @@ export function NewSaleModal({
 
           <div className="grid grid-cols-2 gap-3">
             <div className="grid gap-2">
+              <Label>Empresa</Label>
+              <Input value={company} onChange={(e) => setCompany(e.target.value)} placeholder="Razão social / Nome fantasia" />
+            </div>
+            <div className="grid gap-2">
+              <Label>CPF / CNPJ</Label>
+              <Input value={document} onChange={(e) => setDocument(e.target.value)} placeholder="000.000.000-00" />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div className="grid gap-2">
               <Label>Forma de pagamento</Label>
               <Select value={payment} onValueChange={setPayment}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
@@ -210,6 +221,11 @@ export function NewSaleModal({
                 </SelectContent>
               </Select>
             </div>
+          </div>
+
+          <div className="grid gap-2">
+            <Label>Nº da Nota Fiscal</Label>
+            <Input value={invoiceNumber} onChange={(e) => setInvoiceNumber(e.target.value)} placeholder="Ex: 000123" />
           </div>
 
           <div className="space-y-2">
