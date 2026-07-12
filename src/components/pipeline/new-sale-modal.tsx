@@ -26,6 +26,9 @@ export function NewSaleModal({
   const [contactId, setContactId] = useState<string>("");
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
+  const [company, setCompany] = useState("");
+  const [document, setDocument] = useState("");
+  const [invoiceNumber, setInvoiceNumber] = useState("");
   const [payment, setPayment] = useState<string>("Pix");
   const [note, setNote] = useState("");
   const [stageId, setStageId] = useState<string>("");
@@ -77,6 +80,7 @@ export function NewSaleModal({
   const reset = () => {
     setContactId(""); setName(""); setPhone(""); setPayment("Pix");
     setNote(""); setItems([]); setStageId("");
+    setCompany(""); setDocument(""); setInvoiceNumber("");
   };
 
   const save = async () => {
@@ -116,6 +120,9 @@ export function NewSaleModal({
         contact_id: contactId || null,
         contact_name: name.trim(),
         phone: phone || null,
+        company: company.trim() || null,
+        document: document.trim() || null,
+        invoice_number: invoiceNumber.trim() || null,
         payment_method: payment,
         note: note || null,
         total_cents: total,
