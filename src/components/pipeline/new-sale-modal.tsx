@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Trash2, ShoppingCart, Loader2 } from "lucide-react";
+import { Plus, Trash2, ShoppingCart, Loader2, User, Phone, Building2, IdCard, CreditCard, Layers, FileText, UserSquare2, Wallet, StickyNote, Save } from "lucide-react";
 import { toast } from "sonner";
 import { formatBRL } from "./types";
 import type { Stage } from "./types";
@@ -167,18 +167,21 @@ export function NewSaleModal({
 
   return (
     <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-2xl max-h-[92vh] overflow-y-auto border-slate-800/70 bg-gradient-to-b from-slate-950 to-slate-900 text-slate-100 shadow-2xl">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <ShoppingCart className="h-5 w-5 text-primary" /> Nova Venda
+          <DialogTitle className="flex items-center gap-3 text-2xl font-bold">
+            <span className="grid h-10 w-10 place-items-center rounded-xl bg-gradient-to-br from-blue-500/30 to-indigo-600/30 ring-1 ring-blue-500/40">
+              <ShoppingCart className="h-5 w-5 text-blue-400" />
+            </span>
+            Nova Venda
           </DialogTitle>
         </DialogHeader>
 
-        <div className="space-y-4">
+        <div className="space-y-5">
           <div className="grid gap-2">
-            <Label>Vincular a contato existente (opcional)</Label>
+            <Label className="text-slate-200 font-semibold flex items-center gap-2"><User className="h-3.5 w-3.5 text-blue-400" />Vincular a contato existente (opcional)</Label>
             <Select value={contactId || "none"} onValueChange={(v) => v === "none" ? setContactId("") : pickContact(v)}>
-              <SelectTrigger><SelectValue placeholder="Selecionar contato" /></SelectTrigger>
+              <SelectTrigger className="h-11 bg-slate-900/60 border-slate-800 text-slate-100 focus:ring-2 focus:ring-blue-500/60"><SelectValue placeholder="Selecionar contato" /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="none">— Digitar manualmente —</SelectItem>
                 {contacts.map((c) => (
@@ -188,42 +191,46 @@ export function NewSaleModal({
             </Select>
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-2 gap-4">
             <div className="grid gap-2">
-              <Label>Nome do cliente *</Label>
-              <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Nome completo" />
+              <Label className="text-slate-200 font-semibold flex items-center gap-2"><User className="h-3.5 w-3.5 text-blue-400" />Nome do cliente <span className="text-blue-400">*</span></Label>
+              <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Nome completo"
+                className="h-11 bg-slate-900/60 border-slate-800 text-slate-100 placeholder:text-slate-500 focus-visible:ring-2 focus-visible:ring-blue-500/60 focus-visible:border-blue-500/60" />
             </div>
             <div className="grid gap-2">
-              <Label>Telefone / WhatsApp</Label>
-              <Input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="55XXXXXXXXXXX" />
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-3">
-            <div className="grid gap-2">
-              <Label>Empresa</Label>
-              <Input value={company} onChange={(e) => setCompany(e.target.value)} placeholder="Razão social / Nome fantasia" />
-            </div>
-            <div className="grid gap-2">
-              <Label>CPF / CNPJ</Label>
-              <Input value={document} onChange={(e) => setDocument(e.target.value)} placeholder="000.000.000-00" />
+              <Label className="text-slate-200 font-semibold flex items-center gap-2"><Phone className="h-3.5 w-3.5 text-blue-400" />Telefone / WhatsApp</Label>
+              <Input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="55XXXXXXXXXXX"
+                className="h-11 bg-slate-900/60 border-slate-800 text-slate-100 placeholder:text-slate-500 focus-visible:ring-2 focus-visible:ring-blue-500/60 focus-visible:border-blue-500/60" />
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-2 gap-4">
             <div className="grid gap-2">
-              <Label>Forma de pagamento</Label>
+              <Label className="text-slate-200 font-semibold flex items-center gap-2"><Building2 className="h-3.5 w-3.5 text-blue-400" />Empresa</Label>
+              <Input value={company} onChange={(e) => setCompany(e.target.value)} placeholder="Razão social / Nome fantasia"
+                className="h-11 bg-slate-900/60 border-slate-800 text-slate-100 placeholder:text-slate-500 focus-visible:ring-2 focus-visible:ring-blue-500/60 focus-visible:border-blue-500/60" />
+            </div>
+            <div className="grid gap-2">
+              <Label className="text-slate-200 font-semibold flex items-center gap-2"><IdCard className="h-3.5 w-3.5 text-blue-400" />CPF / CNPJ</Label>
+              <Input value={document} onChange={(e) => setDocument(e.target.value)} placeholder="000.000.000-00"
+                className="h-11 bg-slate-900/60 border-slate-800 text-slate-100 placeholder:text-slate-500 focus-visible:ring-2 focus-visible:ring-blue-500/60 focus-visible:border-blue-500/60" />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div className="grid gap-2">
+              <Label className="text-slate-200 font-semibold flex items-center gap-2"><CreditCard className="h-3.5 w-3.5 text-blue-400" />Forma de pagamento</Label>
               <Select value={payment} onValueChange={setPayment}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectTrigger className="h-11 bg-slate-900/60 border-slate-800 text-slate-100 focus:ring-2 focus:ring-blue-500/60"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   {PAYMENTS.map((p) => <SelectItem key={p} value={p}>{p}</SelectItem>)}
                 </SelectContent>
               </Select>
             </div>
             <div className="grid gap-2">
-              <Label>Etapa inicial do pipeline *</Label>
+              <Label className="text-slate-200 font-semibold flex items-center gap-2"><Layers className="h-3.5 w-3.5 text-blue-400" />Etapa inicial <span className="text-blue-400">*</span></Label>
               <Select value={stageId} onValueChange={setStageId}>
-                <SelectTrigger><SelectValue placeholder="Escolha a etapa" /></SelectTrigger>
+                <SelectTrigger className="h-11 bg-slate-900/60 border-slate-800 text-slate-100 focus:ring-2 focus:ring-blue-500/60"><SelectValue placeholder="Escolha a etapa" /></SelectTrigger>
                 <SelectContent>
                   {stages.map((s) => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
                 </SelectContent>
@@ -231,18 +238,21 @@ export function NewSaleModal({
             </div>
           </div>
 
-          <div className="grid gap-2">
-            <Label>Nº da Nota Fiscal</Label>
-            <Input value={invoiceNumber} onChange={(e) => setInvoiceNumber(e.target.value)} placeholder="Ex: 000123" />
+          <div className="grid grid-cols-2 gap-4">
+            <div className="grid gap-2">
+              <Label className="text-slate-200 font-semibold flex items-center gap-2"><FileText className="h-3.5 w-3.5 text-blue-400" />Nº da Nota Fiscal</Label>
+              <Input value={invoiceNumber} onChange={(e) => setInvoiceNumber(e.target.value)} placeholder="Ex: 000123"
+                className="h-11 bg-slate-900/60 border-slate-800 text-slate-100 placeholder:text-slate-500 focus-visible:ring-2 focus-visible:ring-blue-500/60 focus-visible:border-blue-500/60" />
+            </div>
+            <div className="grid gap-2">
+              <Label className="text-slate-200 font-semibold flex items-center gap-2"><UserSquare2 className="h-3.5 w-3.5 text-blue-400" />Vendedor</Label>
+              <Input value={sellerName} onChange={(e) => setSellerName(e.target.value)} placeholder="Nome do vendedor"
+                className="h-11 bg-slate-900/60 border-slate-800 text-slate-100 placeholder:text-slate-500 focus-visible:ring-2 focus-visible:ring-blue-500/60 focus-visible:border-blue-500/60" />
+            </div>
           </div>
 
           <div className="grid gap-2">
-            <Label>Vendedor</Label>
-            <Input value={sellerName} onChange={(e) => setSellerName(e.target.value)} placeholder="Nome do vendedor" />
-          </div>
-
-          <div className="grid gap-2">
-            <Label>Status do pagamento</Label>
+            <Label className="text-slate-200 font-semibold flex items-center gap-2"><Wallet className="h-3.5 w-3.5 text-blue-400" />Status do pagamento</Label>
             <div className="grid grid-cols-3 gap-2">
               {([
                 { v: "paid", label: "Pago" },
@@ -250,81 +260,90 @@ export function NewSaleModal({
                 { v: "pending", label: "Pendente" },
               ] as const).map((o) => (
                 <Button key={o.v} type="button" size="sm"
-                  variant={paymentStatus === o.v ? "default" : "outline"}
-                  onClick={() => setPaymentStatus(o.v)}>
+                  onClick={() => setPaymentStatus(o.v)}
+                  className={paymentStatus === o.v
+                    ? "bg-gradient-to-br from-blue-600 to-indigo-600 text-white ring-1 ring-blue-500/60 shadow-[0_0_20px_-4px_rgba(59,130,246,0.6)] hover:from-blue-500 hover:to-indigo-500"
+                    : "bg-slate-900/60 border border-slate-800 text-slate-300 hover:bg-slate-800/60 hover:text-slate-100"}>
                   {o.label}
                 </Button>
               ))}
             </div>
             {paymentStatus === "partial" && (
-              <div className="grid gap-1 mt-2">
-                <Label className="text-xs">Valor da entrada (R$)</Label>
+              <div className="grid gap-1 mt-2 rounded-lg border border-slate-800 bg-slate-900/40 p-3">
+                <Label className="text-xs text-slate-300">Valor da entrada (R$)</Label>
                 <Input type="number" min={0} step="0.01" value={downPayment}
-                  onChange={(e) => setDownPayment(e.target.value)} placeholder="0,00" />
-                <p className="text-[11px] text-muted-foreground">
-                  Restante: <strong className="tabular-nums">{formatBRL(Math.max(0, total - Math.round((parseFloat(downPayment) || 0) * 100)))}</strong>
+                  onChange={(e) => setDownPayment(e.target.value)} placeholder="0,00"
+                  className="h-10 bg-slate-900/60 border-slate-800 text-slate-100 placeholder:text-slate-500 focus-visible:ring-2 focus-visible:ring-blue-500/60" />
+                <p className="text-[11px] text-slate-400">
+                  Restante: <strong className="tabular-nums text-blue-300">{formatBRL(Math.max(0, total - Math.round((parseFloat(downPayment) || 0) * 100)))}</strong>
                 </p>
               </div>
             )}
           </div>
 
-          <div className="space-y-2">
+          <div className="space-y-2 rounded-xl border border-slate-800 bg-slate-900/40 p-4">
             <div className="flex items-center justify-between">
-              <Label>Produtos *</Label>
-              <Button size="sm" variant="outline" onClick={addItem} type="button">
+              <Label className="text-slate-200 font-semibold">Produtos <span className="text-blue-400">*</span></Label>
+              <Button size="sm" onClick={addItem} type="button"
+                className="bg-gradient-to-br from-blue-600 to-indigo-600 text-white hover:from-blue-500 hover:to-indigo-500 shadow-[0_0_20px_-4px_rgba(59,130,246,0.6)]">
                 <Plus className="h-3 w-3" /> Adicionar
               </Button>
             </div>
             {items.length === 0 && (
-              <p className="text-xs text-muted-foreground py-4 text-center border border-dashed rounded-lg">
+              <p className="text-xs text-slate-400 py-6 text-center border border-dashed border-slate-800 rounded-lg">
                 Nenhum produto. Clique em Adicionar.
               </p>
             )}
             {items.map((i) => (
               <div key={i.key} className="grid grid-cols-[1fr_80px_110px_36px] gap-2 items-end">
-                <div className="grid gap-1">
-                  <Select value={i.product_id ?? ""} onValueChange={(v) => pickProduct(i.key, v)}>
-                    <SelectTrigger><SelectValue placeholder="Produto" /></SelectTrigger>
-                    <SelectContent>
-                      {products.length === 0 && <div className="p-2 text-xs text-muted-foreground">Nenhum produto configurado. Vá à aba "Produtos".</div>}
-                      {products.map((p) => (
-                        <SelectItem key={p.id} value={p.id}>{p.name} — {formatBRL(p.price_cents)}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
+                <Select value={i.product_id ?? ""} onValueChange={(v) => pickProduct(i.key, v)}>
+                  <SelectTrigger className="h-10 bg-slate-900/60 border-slate-800 text-slate-100 focus:ring-2 focus:ring-blue-500/60"><SelectValue placeholder="Produto" /></SelectTrigger>
+                  <SelectContent>
+                    {products.length === 0 && <div className="p-2 text-xs text-muted-foreground">Nenhum produto configurado. Vá à aba "Produtos".</div>}
+                    {products.map((p) => (
+                      <SelectItem key={p.id} value={p.id}>{p.name} — {formatBRL(p.price_cents)}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
                 <Input
                   type="number" min={1}
                   value={i.quantity}
                   onChange={(e) => patchItem(i.key, { quantity: Math.max(1, parseInt(e.target.value) || 1) })}
+                  className="h-10 bg-slate-900/60 border-slate-800 text-slate-100 focus-visible:ring-2 focus-visible:ring-blue-500/60"
                 />
                 <Input
                   type="number" min={0} step="0.01"
                   value={(i.unit_price_cents / 100).toFixed(2)}
                   onChange={(e) => patchItem(i.key, { unit_price_cents: Math.round((parseFloat(e.target.value) || 0) * 100) })}
+                  className="h-10 bg-slate-900/60 border-slate-800 text-slate-100 focus-visible:ring-2 focus-visible:ring-blue-500/60"
                 />
-                <Button variant="ghost" size="icon" onClick={() => removeItem(i.key)} type="button">
-                  <Trash2 className="h-4 w-4 text-destructive" />
+                <Button variant="ghost" size="icon" onClick={() => removeItem(i.key)} type="button" className="hover:bg-red-500/10">
+                  <Trash2 className="h-4 w-4 text-red-400" />
                 </Button>
               </div>
             ))}
           </div>
 
           <div className="grid gap-2">
-            <Label>Observação</Label>
-            <Textarea value={note} onChange={(e) => setNote(e.target.value)} placeholder="Detalhes da venda…" rows={3} />
+            <Label className="text-slate-200 font-semibold flex items-center gap-2"><StickyNote className="h-3.5 w-3.5 text-blue-400" />Observação</Label>
+            <Textarea value={note} onChange={(e) => setNote(e.target.value)} placeholder="Detalhes da venda…" rows={3}
+              className="bg-slate-900/60 border-slate-800 text-slate-100 placeholder:text-slate-500 focus-visible:ring-2 focus-visible:ring-blue-500/60 focus-visible:border-blue-500/60" />
           </div>
 
-          <div className="flex items-center justify-between rounded-lg border border-primary/30 bg-primary/5 p-3">
-            <span className="text-sm font-semibold">Total</span>
-            <Badge className="text-base px-3 py-1 tabular-nums">{formatBRL(total)}</Badge>
+          <div className="flex items-center justify-between rounded-xl border border-blue-500/40 bg-gradient-to-br from-blue-600/20 to-indigo-600/10 p-4 shadow-[0_0_30px_-8px_rgba(59,130,246,0.5)]">
+            <span className="text-sm font-semibold text-slate-200">Total da venda</span>
+            <span className="text-2xl font-black tabular-nums text-blue-300">{formatBRL(total)}</span>
           </div>
         </div>
 
-        <DialogFooter>
-          <Button variant="outline" onClick={onClose} disabled={saving}>Cancelar</Button>
-          <Button onClick={save} disabled={saving}>
-            {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <ShoppingCart className="h-4 w-4" />}
+        <DialogFooter className="gap-2 border-t border-slate-800 pt-4">
+          <Button variant="ghost" onClick={onClose} disabled={saving}
+            className="text-slate-300 hover:bg-slate-800/60 hover:text-slate-100">
+            Cancelar
+          </Button>
+          <Button onClick={save} disabled={saving}
+            className="bg-gradient-to-br from-blue-600 to-indigo-600 text-white hover:from-blue-500 hover:to-indigo-500 shadow-[0_0_24px_-4px_rgba(59,130,246,0.7)]">
+            {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
             Salvar venda
           </Button>
         </DialogFooter>
