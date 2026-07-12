@@ -165,6 +165,21 @@ export function SaleProductsConfig() {
       service_location: p.service_location || "",
       warranty: p.warranty || "",
       notes: p.notes || "",
+      barcode: p.barcode || "",
+      ncm: p.ncm || "",
+      tax_percent: p.tax_percent?.toString() ?? "",
+      discount_percent: p.discount_percent?.toString() ?? "",
+      stock_min: p.stock_min?.toString() ?? "",
+      supplier: p.supplier || "",
+      delivery_days: p.delivery_days?.toString() ?? "",
+      shipping: p.shipping_cents != null ? (p.shipping_cents / 100).toFixed(2) : "",
+      license_type: p.license_type || "",
+      file_size_mb: p.file_size_mb?.toString() ?? "",
+      download_limit: p.download_limit?.toString() ?? "",
+      service_modality: p.service_modality || "",
+      service_recurrence: p.service_recurrence || "",
+      max_attendees: p.max_attendees?.toString() ?? "",
+      tags: p.tags || "",
     });
     setImage(uid ? localStorage.getItem(IMG_KEY(uid, p.id)) : null);
     setOpen(true);
