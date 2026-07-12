@@ -119,6 +119,10 @@ export function SaleProductsConfig() {
                 <div className="flex items-start justify-between gap-2">
                   <div className="min-w-0">
                     <p className="font-bold truncate">{p.name}</p>
+                    <div className="flex flex-wrap gap-1 mt-1">
+                      {p.product_type && <Badge variant="outline" className="text-[10px]">{p.product_type}</Badge>}
+                      {p.seller_name && <Badge variant="outline" className="text-[10px]">👤 {p.seller_name}</Badge>}
+                    </div>
                     {p.description && <p className="text-xs text-muted-foreground line-clamp-2 mt-1">{p.description}</p>}
                   </div>
                   <Badge variant={p.active ? "default" : "secondary"} className="shrink-0">{p.active ? "Ativo" : "Inativo"}</Badge>
@@ -149,6 +153,16 @@ export function SaleProductsConfig() {
             <div className="grid gap-2">
               <Label>Descrição</Label>
               <Textarea value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} rows={3} />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="grid gap-2">
+                <Label>Vendedor</Label>
+                <Input placeholder="Nome do vendedor" value={form.seller_name} onChange={(e) => setForm({ ...form, seller_name: e.target.value })} />
+              </div>
+              <div className="grid gap-2">
+                <Label>Tipo de produto</Label>
+                <Input placeholder="Ex: Serviço, Físico, Digital" value={form.product_type} onChange={(e) => setForm({ ...form, product_type: e.target.value })} />
+              </div>
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div className="grid gap-2">
