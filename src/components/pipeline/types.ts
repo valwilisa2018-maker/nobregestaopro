@@ -2,6 +2,7 @@ export type Priority = "low" | "medium" | "high" | "urgent";
 
 export interface Stage {
   id: string;
+  user_id: string;
   name: string;
   color: string;
   position: number;
