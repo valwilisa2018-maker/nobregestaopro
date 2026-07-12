@@ -258,7 +258,7 @@ function Dashboard() {
         <div className="absolute -right-20 -top-24 h-72 w-72 rounded-full bg-primary/25 blur-3xl" />
         <div className="absolute -left-16 -bottom-16 h-56 w-56 rounded-full bg-accent/25 blur-3xl" />
         <div className="relative grid grid-cols-[minmax(0,1fr)_auto] items-start gap-4 sm:flex sm:flex-wrap sm:justify-between">
-          <div className="min-w-0 space-y-2">
+          <div className="min-w-0 space-y-2 flex-1">
             <Badge variant="outline" className="bg-primary/15 text-primary border-primary/40">
               <Zap className="h-3 w-3" /> Plataforma IA Premium
             </Badge>
@@ -268,6 +268,12 @@ function Dashboard() {
             <p className="text-sm text-muted-foreground max-w-xl">
               Visão consolidada de agentes, WhatsApp, disparos, pipeline e agenda — {range.label.toLowerCase()}.
             </p>
+          </div>
+          <div className="hidden lg:block absolute right-56 top-1/2 -translate-y-1/2 pointer-events-none">
+            <div className="relative">
+              <div className="absolute inset-0 -m-6 rounded-full bg-primary/25 blur-2xl" />
+              <img src={robotHero.url} alt="" className="relative h-28 w-28 object-contain drop-shadow-[0_10px_30px_rgba(139,92,246,0.45)]" />
+            </div>
           </div>
           <div className="flex items-center gap-2">
             <div className="relative hidden md:block">
