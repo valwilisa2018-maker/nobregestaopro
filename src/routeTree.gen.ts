@@ -18,6 +18,7 @@ import { Route as AuthenticatedRouteImport } from './routes/_authenticated'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as MasterIndexRouteImport } from './routes/master/index'
 import { Route as MasterTutorialsRouteImport } from './routes/master/tutorials'
+import { Route as MasterTrainingFeedbackRouteImport } from './routes/master/training-feedback'
 import { Route as MasterSupportSettingsRouteImport } from './routes/master/support-settings'
 import { Route as MasterSupportRouteImport } from './routes/master/support'
 import { Route as MasterPermissionsRouteImport } from './routes/master/permissions'
@@ -122,6 +123,11 @@ const MasterIndexRoute = MasterIndexRouteImport.update({
 const MasterTutorialsRoute = MasterTutorialsRouteImport.update({
   id: '/tutorials',
   path: '/tutorials',
+  getParentRoute: () => MasterRoute,
+} as any)
+const MasterTrainingFeedbackRoute = MasterTrainingFeedbackRouteImport.update({
+  id: '/training-feedback',
+  path: '/training-feedback',
   getParentRoute: () => MasterRoute,
 } as any)
 const MasterSupportSettingsRoute = MasterSupportSettingsRouteImport.update({
@@ -493,6 +499,7 @@ export interface FileRoutesByFullPath {
   '/master/permissions': typeof MasterPermissionsRoute
   '/master/support': typeof MasterSupportRoute
   '/master/support-settings': typeof MasterSupportSettingsRoute
+  '/master/training-feedback': typeof MasterTrainingFeedbackRoute
   '/master/tutorials': typeof MasterTutorialsRoute
   '/master/': typeof MasterIndexRoute
   '/api/v1/buy': typeof ApiV1BuyRoute
@@ -563,6 +570,7 @@ export interface FileRoutesByTo {
   '/master/permissions': typeof MasterPermissionsRoute
   '/master/support': typeof MasterSupportRoute
   '/master/support-settings': typeof MasterSupportSettingsRoute
+  '/master/training-feedback': typeof MasterTrainingFeedbackRoute
   '/master/tutorials': typeof MasterTutorialsRoute
   '/master': typeof MasterIndexRoute
   '/api/v1/buy': typeof ApiV1BuyRoute
@@ -636,6 +644,7 @@ export interface FileRoutesById {
   '/master/permissions': typeof MasterPermissionsRoute
   '/master/support': typeof MasterSupportRoute
   '/master/support-settings': typeof MasterSupportSettingsRoute
+  '/master/training-feedback': typeof MasterTrainingFeedbackRoute
   '/master/tutorials': typeof MasterTutorialsRoute
   '/master/': typeof MasterIndexRoute
   '/api/v1/buy': typeof ApiV1BuyRoute
@@ -709,6 +718,7 @@ export interface FileRouteTypes {
     | '/master/permissions'
     | '/master/support'
     | '/master/support-settings'
+    | '/master/training-feedback'
     | '/master/tutorials'
     | '/master/'
     | '/api/v1/buy'
@@ -779,6 +789,7 @@ export interface FileRouteTypes {
     | '/master/permissions'
     | '/master/support'
     | '/master/support-settings'
+    | '/master/training-feedback'
     | '/master/tutorials'
     | '/master'
     | '/api/v1/buy'
@@ -851,6 +862,7 @@ export interface FileRouteTypes {
     | '/master/permissions'
     | '/master/support'
     | '/master/support-settings'
+    | '/master/training-feedback'
     | '/master/tutorials'
     | '/master/'
     | '/api/v1/buy'
@@ -954,6 +966,13 @@ declare module '@tanstack/react-router' {
       path: '/tutorials'
       fullPath: '/master/tutorials'
       preLoaderRoute: typeof MasterTutorialsRouteImport
+      parentRoute: typeof MasterRoute
+    }
+    '/master/training-feedback': {
+      id: '/master/training-feedback'
+      path: '/training-feedback'
+      fullPath: '/master/training-feedback'
+      preLoaderRoute: typeof MasterTrainingFeedbackRouteImport
       parentRoute: typeof MasterRoute
     }
     '/master/support-settings': {
@@ -1481,6 +1500,7 @@ interface MasterRouteChildren {
   MasterPermissionsRoute: typeof MasterPermissionsRoute
   MasterSupportRoute: typeof MasterSupportRoute
   MasterSupportSettingsRoute: typeof MasterSupportSettingsRoute
+  MasterTrainingFeedbackRoute: typeof MasterTrainingFeedbackRoute
   MasterTutorialsRoute: typeof MasterTutorialsRoute
   MasterIndexRoute: typeof MasterIndexRoute
 }
@@ -1498,6 +1518,7 @@ const MasterRouteChildren: MasterRouteChildren = {
   MasterPermissionsRoute: MasterPermissionsRoute,
   MasterSupportRoute: MasterSupportRoute,
   MasterSupportSettingsRoute: MasterSupportSettingsRoute,
+  MasterTrainingFeedbackRoute: MasterTrainingFeedbackRoute,
   MasterTutorialsRoute: MasterTutorialsRoute,
   MasterIndexRoute: MasterIndexRoute,
 }

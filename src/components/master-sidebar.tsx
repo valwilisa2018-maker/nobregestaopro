@@ -2,7 +2,7 @@ import { Link, useRouterState } from "@tanstack/react-router";
 import {
   Crown, LayoutDashboard, Users, DollarSign, Package, CreditCard, Megaphone,
   LifeBuoy, Bell, Settings2, Brain, Plug, KeyRound, Webhook, Cpu, Palette,
-  ShieldCheck, LogOut, Sun, Moon, ArrowLeft, Zap, Mail, Video,
+  ShieldCheck, LogOut, Sun, Moon, ArrowLeft, Zap, Mail, Video, GraduationCap,
 } from "lucide-react";
 import {
   Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent, SidebarGroupLabel,
@@ -51,6 +51,7 @@ const groups = [
       { title: "White Label", url: "/white-label", icon: Palette },
       { title: "Personalização", url: "/master/branding", icon: Palette },
       { title: "Tutoriais em vídeo", url: "/master/tutorials", icon: Video },
+      { title: "Feedback Treinamentos", url: "/master/training-feedback", icon: GraduationCap },
       { title: "Config. Global", url: "/admin-settings", icon: Settings2 },
     ],
   },
