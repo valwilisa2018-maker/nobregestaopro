@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { Plus, Package, Edit3, Trash2, Loader2, ImagePlus, X, Box, Cloud, Wrench } from "lucide-react";
+import { Plus, Package, Edit3, Trash2, Loader2, ImagePlus, X, Box, Cloud, Wrench, Save, Tag, Wallet, ListOrdered, Pencil, Image as ImageIcon } from "lucide-react";
 import { toast } from "sonner";
 import { formatBRL } from "./types";
 
