@@ -10,6 +10,8 @@ type Sale = {
   id: string; contact_name: string; phone: string | null;
   payment_method: string | null; total_cents: number; status: string;
   created_at: string;
+  company?: string | null; document?: string | null;
+  invoice_number?: string | null; note?: string | null;
 };
 type Item = { sale_id: string; product_name: string; quantity: number; subtotal_cents: number };
 
@@ -26,7 +28,7 @@ export function SalesDashboard() {
       const uid = userRes.user?.id;
       if (!uid) { setLoading(false); return; }
       const [s, i] = await Promise.all([
-        supabase.from("sales" as never).select("id,contact_name,phone,payment_method,total_cents,status,created_at").eq("user_id", uid).order("created_at", { ascending: false }),
+        supabase.from("sales" as never).select("id,contact_name,phone,payment_method,total_cents,status,created_at,company,document,invoice_number,note").eq("user_id", uid).order("created_at", { ascending: false }),
         supabase.from("sale_items" as never).select("sale_id,product_name,quantity,subtotal_cents").eq("user_id", uid),
       ]);
       setSales(((s.data as unknown) as Sale[]) || []);
@@ -143,6 +145,56 @@ export function SalesDashboard() {
           )}
         </CardContent></Card>
       </div>
+
+      <Card>
+        <CardContent className="p-5">
+          <div className="flex items-center justify-between mb-3">
+            <p className="text-sm font-bold">Registro de vendas</p>
+            <Badge variant="outline">{sales.length} total</Badge>
+          </div>
+          {sales.length === 0 ? (
+            <p className="text-xs text-muted-foreground py-8 text-center">Nenhuma venda registrada.</p>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="text-left text-[11px] uppercase tracking-wider text-muted-foreground border-b border-border/50">
+                    <th className="py-2 pr-3">Data</th>
+                    <th className="py-2 pr-3">Cliente</th>
+                    <th className="py-2 pr-3">Empresa</th>
+                    <th className="py-2 pr-3">CPF/CNPJ</th>
+                    <th className="py-2 pr-3">Telefone</th>
+                    <th className="py-2 pr-3">Pagamento</th>
+                    <th className="py-2 pr-3">Nota</th>
+                    <th className="py-2 pr-3">Produtos</th>
+                    <th className="py-2 pr-3 text-right">Total</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-border/40">
+                  {sales.map((s) => {
+                    const prods = items.filter((it) => it.sale_id === s.id);
+                    return (
+                      <tr key={s.id} className="hover:bg-muted/30">
+                        <td className="py-2 pr-3 whitespace-nowrap text-[12px]">{new Date(s.created_at).toLocaleString("pt-BR")}</td>
+                        <td className="py-2 pr-3 font-semibold">{s.contact_name}</td>
+                        <td className="py-2 pr-3">{s.company || "—"}</td>
+                        <td className="py-2 pr-3 tabular-nums">{s.document || "—"}</td>
+                        <td className="py-2 pr-3">{s.phone || "—"}</td>
+                        <td className="py-2 pr-3">{s.payment_method || "—"}</td>
+                        <td className="py-2 pr-3">{s.invoice_number || "—"}</td>
+                        <td className="py-2 pr-3 max-w-[240px] truncate" title={prods.map((p) => `${p.quantity}x ${p.product_name}`).join(", ")}>
+                          {prods.map((p) => `${p.quantity}x ${p.product_name}`).join(", ") || "—"}
+                        </td>
+                        <td className="py-2 pr-3 text-right tabular-nums font-bold text-primary">{formatBRL(s.total_cents)}</td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 }
