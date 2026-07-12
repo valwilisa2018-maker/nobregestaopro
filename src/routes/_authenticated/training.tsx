@@ -170,7 +170,7 @@ function TrainingPage() {
             <div className="relative overflow-hidden rounded-2xl bg-black shadow-2xl ring-1 ring-white/10">
               <div className="relative w-full" style={{ aspectRatio: "16 / 9" }}>
                 {embed?.kind === "iframe" ? (
-                  <iframe src={embed.src} title={openModule.label} allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen className="absolute inset-0 h-full w-full" />
+                  <iframe src={embed.src} title={openModule.label} referrerPolicy="origin" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen className="absolute inset-0 h-full w-full" />
                 ) : embed?.kind === "video" ? (
                   <video ref={videoRef} src={embed.src} controls autoPlay controlsList="nodownload" onEnded={() => { setEnded(true); if (openKey) void markWatched(openKey); }} className="absolute inset-0 h-full w-full" />
                 ) : (
