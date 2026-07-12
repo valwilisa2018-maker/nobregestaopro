@@ -35,6 +35,7 @@ export function SalesDashboard() {
   const [loading, setLoading] = useState(true);
   const [range, setRange] = useState<(typeof RANGES)[number]["key"]>("30d");
   const [query, setQuery] = useState("");
+  const [sellerFilter, setSellerFilter] = useState<string>("all");
 
   useEffect(() => {
     (async () => {
@@ -57,11 +58,33 @@ export function SalesDashboard() {
     const q = query.trim().toLowerCase();
     return sales.filter((s) => {
       if (cutoff && new Date(s.created_at).getTime() < cutoff) return false;
+      if (sellerFilter !== "all") {
+        const sn = (s.seller_name || "").trim();
+        if (sellerFilter === "__none__" ? sn !== "" : sn !== sellerFilter) return false;
+      }
       if (!q) return true;
       return [s.contact_name, s.company, s.document, s.phone, s.invoice_number]
         .some((f) => (f || "").toLowerCase().includes(q));
     });
-  }, [sales, range, query]);
+  }, [sales, range, query, sellerFilter]);
+
+  const sellerOptions = useMemo(() => {
+    const set = new Set<string>();
+    sales.forEach((s) => { const n = (s.seller_name || "").trim(); if (n) set.add(n); });
+    return Array.from(set).sort((a, b) => a.localeCompare(b));
+  }, [sales]);
+
+  const bySeller = useMemo(() => {
+    const map = new Map<string, { rev: number; count: number }>();
+    filtered.forEach((s) => {
+      const k = (s.seller_name || "").trim() || "Sem vendedor";
+      const cur = map.get(k) || { rev: 0, count: 0 };
+      map.set(k, { rev: cur.rev + s.total_cents, count: cur.count + 1 });
+    });
+    return Array.from(map.entries())
+      .sort((a, b) => b[1].rev - a[1].rev)
+      .map(([name, v]) => ({ name, value: v.rev / 100, count: v.count }));
+  }, [filtered]);
 
   const stats = useMemo(() => {
     const total = filtered.reduce((a, b) => a + b.total_cents, 0);
@@ -170,6 +193,15 @@ export function SalesDashboard() {
           ))}
         </div>
         <div className="flex gap-2 flex-1 md:flex-none md:min-w-[320px]">
+          <select
+            className="h-8 rounded-md border border-input bg-background px-2 text-xs"
+            value={sellerFilter}
+            onChange={(e) => setSellerFilter(e.target.value)}
+          >
+            <option value="all">Todos os vendedores</option>
+            <option value="__none__">Sem vendedor</option>
+            {sellerOptions.map((n) => <option key={n} value={n}>{n}</option>)}
+          </select>
           <div className="relative flex-1">
             <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
             <Input className="pl-8 h-8 text-sm" placeholder="Buscar cliente, empresa, doc…" value={query} onChange={(e) => setQuery(e.target.value)} />
