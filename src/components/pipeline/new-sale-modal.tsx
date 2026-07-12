@@ -233,6 +233,33 @@ export function NewSaleModal({
             <Input value={invoiceNumber} onChange={(e) => setInvoiceNumber(e.target.value)} placeholder="Ex: 000123" />
           </div>
 
+          <div className="grid gap-2">
+            <Label>Status do pagamento</Label>
+            <div className="grid grid-cols-3 gap-2">
+              {([
+                { v: "paid", label: "Pago" },
+                { v: "partial", label: "Parcial" },
+                { v: "pending", label: "Pendente" },
+              ] as const).map((o) => (
+                <Button key={o.v} type="button" size="sm"
+                  variant={paymentStatus === o.v ? "default" : "outline"}
+                  onClick={() => setPaymentStatus(o.v)}>
+                  {o.label}
+                </Button>
+              ))}
+            </div>
+            {paymentStatus === "partial" && (
+              <div className="grid gap-1 mt-2">
+                <Label className="text-xs">Valor da entrada (R$)</Label>
+                <Input type="number" min={0} step="0.01" value={downPayment}
+                  onChange={(e) => setDownPayment(e.target.value)} placeholder="0,00" />
+                <p className="text-[11px] text-muted-foreground">
+                  Restante: <strong className="tabular-nums">{formatBRL(Math.max(0, total - Math.round((parseFloat(downPayment) || 0) * 100)))}</strong>
+                </p>
+              </div>
+            )}
+          </div>
+
           <div className="space-y-2">
             <div className="flex items-center justify-between">
               <Label>Produtos *</Label>
