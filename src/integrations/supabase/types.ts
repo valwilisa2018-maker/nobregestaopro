@@ -2344,10 +2344,12 @@ export type Database = {
           created_at: string
           deal_id: string | null
           document: string | null
+          down_payment_cents: number
           id: string
           invoice_number: string | null
           note: string | null
           payment_method: string | null
+          payment_status: string
           phone: string | null
           stage_id: string | null
           status: string
@@ -2362,10 +2364,12 @@ export type Database = {
           created_at?: string
           deal_id?: string | null
           document?: string | null
+          down_payment_cents?: number
           id?: string
           invoice_number?: string | null
           note?: string | null
           payment_method?: string | null
+          payment_status?: string
           phone?: string | null
           stage_id?: string | null
           status?: string
@@ -2380,10 +2384,12 @@ export type Database = {
           created_at?: string
           deal_id?: string | null
           document?: string | null
+          down_payment_cents?: number
           id?: string
           invoice_number?: string | null
           note?: string | null
           payment_method?: string | null
+          payment_status?: string
           phone?: string | null
           stage_id?: string | null
           status?: string
