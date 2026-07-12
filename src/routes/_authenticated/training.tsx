@@ -446,6 +446,7 @@ function CommentsPanelInner({ moduleKey, user }: { moduleKey: string; user: Retu
       .from("training_comments")
       .select("id,user_id,module_key,body,rating,created_at")
       .eq("module_key", moduleKey)
+      .eq("user_id", user?.id ?? "")
       .order("created_at", { ascending: false })
       .limit(200);
     const rows = (data ?? []) as Comment[];
