@@ -2351,6 +2351,7 @@ export type Database = {
           payment_method: string | null
           payment_status: string
           phone: string | null
+          seller_name: string | null
           stage_id: string | null
           status: string
           total_cents: number
@@ -2371,6 +2372,7 @@ export type Database = {
           payment_method?: string | null
           payment_status?: string
           phone?: string | null
+          seller_name?: string | null
           stage_id?: string | null
           status?: string
           total_cents?: number
@@ -2391,6 +2393,7 @@ export type Database = {
           payment_method?: string | null
           payment_status?: string
           phone?: string | null
+          seller_name?: string | null
           stage_id?: string | null
           status?: string
           total_cents?: number
