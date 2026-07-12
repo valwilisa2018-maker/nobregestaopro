@@ -308,12 +308,6 @@ function Dashboard() {
               Visão consolidada de agentes, WhatsApp, disparos, pipeline e agenda — {range.label.toLowerCase()}.
             </p>
           </div>
-          <div className="hidden lg:block absolute right-56 top-1/2 -translate-y-1/2 pointer-events-none">
-            <div className="relative">
-              <div className="absolute inset-0 -m-6 rounded-full bg-primary/25 blur-2xl" />
-              <img src={robotHero.url} alt="" className="relative h-28 w-28 object-contain drop-shadow-[0_10px_30px_rgba(139,92,246,0.45)]" />
-            </div>
-          </div>
           <div className="flex items-center gap-2">
             <div className="relative hidden md:block">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
