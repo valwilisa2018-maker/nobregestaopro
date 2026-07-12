@@ -227,6 +227,21 @@ export function SaleProductsConfig() {
         service_location: form.service_location.trim() || null,
         warranty: form.warranty.trim() || null,
         notes: form.notes.trim() || null,
+        barcode: form.barcode.trim() || null,
+        ncm: form.ncm.trim() || null,
+        tax_percent: num(form.tax_percent),
+        discount_percent: num(form.discount_percent),
+        stock_min: int(form.stock_min),
+        supplier: form.supplier.trim() || null,
+        delivery_days: int(form.delivery_days),
+        shipping_cents: form.shipping.trim() ? Math.round(parseFloat(form.shipping) * 100) : null,
+        license_type: form.license_type.trim() || null,
+        file_size_mb: num(form.file_size_mb),
+        download_limit: int(form.download_limit),
+        service_modality: form.service_modality.trim() || null,
+        service_recurrence: form.service_recurrence.trim() || null,
+        max_attendees: int(form.max_attendees),
+        tags: form.tags.trim() || null,
       };
       let productId = editing?.id;
       if (editing) {
