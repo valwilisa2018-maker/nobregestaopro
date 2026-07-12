@@ -31,6 +31,7 @@ import { Route as MasterClientsRouteImport } from './routes/master/clients'
 import { Route as MasterBrandingRouteImport } from './routes/master/branding'
 import { Route as MasterAnnouncementsRouteImport } from './routes/master/announcements'
 import { Route as MasterActivationsRouteImport } from './routes/master/activations'
+import { Route as AgendarUserIdRouteImport } from './routes/agendar.$userId'
 import { Route as AuthenticatedWhiteLabelRouteImport } from './routes/_authenticated/white-label'
 import { Route as AuthenticatedWhatsappRouteImport } from './routes/_authenticated/whatsapp'
 import { Route as AuthenticatedWebhooksRouteImport } from './routes/_authenticated/webhooks'
@@ -190,6 +191,11 @@ const MasterActivationsRoute = MasterActivationsRouteImport.update({
   id: '/activations',
   path: '/activations',
   getParentRoute: () => MasterRoute,
+} as any)
+const AgendarUserIdRoute = AgendarUserIdRouteImport.update({
+  id: '/agendar/$userId',
+  path: '/agendar/$userId',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const AuthenticatedWhiteLabelRoute = AuthenticatedWhiteLabelRouteImport.update({
   id: '/white-label',
@@ -493,6 +499,7 @@ export interface FileRoutesByFullPath {
   '/webhooks': typeof AuthenticatedWebhooksRoute
   '/whatsapp': typeof AuthenticatedWhatsappRoute
   '/white-label': typeof AuthenticatedWhiteLabelRoute
+  '/agendar/$userId': typeof AgendarUserIdRoute
   '/master/activations': typeof MasterActivationsRoute
   '/master/announcements': typeof MasterAnnouncementsRoute
   '/master/branding': typeof MasterBrandingRoute
@@ -565,6 +572,7 @@ export interface FileRoutesByTo {
   '/webhooks': typeof AuthenticatedWebhooksRoute
   '/whatsapp': typeof AuthenticatedWhatsappRoute
   '/white-label': typeof AuthenticatedWhiteLabelRoute
+  '/agendar/$userId': typeof AgendarUserIdRoute
   '/master/activations': typeof MasterActivationsRoute
   '/master/announcements': typeof MasterAnnouncementsRoute
   '/master/branding': typeof MasterBrandingRoute
@@ -640,6 +648,7 @@ export interface FileRoutesById {
   '/_authenticated/webhooks': typeof AuthenticatedWebhooksRoute
   '/_authenticated/whatsapp': typeof AuthenticatedWhatsappRoute
   '/_authenticated/white-label': typeof AuthenticatedWhiteLabelRoute
+  '/agendar/$userId': typeof AgendarUserIdRoute
   '/master/activations': typeof MasterActivationsRoute
   '/master/announcements': typeof MasterAnnouncementsRoute
   '/master/branding': typeof MasterBrandingRoute
@@ -715,6 +724,7 @@ export interface FileRouteTypes {
     | '/webhooks'
     | '/whatsapp'
     | '/white-label'
+    | '/agendar/$userId'
     | '/master/activations'
     | '/master/announcements'
     | '/master/branding'
@@ -787,6 +797,7 @@ export interface FileRouteTypes {
     | '/webhooks'
     | '/whatsapp'
     | '/white-label'
+    | '/agendar/$userId'
     | '/master/activations'
     | '/master/announcements'
     | '/master/branding'
@@ -861,6 +872,7 @@ export interface FileRouteTypes {
     | '/_authenticated/webhooks'
     | '/_authenticated/whatsapp'
     | '/_authenticated/white-label'
+    | '/agendar/$userId'
     | '/master/activations'
     | '/master/announcements'
     | '/master/branding'
@@ -900,6 +912,7 @@ export interface RootRouteChildren {
   MasterAuthRoute: typeof MasterAuthRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
+  AgendarUserIdRoute: typeof AgendarUserIdRoute
   ApiPublicBookingRoute: typeof ApiPublicBookingRoute
   ApiV1BuyRoute: typeof ApiV1BuyRoute
   ApiV1ConsumeRoute: typeof ApiV1ConsumeRoute
@@ -1071,6 +1084,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/master/activations'
       preLoaderRoute: typeof MasterActivationsRouteImport
       parentRoute: typeof MasterRoute
+    }
+    '/agendar/$userId': {
+      id: '/agendar/$userId'
+      path: '/agendar/$userId'
+      fullPath: '/agendar/$userId'
+      preLoaderRoute: typeof AgendarUserIdRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/_authenticated/white-label': {
       id: '/_authenticated/white-label'
@@ -1554,6 +1574,7 @@ const rootRouteChildren: RootRouteChildren = {
   MasterAuthRoute: MasterAuthRoute,
   ResetPasswordRoute: ResetPasswordRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
+  AgendarUserIdRoute: AgendarUserIdRoute,
   ApiPublicBookingRoute: ApiPublicBookingRoute,
   ApiV1BuyRoute: ApiV1BuyRoute,
   ApiV1ConsumeRoute: ApiV1ConsumeRoute,
