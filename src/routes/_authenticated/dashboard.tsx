@@ -321,6 +321,11 @@ function Dashboard() {
             </Button>
           </div>
         </div>
+        <img
+          src={robotHero.url}
+          alt="Agente IA"
+          className="pointer-events-none hidden md:block absolute right-6 top-1/2 -translate-y-1/2 h-40 lg:h-48 xl:h-56 object-contain drop-shadow-[0_0_40px_rgba(139,92,246,0.5)]"
+        />
       </div>
 
       {/* Range filter */}
