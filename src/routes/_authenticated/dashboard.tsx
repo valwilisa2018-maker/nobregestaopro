@@ -14,8 +14,9 @@ import {
 } from "lucide-react";
 import {
   ResponsiveContainer, AreaChart, Area, BarChart, Bar, LineChart, Line,
-  PieChart, Pie, Cell, XAxis, YAxis, Tooltip, CartesianGrid, Legend,
+  PieChart, Pie, Cell, XAxis, YAxis, Tooltip, CartesianGrid, Legend, ComposedChart,
 } from "recharts";
+import robotHero from "@/assets/agent-ia-logo.png.asset.json";
 
 export const Route = createFileRoute("/_authenticated/dashboard")({
   head: () => ({ meta: [{ title: "Dashboard — Plataforma IA" }] }),
@@ -54,6 +55,22 @@ function buildRange(key: string, custom?: { from?: string; to?: string }): Range
 }
 
 const CHART_COLORS = ["hsl(var(--primary))", "hsl(var(--accent))", "#22c55e", "#f59e0b", "#ef4444", "#06b6d4", "#a855f7", "#ec4899", "#84cc16", "#f97316", "#3b82f6", "#eab308"];
+
+// Palette used for KPI card tones (matches reference)
+const KPI_TONES = [
+  { bg: "from-cyan-500/20 to-cyan-500/5",       icon: "bg-cyan-500/20 text-cyan-300 ring-cyan-400/30" },
+  { bg: "from-emerald-500/20 to-emerald-500/5", icon: "bg-emerald-500/20 text-emerald-300 ring-emerald-400/30" },
+  { bg: "from-sky-500/20 to-sky-500/5",         icon: "bg-sky-500/20 text-sky-300 ring-sky-400/30" },
+  { bg: "from-fuchsia-500/20 to-fuchsia-500/5", icon: "bg-fuchsia-500/20 text-fuchsia-300 ring-fuchsia-400/30" },
+  { bg: "from-violet-500/20 to-violet-500/5",   icon: "bg-violet-500/20 text-violet-300 ring-violet-400/30" },
+  { bg: "from-rose-500/20 to-rose-500/5",       icon: "bg-rose-500/20 text-rose-300 ring-rose-400/30" },
+  { bg: "from-amber-500/20 to-amber-500/5",     icon: "bg-amber-500/20 text-amber-300 ring-amber-400/30" },
+  { bg: "from-lime-500/20 to-lime-500/5",       icon: "bg-lime-500/20 text-lime-300 ring-lime-400/30" },
+  { bg: "from-indigo-500/20 to-indigo-500/5",   icon: "bg-indigo-500/20 text-indigo-300 ring-indigo-400/30" },
+  { bg: "from-teal-500/20 to-teal-500/5",       icon: "bg-teal-500/20 text-teal-300 ring-teal-400/30" },
+  { bg: "from-orange-500/20 to-orange-500/5",   icon: "bg-orange-500/20 text-orange-300 ring-orange-400/30" },
+  { bg: "from-pink-500/20 to-pink-500/5",       icon: "bg-pink-500/20 text-pink-300 ring-pink-400/30" },
+];
 
 function Dashboard() {
   const { user } = useAuth();
