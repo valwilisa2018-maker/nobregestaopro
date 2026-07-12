@@ -222,7 +222,7 @@ export const runBroadcastBatch = createServerFn({ method: "POST" })
     const scheduleWeekdays = hasWindow ? ((b.weekdays as number[]) ?? []) : [];
     if (!inWindow(now, b.window_start as string | null, b.window_end as string | null, scheduleWeekdays)) {
       if (!b.continue_next_day) {
-        await context.supabase.from("broadcasts").update({ status: "paused", paused_at: now.toISOString() } as never).eq("id", b.id);
+        await context.supabase.from("broadcasts").update({ status: "paused", paused_at: now.toISOString() } as never).eq("id", b.id).eq("user_id", context.userId);
       }
       return { done: false, waiting: true, sent: b.sent_count, error: b.error_count, responded: b.responded_count, total: b.total };
     }
@@ -238,15 +238,15 @@ export const runBroadcastBatch = createServerFn({ method: "POST" })
 
     const batchSize = dLimit > 0 ? Math.min(data.batch, dLimit - sentToday) : data.batch;
     const { data: pending } = await context.supabase.from("broadcast_recipients")
-      .select("id,phone,contact_id").eq("broadcast_id", b.id).eq("status", "pending").limit(batchSize);
+      .select("id,phone,contact_id").eq("broadcast_id", b.id).eq("user_id", context.userId).eq("status", "pending").limit(batchSize);
     const list = pending ?? [];
     if (list.length === 0) {
-      await context.supabase.from("broadcasts").update({ status: "done", finished_at: now.toISOString() } as never).eq("id", b.id);
+      await context.supabase.from("broadcasts").update({ status: "done", finished_at: now.toISOString() } as never).eq("id", b.id).eq("user_id", context.userId);
       return { done: true, sent: b.sent_count, error: b.error_count, responded: b.responded_count, total: b.total };
     }
 
     const { data: conn } = await context.supabase.from("connections")
-      .select("id,user_id,url_api,api_key,instance_name").eq("id", b.connection_id ?? "").maybeSingle();
+      .select("id,user_id,url_api,api_key,instance_name").eq("id", b.connection_id ?? "").eq("user_id", context.userId).maybeSingle();
     const commandKey = await loadEvolutionCommandKey(context.supabase, conn?.api_key ?? "");
 
     // If broadcast uses a flow, load its definition once.
@@ -270,7 +270,7 @@ export const runBroadcastBatch = createServerFn({ method: "POST" })
       const r = list[i];
       let contactName = "";
       if (r.contact_id) {
-        const { data: c } = await context.supabase.from("contacts").select("name").eq("id", r.contact_id).maybeSingle();
+        const { data: c } = await context.supabase.from("contacts").select("name").eq("id", r.contact_id).eq("user_id", context.userId).maybeSingle();
         contactName = (c?.name as string | null) ?? "";
       }
       try {
@@ -306,7 +306,7 @@ export const runBroadcastBatch = createServerFn({ method: "POST" })
           await context.supabase.from("conversations").update({
             flow_state: result.state as never,
             last_message_at: new Date().toISOString(),
-          } as never).eq("id", conversationId);
+          } as never).eq("id", conversationId).eq("user_id", context.userId);
         } else {
           const text = (b.message as string)
             .replaceAll("{nome}", contactName || "cliente")
@@ -322,12 +322,12 @@ export const runBroadcastBatch = createServerFn({ method: "POST" })
         }
         await context.supabase.from("broadcast_recipients").update({
           status: "sent", sent_at: new Date().toISOString(),
-        } as never).eq("id", r.id);
+        } as never).eq("id", r.id).eq("user_id", context.userId);
         sent++; sentToday++;
       } catch (e) {
         await context.supabase.from("broadcast_recipients").update({
           status: "error", error: e instanceof Error ? e.message : String(e),
-        } as never).eq("id", r.id);
+        } as never).eq("id", r.id).eq("user_id", context.userId);
         errored++;
       }
       if (i < list.length - 1) {
@@ -337,7 +337,7 @@ export const runBroadcastBatch = createServerFn({ method: "POST" })
     }
     await context.supabase.from("broadcasts").update({
       sent_count: sent, error_count: errored, sent_today: sentToday, day_marker: today,
-    } as never).eq("id", b.id);
+    } as never).eq("id", b.id).eq("user_id", context.userId);
     return { done: false, sent, error: errored, responded: b.responded_count, total: b.total };
   });
 
@@ -373,7 +373,7 @@ export const saveBroadcastSteps = createServerFn({ method: "POST" })
     const now = new Date().toISOString();
     await context.supabase.from("broadcast_recipients").update({
       current_step: 0, next_action_at: now,
-    } as never).eq("broadcast_id", data.broadcast_id).eq("status", "pending");
+    } as never).eq("broadcast_id", data.broadcast_id).eq("user_id", context.userId).eq("status", "pending");
     return { ok: true, count: rows.length };
   });
 
@@ -405,14 +405,14 @@ export const runSequentialBatch = createServerFn({ method: "POST" })
 
     const { data: steps } = await context.supabase.from("broadcast_steps")
       .select("step_order,delay_hours,message,media_url,media_type")
-      .eq("broadcast_id", b.id).order("step_order");
+      .eq("broadcast_id", b.id).eq("user_id", context.userId).order("step_order");
     const stepList = steps ?? [];
     if (stepList.length === 0) throw new Error("Sequência sem etapas");
 
     // pending recipients whose next_action_at <= now
     const { data: due } = await context.supabase.from("broadcast_recipients")
       .select("id,phone,contact_id,current_step,timeline")
-      .eq("broadcast_id", b.id).eq("status", "pending")
+      .eq("broadcast_id", b.id).eq("user_id", context.userId).eq("status", "pending")
       .lte("next_action_at", now.toISOString())
       .limit(data.batch);
     const list = due ?? [];
@@ -420,16 +420,16 @@ export const runSequentialBatch = createServerFn({ method: "POST" })
       // check if any recipients still pending (with future next_action_at)
       const { count } = await context.supabase.from("broadcast_recipients")
         .select("id", { count: "exact", head: true })
-        .eq("broadcast_id", b.id).eq("status", "pending");
+        .eq("broadcast_id", b.id).eq("user_id", context.userId).eq("status", "pending");
       if (!count) {
-        await context.supabase.from("broadcasts").update({ status: "done", finished_at: now.toISOString() } as never).eq("id", b.id);
+        await context.supabase.from("broadcasts").update({ status: "done", finished_at: now.toISOString() } as never).eq("id", b.id).eq("user_id", context.userId);
         return { done: true, sent: b.sent_count, error: b.error_count, total: b.total };
       }
       return { done: false, waiting: true, sent: b.sent_count, error: b.error_count, total: b.total };
     }
 
     const { data: conn } = await context.supabase.from("connections")
-      .select("url_api,api_key,instance_name").eq("id", b.connection_id ?? "").maybeSingle();
+      .select("url_api,api_key,instance_name").eq("id", b.connection_id ?? "").eq("user_id", context.userId).maybeSingle();
     const commandKey = await loadEvolutionCommandKey(context.supabase, conn?.api_key ?? "");
 
     let sent = b.sent_count as number;
@@ -441,7 +441,7 @@ export const runSequentialBatch = createServerFn({ method: "POST" })
       if (!step) continue;
       let contactName = "";
       if (r.contact_id) {
-        const { data: c } = await context.supabase.from("contacts").select("name").eq("id", r.contact_id).maybeSingle();
+        const { data: c } = await context.supabase.from("contacts").select("name").eq("id", r.contact_id).eq("user_id", context.userId).maybeSingle();
         contactName = (c?.name as string | null) ?? "";
       }
       const text = (step.message as string)
@@ -470,20 +470,20 @@ export const runSequentialBatch = createServerFn({ method: "POST" })
           next_action_at: nextAt,
           last_step_at: new Date().toISOString(),
           timeline: tl as never,
-        } as never).eq("id", r.id);
+        } as never).eq("id", r.id).eq("user_id", context.userId);
         if (finished) sent++;
       } catch (e) {
         tl.push({ step: idx, at: new Date().toISOString(), status: "error", error: e instanceof Error ? e.message : String(e) });
         await context.supabase.from("broadcast_recipients").update({
           status: "error", error: e instanceof Error ? e.message : String(e),
           timeline: tl as never, last_step_at: new Date().toISOString(),
-        } as never).eq("id", r.id);
+        } as never).eq("id", r.id).eq("user_id", context.userId);
         errored++;
       }
     }
     await context.supabase.from("broadcasts").update({
       sent_count: sent, error_count: errored,
-    } as never).eq("id", b.id);
+    } as never).eq("id", b.id).eq("user_id", context.userId);
     return { done: false, sent, error: errored, total: b.total };
   });
 
@@ -493,7 +493,7 @@ export const listRecipientsTimeline = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const { data: rows, error } = await context.supabase.from("broadcast_recipients")
       .select("id,phone,status,current_step,next_action_at,last_step_at,error,timeline,contact_id")
-      .eq("broadcast_id", data.id).order("last_step_at", { ascending: false, nullsFirst: false }).limit(200);
+      .eq("broadcast_id", data.id).eq("user_id", context.userId).order("last_step_at", { ascending: false, nullsFirst: false }).limit(200);
     if (error) throw new Error(error.message);
     return { rows: rows ?? [] };
   });
