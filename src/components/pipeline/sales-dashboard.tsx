@@ -4,9 +4,10 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Loader2, DollarSign, ShoppingBag, TrendingUp, Users, Clock, CheckCircle2, AlertCircle, Wallet, Trophy, Search, Download } from "lucide-react";
+import { Loader2, DollarSign, ShoppingBag, TrendingUp, Users, Clock, CheckCircle2, AlertCircle, Wallet, Trophy, Search, Download, Trash2 } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, AreaChart, Area, CartesianGrid, Legend } from "recharts";
 import { formatBRL } from "./types";
+import { toast } from "sonner";
 
 type Sale = {
   id: string; contact_name: string; phone: string | null;
@@ -15,6 +16,7 @@ type Sale = {
   company?: string | null; document?: string | null;
   invoice_number?: string | null; note?: string | null;
   payment_status?: string | null; down_payment_cents?: number | null;
+  seller_name?: string | null;
 };
 type Item = { sale_id: string; product_name: string; quantity: number; subtotal_cents: number };
 
@@ -40,7 +42,7 @@ export function SalesDashboard() {
       const uid = userRes.user?.id;
       if (!uid) { setLoading(false); return; }
       const [s, i] = await Promise.all([
-        supabase.from("sales" as never).select("id,contact_name,phone,payment_method,total_cents,status,created_at,company,document,invoice_number,note,payment_status,down_payment_cents").eq("user_id", uid).order("created_at", { ascending: false }),
+        supabase.from("sales" as never).select("id,contact_name,phone,payment_method,total_cents,status,created_at,company,document,invoice_number,note,payment_status,down_payment_cents,seller_name").eq("user_id", uid).order("created_at", { ascending: false }),
         supabase.from("sale_items" as never).select("sale_id,product_name,quantity,subtotal_cents").eq("user_id", uid),
       ]);
       setSales(((s.data as unknown) as Sale[]) || []);
@@ -129,10 +131,11 @@ export function SalesDashboard() {
   }, [filtered]);
 
   const exportCsv = () => {
-    const header = ["Data","Cliente","Empresa","CPF/CNPJ","Telefone","Pagamento","Status","Nota","Total","Entrada"];
+    const header = ["Data","Cliente","Empresa","CPF/CNPJ","Telefone","Vendedor","Pagamento","Status","Nota","Total","Entrada"];
     const rows = filtered.map((s) => [
       new Date(s.created_at).toLocaleString("pt-BR"),
       s.contact_name, s.company || "", s.document || "", s.phone || "",
+      s.seller_name || "",
       s.payment_method || "", s.payment_status || "", s.invoice_number || "",
       (s.total_cents / 100).toFixed(2).replace(".", ","),
       ((s.down_payment_cents || 0) / 100).toFixed(2).replace(".", ","),
@@ -140,6 +143,18 @@ export function SalesDashboard() {
     const csv = [header, ...rows].map((r) => r.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(";")).join("\n");
     const url = URL.createObjectURL(new Blob([`\uFEFF${csv}`], { type: "text/csv;charset=utf-8;" }));
     const a = document.createElement("a"); a.href = url; a.download = `vendas-${Date.now()}.csv`; a.click(); URL.revokeObjectURL(url);
+  };
+
+  const deleteSale = async (s: Sale) => {
+    if (!confirm(`Excluir a venda de ${s.contact_name} (${formatBRL(s.total_cents)})? Esta ação não pode ser desfeita.`)) return;
+    const { data: userRes } = await supabase.auth.getUser();
+    const uid = userRes.user?.id;
+    if (!uid) return;
+    const { error } = await supabase.from("sales" as never).delete().eq("id", s.id).eq("user_id", uid);
+    if (error) { toast.error(error.message); return; }
+    setSales((prev) => prev.filter((x) => x.id !== s.id));
+    setItems((prev) => prev.filter((it) => it.sale_id !== s.id));
+    toast.success("Venda excluída");
   };
 
   if (loading) return <div className="flex justify-center py-12"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>;
@@ -290,11 +305,13 @@ export function SalesDashboard() {
                     <th className="py-2 pr-3">Empresa</th>
                     <th className="py-2 pr-3">CPF/CNPJ</th>
                     <th className="py-2 pr-3">Telefone</th>
+                    <th className="py-2 pr-3">Vendedor</th>
                     <th className="py-2 pr-3">Pagamento</th>
                     <th className="py-2 pr-3">Status</th>
                     <th className="py-2 pr-3">Nota</th>
                     <th className="py-2 pr-3">Produtos</th>
                     <th className="py-2 pr-3 text-right">Total</th>
+                    <th className="py-2 pr-3"></th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border/40">
@@ -313,6 +330,7 @@ export function SalesDashboard() {
                         <td className="py-2 pr-3">{s.company || "—"}</td>
                         <td className="py-2 pr-3 tabular-nums">{s.document || "—"}</td>
                         <td className="py-2 pr-3">{s.phone || "—"}</td>
+                        <td className="py-2 pr-3">{s.seller_name || "—"}</td>
                         <td className="py-2 pr-3">{s.payment_method || "—"}</td>
                         <td className="py-2 pr-3">
                           {st ? <Badge variant="outline" className={stCls}>{stLabel}</Badge> : "—"}
@@ -327,6 +345,11 @@ export function SalesDashboard() {
                           {prods.map((p) => `${p.quantity}x ${p.product_name}`).join(", ") || "—"}
                         </td>
                         <td className="py-2 pr-3 text-right tabular-nums font-bold text-primary">{formatBRL(s.total_cents)}</td>
+                        <td className="py-2 pr-3 text-right">
+                          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => deleteSale(s)} title="Excluir venda">
+                            <Trash2 className="h-3.5 w-3.5 text-destructive" />
+                          </Button>
+                        </td>
                       </tr>
                     );
                   })}
