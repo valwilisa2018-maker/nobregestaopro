@@ -56,6 +56,45 @@ function buildRange(key: string, custom?: { from?: string; to?: string }): Range
 
 const CHART_COLORS = ["hsl(var(--primary))", "hsl(var(--accent))", "#22c55e", "#f59e0b", "#ef4444", "#06b6d4", "#a855f7", "#ec4899", "#84cc16", "#f97316", "#3b82f6", "#eab308"];
 
+function DonutWithLegend({ data }: { data: Array<{ name: string; value: number }> }) {
+  const total = data.reduce((a, x) => a + x.value, 0);
+  return (
+    <div className="grid grid-cols-[140px_1fr] gap-4 h-full items-center">
+      <div className="relative h-full">
+        <ResponsiveContainer width="100%" height="100%">
+          <PieChart>
+            <Pie data={data.length ? data : [{ name: "—", value: 1 }]} dataKey="value" nameKey="name" innerRadius={48} outerRadius={68} paddingAngle={2} stroke="none">
+              {(data.length ? data : [{ name: "—", value: 1 }]).map((_, i) => (
+                <Cell key={i} fill={data.length ? CHART_COLORS[i % CHART_COLORS.length] : "hsl(var(--muted))"} />
+              ))}
+            </Pie>
+            {data.length > 0 && <Tooltip contentStyle={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: 8 }} />}
+          </PieChart>
+        </ResponsiveContainer>
+        <div className="absolute inset-0 grid place-items-center pointer-events-none">
+          <div className="text-center">
+            <div className="text-lg font-black tabular-nums">{nf.format(total)}</div>
+            <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Total</div>
+          </div>
+        </div>
+      </div>
+      <ul className="space-y-2 text-sm max-h-full overflow-auto pr-1">
+        {data.length ? data.map((s, i) => {
+          const pct = total ? Math.round((s.value / total) * 100) : 0;
+          return (
+            <li key={s.name + i} className="flex items-center gap-2">
+              <span className="h-2.5 w-2.5 rounded-full shrink-0" style={{ background: CHART_COLORS[i % CHART_COLORS.length] }} />
+              <span className="truncate flex-1 capitalize">{s.name}</span>
+              <span className="tabular-nums text-muted-foreground">{nf.format(s.value)}</span>
+              <span className="tabular-nums text-xs text-muted-foreground w-10 text-right">{pct}%</span>
+            </li>
+          );
+        }) : <li className="text-sm text-muted-foreground">Sem dados.</li>}
+      </ul>
+    </div>
+  );
+}
+
 // Palette used for KPI card tones (matches reference)
 const KPI_TONES = [
   { bg: "from-cyan-500/20 to-cyan-500/5",       icon: "bg-cyan-500/20 text-cyan-300 ring-cyan-400/30" },
