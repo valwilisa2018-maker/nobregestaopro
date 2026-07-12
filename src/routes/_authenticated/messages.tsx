@@ -3130,6 +3130,7 @@ function FlowLauncher({ contactId }: { contactId: string | null }) {
   }
 
   async function toggleActive(f: { id: string; is_active: boolean | null }) {
+    if (!user) return;
     const next = !f.is_active;
     setFlows((prev) => prev.map((x) => (x.id === f.id ? { ...x, is_active: next } : x)));
     const { error } = await supabase.from("flows").update({ is_active: next }).eq("id", f.id).eq("user_id", user.id);
@@ -3142,6 +3143,7 @@ function FlowLauncher({ contactId }: { contactId: string | null }) {
   }
 
   async function saveKeywords(id: string) {
+    if (!user) return;
     const raw = kwDraft[id] ?? "";
     const list = raw.split(",").map((s) => s.trim()).filter(Boolean);
     setSavingId(id);
