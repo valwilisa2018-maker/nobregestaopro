@@ -654,10 +654,15 @@ export function SaleProductsConfig() {
             </TabsContent>
           </Tabs>
 
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setOpen(false)} disabled={saving}>Cancelar</Button>
-            <Button onClick={save} disabled={saving}>
-              {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : null} Salvar
+          <DialogFooter className="border-t border-slate-800/70 pt-4 mt-2">
+            <Button variant="outline" onClick={() => setOpen(false)} disabled={saving}
+              className="h-11 px-6 bg-transparent border-slate-700 text-slate-200 hover:bg-slate-800/60 hover:text-white">
+              Cancelar
+            </Button>
+            <Button onClick={save} disabled={saving}
+              className="h-11 px-6 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-semibold shadow-[0_0_24px_-4px_rgba(59,130,246,0.7)] ring-1 ring-blue-400/50">
+              {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+              Salvar
             </Button>
           </DialogFooter>
         </DialogContent>
