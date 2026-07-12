@@ -61,9 +61,11 @@ function Page() {
 
   async function load() {
     setLoading(true);
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) { setRows([]); setConnections([]); setLoading(false); return; }
     const [{ data, error }, { data: conns }] = await Promise.all([
-      supabase.from("followups").select("*").order("created_at", { ascending: false }),
-      supabase.from("connections").select("id,name,instance_name,status,phone_number").order("created_at"),
+      supabase.from("followups").select("*").eq("user_id", user.id).order("created_at", { ascending: false }),
+      supabase.from("connections").select("id,name,instance_name,status,phone_number").eq("user_id", user.id).order("created_at"),
     ]);
     if (error) toast.error(error.message); else setRows((data as Followup[]) ?? []);
     setConnections((conns as Connection[]) ?? []);
@@ -95,7 +97,9 @@ function Page() {
     setInvValue(f.inactivity_value); setInvUnit(f.inactivity_unit);
     setStopOnReply(f.stop_on_reply); setIsActive(f.is_active);
     setConnectionId(f.connection_id ?? "all");
-    const { data } = await supabase.from("followup_steps").select("*").eq("followup_id", f.id).order("step_order");
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+    const { data } = await supabase.from("followup_steps").select("*").eq("followup_id", f.id).eq("user_id", user.id).order("step_order");
     setSteps((data as Step[])?.length ? (data as Step[]) : [{ step_order: 0, delay_value: 0, delay_unit: "minutes", message: "" }]);
     setOpen(true);
   }
@@ -113,9 +117,9 @@ function Page() {
     };
     let followupId = editing?.id;
     if (editing) {
-      const { error } = await supabase.from("followups").update(payload).eq("id", editing.id);
+      const { error } = await supabase.from("followups").update(payload).eq("id", editing.id).eq("user_id", user.id);
       if (error) { toast.error(error.message); return; }
-      await supabase.from("followup_steps").delete().eq("followup_id", editing.id);
+      await supabase.from("followup_steps").delete().eq("followup_id", editing.id).eq("user_id", user.id);
     } else {
       const { data, error } = await supabase.from("followups").insert(payload).select("id").single();
       if (error) { toast.error(error.message); return; }
@@ -135,13 +139,17 @@ function Page() {
   }
 
   async function toggleActive(f: Followup) {
-    const { error } = await supabase.from("followups").update({ is_active: !f.is_active }).eq("id", f.id);
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+    const { error } = await supabase.from("followups").update({ is_active: !f.is_active }).eq("id", f.id).eq("user_id", user.id);
     if (error) toast.error(error.message);
     else { toast.success(!f.is_active ? "Ativado" : "Pausado"); void load(); }
   }
   async function remove(f: Followup) {
     if (!confirm(`Excluir "${f.name}"?`)) return;
-    const { error } = await supabase.from("followups").delete().eq("id", f.id);
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+    const { error } = await supabase.from("followups").delete().eq("id", f.id).eq("user_id", user.id);
     if (error) toast.error(error.message); else { toast.success("Excluído"); void load(); }
   }
 
