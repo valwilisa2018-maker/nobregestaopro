@@ -75,6 +75,7 @@ import { Route as ApiV1HistoryRouteImport } from './routes/api/v1/history'
 import { Route as ApiV1CreditsRouteImport } from './routes/api/v1/credits'
 import { Route as ApiV1ConsumeRouteImport } from './routes/api/v1/consume'
 import { Route as ApiV1BuyRouteImport } from './routes/api/v1/buy'
+import { Route as ApiPublicBookingRouteImport } from './routes/api/public/booking'
 import { Route as ApiPublicMetaWebhookConfigIdRouteImport } from './routes/api/public/meta-webhook.$configId'
 import { Route as ApiPublicHooksProcessVideoJobsRouteImport } from './routes/api/public/hooks/process-video-jobs'
 import { Route as ApiPublicHooksFollowUpsRouteImport } from './routes/api/public/hooks/follow-ups'
@@ -414,6 +415,11 @@ const ApiV1BuyRoute = ApiV1BuyRouteImport.update({
   path: '/api/v1/buy',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicBookingRoute = ApiPublicBookingRouteImport.update({
+  id: '/api/public/booking',
+  path: '/api/public/booking',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiPublicMetaWebhookConfigIdRoute =
   ApiPublicMetaWebhookConfigIdRouteImport.update({
     id: '/api/public/meta-webhook/$configId',
@@ -502,6 +508,7 @@ export interface FileRoutesByFullPath {
   '/master/training-feedback': typeof MasterTrainingFeedbackRoute
   '/master/tutorials': typeof MasterTutorialsRoute
   '/master/': typeof MasterIndexRoute
+  '/api/public/booking': typeof ApiPublicBookingRoute
   '/api/v1/buy': typeof ApiV1BuyRoute
   '/api/v1/consume': typeof ApiV1ConsumeRoute
   '/api/v1/credits': typeof ApiV1CreditsRoute
@@ -573,6 +580,7 @@ export interface FileRoutesByTo {
   '/master/training-feedback': typeof MasterTrainingFeedbackRoute
   '/master/tutorials': typeof MasterTutorialsRoute
   '/master': typeof MasterIndexRoute
+  '/api/public/booking': typeof ApiPublicBookingRoute
   '/api/v1/buy': typeof ApiV1BuyRoute
   '/api/v1/consume': typeof ApiV1ConsumeRoute
   '/api/v1/credits': typeof ApiV1CreditsRoute
@@ -647,6 +655,7 @@ export interface FileRoutesById {
   '/master/training-feedback': typeof MasterTrainingFeedbackRoute
   '/master/tutorials': typeof MasterTutorialsRoute
   '/master/': typeof MasterIndexRoute
+  '/api/public/booking': typeof ApiPublicBookingRoute
   '/api/v1/buy': typeof ApiV1BuyRoute
   '/api/v1/consume': typeof ApiV1ConsumeRoute
   '/api/v1/credits': typeof ApiV1CreditsRoute
@@ -721,6 +730,7 @@ export interface FileRouteTypes {
     | '/master/training-feedback'
     | '/master/tutorials'
     | '/master/'
+    | '/api/public/booking'
     | '/api/v1/buy'
     | '/api/v1/consume'
     | '/api/v1/credits'
@@ -792,6 +802,7 @@ export interface FileRouteTypes {
     | '/master/training-feedback'
     | '/master/tutorials'
     | '/master'
+    | '/api/public/booking'
     | '/api/v1/buy'
     | '/api/v1/consume'
     | '/api/v1/credits'
@@ -865,6 +876,7 @@ export interface FileRouteTypes {
     | '/master/training-feedback'
     | '/master/tutorials'
     | '/master/'
+    | '/api/public/booking'
     | '/api/v1/buy'
     | '/api/v1/consume'
     | '/api/v1/credits'
@@ -888,6 +900,7 @@ export interface RootRouteChildren {
   MasterAuthRoute: typeof MasterAuthRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
+  ApiPublicBookingRoute: typeof ApiPublicBookingRoute
   ApiV1BuyRoute: typeof ApiV1BuyRoute
   ApiV1ConsumeRoute: typeof ApiV1ConsumeRoute
   ApiV1CreditsRoute: typeof ApiV1CreditsRoute
@@ -1367,6 +1380,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiV1BuyRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/booking': {
+      id: '/api/public/booking'
+      path: '/api/public/booking'
+      fullPath: '/api/public/booking'
+      preLoaderRoute: typeof ApiPublicBookingRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/meta-webhook/$configId': {
       id: '/api/public/meta-webhook/$configId'
       path: '/api/public/meta-webhook/$configId'
@@ -1534,6 +1554,7 @@ const rootRouteChildren: RootRouteChildren = {
   MasterAuthRoute: MasterAuthRoute,
   ResetPasswordRoute: ResetPasswordRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
+  ApiPublicBookingRoute: ApiPublicBookingRoute,
   ApiV1BuyRoute: ApiV1BuyRoute,
   ApiV1ConsumeRoute: ApiV1ConsumeRoute,
   ApiV1CreditsRoute: ApiV1CreditsRoute,
