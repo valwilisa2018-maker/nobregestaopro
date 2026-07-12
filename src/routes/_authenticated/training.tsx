@@ -412,6 +412,27 @@ function CommentsPanel({ moduleKey }: { moduleKey: string }) {
   return <CommentsPanelInner moduleKey={moduleKey} user={user} />;
 }
 
+function StarRating({ value, onChange }: { value: number; onChange: (v: number) => void }) {
+  const [hover, setHover] = useState(0);
+  const active = hover || value;
+  return (
+    <div className="flex items-center gap-1" onMouseLeave={() => setHover(0)}>
+      {[1, 2, 3, 4, 5].map((n) => (
+        <button
+          key={n}
+          type="button"
+          onMouseEnter={() => setHover(n)}
+          onClick={() => onChange(n)}
+          className="p-0.5 transition-transform hover:scale-110"
+          aria-label={`Avaliar com ${n} estrela${n > 1 ? "s" : ""}`}
+        >
+          <Star className={cn("h-6 w-6 transition-colors", n <= active ? "fill-amber-400 text-amber-400" : "text-white/30")} />
+        </button>
+      ))}
+    </div>
+  );
+}
+
 function CommentsPanelInner({ moduleKey, user }: { moduleKey: string; user: ReturnType<typeof useAuth>["user"] }) {
   const [items, setItems] = useState<Comment[]>([]);
   const [body, setBody] = useState("");
