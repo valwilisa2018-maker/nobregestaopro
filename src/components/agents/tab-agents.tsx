@@ -15,7 +15,7 @@ export function TabAgents() {
   async function load() {
     if (!user) return;
     setLoading(true);
-    const { data, error } = await supabase.from("agents").select("*").order("created_at", { ascending: false });
+    const { data, error } = await supabase.from("agents").select("*").eq("user_id", user.id).order("created_at", { ascending: false });
     if (error) toast.error(error.message);
     setRows((data as unknown as AgentRow[]) ?? []);
     setLoading(false);
@@ -32,8 +32,9 @@ export function TabAgents() {
     load();
   }
   async function remove(row: AgentRow) {
+    if (!user) return;
     if (!confirm(`Excluir "${row.name}"?`)) return;
-    const { error } = await supabase.from("agents").delete().eq("id", row.id);
+    const { error } = await supabase.from("agents").delete().eq("id", row.id).eq("user_id", user.id);
     if (error) return toast.error(error.message);
     load();
   }

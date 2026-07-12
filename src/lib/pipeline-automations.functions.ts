@@ -153,7 +153,7 @@ export const runStageAutomations = createServerFn({ method: "POST" })
     }
 
     if (Object.keys(patch).length > 0) {
-      await supabase.from("pipeline_deals").update(patch as never).eq("id", deal.id);
+      await supabase.from("pipeline_deals").update(patch as never).eq("id", deal.id).eq("user_id", userId);
     }
 
     return { ok: true, ran };

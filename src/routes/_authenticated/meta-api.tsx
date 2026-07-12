@@ -85,14 +85,14 @@ function Page() {
   }, [cfg]);
 
   async function saveCfg() {
-    if (!cfg) return;
+    if (!cfg || !user) return;
     setSaving(true);
     const { error } = await supabase.from("meta_wa_configs").update({
       name: cfg.name, phone_number_id: cfg.phone_number_id, business_account_id: cfg.business_account_id,
       app_id: cfg.app_id, app_secret: cfg.app_secret, access_token: cfg.access_token,
       webhook_verify_token: cfg.webhook_verify_token, graph_version: cfg.graph_version,
       is_default: cfg.is_default, is_active: cfg.is_active,
-    } as never).eq("id", cfg.id);
+    } as never).eq("id", cfg.id).eq("user_id", user.id);
     setSaving(false);
     if (error) return toast.error(error.message);
     toast.success("Configuração salva");

@@ -40,7 +40,8 @@ export const revokeApiKey = createServerFn({ method: "POST" })
     const { error } = await context.supabase
       .from("api_keys")
       .update({ revoked_at: new Date().toISOString() })
-      .eq("id", data.id);
+      .eq("id", data.id)
+      .eq("user_id", context.userId);
     if (error) throw new Error(error.message);
     return { ok: true };
   });
@@ -49,7 +50,7 @@ export const deleteApiKey = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((data: unknown) => z.object({ id: z.string().uuid() }).parse(data))
   .handler(async ({ data, context }) => {
-    const { error } = await context.supabase.from("api_keys").delete().eq("id", data.id);
+    const { error } = await context.supabase.from("api_keys").delete().eq("id", data.id).eq("user_id", context.userId);
     if (error) throw new Error(error.message);
     return { ok: true };
   });

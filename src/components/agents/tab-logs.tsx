@@ -33,23 +33,25 @@ export function TabLogs() {
     const { data: userRes } = await supabase.auth.getUser();
     const uid = userRes.user?.id ?? null;
     userIdRef.current = uid;
+    if (!uid) return;
 
-    const { count } = await supabase.from("agents").select("id", { count: "exact", head: true });
+    const { count } = await supabase.from("agents").select("id", { count: "exact", head: true }).eq("user_id", uid);
     setAgents(count ?? 0);
 
     const { data: ag } = await supabase
       .from("agents")
       .select("id,name,connection_id")
+      .eq("user_id", uid)
       .order("name", { ascending: true });
     const connIds = Array.from(new Set((ag ?? []).map((a) => a.connection_id).filter(Boolean))) as string[];
     let connMap = new Map<string, string>();
     if (connIds.length) {
-      const { data: cs } = await supabase.from("connections").select("id,instance_name").in("id", connIds);
+      const { data: cs } = await supabase.from("connections").select("id,instance_name").eq("user_id", uid).in("id", connIds);
       (cs ?? []).forEach((c) => connMap.set(c.id, c.instance_name));
     }
     setAgentOpts((ag ?? []).map((a) => ({ id: a.id, name: a.name, instance: a.connection_id ? connMap.get(a.connection_id) ?? null : null })));
 
-    const { data: cs } = await supabase.from("conversations").select("status,agent_id,follow_up_paused");
+    const { data: cs } = await supabase.from("conversations").select("status,agent_id,follow_up_paused").eq("user_id", uid);
     const c = { waiting: 0, active: 0, done: 0, ai: 0 };
     (cs ?? []).forEach((r: { status: string | null; agent_id: string | null; follow_up_paused: boolean | null }) => {
       if (r.status === "waiting") c.waiting++;
@@ -62,6 +64,7 @@ export function TabLogs() {
     const { data: lg, error } = await supabase
       .from("logs")
       .select("id,level,source,message,metadata,created_at")
+      .eq("user_id", uid)
       .order("created_at", { ascending: false })
       .limit(300);
     if (error) toast.error(error.message);

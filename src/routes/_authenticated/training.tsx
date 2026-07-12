@@ -473,7 +473,8 @@ function CommentsPanelInner({ moduleKey, user }: { moduleKey: string; user: Retu
   };
 
   const remove = async (id: string) => {
-    const { error } = await supabase.from("training_comments").delete().eq("id", id);
+    if (!user) return;
+    const { error } = await supabase.from("training_comments").delete().eq("id", id).eq("user_id", user.id);
     if (error) toast.error(error.message); else setItems((prev) => prev.filter((c) => c.id !== id));
   };
 

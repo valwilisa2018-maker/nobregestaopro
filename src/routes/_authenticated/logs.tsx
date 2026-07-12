@@ -38,7 +38,7 @@ function Page() {
   const load = async () => {
     if (!user) return;
     setLoading(true);
-    let q = supabase.from("logs").select("*").order("created_at", { ascending: false }).limit(500);
+    let q = supabase.from("logs").select("*").eq("user_id", user.id).order("created_at", { ascending: false }).limit(500);
     if (level !== "all") q = q.eq("level", level);
     const { data, error } = await q;
     setLoading(false);

@@ -115,16 +115,22 @@ function Page() {
   const [search, setSearch] = useState("");
 
   const load = useCallback(async () => {
+    if (!userId) {
+      setTickets([]);
+      setLoading(false);
+      return;
+    }
     setLoading(true);
     const { data } = await supabase
       .from("support_tickets")
       .select("*")
+      .eq("user_id", userId)
       .order("last_message_at", { ascending: false });
     setTickets((data as Ticket[]) ?? []);
     setLoading(false);
-  }, []);
+  }, [userId]);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => { if (userId) load(); }, [userId, load]);
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => {
@@ -366,7 +372,7 @@ function NewTicketDialog({ open, onOpenChange, userId, onCreated }: {
         ticket_id: ticket.id, sender_id: userId, sender_role: "user", body,
         attachments: uploaded.length ? uploaded : null,
       });
-      if (uploaded.length) await supabase.from("support_tickets").update({ attachments: uploaded }).eq("id", ticket.id);
+      if (uploaded.length) await supabase.from("support_tickets").update({ attachments: uploaded }).eq("id", ticket.id).eq("user_id", userId);
 
       toast.success(`Chamado #${String(ticket.ticket_number ?? "").padStart(6, "0")} criado com sucesso`);
       onCreated(ticket.id);
@@ -493,7 +499,7 @@ function TicketDrawer({ ticket, onOpenChange, userId, onRefresh }: {
   const bottomRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (!ticket) { setMessages([]); return; }
+    if (!ticket || !userId || ticket.user_id !== userId) { setMessages([]); return; }
     (async () => {
       const { data } = await supabase.from("support_messages").select("*")
         .eq("ticket_id", ticket.id).order("created_at");
@@ -504,7 +510,7 @@ function TicketDrawer({ ticket, onOpenChange, userId, onRefresh }: {
         (payload) => setMessages(m => [...m, payload.new as Msg]))
       .subscribe();
     return () => { supabase.removeChannel(ch); };
-  }, [ticket]);
+  }, [ticket, userId]);
 
   useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: "smooth" }); }, [messages]);
 
@@ -538,7 +544,8 @@ function TicketDrawer({ ticket, onOpenChange, userId, onRefresh }: {
       if (error) throw error;
       await supabase.from("support_tickets")
         .update({ status: ticket.status === "resolved" || ticket.status === "closed" ? "open" : ticket.status, last_message_at: new Date().toISOString() })
-        .eq("id", ticket.id);
+        .eq("id", ticket.id)
+        .eq("user_id", userId);
       setReply(""); setReplyFiles([]);
       onRefresh();
     } catch (e) { toast.error((e as Error).message); }
@@ -546,10 +553,11 @@ function TicketDrawer({ ticket, onOpenChange, userId, onRefresh }: {
   };
 
   const rate = async () => {
-    if (!ticket) return;
+    if (!ticket || !userId || ticket.user_id !== userId) return;
     const { error } = await supabase.from("support_tickets")
       .update({ rating, rating_comment: rateComment, status: "closed", closed_at: new Date().toISOString() })
-      .eq("id", ticket.id);
+      .eq("id", ticket.id)
+      .eq("user_id", userId);
     if (error) return toast.error(error.message);
     toast.success("Obrigado pela avaliação!");
     setRateOpen(false); onRefresh(); onOpenChange(false);

@@ -49,7 +49,7 @@ export const verifyMetaConfig = createServerFn({ method: "POST" })
       last_verified_at: new Date().toISOString(),
       last_status: r.ok ? "ok" : `erro: ${r.error}`,
       display_phone: r.data?.display_phone_number ?? null,
-    }).eq("id", cfg.id);
+    }).eq("id", cfg.id).eq("user_id", userId);
     return r.ok ? { ok: true, phone: r.data?.display_phone_number, name: r.data?.verified_name } : { ok: false, error: r.error };
   });
 
@@ -126,7 +126,7 @@ export const deleteMetaTemplate = createServerFn({ method: "POST" })
         method: "DELETE", version: cfg.graph_version, qs: { name: t.name },
       });
     }
-    await supabase.from("meta_wa_templates").delete().eq("id", data.templateId);
+    await supabase.from("meta_wa_templates").delete().eq("id", data.templateId).eq("user_id", userId);
     return { ok: true };
   });
 
