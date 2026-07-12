@@ -253,7 +253,7 @@ export const runBroadcastBatch = createServerFn({ method: "POST" })
     let flowDef: { nodes: unknown[]; edges: unknown[] } | null = null;
     if (b.flow_id) {
       const { data: fl } = await context.supabase.from("flows")
-        .select("definition").eq("id", b.flow_id as string).maybeSingle();
+        .select("definition").eq("id", b.flow_id as string).eq("user_id", context.userId).maybeSingle();
       const def = (fl?.definition ?? null) as { nodes?: unknown[]; edges?: unknown[] } | null;
       if (def && Array.isArray(def.nodes) && Array.isArray(def.edges)) {
         flowDef = { nodes: def.nodes, edges: def.edges };
