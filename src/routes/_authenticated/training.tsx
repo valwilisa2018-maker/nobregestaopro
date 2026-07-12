@@ -67,7 +67,7 @@ function toEmbed(url: string): { kind: "iframe" | "video"; src: string } | null 
   } catch { return null; }
 }
 
-type Comment = { id: string; user_id: string; module_key: string; body: string; created_at: string; author_name?: string };
+type Comment = { id: string; user_id: string; module_key: string; body: string; rating: number | null; created_at: string; author_name?: string };
 
 function TrainingPage() {
   const { user } = useAuth();
@@ -436,6 +436,7 @@ function StarRating({ value, onChange }: { value: number; onChange: (v: number) 
 function CommentsPanelInner({ moduleKey, user }: { moduleKey: string; user: ReturnType<typeof useAuth>["user"] }) {
   const [items, setItems] = useState<Comment[]>([]);
   const [body, setBody] = useState("");
+  const [rating, setRating] = useState(0);
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
 
@@ -443,7 +444,7 @@ function CommentsPanelInner({ moduleKey, user }: { moduleKey: string; user: Retu
     setLoading(true);
     const { data } = await supabase
       .from("training_comments")
-      .select("id,user_id,module_key,body,created_at")
+      .select("id,user_id,module_key,body,rating,created_at")
       .eq("module_key", moduleKey)
       .order("created_at", { ascending: false })
       .limit(200);
@@ -463,10 +464,11 @@ function CommentsPanelInner({ moduleKey, user }: { moduleKey: string; user: Retu
   const send = async () => {
     if (!user || !body.trim()) return;
     setSending(true);
-    const { error } = await supabase.from("training_comments").insert({ user_id: user.id, module_key: moduleKey, body: body.trim() });
+    const { error } = await supabase.from("training_comments").insert({ user_id: user.id, module_key: moduleKey, body: body.trim(), rating: rating || null });
     setSending(false);
     if (error) { toast.error(error.message); return; }
     setBody("");
+    setRating(0);
     load();
   };
 
@@ -499,6 +501,13 @@ function CommentsPanelInner({ moduleKey, user }: { moduleKey: string; user: Retu
                         <div className="text-xs font-semibold truncate">{c.author_name}</div>
                         <div className="text-[10px] text-muted-foreground">{new Date(c.created_at).toLocaleDateString("pt-BR", { day: "2-digit", month: "short" })}</div>
                       </div>
+                      {c.rating ? (
+                        <div className="mt-0.5 flex items-center gap-0.5">
+                          {[1,2,3,4,5].map((n) => (
+                            <Star key={n} className={cn("h-3 w-3", n <= (c.rating ?? 0) ? "fill-amber-400 text-amber-400" : "text-muted-foreground/30")} />
+                          ))}
+                        </div>
+                      ) : null}
                       <p className="text-sm mt-0.5 whitespace-pre-wrap break-words">{c.body}</p>
                     </div>
                     {user?.id === c.user_id && (
@@ -514,6 +523,16 @@ function CommentsPanelInner({ moduleKey, user }: { moduleKey: string; user: Retu
         </div>
       </ScrollArea>
       <div className="border-t p-3 space-y-2">
+        <div className="flex items-center gap-2">
+          <span className="text-[11px] uppercase tracking-widest text-muted-foreground">Sua nota:</span>
+          <div className="flex items-center gap-0.5">
+            {[1,2,3,4,5].map((n) => (
+              <button key={n} type="button" onClick={() => setRating(n === rating ? 0 : n)} className="p-0.5 transition-transform hover:scale-110" aria-label={`${n} estrelas`}>
+                <Star className={cn("h-4 w-4", n <= rating ? "fill-amber-400 text-amber-400" : "text-muted-foreground/40")} />
+              </button>
+            ))}
+          </div>
+        </div>
         <Textarea value={body} onChange={(e) => setBody(e.target.value)} placeholder="Escreva um comentário..." rows={2} className="resize-none" />
         <Button onClick={send} disabled={sending || !body.trim()} className="w-full gap-2" size="sm">
           {sending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />} Enviar
