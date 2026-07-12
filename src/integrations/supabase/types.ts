@@ -2338,11 +2338,14 @@ export type Database = {
       }
       sales: {
         Row: {
+          company: string | null
           contact_id: string | null
           contact_name: string
           created_at: string
           deal_id: string | null
+          document: string | null
           id: string
+          invoice_number: string | null
           note: string | null
           payment_method: string | null
           phone: string | null
@@ -2353,11 +2356,14 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          company?: string | null
           contact_id?: string | null
           contact_name: string
           created_at?: string
           deal_id?: string | null
+          document?: string | null
           id?: string
+          invoice_number?: string | null
           note?: string | null
           payment_method?: string | null
           phone?: string | null
@@ -2368,11 +2374,14 @@ export type Database = {
           user_id: string
         }
         Update: {
+          company?: string | null
           contact_id?: string | null
           contact_name?: string
           created_at?: string
           deal_id?: string | null
+          document?: string | null
           id?: string
+          invoice_number?: string | null
           note?: string | null
           payment_method?: string | null
           phone?: string | null
