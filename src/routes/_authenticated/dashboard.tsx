@@ -14,8 +14,9 @@ import {
 } from "lucide-react";
 import {
   ResponsiveContainer, AreaChart, Area, BarChart, Bar, LineChart, Line,
-  PieChart, Pie, Cell, XAxis, YAxis, Tooltip, CartesianGrid, Legend,
+  PieChart, Pie, Cell, XAxis, YAxis, Tooltip, CartesianGrid, Legend, ComposedChart,
 } from "recharts";
+import robotHero from "@/assets/agent-ia-logo.png.asset.json";
 
 export const Route = createFileRoute("/_authenticated/dashboard")({
   head: () => ({ meta: [{ title: "Dashboard — Plataforma IA" }] }),
@@ -54,6 +55,61 @@ function buildRange(key: string, custom?: { from?: string; to?: string }): Range
 }
 
 const CHART_COLORS = ["hsl(var(--primary))", "hsl(var(--accent))", "#22c55e", "#f59e0b", "#ef4444", "#06b6d4", "#a855f7", "#ec4899", "#84cc16", "#f97316", "#3b82f6", "#eab308"];
+
+function DonutWithLegend({ data }: { data: Array<{ name: string; value: number }> }) {
+  const total = data.reduce((a, x) => a + x.value, 0);
+  return (
+    <div className="grid grid-cols-[140px_1fr] gap-4 h-full items-center">
+      <div className="relative h-full">
+        <ResponsiveContainer width="100%" height="100%">
+          <PieChart>
+            <Pie data={data.length ? data : [{ name: "—", value: 1 }]} dataKey="value" nameKey="name" innerRadius={48} outerRadius={68} paddingAngle={2} stroke="none">
+              {(data.length ? data : [{ name: "—", value: 1 }]).map((_, i) => (
+                <Cell key={i} fill={data.length ? CHART_COLORS[i % CHART_COLORS.length] : "hsl(var(--muted))"} />
+              ))}
+            </Pie>
+            {data.length > 0 && <Tooltip contentStyle={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: 8 }} />}
+          </PieChart>
+        </ResponsiveContainer>
+        <div className="absolute inset-0 grid place-items-center pointer-events-none">
+          <div className="text-center">
+            <div className="text-lg font-black tabular-nums">{nf.format(total)}</div>
+            <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Total</div>
+          </div>
+        </div>
+      </div>
+      <ul className="space-y-2 text-sm max-h-full overflow-auto pr-1">
+        {data.length ? data.map((s, i) => {
+          const pct = total ? Math.round((s.value / total) * 100) : 0;
+          return (
+            <li key={s.name + i} className="flex items-center gap-2">
+              <span className="h-2.5 w-2.5 rounded-full shrink-0" style={{ background: CHART_COLORS[i % CHART_COLORS.length] }} />
+              <span className="truncate flex-1 capitalize">{s.name}</span>
+              <span className="tabular-nums text-muted-foreground">{nf.format(s.value)}</span>
+              <span className="tabular-nums text-xs text-muted-foreground w-10 text-right">{pct}%</span>
+            </li>
+          );
+        }) : <li className="text-sm text-muted-foreground">Sem dados.</li>}
+      </ul>
+    </div>
+  );
+}
+
+// Palette used for KPI card tones (matches reference)
+const KPI_TONES = [
+  { bg: "from-cyan-500/20 to-cyan-500/5",       icon: "bg-cyan-500/20 text-cyan-300 ring-cyan-400/30" },
+  { bg: "from-emerald-500/20 to-emerald-500/5", icon: "bg-emerald-500/20 text-emerald-300 ring-emerald-400/30" },
+  { bg: "from-sky-500/20 to-sky-500/5",         icon: "bg-sky-500/20 text-sky-300 ring-sky-400/30" },
+  { bg: "from-fuchsia-500/20 to-fuchsia-500/5", icon: "bg-fuchsia-500/20 text-fuchsia-300 ring-fuchsia-400/30" },
+  { bg: "from-violet-500/20 to-violet-500/5",   icon: "bg-violet-500/20 text-violet-300 ring-violet-400/30" },
+  { bg: "from-rose-500/20 to-rose-500/5",       icon: "bg-rose-500/20 text-rose-300 ring-rose-400/30" },
+  { bg: "from-amber-500/20 to-amber-500/5",     icon: "bg-amber-500/20 text-amber-300 ring-amber-400/30" },
+  { bg: "from-lime-500/20 to-lime-500/5",       icon: "bg-lime-500/20 text-lime-300 ring-lime-400/30" },
+  { bg: "from-indigo-500/20 to-indigo-500/5",   icon: "bg-indigo-500/20 text-indigo-300 ring-indigo-400/30" },
+  { bg: "from-teal-500/20 to-teal-500/5",       icon: "bg-teal-500/20 text-teal-300 ring-teal-400/30" },
+  { bg: "from-orange-500/20 to-orange-500/5",   icon: "bg-orange-500/20 text-orange-300 ring-orange-400/30" },
+  { bg: "from-pink-500/20 to-pink-500/5",       icon: "bg-pink-500/20 text-pink-300 ring-pink-400/30" },
+];
 
 function Dashboard() {
   const { user } = useAuth();
@@ -241,7 +297,7 @@ function Dashboard() {
         <div className="absolute -right-20 -top-24 h-72 w-72 rounded-full bg-primary/25 blur-3xl" />
         <div className="absolute -left-16 -bottom-16 h-56 w-56 rounded-full bg-accent/25 blur-3xl" />
         <div className="relative grid grid-cols-[minmax(0,1fr)_auto] items-start gap-4 sm:flex sm:flex-wrap sm:justify-between">
-          <div className="min-w-0 space-y-2">
+          <div className="min-w-0 space-y-2 flex-1">
             <Badge variant="outline" className="bg-primary/15 text-primary border-primary/40">
               <Zap className="h-3 w-3" /> Plataforma IA Premium
             </Badge>
@@ -251,6 +307,12 @@ function Dashboard() {
             <p className="text-sm text-muted-foreground max-w-xl">
               Visão consolidada de agentes, WhatsApp, disparos, pipeline e agenda — {range.label.toLowerCase()}.
             </p>
+          </div>
+          <div className="hidden lg:block absolute right-56 top-1/2 -translate-y-1/2 pointer-events-none">
+            <div className="relative">
+              <div className="absolute inset-0 -m-6 rounded-full bg-primary/25 blur-2xl" />
+              <img src={robotHero.url} alt="" className="relative h-28 w-28 object-contain drop-shadow-[0_10px_30px_rgba(139,92,246,0.45)]" />
+            </div>
           </div>
           <div className="flex items-center gap-2">
             <div className="relative hidden md:block">
@@ -285,23 +347,26 @@ function Dashboard() {
 
       {/* Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 xl:grid-cols-6 gap-4">
-        {stats.map((s) => (
-          <Card key={s.label} className="group relative overflow-hidden border-border/50 hover:border-primary/40 transition-all hover:-translate-y-0.5">
-            <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity" style={{ background: "var(--gradient-mesh)" }} />
-            <CardHeader className="relative pb-1 flex flex-row items-center justify-between space-y-0">
-              <CardTitle className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">{s.label}</CardTitle>
-              <div className={`grid h-8 w-8 place-items-center rounded-lg ${s.tone === "primary" ? "bg-primary/15 text-primary" : "bg-accent/15 text-accent"}`}>
-                <s.icon className="h-4 w-4" />
-              </div>
-            </CardHeader>
-            <CardContent className="relative space-y-1">
-              <div className="text-2xl font-bold">{s.value}</div>
-              <div className="text-[11px] text-muted-foreground flex items-center gap-1">
-                <ArrowUpRight className="h-3 w-3" /> {s.hint}
-              </div>
-            </CardContent>
-          </Card>
-        ))}
+        {stats.map((s, i) => {
+          const tone = KPI_TONES[i % KPI_TONES.length];
+          return (
+            <Card key={s.label} className="group relative overflow-hidden border-border/50 hover:border-primary/40 transition-all hover:-translate-y-0.5">
+              <div className={`absolute inset-0 bg-gradient-to-br ${tone.bg} pointer-events-none`} />
+              <CardHeader className="relative pb-1 flex flex-row items-center justify-between space-y-0">
+                <CardTitle className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">{s.label}</CardTitle>
+                <div className={`grid h-9 w-9 place-items-center rounded-xl ring-1 ${tone.icon}`}>
+                  <s.icon className="h-4 w-4" />
+                </div>
+              </CardHeader>
+              <CardContent className="relative space-y-1">
+                <div className="text-2xl font-black tabular-nums">{s.value}</div>
+                <div className="text-[11px] text-muted-foreground flex items-center gap-1">
+                  <ArrowUpRight className="h-3 w-3" /> {s.hint}
+                </div>
+              </CardContent>
+            </Card>
+          );
+        })}
       </div>
 
       {/* Charts row 1 */}
@@ -336,15 +401,39 @@ function Dashboard() {
             <CardDescription>Valor em aberto</CardDescription>
           </CardHeader>
           <CardContent className="h-72">
-            <ResponsiveContainer width="100%" height="100%">
-              <PieChart>
-                <Pie data={(d?.pipeline.stageAgg ?? []).filter((s) => s.value > 0)} dataKey="value" nameKey="name" innerRadius={50} outerRadius={90} paddingAngle={2}>
-                  {(d?.pipeline.stageAgg ?? []).map((s, i) => <Cell key={s.id} fill={s.color || CHART_COLORS[i % CHART_COLORS.length]} />)}
-                </Pie>
-                <Tooltip formatter={(v: number) => cf.format(v)} contentStyle={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: 8 }} />
-                <Legend wrapperStyle={{ fontSize: 11 }} />
-              </PieChart>
-            </ResponsiveContainer>
+            <div className="grid grid-cols-[160px_1fr] gap-4 h-full items-center">
+              <div className="relative h-full">
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie data={(d?.pipeline.stageAgg ?? []).filter((s) => s.value > 0)} dataKey="value" nameKey="name" innerRadius={55} outerRadius={78} paddingAngle={2} stroke="none">
+                      {(d?.pipeline.stageAgg ?? []).map((s, i) => <Cell key={s.id} fill={s.color || CHART_COLORS[i % CHART_COLORS.length]} />)}
+                    </Pie>
+                    <Tooltip formatter={(v: number) => cf.format(v)} contentStyle={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: 8 }} />
+                  </PieChart>
+                </ResponsiveContainer>
+                <div className="absolute inset-0 grid place-items-center pointer-events-none">
+                  <div className="text-center">
+                    <div className="text-lg font-black">{cf.format(d?.pipeline.openValue ?? 0)}</div>
+                    <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Total</div>
+                  </div>
+                </div>
+              </div>
+              <ul className="space-y-2 text-sm max-h-full overflow-auto pr-1">
+                {(d?.pipeline.stageAgg ?? []).map((s, i) => {
+                  const total = (d?.pipeline.stageAgg ?? []).reduce((a, x) => a + x.value, 0) || 1;
+                  const pct = Math.round((s.value / total) * 100);
+                  return (
+                    <li key={s.id} className="flex items-center gap-2">
+                      <span className="h-2.5 w-2.5 rounded-full shrink-0" style={{ background: s.color || CHART_COLORS[i % CHART_COLORS.length] }} />
+                      <span className="truncate flex-1">{s.name}</span>
+                      <span className="tabular-nums text-muted-foreground">{cf.format(s.value)}</span>
+                      <span className="tabular-nums text-xs text-muted-foreground w-10 text-right">{pct}%</span>
+                    </li>
+                  );
+                })}
+                {!(d?.pipeline.stageAgg?.length) && <li className="text-sm text-muted-foreground">Sem dados.</li>}
+              </ul>
+            </div>
           </CardContent>
         </Card>
       </div>
@@ -357,17 +446,7 @@ function Dashboard() {
             <CardDescription>Destinatários do período</CardDescription>
           </CardHeader>
           <CardContent className="h-64">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={d?.bcStatusChart ?? []}>
-                <CartesianGrid strokeDasharray="3 3" opacity={0.2} />
-                <XAxis dataKey="name" fontSize={11} />
-                <YAxis fontSize={11} />
-                <Tooltip contentStyle={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: 8 }} />
-                <Bar dataKey="value" radius={[6, 6, 0, 0]}>
-                  {(d?.bcStatusChart ?? []).map((_, i) => <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />)}
-                </Bar>
-              </BarChart>
-            </ResponsiveContainer>
+            <DonutWithLegend data={d?.bcStatusChart ?? []} />
           </CardContent>
         </Card>
 
@@ -377,14 +456,7 @@ function Dashboard() {
             <CardDescription>Top canais</CardDescription>
           </CardHeader>
           <CardContent className="h-64">
-            <ResponsiveContainer width="100%" height="100%">
-              <PieChart>
-                <Pie data={d?.contactsBySource ?? []} dataKey="value" nameKey="name" outerRadius={90} label={{ fontSize: 11 }}>
-                  {(d?.contactsBySource ?? []).map((_, i) => <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />)}
-                </Pie>
-                <Tooltip contentStyle={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: 8 }} />
-              </PieChart>
-            </ResponsiveContainer>
+            <DonutWithLegend data={d?.contactsBySource ?? []} />
           </CardContent>
         </Card>
 
@@ -395,16 +467,16 @@ function Dashboard() {
           </CardHeader>
           <CardContent className="h-64">
             <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={d?.series ?? []}>
+              <ComposedChart data={d?.series ?? []}>
                 <CartesianGrid strokeDasharray="3 3" opacity={0.2} />
                 <XAxis dataKey="label" fontSize={11} />
                 <YAxis yAxisId="left" fontSize={11} />
                 <YAxis yAxisId="right" orientation="right" fontSize={11} />
                 <Tooltip contentStyle={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: 8 }} />
                 <Legend />
-                <Line yAxisId="left" type="monotone" dataKey="tokens" name="Tokens" stroke="hsl(var(--primary))" strokeWidth={2} dot={false} />
-                <Line yAxisId="right" type="monotone" dataKey="cost" name="Custo (R$)" stroke="hsl(var(--accent))" strokeWidth={2} dot={false} />
-              </LineChart>
+                <Bar yAxisId="left" dataKey="tokens" name="Tokens" fill="hsl(var(--primary))" radius={[6, 6, 0, 0]} barSize={14} />
+                <Line yAxisId="right" type="monotone" dataKey="cost" name="Custo (R$)" stroke="#f59e0b" strokeWidth={2} dot={{ r: 3 }} />
+              </ComposedChart>
             </ResponsiveContainer>
           </CardContent>
         </Card>
@@ -417,16 +489,27 @@ function Dashboard() {
             <CardTitle className="text-base flex items-center gap-2"><Bot className="h-4 w-4 text-primary" /> Top agentes</CardTitle>
             <CardDescription>Mensagens enviadas no período</CardDescription>
           </CardHeader>
-          <CardContent className="h-64">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={d?.topAgents ?? []} layout="vertical" margin={{ left: 20 }}>
-                <CartesianGrid strokeDasharray="3 3" opacity={0.2} />
-                <XAxis type="number" fontSize={11} />
-                <YAxis dataKey="name" type="category" fontSize={11} width={100} />
-                <Tooltip contentStyle={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: 8 }} />
-                <Bar dataKey="msgs" name="Mensagens" fill="hsl(var(--primary))" radius={[0, 6, 6, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
+          <CardContent className="h-64 overflow-auto pr-1">
+            {d && d.topAgents.length ? (
+              <ul className="space-y-3">
+                {(() => {
+                  const max = Math.max(...d.topAgents.map((a) => a.msgs), 1);
+                  return d.topAgents.map((a, i) => (
+                    <li key={a.name} className="space-y-1">
+                      <div className="flex items-center justify-between text-xs">
+                        <span className="truncate font-medium">{i + 1}. {a.name}</span>
+                        <span className="tabular-nums text-muted-foreground">{nf.format(a.msgs)}</span>
+                      </div>
+                      <div className="h-2 rounded-full bg-muted/40 overflow-hidden">
+                        <div className="h-full rounded-full" style={{ width: `${(a.msgs / max) * 100}%`, background: "var(--gradient-primary)" }} />
+                      </div>
+                    </li>
+                  ));
+                })()}
+              </ul>
+            ) : (
+              <div className="h-full grid place-items-center text-sm text-muted-foreground">Sem dados no período.</div>
+            )}
           </CardContent>
         </Card>
 
