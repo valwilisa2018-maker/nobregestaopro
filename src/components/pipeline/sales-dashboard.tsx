@@ -43,7 +43,7 @@ export function SalesDashboard() {
       const uid = userRes.user?.id;
       if (!uid) { setLoading(false); return; }
       const [s, i] = await Promise.all([
-        supabase.from("sales" as never).select("id,contact_name,phone,payment_method,total_cents,status,created_at,company,document,invoice_number,note,payment_status,down_payment_cents,seller_name").eq("user_id", uid).order("created_at", { ascending: false }),
+        supabase.from("sales" as never).select("id,contact_name,phone,payment_method,total_cents,status,created_at,company,document,invoice_number,note,payment_status,down_payment_cents,seller_name").eq("user_id", uid).is("deleted_at", null).order("created_at", { ascending: false }),
         supabase.from("sale_items" as never).select("sale_id,product_name,quantity,subtotal_cents").eq("user_id", uid),
       ]);
       setSales(((s.data as unknown) as Sale[]) || []);
@@ -173,11 +173,23 @@ export function SalesDashboard() {
     const { data: userRes } = await supabase.auth.getUser();
     const uid = userRes.user?.id;
     if (!uid) return;
-    const { error } = await supabase.from("sales" as never).delete().eq("id", s.id).eq("user_id", uid);
+    const { error } = await supabase.from("sales" as never).update({ deleted_at: new Date().toISOString() } as never).eq("id", s.id).eq("user_id", uid);
     if (error) { toast.error(error.message); return; }
+    const removedItems = items.filter((it) => it.sale_id === s.id);
     setSales((prev) => prev.filter((x) => x.id !== s.id));
-    setItems((prev) => prev.filter((it) => it.sale_id !== s.id));
-    toast.success("Venda excluída");
+    toast.success("Venda excluída", {
+      action: {
+        label: "Desfazer",
+        onClick: async () => {
+          const { error: e2 } = await supabase.from("sales" as never).update({ deleted_at: null } as never).eq("id", s.id).eq("user_id", uid);
+          if (e2) { toast.error(e2.message); return; }
+          setSales((prev) => [s, ...prev].sort((a, b) => b.created_at.localeCompare(a.created_at)));
+          setItems((prev) => [...prev, ...removedItems]);
+          toast.success("Venda restaurada");
+        },
+      },
+      duration: 8000,
+    });
   };
 
   if (loading) return <div className="flex justify-center py-12"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>;
