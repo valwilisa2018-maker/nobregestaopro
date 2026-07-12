@@ -308,23 +308,26 @@ function Dashboard() {
 
       {/* Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 xl:grid-cols-6 gap-4">
-        {stats.map((s) => (
-          <Card key={s.label} className="group relative overflow-hidden border-border/50 hover:border-primary/40 transition-all hover:-translate-y-0.5">
-            <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity" style={{ background: "var(--gradient-mesh)" }} />
-            <CardHeader className="relative pb-1 flex flex-row items-center justify-between space-y-0">
-              <CardTitle className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">{s.label}</CardTitle>
-              <div className={`grid h-8 w-8 place-items-center rounded-lg ${s.tone === "primary" ? "bg-primary/15 text-primary" : "bg-accent/15 text-accent"}`}>
-                <s.icon className="h-4 w-4" />
-              </div>
-            </CardHeader>
-            <CardContent className="relative space-y-1">
-              <div className="text-2xl font-bold">{s.value}</div>
-              <div className="text-[11px] text-muted-foreground flex items-center gap-1">
-                <ArrowUpRight className="h-3 w-3" /> {s.hint}
-              </div>
-            </CardContent>
-          </Card>
-        ))}
+        {stats.map((s, i) => {
+          const tone = KPI_TONES[i % KPI_TONES.length];
+          return (
+            <Card key={s.label} className="group relative overflow-hidden border-border/50 hover:border-primary/40 transition-all hover:-translate-y-0.5">
+              <div className={`absolute inset-0 bg-gradient-to-br ${tone.bg} pointer-events-none`} />
+              <CardHeader className="relative pb-1 flex flex-row items-center justify-between space-y-0">
+                <CardTitle className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">{s.label}</CardTitle>
+                <div className={`grid h-9 w-9 place-items-center rounded-xl ring-1 ${tone.icon}`}>
+                  <s.icon className="h-4 w-4" />
+                </div>
+              </CardHeader>
+              <CardContent className="relative space-y-1">
+                <div className="text-2xl font-black tabular-nums">{s.value}</div>
+                <div className="text-[11px] text-muted-foreground flex items-center gap-1">
+                  <ArrowUpRight className="h-3 w-3" /> {s.hint}
+                </div>
+              </CardContent>
+            </Card>
+          );
+        })}
       </div>
 
       {/* Charts row 1 */}
