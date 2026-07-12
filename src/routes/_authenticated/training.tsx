@@ -6,7 +6,7 @@ import { PageShell } from "@/components/page-shell";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { GraduationCap, Loader2, Play, CheckCircle2, MessageCircle, Trash2, Send, Lock, ArrowLeft, RotateCcw, ChevronRight, Circle } from "lucide-react";
+import { GraduationCap, Loader2, Play, CheckCircle2, MessageCircle, Trash2, Send, Lock, ArrowLeft, RotateCcw, ChevronRight, Circle, Star } from "lucide-react";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
@@ -75,6 +75,7 @@ function TrainingPage() {
   const [videos, setVideos] = useState<Record<string, string>>({});
   const [covers, setCovers] = useState<Record<string, string>>({});
   const [progress, setProgress] = useState<Record<string, boolean>>({});
+  const [ratings, setRatings] = useState<Record<string, number>>({});
   const [loading, setLoading] = useState(true);
   const [openKey, setOpenKey] = useState<string | null>(null);
   const [ended, setEnded] = useState(false);
@@ -86,7 +87,7 @@ function TrainingPage() {
         supabase.from("internal_config").select("value").eq("key", "tutorials").maybeSingle(),
         supabase.from("internal_config").select("value").eq("key", "tutorial_covers").maybeSingle(),
         supabase.from("internal_config").select("value").eq("key", "training_modules").maybeSingle(),
-        user ? supabase.from("training_progress").select("module_key").eq("user_id", user.id) : Promise.resolve({ data: [] as { module_key: string }[] }),
+        user ? supabase.from("training_progress").select("module_key,completed,rating").eq("user_id", user.id) : Promise.resolve({ data: [] as { module_key: string; completed: boolean; rating: number | null }[] }),
       ]);
       if (v?.value) { try { setVideos(JSON.parse(v.value)); } catch { /* ignore */ } }
       if (c?.value) { try { setCovers(JSON.parse(c.value)); } catch { /* ignore */ } }
@@ -95,8 +96,13 @@ function TrainingPage() {
         if (Array.isArray(parsed) && parsed.length) setModules(parsed);
       } catch { /* ignore */ } }
       const p: Record<string, boolean> = {};
-      (prog.data ?? []).forEach((r) => { p[r.module_key] = true; });
+      const r: Record<string, number> = {};
+      (prog.data ?? []).forEach((row: { module_key: string; completed?: boolean; rating?: number | null }) => {
+        if (row.completed !== false) p[row.module_key] = true;
+        if (row.rating) r[row.module_key] = row.rating;
+      });
       setProgress(p);
+      setRatings(r);
       setLoading(false);
     })();
   }, [user]);
@@ -117,18 +123,43 @@ function TrainingPage() {
     return null;
   })();
 
-  const markWatched = async (key: string) => {
-    if (!user) return;
-    if (!progress[key]) {
-      setProgress((p) => ({ ...p, [key]: true }));
-      await supabase.from("training_progress").upsert({ user_id: user.id, module_key: key, completed: true }, { onConflict: "user_id,module_key" });
+  const markWatched = async (key: string, opts?: { silent?: boolean }) => {
+    if (!user) { toast.error("Faça login para marcar como concluída"); return; }
+    if (progress[key]) return;
+    setProgress((p) => ({ ...p, [key]: true }));
+    const { error } = await supabase.from("training_progress").upsert(
+      { user_id: user.id, module_key: key, completed: true },
+      { onConflict: "user_id,module_key" },
+    );
+    if (error) {
+      setProgress((p) => { const { [key]: _drop, ...rest } = p; return rest; });
+      toast.error(error.message);
+      return;
     }
+    if (!opts?.silent) toast.success("Aula concluída! 🎉");
+  };
+
+  const rateModule = async (key: string, value: number) => {
+    if (!user) { toast.error("Faça login para avaliar"); return; }
+    const prev = ratings[key];
+    setRatings((r) => ({ ...r, [key]: value }));
+    const { error } = await supabase.from("training_progress").upsert(
+      { user_id: user.id, module_key: key, completed: true, rating: value },
+      { onConflict: "user_id,module_key" },
+    );
+    if (error) {
+      setRatings((r) => ({ ...r, [key]: prev ?? 0 }));
+      toast.error(error.message);
+      return;
+    }
+    setProgress((p) => ({ ...p, [key]: true }));
+    toast.success(`Obrigado pela avaliação (${value}★)`);
   };
 
   const goNext = async () => {
     if (!openKey) return;
-    await markWatched(openKey);
-    if (nextModule) { setOpenKey(nextModule.key); setEnded(false); }
+    await markWatched(openKey, { silent: true });
+    if (nextModule) { setOpenKey(nextModule.key); setEnded(false); toast.success("Próxima aula 👉"); }
     else toast.success("Você concluiu todos os módulos disponíveis! 🎉");
   };
 
@@ -212,10 +243,15 @@ function TrainingPage() {
                   <Button variant="outline" onClick={() => openKey && markWatched(openKey)} disabled={!!(openKey && progress[openKey])} className="gap-2 border-white/20 bg-white/5 text-white hover:bg-white/10">
                     <CheckCircle2 className="h-4 w-4" /> {openKey && progress[openKey] ? "Concluída" : "Aula concluída"}
                   </Button>
-                  <Button onClick={goNext} disabled={!nextModule && !!(openKey && progress[openKey])} className="gap-2 bg-gradient-to-r from-sky-500 to-fuchsia-500 hover:opacity-90">
+                  <Button onClick={goNext} className="gap-2 bg-gradient-to-r from-sky-500 to-fuchsia-500 hover:opacity-90">
                     {nextModule ? "Próxima" : "Concluir"} <ChevronRight className="h-4 w-4" />
                   </Button>
                 </div>
+              </div>
+              <div className="mt-4 flex flex-wrap items-center gap-3 border-t border-white/10 pt-4">
+                <span className="text-xs uppercase tracking-widest text-white/60">Gostou do conteúdo?</span>
+                <StarRating value={ratings[openKey] ?? 0} onChange={(v) => rateModule(openKey, v)} />
+                {ratings[openKey] ? <span className="text-xs text-white/50">Sua nota: {ratings[openKey]}/5</span> : null}
               </div>
             </div>
 
@@ -374,6 +410,27 @@ function TrainingPage() {
 function CommentsPanel({ moduleKey }: { moduleKey: string }) {
   const { user } = useAuth();
   return <CommentsPanelInner moduleKey={moduleKey} user={user} />;
+}
+
+function StarRating({ value, onChange }: { value: number; onChange: (v: number) => void }) {
+  const [hover, setHover] = useState(0);
+  const active = hover || value;
+  return (
+    <div className="flex items-center gap-1" onMouseLeave={() => setHover(0)}>
+      {[1, 2, 3, 4, 5].map((n) => (
+        <button
+          key={n}
+          type="button"
+          onMouseEnter={() => setHover(n)}
+          onClick={() => onChange(n)}
+          className="p-0.5 transition-transform hover:scale-110"
+          aria-label={`Avaliar com ${n} estrela${n > 1 ? "s" : ""}`}
+        >
+          <Star className={cn("h-6 w-6 transition-colors", n <= active ? "fill-amber-400 text-amber-400" : "text-white/30")} />
+        </button>
+      ))}
+    </div>
+  );
 }
 
 function CommentsPanelInner({ moduleKey, user }: { moduleKey: string; user: ReturnType<typeof useAuth>["user"] }) {

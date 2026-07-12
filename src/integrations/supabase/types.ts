@@ -2461,6 +2461,7 @@ export type Database = {
           id: string
           module_key: string
           progress_seconds: number
+          rating: number | null
           updated_at: string
           user_id: string
           watched_at: string
@@ -2471,6 +2472,7 @@ export type Database = {
           id?: string
           module_key: string
           progress_seconds?: number
+          rating?: number | null
           updated_at?: string
           user_id: string
           watched_at?: string
@@ -2481,6 +2483,7 @@ export type Database = {
           id?: string
           module_key?: string
           progress_seconds?: number
+          rating?: number | null
           updated_at?: string
           user_id?: string
           watched_at?: string

@@ -1,0 +1,1 @@
+ALTER TABLE public.training_progress ADD COLUMN IF NOT EXISTS rating smallint CHECK (rating IS NULL OR (rating BETWEEN 1 AND 5));
