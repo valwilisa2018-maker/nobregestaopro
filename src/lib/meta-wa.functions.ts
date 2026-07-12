@@ -126,7 +126,7 @@ export const deleteMetaTemplate = createServerFn({ method: "POST" })
         method: "DELETE", version: cfg.graph_version, qs: { name: t.name },
       });
     }
-    await supabase.from("meta_wa_templates").delete().eq("id", data.templateId);
+    await supabase.from("meta_wa_templates").delete().eq("id", data.templateId).eq("user_id", userId);
     return { ok: true };
   });
 
