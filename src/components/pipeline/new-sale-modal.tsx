@@ -30,6 +30,8 @@ export function NewSaleModal({
   const [document, setDocument] = useState("");
   const [invoiceNumber, setInvoiceNumber] = useState("");
   const [payment, setPayment] = useState<string>("Pix");
+  const [paymentStatus, setPaymentStatus] = useState<"paid" | "partial" | "pending">("paid");
+  const [downPayment, setDownPayment] = useState<string>("");
   const [note, setNote] = useState("");
   const [stageId, setStageId] = useState<string>("");
   const [items, setItems] = useState<Item[]>([]);
@@ -81,6 +83,7 @@ export function NewSaleModal({
     setContactId(""); setName(""); setPhone(""); setPayment("Pix");
     setNote(""); setItems([]); setStageId("");
     setCompany(""); setDocument(""); setInvoiceNumber("");
+    setPaymentStatus("paid"); setDownPayment("");
   };
 
   const save = async () => {
@@ -124,6 +127,8 @@ export function NewSaleModal({
         document: document.trim() || null,
         invoice_number: invoiceNumber.trim() || null,
         payment_method: payment,
+        payment_status: paymentStatus,
+        down_payment_cents: paymentStatus === "partial" ? Math.round((parseFloat(downPayment) || 0) * 100) : (paymentStatus === "paid" ? total : 0),
         note: note || null,
         total_cents: total,
         stage_id: stageId,
