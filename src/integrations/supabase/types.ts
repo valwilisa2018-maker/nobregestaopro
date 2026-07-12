@@ -2301,24 +2301,39 @@ export type Database = {
         Row: {
           access_duration_days: number | null
           active: boolean
+          barcode: string | null
           brand: string | null
           category: string | null
           cost_cents: number | null
           created_at: string
+          delivery_days: number | null
           description: string | null
           digital_url: string | null
+          discount_percent: number | null
+          download_limit: number | null
+          file_size_mb: number | null
           height_cm: number | null
           id: string
           length_cm: number | null
+          license_type: string | null
+          max_attendees: number | null
           name: string
+          ncm: string | null
           notes: string | null
           price_cents: number
           product_type: string | null
           seller_name: string | null
           service_duration_minutes: number | null
           service_location: string | null
+          service_modality: string | null
+          service_recurrence: string | null
+          shipping_cents: number | null
           sku: string | null
+          stock_min: number | null
           stock_quantity: number | null
+          supplier: string | null
+          tags: string | null
+          tax_percent: number | null
           unit: string | null
           updated_at: string
           user_id: string
@@ -2329,24 +2344,39 @@ export type Database = {
         Insert: {
           access_duration_days?: number | null
           active?: boolean
+          barcode?: string | null
           brand?: string | null
           category?: string | null
           cost_cents?: number | null
           created_at?: string
+          delivery_days?: number | null
           description?: string | null
           digital_url?: string | null
+          discount_percent?: number | null
+          download_limit?: number | null
+          file_size_mb?: number | null
           height_cm?: number | null
           id?: string
           length_cm?: number | null
+          license_type?: string | null
+          max_attendees?: number | null
           name: string
+          ncm?: string | null
           notes?: string | null
           price_cents?: number
           product_type?: string | null
           seller_name?: string | null
           service_duration_minutes?: number | null
           service_location?: string | null
+          service_modality?: string | null
+          service_recurrence?: string | null
+          shipping_cents?: number | null
           sku?: string | null
+          stock_min?: number | null
           stock_quantity?: number | null
+          supplier?: string | null
+          tags?: string | null
+          tax_percent?: number | null
           unit?: string | null
           updated_at?: string
           user_id: string
@@ -2357,24 +2387,39 @@ export type Database = {
         Update: {
           access_duration_days?: number | null
           active?: boolean
+          barcode?: string | null
           brand?: string | null
           category?: string | null
           cost_cents?: number | null
           created_at?: string
+          delivery_days?: number | null
           description?: string | null
           digital_url?: string | null
+          discount_percent?: number | null
+          download_limit?: number | null
+          file_size_mb?: number | null
           height_cm?: number | null
           id?: string
           length_cm?: number | null
+          license_type?: string | null
+          max_attendees?: number | null
           name?: string
+          ncm?: string | null
           notes?: string | null
           price_cents?: number
           product_type?: string | null
           seller_name?: string | null
           service_duration_minutes?: number | null
           service_location?: string | null
+          service_modality?: string | null
+          service_recurrence?: string | null
+          shipping_cents?: number | null
           sku?: string | null
+          stock_min?: number | null
           stock_quantity?: number | null
+          supplier?: string | null
+          tags?: string | null
+          tax_percent?: number | null
           unit?: string | null
           updated_at?: string
           user_id?: string
