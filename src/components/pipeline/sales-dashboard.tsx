@@ -46,8 +46,11 @@ export function SalesDashboard() {
         supabase.from("sales" as never).select("id,contact_name,phone,payment_method,total_cents,status,created_at,company,document,invoice_number,note,payment_status,down_payment_cents,seller_name").eq("user_id", uid).is("deleted_at", null).order("created_at", { ascending: false }),
         supabase.from("sale_items" as never).select("sale_id,product_name,quantity,subtotal_cents").eq("user_id", uid),
       ]);
-      setSales(((s.data as unknown) as Sale[]) || []);
-      setItems(((i.data as unknown) as Item[]) || []);
+      const salesRows = ((s.data as unknown) as Sale[]) || [];
+      const activeIds = new Set(salesRows.map((r) => r.id));
+      const itemsRows = (((i.data as unknown) as Item[]) || []).filter((it) => activeIds.has(it.sale_id));
+      setSales(salesRows);
+      setItems(itemsRows);
       setLoading(false);
     })();
   }, []);
