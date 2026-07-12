@@ -7,13 +7,17 @@ import { PageShell } from "@/components/page-shell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Kanban, Plus, Loader2, Search, Download } from "lucide-react";
+import { Kanban, Plus, Loader2, Search, Download, ShoppingCart, BarChart3, Package } from "lucide-react";
 import { toast } from "sonner";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { KanbanBoard } from "@/components/pipeline/kanban-board";
 import { DealDrawer } from "@/components/pipeline/deal-drawer";
 import { PipelineStats } from "@/components/pipeline/pipeline-stats";
 import { Deal, Stage, PRIORITY_LABEL, Priority } from "@/components/pipeline/types";
 import { TutorialVideo } from "@/components/tutorial-video";
+import { NewSaleModal } from "@/components/pipeline/new-sale-modal";
+import { SalesDashboard } from "@/components/pipeline/sales-dashboard";
+import { SaleProductsConfig } from "@/components/pipeline/sale-products-config";
 
 export const Route = createFileRoute("/_authenticated/pipeline")({
   head: () => ({ meta: [{ title: "Pipeline CRM — Plataforma IA WhatsApp" }] }),
@@ -33,6 +37,9 @@ function PipelinePage() {
   const [priorityFilter, setPriorityFilter] = useState<string>("all");
   const [sourceFilter, setSourceFilter] = useState<string>("all");
   const [importing, setImporting] = useState(false);
+  const [saleOpen, setSaleOpen] = useState(false);
+  const [tab, setTab] = useState<string>("kanban");
+  const [salesReloadKey, setSalesReloadKey] = useState(0);
 
   const load = async () => {
     setLoading(true);
@@ -199,11 +206,14 @@ function PipelinePage() {
       status="ativo"
       actions={
         <div className="flex gap-2">
+          <Button variant="default" onClick={() => setSaleOpen(true)}>
+            <ShoppingCart className="h-4 w-4" /> Nova Venda
+          </Button>
           <Button variant="outline" onClick={importContacts} disabled={importing || loading}>
             {importing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
             Importar Contatos
           </Button>
-          <Button onClick={() => openCreate()}>
+          <Button variant="outline" onClick={() => openCreate()}>
             <Plus className="h-4 w-4" /> Novo Cartão
           </Button>
         </div>
@@ -212,11 +222,18 @@ function PipelinePage() {
       {loading ? (
         <div className="flex justify-center py-24"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>
       ) : (
-        <div className="space-y-4">
-          <TutorialVideo moduleKey="modulo_03" title="Como usar o Pipeline CRM" />
-          <PipelineStats deals={deals} stages={stages} />
+        <Tabs value={tab} onValueChange={setTab} className="space-y-4">
+          <TabsList className="grid w-full grid-cols-3 md:w-fit">
+            <TabsTrigger value="kanban" className="gap-2"><Kanban className="h-4 w-4" /> Pipeline</TabsTrigger>
+            <TabsTrigger value="dashboard" className="gap-2"><BarChart3 className="h-4 w-4" /> Vendas</TabsTrigger>
+            <TabsTrigger value="products" className="gap-2"><Package className="h-4 w-4" /> Produtos</TabsTrigger>
+          </TabsList>
 
-          <div className="flex flex-wrap gap-2 items-center">
+          <TabsContent value="kanban" className="space-y-4">
+            <TutorialVideo moduleKey="modulo_03" title="Como usar o Pipeline CRM" />
+            <PipelineStats deals={deals} stages={stages} />
+
+            <div className="flex flex-wrap gap-2 items-center">
             <div className="relative flex-1 min-w-[200px]">
               <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
               <Input placeholder="Buscar por nome, empresa, e-mail, telefone…"
@@ -240,16 +257,25 @@ function PipelinePage() {
                 </SelectContent>
               </Select>
             )}
-          </div>
+            </div>
 
-          <KanbanBoard
-            stages={stages}
-            deals={filteredDeals}
-            onOpenDeal={openEdit}
-            onCreateInStage={openCreate}
-            onMove={move}
-          />
-        </div>
+            <KanbanBoard
+              stages={stages}
+              deals={filteredDeals}
+              onOpenDeal={openEdit}
+              onCreateInStage={openCreate}
+              onMove={move}
+            />
+          </TabsContent>
+
+          <TabsContent value="dashboard">
+            <SalesDashboard key={salesReloadKey} />
+          </TabsContent>
+
+          <TabsContent value="products">
+            <SaleProductsConfig />
+          </TabsContent>
+        </Tabs>
       )}
 
       <DealDrawer
@@ -259,6 +285,13 @@ function PipelinePage() {
         stages={stages}
         defaultStageId={createStage}
         onSaved={load}
+      />
+
+      <NewSaleModal
+        open={saleOpen}
+        onClose={() => setSaleOpen(false)}
+        stages={stages}
+        onSaved={() => { load(); setSalesReloadKey((k) => k + 1); setTab("dashboard"); }}
       />
     </PageShell>
   );

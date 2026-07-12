@@ -2253,6 +2253,131 @@ export type Database = {
         }
         Relationships: []
       }
+      sale_items: {
+        Row: {
+          created_at: string
+          id: string
+          product_id: string | null
+          product_name: string
+          quantity: number
+          sale_id: string
+          subtotal_cents: number
+          unit_price_cents: number
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          product_id?: string | null
+          product_name: string
+          quantity?: number
+          sale_id: string
+          subtotal_cents?: number
+          unit_price_cents?: number
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          product_id?: string | null
+          product_name?: string
+          quantity?: number
+          sale_id?: string
+          subtotal_cents?: number
+          unit_price_cents?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sale_items_sale_id_fkey"
+            columns: ["sale_id"]
+            isOneToOne: false
+            referencedRelation: "sales"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sale_products: {
+        Row: {
+          active: boolean
+          created_at: string
+          description: string | null
+          id: string
+          name: string
+          price_cents: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          description?: string | null
+          id?: string
+          name: string
+          price_cents?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          description?: string | null
+          id?: string
+          name?: string
+          price_cents?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      sales: {
+        Row: {
+          contact_id: string | null
+          contact_name: string
+          created_at: string
+          deal_id: string | null
+          id: string
+          note: string | null
+          payment_method: string | null
+          phone: string | null
+          stage_id: string | null
+          status: string
+          total_cents: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          contact_id?: string | null
+          contact_name: string
+          created_at?: string
+          deal_id?: string | null
+          id?: string
+          note?: string | null
+          payment_method?: string | null
+          phone?: string | null
+          stage_id?: string | null
+          status?: string
+          total_cents?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          contact_id?: string | null
+          contact_name?: string
+          created_at?: string
+          deal_id?: string | null
+          id?: string
+          note?: string | null
+          payment_method?: string | null
+          phone?: string | null
+          stage_id?: string | null
+          status?: string
+          total_cents?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       settings: {
         Row: {
           id: string
