@@ -5,25 +5,31 @@ import { PlayCircle } from "lucide-react";
 
 function toEmbed(url: string): { kind: "iframe" | "video"; src: string } | null {
   if (!url) return null;
+  const raw = url.trim();
+  if (!raw) return null;
+  const withScheme = /^https?:\/\//i.test(raw) ? raw : `https://${raw}`;
   try {
-    const u = new URL(url);
-    // YouTube
+    const u = new URL(withScheme);
     if (u.hostname.includes("youtu.be")) {
-      const id = u.pathname.replace("/", "");
+      const id = u.pathname.split("/").filter(Boolean)[0] ?? "";
       return { kind: "iframe", src: `https://www.youtube.com/embed/${id}` };
     }
     if (u.hostname.includes("youtube.com")) {
-      const id = u.searchParams.get("v") ?? u.pathname.split("/").pop() ?? "";
+      let id = u.searchParams.get("v") ?? "";
+      if (!id) {
+        const parts = u.pathname.split("/").filter(Boolean);
+        const known = ["embed", "shorts", "live", "v"];
+        const kIdx = parts.findIndex((p) => known.includes(p));
+        id = kIdx >= 0 ? parts[kIdx + 1] ?? "" : parts[parts.length - 1] ?? "";
+      }
       return { kind: "iframe", src: `https://www.youtube.com/embed/${id}` };
     }
-    // Vimeo
     if (u.hostname.includes("vimeo.com")) {
       const id = u.pathname.split("/").filter(Boolean).pop() ?? "";
       return { kind: "iframe", src: `https://player.vimeo.com/video/${id}` };
     }
-    // MP4 / raw
-    if (/\.(mp4|webm|ogg)(\?|$)/i.test(url)) return { kind: "video", src: url };
-    return { kind: "iframe", src: url };
+    if (/\.(mp4|webm|ogg)(\?|$)/i.test(withScheme)) return { kind: "video", src: withScheme };
+    return { kind: "iframe", src: withScheme };
   } catch {
     return null;
   }
