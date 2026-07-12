@@ -38,6 +38,21 @@ type Product = {
   service_location: string | null;
   warranty: string | null;
   notes: string | null;
+  barcode: string | null;
+  ncm: string | null;
+  tax_percent: number | null;
+  discount_percent: number | null;
+  stock_min: number | null;
+  supplier: string | null;
+  delivery_days: number | null;
+  shipping_cents: number | null;
+  license_type: string | null;
+  file_size_mb: number | null;
+  download_limit: number | null;
+  service_modality: string | null;
+  service_recurrence: string | null;
+  max_attendees: number | null;
+  tags: string | null;
 };
 
 const IMG_KEY = (uid: string, pid: string) => `sale_product_img:${uid}:${pid}`;
@@ -64,6 +79,21 @@ const emptyForm = {
   service_location: "",
   warranty: "",
   notes: "",
+  barcode: "",
+  ncm: "",
+  tax_percent: "",
+  discount_percent: "",
+  stock_min: "",
+  supplier: "",
+  delivery_days: "",
+  shipping: "",
+  license_type: "",
+  file_size_mb: "",
+  download_limit: "",
+  service_modality: "",
+  service_recurrence: "",
+  max_attendees: "",
+  tags: "",
 };
 
 const typeMeta: Record<Exclude<ProductType, "">, { label: string; icon: typeof Box; color: string }> = {
