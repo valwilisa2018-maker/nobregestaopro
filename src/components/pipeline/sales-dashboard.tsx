@@ -317,6 +317,27 @@ export function SalesDashboard() {
             </div>
           )}
         </CardContent></Card>
+
+        <Card className="lg:col-span-3"><CardContent className="p-5">
+          <div className="flex items-center justify-between mb-3">
+            <p className="text-sm font-bold">Faturamento por vendedor</p>
+            <Badge variant="outline" className="text-[10px]">{bySeller.length} vendedor(es)</Badge>
+          </div>
+          {bySeller.length === 0 ? <EmptyChart /> : (
+            <ResponsiveContainer width="100%" height={260}>
+              <BarChart data={bySeller}>
+                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                <XAxis dataKey="name" tick={{ fontSize: 11 }} />
+                <YAxis tick={{ fontSize: 11 }} />
+                <Tooltip formatter={(v: number, k: string) => k === "value" ? formatBRL(v * 100) : v} />
+                <Legend wrapperStyle={{ fontSize: 11 }} />
+                <Bar name="Faturamento" dataKey="value" radius={[6, 6, 0, 0]}>
+                  {bySeller.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
+          )}
+        </CardContent></Card>
       </div>
 
       <Card>
