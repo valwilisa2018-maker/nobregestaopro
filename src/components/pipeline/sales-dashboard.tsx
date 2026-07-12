@@ -2,8 +2,10 @@ import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, DollarSign, ShoppingBag, TrendingUp, Users } from "lucide-react";
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line, CartesianGrid } from "recharts";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Loader2, DollarSign, ShoppingBag, TrendingUp, Users, Clock, CheckCircle2, AlertCircle, Wallet, Trophy, Search, Download } from "lucide-react";
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, AreaChart, Area, CartesianGrid, Legend } from "recharts";
 import { formatBRL } from "./types";
 
 type Sale = {
@@ -12,15 +14,25 @@ type Sale = {
   created_at: string;
   company?: string | null; document?: string | null;
   invoice_number?: string | null; note?: string | null;
+  payment_status?: string | null; down_payment_cents?: number | null;
 };
 type Item = { sale_id: string; product_name: string; quantity: number; subtotal_cents: number };
 
 const COLORS = ["#6366f1", "#22d3ee", "#f59e0b", "#ef4444", "#10b981", "#a855f7", "#ec4899"];
+const RANGES = [
+  { key: "7d", label: "7 dias", days: 7 },
+  { key: "30d", label: "30 dias", days: 30 },
+  { key: "90d", label: "90 dias", days: 90 },
+  { key: "12m", label: "12 meses", days: 365 },
+  { key: "all", label: "Tudo", days: 0 },
+] as const;
 
 export function SalesDashboard() {
   const [sales, setSales] = useState<Sale[]>([]);
   const [items, setItems] = useState<Item[]>([]);
   const [loading, setLoading] = useState(true);
+  const [range, setRange] = useState<(typeof RANGES)[number]["key"]>("30d");
+  const [query, setQuery] = useState("");
 
   useEffect(() => {
     (async () => {
@@ -28,7 +40,7 @@ export function SalesDashboard() {
       const uid = userRes.user?.id;
       if (!uid) { setLoading(false); return; }
       const [s, i] = await Promise.all([
-        supabase.from("sales" as never).select("id,contact_name,phone,payment_method,total_cents,status,created_at,company,document,invoice_number,note").eq("user_id", uid).order("created_at", { ascending: false }),
+        supabase.from("sales" as never).select("id,contact_name,phone,payment_method,total_cents,status,created_at,company,document,invoice_number,note,payment_status,down_payment_cents").eq("user_id", uid).order("created_at", { ascending: false }),
         supabase.from("sale_items" as never).select("sale_id,product_name,quantity,subtotal_cents").eq("user_id", uid),
       ]);
       setSales(((s.data as unknown) as Sale[]) || []);
@@ -37,64 +49,170 @@ export function SalesDashboard() {
     })();
   }, []);
 
-  const stats = useMemo(() => {
-    const total = sales.reduce((a, b) => a + b.total_cents, 0);
-    const count = sales.length;
-    const avg = count ? total / count : 0;
-    const clients = new Set(sales.map((s) => s.contact_name.toLowerCase())).size;
-    return { total, count, avg, clients };
-  }, [sales]);
+  const filtered = useMemo(() => {
+    const r = RANGES.find((x) => x.key === range)!;
+    const cutoff = r.days > 0 ? Date.now() - r.days * 86400000 : 0;
+    const q = query.trim().toLowerCase();
+    return sales.filter((s) => {
+      if (cutoff && new Date(s.created_at).getTime() < cutoff) return false;
+      if (!q) return true;
+      return [s.contact_name, s.company, s.document, s.phone, s.invoice_number]
+        .some((f) => (f || "").toLowerCase().includes(q));
+    });
+  }, [sales, range, query]);
 
-  const byMonth = useMemo(() => {
-    const map = new Map<string, number>();
-    sales.forEach((s) => {
+  const stats = useMemo(() => {
+    const total = filtered.reduce((a, b) => a + b.total_cents, 0);
+    const count = filtered.length;
+    const avg = count ? total / count : 0;
+    const clients = new Set(filtered.map((s) => s.contact_name.toLowerCase())).size;
+    const paid = filtered.filter((s) => s.payment_status === "paid").reduce((a, b) => a + b.total_cents, 0);
+    const partial = filtered.filter((s) => s.payment_status === "partial");
+    const partialReceived = partial.reduce((a, b) => a + (b.down_payment_cents || 0), 0);
+    const partialPending = partial.reduce((a, b) => a + (b.total_cents - (b.down_payment_cents || 0)), 0);
+    const pending = filtered.filter((s) => s.payment_status === "pending").reduce((a, b) => a + b.total_cents, 0);
+    const received = paid + partialReceived;
+    const receivable = partialPending + pending;
+    return { total, count, avg, clients, received, receivable, paid, partialCount: partial.length, pendingCount: filtered.filter((s) => s.payment_status === "pending").length };
+  }, [filtered]);
+
+  const byDay = useMemo(() => {
+    const map = new Map<string, { total: number; count: number }>();
+    filtered.forEach((s) => {
       const d = new Date(s.created_at);
-      const k = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
-      map.set(k, (map.get(k) || 0) + s.total_cents);
+      const k = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+      const cur = map.get(k) || { total: 0, count: 0 };
+      map.set(k, { total: cur.total + s.total_cents, count: cur.count + 1 });
     });
     return Array.from(map.entries())
       .sort(([a], [b]) => a.localeCompare(b))
-      .slice(-12)
-      .map(([k, v]) => ({ month: k, total: v / 100 }));
-  }, [sales]);
+      .map(([k, v]) => ({ day: k.slice(5), total: v.total / 100, count: v.count }));
+  }, [filtered]);
 
   const byProduct = useMemo(() => {
-    const map = new Map<string, number>();
-    items.forEach((i) => map.set(i.product_name, (map.get(i.product_name) || 0) + i.subtotal_cents));
+    const ids = new Set(filtered.map((s) => s.id));
+    const map = new Map<string, { rev: number; qty: number }>();
+    items.filter((i) => ids.has(i.sale_id)).forEach((i) => {
+      const cur = map.get(i.product_name) || { rev: 0, qty: 0 };
+      map.set(i.product_name, { rev: cur.rev + i.subtotal_cents, qty: cur.qty + i.quantity });
+    });
     return Array.from(map.entries())
-      .sort((a, b) => b[1] - a[1]).slice(0, 7)
-      .map(([name, v]) => ({ name, value: v / 100 }));
-  }, [items]);
+      .sort((a, b) => b[1].rev - a[1].rev).slice(0, 8)
+      .map(([name, v]) => ({ name, value: v.rev / 100, qty: v.qty }));
+  }, [items, filtered]);
 
   const byPayment = useMemo(() => {
     const map = new Map<string, number>();
-    sales.forEach((s) => map.set(s.payment_method || "Outro", (map.get(s.payment_method || "Outro") || 0) + 1));
+    filtered.forEach((s) => map.set(s.payment_method || "Outro", (map.get(s.payment_method || "Outro") || 0) + s.total_cents));
+    return Array.from(map.entries()).map(([name, value]) => ({ name, value: value / 100 }));
+  }, [filtered]);
+
+  const byStatus = useMemo(() => {
+    const map = new Map<string, number>();
+    filtered.forEach((s) => {
+      const k = s.payment_status === "paid" ? "Pago" : s.payment_status === "partial" ? "Parcial" : s.payment_status === "pending" ? "Pendente" : "Outro";
+      map.set(k, (map.get(k) || 0) + 1);
+    });
     return Array.from(map.entries()).map(([name, value]) => ({ name, value }));
-  }, [sales]);
+  }, [filtered]);
+
+  const topClients = useMemo(() => {
+    const map = new Map<string, { rev: number; count: number; company: string | null }>();
+    filtered.forEach((s) => {
+      const k = s.contact_name;
+      const cur = map.get(k) || { rev: 0, count: 0, company: s.company || null };
+      map.set(k, { rev: cur.rev + s.total_cents, count: cur.count + 1, company: cur.company || s.company || null });
+    });
+    return Array.from(map.entries())
+      .sort((a, b) => b[1].rev - a[1].rev).slice(0, 6)
+      .map(([name, v]) => ({ name, ...v }));
+  }, [filtered]);
+
+  const exportCsv = () => {
+    const header = ["Data","Cliente","Empresa","CPF/CNPJ","Telefone","Pagamento","Status","Nota","Total","Entrada"];
+    const rows = filtered.map((s) => [
+      new Date(s.created_at).toLocaleString("pt-BR"),
+      s.contact_name, s.company || "", s.document || "", s.phone || "",
+      s.payment_method || "", s.payment_status || "", s.invoice_number || "",
+      (s.total_cents / 100).toFixed(2).replace(".", ","),
+      ((s.down_payment_cents || 0) / 100).toFixed(2).replace(".", ","),
+    ]);
+    const csv = [header, ...rows].map((r) => r.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(";")).join("\n");
+    const url = URL.createObjectURL(new Blob([`\uFEFF${csv}`], { type: "text/csv;charset=utf-8;" }));
+    const a = document.createElement("a"); a.href = url; a.download = `vendas-${Date.now()}.csv`; a.click(); URL.revokeObjectURL(url);
+  };
 
   if (loading) return <div className="flex justify-center py-12"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>;
 
   return (
     <div className="space-y-4">
+      <div className="flex flex-wrap items-center gap-2 justify-between">
+        <div className="flex flex-wrap gap-1 p-1 rounded-lg bg-muted/50 border border-border/50">
+          {RANGES.map((r) => (
+            <Button key={r.key} size="sm" variant={range === r.key ? "default" : "ghost"} className="h-7 text-xs" onClick={() => setRange(r.key)}>
+              {r.label}
+            </Button>
+          ))}
+        </div>
+        <div className="flex gap-2 flex-1 md:flex-none md:min-w-[320px]">
+          <div className="relative flex-1">
+            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+            <Input className="pl-8 h-8 text-sm" placeholder="Buscar cliente, empresa, doc…" value={query} onChange={(e) => setQuery(e.target.value)} />
+          </div>
+          <Button size="sm" variant="outline" onClick={exportCsv} disabled={filtered.length === 0}>
+            <Download className="h-3.5 w-3.5" /> CSV
+          </Button>
+        </div>
+      </div>
+
       <div className="grid gap-3 grid-cols-2 md:grid-cols-4">
         <StatCard icon={DollarSign} label="Faturamento" value={formatBRL(stats.total)} tone="emerald" />
         <StatCard icon={ShoppingBag} label="Vendas" value={String(stats.count)} tone="primary" />
         <StatCard icon={TrendingUp} label="Ticket médio" value={formatBRL(stats.avg)} tone="amber" />
         <StatCard icon={Users} label="Clientes" value={String(stats.clients)} tone="violet" />
+        <StatCard icon={CheckCircle2} label="Recebido" value={formatBRL(stats.received)} tone="emerald" />
+        <StatCard icon={Clock} label="A receber" value={formatBRL(stats.receivable)} tone="amber" />
+        <StatCard icon={Wallet} label="Parciais" value={String(stats.partialCount)} tone="primary" />
+        <StatCard icon={AlertCircle} label="Pendentes" value={String(stats.pendingCount)} tone="violet" />
       </div>
 
-      <div className="grid gap-4 lg:grid-cols-2">
-        <Card><CardContent className="p-5">
-          <p className="text-sm font-bold mb-3">Faturamento por mês</p>
-          {byMonth.length === 0 ? <EmptyChart /> : (
-            <ResponsiveContainer width="100%" height={240}>
-              <LineChart data={byMonth}>
+      <div className="grid gap-4 lg:grid-cols-3">
+        <Card className="lg:col-span-2"><CardContent className="p-5">
+          <div className="flex items-center justify-between mb-3">
+            <p className="text-sm font-bold">Evolução do faturamento</p>
+            <Badge variant="outline" className="text-[10px]">{byDay.length} pts</Badge>
+          </div>
+          {byDay.length === 0 ? <EmptyChart /> : (
+            <ResponsiveContainer width="100%" height={260}>
+              <AreaChart data={byDay}>
+                <defs>
+                  <linearGradient id="gradRev" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="#6366f1" stopOpacity={0.6} />
+                    <stop offset="100%" stopColor="#6366f1" stopOpacity={0} />
+                  </linearGradient>
+                </defs>
                 <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                <XAxis dataKey="month" tick={{ fontSize: 11 }} />
+                <XAxis dataKey="day" tick={{ fontSize: 11 }} />
                 <YAxis tick={{ fontSize: 11 }} />
-                <Tooltip formatter={(v: number) => formatBRL(v * 100)} />
-                <Line type="monotone" dataKey="total" stroke="#6366f1" strokeWidth={2} dot={{ r: 3 }} />
-              </LineChart>
+                <Tooltip formatter={(v: number, k: string) => k === "total" ? formatBRL(v * 100) : v} />
+                <Legend wrapperStyle={{ fontSize: 11 }} />
+                <Area name="Faturamento" type="monotone" dataKey="total" stroke="#6366f1" strokeWidth={2} fill="url(#gradRev)" />
+              </AreaChart>
+            </ResponsiveContainer>
+          )}
+        </CardContent></Card>
+
+        <Card><CardContent className="p-5">
+          <p className="text-sm font-bold mb-3">Status de pagamento</p>
+          {byStatus.length === 0 ? <EmptyChart /> : (
+            <ResponsiveContainer width="100%" height={260}>
+              <PieChart>
+                <Pie data={byStatus} dataKey="value" nameKey="name" cx="50%" cy="50%" innerRadius={45} outerRadius={85} paddingAngle={2} label>
+                  {byStatus.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
+                </Pie>
+                <Tooltip />
+                <Legend wrapperStyle={{ fontSize: 11 }} />
+              </PieChart>
             </ResponsiveContainer>
           )}
         </CardContent></Card>
@@ -102,7 +220,7 @@ export function SalesDashboard() {
         <Card><CardContent className="p-5">
           <p className="text-sm font-bold mb-3">Top produtos</p>
           {byProduct.length === 0 ? <EmptyChart /> : (
-            <ResponsiveContainer width="100%" height={240}>
+            <ResponsiveContainer width="100%" height={260}>
               <BarChart data={byProduct} layout="vertical">
                 <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
                 <XAxis type="number" tick={{ fontSize: 11 }} />
@@ -117,28 +235,36 @@ export function SalesDashboard() {
         <Card><CardContent className="p-5">
           <p className="text-sm font-bold mb-3">Formas de pagamento</p>
           {byPayment.length === 0 ? <EmptyChart /> : (
-            <ResponsiveContainer width="100%" height={240}>
-              <PieChart>
-                <Pie data={byPayment} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={80} label>
+            <ResponsiveContainer width="100%" height={260}>
+              <BarChart data={byPayment}>
+                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                <XAxis dataKey="name" tick={{ fontSize: 11 }} />
+                <YAxis tick={{ fontSize: 11 }} />
+                <Tooltip formatter={(v: number) => formatBRL(v * 100)} />
+                <Bar dataKey="value" radius={[6, 6, 0, 0]}>
                   {byPayment.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
-                </Pie>
-                <Tooltip />
-              </PieChart>
+                </Bar>
+              </BarChart>
             </ResponsiveContainer>
           )}
         </CardContent></Card>
 
         <Card><CardContent className="p-5">
-          <p className="text-sm font-bold mb-3">Últimas vendas</p>
-          {sales.length === 0 ? <p className="text-xs text-muted-foreground py-8 text-center">Nenhuma venda registrada.</p> : (
-            <div className="divide-y divide-border/50 max-h-[240px] overflow-y-auto">
-              {sales.slice(0, 10).map((s) => (
-                <div key={s.id} className="py-2 flex items-center gap-3">
+          <div className="flex items-center justify-between mb-3">
+            <p className="text-sm font-bold flex items-center gap-2"><Trophy className="h-4 w-4 text-amber-400" /> Top clientes</p>
+          </div>
+          {topClients.length === 0 ? (
+            <p className="text-xs text-muted-foreground py-8 text-center">Sem clientes ainda.</p>
+          ) : (
+            <div className="divide-y divide-border/50 max-h-[260px] overflow-y-auto">
+              {topClients.map((c, idx) => (
+                <div key={c.name} className="py-2 flex items-center gap-3">
+                  <div className={`h-7 w-7 shrink-0 grid place-items-center rounded-full text-[11px] font-black ${idx === 0 ? "bg-amber-500/20 text-amber-400" : "bg-muted text-muted-foreground"}`}>{idx + 1}</div>
                   <div className="min-w-0 flex-1">
-                    <p className="text-sm font-semibold truncate">{s.contact_name}</p>
-                    <p className="text-[11px] text-muted-foreground">{new Date(s.created_at).toLocaleString("pt-BR")} · {s.payment_method || "—"}</p>
+                    <p className="text-sm font-semibold truncate">{c.name}</p>
+                    <p className="text-[11px] text-muted-foreground truncate">{c.company || `${c.count} venda(s)`}</p>
                   </div>
-                  <Badge variant="outline" className="tabular-nums">{formatBRL(s.total_cents)}</Badge>
+                  <Badge variant="outline" className="tabular-nums">{formatBRL(c.rev)}</Badge>
                 </div>
               ))}
             </div>
@@ -150,9 +276,9 @@ export function SalesDashboard() {
         <CardContent className="p-5">
           <div className="flex items-center justify-between mb-3">
             <p className="text-sm font-bold">Registro de vendas</p>
-            <Badge variant="outline">{sales.length} total</Badge>
+            <Badge variant="outline">{filtered.length} no período</Badge>
           </div>
-          {sales.length === 0 ? (
+          {filtered.length === 0 ? (
             <p className="text-xs text-muted-foreground py-8 text-center">Nenhuma venda registrada.</p>
           ) : (
             <div className="overflow-x-auto">
@@ -165,14 +291,21 @@ export function SalesDashboard() {
                     <th className="py-2 pr-3">CPF/CNPJ</th>
                     <th className="py-2 pr-3">Telefone</th>
                     <th className="py-2 pr-3">Pagamento</th>
+                    <th className="py-2 pr-3">Status</th>
                     <th className="py-2 pr-3">Nota</th>
                     <th className="py-2 pr-3">Produtos</th>
                     <th className="py-2 pr-3 text-right">Total</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border/40">
-                  {sales.map((s) => {
+                  {filtered.map((s) => {
                     const prods = items.filter((it) => it.sale_id === s.id);
+                    const st = s.payment_status;
+                    const stLabel = st === "paid" ? "Pago" : st === "partial" ? "Parcial" : st === "pending" ? "Pendente" : "—";
+                    const stCls = st === "paid" ? "bg-emerald-500/15 text-emerald-500 border-emerald-500/30"
+                      : st === "partial" ? "bg-amber-500/15 text-amber-500 border-amber-500/30"
+                      : st === "pending" ? "bg-red-500/15 text-red-500 border-red-500/30"
+                      : "";
                     return (
                       <tr key={s.id} className="hover:bg-muted/30">
                         <td className="py-2 pr-3 whitespace-nowrap text-[12px]">{new Date(s.created_at).toLocaleString("pt-BR")}</td>
@@ -181,6 +314,14 @@ export function SalesDashboard() {
                         <td className="py-2 pr-3 tabular-nums">{s.document || "—"}</td>
                         <td className="py-2 pr-3">{s.phone || "—"}</td>
                         <td className="py-2 pr-3">{s.payment_method || "—"}</td>
+                        <td className="py-2 pr-3">
+                          {st ? <Badge variant="outline" className={stCls}>{stLabel}</Badge> : "—"}
+                          {st === "partial" && (
+                            <div className="text-[10px] text-muted-foreground mt-0.5">
+                              Entrada: {formatBRL(s.down_payment_cents || 0)}
+                            </div>
+                          )}
+                        </td>
                         <td className="py-2 pr-3">{s.invoice_number || "—"}</td>
                         <td className="py-2 pr-3 max-w-[240px] truncate" title={prods.map((p) => `${p.quantity}x ${p.product_name}`).join(", ")}>
                           {prods.map((p) => `${p.quantity}x ${p.product_name}`).join(", ") || "—"}
