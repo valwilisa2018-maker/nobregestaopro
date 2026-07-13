@@ -119,7 +119,7 @@ export function useOmData() {
   const settings = useQuery({
     queryKey: ["om-settings"],
     queryFn: async () =>
-      (await (supabase as any).from("om_settings").select("*").eq("id", true).maybeSingle()).data
+      (await (supabase as any).from("om_settings").select("id,base_daily_goal,workdays,holidays,created_at,updated_at").eq("id", true).maybeSingle()).data
         ?? { base_daily_goal: 6, workdays: [1,2,3,4,5], holidays: [] },
   });
   const orders = useQuery({
