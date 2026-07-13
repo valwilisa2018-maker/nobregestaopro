@@ -6,7 +6,7 @@ import {
   MessageCircle, Brain, Users, MessagesSquare, History, ScrollText,
   Settings, UserCog, ShieldCheck, DollarSign, Palette, Contact2, Send, Puzzle, LogOut, Timer,
   LineChart, Activity, CreditCard, Shield, User, Crown, Building2, Plug, CalendarDays, Bug, Coins, Package, Kanban,
-  Sun, Moon, LifeBuoy, AlertTriangle, GraduationCap,
+  Sun, Moon, LifeBuoy, AlertTriangle, GraduationCap, Layers,
 } from "lucide-react";
 import {
   Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent, SidebarGroupLabel,
@@ -35,6 +35,7 @@ const groups = [
       { title: "Pipeline CRM", url: "/pipeline", icon: Kanban },
       { title: "Workflows", url: "/flows", icon: Workflow },
       { title: "Disparo em Massa", url: "/broadcasts", icon: Send },
+      { title: "Sequências", url: "/sequences", icon: Layers },
       { title: "Conexão WhatsApp", url: "/whatsapp", icon: MessageCircle },
       { title: "Meta API Oficial", url: "/meta-api", icon: MessageCircle },
     ],
