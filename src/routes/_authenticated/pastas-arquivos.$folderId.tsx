@@ -762,7 +762,7 @@ function RoteiroEditor({
           const mammoth = await import("mammoth/mammoth.browser.js");
           const res = await (mammoth as any).convertToHtml({ arrayBuffer: buf });
           if (!alive) return;
-          setHtml(res.value || "<p>(documento vazio)</p>");
+          setHtml(sanitizeHtml(res.value || "<p>(documento vazio)</p>"));
         } else {
           const text = await fetch(url).then((r) => r.text());
           if (!alive) return;
