@@ -950,8 +950,8 @@ function SalesPage() {
           </div>
           <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild><Button><Plus className="w-4 h-4 mr-2" />Nova Venda</Button></DialogTrigger>
-            <DialogContent className="max-w-2xl max-h-[88vh] overflow-y-auto p-0 gap-0 border border-[#E8E8E8] dark:border-white/10 rounded-[18px] bg-white dark:bg-[#0B0B0D] shadow-[0_30px_80px_-20px_rgba(0,0,0,0.35)] [&_input]:h-10 [&_input]:rounded-lg [&_input]:border-[#ECECEC] [&_input]:bg-white [&_input]:pl-9 [&_input]:text-sm [&_input]:transition-all [&_input]:duration-200 [&_input:hover]:border-[#E30613]/60 [&_input:focus]:border-[#E30613] [&_input:focus]:ring-2 [&_input:focus]:ring-[#E30613]/15 dark:[&_input]:bg-white/[0.03] dark:[&_input]:border-white/10 dark:[&_input]:text-white [&_[data-slot=select-trigger]]:h-10 [&_[data-slot=select-trigger]]:rounded-lg [&_[data-slot=select-trigger]]:border-[#ECECEC] [&_[data-slot=select-trigger]]:bg-white [&_[data-slot=select-trigger]]:pl-9 [&_[data-slot=select-trigger]:hover]:border-[#E30613]/60 [&_[data-slot=select-trigger]:focus]:border-[#E30613] [&_[data-slot=select-trigger]:focus]:ring-2 [&_[data-slot=select-trigger]:focus]:ring-[#E30613]/15 dark:[&_[data-slot=select-trigger]]:bg-white/[0.03] dark:[&_[data-slot=select-trigger]]:border-white/10 dark:[&_[data-slot=select-trigger]]:text-white [&_textarea]:rounded-lg [&_textarea]:border-[#ECECEC] [&_textarea]:bg-white [&_textarea]:transition-all [&_textarea:focus]:border-[#E30613] [&_textarea:focus]:ring-2 [&_textarea:focus]:ring-[#E30613]/15 dark:[&_textarea]:bg-white/[0.03] dark:[&_textarea]:border-white/10 dark:[&_textarea]:text-white [&_label]:text-[12px] [&_label]:font-medium [&_label]:text-neutral-700 dark:[&_label]:text-neutral-300">
-              <DialogHeader className="relative overflow-hidden bg-[#0B0B0D] px-6 py-4 space-y-0 border-b border-white/5">
+            <DialogContent className="w-[calc(100%-1rem)] sm:w-full max-w-[95vw] sm:max-w-2xl max-h-[90vh] overflow-y-auto p-0 gap-0 border border-[#E8E8E8] dark:border-white/10 rounded-[18px] bg-white dark:bg-[#0B0B0D] shadow-[0_30px_80px_-20px_rgba(0,0,0,0.35)] [&_input]:h-10 [&_input]:rounded-lg [&_input]:border-[#ECECEC] [&_input]:bg-white [&_input]:pl-9 [&_input]:text-sm [&_input]:transition-all [&_input]:duration-200 [&_input:hover]:border-[#E30613]/60 [&_input:focus]:border-[#E30613] [&_input:focus]:ring-2 [&_input:focus]:ring-[#E30613]/15 dark:[&_input]:bg-white/[0.03] dark:[&_input]:border-white/10 dark:[&_input]:text-white [&_[data-slot=select-trigger]]:h-10 [&_[data-slot=select-trigger]]:rounded-lg [&_[data-slot=select-trigger]]:border-[#ECECEC] [&_[data-slot=select-trigger]]:bg-white [&_[data-slot=select-trigger]]:pl-9 [&_[data-slot=select-trigger]:hover]:border-[#E30613]/60 [&_[data-slot=select-trigger]:focus]:border-[#E30613] [&_[data-slot=select-trigger]:focus]:ring-2 [&_[data-slot=select-trigger]:focus]:ring-[#E30613]/15 dark:[&_[data-slot=select-trigger]]:bg-white/[0.03] dark:[&_[data-slot=select-trigger]]:border-white/10 dark:[&_[data-slot=select-trigger]]:text-white [&_textarea]:rounded-lg [&_textarea]:border-[#ECECEC] [&_textarea]:bg-white [&_textarea]:transition-all [&_textarea:focus]:border-[#E30613] [&_textarea:focus]:ring-2 [&_textarea:focus]:ring-[#E30613]/15 dark:[&_textarea]:bg-white/[0.03] dark:[&_textarea]:border-white/10 dark:[&_textarea]:text-white [&_label]:text-[12px] [&_label]:font-medium [&_label]:text-neutral-700 dark:[&_label]:text-neutral-300">
+              <DialogHeader className="relative overflow-hidden bg-[#0B0B0D] px-4 sm:px-6 py-4 space-y-0 border-b border-white/5">
                 <div aria-hidden className="pointer-events-none absolute inset-y-0 right-0 w-2/3">
                   <div className="absolute inset-0 opacity-40" style={{ background: "radial-gradient(60% 100% at 100% 50%, rgba(227,6,19,0.35), transparent 65%)" }} />
                   <svg className="absolute right-0 top-0 h-full w-full opacity-70" viewBox="0 0 400 200" fill="none" preserveAspectRatio="none">
@@ -972,7 +972,7 @@ function SalesPage() {
                   </div>
                 </div>
               </DialogHeader>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-x-4 gap-y-3 p-5 bg-[#FAFAFA] dark:bg-[#0B0B0D]">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-3 p-4 sm:p-5 bg-[#FAFAFA] dark:bg-[#0B0B0D]">
                 <div className="md:col-span-2">
                   <Label>Nome do cliente *</Label>
                   <div className="relative mt-1.5">
@@ -1266,9 +1266,9 @@ function SalesPage() {
                     <Button type="button" variant="outline" onClick={() => window.open("https://drive.google.com/drive/u/0/home", "_blank", "noopener,noreferrer")}>Abrir Drive</Button>
                   </div>
                 </div>
-                <div className="md:col-span-2">
+                <div className="sm:col-span-2">
                   <Label>Link da Plataforma (pasta interna) (opcional)</Label>
-                  <div className="mt-1.5 flex gap-2">
+                  <div className="mt-1.5 flex flex-col sm:flex-row gap-2">
                     <div className="relative flex-1">
                       <LinkIcon className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-neutral-400" />
                       <Input placeholder="Cole aqui o link gerado no Chat Organizador" value={form.platform_link} onChange={(e) => set("platform_link", e.target.value)} />
@@ -1280,11 +1280,11 @@ function SalesPage() {
                   <p className="text-[11px] text-muted-foreground mt-1.5 flex items-center gap-1.5"><ShieldCheck className="h-3 w-3" /> Opcional. Informe um dos dois links (Drive ou Plataforma).</p>
                 </div>
               </div>
-              <div className="border-t border-[#E8E8E8] dark:border-white/10 bg-white dark:bg-[#0B0B0D] px-5 py-3 flex flex-col gap-2">
+              <div className="border-t border-[#E8E8E8] dark:border-white/10 bg-white dark:bg-[#0B0B0D] px-4 sm:px-5 py-3 flex flex-col gap-2">
                 <p className="text-[11px] text-neutral-500 dark:text-neutral-400 flex items-center gap-1.5"><ShieldCheck className="h-3.5 w-3.5 text-emerald-600" /> Todos os dados são armazenados de forma segura.</p>
-                <div className="flex items-center justify-end gap-2">
-                  <Button type="button" variant="outline" onClick={() => setOpen(false)} className="h-10 rounded-lg px-4 border-[#E8E8E8] text-neutral-800 hover:bg-neutral-100 dark:border-white/10 dark:text-neutral-200 dark:hover:bg-white/[0.05]">Cancelar</Button>
-                  <Button onClick={submit} disabled={saving} className="h-10 rounded-lg px-5 font-semibold text-white bg-gradient-to-r from-[#E30613] to-[#B00510] shadow-[0_10px_30px_-8px_rgba(227,6,19,0.6)] transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_16px_40px_-8px_rgba(227,6,19,0.7)] disabled:opacity-70">
+                <div className="flex flex-col-reverse sm:flex-row sm:items-center sm:justify-end gap-2">
+                  <Button type="button" variant="outline" onClick={() => setOpen(false)} className="w-full sm:w-auto h-10 rounded-lg px-4 border-[#E8E8E8] text-neutral-800 hover:bg-neutral-100 dark:border-white/10 dark:text-neutral-200 dark:hover:bg-white/[0.05]">Cancelar</Button>
+                  <Button onClick={submit} disabled={saving} className="w-full sm:w-auto h-10 rounded-lg px-5 font-semibold text-white bg-gradient-to-r from-[#E30613] to-[#B00510] shadow-[0_10px_30px_-8px_rgba(227,6,19,0.6)] transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_16px_40px_-8px_rgba(227,6,19,0.7)] disabled:opacity-70">
                     {saving ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Check className="w-4 h-4 mr-2" />}
                     {(form.payment_method === "pix" || form.payment_method === "cartao") ? "Confirmar Venda" : "Criar venda"}
                   </Button>
