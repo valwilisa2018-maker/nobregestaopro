@@ -402,8 +402,11 @@ function BroadcastsPage() {
         )}
 
         {step === 3 && (
-          <div className="space-y-6">
-            <RadioGroup value={mode} onValueChange={(v) => setMode(v as never)} className="grid md:grid-cols-2 gap-3">
+          <div className="space-y-5">
+            {/* Seção: Modo */}
+            <section className="border rounded-xl p-4 bg-muted/10 space-y-3">
+              <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Modo de envio</div>
+              <RadioGroup value={mode} onValueChange={(v) => setMode(v as never)} className="grid md:grid-cols-2 gap-3">
               <label className={`border rounded-lg p-4 cursor-pointer ${mode === "quick" ? "border-primary bg-primary/5" : ""}`}>
                 <div className="flex items-start gap-3"><RadioGroupItem value="quick" />
                   <div><div className="font-semibold flex items-center gap-2"><Rocket className="h-4 w-4" /> Massa</div><p className="text-xs text-muted-foreground mt-1">Envio único agora.</p></div>
@@ -414,7 +417,8 @@ function BroadcastsPage() {
                   <div><div className="font-semibold flex items-center gap-2"><Clock className="h-4 w-4" /> Sequencial</div><p className="text-xs text-muted-foreground mt-1">Envio programado por dias.</p></div>
                 </div>
               </label>
-            </RadioGroup>
+              </RadioGroup>
+            </section>
 
             {mode === "sequential" && (
               <div className="border rounded-lg p-4 space-y-3 bg-muted/20">
@@ -439,8 +443,10 @@ function BroadcastsPage() {
               </div>
             )}
 
-            <div className="space-y-3">
-              <Label>Velocidade (mensagens por minuto)</Label>
+            {/* Seção: Velocidade */}
+            <section className="border rounded-xl p-4 space-y-3">
+              <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Velocidade</div>
+              <Label className="text-sm">Mensagens por minuto</Label>
               <div className="flex items-center gap-3 p-3 rounded-lg border bg-primary/5">
                 <Switch
                   checked={rate >= 240 && humanizeMin === 0 && humanizeMax === 0 && !useWindow}
@@ -473,18 +479,19 @@ function BroadcastsPage() {
                 <button type="button" onClick={() => setRateCustom(true)} className={`px-3 py-1.5 rounded-full text-xs border ${rateCustom ? "bg-primary text-primary-foreground border-primary" : "bg-muted"}`}>Personalizado</button>
                 {rateCustom && <Input className="w-24 h-8" type="number" min={1} value={rate} onChange={(e) => setRate(Number(e.target.value) || 1)} />}
               </div>
-            </div>
-
-            <div>
-              <Label>Intervalo humanizado (segundos)</Label>
-              <div className="flex items-center gap-2 mt-1">
-                <Input type="number" min={0} value={humanizeMin} onChange={(e) => setHumanizeMin(Number(e.target.value) || 0)} className="w-24" />
-                <span className="text-sm text-muted-foreground">até</span>
-                <Input type="number" min={0} value={humanizeMax} onChange={(e) => setHumanizeMax(Number(e.target.value) || 0)} className="w-24" />
+              <div className="pt-2">
+                <Label className="text-sm">Intervalo humanizado (segundos)</Label>
+                <div className="flex items-center gap-2 mt-1">
+                  <Input type="number" min={0} value={humanizeMin} onChange={(e) => setHumanizeMin(Number(e.target.value) || 0)} className="w-24" />
+                  <span className="text-sm text-muted-foreground">até</span>
+                  <Input type="number" min={0} value={humanizeMax} onChange={(e) => setHumanizeMax(Number(e.target.value) || 0)} className="w-24" />
+                </div>
               </div>
-            </div>
+            </section>
 
-            <div className="border-t pt-4 space-y-3">
+            {/* Seção: Janela de envio */}
+            <section className="border rounded-xl p-4 space-y-3">
+              <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Janela de envio</div>
               <div className="flex items-center gap-3"><Switch checked={useWindow} onCheckedChange={setUseWindow} /><Label>Horário permitido</Label></div>
               {useWindow && (
                 <div className="flex items-center gap-2">
@@ -494,7 +501,7 @@ function BroadcastsPage() {
                 </div>
               )}
               <div>
-                <Label>Dias permitidos</Label>
+                <Label className="text-sm">Dias permitidos</Label>
                 <div className="flex gap-2 mt-2 flex-wrap">
                   {WEEKDAYS.map((d, i) => {
                     const on = weekdays.includes(i);
@@ -503,6 +510,11 @@ function BroadcastsPage() {
                   })}
                 </div>
               </div>
+            </section>
+
+            {/* Seção: Regras */}
+            <section className="border rounded-xl p-4 space-y-3">
+              <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Regras</div>
               <div className="grid md:grid-cols-2 gap-3">
                 <Toggle label="Ignorar feriados" v={ignoreHolidays} set={setIgnoreHolidays} />
                 <Toggle label="Continuar amanhã" v={continueNextDay} set={setContinueNextDay} />
@@ -510,8 +522,13 @@ function BroadcastsPage() {
                 <Toggle label="Ignorar quem respondeu" v={ignoreResponded} set={setIgnoreResponded} />
                 <Toggle label="Parar ao receber resposta" v={stopOnReply} set={setStopOnReply} />
               </div>
+            </section>
+
+            {/* Seção: Limites */}
+            <section className="border rounded-xl p-4 space-y-3">
+              <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Limites</div>
               <div>
-                <Label>Limite diário</Label>
+                <Label className="text-sm">Limite diário</Label>
                 <div className="flex flex-wrap gap-2 mt-1">
                   {LIMIT_PRESETS.map((p) => (
                     <button key={p} type="button" onClick={() => setDailyLimit(p)}
@@ -521,10 +538,10 @@ function BroadcastsPage() {
                 </div>
               </div>
               <div>
-                <Label>Delay fallback (s)</Label>
+                <Label className="text-sm">Delay fallback (s)</Label>
                 <Input type="number" min={1} value={delay} onChange={(e) => setDelay(Number(e.target.value) || 1)} className="w-32" />
               </div>
-            </div>
+            </section>
           </div>
         )}
 
