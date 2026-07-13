@@ -950,8 +950,8 @@ function SalesPage() {
           </div>
           <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild><Button><Plus className="w-4 h-4 mr-2" />Nova Venda</Button></DialogTrigger>
-            <DialogContent className="max-w-4xl max-h-[92vh] overflow-y-auto p-0 gap-0 border border-[#E8E8E8] dark:border-white/10 rounded-[22px] bg-white dark:bg-[#0B0B0D] shadow-[0_30px_80px_-20px_rgba(0,0,0,0.35)] [&_input]:h-[52px] [&_input]:rounded-xl [&_input]:border-[#ECECEC] [&_input]:bg-white [&_input]:pl-10 [&_input]:text-sm [&_input]:transition-all [&_input]:duration-200 [&_input:hover]:border-[#E30613]/60 [&_input:focus]:border-[#E30613] [&_input:focus]:ring-4 [&_input:focus]:ring-[#E30613]/15 dark:[&_input]:bg-white/[0.03] dark:[&_input]:border-white/10 dark:[&_input]:text-white [&_[data-slot=select-trigger]]:h-[52px] [&_[data-slot=select-trigger]]:rounded-xl [&_[data-slot=select-trigger]]:border-[#ECECEC] [&_[data-slot=select-trigger]]:bg-white [&_[data-slot=select-trigger]]:pl-10 [&_[data-slot=select-trigger]:hover]:border-[#E30613]/60 [&_[data-slot=select-trigger]:focus]:border-[#E30613] [&_[data-slot=select-trigger]:focus]:ring-4 [&_[data-slot=select-trigger]:focus]:ring-[#E30613]/15 dark:[&_[data-slot=select-trigger]]:bg-white/[0.03] dark:[&_[data-slot=select-trigger]]:border-white/10 dark:[&_[data-slot=select-trigger]]:text-white [&_textarea]:rounded-xl [&_textarea]:border-[#ECECEC] [&_textarea]:bg-white [&_textarea]:transition-all [&_textarea:focus]:border-[#E30613] [&_textarea:focus]:ring-4 [&_textarea:focus]:ring-[#E30613]/15 dark:[&_textarea]:bg-white/[0.03] dark:[&_textarea]:border-white/10 dark:[&_textarea]:text-white [&_label]:text-[13px] [&_label]:font-medium [&_label]:text-neutral-700 dark:[&_label]:text-neutral-300">
-              <DialogHeader className="relative overflow-hidden bg-[#0B0B0D] px-8 py-7 space-y-0 border-b border-white/5">
+            <DialogContent className="max-w-2xl max-h-[88vh] overflow-y-auto p-0 gap-0 border border-[#E8E8E8] dark:border-white/10 rounded-[18px] bg-white dark:bg-[#0B0B0D] shadow-[0_30px_80px_-20px_rgba(0,0,0,0.35)] [&_input]:h-10 [&_input]:rounded-lg [&_input]:border-[#ECECEC] [&_input]:bg-white [&_input]:pl-9 [&_input]:text-sm [&_input]:transition-all [&_input]:duration-200 [&_input:hover]:border-[#E30613]/60 [&_input:focus]:border-[#E30613] [&_input:focus]:ring-2 [&_input:focus]:ring-[#E30613]/15 dark:[&_input]:bg-white/[0.03] dark:[&_input]:border-white/10 dark:[&_input]:text-white [&_[data-slot=select-trigger]]:h-10 [&_[data-slot=select-trigger]]:rounded-lg [&_[data-slot=select-trigger]]:border-[#ECECEC] [&_[data-slot=select-trigger]]:bg-white [&_[data-slot=select-trigger]]:pl-9 [&_[data-slot=select-trigger]:hover]:border-[#E30613]/60 [&_[data-slot=select-trigger]:focus]:border-[#E30613] [&_[data-slot=select-trigger]:focus]:ring-2 [&_[data-slot=select-trigger]:focus]:ring-[#E30613]/15 dark:[&_[data-slot=select-trigger]]:bg-white/[0.03] dark:[&_[data-slot=select-trigger]]:border-white/10 dark:[&_[data-slot=select-trigger]]:text-white [&_textarea]:rounded-lg [&_textarea]:border-[#ECECEC] [&_textarea]:bg-white [&_textarea]:transition-all [&_textarea:focus]:border-[#E30613] [&_textarea:focus]:ring-2 [&_textarea:focus]:ring-[#E30613]/15 dark:[&_textarea]:bg-white/[0.03] dark:[&_textarea]:border-white/10 dark:[&_textarea]:text-white [&_label]:text-[12px] [&_label]:font-medium [&_label]:text-neutral-700 dark:[&_label]:text-neutral-300">
+              <DialogHeader className="relative overflow-hidden bg-[#0B0B0D] px-6 py-4 space-y-0 border-b border-white/5">
                 <div aria-hidden className="pointer-events-none absolute inset-y-0 right-0 w-2/3">
                   <div className="absolute inset-0 opacity-40" style={{ background: "radial-gradient(60% 100% at 100% 50%, rgba(227,6,19,0.35), transparent 65%)" }} />
                   <svg className="absolute right-0 top-0 h-full w-full opacity-70" viewBox="0 0 400 200" fill="none" preserveAspectRatio="none">
@@ -960,19 +960,19 @@ function SalesPage() {
                     <path d="M0 160 Q140 90 260 160 T400 150" stroke="#E30613" strokeWidth="0.6" fill="none" opacity="0.2" />
                   </svg>
                 </div>
-                <div className="relative flex items-center gap-5">
-                  <div className="flex h-16 w-16 items-center justify-center rounded-[18px] bg-gradient-to-br from-[#E30613] to-[#B00510] shadow-[0_0_35px_rgba(227,6,19,0.55)] ring-1 ring-white/10">
-                    <ShoppingCart className="h-8 w-8 text-white" strokeWidth={2.2} />
+                <div className="relative flex items-center gap-3">
+                  <div className="flex h-11 w-11 items-center justify-center rounded-[14px] bg-gradient-to-br from-[#E30613] to-[#B00510] shadow-[0_0_25px_rgba(227,6,19,0.5)] ring-1 ring-white/10">
+                    <ShoppingCart className="h-5 w-5 text-white" strokeWidth={2.2} />
                   </div>
                   <div>
-                    <DialogTitle className="text-3xl font-bold text-white tracking-tight">
+                    <DialogTitle className="text-xl font-bold text-white tracking-tight">
                       Nova <span className="text-[#E30613]">Venda</span>
                     </DialogTitle>
-                    <p className="text-sm text-neutral-400 mt-1">Cadastre uma nova venda em poucos segundos.</p>
+                    <p className="text-xs text-neutral-400 mt-0.5">Cadastre uma nova venda em poucos segundos.</p>
                   </div>
                 </div>
               </DialogHeader>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-x-5 gap-y-4 p-8 bg-[#FAFAFA] dark:bg-[#0B0B0D]">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-x-4 gap-y-3 p-5 bg-[#FAFAFA] dark:bg-[#0B0B0D]">
                 <div className="md:col-span-2">
                   <Label>Nome do cliente *</Label>
                   <div className="relative mt-1.5">
@@ -1223,10 +1223,10 @@ function SalesPage() {
                 </div>
                 <div className="md:col-span-2" data-sale-field="receipt">
                   <Label>Comprovante (imagem ou PDF) {formReceiptRecommended ? "(recomendado)" : "(opcional enquanto pendente)"}</Label>
-                  <label className="group relative mt-1.5 flex cursor-pointer flex-col items-center justify-center gap-3 rounded-[18px] border-2 border-dashed border-[#E30613]/40 bg-gradient-to-b from-[#FFF5F6] to-white p-8 text-center transition-all duration-300 hover:border-[#E30613] hover:shadow-[0_10px_40px_-10px_rgba(227,6,19,0.35)] dark:from-white/[0.03] dark:to-transparent">
+                  <label className="group relative mt-1.5 flex cursor-pointer flex-col items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-[#E30613]/40 bg-gradient-to-b from-[#FFF5F6] to-white p-4 text-center transition-all duration-300 hover:border-[#E30613] hover:shadow-[0_10px_40px_-10px_rgba(227,6,19,0.35)] dark:from-white/[0.03] dark:to-transparent">
                     <input type="file" accept="image/*,application/pdf" className="sr-only" onChange={(e) => setReceiptFile(e.target.files?.[0] ?? null)} />
-                    <div className="flex h-16 w-16 items-center justify-center rounded-full bg-gradient-to-br from-[#E30613] to-[#B00510] shadow-[0_10px_30px_-5px_rgba(227,6,19,0.5)] transition-transform duration-300 group-hover:scale-105">
-                      <UploadIcon className="h-7 w-7 text-white" strokeWidth={2.2} />
+                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-[#E30613] to-[#B00510] shadow-[0_10px_30px_-5px_rgba(227,6,19,0.5)] transition-transform duration-300 group-hover:scale-105">
+                      <UploadIcon className="h-4 w-4 text-white" strokeWidth={2.2} />
                     </div>
                     {receiptFile ? (
                       <div className="flex flex-col items-center gap-1">
@@ -1280,11 +1280,11 @@ function SalesPage() {
                   <p className="text-[11px] text-muted-foreground mt-1.5 flex items-center gap-1.5"><ShieldCheck className="h-3 w-3" /> Opcional. Informe um dos dois links (Drive ou Plataforma).</p>
                 </div>
               </div>
-              <div className="border-t border-[#E8E8E8] dark:border-white/10 bg-white dark:bg-[#0B0B0D] px-8 py-5 flex flex-col gap-3">
+              <div className="border-t border-[#E8E8E8] dark:border-white/10 bg-white dark:bg-[#0B0B0D] px-5 py-3 flex flex-col gap-2">
                 <p className="text-[11px] text-neutral-500 dark:text-neutral-400 flex items-center gap-1.5"><ShieldCheck className="h-3.5 w-3.5 text-emerald-600" /> Todos os dados são armazenados de forma segura.</p>
-                <div className="flex items-center justify-end gap-3">
-                  <Button type="button" variant="outline" onClick={() => setOpen(false)} className="h-12 rounded-xl px-6 border-[#E8E8E8] text-neutral-800 hover:bg-neutral-100 dark:border-white/10 dark:text-neutral-200 dark:hover:bg-white/[0.05]">Cancelar</Button>
-                  <Button onClick={submit} disabled={saving} className="h-12 rounded-xl px-7 font-semibold text-white bg-gradient-to-r from-[#E30613] to-[#B00510] shadow-[0_10px_30px_-8px_rgba(227,6,19,0.6)] transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_16px_40px_-8px_rgba(227,6,19,0.7)] disabled:opacity-70">
+                <div className="flex items-center justify-end gap-2">
+                  <Button type="button" variant="outline" onClick={() => setOpen(false)} className="h-10 rounded-lg px-4 border-[#E8E8E8] text-neutral-800 hover:bg-neutral-100 dark:border-white/10 dark:text-neutral-200 dark:hover:bg-white/[0.05]">Cancelar</Button>
+                  <Button onClick={submit} disabled={saving} className="h-10 rounded-lg px-5 font-semibold text-white bg-gradient-to-r from-[#E30613] to-[#B00510] shadow-[0_10px_30px_-8px_rgba(227,6,19,0.6)] transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_16px_40px_-8px_rgba(227,6,19,0.7)] disabled:opacity-70">
                     {saving ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Check className="w-4 h-4 mr-2" />}
                     {(form.payment_method === "pix" || form.payment_method === "cartao") ? "Confirmar Venda" : "Criar venda"}
                   </Button>
