@@ -951,7 +951,7 @@ function SalesPage() {
           <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild><Button><Plus className="w-4 h-4 mr-2" />Nova Venda</Button></DialogTrigger>
             <DialogContent className="max-w-2xl max-h-[88vh] overflow-y-auto p-0 gap-0 border border-[#E8E8E8] dark:border-white/10 rounded-[18px] bg-white dark:bg-[#0B0B0D] shadow-[0_30px_80px_-20px_rgba(0,0,0,0.35)] [&_input]:h-10 [&_input]:rounded-lg [&_input]:border-[#ECECEC] [&_input]:bg-white [&_input]:pl-9 [&_input]:text-sm [&_input]:transition-all [&_input]:duration-200 [&_input:hover]:border-[#E30613]/60 [&_input:focus]:border-[#E30613] [&_input:focus]:ring-2 [&_input:focus]:ring-[#E30613]/15 dark:[&_input]:bg-white/[0.03] dark:[&_input]:border-white/10 dark:[&_input]:text-white [&_[data-slot=select-trigger]]:h-10 [&_[data-slot=select-trigger]]:rounded-lg [&_[data-slot=select-trigger]]:border-[#ECECEC] [&_[data-slot=select-trigger]]:bg-white [&_[data-slot=select-trigger]]:pl-9 [&_[data-slot=select-trigger]:hover]:border-[#E30613]/60 [&_[data-slot=select-trigger]:focus]:border-[#E30613] [&_[data-slot=select-trigger]:focus]:ring-2 [&_[data-slot=select-trigger]:focus]:ring-[#E30613]/15 dark:[&_[data-slot=select-trigger]]:bg-white/[0.03] dark:[&_[data-slot=select-trigger]]:border-white/10 dark:[&_[data-slot=select-trigger]]:text-white [&_textarea]:rounded-lg [&_textarea]:border-[#ECECEC] [&_textarea]:bg-white [&_textarea]:transition-all [&_textarea:focus]:border-[#E30613] [&_textarea:focus]:ring-2 [&_textarea:focus]:ring-[#E30613]/15 dark:[&_textarea]:bg-white/[0.03] dark:[&_textarea]:border-white/10 dark:[&_textarea]:text-white [&_label]:text-[12px] [&_label]:font-medium [&_label]:text-neutral-700 dark:[&_label]:text-neutral-300">
-              <DialogHeader className="relative overflow-hidden bg-[#0B0B0D] px-8 py-7 space-y-0 border-b border-white/5">
+              <DialogHeader className="relative overflow-hidden bg-[#0B0B0D] px-6 py-4 space-y-0 border-b border-white/5">
                 <div aria-hidden className="pointer-events-none absolute inset-y-0 right-0 w-2/3">
                   <div className="absolute inset-0 opacity-40" style={{ background: "radial-gradient(60% 100% at 100% 50%, rgba(227,6,19,0.35), transparent 65%)" }} />
                   <svg className="absolute right-0 top-0 h-full w-full opacity-70" viewBox="0 0 400 200" fill="none" preserveAspectRatio="none">
@@ -960,19 +960,19 @@ function SalesPage() {
                     <path d="M0 160 Q140 90 260 160 T400 150" stroke="#E30613" strokeWidth="0.6" fill="none" opacity="0.2" />
                   </svg>
                 </div>
-                <div className="relative flex items-center gap-5">
-                  <div className="flex h-16 w-16 items-center justify-center rounded-[18px] bg-gradient-to-br from-[#E30613] to-[#B00510] shadow-[0_0_35px_rgba(227,6,19,0.55)] ring-1 ring-white/10">
-                    <ShoppingCart className="h-8 w-8 text-white" strokeWidth={2.2} />
+                <div className="relative flex items-center gap-3">
+                  <div className="flex h-11 w-11 items-center justify-center rounded-[14px] bg-gradient-to-br from-[#E30613] to-[#B00510] shadow-[0_0_25px_rgba(227,6,19,0.5)] ring-1 ring-white/10">
+                    <ShoppingCart className="h-5 w-5 text-white" strokeWidth={2.2} />
                   </div>
                   <div>
-                    <DialogTitle className="text-3xl font-bold text-white tracking-tight">
+                    <DialogTitle className="text-xl font-bold text-white tracking-tight">
                       Nova <span className="text-[#E30613]">Venda</span>
                     </DialogTitle>
-                    <p className="text-sm text-neutral-400 mt-1">Cadastre uma nova venda em poucos segundos.</p>
+                    <p className="text-xs text-neutral-400 mt-0.5">Cadastre uma nova venda em poucos segundos.</p>
                   </div>
                 </div>
               </DialogHeader>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-x-5 gap-y-4 p-8 bg-[#FAFAFA] dark:bg-[#0B0B0D]">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-x-4 gap-y-3 p-5 bg-[#FAFAFA] dark:bg-[#0B0B0D]">
                 <div className="md:col-span-2">
                   <Label>Nome do cliente *</Label>
                   <div className="relative mt-1.5">
