@@ -7,7 +7,7 @@ import {
   ArrowRight, CalendarDays, CheckCircle2, Clock, Copy, GripVertical, KeyRound,
   Layers, Loader2, Pause, Play, Plus, Repeat2, Rocket, Settings2, Sparkles,
   Trash2, Users, X, Zap, Activity, TrendingUp,
-  Timer, Workflow, Wand2,
+  Timer, Workflow, Wand2, Info,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
