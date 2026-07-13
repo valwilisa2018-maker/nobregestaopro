@@ -411,7 +411,7 @@ function SequenceHero({ onNew }: { onNew: () => void }) {
               color: "#a5c0ff",
             }}
           >
-            <Sparkles className="h-3.5 w-3.5" /> Automação premium de jornadas
+            Automação premium de jornadas
           </span>
           <h2 className="text-lg sm:text-xl font-bold tracking-tight leading-[1.2] text-white">
             Conduza seus contatos por uma jornada perfeita —{" "}
