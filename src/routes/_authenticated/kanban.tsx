@@ -910,6 +910,7 @@ function KanbanPage() {
                     size="icon" 
                     variant="ghost" 
                     className="h-5 w-5 text-background/50 hover:text-background hover:bg-background/10"
+                    aria-label="Editar coluna"
                     onClick={() => setEditingColumn({ id: col.id, name: col.name, color: col.color })}
                   >
                     <Edit2 className="w-3 h-3" />
@@ -919,7 +920,7 @@ function KanbanPage() {
                   <Badge variant="outline" className="border-background/40 text-background">
                     {colCards.length}
                   </Badge>
-                  <Button size="icon" variant="ghost" className="h-6 w-6 text-background hover:bg-background/10 hover:text-background" onClick={() => openNew(col.id)}>
+                  <Button size="icon" variant="ghost" className="h-6 w-6 text-background hover:bg-background/10 hover:text-background" aria-label="Novo card nesta coluna" onClick={() => openNew(col.id)}>
                     <Plus className="w-4 h-4" />
                   </Button>
                 </div>
@@ -988,7 +989,7 @@ function KanbanPage() {
                               <div className="flex items-center gap-1">
                                 <DropdownMenu>
                                   <DropdownMenuTrigger asChild>
-                                    <Button size="icon" variant="ghost" className="h-6 w-6 text-muted-foreground hover:text-foreground" onClick={(e) => e.stopPropagation()}>
+                                    <Button size="icon" variant="ghost" className="h-6 w-6 text-muted-foreground hover:text-foreground" aria-label="Transferir pacote" onClick={(e) => e.stopPropagation()}>
                                       <UserPlus className="w-4 h-4" />
                                     </Button>
                                   </DropdownMenuTrigger>
@@ -1070,6 +1071,7 @@ function KanbanPage() {
                                 );
                               }}
                               className="absolute top-2 right-2 z-10 inline-flex items-center justify-center w-7 h-7 rounded-full bg-[#25D366] text-white shadow-md hover:scale-110 transition-transform"
+                              aria-label="Abrir WhatsApp"
                             >
                               <MessageCircle className="w-4 h-4" />
                             </a>
@@ -1093,6 +1095,7 @@ function KanbanPage() {
                                 );
                               }}
                               className="absolute top-2 right-10 z-10 inline-flex items-center justify-center w-6 h-6 rounded-full bg-foreground/80 text-background shadow-md hover:scale-110 transition-transform"
+                              aria-label="Copiar número"
                             >
                               <Copy className="w-3 h-3" />
                             </button>
@@ -1260,6 +1263,7 @@ function KanbanPage() {
                             );
                           }}
                           className="absolute top-2 right-2 z-10 inline-flex items-center justify-center w-7 h-7 rounded-full bg-[#25D366] text-white shadow-md hover:scale-110 transition-transform"
+                          aria-label="Abrir WhatsApp"
                         >
                           <MessageCircle className="w-4 h-4" />
                         </a>
@@ -1279,6 +1283,7 @@ function KanbanPage() {
                             );
                           }}
                           className="absolute top-2 right-10 z-10 inline-flex items-center justify-center w-6 h-6 rounded-full bg-foreground/80 text-background shadow-md hover:scale-110 transition-transform"
+                          aria-label="Copiar número"
                         >
                           <Copy className="w-3 h-3" />
                         </button>

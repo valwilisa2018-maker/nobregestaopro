@@ -1,0 +1,9 @@
+# Gestão Nobre MKT
+
+> Plataforma premium para agências de marketing: gestão de vendas, produção, kanban de tarefas, clientes e notas fiscais em um único lugar.
+
+Gestão Nobre MKT é um SaaS de uso interno para equipes comerciais e de produção de agências. O acesso ao aplicativo é restrito a usuários autenticados; esta página lista apenas os pontos de entrada públicos.
+
+## Pages
+
+- [Entrar](/login): Acesso à plataforma para usuários com conta.

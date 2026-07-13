@@ -35,6 +35,16 @@ function translateAuthError(msg: string): string {
 }
 
 export const Route = createFileRoute("/login")({
+  head: () => ({
+    meta: [
+      { title: "Entrar — Gestão Nobre MKT" },
+      { name: "description", content: "Acesse sua conta na Gestão Nobre MKT: plataforma premium para gestão de vendas, produção e clientes da sua agência." },
+      { property: "og:title", content: "Entrar — Gestão Nobre MKT" },
+      { property: "og:description", content: "Acesse sua conta na Gestão Nobre MKT: plataforma premium para gestão de vendas, produção e clientes da sua agência." },
+      { property: "og:url", content: "https://nobregestaopro.lovable.app/login" },
+    ],
+    links: [{ rel: "canonical", href: "https://nobregestaopro.lovable.app/login" }],
+  }),
   component: LoginPage,
 });
 
@@ -162,6 +172,7 @@ function LoginPage() {
           boxShadow:
             "0 0 0 1px rgba(220,38,38,0.45), 0 0 24px 2px rgba(220,38,38,0.45), 0 0 60px 8px rgba(220,38,38,0.35), var(--shadow-premium)",
         }}>
+        <h1 className="sr-only">Entrar no Gestão Nobre MKT</h1>
         <CardHeader className="text-center space-y-3">
           <img src={logoUrl} alt="Nobre MKT" className="mx-auto w-24 h-24 rounded-2xl object-contain" />
           <div>

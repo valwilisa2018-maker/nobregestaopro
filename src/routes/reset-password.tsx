@@ -9,6 +9,17 @@ import { toast } from "sonner";
 import { Loader2, Eye, EyeOff } from "lucide-react";
 
 export const Route = createFileRoute("/reset-password")({
+  head: () => ({
+    meta: [
+      { title: "Redefinir Senha — Gestão Nobre MKT" },
+      { name: "description", content: "Redefina sua senha de acesso à plataforma Gestão Nobre MKT com segurança." },
+      { name: "robots", content: "noindex" },
+      { property: "og:title", content: "Redefinir Senha — Gestão Nobre MKT" },
+      { property: "og:description", content: "Redefina sua senha de acesso à plataforma Gestão Nobre MKT com segurança." },
+      { property: "og:url", content: "https://nobregestaopro.lovable.app/reset-password" },
+    ],
+    links: [{ rel: "canonical", href: "https://nobregestaopro.lovable.app/reset-password" }],
+  }),
   component: ResetPasswordPage,
 });
 
@@ -47,6 +58,7 @@ function ResetPasswordPage() {
   return (
     <div className="min-h-screen flex items-center justify-center p-4 bg-background">
       <Card className="w-full max-w-md">
+        <h1 className="sr-only">Redefinir sua senha</h1>
         <CardHeader>
           <CardTitle>Redefinir senha</CardTitle>
           <CardDescription>

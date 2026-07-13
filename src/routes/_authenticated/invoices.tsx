@@ -467,7 +467,7 @@ function InvoicesPage() {
                         </label>
                         {i.file_url && (
                           <Button size="sm" variant="ghost" asChild>
-                            <a href={i.file_url} target="_blank" rel="noreferrer"><ExternalLink className="w-4 h-4" /></a>
+                           <a href={i.file_url} target="_blank" rel="noreferrer" aria-label="Abrir nota fiscal em nova aba"><ExternalLink className="w-4 h-4" /></a>
                           </Button>
                         )}
                         {i.status === "pronto_para_envio" && (
@@ -521,7 +521,7 @@ function InvoicesPage() {
                         </label>
                         {g.file_url && (
                           <Button size="sm" variant="ghost" asChild>
-                            <a href={g.file_url} target="_blank" rel="noreferrer"><ExternalLink className="w-4 h-4" /></a>
+                           <a href={g.file_url} target="_blank" rel="noreferrer" aria-label="Abrir nota fiscal em nova aba"><ExternalLink className="w-4 h-4" /></a>
                           </Button>
                         )}
                         {g.status === "pronto_para_envio" && (
