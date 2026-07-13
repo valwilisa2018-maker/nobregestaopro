@@ -753,6 +753,26 @@ function Toggle({ label, v, set }: { label: string; v: boolean; set: (b: boolean
   return <label className="flex items-center gap-3 border rounded-lg p-3 cursor-pointer"><Switch checked={v} onCheckedChange={set} /><span className="text-sm">{label}</span></label>;
 }
 
+function Section({
+  icon, title, desc, right, children,
+}: { icon: React.ReactNode; title: string; desc?: string; right?: React.ReactNode; children: React.ReactNode }) {
+  return (
+    <section className="rounded-2xl border bg-gradient-to-b from-card to-card/60 shadow-sm overflow-hidden">
+      <div className="flex items-start justify-between gap-3 px-4 py-3 border-b bg-muted/30">
+        <div className="flex items-start gap-3">
+          <div className="h-8 w-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center ring-1 ring-primary/20 shrink-0">{icon}</div>
+          <div>
+            <div className="font-semibold text-sm leading-tight">{title}</div>
+            {desc && <div className="text-xs text-muted-foreground mt-0.5">{desc}</div>}
+          </div>
+        </div>
+        {right}
+      </div>
+      <div className="p-4 space-y-3">{children}</div>
+    </section>
+  );
+}
+
 function exportTimelineCSV(rows: any[], title: string, statusFilter: string, search: string) {
   const filtered = rows.filter((r) => (statusFilter === "all" || r.status === statusFilter) && (!search || String(r.phone).includes(search)));
   const header = ["telefone", "status", "etapa_atual", "proximo_envio", "ultimo_evento", "erro", "eventos"];
