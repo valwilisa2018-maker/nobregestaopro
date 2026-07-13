@@ -222,7 +222,7 @@ function SequencesPage() {
     >
       <SequenceHeader onNew={openNew} />
 
-      <div className="mt-4 grid gap-4 xl:grid-cols-[minmax(0,1.55fr)_minmax(0,1fr)]">
+      <div className="mt-3 grid gap-3 xl:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)]">
         <SequenceHero onNew={openNew} />
         <MetricsGrid metrics={metrics} />
       </div>
@@ -324,7 +324,7 @@ function SequencesPage() {
 function SequenceHeader({ onNew }: { onNew: () => void }) {
   return (
     <header
-      className="rounded-[22px] border p-4 sm:p-5 flex flex-wrap items-center gap-4"
+      className="rounded-[20px] border px-4 py-3 sm:px-5 sm:py-3.5 flex flex-wrap items-center gap-3"
       style={{
         borderColor: "rgba(93,137,255,0.18)",
         background:
@@ -334,7 +334,7 @@ function SequenceHeader({ onNew }: { onNew: () => void }) {
       }}
     >
       <div
-        className="grid h-14 w-14 shrink-0 place-items-center rounded-2xl"
+        className="grid h-11 w-11 shrink-0 place-items-center rounded-xl"
         style={{
           background:
             "linear-gradient(135deg, rgba(52,120,255,0.35), rgba(124,60,255,0.35))",
@@ -343,11 +343,11 @@ function SequenceHeader({ onNew }: { onNew: () => void }) {
           border: "1px solid rgba(135,165,255,0.4)",
         }}
       >
-        <Layers className="h-6 w-6 text-white" />
+        <Layers className="h-5 w-5 text-white" />
       </div>
       <div className="min-w-0 flex-1">
         <div className="flex flex-wrap items-center gap-2">
-          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-white">
+          <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-white leading-none">
             Sequências
           </h1>
           <span
@@ -362,7 +362,7 @@ function SequenceHeader({ onNew }: { onNew: () => void }) {
             Ativo
           </span>
         </div>
-        <p className="mt-1 text-sm text-slate-400 max-w-2xl">
+        <p className="mt-0.5 text-xs sm:text-[13px] text-slate-400 max-w-2xl leading-snug">
           Jornadas automatizadas de mensagens com fluxos, janelas de envio e ativação por palavra-chave.
         </p>
       </div>
@@ -400,9 +400,9 @@ function SequenceHero({ onNew }: { onNew: () => void }) {
     { icon: Rocket, title: "3. Ative", desc: "Inscreva contatos e acompanhe em tempo real." },
   ];
   return (
-    <section className="premium-shell seq-fade p-4 sm:p-5">
-      <div className="relative grid gap-4 lg:grid-cols-[1.6fr_1fr] items-center">
-        <div className="space-y-3 min-w-0">
+    <section className="premium-shell seq-fade p-3.5 sm:p-4">
+      <div className="relative grid gap-3 lg:grid-cols-[1.7fr_1fr] items-center">
+        <div className="space-y-2.5 min-w-0">
           <span
             className="inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs font-medium"
             style={{
@@ -413,7 +413,7 @@ function SequenceHero({ onNew }: { onNew: () => void }) {
           >
             <Sparkles className="h-3.5 w-3.5" /> Automação premium de jornadas
           </span>
-          <h2 className="text-xl sm:text-2xl font-bold tracking-tight leading-[1.15] text-white">
+          <h2 className="text-lg sm:text-xl font-bold tracking-tight leading-[1.2] text-white">
             Conduza seus contatos por uma jornada perfeita —{" "}
             <span
               style={{
@@ -425,7 +425,7 @@ function SequenceHero({ onNew }: { onNew: () => void }) {
               sem esforço manual.
             </span>
           </h2>
-          <p className="text-xs sm:text-sm text-slate-400 max-w-xl leading-snug">
+          <p className="text-[12px] text-slate-400 max-w-xl leading-snug">
             Envie fluxos do WhatsApp em cadência programada (minutos, dias, semanas), respeitando janelas e palavras-chave.
           </p>
           <div className="grid sm:grid-cols-3 gap-2">
@@ -510,7 +510,7 @@ type MetricEntry = { title: string; value: string | number; icon: typeof Layers;
 
 function MetricsGrid({ metrics }: { metrics: readonly MetricEntry[] }) {
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 seq-fade content-start">
+    <div className="grid grid-cols-2 gap-2.5 seq-fade content-start">
       {metrics.map((m) => <MetricCard key={m.title} {...m} />)}
     </div>
   );
@@ -519,7 +519,7 @@ function MetricsGrid({ metrics }: { metrics: readonly MetricEntry[] }) {
 function MetricCard({ title, value, icon: Icon, accent }: MetricEntry) {
   return (
     <article
-      className="group relative overflow-hidden rounded-xl border p-3 transition-all duration-200 hover:-translate-y-1"
+      className="group relative overflow-hidden rounded-xl border p-2.5 transition-all duration-200 hover:-translate-y-1"
       style={{
         borderColor: `${accent}45`,
         background: `linear-gradient(135deg, ${accent}1f 0%, rgba(6,12,25,0.96) 65%)`,
@@ -530,9 +530,9 @@ function MetricCard({ title, value, icon: Icon, accent }: MetricEntry) {
         className="pointer-events-none absolute -right-8 -top-8 h-24 w-24 rounded-full blur-3xl transition-opacity group-hover:opacity-90"
         style={{ backgroundColor: `${accent}25` }}
       />
-      <div className="relative flex items-center gap-3">
+      <div className="relative flex items-center gap-2.5">
         <div
-          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border"
+          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border"
           style={{
             color: accent,
             borderColor: `${accent}55`,
@@ -540,11 +540,11 @@ function MetricCard({ title, value, icon: Icon, accent }: MetricEntry) {
             boxShadow: `0 0 24px ${accent}33`,
           }}
         >
-          <Icon size={18} strokeWidth={1.9} />
+          <Icon size={16} strokeWidth={1.9} />
         </div>
         <div className="min-w-0">
-          <p className="text-[11px] font-medium text-slate-400 truncate">{title}</p>
-          <strong className="mt-0.5 block text-xl font-bold tracking-tight text-white">
+          <p className="text-[10.5px] font-medium uppercase tracking-wide text-slate-400 truncate">{title}</p>
+          <strong className="mt-0.5 block text-lg font-bold tracking-tight text-white leading-none">
             {value}
           </strong>
         </div>
