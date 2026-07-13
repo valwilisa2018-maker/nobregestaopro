@@ -12,6 +12,41 @@ serve(async (req) => {
   }
 
   try {
+    // Verify authenticity: Pagar.me sends HTTP Basic Auth using the
+    // user/password configured on the webhook endpoint. Require a shared
+    // secret so forged requests can't mark sales as paid.
+    const expectedSecret = Deno.env.get("PAGARME_WEBHOOK_SECRET");
+    if (!expectedSecret) {
+      console.error("[Webhook] PAGARME_WEBHOOK_SECRET not configured");
+      return new Response(JSON.stringify({ error: "webhook not configured" }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 503,
+      });
+    }
+    const authHeader = req.headers.get("authorization") ?? "";
+    let authorized = false;
+    if (authHeader.toLowerCase().startsWith("basic ")) {
+      try {
+        const decoded = atob(authHeader.slice(6).trim());
+        const idx = decoded.indexOf(":");
+        const pass = idx >= 0 ? decoded.slice(idx + 1) : decoded;
+        // constant-time compare
+        const a = new TextEncoder().encode(pass);
+        const b = new TextEncoder().encode(expectedSecret);
+        if (a.length === b.length) {
+          let diff = 0;
+          for (let i = 0; i < a.length; i++) diff |= a[i] ^ b[i];
+          authorized = diff === 0;
+        }
+      } catch { /* fall through */ }
+    }
+    if (!authorized) {
+      return new Response(JSON.stringify({ error: "unauthorized" }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 401,
+      });
+    }
+
     const supabaseAdmin = createClient(
       Deno.env.get("SUPABASE_URL") ?? "",
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""

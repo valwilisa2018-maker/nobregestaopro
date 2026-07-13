@@ -1376,6 +1376,14 @@ export type Database = {
         Args: { _service_order_id: string }
         Returns: string
       }
+      get_om_settings_public: {
+        Args: never
+        Returns: {
+          base_daily_goal: number
+          holidays: string[]
+          workdays: number[]
+        }[]
+      }
       get_sinal_totals: {
         Args: { _from: string; _to: string }
         Returns: {
