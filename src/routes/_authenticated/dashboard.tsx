@@ -292,32 +292,47 @@ function Dashboard() {
   return (
     <div className="space-y-6 animate-fade-in">
       {/* Hero */}
-      <div className="relative overflow-hidden rounded-3xl border border-border/60 p-6 md:p-8" style={{ background: "var(--gradient-mesh), var(--card)" }}>
-        <div className="absolute -right-20 -top-24 h-72 w-72 rounded-full bg-primary/25 blur-3xl" />
-        <div className="absolute -left-16 -bottom-16 h-56 w-56 rounded-full bg-accent/25 blur-3xl" />
-        <div className="relative grid grid-cols-[minmax(0,1fr)_auto] items-start gap-4 sm:flex sm:flex-wrap sm:justify-between">
-          <div className="min-w-0 space-y-2 flex-1">
-            <Badge variant="outline" className="bg-primary/15 text-primary border-primary/40">
+      <div className="relative overflow-hidden rounded-3xl border border-white/10 bg-[#05070d] p-6 md:p-8">
+        <div className="absolute inset-0 opacity-70" style={{ background: "radial-gradient(1200px 300px at 20% 0%, rgba(59,130,246,0.18), transparent 60%), radial-gradient(800px 260px at 90% 100%, rgba(168,85,247,0.16), transparent 60%)" }} />
+        <div className="absolute inset-0 pointer-events-none [background-image:linear-gradient(rgba(255,255,255,0.04)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.04)_1px,transparent_1px)] [background-size:32px_32px]" />
+        <div className="relative flex flex-col xl:flex-row xl:items-center xl:justify-between gap-6">
+          <div className="min-w-0 space-y-3 flex-1">
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-blue-400/40 bg-blue-500/10 px-3 py-1 text-xs font-semibold text-blue-300">
               <Zap className="h-3 w-3" /> Plataforma IA Premium
-            </Badge>
-            <h1 className="text-3xl md:text-4xl font-black tracking-tight bg-clip-text text-transparent" style={{ backgroundImage: "var(--gradient-primary)" }}>
+            </span>
+            <h1 className="text-4xl md:text-6xl font-black tracking-tight leading-none bg-clip-text text-transparent" style={{ backgroundImage: "linear-gradient(90deg,#3b82f6,#6366f1 45%,#a855f7)" }}>
               Central de Comando
             </h1>
-            <p className="text-sm text-muted-foreground max-w-xl">
+            <p className="text-sm text-slate-400 max-w-xl">
               Visão consolidada de agentes, WhatsApp, disparos, pipeline e agenda — {range.label.toLowerCase()}.
             </p>
           </div>
-          <div className="flex items-center gap-2">
-            <div className="relative hidden md:block">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input placeholder="Buscar agentes, conversas..." className="pl-9 w-72 bg-background/40 backdrop-blur border-border/60" />
+          <div className="flex items-center gap-3 flex-wrap">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500" />
+              <Input placeholder="Buscar agentes, conversas..." className="pl-9 w-72 h-11 rounded-full bg-black/60 border-white/10 text-slate-200 placeholder:text-slate-500" />
             </div>
-            <Button variant="outline" onClick={() => dash.refetch()} disabled={dash.isFetching}>
+            <Button onClick={() => dash.refetch()} disabled={dash.isFetching} className="h-11 rounded-full bg-black text-white border border-white/10 hover:bg-white/10">
               <RefreshCw className={`h-4 w-4 ${dash.isFetching ? "animate-spin" : ""}`} /> Atualizar
             </Button>
-            <Button asChild className="shadow-lg" style={{ boxShadow: "var(--shadow-elegant)" }}>
+            <Button asChild className="h-11 rounded-full text-white shadow-lg" style={{ background: "linear-gradient(90deg,#3b82f6,#a855f7)" }}>
               <Link to="/agents"><Plus className="h-4 w-4" /> Novo Agente</Link>
             </Button>
+            <div className="hidden lg:flex items-center gap-3 rounded-2xl border border-fuchsia-400/30 bg-black/40 px-4 py-2 shadow-[0_0_40px_-10px_rgba(168,85,247,0.6)]">
+              <span className="relative flex h-2.5 w-2.5">
+                <span className="absolute inline-flex h-full w-full rounded-full bg-cyan-400 opacity-70 animate-ping" />
+                <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-cyan-400" />
+              </span>
+              <span className="text-sm font-semibold text-cyan-300 tracking-wide">IA Online</span>
+              <svg viewBox="0 0 80 24" className="h-6 w-20 text-fuchsia-400/80" fill="none" stroke="currentColor" strokeWidth="1.5">
+                <path d="M0 18 L10 12 L18 16 L28 6 L38 14 L48 9 L58 15 L68 5 L80 12" />
+              </svg>
+              <div className="grid grid-cols-3 gap-0.5">
+                {Array.from({ length: 9 }).map((_, i) => (
+                  <span key={i} className="h-1.5 w-1.5 rounded-sm bg-fuchsia-400/70" />
+                ))}
+              </div>
+            </div>
           </div>
         </div>
       </div>
