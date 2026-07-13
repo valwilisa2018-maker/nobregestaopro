@@ -428,7 +428,7 @@ function SequenceHero({ onNew }: { onNew: () => void }) {
           <p className="text-[12px] text-slate-400 max-w-xl leading-snug">
             Envie fluxos do WhatsApp em cadência programada (minutos, dias, semanas), respeitando janelas e palavras-chave.
           </p>
-          <div className="grid sm:grid-cols-3 gap-2">
+          <div className="grid auto-rows-fr sm:grid-cols-3 gap-2">
             {steps.map((s) => (
               <JourneyStepCard key={s.title} icon={s.icon} title={s.title} desc={s.desc} />
             ))}
@@ -450,7 +450,7 @@ function SequenceHero({ onNew }: { onNew: () => void }) {
 
 function JourneyStepCard({ icon: Icon, title, desc }: { icon: typeof Settings2; title: string; desc: string }) {
   return (
-    <div className="step-tile !p-2.5">
+    <div className="step-tile !p-2.5 h-full min-h-[86px]">
       <div className="flex items-center gap-2 mb-1">
         <div
           className="grid h-7 w-7 place-items-center rounded-md"
@@ -510,7 +510,7 @@ type MetricEntry = { title: string; value: string | number; icon: typeof Layers;
 
 function MetricsGrid({ metrics }: { metrics: readonly MetricEntry[] }) {
   return (
-    <div className="grid grid-cols-2 gap-2.5 seq-fade content-start">
+    <div className="grid grid-cols-2 auto-rows-fr gap-2.5 seq-fade content-start">
       {metrics.map((m) => <MetricCard key={m.title} {...m} />)}
     </div>
   );
@@ -519,7 +519,7 @@ function MetricsGrid({ metrics }: { metrics: readonly MetricEntry[] }) {
 function MetricCard({ title, value, icon: Icon, accent }: MetricEntry) {
   return (
     <article
-      className="group relative overflow-hidden rounded-xl border p-2.5 transition-all duration-200 hover:-translate-y-1"
+      className="group relative flex h-full min-h-[74px] overflow-hidden rounded-xl border p-2.5 transition-all duration-200 hover:-translate-y-1"
       style={{
         borderColor: `${accent}45`,
         background: `linear-gradient(135deg, ${accent}1f 0%, rgba(6,12,25,0.96) 65%)`,
@@ -530,7 +530,7 @@ function MetricCard({ title, value, icon: Icon, accent }: MetricEntry) {
         className="pointer-events-none absolute -right-8 -top-8 h-24 w-24 rounded-full blur-3xl transition-opacity group-hover:opacity-90"
         style={{ backgroundColor: `${accent}25` }}
       />
-      <div className="relative flex items-center gap-2.5">
+      <div className="relative flex w-full items-center gap-2.5">
         <div
           className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border"
           style={{
