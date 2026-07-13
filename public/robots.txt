@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://nobregestaopro.lovable.app/sitemap.xml
