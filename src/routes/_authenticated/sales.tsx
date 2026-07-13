@@ -1223,10 +1223,10 @@ function SalesPage() {
                 </div>
                 <div className="md:col-span-2" data-sale-field="receipt">
                   <Label>Comprovante (imagem ou PDF) {formReceiptRecommended ? "(recomendado)" : "(opcional enquanto pendente)"}</Label>
-                  <label className="group relative mt-1.5 flex cursor-pointer flex-col items-center justify-center gap-3 rounded-[18px] border-2 border-dashed border-[#E30613]/40 bg-gradient-to-b from-[#FFF5F6] to-white p-8 text-center transition-all duration-300 hover:border-[#E30613] hover:shadow-[0_10px_40px_-10px_rgba(227,6,19,0.35)] dark:from-white/[0.03] dark:to-transparent">
+                  <label className="group relative mt-1.5 flex cursor-pointer flex-col items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-[#E30613]/40 bg-gradient-to-b from-[#FFF5F6] to-white p-4 text-center transition-all duration-300 hover:border-[#E30613] hover:shadow-[0_10px_40px_-10px_rgba(227,6,19,0.35)] dark:from-white/[0.03] dark:to-transparent">
                     <input type="file" accept="image/*,application/pdf" className="sr-only" onChange={(e) => setReceiptFile(e.target.files?.[0] ?? null)} />
-                    <div className="flex h-16 w-16 items-center justify-center rounded-full bg-gradient-to-br from-[#E30613] to-[#B00510] shadow-[0_10px_30px_-5px_rgba(227,6,19,0.5)] transition-transform duration-300 group-hover:scale-105">
-                      <UploadIcon className="h-7 w-7 text-white" strokeWidth={2.2} />
+                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-[#E30613] to-[#B00510] shadow-[0_10px_30px_-5px_rgba(227,6,19,0.5)] transition-transform duration-300 group-hover:scale-105">
+                      <UploadIcon className="h-4 w-4 text-white" strokeWidth={2.2} />
                     </div>
                     {receiptFile ? (
                       <div className="flex flex-col items-center gap-1">
@@ -1280,11 +1280,11 @@ function SalesPage() {
                   <p className="text-[11px] text-muted-foreground mt-1.5 flex items-center gap-1.5"><ShieldCheck className="h-3 w-3" /> Opcional. Informe um dos dois links (Drive ou Plataforma).</p>
                 </div>
               </div>
-              <div className="border-t border-[#E8E8E8] dark:border-white/10 bg-white dark:bg-[#0B0B0D] px-8 py-5 flex flex-col gap-3">
+              <div className="border-t border-[#E8E8E8] dark:border-white/10 bg-white dark:bg-[#0B0B0D] px-5 py-3 flex flex-col gap-2">
                 <p className="text-[11px] text-neutral-500 dark:text-neutral-400 flex items-center gap-1.5"><ShieldCheck className="h-3.5 w-3.5 text-emerald-600" /> Todos os dados são armazenados de forma segura.</p>
-                <div className="flex items-center justify-end gap-3">
-                  <Button type="button" variant="outline" onClick={() => setOpen(false)} className="h-12 rounded-xl px-6 border-[#E8E8E8] text-neutral-800 hover:bg-neutral-100 dark:border-white/10 dark:text-neutral-200 dark:hover:bg-white/[0.05]">Cancelar</Button>
-                  <Button onClick={submit} disabled={saving} className="h-12 rounded-xl px-7 font-semibold text-white bg-gradient-to-r from-[#E30613] to-[#B00510] shadow-[0_10px_30px_-8px_rgba(227,6,19,0.6)] transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_16px_40px_-8px_rgba(227,6,19,0.7)] disabled:opacity-70">
+                <div className="flex items-center justify-end gap-2">
+                  <Button type="button" variant="outline" onClick={() => setOpen(false)} className="h-10 rounded-lg px-4 border-[#E8E8E8] text-neutral-800 hover:bg-neutral-100 dark:border-white/10 dark:text-neutral-200 dark:hover:bg-white/[0.05]">Cancelar</Button>
+                  <Button onClick={submit} disabled={saving} className="h-10 rounded-lg px-5 font-semibold text-white bg-gradient-to-r from-[#E30613] to-[#B00510] shadow-[0_10px_30px_-8px_rgba(227,6,19,0.6)] transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_16px_40px_-8px_rgba(227,6,19,0.7)] disabled:opacity-70">
                     {saving ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Check className="w-4 h-4 mr-2" />}
                     {(form.payment_method === "pix" || form.payment_method === "cartao") ? "Confirmar Venda" : "Criar venda"}
                   </Button>
