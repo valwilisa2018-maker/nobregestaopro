@@ -307,12 +307,12 @@ function Dashboard() {
               Visão consolidada de agentes, WhatsApp, disparos, pipeline e agenda — {range.label.toLowerCase()}.
             </p>
           </div>
-          <div className="flex flex-1 items-center justify-center gap-2 flex-wrap">
-            <div className="relative">
+          <div className="flex flex-1 items-center justify-center gap-2 flex-nowrap">
+            <div className="relative shrink-0">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500" />
-              <Input placeholder="Buscar agentes, conversas..." className="pl-9 w-64 h-9 rounded-full bg-black/60 border-white/10 text-slate-200 placeholder:text-slate-500" />
+              <Input placeholder="Buscar agentes, conversas..." className="pl-9 w-56 md:w-64 h-9 rounded-full bg-black/60 border-white/10 text-slate-200 placeholder:text-slate-500" />
             </div>
-            <Button onClick={() => dash.refetch()} disabled={dash.isFetching} className="h-9 rounded-full bg-black text-white border border-white/10 hover:bg-white/10">
+            <Button onClick={() => dash.refetch()} disabled={dash.isFetching} className="h-9 shrink-0 rounded-full bg-black text-white border border-white/10 hover:bg-white/10 gap-2">
               <RefreshCw className={`h-4 w-4 ${dash.isFetching ? "animate-spin" : ""}`} /> Atualizar
             </Button>
           </div>
