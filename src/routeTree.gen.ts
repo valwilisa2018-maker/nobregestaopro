@@ -40,6 +40,7 @@ import { Route as AuthenticatedTrainingRouteImport } from './routes/_authenticat
 import { Route as AuthenticatedToolsRouteImport } from './routes/_authenticated/tools'
 import { Route as AuthenticatedSupportRouteImport } from './routes/_authenticated/support'
 import { Route as AuthenticatedSettingsRouteImport } from './routes/_authenticated/settings'
+import { Route as AuthenticatedSequencesRouteImport } from './routes/_authenticated/sequences'
 import { Route as AuthenticatedPromptRouteImport } from './routes/_authenticated/prompt'
 import { Route as AuthenticatedPlansRouteImport } from './routes/_authenticated/plans'
 import { Route as AuthenticatedPipelineStatusRouteImport } from './routes/_authenticated/pipeline-status'
@@ -236,6 +237,11 @@ const AuthenticatedSupportRoute = AuthenticatedSupportRouteImport.update({
 const AuthenticatedSettingsRoute = AuthenticatedSettingsRouteImport.update({
   id: '/settings',
   path: '/settings',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
+const AuthenticatedSequencesRoute = AuthenticatedSequencesRouteImport.update({
+  id: '/sequences',
+  path: '/sequences',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
 const AuthenticatedPromptRoute = AuthenticatedPromptRouteImport.update({
@@ -497,6 +503,7 @@ export interface FileRoutesByFullPath {
   '/pipeline-status': typeof AuthenticatedPipelineStatusRoute
   '/plans': typeof AuthenticatedPlansRoute
   '/prompt': typeof AuthenticatedPromptRoute
+  '/sequences': typeof AuthenticatedSequencesRoute
   '/settings': typeof AuthenticatedSettingsRoute
   '/support': typeof AuthenticatedSupportRoute
   '/tools': typeof AuthenticatedToolsRoute
@@ -571,6 +578,7 @@ export interface FileRoutesByTo {
   '/pipeline-status': typeof AuthenticatedPipelineStatusRoute
   '/plans': typeof AuthenticatedPlansRoute
   '/prompt': typeof AuthenticatedPromptRoute
+  '/sequences': typeof AuthenticatedSequencesRoute
   '/settings': typeof AuthenticatedSettingsRoute
   '/support': typeof AuthenticatedSupportRoute
   '/tools': typeof AuthenticatedToolsRoute
@@ -648,6 +656,7 @@ export interface FileRoutesById {
   '/_authenticated/pipeline-status': typeof AuthenticatedPipelineStatusRoute
   '/_authenticated/plans': typeof AuthenticatedPlansRoute
   '/_authenticated/prompt': typeof AuthenticatedPromptRoute
+  '/_authenticated/sequences': typeof AuthenticatedSequencesRoute
   '/_authenticated/settings': typeof AuthenticatedSettingsRoute
   '/_authenticated/support': typeof AuthenticatedSupportRoute
   '/_authenticated/tools': typeof AuthenticatedToolsRoute
@@ -725,6 +734,7 @@ export interface FileRouteTypes {
     | '/pipeline-status'
     | '/plans'
     | '/prompt'
+    | '/sequences'
     | '/settings'
     | '/support'
     | '/tools'
@@ -799,6 +809,7 @@ export interface FileRouteTypes {
     | '/pipeline-status'
     | '/plans'
     | '/prompt'
+    | '/sequences'
     | '/settings'
     | '/support'
     | '/tools'
@@ -875,6 +886,7 @@ export interface FileRouteTypes {
     | '/_authenticated/pipeline-status'
     | '/_authenticated/plans'
     | '/_authenticated/prompt'
+    | '/_authenticated/sequences'
     | '/_authenticated/settings'
     | '/_authenticated/support'
     | '/_authenticated/tools'
@@ -1159,6 +1171,13 @@ declare module '@tanstack/react-router' {
       path: '/settings'
       fullPath: '/settings'
       preLoaderRoute: typeof AuthenticatedSettingsRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/sequences': {
+      id: '/_authenticated/sequences'
+      path: '/sequences'
+      fullPath: '/sequences'
+      preLoaderRoute: typeof AuthenticatedSequencesRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
     '/_authenticated/prompt': {
@@ -1494,6 +1513,7 @@ interface AuthenticatedRouteChildren {
   AuthenticatedPipelineStatusRoute: typeof AuthenticatedPipelineStatusRoute
   AuthenticatedPlansRoute: typeof AuthenticatedPlansRoute
   AuthenticatedPromptRoute: typeof AuthenticatedPromptRoute
+  AuthenticatedSequencesRoute: typeof AuthenticatedSequencesRoute
   AuthenticatedSettingsRoute: typeof AuthenticatedSettingsRoute
   AuthenticatedSupportRoute: typeof AuthenticatedSupportRoute
   AuthenticatedToolsRoute: typeof AuthenticatedToolsRoute
@@ -1533,6 +1553,7 @@ const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedPipelineStatusRoute: AuthenticatedPipelineStatusRoute,
   AuthenticatedPlansRoute: AuthenticatedPlansRoute,
   AuthenticatedPromptRoute: AuthenticatedPromptRoute,
+  AuthenticatedSequencesRoute: AuthenticatedSequencesRoute,
   AuthenticatedSettingsRoute: AuthenticatedSettingsRoute,
   AuthenticatedSupportRoute: AuthenticatedSupportRoute,
   AuthenticatedToolsRoute: AuthenticatedToolsRoute,

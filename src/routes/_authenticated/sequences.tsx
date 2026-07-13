@@ -137,7 +137,8 @@ function SequencesPage() {
   const [editing, setEditing] = useState<SeqDraft | null>(null);
   const [viewingId, setViewingId] = useState<string | null>(null);
 
-  const flows = (flowsQ.data?.rows ?? flowsQ.data ?? []) as Array<{ id: string; name: string }>;
+  const flows = ((flowsQ.data as { flows?: Array<{ id: string; name: string }> } | undefined)?.flows
+    ?? []) as Array<{ id: string; name: string }>;
 
   const openNew = () => { setEditing(emptyDraft()); setEditorOpen(true); };
   const openEdit = async (id: string) => {
