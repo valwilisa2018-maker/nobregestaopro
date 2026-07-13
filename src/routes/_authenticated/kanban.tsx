@@ -1283,6 +1283,7 @@ function KanbanPage() {
                             );
                           }}
                           className="absolute top-2 right-10 z-10 inline-flex items-center justify-center w-6 h-6 rounded-full bg-foreground/80 text-background shadow-md hover:scale-110 transition-transform"
+                          aria-label="Copiar número"
                         >
                           <Copy className="w-3 h-3" />
                         </button>
