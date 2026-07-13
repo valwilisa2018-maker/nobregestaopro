@@ -3,7 +3,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
-import { ArrowLeft, ArrowRight, CheckCircle2, Clock, Copy, Download, Eye, Filter, Loader2, Pause, Play, Plus, Rocket, Send, StopCircle, Trash2, Users } from "lucide-react";
+import { ArrowLeft, ArrowRight, CalendarDays, CheckCircle2, Clock, Copy, Download, Eye, Filter, Gauge, Loader2, Pause, Play, Plus, Rocket, Send, Settings2, Shield, StopCircle, Trash2, Users, Zap } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -402,32 +402,30 @@ function BroadcastsPage() {
         )}
 
         {step === 3 && (
-          <div className="space-y-5">
+          <div className="space-y-4">
             {/* Seção: Modo */}
-            <section className="border rounded-xl p-4 bg-muted/10 space-y-3">
-              <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Modo de envio</div>
+            <Section icon={<Rocket className="h-4 w-4" />} title="Modo de envio" desc="Como a campanha deve ser disparada">
               <RadioGroup value={mode} onValueChange={(v) => setMode(v as never)} className="grid md:grid-cols-2 gap-3">
-              <label className={`border rounded-lg p-4 cursor-pointer ${mode === "quick" ? "border-primary bg-primary/5" : ""}`}>
-                <div className="flex items-start gap-3"><RadioGroupItem value="quick" />
-                  <div><div className="font-semibold flex items-center gap-2"><Rocket className="h-4 w-4" /> Massa</div><p className="text-xs text-muted-foreground mt-1">Envio único agora.</p></div>
-                </div>
-              </label>
-              <label className={`border rounded-lg p-4 cursor-pointer ${mode === "sequential" ? "border-primary bg-primary/5" : ""}`}>
-                <div className="flex items-start gap-3"><RadioGroupItem value="sequential" />
-                  <div><div className="font-semibold flex items-center gap-2"><Clock className="h-4 w-4" /> Sequencial</div><p className="text-xs text-muted-foreground mt-1">Envio programado por dias.</p></div>
-                </div>
-              </label>
+                <label className={`relative border rounded-xl p-4 cursor-pointer transition-all ${mode === "quick" ? "border-primary bg-gradient-to-br from-primary/10 to-primary/5 shadow-sm ring-1 ring-primary/30" : "hover:bg-muted/40"}`}>
+                  <div className="flex items-start gap-3"><RadioGroupItem value="quick" className="mt-1" />
+                    <div className="flex-1"><div className="font-semibold flex items-center gap-2"><Rocket className="h-4 w-4 text-primary" /> Massa</div><p className="text-xs text-muted-foreground mt-1">Envio único agora para toda a base.</p></div>
+                  </div>
+                </label>
+                <label className={`relative border rounded-xl p-4 cursor-pointer transition-all ${mode === "sequential" ? "border-primary bg-gradient-to-br from-primary/10 to-primary/5 shadow-sm ring-1 ring-primary/30" : "hover:bg-muted/40"}`}>
+                  <div className="flex items-start gap-3"><RadioGroupItem value="sequential" className="mt-1" />
+                    <div className="flex-1"><div className="font-semibold flex items-center gap-2"><Clock className="h-4 w-4 text-primary" /> Sequencial</div><p className="text-xs text-muted-foreground mt-1">Cadência programada em várias etapas.</p></div>
+                  </div>
+                </label>
               </RadioGroup>
-            </section>
+            </Section>
 
             {mode === "sequential" && (
-              <div className="border rounded-lg p-4 space-y-3 bg-muted/20">
-                <div className="flex items-center justify-between">
-                  <div className="font-semibold text-sm flex items-center gap-2"><Clock className="h-4 w-4" /> Etapas da sequência</div>
+              <Section icon={<Clock className="h-4 w-4" />} title="Etapas da sequência" desc="A etapa 1 dispara imediatamente; as próximas aguardam o intervalo definido"
+                right={
                   <Button size="sm" variant="outline" onClick={() => setSteps((s) => [...s, { delay_hours: 24, message: "" }])}><Plus className="h-3.5 w-3.5" /> Nova etapa</Button>
-                </div>
+                }>
                 {steps.map((s, i) => (
-                  <div key={i} className="border rounded-md p-3 space-y-2 bg-background">
+                  <div key={i} className="border rounded-lg p-3 space-y-2 bg-background/60">
                     <div className="flex items-center justify-between">
                       <Badge variant="secondary">Etapa {i + 1}</Badge>
                       <div className="flex items-center gap-2">
@@ -439,15 +437,13 @@ function BroadcastsPage() {
                     <Textarea rows={3} value={s.message} onChange={(e) => setSteps((xs) => xs.map((x, j) => j === i ? { ...x, message: e.target.value } : x))} placeholder="Mensagem da etapa..." />
                   </div>
                 ))}
-                <p className="text-xs text-muted-foreground">A etapa 1 dispara imediatamente. As próximas aguardam o tempo indicado desde o envio anterior.</p>
-              </div>
+              </Section>
             )}
 
             {/* Seção: Velocidade */}
-            <section className="border rounded-xl p-4 space-y-3">
-              <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Velocidade</div>
-              <Label className="text-sm">Mensagens por minuto</Label>
-              <div className="flex items-center gap-3 p-3 rounded-lg border bg-primary/5">
+            <Section icon={<Gauge className="h-4 w-4" />} title="Velocidade & humanização" desc="Ritmo do disparo e intervalos aleatórios entre mensagens">
+              <div className="flex items-center gap-3 p-3 rounded-xl border bg-gradient-to-r from-amber-500/10 to-orange-500/5">
+                <Zap className="h-4 w-4 text-amber-500 shrink-0" />
                 <Switch
                   checked={rate >= 240 && humanizeMin === 0 && humanizeMax === 0 && !useWindow}
                   onCheckedChange={(on) => {
@@ -471,28 +467,35 @@ function BroadcastsPage() {
                   <p className="text-xs text-muted-foreground">Dispara todos os contatos imediatamente, sem humanização nem janela de horário.</p>
                 </div>
               </div>
-              <div className="flex flex-wrap gap-2">
-                {RATE_PRESETS.map((p) => (
-                  <button key={p} type="button" onClick={() => { setRate(p); setRateCustom(false); }}
-                    className={`px-3 py-1.5 rounded-full text-xs border ${!rateCustom && rate === p ? "bg-primary text-primary-foreground border-primary" : "bg-muted"}`}>{p}/min</button>
-                ))}
-                <button type="button" onClick={() => setRateCustom(true)} className={`px-3 py-1.5 rounded-full text-xs border ${rateCustom ? "bg-primary text-primary-foreground border-primary" : "bg-muted"}`}>Personalizado</button>
-                {rateCustom && <Input className="w-24 h-8" type="number" min={1} value={rate} onChange={(e) => setRate(Number(e.target.value) || 1)} />}
-              </div>
-              <div className="pt-2">
-                <Label className="text-sm">Intervalo humanizado (segundos)</Label>
-                <div className="flex items-center gap-2 mt-1">
-                  <Input type="number" min={0} value={humanizeMin} onChange={(e) => setHumanizeMin(Number(e.target.value) || 0)} className="w-24" />
-                  <span className="text-sm text-muted-foreground">até</span>
-                  <Input type="number" min={0} value={humanizeMax} onChange={(e) => setHumanizeMax(Number(e.target.value) || 0)} className="w-24" />
+              <div className="grid md:grid-cols-2 gap-4">
+                <div>
+                  <Label className="text-xs uppercase tracking-wide text-muted-foreground">Mensagens por minuto</Label>
+                  <div className="flex flex-wrap gap-2 mt-2">
+                    {RATE_PRESETS.map((p) => (
+                      <button key={p} type="button" onClick={() => { setRate(p); setRateCustom(false); }}
+                        className={`px-3 py-1.5 rounded-full text-xs border transition ${!rateCustom && rate === p ? "bg-primary text-primary-foreground border-primary shadow-sm" : "bg-muted hover:bg-accent"}`}>{p}/min</button>
+                    ))}
+                    <button type="button" onClick={() => setRateCustom(true)} className={`px-3 py-1.5 rounded-full text-xs border transition ${rateCustom ? "bg-primary text-primary-foreground border-primary shadow-sm" : "bg-muted hover:bg-accent"}`}>Personalizado</button>
+                    {rateCustom && <Input className="w-24 h-8" type="number" min={1} value={rate} onChange={(e) => setRate(Number(e.target.value) || 1)} />}
+                  </div>
+                </div>
+                <div>
+                  <Label className="text-xs uppercase tracking-wide text-muted-foreground">Intervalo humanizado (segundos)</Label>
+                  <div className="flex items-center gap-2 mt-2">
+                    <Input type="number" min={0} value={humanizeMin} onChange={(e) => setHumanizeMin(Number(e.target.value) || 0)} className="w-24" />
+                    <span className="text-sm text-muted-foreground">até</span>
+                    <Input type="number" min={0} value={humanizeMax} onChange={(e) => setHumanizeMax(Number(e.target.value) || 0)} className="w-24" />
+                  </div>
                 </div>
               </div>
-            </section>
+            </Section>
 
             {/* Seção: Janela de envio */}
-            <section className="border rounded-xl p-4 space-y-3">
-              <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Janela de envio</div>
-              <div className="flex items-center gap-3"><Switch checked={useWindow} onCheckedChange={setUseWindow} /><Label>Horário permitido</Label></div>
+            <Section icon={<CalendarDays className="h-4 w-4" />} title="Janela de envio" desc="Horário permitido e dias da semana">
+              <div className="flex items-center gap-3 p-3 rounded-lg border bg-muted/30">
+                <Switch checked={useWindow} onCheckedChange={setUseWindow} />
+                <Label className="flex-1 cursor-pointer">Respeitar horário comercial</Label>
+              </div>
               {useWindow && (
                 <div className="flex items-center gap-2">
                   <Input type="time" value={winStart} onChange={(e) => setWinStart(e.target.value)} className="w-32" />
@@ -501,47 +504,47 @@ function BroadcastsPage() {
                 </div>
               )}
               <div>
-                <Label className="text-sm">Dias permitidos</Label>
+                <Label className="text-xs uppercase tracking-wide text-muted-foreground">Dias permitidos</Label>
                 <div className="flex gap-2 mt-2 flex-wrap">
                   {WEEKDAYS.map((d, i) => {
                     const on = weekdays.includes(i);
                     return <button key={i} type="button" onClick={() => setWeekdays((w) => on ? w.filter((x) => x !== i) : [...w, i].sort())}
-                      className={`h-10 w-12 rounded-lg text-sm font-medium ${on ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground hover:bg-accent"}`}>{d}</button>;
+                      className={`h-10 w-12 rounded-lg text-sm font-medium transition ${on ? "bg-primary text-primary-foreground shadow-sm" : "bg-muted text-muted-foreground hover:bg-accent"}`}>{d}</button>;
                   })}
                 </div>
               </div>
-            </section>
+            </Section>
 
             {/* Seção: Regras */}
-            <section className="border rounded-xl p-4 space-y-3">
-              <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Regras</div>
-              <div className="grid md:grid-cols-2 gap-3">
+            <Section icon={<Shield className="h-4 w-4" />} title="Regras de proteção" desc="Comportamento inteligente para evitar bloqueios">
+              <div className="grid md:grid-cols-2 gap-2.5">
                 <Toggle label="Ignorar feriados" v={ignoreHolidays} set={setIgnoreHolidays} />
                 <Toggle label="Continuar amanhã" v={continueNextDay} set={setContinueNextDay} />
                 <Toggle label="Remover duplicados" v={dedupe} set={setDedupe} />
                 <Toggle label="Ignorar quem respondeu" v={ignoreResponded} set={setIgnoreResponded} />
                 <Toggle label="Parar ao receber resposta" v={stopOnReply} set={setStopOnReply} />
               </div>
-            </section>
+            </Section>
 
             {/* Seção: Limites */}
-            <section className="border rounded-xl p-4 space-y-3">
-              <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Limites</div>
-              <div>
-                <Label className="text-sm">Limite diário</Label>
-                <div className="flex flex-wrap gap-2 mt-1">
-                  {LIMIT_PRESETS.map((p) => (
-                    <button key={p} type="button" onClick={() => setDailyLimit(p)}
-                      className={`px-3 py-1.5 rounded-full text-xs border ${dailyLimit === p ? "bg-primary text-primary-foreground border-primary" : "bg-muted"}`}>{p}</button>
-                  ))}
-                  <button type="button" onClick={() => setDailyLimit(null)} className={`px-3 py-1.5 rounded-full text-xs border ${dailyLimit === null ? "bg-primary text-primary-foreground border-primary" : "bg-muted"}`}>Sem limite</button>
+            <Section icon={<Settings2 className="h-4 w-4" />} title="Limites & fallback" desc="Teto diário e delay padrão de segurança">
+              <div className="grid md:grid-cols-2 gap-4">
+                <div>
+                  <Label className="text-xs uppercase tracking-wide text-muted-foreground">Limite diário</Label>
+                  <div className="flex flex-wrap gap-2 mt-2">
+                    {LIMIT_PRESETS.map((p) => (
+                      <button key={p} type="button" onClick={() => setDailyLimit(p)}
+                        className={`px-3 py-1.5 rounded-full text-xs border transition ${dailyLimit === p ? "bg-primary text-primary-foreground border-primary shadow-sm" : "bg-muted hover:bg-accent"}`}>{p}</button>
+                    ))}
+                    <button type="button" onClick={() => setDailyLimit(null)} className={`px-3 py-1.5 rounded-full text-xs border transition ${dailyLimit === null ? "bg-primary text-primary-foreground border-primary shadow-sm" : "bg-muted hover:bg-accent"}`}>Sem limite</button>
+                  </div>
+                </div>
+                <div>
+                  <Label className="text-xs uppercase tracking-wide text-muted-foreground">Delay fallback (s)</Label>
+                  <Input type="number" min={1} value={delay} onChange={(e) => setDelay(Number(e.target.value) || 1)} className="w-32 mt-2" />
                 </div>
               </div>
-              <div>
-                <Label className="text-sm">Delay fallback (s)</Label>
-                <Input type="number" min={1} value={delay} onChange={(e) => setDelay(Number(e.target.value) || 1)} className="w-32" />
-              </div>
-            </section>
+            </Section>
           </div>
         )}
 
