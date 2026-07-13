@@ -910,6 +910,7 @@ function KanbanPage() {
                     size="icon" 
                     variant="ghost" 
                     className="h-5 w-5 text-background/50 hover:text-background hover:bg-background/10"
+                    aria-label="Editar coluna"
                     onClick={() => setEditingColumn({ id: col.id, name: col.name, color: col.color })}
                   >
                     <Edit2 className="w-3 h-3" />
@@ -919,7 +920,7 @@ function KanbanPage() {
                   <Badge variant="outline" className="border-background/40 text-background">
                     {colCards.length}
                   </Badge>
-                  <Button size="icon" variant="ghost" className="h-6 w-6 text-background hover:bg-background/10 hover:text-background" onClick={() => openNew(col.id)}>
+                  <Button size="icon" variant="ghost" className="h-6 w-6 text-background hover:bg-background/10 hover:text-background" aria-label="Novo card nesta coluna" onClick={() => openNew(col.id)}>
                     <Plus className="w-4 h-4" />
                   </Button>
                 </div>
@@ -988,7 +989,7 @@ function KanbanPage() {
                               <div className="flex items-center gap-1">
                                 <DropdownMenu>
                                   <DropdownMenuTrigger asChild>
-                                    <Button size="icon" variant="ghost" className="h-6 w-6 text-muted-foreground hover:text-foreground" onClick={(e) => e.stopPropagation()}>
+                                    <Button size="icon" variant="ghost" className="h-6 w-6 text-muted-foreground hover:text-foreground" aria-label="Transferir pacote" onClick={(e) => e.stopPropagation()}>
                                       <UserPlus className="w-4 h-4" />
                                     </Button>
                                   </DropdownMenuTrigger>
