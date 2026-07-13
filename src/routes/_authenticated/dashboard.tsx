@@ -315,23 +315,53 @@ function Dashboard() {
             <Button onClick={() => dash.refetch()} disabled={dash.isFetching} className="h-11 rounded-full bg-black text-white border border-white/10 hover:bg-white/10">
               <RefreshCw className={`h-4 w-4 ${dash.isFetching ? "animate-spin" : ""}`} /> Atualizar
             </Button>
-            <Button asChild className="h-11 rounded-full text-white shadow-lg" style={{ background: "linear-gradient(90deg,#3b82f6,#a855f7)" }}>
-              <Link to="/agents"><Plus className="h-4 w-4" /> Novo Agente</Link>
-            </Button>
-            <div className="hidden lg:flex items-center gap-3 rounded-2xl border border-fuchsia-400/30 bg-black/40 px-4 py-2 shadow-[0_0_40px_-10px_rgba(168,85,247,0.6)]">
-              <span className="relative flex h-2.5 w-2.5">
-                <span className="absolute inline-flex h-full w-full rounded-full bg-cyan-400 opacity-70 animate-ping" />
-                <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-cyan-400" />
-              </span>
-              <span className="text-sm font-semibold text-cyan-300 tracking-wide">IA Online</span>
-              <svg viewBox="0 0 80 24" className="h-6 w-20 text-fuchsia-400/80" fill="none" stroke="currentColor" strokeWidth="1.5">
-                <path d="M0 18 L10 12 L18 16 L28 6 L38 14 L48 9 L58 15 L68 5 L80 12" />
-              </svg>
-              <div className="grid grid-cols-3 gap-0.5">
+            <div className="hidden lg:flex items-center relative">
+              <svg viewBox="0 0 340 160" className="h-28 w-[340px]" fill="none">
+                <defs>
+                  <linearGradient id="hudStroke" x1="0" x2="1">
+                    <stop offset="0%" stopColor="#22d3ee" />
+                    <stop offset="100%" stopColor="#a855f7" />
+                  </linearGradient>
+                </defs>
+                {/* Octagonal frame */}
+                <path d="M10 40 L40 15 L200 15 L215 30 L215 130 L200 145 L40 145 L10 120 Z"
+                  stroke="url(#hudStroke)" strokeWidth="1.5" opacity="0.9" />
+                <path d="M18 48 L45 25 L195 25 L207 37 L207 123 L195 135 L45 135 L18 112 Z"
+                  stroke="url(#hudStroke)" strokeWidth="0.75" opacity="0.5" />
+                {/* Waveform inside */}
+                <path d="M30 100 L55 92 L70 96 L88 78 L108 90 L128 82 L150 92 L172 74 L200 88"
+                  stroke="url(#hudStroke)" strokeWidth="1.5" fill="none" opacity="0.9" />
+                {/* Circuit ticks */}
+                <g stroke="url(#hudStroke)" strokeWidth="1" opacity="0.7">
+                  <path d="M215 45 L235 45 L240 50" />
+                  <path d="M215 115 L235 115 L240 110" />
+                  <path d="M40 15 L40 5 L60 5" />
+                  <path d="M180 145 L180 155 L160 155" />
+                </g>
+                {/* Concentric HUD rings */}
+                <circle cx="275" cy="80" r="55" stroke="url(#hudStroke)" strokeWidth="1.5" opacity="0.9" />
+                <circle cx="275" cy="80" r="46" stroke="url(#hudStroke)" strokeWidth="0.75" opacity="0.5" strokeDasharray="3 4" />
+                <circle cx="275" cy="80" r="34" stroke="url(#hudStroke)" strokeWidth="1" opacity="0.8" />
+                <circle cx="275" cy="80" r="22" fill="#0b0620" stroke="url(#hudStroke)" strokeWidth="1" />
+                {/* Ring tick marks */}
+                {Array.from({ length: 24 }).map((_, i) => {
+                  const a = (i / 24) * Math.PI * 2;
+                  const x1 = 275 + Math.cos(a) * 58;
+                  const y1 = 80 + Math.sin(a) * 58;
+                  const x2 = 275 + Math.cos(a) * 63;
+                  const y2 = 80 + Math.sin(a) * 63;
+                  return <line key={i} x1={x1} y1={y1} x2={x2} y2={y2} stroke="url(#hudStroke)" strokeWidth="1" opacity="0.6" />;
+                })}
+                {/* 3x3 dots in center */}
                 {Array.from({ length: 9 }).map((_, i) => (
-                  <span key={i} className="h-1.5 w-1.5 rounded-sm bg-fuchsia-400/70" />
+                  <circle key={i} cx={267 + (i % 3) * 8} cy={72 + Math.floor(i / 3) * 8} r="1.6" fill="#a855f7" />
                 ))}
-              </div>
+                {/* IA Online label */}
+                <g>
+                  <circle cx="55" cy="80" r="4" fill="#22d3ee" />
+                  <text x="70" y="85" fill="#e0f2fe" fontSize="16" fontWeight="700" fontFamily="ui-sans-serif, system-ui">IA Online</text>
+                </g>
+              </svg>
             </div>
           </div>
         </div>
