@@ -6,7 +6,7 @@ import { toast } from "sonner";
 import {
   ArrowRight, CalendarDays, CheckCircle2, Clock, Copy, GripVertical, KeyRound,
   Layers, Loader2, Pause, Play, Plus, Repeat2, Rocket, Settings2, Sparkles,
-  Trash2, Users, X, Zap, Activity, Target, TrendingUp, Info, MessageSquare,
+  Trash2, Users, X, Zap, Activity, TrendingUp,
   Timer, Workflow,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
