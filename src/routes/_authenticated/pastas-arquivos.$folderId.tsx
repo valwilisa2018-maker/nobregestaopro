@@ -11,6 +11,15 @@ import { type CategoryId, detectCategory, uploadToFolder, getSignedUrl } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import JSZip from "jszip";
+import DOMPurify from "dompurify";
+
+function sanitizeHtml(html: string): string {
+  return DOMPurify.sanitize(html, {
+    USE_PROFILES: { html: true },
+    FORBID_TAGS: ["script", "style", "iframe", "object", "embed", "form"],
+    FORBID_ATTR: ["onerror", "onload", "onclick", "onmouseover", "onfocus", "onblur", "onchange", "onsubmit", "srcdoc"],
+  });
+}
 
 export const Route = createFileRoute("/_authenticated/pastas-arquivos/$folderId")({
   component: FolderDetail,
@@ -758,7 +767,7 @@ function RoteiroEditor({
           const text = await fetch(url).then((r) => r.text());
           if (!alive) return;
           const looksHtml = /<[a-z][^>]*>/i.test(text);
-          setHtml(looksHtml ? text : text.replace(/\n/g, "<br/>"));
+          setHtml(looksHtml ? sanitizeHtml(text) : text.replace(/\n/g, "<br/>"));
         }
       } catch (e: any) {
         toast.error(e?.message ?? "Erro ao carregar");
