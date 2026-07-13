@@ -14,6 +14,7 @@ import { FileText, Download, History, LayoutGrid, List, QrCode } from "lucide-re
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Plus, Loader2, Pencil, Eye, Trash2, Check, Search, X, ShoppingCart } from "lucide-react";
+import { User, Building2, Badge as BadgeIcon, Phone, Mail, DollarSign, CreditCard, Package as PackageIcon, Layers, Calendar, Compass, MessageSquare, Link as LinkIcon, Upload as UploadIcon, ShieldCheck, Users, Clapperboard, Clock, ReceiptText } from "lucide-react";
 import { toast } from "sonner";
 import { logger } from "@/lib/logger";
 import { formatCurrency } from "@/lib/auth";
