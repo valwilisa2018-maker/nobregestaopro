@@ -421,7 +421,7 @@ function CustomersPage() {
                       <Phone className="h-3.5 w-3.5 text-muted-foreground" />
                       <span>{c.phone ? formatPhoneBR(c.phone) : "—"}</span>
                       {waLink(c.phone) && (
-                        <a href={waLink(c.phone)!} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()} className="ml-auto inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded-full bg-[#25D366] text-white hover:opacity-90">
+                        <a href={waLink(c.phone)!} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()} aria-label={`Enviar WhatsApp para ${c.name}`} className="ml-auto inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded-full bg-[#25D366] text-white hover:opacity-90">
                           <MessageCircle className="w-3 h-3" /> WhatsApp
                         </a>
                       )}
@@ -461,7 +461,7 @@ function CustomersPage() {
                     <Phone className="w-4 h-4 text-primary" />
                     <span>{formatPhoneBR(selected.phone)}</span>
                     {waLink(selected.phone) && (
-                      <a href={waLink(selected.phone)!} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-full bg-[#25D366] text-white hover:opacity-90">
+                      <a href={waLink(selected.phone)!} target="_blank" rel="noopener noreferrer" aria-label={`Enviar WhatsApp para ${selected.name}`} className="inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-full bg-[#25D366] text-white hover:opacity-90">
                         <MessageCircle className="w-2.5 h-2.5" /> WhatsApp
                       </a>
                     )}
