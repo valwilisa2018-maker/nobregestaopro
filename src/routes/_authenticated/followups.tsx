@@ -74,7 +74,10 @@ function Page() {
   useEffect(() => { void load(); }, []);
 
   const connMap = useMemo(() => Object.fromEntries(connections.map((c) => [c.id, c])), [connections]);
-  const anyConnected = connections.some((c) => (c.status ?? "").toLowerCase().includes("open") || (c.status ?? "").toLowerCase().includes("connect"));
+  const anyConnected = connections.some((c) => {
+    const s = (c.status ?? "").toLowerCase();
+    return s.includes("open") || s.includes("connect") || s.includes("online") || s === "ready";
+  });
 
   const metrics = useMemo(() => {
     const sent = rows.reduce((a, r) => a + (r.total_sent ?? 0), 0);
@@ -279,7 +282,8 @@ function Page() {
                 <SelectContent>
                   <SelectItem value="all">🌐 Todas as instâncias</SelectItem>
                   {connections.map((c) => {
-                    const on = (c.status ?? "").toLowerCase().includes("open") || (c.status ?? "").toLowerCase().includes("connect");
+                    const s = (c.status ?? "").toLowerCase();
+                    const on = s.includes("open") || s.includes("connect") || s.includes("online") || s === "ready";
                     return (
                       <SelectItem key={c.id} value={c.id}>
                         {on ? "🟢" : "⚪"} {c.name} {c.phone_number ? `· ${c.phone_number}` : ""}
