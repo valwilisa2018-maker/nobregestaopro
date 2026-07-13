@@ -295,19 +295,19 @@ function Dashboard() {
       <div className="relative overflow-hidden rounded-3xl border border-white/10 bg-[#05070d] px-6 py-4 md:px-8 md:py-5">
         <div className="absolute inset-0 opacity-70" style={{ background: "radial-gradient(1200px 300px at 20% 0%, rgba(59,130,246,0.18), transparent 60%), radial-gradient(800px 260px at 90% 100%, rgba(168,85,247,0.16), transparent 60%)" }} />
         <div className="absolute inset-0 pointer-events-none [background-image:linear-gradient(rgba(255,255,255,0.04)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.04)_1px,transparent_1px)] [background-size:32px_32px]" />
-        <div className="relative flex flex-col xl:flex-row xl:items-center xl:justify-between gap-4">
-          <div className="min-w-0 space-y-2 flex-1">
+        <div className="relative flex flex-col items-center text-center gap-4">
+          <div className="min-w-0 space-y-2 flex flex-col items-center">
             <span className="inline-flex items-center gap-1.5 rounded-full border border-blue-400/40 bg-blue-500/10 px-2.5 py-0.5 text-[11px] font-semibold text-blue-300">
               <Zap className="h-3 w-3" /> Plataforma IA Premium
             </span>
             <h1 className="text-3xl md:text-4xl font-black tracking-tight leading-none bg-clip-text text-transparent" style={{ backgroundImage: "linear-gradient(90deg,#3b82f6,#6366f1 45%,#a855f7)" }}>
               Central de Comando
             </h1>
-            <p className="text-xs text-slate-400 max-w-xl">
+            <p className="text-xs text-slate-400 max-w-xl mx-auto">
               Visão consolidada de agentes, WhatsApp, disparos, pipeline e agenda — {range.label.toLowerCase()}.
             </p>
           </div>
-          <div className="flex items-center gap-2 flex-wrap">
+          <div className="flex items-center justify-center gap-2 flex-wrap">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500" />
               <Input placeholder="Buscar agentes, conversas..." className="pl-9 w-64 h-9 rounded-full bg-black/60 border-white/10 text-slate-200 placeholder:text-slate-500" />
@@ -315,7 +315,7 @@ function Dashboard() {
             <Button onClick={() => dash.refetch()} disabled={dash.isFetching} className="h-9 rounded-full bg-black text-white border border-white/10 hover:bg-white/10">
               <RefreshCw className={`h-4 w-4 ${dash.isFetching ? "animate-spin" : ""}`} /> Atualizar
             </Button>
-            <div className="hidden lg:flex items-center relative">
+            <div className="hidden lg:flex items-center relative justify-center">
               <svg viewBox="0 0 340 160" className="h-20 w-[240px]" fill="none">
                 <defs>
                   <linearGradient id="hudStroke" x1="0" x2="1">
