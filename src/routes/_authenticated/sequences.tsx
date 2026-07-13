@@ -222,7 +222,7 @@ function SequencesPage() {
     >
       <SequenceHeader onNew={openNew} />
 
-      <div className="mt-5 grid gap-5 xl:grid-cols-[minmax(0,1.55fr)_minmax(0,1fr)]">
+      <div className="mt-4 space-y-4">
         <SequenceHero onNew={openNew} />
         <MetricsGrid metrics={metrics} />
       </div>
@@ -400,9 +400,9 @@ function SequenceHero({ onNew }: { onNew: () => void }) {
     { icon: Rocket, title: "3. Ative", desc: "Inscreva contatos e acompanhe em tempo real." },
   ];
   return (
-    <section className="premium-shell seq-fade p-6 sm:p-7">
-      <div className="relative grid gap-6 lg:grid-cols-[1.4fr_1fr] items-center">
-        <div className="space-y-4 min-w-0">
+    <section className="premium-shell seq-fade p-4 sm:p-5">
+      <div className="relative grid gap-4 lg:grid-cols-[1.6fr_1fr] items-center">
+        <div className="space-y-3 min-w-0">
           <span
             className="inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs font-medium"
             style={{
@@ -413,7 +413,7 @@ function SequenceHero({ onNew }: { onNew: () => void }) {
           >
             <Sparkles className="h-3.5 w-3.5" /> Automação premium de jornadas
           </span>
-          <h2 className="text-2xl sm:text-[32px] font-bold tracking-tight leading-[1.15] text-white">
+          <h2 className="text-xl sm:text-2xl font-bold tracking-tight leading-[1.15] text-white">
             Conduza seus contatos por uma jornada perfeita —{" "}
             <span
               style={{
@@ -425,17 +425,15 @@ function SequenceHero({ onNew }: { onNew: () => void }) {
               sem esforço manual.
             </span>
           </h2>
-          <p className="text-sm text-slate-400 max-w-xl leading-relaxed">
-            Sequências enviam fluxos do WhatsApp em cadência programada (minutos, dias, semanas ou meses),
-            respeitando janelas de horário, intervalos humanizados e regras de reengajamento.
-            Ative por palavra-chave, cadastre manualmente ou inscreva pelo Workflow.
+          <p className="text-xs sm:text-sm text-slate-400 max-w-xl leading-snug">
+            Envie fluxos do WhatsApp em cadência programada (minutos, dias, semanas), respeitando janelas e palavras-chave.
           </p>
-          <div className="grid sm:grid-cols-3 gap-3 pt-1">
+          <div className="grid sm:grid-cols-3 gap-2">
             {steps.map((s) => (
               <JourneyStepCard key={s.title} icon={s.icon} title={s.title} desc={s.desc} />
             ))}
           </div>
-          <div className="flex flex-wrap gap-2 pt-3">
+          <div className="flex flex-wrap gap-2 pt-1">
             <button type="button" onClick={onNew} className="primary-gradient-btn" aria-label="Criar sequência">
               <Plus className="h-4 w-4" /> Criar sequência
             </button>
@@ -452,10 +450,10 @@ function SequenceHero({ onNew }: { onNew: () => void }) {
 
 function JourneyStepCard({ icon: Icon, title, desc }: { icon: typeof Settings2; title: string; desc: string }) {
   return (
-    <div className="step-tile">
-      <div className="flex items-center gap-2 mb-1.5">
+    <div className="step-tile !p-2.5">
+      <div className="flex items-center gap-2 mb-1">
         <div
-          className="grid h-8 w-8 place-items-center rounded-lg"
+          className="grid h-7 w-7 place-items-center rounded-md"
           style={{
             background: "rgba(52,120,255,0.12)",
             border: "1px solid rgba(93,137,255,0.35)",
@@ -463,18 +461,18 @@ function JourneyStepCard({ icon: Icon, title, desc }: { icon: typeof Settings2; 
             boxShadow: "0 0 18px rgba(52,120,255,0.18)",
           }}
         >
-          <Icon className="h-4 w-4" />
+          <Icon className="h-3.5 w-3.5" />
         </div>
-        <span className="text-sm font-semibold text-white">{title}</span>
+        <span className="text-xs font-semibold text-white">{title}</span>
       </div>
-      <p className="text-xs text-slate-400 leading-relaxed">{desc}</p>
+      <p className="text-[11px] text-slate-400 leading-snug">{desc}</p>
     </div>
   );
 }
 
 function HeroWaves() {
   return (
-    <div className="hidden lg:block relative h-56" aria-hidden="true">
+    <div className="hidden lg:block relative h-40" aria-hidden="true">
       <svg viewBox="0 0 400 220" className="absolute inset-0 h-full w-full">
         <defs>
           <linearGradient id="waveBlue" x1="0" x2="1">
@@ -512,7 +510,7 @@ type MetricEntry = { title: string; value: string | number; icon: typeof Layers;
 
 function MetricsGrid({ metrics }: { metrics: readonly MetricEntry[] }) {
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 seq-fade">
+    <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3 seq-fade">
       {metrics.map((m) => <MetricCard key={m.title} {...m} />)}
     </div>
   );
@@ -521,20 +519,20 @@ function MetricsGrid({ metrics }: { metrics: readonly MetricEntry[] }) {
 function MetricCard({ title, value, icon: Icon, accent }: MetricEntry) {
   return (
     <article
-      className="group relative overflow-hidden rounded-2xl border p-4 transition-all duration-200 hover:-translate-y-1"
+      className="group relative overflow-hidden rounded-xl border p-3 transition-all duration-200 hover:-translate-y-1"
       style={{
         borderColor: `${accent}45`,
         background: `linear-gradient(135deg, ${accent}1f 0%, rgba(6,12,25,0.96) 65%)`,
-        boxShadow: `0 18px 45px rgba(0,0,0,.28)`,
+        boxShadow: `0 10px 28px rgba(0,0,0,.28)`,
       }}
     >
       <div
-        className="pointer-events-none absolute -right-10 -top-10 h-32 w-32 rounded-full blur-3xl transition-opacity group-hover:opacity-90"
+        className="pointer-events-none absolute -right-8 -top-8 h-24 w-24 rounded-full blur-3xl transition-opacity group-hover:opacity-90"
         style={{ backgroundColor: `${accent}25` }}
       />
-      <div className="relative flex items-center gap-4">
+      <div className="relative flex items-center gap-3">
         <div
-          className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border"
+          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border"
           style={{
             color: accent,
             borderColor: `${accent}55`,
@@ -542,11 +540,11 @@ function MetricCard({ title, value, icon: Icon, accent }: MetricEntry) {
             boxShadow: `0 0 24px ${accent}33`,
           }}
         >
-          <Icon size={22} strokeWidth={1.9} />
+          <Icon size={18} strokeWidth={1.9} />
         </div>
         <div className="min-w-0">
-          <p className="text-xs font-medium text-slate-400 truncate">{title}</p>
-          <strong className="mt-0.5 block text-2xl font-bold tracking-tight text-white">
+          <p className="text-[11px] font-medium text-slate-400 truncate">{title}</p>
+          <strong className="mt-0.5 block text-xl font-bold tracking-tight text-white">
             {value}
           </strong>
         </div>
