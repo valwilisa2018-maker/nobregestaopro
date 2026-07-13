@@ -37,16 +37,19 @@ export const Route = createFileRoute("/api/public/trello-webhook")({
         const secret = (settings as any)?.trello_webhook_secret as string | null;
         if (secret) {
           const sig = request.headers.get("x-trello-webhook");
-          if (sig) {
-            const callbackURL =
-              new URL(request.url).origin + "/api/public/trello-webhook";
-            const { createHmac } = await import("crypto");
-            const expected = createHmac("sha1", secret)
-              .update(body + callbackURL)
-              .digest("base64");
-            if (sig !== expected) {
-              return new Response("invalid signature", { status: 401 });
-            }
+          if (!sig) {
+            return new Response("missing signature", { status: 401 });
+          }
+          const callbackURL =
+            new URL(request.url).origin + "/api/public/trello-webhook";
+          const { createHmac, timingSafeEqual } = await import("crypto");
+          const expected = createHmac("sha1", secret)
+            .update(body + callbackURL)
+            .digest("base64");
+          const a = Buffer.from(sig);
+          const b = Buffer.from(expected);
+          if (a.length !== b.length || !timingSafeEqual(a, b)) {
+            return new Response("invalid signature", { status: 401 });
           }
         }
 
