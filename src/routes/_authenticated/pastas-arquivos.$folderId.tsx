@@ -829,7 +829,7 @@ function RoteiroEditor({
   async function save() {
     setSaving(true);
     try {
-      const content = ref.current?.innerHTML ?? html;
+      const content = sanitizeHtml(ref.current?.innerHTML ?? html);
       const blob = new Blob([content], { type: "text/html" });
       const { error: upErr } = await supabase.storage
         .from("project-files")
