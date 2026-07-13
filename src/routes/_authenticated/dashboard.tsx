@@ -364,7 +364,6 @@ function Dashboard() {
                 </g>
               </svg>
             </div>
-          </div>
         </div>
       </div>
 
