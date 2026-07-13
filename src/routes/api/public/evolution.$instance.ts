@@ -920,6 +920,14 @@ export const Route = createFileRoute("/api/public/evolution/$instance")({
               } as never).eq("id", convo.id);
             }
             // ------- FLOW ENGINE -------
+            // Sequences: try keyword enrollment on inbound text (best-effort)
+            try {
+              const phoneOnly = String(remoteJid ?? "").split("@")[0].replace(/\D/g, "");
+              if (phoneOnly && text) {
+                const { tryKeywordEnroll } = await import("@/lib/sequences-runner.server");
+                await tryKeywordEnroll(supabaseAdmin, { userId: conn.user_id, phone: phoneOnly, text });
+              }
+            } catch { /* best-effort */ }
             // Runs independently of the AI agent so that visual flows keep
             // advancing even when the connection has no active agent bound
             // (e.g. agent disabled after the flow started via broadcast).

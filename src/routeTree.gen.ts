@@ -40,6 +40,7 @@ import { Route as AuthenticatedTrainingRouteImport } from './routes/_authenticat
 import { Route as AuthenticatedToolsRouteImport } from './routes/_authenticated/tools'
 import { Route as AuthenticatedSupportRouteImport } from './routes/_authenticated/support'
 import { Route as AuthenticatedSettingsRouteImport } from './routes/_authenticated/settings'
+import { Route as AuthenticatedSequencesRouteImport } from './routes/_authenticated/sequences'
 import { Route as AuthenticatedPromptRouteImport } from './routes/_authenticated/prompt'
 import { Route as AuthenticatedPlansRouteImport } from './routes/_authenticated/plans'
 import { Route as AuthenticatedPipelineStatusRouteImport } from './routes/_authenticated/pipeline-status'
@@ -78,6 +79,7 @@ import { Route as ApiV1ConsumeRouteImport } from './routes/api/v1/consume'
 import { Route as ApiV1BuyRouteImport } from './routes/api/v1/buy'
 import { Route as ApiPublicBookingRouteImport } from './routes/api/public/booking'
 import { Route as ApiPublicMetaWebhookConfigIdRouteImport } from './routes/api/public/meta-webhook.$configId'
+import { Route as ApiPublicHooksSequencesRouteImport } from './routes/api/public/hooks/sequences'
 import { Route as ApiPublicHooksProcessVideoJobsRouteImport } from './routes/api/public/hooks/process-video-jobs'
 import { Route as ApiPublicHooksFollowUpsRouteImport } from './routes/api/public/hooks/follow-ups'
 import { Route as ApiPublicHooksBroadcastsRouteImport } from './routes/api/public/hooks/broadcasts'
@@ -235,6 +237,11 @@ const AuthenticatedSupportRoute = AuthenticatedSupportRouteImport.update({
 const AuthenticatedSettingsRoute = AuthenticatedSettingsRouteImport.update({
   id: '/settings',
   path: '/settings',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
+const AuthenticatedSequencesRoute = AuthenticatedSequencesRouteImport.update({
+  id: '/sequences',
+  path: '/sequences',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
 const AuthenticatedPromptRoute = AuthenticatedPromptRouteImport.update({
@@ -432,6 +439,11 @@ const ApiPublicMetaWebhookConfigIdRoute =
     path: '/api/public/meta-webhook/$configId',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiPublicHooksSequencesRoute = ApiPublicHooksSequencesRouteImport.update({
+  id: '/api/public/hooks/sequences',
+  path: '/api/public/hooks/sequences',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiPublicHooksProcessVideoJobsRoute =
   ApiPublicHooksProcessVideoJobsRouteImport.update({
     id: '/api/public/hooks/process-video-jobs',
@@ -491,6 +503,7 @@ export interface FileRoutesByFullPath {
   '/pipeline-status': typeof AuthenticatedPipelineStatusRoute
   '/plans': typeof AuthenticatedPlansRoute
   '/prompt': typeof AuthenticatedPromptRoute
+  '/sequences': typeof AuthenticatedSequencesRoute
   '/settings': typeof AuthenticatedSettingsRoute
   '/support': typeof AuthenticatedSupportRoute
   '/tools': typeof AuthenticatedToolsRoute
@@ -528,6 +541,7 @@ export interface FileRoutesByFullPath {
   '/api/public/hooks/broadcasts': typeof ApiPublicHooksBroadcastsRoute
   '/api/public/hooks/follow-ups': typeof ApiPublicHooksFollowUpsRoute
   '/api/public/hooks/process-video-jobs': typeof ApiPublicHooksProcessVideoJobsRoute
+  '/api/public/hooks/sequences': typeof ApiPublicHooksSequencesRoute
   '/api/public/meta-webhook/$configId': typeof ApiPublicMetaWebhookConfigIdRoute
 }
 export interface FileRoutesByTo {
@@ -564,6 +578,7 @@ export interface FileRoutesByTo {
   '/pipeline-status': typeof AuthenticatedPipelineStatusRoute
   '/plans': typeof AuthenticatedPlansRoute
   '/prompt': typeof AuthenticatedPromptRoute
+  '/sequences': typeof AuthenticatedSequencesRoute
   '/settings': typeof AuthenticatedSettingsRoute
   '/support': typeof AuthenticatedSupportRoute
   '/tools': typeof AuthenticatedToolsRoute
@@ -601,6 +616,7 @@ export interface FileRoutesByTo {
   '/api/public/hooks/broadcasts': typeof ApiPublicHooksBroadcastsRoute
   '/api/public/hooks/follow-ups': typeof ApiPublicHooksFollowUpsRoute
   '/api/public/hooks/process-video-jobs': typeof ApiPublicHooksProcessVideoJobsRoute
+  '/api/public/hooks/sequences': typeof ApiPublicHooksSequencesRoute
   '/api/public/meta-webhook/$configId': typeof ApiPublicMetaWebhookConfigIdRoute
 }
 export interface FileRoutesById {
@@ -640,6 +656,7 @@ export interface FileRoutesById {
   '/_authenticated/pipeline-status': typeof AuthenticatedPipelineStatusRoute
   '/_authenticated/plans': typeof AuthenticatedPlansRoute
   '/_authenticated/prompt': typeof AuthenticatedPromptRoute
+  '/_authenticated/sequences': typeof AuthenticatedSequencesRoute
   '/_authenticated/settings': typeof AuthenticatedSettingsRoute
   '/_authenticated/support': typeof AuthenticatedSupportRoute
   '/_authenticated/tools': typeof AuthenticatedToolsRoute
@@ -677,6 +694,7 @@ export interface FileRoutesById {
   '/api/public/hooks/broadcasts': typeof ApiPublicHooksBroadcastsRoute
   '/api/public/hooks/follow-ups': typeof ApiPublicHooksFollowUpsRoute
   '/api/public/hooks/process-video-jobs': typeof ApiPublicHooksProcessVideoJobsRoute
+  '/api/public/hooks/sequences': typeof ApiPublicHooksSequencesRoute
   '/api/public/meta-webhook/$configId': typeof ApiPublicMetaWebhookConfigIdRoute
 }
 export interface FileRouteTypes {
@@ -716,6 +734,7 @@ export interface FileRouteTypes {
     | '/pipeline-status'
     | '/plans'
     | '/prompt'
+    | '/sequences'
     | '/settings'
     | '/support'
     | '/tools'
@@ -753,6 +772,7 @@ export interface FileRouteTypes {
     | '/api/public/hooks/broadcasts'
     | '/api/public/hooks/follow-ups'
     | '/api/public/hooks/process-video-jobs'
+    | '/api/public/hooks/sequences'
     | '/api/public/meta-webhook/$configId'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -789,6 +809,7 @@ export interface FileRouteTypes {
     | '/pipeline-status'
     | '/plans'
     | '/prompt'
+    | '/sequences'
     | '/settings'
     | '/support'
     | '/tools'
@@ -826,6 +847,7 @@ export interface FileRouteTypes {
     | '/api/public/hooks/broadcasts'
     | '/api/public/hooks/follow-ups'
     | '/api/public/hooks/process-video-jobs'
+    | '/api/public/hooks/sequences'
     | '/api/public/meta-webhook/$configId'
   id:
     | '__root__'
@@ -864,6 +886,7 @@ export interface FileRouteTypes {
     | '/_authenticated/pipeline-status'
     | '/_authenticated/plans'
     | '/_authenticated/prompt'
+    | '/_authenticated/sequences'
     | '/_authenticated/settings'
     | '/_authenticated/support'
     | '/_authenticated/tools'
@@ -901,6 +924,7 @@ export interface FileRouteTypes {
     | '/api/public/hooks/broadcasts'
     | '/api/public/hooks/follow-ups'
     | '/api/public/hooks/process-video-jobs'
+    | '/api/public/hooks/sequences'
     | '/api/public/meta-webhook/$configId'
   fileRoutesById: FileRoutesById
 }
@@ -926,6 +950,7 @@ export interface RootRouteChildren {
   ApiPublicHooksBroadcastsRoute: typeof ApiPublicHooksBroadcastsRoute
   ApiPublicHooksFollowUpsRoute: typeof ApiPublicHooksFollowUpsRoute
   ApiPublicHooksProcessVideoJobsRoute: typeof ApiPublicHooksProcessVideoJobsRoute
+  ApiPublicHooksSequencesRoute: typeof ApiPublicHooksSequencesRoute
   ApiPublicMetaWebhookConfigIdRoute: typeof ApiPublicMetaWebhookConfigIdRoute
 }
 
@@ -1146,6 +1171,13 @@ declare module '@tanstack/react-router' {
       path: '/settings'
       fullPath: '/settings'
       preLoaderRoute: typeof AuthenticatedSettingsRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/sequences': {
+      id: '/_authenticated/sequences'
+      path: '/sequences'
+      fullPath: '/sequences'
+      preLoaderRoute: typeof AuthenticatedSequencesRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
     '/_authenticated/prompt': {
@@ -1414,6 +1446,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicMetaWebhookConfigIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/hooks/sequences': {
+      id: '/api/public/hooks/sequences'
+      path: '/api/public/hooks/sequences'
+      fullPath: '/api/public/hooks/sequences'
+      preLoaderRoute: typeof ApiPublicHooksSequencesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/hooks/process-video-jobs': {
       id: '/api/public/hooks/process-video-jobs'
       path: '/api/public/hooks/process-video-jobs'
@@ -1474,6 +1513,7 @@ interface AuthenticatedRouteChildren {
   AuthenticatedPipelineStatusRoute: typeof AuthenticatedPipelineStatusRoute
   AuthenticatedPlansRoute: typeof AuthenticatedPlansRoute
   AuthenticatedPromptRoute: typeof AuthenticatedPromptRoute
+  AuthenticatedSequencesRoute: typeof AuthenticatedSequencesRoute
   AuthenticatedSettingsRoute: typeof AuthenticatedSettingsRoute
   AuthenticatedSupportRoute: typeof AuthenticatedSupportRoute
   AuthenticatedToolsRoute: typeof AuthenticatedToolsRoute
@@ -1513,6 +1553,7 @@ const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedPipelineStatusRoute: AuthenticatedPipelineStatusRoute,
   AuthenticatedPlansRoute: AuthenticatedPlansRoute,
   AuthenticatedPromptRoute: AuthenticatedPromptRoute,
+  AuthenticatedSequencesRoute: AuthenticatedSequencesRoute,
   AuthenticatedSettingsRoute: AuthenticatedSettingsRoute,
   AuthenticatedSupportRoute: AuthenticatedSupportRoute,
   AuthenticatedToolsRoute: AuthenticatedToolsRoute,
@@ -1588,18 +1629,9 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicHooksBroadcastsRoute: ApiPublicHooksBroadcastsRoute,
   ApiPublicHooksFollowUpsRoute: ApiPublicHooksFollowUpsRoute,
   ApiPublicHooksProcessVideoJobsRoute: ApiPublicHooksProcessVideoJobsRoute,
+  ApiPublicHooksSequencesRoute: ApiPublicHooksSequencesRoute,
   ApiPublicMetaWebhookConfigIdRoute: ApiPublicMetaWebhookConfigIdRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}
