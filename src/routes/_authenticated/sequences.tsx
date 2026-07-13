@@ -628,22 +628,50 @@ function SequenceEditor(props: {
 
   return (
     <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className="max-w-5xl w-[95vw] max-h-[92vh] overflow-y-auto p-0">
-        <div className="bg-gradient-to-br from-primary/20 via-primary/5 to-transparent p-5 border-b">
+      <DialogContent
+        className="max-w-5xl w-[95vw] max-h-[92vh] overflow-y-auto p-0 border-0 text-slate-100"
+        style={{
+          background: "linear-gradient(160deg,#0b1428 0%,#050914 60%,#050914 100%)",
+          boxShadow: "0 30px 80px rgba(0,0,0,.55), inset 0 1px 0 rgba(255,255,255,.04)",
+          border: "1px solid rgba(93,137,255,.22)",
+          borderRadius: 20,
+        }}
+      >
+        <div
+          className="p-5"
+          style={{
+            background: "linear-gradient(120deg, rgba(52,120,255,.18), rgba(124,60,255,.10) 60%, transparent)",
+            borderBottom: "1px solid rgba(93,137,255,.18)",
+          }}
+        >
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 text-xl">
-              <div className="grid h-9 w-9 place-items-center rounded-lg bg-primary/20 text-primary"><Layers className="h-5 w-5" /></div>
+            <DialogTitle className="flex items-center gap-2.5 text-xl text-white">
+              <div
+                className="grid h-10 w-10 place-items-center rounded-xl"
+                style={{
+                  background: "linear-gradient(135deg,#2387ff,#7c3cff)",
+                  boxShadow: "0 10px 30px rgba(61,103,255,.35), inset 0 1px 0 rgba(255,255,255,.25)",
+                  color: "#fff",
+                }}
+              ><Layers className="h-5 w-5" /></div>
               {draft.id ? "Editar sequência" : "Nova sequência"}
             </DialogTitle>
           </DialogHeader>
         </div>
 
         <Tabs defaultValue="geral" className="p-5">
-          <TabsList>
-            <TabsTrigger value="geral"><Settings2 className="h-3.5 w-3.5" /> Geral</TabsTrigger>
-            <TabsTrigger value="janela"><Clock className="h-3.5 w-3.5" /> Janela & regras</TabsTrigger>
-            <TabsTrigger value="keywords"><KeyRound className="h-3.5 w-3.5" /> Palavras-chave</TabsTrigger>
-            <TabsTrigger value="etapas"><Zap className="h-3.5 w-3.5" /> Etapas ({draft.steps.length})</TabsTrigger>
+          <TabsList
+            className="gap-1 p-1 h-auto"
+            style={{
+              background: "rgba(10,19,38,.75)",
+              border: "1px solid rgba(93,137,255,.18)",
+              borderRadius: 12,
+            }}
+          >
+            <TabsTrigger value="geral" className="gap-1.5 data-[state=active]:text-white data-[state=active]:shadow-none data-[state=active]:bg-gradient-to-r data-[state=active]:from-[#2387ff] data-[state=active]:to-[#7c3cff] text-slate-300"><Settings2 className="h-3.5 w-3.5" /> Geral</TabsTrigger>
+            <TabsTrigger value="janela" className="gap-1.5 data-[state=active]:text-white data-[state=active]:bg-gradient-to-r data-[state=active]:from-[#2387ff] data-[state=active]:to-[#7c3cff] text-slate-300"><Clock className="h-3.5 w-3.5" /> Janela & regras</TabsTrigger>
+            <TabsTrigger value="keywords" className="gap-1.5 data-[state=active]:text-white data-[state=active]:bg-gradient-to-r data-[state=active]:from-[#2387ff] data-[state=active]:to-[#7c3cff] text-slate-300"><KeyRound className="h-3.5 w-3.5" /> Palavras-chave</TabsTrigger>
+            <TabsTrigger value="etapas" className="gap-1.5 data-[state=active]:text-white data-[state=active]:bg-gradient-to-r data-[state=active]:from-[#2387ff] data-[state=active]:to-[#7c3cff] text-slate-300"><Zap className="h-3.5 w-3.5" /> Etapas ({draft.steps.length})</TabsTrigger>
           </TabsList>
 
           <TabsContent value="geral" className="space-y-4 mt-4">
@@ -779,13 +807,19 @@ function SequenceEditor(props: {
           </TabsContent>
         </Tabs>
 
-        <div className="border-t p-4 flex items-center justify-between bg-muted/20">
-          <div className="text-xs text-muted-foreground">Alterações só passam a valer após salvar.</div>
+        <div
+          className="p-4 flex items-center justify-between"
+          style={{
+            borderTop: "1px solid rgba(93,137,255,.18)",
+            background: "rgba(5,10,22,.6)",
+          }}
+        >
+          <div className="text-xs text-slate-400 flex items-center gap-1.5"><Info className="h-3.5 w-3.5 text-[#a5c0ff]" /> Alterações só passam a valer após salvar.</div>
           <div className="flex gap-2">
-            <Button variant="outline" onClick={onClose}>Cancelar</Button>
-            <Button onClick={onSave} disabled={saving}>
+            <button type="button" onClick={onClose} className="secondary-dark-btn">Cancelar</button>
+            <button type="button" onClick={onSave} disabled={saving} className="primary-gradient-btn disabled:opacity-60">
               {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />} Salvar sequência
-            </Button>
+            </button>
           </div>
         </div>
       </DialogContent>
