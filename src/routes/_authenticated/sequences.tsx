@@ -9,7 +9,6 @@ import {
   Trash2, Users, X, Zap, Activity, Target, TrendingUp, Info, MessageSquare,
   Timer, Workflow,
 } from "lucide-react";
-import { PageShell } from "@/components/page-shell";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -197,88 +196,42 @@ function SequencesPage() {
   );
   const globalPct = totals.contacts ? Math.round((totals.done / totals.contacts) * 100) : 0;
 
-  return (
-    <PageShell
-      title="Sequências"
-      description="Jornadas automatizadas de mensagens com fluxos, janelas de envio e ativação por palavra-chave."
-      icon={<Layers className="h-6 w-6" />}
-      status="ativo"
-      actions={<Button onClick={openNew}><Plus className="h-4 w-4" /> Nova sequência</Button>}
-    >
-      {/* HERO explicativo */}
-      <div className="relative overflow-hidden rounded-2xl border border-primary/20 bg-gradient-to-br from-primary/15 via-primary/5 to-transparent p-5 sm:p-7 mb-4">
-        <div className="absolute -right-16 -top-16 h-56 w-56 rounded-full bg-primary/20 blur-3xl" />
-        <div className="absolute -left-10 bottom-0 h-40 w-40 rounded-full bg-emerald-500/10 blur-3xl" />
-        <div className="relative grid gap-6 lg:grid-cols-[1.4fr_1fr] items-start">
-          <div className="space-y-3">
-            <div className="inline-flex items-center gap-2 rounded-full border border-primary/30 bg-primary/10 px-3 py-1 text-xs font-medium text-primary">
-              <Sparkles className="h-3.5 w-3.5" /> Automação premium de jornadas
-            </div>
-            <h2 className="text-2xl sm:text-3xl font-bold tracking-tight">
-              Conduza seus contatos por uma jornada perfeita — sem esforço manual.
-            </h2>
-            <p className="text-sm text-muted-foreground max-w-xl">
-              Sequências enviam <b>fluxos do WhatsApp</b> em cadência programada (minutos, dias, semanas ou meses),
-              respeitando <b>janelas de horário</b>, <b>intervalos humanizados</b> e regras de reengajamento.
-              Ative por palavra-chave, cadastre manualmente ou inscreva pelo Workflow.
-            </p>
-            <div className="grid sm:grid-cols-3 gap-2 pt-2">
-              {[
-                { icon: KeyRound, title: "1. Configure", desc: "Nome, janelas, palavras-chave e política de reentrada." },
-                { icon: Workflow, title: "2. Monte as etapas", desc: "Escolha fluxos, atrasos e tratamento de erros." },
-                { icon: Rocket, title: "3. Ative", desc: "Inscreva contatos e acompanhe em tempo real." },
-              ].map((s) => (
-                <div key={s.title} className="rounded-xl border bg-background/60 backdrop-blur p-3">
-                  <div className="flex items-center gap-2 text-primary text-sm font-semibold">
-                    <s.icon className="h-4 w-4" /> {s.title}
-                  </div>
-                  <p className="text-xs text-muted-foreground mt-1">{s.desc}</p>
-                </div>
-              ))}
-            </div>
-            <div className="flex flex-wrap gap-2 pt-2">
-              <Button onClick={openNew}><Plus className="h-4 w-4" /> Criar sequência</Button>
-              <Button variant="outline" asChild>
-                <a href="/flows"><Workflow className="h-4 w-4" /> Abrir Workflows</a>
-              </Button>
-            </div>
-          </div>
+  const metrics = [
+    { title: "Sequências", value: totals.sequences, icon: Layers, accent: "#3478ff" },
+    { title: "Ativas", value: totals.active, icon: Activity, accent: "#19d98b" },
+    { title: "Contatos inscritos", value: totals.contacts, icon: Users, accent: "#a855f7" },
+    { title: "Em andamento", value: totals.running, icon: Timer, accent: "#f59e0b" },
+    { title: "Concluídos", value: totals.done, icon: CheckCircle2, accent: "#19d3e6" },
+    { title: "Taxa de conclusão", value: `${globalPct}%`, icon: TrendingUp, accent: "#ec4899" },
+  ] as const;
 
-          {/* KPI grid */}
-          <div className="grid grid-cols-2 gap-2">
-            {[
-              { icon: Layers, label: "Sequências", value: totals.sequences, cls: "from-blue-500/20 to-blue-500/5 text-blue-500" },
-              { icon: Activity, label: "Ativas", value: totals.active, cls: "from-emerald-500/20 to-emerald-500/5 text-emerald-500" },
-              { icon: Users, label: "Contatos inscritos", value: totals.contacts, cls: "from-purple-500/20 to-purple-500/5 text-purple-500" },
-              { icon: Timer, label: "Em andamento", value: totals.running, cls: "from-amber-500/20 to-amber-500/5 text-amber-500" },
-              { icon: CheckCircle2, label: "Concluídos", value: totals.done, cls: "from-teal-500/20 to-teal-500/5 text-teal-500" },
-              { icon: TrendingUp, label: "Taxa conclusão", value: `${globalPct}%`, cls: "from-pink-500/20 to-pink-500/5 text-pink-500" },
-            ].map((k) => (
-              <div key={k.label} className={`rounded-xl border bg-gradient-to-br ${k.cls} p-3`}>
-                <div className="flex items-center gap-1.5 text-[11px] font-medium opacity-90">
-                  <k.icon className="h-3.5 w-3.5" /> {k.label}
-                </div>
-                <div className="text-2xl font-bold mt-1 text-foreground">{k.value}</div>
-              </div>
-            ))}
-          </div>
-        </div>
+  return (
+    <div
+      className="-m-3 sm:-m-6 min-h-[calc(100vh-3rem)] p-3 sm:p-6 text-slate-100"
+      style={{
+        background: [
+          "radial-gradient(circle at 15% 10%, rgba(52,120,255,0.14), transparent 32%)",
+          "radial-gradient(circle at 85% 15%, rgba(124,60,255,0.12), transparent 34%)",
+          "radial-gradient(circle at 50% 100%, rgba(25,211,230,0.06), transparent 38%)",
+          "#050914",
+        ].join(","),
+        backgroundImage:
+          "radial-gradient(rgba(148,163,184,0.06) 1px, transparent 1px), radial-gradient(circle at 15% 10%, rgba(52,120,255,0.14), transparent 32%), radial-gradient(circle at 85% 15%, rgba(124,60,255,0.12), transparent 34%), linear-gradient(#050914,#050914)",
+        backgroundSize: "22px 22px, auto, auto, auto",
+      }}
+    >
+      <SequenceHeader onNew={openNew} />
+
+      <div className="mt-5 grid gap-5 xl:grid-cols-[minmax(0,1.55fr)_minmax(0,1fr)]">
+        <SequenceHero onNew={openNew} />
+        <MetricsGrid metrics={metrics} />
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+      <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
         {rows.length === 0 && (
-          <Card className="md:col-span-2 xl:col-span-3 border-dashed">
-            <CardContent className="py-14 text-center space-y-3">
-              <div className="mx-auto grid h-16 w-16 place-items-center rounded-full bg-gradient-to-br from-primary/20 to-primary/5 text-primary">
-                <Sparkles className="h-8 w-8" />
-              </div>
-              <h2 className="text-lg font-semibold">Crie sua primeira sequência</h2>
-              <p className="text-sm text-muted-foreground max-w-md mx-auto">
-                Inscreva contatos numa jornada e envie fluxos automaticamente ao longo de dias, semanas ou meses — respeitando janelas de horário e palavras-chave.
-              </p>
-              <Button onClick={openNew}><Plus className="h-4 w-4" /> Nova sequência</Button>
-            </CardContent>
-          </Card>
+          <div className="md:col-span-2 xl:col-span-3">
+            <EmptySequenceState onNew={openNew} />
+          </div>
         )}
         {rows.map((s) => {
           const total = s.enroll_stats.total; const done = s.enroll_stats.done;
@@ -362,7 +315,281 @@ function SequencesPage() {
       {viewingId && (
         <EnrollmentsDrawer sequenceId={viewingId} onClose={() => setViewingId(null)} />
       )}
-    </PageShell>
+    </div>
+  );
+}
+
+// -------------------- PREMIUM HEADER / HERO / METRICS --------------------
+
+function SequenceHeader({ onNew }: { onNew: () => void }) {
+  return (
+    <header
+      className="rounded-[22px] border p-4 sm:p-5 flex flex-wrap items-center gap-4"
+      style={{
+        borderColor: "rgba(93,137,255,0.18)",
+        background:
+          "linear-gradient(145deg, rgba(13,25,49,0.92), rgba(5,10,22,0.96))",
+        boxShadow:
+          "0 22px 60px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.03)",
+      }}
+    >
+      <div
+        className="grid h-14 w-14 shrink-0 place-items-center rounded-2xl"
+        style={{
+          background:
+            "linear-gradient(135deg, rgba(52,120,255,0.35), rgba(124,60,255,0.35))",
+          boxShadow:
+            "0 0 28px rgba(82,85,255,0.35), inset 0 1px 0 rgba(255,255,255,0.15)",
+          border: "1px solid rgba(135,165,255,0.4)",
+        }}
+      >
+        <Layers className="h-6 w-6 text-white" />
+      </div>
+      <div className="min-w-0 flex-1">
+        <div className="flex flex-wrap items-center gap-2">
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-white">
+            Sequências
+          </h1>
+          <span
+            className="inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-xs font-medium"
+            style={{
+              borderColor: "rgba(25,217,139,0.35)",
+              background: "rgba(25,217,139,0.10)",
+              color: "#19d98b",
+            }}
+          >
+            <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 shadow-[0_0_8px_#19d98b]" />
+            Ativo
+          </span>
+        </div>
+        <p className="mt-1 text-sm text-slate-400 max-w-2xl">
+          Jornadas automatizadas de mensagens com fluxos, janelas de envio e ativação por palavra-chave.
+        </p>
+      </div>
+      <button
+        type="button"
+        onClick={onNew}
+        aria-label="Criar nova sequência"
+        className="primary-gradient-btn"
+      >
+        <Plus className="h-4 w-4" /> Nova sequência
+      </button>
+      <style>{primaryButtonCss}</style>
+    </header>
+  );
+}
+
+const primaryButtonCss = `
+.primary-gradient-btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:44px;padding:0 20px;border:1px solid rgba(135,165,255,.42);border-radius:12px;color:#fff;font-weight:600;cursor:pointer;background:linear-gradient(110deg,#2387ff 0%,#4f6cff 48%,#7c3cff 100%);box-shadow:0 10px 30px rgba(61,103,255,.28), inset 0 1px 0 rgba(255,255,255,.25);transition:transform .18s ease, filter .18s ease, box-shadow .18s ease;}
+.primary-gradient-btn:hover{transform:translateY(-2px);filter:brightness(1.1);box-shadow:0 14px 36px rgba(82,85,255,.42), 0 0 25px rgba(124,60,255,.22);}
+.primary-gradient-btn:active{transform:translateY(0);}
+.secondary-dark-btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:44px;padding:0 18px;border:1px solid rgba(93,137,255,.28);border-radius:12px;color:#e2e8f0;font-weight:600;cursor:pointer;background:rgba(10,19,38,.75);transition:transform .18s ease, border-color .18s ease, background .18s ease;}
+.secondary-dark-btn:hover{transform:translateY(-2px);border-color:rgba(93,137,255,.5);background:rgba(15,26,52,.9);}
+.premium-shell{position:relative;overflow:hidden;border:1px solid rgba(93,137,255,.18);border-radius:22px;background:linear-gradient(145deg, rgba(13,25,49,.92), rgba(5,10,22,.96));box-shadow:0 22px 60px rgba(0,0,0,.32), inset 0 1px 0 rgba(255,255,255,.025);}
+.step-tile{position:relative;overflow:hidden;border:1px solid rgba(93,137,255,.18);border-radius:16px;background:linear-gradient(160deg, rgba(11,21,42,.9), rgba(5,10,22,.95));padding:14px;transition:transform .18s ease, border-color .18s ease;}
+.step-tile:hover{transform:translateY(-3px);border-color:rgba(93,137,255,.42);}
+.step-tile::after{content:"";position:absolute;left:14px;right:14px;bottom:10px;height:2px;border-radius:2px;background:linear-gradient(90deg,#2387ff,#7c3cff,transparent);}
+@keyframes seq-fade-in{from{opacity:0;transform:translateY(6px);}to{opacity:1;transform:translateY(0);}}
+.seq-fade{animation:seq-fade-in .5s ease both;}
+`;
+
+function SequenceHero({ onNew }: { onNew: () => void }) {
+  const steps = [
+    { icon: Settings2, title: "1. Configure", desc: "Nome, janelas, palavras-chave e política de reentrada." },
+    { icon: Workflow, title: "2. Monte as etapas", desc: "Escolha fluxos, atrasos e tratamento de erros." },
+    { icon: Rocket, title: "3. Ative", desc: "Inscreva contatos e acompanhe em tempo real." },
+  ];
+  return (
+    <section className="premium-shell seq-fade p-6 sm:p-7">
+      <div className="relative grid gap-6 lg:grid-cols-[1.4fr_1fr] items-center">
+        <div className="space-y-4 min-w-0">
+          <span
+            className="inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs font-medium"
+            style={{
+              borderColor: "rgba(93,137,255,0.35)",
+              background: "rgba(52,120,255,0.08)",
+              color: "#a5c0ff",
+            }}
+          >
+            <Sparkles className="h-3.5 w-3.5" /> Automação premium de jornadas
+          </span>
+          <h2 className="text-2xl sm:text-[32px] font-bold tracking-tight leading-[1.15] text-white">
+            Conduza seus contatos por uma jornada perfeita —{" "}
+            <span
+              style={{
+                background: "linear-gradient(90deg,#51a2ff 0%,#7c3cff 100%)",
+                WebkitBackgroundClip: "text",
+                WebkitTextFillColor: "transparent",
+              }}
+            >
+              sem esforço manual.
+            </span>
+          </h2>
+          <p className="text-sm text-slate-400 max-w-xl leading-relaxed">
+            Sequências enviam fluxos do WhatsApp em cadência programada (minutos, dias, semanas ou meses),
+            respeitando janelas de horário, intervalos humanizados e regras de reengajamento.
+            Ative por palavra-chave, cadastre manualmente ou inscreva pelo Workflow.
+          </p>
+          <div className="grid sm:grid-cols-3 gap-3 pt-1">
+            {steps.map((s) => (
+              <JourneyStepCard key={s.title} icon={s.icon} title={s.title} desc={s.desc} />
+            ))}
+          </div>
+          <div className="flex flex-wrap gap-2 pt-3">
+            <button type="button" onClick={onNew} className="primary-gradient-btn" aria-label="Criar sequência">
+              <Plus className="h-4 w-4" /> Criar sequência
+            </button>
+            <a href="/flows" className="secondary-dark-btn" aria-label="Abrir Workflows">
+              <Workflow className="h-4 w-4" /> Abrir Workflows
+            </a>
+          </div>
+        </div>
+        <HeroWaves />
+      </div>
+    </section>
+  );
+}
+
+function JourneyStepCard({ icon: Icon, title, desc }: { icon: typeof Settings2; title: string; desc: string }) {
+  return (
+    <div className="step-tile">
+      <div className="flex items-center gap-2 mb-1.5">
+        <div
+          className="grid h-8 w-8 place-items-center rounded-lg"
+          style={{
+            background: "rgba(52,120,255,0.12)",
+            border: "1px solid rgba(93,137,255,0.35)",
+            color: "#a5c0ff",
+            boxShadow: "0 0 18px rgba(52,120,255,0.18)",
+          }}
+        >
+          <Icon className="h-4 w-4" />
+        </div>
+        <span className="text-sm font-semibold text-white">{title}</span>
+      </div>
+      <p className="text-xs text-slate-400 leading-relaxed">{desc}</p>
+    </div>
+  );
+}
+
+function HeroWaves() {
+  return (
+    <div className="hidden lg:block relative h-56" aria-hidden="true">
+      <svg viewBox="0 0 400 220" className="absolute inset-0 h-full w-full">
+        <defs>
+          <linearGradient id="waveBlue" x1="0" x2="1">
+            <stop offset="0%" stopColor="#3478ff" stopOpacity="0" />
+            <stop offset="50%" stopColor="#51a2ff" stopOpacity="0.9" />
+            <stop offset="100%" stopColor="#7c3cff" stopOpacity="0" />
+          </linearGradient>
+          <linearGradient id="wavePurple" x1="0" x2="1">
+            <stop offset="0%" stopColor="#7c3cff" stopOpacity="0" />
+            <stop offset="50%" stopColor="#a855f7" stopOpacity="0.8" />
+            <stop offset="100%" stopColor="#19d3e6" stopOpacity="0" />
+          </linearGradient>
+        </defs>
+        {Array.from({ length: 7 }).map((_, i) => (
+          <path
+            key={i}
+            d={`M0 ${60 + i * 14} Q 120 ${20 + i * 20} 220 ${80 + i * 8} T 400 ${70 + i * 10}`}
+            fill="none"
+            stroke={i % 2 ? "url(#wavePurple)" : "url(#waveBlue)"}
+            strokeWidth={1.1}
+            opacity={0.55 - i * 0.05}
+          />
+        ))}
+        {[[60,40],[140,90],[230,50],[310,120],[360,80],[190,160],[90,180]].map(([cx,cy],i)=>(
+          <circle key={i} cx={cx} cy={cy} r={1.6} fill="#a5c0ff" opacity={0.8}>
+            <animate attributeName="opacity" values="0.2;1;0.2" dur={`${2+i*0.3}s`} repeatCount="indefinite"/>
+          </circle>
+        ))}
+      </svg>
+    </div>
+  );
+}
+
+type MetricEntry = { title: string; value: string | number; icon: typeof Layers; accent: string };
+
+function MetricsGrid({ metrics }: { metrics: readonly MetricEntry[] }) {
+  return (
+    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 seq-fade">
+      {metrics.map((m) => <MetricCard key={m.title} {...m} />)}
+    </div>
+  );
+}
+
+function MetricCard({ title, value, icon: Icon, accent }: MetricEntry) {
+  return (
+    <article
+      className="group relative overflow-hidden rounded-2xl border p-4 transition-all duration-200 hover:-translate-y-1"
+      style={{
+        borderColor: `${accent}45`,
+        background: `linear-gradient(135deg, ${accent}1f 0%, rgba(6,12,25,0.96) 65%)`,
+        boxShadow: `0 18px 45px rgba(0,0,0,.28)`,
+      }}
+    >
+      <div
+        className="pointer-events-none absolute -right-10 -top-10 h-32 w-32 rounded-full blur-3xl transition-opacity group-hover:opacity-90"
+        style={{ backgroundColor: `${accent}25` }}
+      />
+      <div className="relative flex items-center gap-4">
+        <div
+          className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border"
+          style={{
+            color: accent,
+            borderColor: `${accent}55`,
+            backgroundColor: `${accent}14`,
+            boxShadow: `0 0 24px ${accent}33`,
+          }}
+        >
+          <Icon size={22} strokeWidth={1.9} />
+        </div>
+        <div className="min-w-0">
+          <p className="text-xs font-medium text-slate-400 truncate">{title}</p>
+          <strong className="mt-0.5 block text-2xl font-bold tracking-tight text-white">
+            {value}
+          </strong>
+        </div>
+      </div>
+    </article>
+  );
+}
+
+function EmptySequenceState({ onNew }: { onNew: () => void }) {
+  return (
+    <div
+      className="relative overflow-hidden rounded-[22px] border-2 border-dashed py-14 px-6 text-center seq-fade"
+      style={{
+        borderColor: "rgba(93,137,255,0.22)",
+        background:
+          "radial-gradient(circle at 50% 20%, rgba(52,120,255,0.10), transparent 55%), linear-gradient(160deg, rgba(11,21,42,.85), rgba(5,10,22,.95))",
+        backgroundImage:
+          "radial-gradient(rgba(148,163,184,0.06) 1px, transparent 1px), radial-gradient(circle at 50% 20%, rgba(52,120,255,0.10), transparent 55%), linear-gradient(160deg, rgba(11,21,42,.85), rgba(5,10,22,.95))",
+        backgroundSize: "18px 18px, auto, auto",
+      }}
+    >
+      <div
+        className="mx-auto grid h-16 w-16 place-items-center rounded-2xl"
+        style={{
+          background: "linear-gradient(135deg, rgba(52,120,255,0.25), rgba(124,60,255,0.25))",
+          border: "1px solid rgba(135,165,255,0.35)",
+          boxShadow: "0 0 32px rgba(82,85,255,0.35)",
+          color: "#e6ecff",
+        }}
+      >
+        <Sparkles className="h-8 w-8" />
+      </div>
+      <h2 className="mt-4 text-lg sm:text-xl font-semibold text-white">Crie sua primeira sequência</h2>
+      <p className="mt-2 text-sm text-slate-400 max-w-md mx-auto leading-relaxed">
+        Inscreva contatos em uma jornada e envie fluxos automaticamente ao longo de dias, semanas ou meses —
+        respeitando janelas de horário e palavras-chave.
+      </p>
+      <div className="mt-5 flex justify-center">
+        <button type="button" onClick={onNew} className="primary-gradient-btn" aria-label="Nova sequência">
+          <Plus className="h-4 w-4" /> Nova sequência
+        </button>
+      </div>
+    </div>
   );
 }
 
