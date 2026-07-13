@@ -835,11 +835,15 @@ function SalesPage() {
           expected_delivery_date: editing.expected_delivery_date || null,
         }).eq("sale_id", editing.id);
 
-        // Recalcular valor das notas fiscais existentes quando não for pacote
+        // Recalcular valor apenas das notas ainda não emitidas (não sobrescrever notas já processadas)
         if (!editing.package_id) {
           const qty = Math.max(1, Number(editing.service_quantity || 1));
           const unit = Number(editing.total_amount) / qty;
-          await supabase.from("invoices").update({ amount: unit }).eq("sale_id", editing.id);
+          await supabase
+            .from("invoices")
+            .update({ amount: unit })
+            .eq("sale_id", editing.id)
+            .eq("status", "a_fazer");
         }
       } catch (propErr: any) {
         await logger.error(`Erro ao propagar edição: ${propErr?.message}`, { context: "sales/submitEdit/propagate", details: { error: propErr } });
