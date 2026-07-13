@@ -202,7 +202,7 @@ function SequencesPage() {
     { title: "Contatos inscritos", value: totals.contacts, icon: Users, accent: "#a855f7" },
     { title: "Em andamento", value: totals.running, icon: Timer, accent: "#f59e0b" },
     { title: "Concluídos", value: totals.done, icon: CheckCircle2, accent: "#19d3e6" },
-    { title: "Taxa de conclusão", value: `${globalPct}%`, icon: TrendingUp, accent: "#ec4899" },
+    { title: "Taxa conclusão", value: `${globalPct}%`, icon: TrendingUp, accent: "#ec4899" },
   ] as const;
 
   return (
@@ -222,7 +222,7 @@ function SequencesPage() {
     >
       <SequenceHeader onNew={openNew} />
 
-      <div className="mt-4 space-y-4">
+      <div className="mt-4 grid gap-4 xl:grid-cols-[minmax(0,1.55fr)_minmax(0,1fr)]">
         <SequenceHero onNew={openNew} />
         <MetricsGrid metrics={metrics} />
       </div>
@@ -510,7 +510,7 @@ type MetricEntry = { title: string; value: string | number; icon: typeof Layers;
 
 function MetricsGrid({ metrics }: { metrics: readonly MetricEntry[] }) {
   return (
-    <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3 seq-fade">
+    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 seq-fade content-start">
       {metrics.map((m) => <MetricCard key={m.title} {...m} />)}
     </div>
   );
