@@ -202,7 +202,7 @@ function SequencesPage() {
     { title: "Contatos inscritos", value: totals.contacts, icon: Users, accent: "#a855f7" },
     { title: "Em andamento", value: totals.running, icon: Timer, accent: "#f59e0b" },
     { title: "Concluídos", value: totals.done, icon: CheckCircle2, accent: "#19d3e6" },
-    { title: "Taxa de conclusão", value: `${globalPct}%`, icon: TrendingUp, accent: "#ec4899" },
+    { title: "Taxa conclusão", value: `${globalPct}%`, icon: TrendingUp, accent: "#ec4899" },
   ] as const;
 
   return (
