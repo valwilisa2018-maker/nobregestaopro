@@ -7,7 +7,7 @@ import {
   ArrowRight, CalendarDays, CheckCircle2, Clock, Copy, GripVertical, KeyRound,
   Layers, Loader2, Pause, Play, Plus, Repeat2, Rocket, Settings2, Sparkles,
   Trash2, Users, X, Zap, Activity, TrendingUp,
-  Timer, Workflow,
+  Timer, Workflow, Wand2,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -556,7 +556,7 @@ function MetricCard({ title, value, icon: Icon, accent }: MetricEntry) {
 function EmptySequenceState({ onNew }: { onNew: () => void }) {
   return (
     <div
-      className="relative overflow-hidden rounded-[22px] border-2 border-dashed py-14 px-6 text-center seq-fade"
+      className="relative overflow-hidden rounded-[22px] border-2 border-dashed py-8 px-6 text-center seq-fade"
       style={{
         borderColor: "rgba(93,137,255,0.22)",
         background:
@@ -567,7 +567,7 @@ function EmptySequenceState({ onNew }: { onNew: () => void }) {
       }}
     >
       <div
-        className="mx-auto grid h-16 w-16 place-items-center rounded-2xl"
+        className="mx-auto grid h-12 w-12 place-items-center rounded-2xl"
         style={{
           background: "linear-gradient(135deg, rgba(52,120,255,0.25), rgba(124,60,255,0.25))",
           border: "1px solid rgba(135,165,255,0.35)",
@@ -575,14 +575,14 @@ function EmptySequenceState({ onNew }: { onNew: () => void }) {
           color: "#e6ecff",
         }}
       >
-        <Sparkles className="h-8 w-8" />
+        <Wand2 className="h-6 w-6" />
       </div>
-      <h2 className="mt-4 text-lg sm:text-xl font-semibold text-white">Crie sua primeira sequência</h2>
-      <p className="mt-2 text-sm text-slate-400 max-w-md mx-auto leading-relaxed">
+      <h2 className="mt-3 text-base sm:text-lg font-semibold text-white">Crie sua primeira sequência</h2>
+      <p className="mt-1.5 text-xs sm:text-sm text-slate-400 max-w-md mx-auto leading-relaxed">
         Inscreva contatos em uma jornada e envie fluxos automaticamente ao longo de dias, semanas ou meses —
         respeitando janelas de horário e palavras-chave.
       </p>
-      <div className="mt-5 flex justify-center">
+      <div className="mt-4 flex justify-center">
         <button type="button" onClick={onNew} className="primary-gradient-btn" aria-label="Nova sequência">
           <Plus className="h-4 w-4" /> Nova sequência
         </button>
