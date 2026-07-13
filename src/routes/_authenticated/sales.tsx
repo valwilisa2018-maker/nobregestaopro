@@ -13,7 +13,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { FileText, Download, History, LayoutGrid, List, QrCode } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Plus, Loader2, Pencil, Eye, Trash2, Check, Search, X } from "lucide-react";
+import { Plus, Loader2, Pencil, Eye, Trash2, Check, Search, X, ShoppingCart } from "lucide-react";
 import { toast } from "sonner";
 import { logger } from "@/lib/logger";
 import { formatCurrency } from "@/lib/auth";
@@ -945,9 +945,23 @@ function SalesPage() {
           </div>
           <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild><Button><Plus className="w-4 h-4 mr-2" />Nova Venda</Button></DialogTrigger>
-            <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-              <DialogHeader><DialogTitle>Nova Venda</DialogTitle></DialogHeader>
-              <div className="grid grid-cols-2 gap-3">
+            <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto p-0 gap-0">
+              <DialogHeader className="relative overflow-hidden bg-gradient-to-br from-zinc-950 to-zinc-900 px-6 py-5 space-y-0">
+                <div className="pointer-events-none absolute inset-y-0 right-0 w-1/2 opacity-30"
+                  style={{ background: "radial-gradient(ellipse at right, hsl(var(--primary)/0.35), transparent 60%)" }} />
+                <div className="relative flex items-center gap-4">
+                  <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary/15 border border-primary/30 shadow-[0_0_20px_hsl(var(--primary)/0.35)]">
+                    <ShoppingCart className="h-6 w-6 text-primary" />
+                  </div>
+                  <div>
+                    <DialogTitle className="text-2xl font-bold text-white">
+                      Nova <span className="text-primary">Venda</span>
+                    </DialogTitle>
+                    <p className="text-sm text-zinc-400 mt-0.5">Preencha os dados para registrar uma nova venda</p>
+                  </div>
+                </div>
+              </DialogHeader>
+              <div className="grid grid-cols-2 gap-3 p-6">
                 <div className="col-span-2">
                   <Label>Nome do cliente *</Label>
                   <Input list="customers-names" value={form.customer_name || ""} onChange={(e) => autofillFromCustomer("customer_name", e.target.value)} />
