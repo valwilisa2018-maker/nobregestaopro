@@ -1183,7 +1183,7 @@ function SalesPage() {
                   <p className="text-[11px] text-muted-foreground mt-1">Opcional. Se quiser, informe um dos dois links (Drive ou Plataforma). Não precisa preencher os dois.</p>
                 </div>
               </div>
-              <DialogFooter>
+              <DialogFooter className="px-6 pb-6">
                 <Button onClick={submit} disabled={saving}>
                   {saving && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
                   {(form.payment_method === "pix" || form.payment_method === "cartao") ? "Confirmar Venda" : "Criar venda"}
