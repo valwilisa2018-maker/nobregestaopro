@@ -2498,6 +2498,306 @@ export type Database = {
         }
         Relationships: []
       }
+      sequence_enrollments: {
+        Row: {
+          completed_at: string | null
+          contact_id: string | null
+          created_at: string
+          current_step: number
+          entry_at: string
+          entry_source: string
+          id: string
+          last_error: string | null
+          last_sent_at: string | null
+          metadata: Json
+          next_run_at: string | null
+          phone: string
+          retry_count: number
+          sequence_id: string
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          completed_at?: string | null
+          contact_id?: string | null
+          created_at?: string
+          current_step?: number
+          entry_at?: string
+          entry_source?: string
+          id?: string
+          last_error?: string | null
+          last_sent_at?: string | null
+          metadata?: Json
+          next_run_at?: string | null
+          phone: string
+          retry_count?: number
+          sequence_id: string
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          completed_at?: string | null
+          contact_id?: string | null
+          created_at?: string
+          current_step?: number
+          entry_at?: string
+          entry_source?: string
+          id?: string
+          last_error?: string | null
+          last_sent_at?: string | null
+          metadata?: Json
+          next_run_at?: string | null
+          phone?: string
+          retry_count?: number
+          sequence_id?: string
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sequence_enrollments_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sequence_enrollments_sequence_id_fkey"
+            columns: ["sequence_id"]
+            isOneToOne: false
+            referencedRelation: "sequences"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sequence_events: {
+        Row: {
+          created_at: string
+          data: Json
+          enrollment_id: string
+          id: string
+          message: string | null
+          sequence_id: string
+          step_id: string | null
+          step_position: number | null
+          type: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          data?: Json
+          enrollment_id: string
+          id?: string
+          message?: string | null
+          sequence_id: string
+          step_id?: string | null
+          step_position?: number | null
+          type: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          data?: Json
+          enrollment_id?: string
+          id?: string
+          message?: string | null
+          sequence_id?: string
+          step_id?: string | null
+          step_position?: number | null
+          type?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sequence_events_enrollment_id_fkey"
+            columns: ["enrollment_id"]
+            isOneToOne: false
+            referencedRelation: "sequence_enrollments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sequence_events_sequence_id_fkey"
+            columns: ["sequence_id"]
+            isOneToOne: false
+            referencedRelation: "sequences"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sequence_events_step_id_fkey"
+            columns: ["step_id"]
+            isOneToOne: false
+            referencedRelation: "sequence_steps"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sequence_steps: {
+        Row: {
+          created_at: string
+          delay_unit: string
+          delay_value: number
+          description: string | null
+          end_sequence: boolean
+          flow_id: string | null
+          id: string
+          max_retries: number
+          message_interval_seconds: number | null
+          name: string
+          on_error: string
+          position: number
+          retry_interval_minutes: number
+          sequence_id: string
+          updated_at: string
+          use_custom_window: boolean
+          user_id: string
+          weekdays: number[] | null
+          window_end: string | null
+          window_start: string | null
+        }
+        Insert: {
+          created_at?: string
+          delay_unit?: string
+          delay_value?: number
+          description?: string | null
+          end_sequence?: boolean
+          flow_id?: string | null
+          id?: string
+          max_retries?: number
+          message_interval_seconds?: number | null
+          name: string
+          on_error?: string
+          position: number
+          retry_interval_minutes?: number
+          sequence_id: string
+          updated_at?: string
+          use_custom_window?: boolean
+          user_id: string
+          weekdays?: number[] | null
+          window_end?: string | null
+          window_start?: string | null
+        }
+        Update: {
+          created_at?: string
+          delay_unit?: string
+          delay_value?: number
+          description?: string | null
+          end_sequence?: boolean
+          flow_id?: string | null
+          id?: string
+          max_retries?: number
+          message_interval_seconds?: number | null
+          name?: string
+          on_error?: string
+          position?: number
+          retry_interval_minutes?: number
+          sequence_id?: string
+          updated_at?: string
+          use_custom_window?: boolean
+          user_id?: string
+          weekdays?: number[] | null
+          window_end?: string | null
+          window_start?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sequence_steps_flow_id_fkey"
+            columns: ["flow_id"]
+            isOneToOne: false
+            referencedRelation: "flows"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sequence_steps_sequence_id_fkey"
+            columns: ["sequence_id"]
+            isOneToOne: false
+            referencedRelation: "sequences"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sequences: {
+        Row: {
+          connection_id: string | null
+          created_at: string
+          description: string | null
+          ends_at: string | null
+          entry_sources: string[]
+          id: string
+          keyword_ignore_accents: boolean
+          keyword_ignore_case: boolean
+          keyword_match: string
+          keywords: string[]
+          message_interval_seconds: number
+          name: string
+          reenroll_policy: string
+          starts_at: string | null
+          status: string
+          timezone: string
+          updated_at: string
+          user_id: string
+          weekdays: number[]
+          window_end: string | null
+          window_start: string | null
+        }
+        Insert: {
+          connection_id?: string | null
+          created_at?: string
+          description?: string | null
+          ends_at?: string | null
+          entry_sources?: string[]
+          id?: string
+          keyword_ignore_accents?: boolean
+          keyword_ignore_case?: boolean
+          keyword_match?: string
+          keywords?: string[]
+          message_interval_seconds?: number
+          name: string
+          reenroll_policy?: string
+          starts_at?: string | null
+          status?: string
+          timezone?: string
+          updated_at?: string
+          user_id: string
+          weekdays?: number[]
+          window_end?: string | null
+          window_start?: string | null
+        }
+        Update: {
+          connection_id?: string | null
+          created_at?: string
+          description?: string | null
+          ends_at?: string | null
+          entry_sources?: string[]
+          id?: string
+          keyword_ignore_accents?: boolean
+          keyword_ignore_case?: boolean
+          keyword_match?: string
+          keywords?: string[]
+          message_interval_seconds?: number
+          name?: string
+          reenroll_policy?: string
+          starts_at?: string | null
+          status?: string
+          timezone?: string
+          updated_at?: string
+          user_id?: string
+          weekdays?: number[]
+          window_end?: string | null
+          window_start?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sequences_connection_id_fkey"
+            columns: ["connection_id"]
+            isOneToOne: false
+            referencedRelation: "connections"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       settings: {
         Row: {
           id: string
