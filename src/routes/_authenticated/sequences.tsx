@@ -400,8 +400,11 @@ function SequenceHero({ onNew }: { onNew: () => void }) {
     { icon: Rocket, title: "3. Ative", desc: "Inscreva contatos e acompanhe em tempo real." },
   ];
   return (
-    <section className="premium-shell seq-fade p-3.5 sm:p-4">
-      <div className="relative grid gap-3 lg:grid-cols-[1.7fr_1fr] items-center">
+    <section className="premium-shell seq-fade p-3.5 sm:p-4 relative overflow-hidden">
+      <div className="absolute inset-0 pointer-events-none opacity-60">
+        <HeroWaves />
+      </div>
+      <div className="relative">
         <div className="space-y-2.5 min-w-0">
           <span
             className="inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs font-medium"
@@ -442,7 +445,6 @@ function SequenceHero({ onNew }: { onNew: () => void }) {
             </a>
           </div>
         </div>
-        <HeroWaves />
       </div>
     </section>
   );
