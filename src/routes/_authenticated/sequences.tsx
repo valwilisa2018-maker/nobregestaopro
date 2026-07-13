@@ -6,7 +6,8 @@ import { toast } from "sonner";
 import {
   ArrowRight, CalendarDays, CheckCircle2, Clock, Copy, GripVertical, KeyRound,
   Layers, Loader2, Pause, Play, Plus, Repeat2, Rocket, Settings2, Sparkles,
-  Trash2, Users, X, Zap,
+  Trash2, Users, X, Zap, Activity, Target, TrendingUp, Info, MessageSquare,
+  Timer, Workflow,
 } from "lucide-react";
 import { PageShell } from "@/components/page-shell";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -181,6 +182,21 @@ function SequencesPage() {
     steps_count: number; enroll_stats: { total: number; active: number; done: number; next: string | null };
   }>;
 
+  // Agregados premium
+  const totals = rows.reduce(
+    (acc, r) => {
+      acc.sequences += 1;
+      if (r.status === "active") acc.active += 1;
+      acc.contacts += r.enroll_stats.total;
+      acc.running += r.enroll_stats.active;
+      acc.done += r.enroll_stats.done;
+      acc.steps += r.steps_count;
+      return acc;
+    },
+    { sequences: 0, active: 0, contacts: 0, running: 0, done: 0, steps: 0 },
+  );
+  const globalPct = totals.contacts ? Math.round((totals.done / totals.contacts) * 100) : 0;
+
   return (
     <PageShell
       title="Sequências"
@@ -189,6 +205,66 @@ function SequencesPage() {
       status="ativo"
       actions={<Button onClick={openNew}><Plus className="h-4 w-4" /> Nova sequência</Button>}
     >
+      {/* HERO explicativo */}
+      <div className="relative overflow-hidden rounded-2xl border border-primary/20 bg-gradient-to-br from-primary/15 via-primary/5 to-transparent p-5 sm:p-7 mb-4">
+        <div className="absolute -right-16 -top-16 h-56 w-56 rounded-full bg-primary/20 blur-3xl" />
+        <div className="absolute -left-10 bottom-0 h-40 w-40 rounded-full bg-emerald-500/10 blur-3xl" />
+        <div className="relative grid gap-6 lg:grid-cols-[1.4fr_1fr] items-start">
+          <div className="space-y-3">
+            <div className="inline-flex items-center gap-2 rounded-full border border-primary/30 bg-primary/10 px-3 py-1 text-xs font-medium text-primary">
+              <Sparkles className="h-3.5 w-3.5" /> Automação premium de jornadas
+            </div>
+            <h2 className="text-2xl sm:text-3xl font-bold tracking-tight">
+              Conduza seus contatos por uma jornada perfeita — sem esforço manual.
+            </h2>
+            <p className="text-sm text-muted-foreground max-w-xl">
+              Sequências enviam <b>fluxos do WhatsApp</b> em cadência programada (minutos, dias, semanas ou meses),
+              respeitando <b>janelas de horário</b>, <b>intervalos humanizados</b> e regras de reengajamento.
+              Ative por palavra-chave, cadastre manualmente ou inscreva pelo Workflow.
+            </p>
+            <div className="grid sm:grid-cols-3 gap-2 pt-2">
+              {[
+                { icon: KeyRound, title: "1. Configure", desc: "Nome, janelas, palavras-chave e política de reentrada." },
+                { icon: Workflow, title: "2. Monte as etapas", desc: "Escolha fluxos, atrasos e tratamento de erros." },
+                { icon: Rocket, title: "3. Ative", desc: "Inscreva contatos e acompanhe em tempo real." },
+              ].map((s) => (
+                <div key={s.title} className="rounded-xl border bg-background/60 backdrop-blur p-3">
+                  <div className="flex items-center gap-2 text-primary text-sm font-semibold">
+                    <s.icon className="h-4 w-4" /> {s.title}
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-1">{s.desc}</p>
+                </div>
+              ))}
+            </div>
+            <div className="flex flex-wrap gap-2 pt-2">
+              <Button onClick={openNew}><Plus className="h-4 w-4" /> Criar sequência</Button>
+              <Button variant="outline" asChild>
+                <a href="/flows"><Workflow className="h-4 w-4" /> Abrir Workflows</a>
+              </Button>
+            </div>
+          </div>
+
+          {/* KPI grid */}
+          <div className="grid grid-cols-2 gap-2">
+            {[
+              { icon: Layers, label: "Sequências", value: totals.sequences, cls: "from-blue-500/20 to-blue-500/5 text-blue-500" },
+              { icon: Activity, label: "Ativas", value: totals.active, cls: "from-emerald-500/20 to-emerald-500/5 text-emerald-500" },
+              { icon: Users, label: "Contatos inscritos", value: totals.contacts, cls: "from-purple-500/20 to-purple-500/5 text-purple-500" },
+              { icon: Timer, label: "Em andamento", value: totals.running, cls: "from-amber-500/20 to-amber-500/5 text-amber-500" },
+              { icon: CheckCircle2, label: "Concluídos", value: totals.done, cls: "from-teal-500/20 to-teal-500/5 text-teal-500" },
+              { icon: TrendingUp, label: "Taxa conclusão", value: `${globalPct}%`, cls: "from-pink-500/20 to-pink-500/5 text-pink-500" },
+            ].map((k) => (
+              <div key={k.label} className={`rounded-xl border bg-gradient-to-br ${k.cls} p-3`}>
+                <div className="flex items-center gap-1.5 text-[11px] font-medium opacity-90">
+                  <k.icon className="h-3.5 w-3.5" /> {k.label}
+                </div>
+                <div className="text-2xl font-bold mt-1 text-foreground">{k.value}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
         {rows.length === 0 && (
           <Card className="md:col-span-2 xl:col-span-3 border-dashed">
