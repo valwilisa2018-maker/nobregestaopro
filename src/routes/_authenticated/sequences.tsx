@@ -209,15 +209,10 @@ function SequencesPage() {
     <div
       className="-m-3 sm:-m-6 min-h-[calc(100vh-3rem)] p-3 sm:p-6 text-foreground"
       style={{
-        background: [
-          "radial-gradient(circle at 15% 10%, rgba(52,120,255,0.14), transparent 32%)",
-          "radial-gradient(circle at 85% 15%, rgba(124,60,255,0.12), transparent 34%)",
-          "radial-gradient(circle at 50% 100%, rgba(25,211,230,0.06), transparent 38%)",
-          "#050914",
-        ].join(","),
+        backgroundColor: "var(--background)",
         backgroundImage:
-          "radial-gradient(rgba(148,163,184,0.06) 1px, transparent 1px), radial-gradient(circle at 15% 10%, rgba(52,120,255,0.14), transparent 32%), radial-gradient(circle at 85% 15%, rgba(124,60,255,0.12), transparent 34%), linear-gradient(#050914,#050914)",
-        backgroundSize: "22px 22px, auto, auto, auto",
+          "radial-gradient(color-mix(in oklch, var(--foreground) 6%, transparent) 1px, transparent 1px), radial-gradient(circle at 15% 10%, rgba(52,120,255,0.14), transparent 32%), radial-gradient(circle at 85% 15%, rgba(124,60,255,0.12), transparent 34%)",
+        backgroundSize: "22px 22px, auto, auto",
       }}
     >
       <SequenceHeader onNew={openNew} />
@@ -631,9 +626,9 @@ function SequenceEditor(props: {
       <DialogContent
         className="max-w-5xl w-[95vw] max-h-[92vh] overflow-y-auto p-0 border-0 text-foreground"
         style={{
-          background: "linear-gradient(160deg,#0b1428 0%,#050914 60%,#050914 100%)",
-          boxShadow: "0 30px 80px rgba(0,0,0,.55), inset 0 1px 0 rgba(255,255,255,.04)",
-          border: "1px solid rgba(93,137,255,.22)",
+          background: "linear-gradient(160deg, color-mix(in oklch, var(--primary) 12%, var(--card)) 0%, var(--card) 60%, var(--card) 100%)",
+          boxShadow: "0 30px 80px color-mix(in oklch, var(--foreground) 25%, transparent), inset 0 1px 0 color-mix(in oklch, var(--foreground) 4%, transparent)",
+          border: "1px solid color-mix(in oklch, var(--primary) 22%, transparent)",
           borderRadius: 20,
         }}
       >
