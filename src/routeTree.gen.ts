@@ -14,6 +14,7 @@ import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AuthenticatedWhiteLabelRouteImport } from './routes/_authenticated/white-label'
 import { Route as AuthenticatedWhatsappRouteImport } from './routes/_authenticated/whatsapp'
 import { Route as AuthenticatedTelaoRouteImport } from './routes/_authenticated/telao'
 import { Route as AuthenticatedServicesTodoRouteImport } from './routes/_authenticated/services-todo'
@@ -67,6 +68,11 @@ const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
+} as any)
+const AuthenticatedWhiteLabelRoute = AuthenticatedWhiteLabelRouteImport.update({
+  id: '/white-label',
+  path: '/white-label',
+  getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedWhatsappRoute = AuthenticatedWhatsappRouteImport.update({
   id: '/whatsapp',
@@ -254,6 +260,7 @@ export interface FileRoutesByFullPath {
   '/services-todo': typeof AuthenticatedServicesTodoRoute
   '/telao': typeof AuthenticatedTelaoRoute
   '/whatsapp': typeof AuthenticatedWhatsappRoute
+  '/white-label': typeof AuthenticatedWhiteLabelRoute
   '/operacao-meta/produtores': typeof AuthenticatedOperacaoMetaProdutoresRoute
   '/operacao-meta/relatorios': typeof AuthenticatedOperacaoMetaRelatoriosRoute
   '/operacao-meta/tendencias': typeof AuthenticatedOperacaoMetaTendenciasRoute
@@ -288,6 +295,7 @@ export interface FileRoutesByTo {
   '/services-todo': typeof AuthenticatedServicesTodoRoute
   '/telao': typeof AuthenticatedTelaoRoute
   '/whatsapp': typeof AuthenticatedWhatsappRoute
+  '/white-label': typeof AuthenticatedWhiteLabelRoute
   '/operacao-meta/produtores': typeof AuthenticatedOperacaoMetaProdutoresRoute
   '/operacao-meta/relatorios': typeof AuthenticatedOperacaoMetaRelatoriosRoute
   '/operacao-meta/tendencias': typeof AuthenticatedOperacaoMetaTendenciasRoute
@@ -325,6 +333,7 @@ export interface FileRoutesById {
   '/_authenticated/services-todo': typeof AuthenticatedServicesTodoRoute
   '/_authenticated/telao': typeof AuthenticatedTelaoRoute
   '/_authenticated/whatsapp': typeof AuthenticatedWhatsappRoute
+  '/_authenticated/white-label': typeof AuthenticatedWhiteLabelRoute
   '/_authenticated/operacao-meta/produtores': typeof AuthenticatedOperacaoMetaProdutoresRoute
   '/_authenticated/operacao-meta/relatorios': typeof AuthenticatedOperacaoMetaRelatoriosRoute
   '/_authenticated/operacao-meta/tendencias': typeof AuthenticatedOperacaoMetaTendenciasRoute
@@ -362,6 +371,7 @@ export interface FileRouteTypes {
     | '/services-todo'
     | '/telao'
     | '/whatsapp'
+    | '/white-label'
     | '/operacao-meta/produtores'
     | '/operacao-meta/relatorios'
     | '/operacao-meta/tendencias'
@@ -396,6 +406,7 @@ export interface FileRouteTypes {
     | '/services-todo'
     | '/telao'
     | '/whatsapp'
+    | '/white-label'
     | '/operacao-meta/produtores'
     | '/operacao-meta/relatorios'
     | '/operacao-meta/tendencias'
@@ -432,6 +443,7 @@ export interface FileRouteTypes {
     | '/_authenticated/services-todo'
     | '/_authenticated/telao'
     | '/_authenticated/whatsapp'
+    | '/_authenticated/white-label'
     | '/_authenticated/operacao-meta/produtores'
     | '/_authenticated/operacao-meta/relatorios'
     | '/_authenticated/operacao-meta/tendencias'
@@ -489,6 +501,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/_authenticated/white-label': {
+      id: '/_authenticated/white-label'
+      path: '/white-label'
+      fullPath: '/white-label'
+      preLoaderRoute: typeof AuthenticatedWhiteLabelRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/whatsapp': {
       id: '/_authenticated/whatsapp'
@@ -743,6 +762,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedServicesTodoRoute: typeof AuthenticatedServicesTodoRoute
   AuthenticatedTelaoRoute: typeof AuthenticatedTelaoRoute
   AuthenticatedWhatsappRoute: typeof AuthenticatedWhatsappRoute
+  AuthenticatedWhiteLabelRoute: typeof AuthenticatedWhiteLabelRoute
   AuthenticatedPastasArquivosFolderIdRoute: typeof AuthenticatedPastasArquivosFolderIdRoute
   AuthenticatedPastasArquivosIndexRoute: typeof AuthenticatedPastasArquivosIndexRoute
 }
@@ -768,6 +788,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedServicesTodoRoute: AuthenticatedServicesTodoRoute,
   AuthenticatedTelaoRoute: AuthenticatedTelaoRoute,
   AuthenticatedWhatsappRoute: AuthenticatedWhatsappRoute,
+  AuthenticatedWhiteLabelRoute: AuthenticatedWhiteLabelRoute,
   AuthenticatedPastasArquivosFolderIdRoute:
     AuthenticatedPastasArquivosFolderIdRoute,
   AuthenticatedPastasArquivosIndexRoute: AuthenticatedPastasArquivosIndexRoute,
@@ -788,13 +809,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}

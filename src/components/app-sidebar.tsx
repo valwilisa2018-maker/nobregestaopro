@@ -52,6 +52,7 @@ const groups = [
       { title: "Backup", url: "/backup", icon: Database },
       { title: "Conectar WhatsApp", url: "/whatsapp", icon: Smartphone },
       { title: "Auditoria", url: "/auditoria", icon: ShieldCheck },
+      { title: "Personalização", url: "/white-label", icon: Sparkles },
       { title: "Configurações", url: "/admin", icon: Settings },
     ],
   },
