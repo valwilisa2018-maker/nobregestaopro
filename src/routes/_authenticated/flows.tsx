@@ -628,10 +628,10 @@ function Builder() {
               pannable
               zoomable
               position="bottom-right"
-              maskColor="rgba(0,0,0,0.5)"
-              bgColor="hsl(var(--background))"
-              nodeColor={() => "hsl(var(--primary))"}
-              nodeStrokeColor="hsl(var(--primary))"
+              maskColor="color-mix(in oklch, var(--foreground) 12%, transparent)"
+              bgColor="var(--background)"
+              nodeColor={() => "var(--primary)"}
+              nodeStrokeColor="var(--primary)"
               nodeStrokeWidth={3}
               nodeBorderRadius={2}
               style={{ border: "none" }}

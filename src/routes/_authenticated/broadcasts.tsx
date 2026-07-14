@@ -744,7 +744,7 @@ function BroadcastsPage() {
                   )}
                   <div className="space-y-1">
                     {(Array.isArray(r.timeline) ? r.timeline : []).map((ev: any, i: number) => (
-                      <div key={i} className="text-xs flex items-start gap-2 border-l-2 pl-2" style={{ borderColor: ev.status === "error" ? "hsl(var(--destructive))" : "hsl(var(--primary))" }}>
+                      <div key={i} className="text-xs flex items-start gap-2 border-l-2 pl-2" style={{ borderColor: ev.status === "error" ? "var(--destructive)" : "var(--primary)" }}>
                         <span className="text-muted-foreground shrink-0">{new Date(ev.at).toLocaleString("pt-BR")}</span>
                         <span className="capitalize font-medium">Etapa {(ev.step ?? 0) + 1} · {ev.status}</span>
                         {ev.error && <span className="text-destructive">— {ev.error}</span>}

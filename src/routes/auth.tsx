@@ -283,7 +283,7 @@ function CaptchaField({
       <div className="flex items-center justify-center gap-2">
         <div
           className="select-none rounded-md border border-primary/40 bg-gradient-to-br from-primary/15 to-primary/5 px-4 py-2 font-mono text-lg font-bold tracking-widest italic text-primary"
-          style={{ textShadow: "1px 1px 0 hsl(var(--primary) / 0.35)", letterSpacing: "0.25em" }}
+          style={{ textShadow: "1px 1px 0 color-mix(in oklch, var(--primary) 35%, transparent)", letterSpacing: "0.25em" }}
         >
           {captcha.a} + {captcha.b} = ?
         </div>

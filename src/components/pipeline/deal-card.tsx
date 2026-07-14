@@ -9,13 +9,13 @@ import { ptBR } from "date-fns/locale";
 
 export function DealCard({ deal, onClick, stageColor }: { deal: Deal; onClick: () => void; stageColor?: string }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: deal.id });
-  const color = stageColor || "hsl(var(--primary))";
+  const color = stageColor || "var(--primary)";
   const style = {
     transform: CSS.Translate.toString(transform),
     transition,
     opacity: isDragging ? 0.5 : 1,
     borderLeft: `3px solid ${color}`,
-    background: `linear-gradient(180deg, ${color}14, hsl(var(--card) / 0.8))`,
+    background: `linear-gradient(180deg, color-mix(in oklch, ${color} 8%, transparent), color-mix(in oklch, var(--card) 80%, transparent))`,
   } satisfies CSSProperties;
 
   return (
