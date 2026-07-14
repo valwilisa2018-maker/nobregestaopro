@@ -1,4 +1,5 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { PageHero } from "@/components/page-hero";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -219,11 +220,12 @@ function PastasArquivosPage() {
 
   return (
     <div className="p-6 space-y-4">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold flex items-center gap-2">
-          <FolderOpen className="w-6 h-6 text-primary" /> Pastas e Arquivos
-        </h1>
-        <div className="flex items-center gap-2">
+      <PageHero
+        eyebrow="Arquivos"
+        icon={FolderOpen}
+        title="Pastas e Arquivos"
+        actions={
+          <div className="flex items-center gap-2">
         {selected.size > 0 && (
           <Button variant="destructive" onClick={() => deleteFolders(Array.from(selected))}>
             <Trash2 className="w-4 h-4 mr-1" /> Excluir ({selected.size})
@@ -267,7 +269,8 @@ function PastasArquivosPage() {
           </DialogContent>
         </Dialog>
         </div>
-      </div>
+        }
+      />
 
       <div className="flex flex-wrap gap-2 items-center">
         <div className="relative">

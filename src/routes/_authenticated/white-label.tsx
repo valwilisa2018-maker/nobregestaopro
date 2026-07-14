@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { PageHero } from "@/components/page-hero";
 import { useEffect, useRef, useState, useCallback } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -127,17 +128,12 @@ function WhiteLabelPage() {
 
   return (
     <div className="p-4 md:p-8 max-w-7xl mx-auto space-y-6">
-      <header className="flex items-center gap-3">
-        <div className="w-11 h-11 rounded-xl bg-primary/10 grid place-items-center">
-          <Settings className="w-5 h-5 text-primary" />
-        </div>
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">Personalização Visual</h1>
-          <p className="text-sm text-muted-foreground">
-            Ajuste logo, cores e tema. Alterações aparecem em tempo real.
-          </p>
-        </div>
-      </header>
+      <PageHero
+        eyebrow="Aparência"
+        icon={Settings}
+        title="Personalização Visual"
+        description="Ajuste logo, cores e tema. Alterações aparecem em tempo real."
+      />
 
       <div className="grid gap-6 lg:grid-cols-[1fr_420px]">
         {/* CONTROLES */}

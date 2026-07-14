@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { PageHero } from "@/components/page-hero";
 import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
@@ -388,15 +389,12 @@ function WhatsAppConnectPage() {
 
   return (
     <div className="container mx-auto max-w-3xl py-8 space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold flex items-center gap-2">
-          <Smartphone className="h-7 w-7" /> Conectar WhatsApp
-        </h1>
-        <p className="text-muted-foreground mt-1">
-          Conecte um número via Evolution API. Escaneie o QR Code com o WhatsApp do celular que vai
-          ser o número-robô.
-        </p>
-      </div>
+      <PageHero
+        eyebrow="Integração"
+        icon={Smartphone}
+        title="Conectar WhatsApp"
+        description="Conecte um número via Evolution API. Escaneie o QR Code com o WhatsApp do celular que vai ser o número-robô."
+      />
 
       <Card>
         <CardHeader>
