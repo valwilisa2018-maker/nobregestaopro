@@ -13,6 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Switch } from "@/components/ui/switch";
 import { Plus, Loader2, FileText, Clock, Send, ListTodo, CheckCircle2, XCircle, Search, Paperclip, Download, ExternalLink, MessageCircle } from "lucide-react";
+import { PageHero } from "@/components/page-hero";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { formatCurrency } from "@/lib/auth";
@@ -304,15 +305,19 @@ function InvoicesPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between gap-4 flex-wrap">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Notas Fiscais</h1>
-          <p className="text-muted-foreground">Controle fiscal por cliente e status</p>
-        </div>
-        <div className="flex gap-2">
-        <Button variant="outline" onClick={exportCsv}><Download className="w-4 h-4 mr-2" />Exportar</Button>
-        <Dialog open={open} onOpenChange={openDialog}>
-          <DialogTrigger asChild><Button><Plus className="w-4 h-4 mr-2" />Nova nota</Button></DialogTrigger>
+      <PageHero
+        eyebrow="Fiscal"
+        icon={FileText}
+        title="Notas Fiscais"
+        description="Controle fiscal por cliente e status"
+        actions={
+          <>
+            <Button variant="outline" onClick={exportCsv}><Download className="w-4 h-4 mr-2" />Exportar</Button>
+            <Button variant="premium" onClick={() => openDialog(true)}><Plus className="w-4 h-4 mr-2" />Nova nota</Button>
+          </>
+        }
+      />
+      <Dialog open={open} onOpenChange={openDialog}>
           <DialogContent className="max-w-xl">
             <DialogHeader><DialogTitle>Nova nota fiscal</DialogTitle></DialogHeader>
             <div className="grid grid-cols-2 gap-3">
@@ -373,8 +378,6 @@ function InvoicesPage() {
             </DialogFooter>
           </DialogContent>
         </Dialog>
-        </div>
-      </div>
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         {summaryCards.map((c) => {

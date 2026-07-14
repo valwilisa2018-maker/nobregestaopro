@@ -23,6 +23,7 @@ import {
   PieChart, Pie, Cell, XAxis, YAxis, Tooltip, CartesianGrid, Legend,
 } from "recharts";
 import { formatCurrency } from "@/lib/auth";
+import { PageHero } from "@/components/page-hero";
 import { fmtDate } from "@/lib/format";
 import { toast } from "sonner";
 
@@ -458,20 +459,20 @@ function FinancePage() {
   // ---------- Render ----------
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between flex-wrap gap-3">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Financeiro</h1>
-          <p className="text-muted-foreground">Dashboard, entradas, despesas, caixa e relatórios</p>
-        </div>
-        <div className="flex items-center gap-2">
+      <PageHero
+        eyebrow="Financeiro"
+        icon={TrendingUp}
+        title="Financeiro"
+        description="Dashboard, entradas, despesas, caixa e relatórios"
+        actions={
           <Badge
             className={noLucro ? "bg-emerald-500/15 text-emerald-500 border-emerald-500/30" : "bg-red-500/15 text-red-500 border-red-500/30"}
           >
             {noLucro ? <TrendingUp className="w-3 h-3 mr-1" /> : <TrendingDown className="w-3 h-3 mr-1" />}
             {noLucro ? "No lucro" : "No vermelho"}
           </Badge>
-        </div>
-      </div>
+        }
+      />
 
       {/* Period filter */}
       <Card className="border-border/50" style={{ boxShadow: "var(--shadow-card)" }}>

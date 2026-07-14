@@ -9,7 +9,8 @@ import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Trash2, Pencil, ImagePlus, LayoutGrid, List } from "lucide-react";
+import { Plus, Trash2, Pencil, ImagePlus, LayoutGrid, List, Users } from "lucide-react";
+import { PageHero } from "@/components/page-hero";
 import { toast } from "sonner";
 import { formatCurrency } from "@/lib/auth";
 
@@ -124,15 +125,22 @@ function SellersPage() {
   };
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div><h1 className="text-3xl font-bold tracking-tight">Vendedores</h1><p className="text-muted-foreground">Equipe comercial</p></div>
-        <div className="flex items-center gap-2">
-          <div className="flex items-center bg-muted rounded-lg p-1 mr-2">
-            <Button variant={viewMode === "table" ? "secondary" : "ghost"} size="sm" className="h-8 w-8 p-0" onClick={() => setViewMode("table")}><List className="h-4 w-4" /></Button>
-            <Button variant={viewMode === "card" ? "secondary" : "ghost"} size="sm" className="h-8 w-8 p-0" onClick={() => setViewMode("card")}><LayoutGrid className="h-4 w-4" /></Button>
-          </div>
-          <Dialog open={open} onOpenChange={setOpen}>
-            <DialogTrigger asChild><Button onClick={openNew}><Plus className="w-4 h-4 mr-2" />Novo vendedor</Button></DialogTrigger>
+      <PageHero
+        eyebrow="Comercial"
+        icon={Users}
+        title="Vendedores"
+        description="Equipe comercial"
+        actions={
+          <>
+            <div className="flex items-center bg-muted rounded-lg p-1">
+              <Button variant={viewMode === "table" ? "secondary" : "ghost"} size="sm" className="h-8 w-8 p-0" onClick={() => setViewMode("table")}><List className="h-4 w-4" /></Button>
+              <Button variant={viewMode === "card" ? "secondary" : "ghost"} size="sm" className="h-8 w-8 p-0" onClick={() => setViewMode("card")}><LayoutGrid className="h-4 w-4" /></Button>
+            </div>
+            <Button variant="premium" onClick={openNew}><Plus className="w-4 h-4 mr-2" />Novo vendedor</Button>
+          </>
+        }
+      />
+      <Dialog open={open} onOpenChange={setOpen}>
           <DialogContent><DialogHeader><DialogTitle>{form.id ? "Editar vendedor" : "Novo vendedor"}</DialogTitle></DialogHeader>
             <div className="space-y-3">
               <div className="flex items-center gap-3">
@@ -163,8 +171,6 @@ function SellersPage() {
             <DialogFooter><Button onClick={save}>Salvar</Button></DialogFooter>
           </DialogContent>
         </Dialog>
-      </div>
-      </div>
 
       {viewMode === "table" ? (
         <Card className="border-border/50" style={{ boxShadow: "var(--shadow-card)" }}><CardContent className="p-0">
