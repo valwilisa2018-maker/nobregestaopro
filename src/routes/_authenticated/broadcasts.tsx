@@ -799,6 +799,18 @@ function Stat({ label, value, tone }: { label: string; value: number | string; t
   );
 }
 
+function HeroStat({ icon, label, value, accent }: { icon: React.ReactNode; label: string; value: number | string; accent?: boolean }) {
+  return (
+    <div className={`relative overflow-hidden rounded-xl border p-3 backdrop-blur ${accent ? "border-primary/40 bg-primary/10" : "border-border/60 bg-card/60"}`}>
+      <div className="flex items-center gap-2 text-xs text-muted-foreground">
+        <span className={`h-6 w-6 rounded-md flex items-center justify-center ${accent ? "bg-primary/20 text-primary" : "bg-muted text-foreground/70"}`}>{icon}</span>
+        <span className="uppercase tracking-wide">{label}</span>
+      </div>
+      <div className={`mt-1 text-2xl font-bold tabular-nums ${accent ? "text-primary" : ""}`}>{value}</div>
+    </div>
+  );
+}
+
 function Toggle({ label, v, set }: { label: string; v: boolean; set: (b: boolean) => void }) {
   return <label className="flex items-center gap-3 border rounded-lg p-3 cursor-pointer"><Switch checked={v} onCheckedChange={set} /><span className="text-sm">{label}</span></label>;
 }
