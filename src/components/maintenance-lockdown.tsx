@@ -89,13 +89,13 @@ function LockdownScreen({ lock, logoUrl }: { lock: Lock; logoUrl: string }) {
     { icon: Heart, title: "Sempre por Você", text: "Nossa missão é oferecer o melhor suporte e experiência." },
   ];
   return (
-    <div className="relative min-h-screen w-full overflow-hidden bg-[#07061a] px-4 py-8 sm:py-12">
+    <div className="relative min-h-screen w-full overflow-hidden bg-card px-4 py-8 sm:py-12">
 
       <div className="relative mx-auto flex w-full max-w-3xl flex-col items-center text-center">
         <img
           src={logoUrl}
           alt="Agent IA"
-          className="h-20 w-20 sm:h-24 sm:w-24 rounded-2xl object-cover ring-1 ring-white/10"
+          className="h-20 w-20 sm:h-24 sm:w-24 rounded-2xl object-cover ring-1 ring-border"
           onError={(e) => { (e.currentTarget as HTMLImageElement).src = logoAsset.url; }}
         />
         <div className="mt-3 text-[10px] sm:text-xs tracking-[0.35em] text-foreground/60">PLATAFORMA INTELIGENTE</div>

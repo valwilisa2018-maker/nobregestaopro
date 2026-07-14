@@ -96,7 +96,7 @@ function ResetPasswordPage() {
   }
 
   return (
-    <div className="relative min-h-[100dvh] grid place-items-center overflow-hidden bg-[#05070d] p-4">
+    <div className="relative min-h-[100dvh] grid place-items-center overflow-hidden bg-background p-4">
       {/* Ambient glow */}
       <div className="pointer-events-none absolute inset-0">
         <div className="absolute -top-32 -left-32 h-96 w-96 rounded-full bg-blue-600/20 blur-3xl" />

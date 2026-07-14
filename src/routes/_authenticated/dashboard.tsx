@@ -292,7 +292,7 @@ function Dashboard() {
   return (
     <div className="space-y-6 animate-fade-in">
       {/* Hero */}
-      <div className="relative overflow-hidden rounded-3xl border border-border bg-[#05070d] px-6 py-4 md:px-8 md:py-5">
+      <div className="relative overflow-hidden rounded-3xl border border-border bg-background px-6 py-4 md:px-8 md:py-5">
         <div className="absolute inset-0 opacity-70" style={{ background: "radial-gradient(1200px 300px at 20% 0%, rgba(59,130,246,0.18), transparent 60%), radial-gradient(800px 260px at 90% 100%, rgba(168,85,247,0.16), transparent 60%)" }} />
         <div className="relative flex flex-col xl:flex-row xl:items-center xl:justify-between gap-4">
           <div className="min-w-0 space-y-2 flex-1">
