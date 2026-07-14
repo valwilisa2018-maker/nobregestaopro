@@ -88,9 +88,23 @@ function AuthLayout() {
       <div className="min-h-screen flex w-full bg-background">
         <AppSidebar />
         <SidebarInset className="flex-1 min-w-0">
-          <header className="h-14 flex items-center gap-3 border-b border-border/60 px-4 sticky top-0 z-10 bg-background/80 backdrop-blur">
-            <SidebarTrigger />
-            <div className="text-sm text-muted-foreground">Gestão Nobre MKT</div>
+          <header className="h-16 flex items-center gap-3 border-b border-border/40 px-4 md:px-6 sticky top-0 z-20 bg-background/70 backdrop-blur-xl supports-[backdrop-filter]:bg-background/60">
+            <SidebarTrigger className="rounded-lg hover:bg-accent/60 transition-colors duration-200" />
+            <div className="h-6 w-px bg-border/60" />
+            <div className="flex flex-col leading-tight min-w-0">
+              <span className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+                Workspace
+              </span>
+              <span className="text-sm font-semibold tracking-tight truncate">
+                Gestão Nobre MKT
+              </span>
+            </div>
+            <div className="ml-auto flex items-center gap-2">
+              <span className="hidden sm:inline-flex items-center gap-1.5 rounded-full border border-border/60 bg-card/60 px-2.5 py-1 text-[10px] font-medium uppercase tracking-wider text-muted-foreground backdrop-blur">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                Online
+              </span>
+            </div>
           </header>
           <main className="flex-1 min-w-0 p-4 md:p-6 overflow-x-hidden">
             <Outlet />
