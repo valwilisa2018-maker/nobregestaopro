@@ -226,6 +226,19 @@ function SalesPage() {
     retryDelay: (attempt) => Math.min(1000 * 2 ** attempt, 10000),
   });
 
+  const totalVendasHoje = useMemo(() => {
+    const list = (salesList as any[]) ?? [];
+    const today = new Date();
+    const y = today.getFullYear();
+    const m = String(today.getMonth() + 1).padStart(2, "0");
+    const d = String(today.getDate()).padStart(2, "0");
+    const todayStr = `${y}-${m}-${d}`;
+    return list.reduce((sum, s: any) => {
+      const sd = String(s?.sale_date ?? "").slice(0, 10);
+      return sd === todayStr ? sum + Number(s?.total_amount ?? 0) : sum;
+    }, 0);
+  }, [salesList]);
+
   const sellers = useQuery({ queryKey: ["sellers-all"], queryFn: async () => {
     const { data, error } = await supabase.from("sellers").select("id,name").eq("active", true);
     if (error) { toast.error("Erro ao carregar vendedores"); throw error; }
