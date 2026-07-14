@@ -53,7 +53,7 @@ function buildRange(key: string, custom?: { from?: string; to?: string }): Range
   }
 }
 
-const CHART_COLORS = ["hsl(var(--primary))", "hsl(var(--accent))", "#22c55e", "#f59e0b", "#ef4444", "#06b6d4", "#a855f7", "#ec4899", "#84cc16", "#f97316", "#3b82f6", "#eab308"];
+const CHART_COLORS = ["var(--primary)", "var(--accent)", "#22c55e", "#f59e0b", "#ef4444", "#06b6d4", "#a855f7", "#ec4899", "#84cc16", "#f97316", "#3b82f6", "#eab308"];
 
 function DonutWithLegend({ data }: { data: Array<{ name: string; value: number }> }) {
   const total = data.reduce((a, x) => a + x.value, 0);
@@ -64,10 +64,10 @@ function DonutWithLegend({ data }: { data: Array<{ name: string; value: number }
           <PieChart>
             <Pie data={data.length ? data : [{ name: "—", value: 1 }]} dataKey="value" nameKey="name" innerRadius={48} outerRadius={68} paddingAngle={2} stroke="none">
               {(data.length ? data : [{ name: "—", value: 1 }]).map((_, i) => (
-                <Cell key={i} fill={data.length ? CHART_COLORS[i % CHART_COLORS.length] : "hsl(var(--muted))"} />
+                <Cell key={i} fill={data.length ? CHART_COLORS[i % CHART_COLORS.length] : "var(--muted)"} />
               ))}
             </Pie>
-            {data.length > 0 && <Tooltip contentStyle={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: 8 }} />}
+            {data.length > 0 && <Tooltip contentStyle={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: 8 }} />}
           </PieChart>
         </ResponsiveContainer>
         <div className="absolute inset-0 grid place-items-center pointer-events-none">
@@ -417,16 +417,16 @@ function Dashboard() {
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart data={d?.series ?? []}>
                 <defs>
-                  <linearGradient id="gIn" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="hsl(var(--primary))" stopOpacity={0.5} /><stop offset="100%" stopColor="hsl(var(--primary))" stopOpacity={0} /></linearGradient>
-                  <linearGradient id="gOut" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="hsl(var(--accent))" stopOpacity={0.5} /><stop offset="100%" stopColor="hsl(var(--accent))" stopOpacity={0} /></linearGradient>
+                  <linearGradient id="gIn" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="var(--primary)" stopOpacity={0.5} /><stop offset="100%" stopColor="var(--primary)" stopOpacity={0} /></linearGradient>
+                  <linearGradient id="gOut" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="var(--accent)" stopOpacity={0.5} /><stop offset="100%" stopColor="var(--accent)" stopOpacity={0} /></linearGradient>
                 </defs>
                 <CartesianGrid strokeDasharray="3 3" opacity={0.2} />
                 <XAxis dataKey="label" fontSize={11} />
                 <YAxis fontSize={11} />
-                <Tooltip contentStyle={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: 8 }} />
+                <Tooltip contentStyle={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: 8 }} />
                 <Legend />
-                <Area type="monotone" dataKey="inbound" name="Recebidas" stroke="hsl(var(--primary))" fill="url(#gIn)" />
-                <Area type="monotone" dataKey="outbound" name="Enviadas" stroke="hsl(var(--accent))" fill="url(#gOut)" />
+                <Area type="monotone" dataKey="inbound" name="Recebidas" stroke="var(--primary)" fill="url(#gIn)" />
+                <Area type="monotone" dataKey="outbound" name="Enviadas" stroke="var(--accent)" fill="url(#gOut)" />
               </AreaChart>
             </ResponsiveContainer>
           </CardContent>
@@ -445,7 +445,7 @@ function Dashboard() {
                     <Pie data={(d?.pipeline.stageAgg ?? []).filter((s) => s.value > 0)} dataKey="value" nameKey="name" innerRadius={55} outerRadius={78} paddingAngle={2} stroke="none">
                       {(d?.pipeline.stageAgg ?? []).map((s, i) => <Cell key={s.id} fill={s.color || CHART_COLORS[i % CHART_COLORS.length]} />)}
                     </Pie>
-                    <Tooltip formatter={(v: number) => cf.format(v)} contentStyle={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: 8 }} />
+                    <Tooltip formatter={(v: number) => cf.format(v)} contentStyle={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: 8 }} />
                   </PieChart>
                 </ResponsiveContainer>
                 <div className="absolute inset-0 grid place-items-center pointer-events-none">
@@ -509,9 +509,9 @@ function Dashboard() {
                 <XAxis dataKey="label" fontSize={11} />
                 <YAxis yAxisId="left" fontSize={11} />
                 <YAxis yAxisId="right" orientation="right" fontSize={11} />
-                <Tooltip contentStyle={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: 8 }} />
+                <Tooltip contentStyle={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: 8 }} />
                 <Legend />
-                <Bar yAxisId="left" dataKey="tokens" name="Tokens" fill="hsl(var(--primary))" radius={[6, 6, 0, 0]} barSize={14} />
+                <Bar yAxisId="left" dataKey="tokens" name="Tokens" fill="var(--primary)" radius={[6, 6, 0, 0]} barSize={14} />
                 <Line yAxisId="right" type="monotone" dataKey="cost" name="Custo (R$)" stroke="#f59e0b" strokeWidth={2} dot={{ r: 3 }} />
               </ComposedChart>
             </ResponsiveContainer>

@@ -152,7 +152,7 @@ function Page() {
 
   // Pizza: composição da receita
   const pieData = useMemo(() => ([
-    { name: "Planos pagos", value: plansPaid / 100, color: "hsl(var(--primary))" },
+    { name: "Planos pagos", value: plansPaid / 100, color: "var(--primary)" },
     { name: "Créditos pagos", value: creditsPaid / 100, color: "hsl(142 76% 45%)" },
     { name: "Planos pendentes", value: plansPending / 100, color: "hsl(48 96% 53%)" },
     { name: "Créditos pendentes", value: creditsPending / 100, color: "hsl(24 95% 53%)" },
@@ -165,7 +165,7 @@ function Page() {
       const k = u.model || "desconhecido";
       map.set(k, (map.get(k) || 0) + (u.cost_cents ?? 0));
     }
-    const palette = ["hsl(var(--primary))", "hsl(280 80% 60%)", "hsl(200 80% 55%)", "hsl(340 80% 60%)", "hsl(48 96% 53%)", "hsl(142 70% 45%)"];
+    const palette = ["var(--primary)", "hsl(280 80% 60%)", "hsl(200 80% 55%)", "hsl(340 80% 60%)", "hsl(48 96% 53%)", "hsl(142 70% 45%)"];
     return Array.from(map.entries())
       .sort((a,b) => b[1] - a[1])
       .slice(0, 6)
@@ -336,17 +336,17 @@ function Page() {
                         <stop offset="100%" stopColor="hsl(0 84% 60%)" stopOpacity={0} />
                       </linearGradient>
                     </defs>
-                    <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                    <XAxis dataKey="dia" stroke="hsl(var(--muted-foreground))" fontSize={11} />
-                    <YAxis stroke="hsl(var(--muted-foreground))" fontSize={11} tickFormatter={(v) => `R$${v}`} />
+                    <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
+                    <XAxis dataKey="dia" stroke="var(--muted-foreground)" fontSize={11} />
+                    <YAxis stroke="var(--muted-foreground)" fontSize={11} tickFormatter={(v) => `R$${v}`} />
                     <Tooltip
-                      contentStyle={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: 8 }}
+                      contentStyle={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: 8 }}
                       formatter={(v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
                     />
                     <Legend wrapperStyle={{ fontSize: 12 }} />
                     <Area type="monotone" name="Entradas" dataKey="entrada" stroke="hsl(142 76% 45%)" fill="url(#entrada)" strokeWidth={2} />
                     <Area type="monotone" name="Saídas" dataKey="saida" stroke="hsl(0 84% 60%)" fill="url(#saida)" strokeWidth={2} />
-                    <Line type="monotone" name="Lucro" dataKey="lucro" stroke="hsl(var(--primary))" strokeWidth={2} dot={false} />
+                    <Line type="monotone" name="Lucro" dataKey="lucro" stroke="var(--primary)" strokeWidth={2} dot={false} />
                   </ComposedChart>
                 </ResponsiveContainer>
               </div>
@@ -367,7 +367,7 @@ function Page() {
                           {pieData.map((e, i) => <Cell key={i} fill={e.color} />)}
                         </Pie>
                         <Tooltip
-                          contentStyle={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: 8 }}
+                          contentStyle={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: 8 }}
                           formatter={(v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
                         />
                         <Legend wrapperStyle={{ fontSize: 11 }} />
@@ -390,7 +390,7 @@ function Page() {
                           {modelPieData.map((e, i) => <Cell key={i} fill={e.color} />)}
                         </Pie>
                         <Tooltip
-                          contentStyle={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: 8 }}
+                          contentStyle={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: 8 }}
                           formatter={(v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
                         />
                       </PieChart>
@@ -409,18 +409,18 @@ function Page() {
                   <AreaChart data={chartData} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
                     <defs>
                       <linearGradient id="rev" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stopColor="hsl(var(--primary))" stopOpacity={0.5} />
-                        <stop offset="100%" stopColor="hsl(var(--primary))" stopOpacity={0} />
+                        <stop offset="0%" stopColor="var(--primary)" stopOpacity={0.5} />
+                        <stop offset="100%" stopColor="var(--primary)" stopOpacity={0} />
                       </linearGradient>
                     </defs>
-                    <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                    <XAxis dataKey="mes" stroke="hsl(var(--muted-foreground))" fontSize={12} />
-                    <YAxis stroke="hsl(var(--muted-foreground))" fontSize={12} tickFormatter={(v) => `R$${v}`} />
+                    <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
+                    <XAxis dataKey="mes" stroke="var(--muted-foreground)" fontSize={12} />
+                    <YAxis stroke="var(--muted-foreground)" fontSize={12} tickFormatter={(v) => `R$${v}`} />
                     <Tooltip
-                      contentStyle={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: 8 }}
+                      contentStyle={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: 8 }}
                       formatter={(v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
                     />
-                    <Area type="monotone" dataKey="valor" stroke="hsl(var(--primary))" fill="url(#rev)" strokeWidth={2} />
+                    <Area type="monotone" dataKey="valor" stroke="var(--primary)" fill="url(#rev)" strokeWidth={2} />
                   </AreaChart>
                 </ResponsiveContainer>
               </div>
@@ -433,11 +433,11 @@ function Page() {
               <div className="h-64">
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart data={dailyData} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                    <XAxis dataKey="dia" stroke="hsl(var(--muted-foreground))" fontSize={11} />
-                    <YAxis stroke="hsl(var(--muted-foreground))" fontSize={11} tickFormatter={(v) => `R$${v}`} />
+                    <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
+                    <XAxis dataKey="dia" stroke="var(--muted-foreground)" fontSize={11} />
+                    <YAxis stroke="var(--muted-foreground)" fontSize={11} tickFormatter={(v) => `R$${v}`} />
                     <Tooltip
-                      contentStyle={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: 8 }}
+                      contentStyle={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: 8 }}
                       formatter={(v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
                     />
                     <Legend wrapperStyle={{ fontSize: 12 }} />
