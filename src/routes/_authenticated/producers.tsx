@@ -129,7 +129,6 @@ export const Route = createFileRoute("/_authenticated/producers")({
             </DialogContent>
             </Dialog>
           </div>
-        </div>
         <Dialog open={!!editing} onOpenChange={(o) => !o && setEditing(null)}>
           <DialogContent>
             <DialogHeader><DialogTitle>Editar produtor</DialogTitle></DialogHeader>
