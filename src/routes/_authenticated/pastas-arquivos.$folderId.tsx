@@ -755,7 +755,11 @@ function RoteiroEditor({
       try {
         const url = await getSignedUrl(item.file_url);
         const name = (item.file_name ?? "").toLowerCase();
-        const isDocx = /\.docx$/i.test(name) || (item.file_type ?? "").includes("officedocument.wordprocessingml");
+        const mime = (item.file_type ?? "").toLowerCase();
+        // Prioriza o file_type: se já foi salvo como text/html (roteiro editado),
+        // não tenta parsear como .docx mesmo que a extensão original ainda seja .docx.
+        const isHtml = mime === "text/html" || mime.startsWith("text/");
+        const isDocx = !isHtml && (/\.docx$/i.test(name) || mime.includes("officedocument.wordprocessingml"));
         if (isDocx) {
           const buf = await fetch(url).then((r) => r.arrayBuffer());
           // @ts-expect-error - no types for browser bundle
