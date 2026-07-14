@@ -163,3 +163,56 @@
   60% { transform: rotate(-6deg); }
   80% { transform: rotate(4deg); }
 }
+
+/*
+ * Light-mode compatibility layer.
+ * Many components hardcode dark utilities (bg-black, text-white, slate-9xx…)
+ * baked for the dark theme. In light mode, remap them to readable values so
+ * the whole platform switches consistently without touching every file.
+ */
+html:not(.dark) {
+  .bg-black,
+  .bg-slate-950, .bg-slate-900, .bg-slate-800,
+  .bg-zinc-950, .bg-zinc-900, .bg-zinc-800,
+  .bg-neutral-950, .bg-neutral-900, .bg-neutral-800,
+  .bg-gray-950, .bg-gray-900, .bg-gray-800 {
+    background-color: var(--card) !important;
+  }
+
+  .text-white,
+  .text-slate-50, .text-slate-100, .text-slate-200,
+  .text-zinc-50, .text-zinc-100, .text-zinc-200,
+  .text-neutral-50, .text-neutral-100, .text-neutral-200,
+  .text-gray-50, .text-gray-100, .text-gray-200 {
+    color: var(--foreground) !important;
+  }
+
+  .text-slate-300, .text-slate-400, .text-slate-500,
+  .text-zinc-300, .text-zinc-400, .text-zinc-500,
+  .text-neutral-300, .text-neutral-400, .text-neutral-500,
+  .text-gray-300, .text-gray-400, .text-gray-500 {
+    color: var(--muted-foreground) !important;
+  }
+
+  .border-white\/5, .border-white\/10, .border-white\/20,
+  .border-slate-800, .border-slate-900, .border-slate-700,
+  .border-zinc-800, .border-zinc-900, .border-zinc-700,
+  .border-neutral-800, .border-neutral-900,
+  .border-gray-800, .border-gray-900 {
+    border-color: var(--border) !important;
+  }
+
+  .bg-white\/5, .bg-white\/10 {
+    background-color: color-mix(in oklab, var(--foreground) 5%, transparent) !important;
+  }
+
+  [class*="from-slate-9"], [class*="from-black"],
+  [class*="via-slate-9"],
+  [class*="to-slate-9"], [class*="to-black"],
+  [class*="from-zinc-9"], [class*="to-zinc-9"],
+  [class*="from-neutral-9"], [class*="to-neutral-9"] {
+    --tw-gradient-from: var(--card) !important;
+    --tw-gradient-via: var(--muted) !important;
+    --tw-gradient-to: var(--card) !important;
+  }
+}
