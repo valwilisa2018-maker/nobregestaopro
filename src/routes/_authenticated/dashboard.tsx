@@ -294,7 +294,6 @@ function Dashboard() {
       {/* Hero */}
       <div className="relative overflow-hidden rounded-3xl border border-white/10 bg-[#05070d] px-6 py-4 md:px-8 md:py-5">
         <div className="absolute inset-0 opacity-70" style={{ background: "radial-gradient(1200px 300px at 20% 0%, rgba(59,130,246,0.18), transparent 60%), radial-gradient(800px 260px at 90% 100%, rgba(168,85,247,0.16), transparent 60%)" }} />
-        <div className="absolute inset-0 pointer-events-none [background-image:linear-gradient(rgba(255,255,255,0.04)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.04)_1px,transparent_1px)] [background-size:32px_32px]" />
         <div className="relative flex flex-col xl:flex-row xl:items-center xl:justify-between gap-4">
           <div className="min-w-0 space-y-2 flex-1">
             <span className="inline-flex items-center gap-1.5 rounded-full border border-blue-400/40 bg-blue-500/10 px-2.5 py-0.5 text-[11px] font-semibold text-blue-300">
