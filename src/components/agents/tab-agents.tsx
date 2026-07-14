@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Bot, Plus, Zap, Sliders, Clock, Copy, Trash2, Loader2, ArrowLeft, ArrowRight, Hash } from "lucide-react";
+import { Bot, Plus, Zap, Sliders, Clock, Copy, Trash2, Loader2, ArrowLeft, ArrowRight, Hash, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
@@ -59,9 +59,9 @@ export function TabAgents() {
         </div>
         <Button
           onClick={() => setEditing(emptyAgent(user?.id ?? ""))}
-          className="rounded-xl px-4"
-          style={{ background: "var(--gradient-primary)", boxShadow: "var(--shadow-elegant)" }}
+          className="relative rounded-xl px-5 h-11 text-white font-semibold bg-gradient-to-r from-indigo-500 via-violet-500 to-purple-600 hover:from-indigo-400 hover:via-violet-400 hover:to-purple-500 shadow-[0_10px_40px_-10px_rgba(139,92,246,0.7)]"
         >
+          <Sparkles className="h-4 w-4 -ml-1 opacity-80" />
           <Plus className="h-4 w-4" /> Novo Agente
         </Button>
       </div>
@@ -69,17 +69,35 @@ export function TabAgents() {
       {loading ? (
         <div className="grid place-items-center py-16"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>
       ) : rows.length === 0 ? (
-        <div className="rounded-2xl border border-primary/30 bg-card/40 p-16 text-center space-y-4">
-          <div className="mx-auto grid h-16 w-16 place-items-center rounded-2xl bg-primary/10 text-primary/60">
-            <Bot className="h-8 w-8" />
+        <div className="relative overflow-hidden rounded-3xl border border-violet-500/30 bg-gradient-to-b from-card/40 via-card/20 to-background p-16 text-center">
+          {/* ambient glows */}
+          <div className="pointer-events-none absolute inset-0">
+            <div className="absolute left-10 top-10 h-40 w-40 rounded-full bg-violet-500/10 blur-3xl" />
+            <div className="absolute right-10 bottom-10 h-40 w-40 rounded-full bg-indigo-500/10 blur-3xl" />
           </div>
-          <div className="space-y-1">
-            <h3 className="text-lg font-semibold">Nenhum agente criado</h3>
-            <p className="text-sm text-muted-foreground">Crie seu primeiro agente de IA para começar</p>
+          <div className="relative space-y-6">
+            {/* robot with orbit rings */}
+            <div className="relative mx-auto h-40 w-40">
+              <div className="absolute inset-0 rounded-full border border-violet-500/20 animate-[spin_18s_linear_infinite]" />
+              <div className="absolute inset-4 rounded-full border border-indigo-500/20 animate-[spin_12s_linear_infinite_reverse]" />
+              <div className="absolute inset-0 rounded-full bg-violet-500/10 blur-2xl" />
+              <div className="absolute inset-8 grid place-items-center rounded-full bg-gradient-to-br from-indigo-500/20 to-violet-600/20 ring-1 ring-violet-400/30">
+                <Bot className="h-12 w-12 text-violet-300" />
+              </div>
+              <Sparkles className="absolute -right-1 top-6 h-3 w-3 text-violet-300/70" />
+              <Sparkles className="absolute -left-2 bottom-8 h-3 w-3 text-indigo-300/70" />
+            </div>
+            <div className="space-y-2">
+              <h3 className="text-2xl font-bold tracking-tight">Nenhum agente criado</h3>
+              <p className="text-sm text-muted-foreground">Crie seu primeiro agente de IA para começar</p>
+            </div>
+            <Button
+              onClick={() => setEditing(emptyAgent(user?.id ?? ""))}
+              className="rounded-2xl h-12 px-8 text-base font-semibold text-white bg-gradient-to-r from-indigo-500 via-violet-500 to-purple-600 hover:from-indigo-400 hover:via-violet-400 hover:to-purple-500 shadow-[0_20px_60px_-15px_rgba(139,92,246,0.8)]"
+            >
+              <Plus className="h-5 w-5" /> Criar Primeiro Agente
+            </Button>
           </div>
-          <Button onClick={() => setEditing(emptyAgent(user?.id ?? ""))} className="rounded-xl" style={{ background: "var(--gradient-primary)" }}>
-            <Plus className="h-4 w-4" /> Criar Primeiro Agente
-          </Button>
         </div>
       ) : (
         <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
