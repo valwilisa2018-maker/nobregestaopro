@@ -219,11 +219,12 @@ function PastasArquivosPage() {
 
   return (
     <div className="p-6 space-y-4">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold flex items-center gap-2">
-          <FolderOpen className="w-6 h-6 text-primary" /> Pastas e Arquivos
-        </h1>
-        <div className="flex items-center gap-2">
+      <PageHero
+        eyebrow="Arquivos"
+        icon={FolderOpen}
+        title="Pastas e Arquivos"
+        actions={
+          <div className="flex items-center gap-2">
         {selected.size > 0 && (
           <Button variant="destructive" onClick={() => deleteFolders(Array.from(selected))}>
             <Trash2 className="w-4 h-4 mr-1" /> Excluir ({selected.size})

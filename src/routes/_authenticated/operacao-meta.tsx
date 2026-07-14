@@ -65,18 +65,18 @@ function OperacaoMetaLayout() {
           }
         `}</style>
       )}
-      <div className="flex items-center justify-between flex-wrap gap-3">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight flex items-center gap-2">
-            <Clapperboard className="w-7 h-7 text-primary" /> Operação Metas
-          </h1>
-          <p className="text-muted-foreground text-sm">Painel premium de pontuação por produtor</p>
-        </div>
-        <Button variant="outline" size="sm" onClick={toggle} className="gap-2">
-          {theme === "dark" ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
-          {theme === "dark" ? "Modo claro" : "Modo escuro"}
-        </Button>
-      </div>
+      <PageHero
+        eyebrow="Metas"
+        icon={Clapperboard}
+        title="Operação Metas"
+        description="Painel premium de pontuação por produtor"
+        actions={
+          <Button variant="outline" size="sm" onClick={toggle} className="gap-2">
+            {theme === "dark" ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+            {theme === "dark" ? "Modo claro" : "Modo escuro"}
+          </Button>
+        }
+      />
 
       <Card className="border-border/50" style={{ boxShadow: "var(--shadow-card)" }}>
         <CardContent className="p-2">

@@ -105,15 +105,14 @@ function AuditoriaPage() {
 
   return (
     <div className="p-6 space-y-6 max-w-6xl mx-auto">
+      <PageHero
+        eyebrow="Diagnóstico"
+        icon={ShieldCheck}
+        title="Auditoria do Sistema"
+        description="Verifica cada menu da plataforma, faz health-check da rota correspondente e reporta status HTTP + latência."
+      />
       <div className="flex items-start justify-between gap-4 flex-wrap">
         <div>
-          <h1 className="text-2xl font-bold flex items-center gap-2">
-            <ShieldCheck className="w-6 h-6 text-primary" />
-            Auditoria do Sistema
-          </h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            Verifica cada menu da plataforma, faz health-check da rota correspondente e reporta status HTTP + latência.
-          </p>
           {lastRun && (
             <p className="text-xs text-muted-foreground mt-1">Última execução: {lastRun}</p>
           )}
