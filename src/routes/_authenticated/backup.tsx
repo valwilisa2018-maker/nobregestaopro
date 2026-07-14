@@ -132,10 +132,11 @@ function BackupPage() {
   }
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">Backup e Restauração</h1>
-        <p className="text-muted-foreground">Baixe um arquivo único com tudo e restaure quando precisar</p>
-      </div>
+      <PageHero
+        eyebrow="Sistema"
+        title="Backup e Restauração"
+        description="Baixe um arquivo único com tudo e restaure quando precisar"
+      />
 
       <Card className="border-border/50" style={{ boxShadow: "var(--shadow-card)" }}>
         <CardHeader>
