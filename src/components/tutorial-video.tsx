@@ -58,7 +58,7 @@ export function TutorialVideo({ moduleKey, title = "Tutorial em vídeo" }: { mod
         <div className="flex items-center gap-2 text-sm font-medium">
           <PlayCircle className="h-4 w-4 text-primary" /> {title}
         </div>
-        <div className="relative w-full overflow-hidden rounded-xl border border-border/60 bg-black" style={{ aspectRatio: "16 / 9" }}>
+        <div className="relative w-full overflow-hidden rounded-xl border border-border/60 bg-background" style={{ aspectRatio: "16 / 9" }}>
           {embed.kind === "iframe" ? (
             <iframe
               src={embed.src}

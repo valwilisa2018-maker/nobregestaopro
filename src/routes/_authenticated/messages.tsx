@@ -132,7 +132,7 @@ function DownloadBtn({ url, filename, dark = false }: { url: string; filename: s
       type="button"
       onClick={(e) => { e.stopPropagation(); downloadFile(url, filename); }}
       title="Baixar"
-      className={`absolute top-1 right-1 z-10 grid place-items-center h-6 w-6 rounded-full backdrop-blur transition ${dark ? "bg-black/50 hover:bg-black/70 text-white" : "bg-white/85 hover:bg-white text-gray-700"}`}
+      className={`absolute top-1 right-1 z-10 grid place-items-center h-6 w-6 rounded-full backdrop-blur transition ${dark ? "bg-background/50 hover:bg-background/70 text-foreground" : "bg-white/85 hover:bg-white text-gray-700"}`}
     >
       <Download className="h-3.5 w-3.5" />
     </button>
@@ -1711,10 +1711,10 @@ function MessagesPage() {
             </Popover>
             {!sidebarCollapsed && (
               <div className="flex-1 min-w-0">
-                <div className="text-[10px] uppercase tracking-wide text-white/70">Conversas</div>
+                <div className="text-[10px] uppercase tracking-wide text-foreground/70">Conversas</div>
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <button className="mt-0.5 flex items-center gap-1 max-w-full text-sm font-semibold truncate rounded hover:bg-white/10 px-1 -mx-1 py-0.5">
+                    <button className="mt-0.5 flex items-center gap-1 max-w-full text-sm font-semibold truncate rounded hover:bg-muted/60 px-1 -mx-1 py-0.5">
                       <span className="truncate">
                         {activeInstance === "all"
                           ? "Todas as instâncias"
@@ -1751,7 +1751,7 @@ function MessagesPage() {
               <TooltipTrigger asChild>
                 <button
                   onClick={() => setSidebarCollapsed((v) => !v)}
-                  className="hidden md:grid h-8 w-8 place-items-center rounded-full text-white/90 hover:bg-white/15 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/60 transition"
+                  className="hidden md:grid h-8 w-8 place-items-center rounded-full text-foreground/90 hover:bg-white/15 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/60 transition"
                   aria-label={sidebarCollapsed ? "Expandir" : "Recolher"}
                 >
                   {sidebarCollapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
@@ -1793,7 +1793,7 @@ function MessagesPage() {
                   >
                     <span>{t.label}</span>
                     {t.count != null && t.count > 0 && (
-                      <span className={`text-[9px] leading-none px-1 py-0.5 rounded-full ${active ? "bg-emerald-600 text-white" : "bg-gray-200 text-gray-700"}`}>{t.count}</span>
+                      <span className={`text-[9px] leading-none px-1 py-0.5 rounded-full ${active ? "bg-emerald-600 text-foreground" : "bg-gray-200 text-gray-700"}`}>{t.count}</span>
                     )}
                   </button>
                 );
@@ -1817,7 +1817,7 @@ function MessagesPage() {
                     {avatars[c.id] ? (
                       <img src={avatars[c.id]!} alt="" className="h-12 w-12 rounded-full object-cover shrink-0" />
                     ) : (
-                      <div className="h-12 w-12 rounded-full grid place-items-center text-sm font-semibold text-white shrink-0" style={{ background: WA.headerTeal }}>
+                      <div className="h-12 w-12 rounded-full grid place-items-center text-sm font-semibold text-foreground shrink-0" style={{ background: WA.headerTeal }}>
                         {initials(c.name, c.phone)}
                       </div>
                     )}
@@ -1834,7 +1834,7 @@ function MessagesPage() {
                           <div className="text-xs text-gray-500 truncate flex-1">{c.phone}</div>
                           {(unreadMap[c.id] ?? 0) > 0 && (
                             <span
-                              className="shrink-0 min-w-[20px] h-5 px-1.5 rounded-full text-[11px] font-semibold text-white grid place-items-center"
+                              className="shrink-0 min-w-[20px] h-5 px-1.5 rounded-full text-[11px] font-semibold text-foreground grid place-items-center"
                               style={{ background: WA.headerTeal }}
                               aria-label={`${unreadMap[c.id]} mensagens não lidas`}
                             >
@@ -2004,7 +2004,7 @@ function MessagesPage() {
             <div className="flex-1 grid place-items-center text-center px-6" style={{ background: "#F0F2F5" }}>
               <div>
                 <div className="mx-auto h-40 w-40 rounded-full grid place-items-center mb-6" style={{ background: WA.headerTeal }}>
-                  <MessageCircle className="h-20 w-20 text-white" />
+                  <MessageCircle className="h-20 w-20 text-foreground" />
                 </div>
                 <h2 className="text-2xl font-light text-gray-700">Agent IA — Mensagens</h2>
                 <p className="text-sm text-gray-500 mt-2 max-w-sm mx-auto">Selecione uma conversa para começar a enviar mensagens, áudios e figurinhas.</p>
@@ -2012,7 +2012,7 @@ function MessagesPage() {
             </div>
           ) : (
             <>
-              <header className="px-4 py-2.5 flex items-center gap-3 text-white shadow-sm" style={{ background: WA.headerTeal }}>
+              <header className="px-4 py-2.5 flex items-center gap-3 text-foreground shadow-sm" style={{ background: WA.headerTeal }}>
                 <button className="lg:hidden p-1 -ml-1 active:bg-white/20 rounded-full" onClick={() => setSelected(null)}>
                   <ArrowLeft className="h-5 w-5" />
                 </button>
@@ -2020,7 +2020,7 @@ function MessagesPage() {
                   <TooltipTrigger asChild>
                     <button
                       onClick={() => setSidebarCollapsed((v) => !v)}
-                      className="hidden lg:grid h-9 w-9 -ml-1 place-items-center rounded-full bg-white/15 hover:bg-white/25 text-white transition focus:outline-none focus-visible:ring-2 focus-visible:ring-white/70"
+                      className="hidden lg:grid h-9 w-9 -ml-1 place-items-center rounded-full bg-white/15 hover:bg-white/25 text-foreground transition focus:outline-none focus-visible:ring-2 focus-visible:ring-white/70"
                       aria-label={sidebarCollapsed ? "Expandir lista de conversas" : "Recolher lista de conversas"}
                     >
                       {sidebarCollapsed ? <ChevronRight className="h-5 w-5" /> : <ChevronLeft className="h-5 w-5" />}
@@ -2039,7 +2039,7 @@ function MessagesPage() {
                 )}
                 <button onClick={() => setInfoOpen((v) => !v)} className="min-w-0 flex-1 text-left focus:outline-none">
                   <div className="text-sm font-semibold truncate">{selected.name || selected.phone}</div>
-                  <div className="relative h-4 text-[11px] text-white/80">
+                  <div className="relative h-4 text-[11px] text-foreground/80">
                     <span
                       className={`absolute inset-0 truncate transition-opacity duration-300 ease-in-out ${remotePresence ? "opacity-0" : "opacity-100"}`}
                     >
@@ -2188,7 +2188,7 @@ function MessagesPage() {
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
                             <button
-                              className="absolute top-0.5 right-0.5 p-0.5 rounded-full opacity-0 group-hover:opacity-100 hover:bg-black/10 transition"
+                              className="absolute top-0.5 right-0.5 p-0.5 rounded-full opacity-0 group-hover:opacity-100 hover:bg-background/10 transition"
                               aria-label="Opções da mensagem"
                             >
                               <ChevronDown className="h-3.5 w-3.5 text-gray-600" />
@@ -2232,7 +2232,7 @@ function MessagesPage() {
                           const q = (m.metadata ?? {}) as { quotedId?: string; quotedText?: string; quotedType?: string; quotedDeleted?: boolean };
                           if (q.quotedDeleted) {
                             return (
-                              <div className="mb-1 w-full rounded border-l-4 border-gray-400 bg-black/5 px-2 py-1 text-xs italic text-gray-500">
+                              <div className="mb-1 w-full rounded border-l-4 border-gray-400 bg-background/5 px-2 py-1 text-xs italic text-gray-500">
                                 Mensagem apagada
                               </div>
                             );
@@ -2250,7 +2250,7 @@ function MessagesPage() {
                                 const el = scrollRef.current?.querySelector(`[data-msg-id="${q.quotedId}"]`) as HTMLElement | null;
                                 if (el) { el.scrollIntoView({ behavior: "smooth", block: "center" }); el.classList.add("ring-2","ring-emerald-400"); setTimeout(() => el.classList.remove("ring-2","ring-emerald-400"), 1400); }
                               }}
-                              className="mb-1 w-full text-left rounded border-l-4 border-emerald-500 bg-black/5 px-2 py-1 text-xs text-gray-700 hover:bg-black/10 transition"
+                              className="mb-1 w-full text-left rounded border-l-4 border-emerald-500 bg-background/5 px-2 py-1 text-xs text-gray-700 hover:bg-background/10 transition"
                             >
                               <div className="font-medium text-emerald-700 text-[11px]">Resposta</div>
                               <div className="truncate">{label}</div>
@@ -2291,7 +2291,7 @@ function MessagesPage() {
                                 />
                               </button>
                               {(m.metadata as { pending?: boolean } | null)?.pending ? (
-                                <div className="absolute inset-0 grid place-items-center rounded-md bg-black/10">
+                                <div className="absolute inset-0 grid place-items-center rounded-md bg-background/10">
                                   <Loader2 className="h-6 w-6 text-gray-700 animate-spin" />
                                 </div>
                               ) : (
@@ -2321,8 +2321,8 @@ function MessagesPage() {
                                />
                              </button>
                             {(m.metadata as { pending?: boolean } | null)?.pending ? (
-                              <div className="absolute inset-0 grid place-items-center rounded-md bg-black/25">
-                                <Loader2 className="h-8 w-8 text-white animate-spin drop-shadow" />
+                              <div className="absolute inset-0 grid place-items-center rounded-md bg-background/25">
+                                <Loader2 className="h-8 w-8 text-foreground animate-spin drop-shadow" />
                               </div>
                             ) : (
                               <DownloadBtn url={m.media_url!} filename={`image-${m.id}.jpg`} />
@@ -2333,15 +2333,15 @@ function MessagesPage() {
                             <button onClick={() => !(m.metadata as { pending?: boolean } | null)?.pending && setLightbox({ type: "video", src: m.media_url! })} className="block focus:outline-none">
                               <video
                                 src={`${m.media_url!}${m.media_url!.includes("#") ? "" : "#t=0.1"}`}
-                                className={`rounded-md max-h-64 bg-black pointer-events-none ${(m.metadata as { pending?: boolean } | null)?.pending ? "opacity-70" : "cursor-zoom-in"}`}
+                                className={`rounded-md max-h-64 bg-background pointer-events-none ${(m.metadata as { pending?: boolean } | null)?.pending ? "opacity-70" : "cursor-zoom-in"}`}
                                 preload="metadata"
                                 muted
                                 playsInline
                               />
                             </button>
                             {(m.metadata as { pending?: boolean } | null)?.pending ? (
-                              <div className="absolute inset-0 grid place-items-center rounded-md bg-black/35">
-                                <Loader2 className="h-8 w-8 text-white animate-spin drop-shadow" />
+                              <div className="absolute inset-0 grid place-items-center rounded-md bg-background/35">
+                                <Loader2 className="h-8 w-8 text-foreground animate-spin drop-shadow" />
                               </div>
                             ) : (
                               <DownloadBtn url={m.media_url!} filename={`video-${m.id}.mp4`} dark />
@@ -2370,11 +2370,11 @@ function MessagesPage() {
                               <div className={`relative h-12 w-10 shrink-0 rounded-md grid place-items-end justify-items-center overflow-hidden ${isPdf ? "bg-gradient-to-b from-red-500 to-red-600" : "bg-gradient-to-b from-sky-500 to-sky-600"}`}>
                                 <div className="absolute top-0 right-0 h-3 w-3 bg-white/30" style={{ clipPath: "polygon(100% 0, 0 0, 100% 100%)" }} />
                                 {pending ? (
-                                  <Loader2 className="absolute inset-0 m-auto h-5 w-5 text-white animate-spin" />
+                                  <Loader2 className="absolute inset-0 m-auto h-5 w-5 text-foreground animate-spin" />
                                 ) : (
-                                  <FileText className="absolute top-1.5 left-1/2 -translate-x-1/2 h-4 w-4 text-white/90" />
+                                  <FileText className="absolute top-1.5 left-1/2 -translate-x-1/2 h-4 w-4 text-foreground/90" />
                                 )}
-                                <span className="mb-0.5 text-[8px] font-bold tracking-wide text-white leading-none">{badge}</span>
+                                <span className="mb-0.5 text-[8px] font-bold tracking-wide text-foreground leading-none">{badge}</span>
                               </div>
                               <div className="min-w-0 flex-1">
                                 <div className="truncate text-[13px] font-medium text-gray-800" title={name}>{name}</div>
@@ -2389,7 +2389,7 @@ function MessagesPage() {
                                   type="button"
                                   onClick={(e) => { e.preventDefault(); e.stopPropagation(); downloadFile(m.media_url!, name); }}
                                   title="Baixar"
-                                  className="ml-1 grid place-items-center h-8 w-8 rounded-full bg-black/5 hover:bg-black/10 text-gray-700 shrink-0"
+                                  className="ml-1 grid place-items-center h-8 w-8 rounded-full bg-background/5 hover:bg-background/10 text-gray-700 shrink-0"
                                   aria-label="Baixar arquivo"
                                 >
                                   <Download className="h-4 w-4" />
@@ -2628,7 +2628,7 @@ function MessagesPage() {
                            {isImg ? (
                              <img src={attachment.url} alt="" className="h-12 w-12 object-cover rounded" />
                            ) : isVid ? (
-                             <video src={attachment.url} className="h-12 w-12 object-cover rounded bg-black" muted />
+                             <video src={attachment.url} className="h-12 w-12 object-cover rounded bg-background" muted />
                            ) : isAud ? (
                              <div className="h-12 w-12 rounded grid place-items-center bg-orange-100 text-orange-600"><Music className="h-6 w-6" /></div>
                            ) : isPdf ? (
@@ -2664,20 +2664,20 @@ function MessagesPage() {
                 {recording ? (
                   <Tooltip>
                     <TooltipTrigger asChild>
-                      <Button size="icon" onClick={stopRecording} className="rounded-full h-11 w-11 text-white hover:opacity-90" style={{ background: "#DC2626" }}>
+                      <Button size="icon" onClick={stopRecording} className="rounded-full h-11 w-11 text-foreground hover:opacity-90" style={{ background: "#DC2626" }}>
                         <Square className="h-5 w-5" />
                       </Button>
                     </TooltipTrigger>
                     <TooltipContent side="top">Parar gravação</TooltipContent>
                   </Tooltip>
                 ) : text.trim() || attachment ? (
-                  <Button size="icon" onClick={() => { if (attachment) handleSendAttachment(); else if (text.trim()) handleSendText(); }} className="rounded-full h-11 w-11 text-white hover:opacity-90" style={{ background: WA.accent }}>
+                  <Button size="icon" onClick={() => { if (attachment) handleSendAttachment(); else if (text.trim()) handleSendText(); }} className="rounded-full h-11 w-11 text-foreground hover:opacity-90" style={{ background: WA.accent }}>
                     <Send className="h-5 w-5" />
                   </Button>
                 ) : (
                   <Tooltip>
                     <TooltipTrigger asChild>
-                      <Button size="icon" onClick={startRecording} className="rounded-full h-11 w-11 text-white hover:opacity-90" style={{ background: WA.headerTeal }}>
+                      <Button size="icon" onClick={startRecording} className="rounded-full h-11 w-11 text-foreground hover:opacity-90" style={{ background: WA.headerTeal }}>
                         <Mic className="h-5 w-5" />
                       </Button>
                     </TooltipTrigger>
@@ -2690,7 +2690,7 @@ function MessagesPage() {
         </section>
         {selected && infoOpen && (
           <aside className="hidden xl:flex flex-col w-80 border-l border-black/10 bg-white overflow-y-auto">
-            <div className="px-4 py-3 flex items-center gap-2 text-white" style={{ background: WA.headerDark }}>
+            <div className="px-4 py-3 flex items-center gap-2 text-foreground" style={{ background: WA.headerDark }}>
               <button onClick={() => setInfoOpen(false)} className="p-1 rounded-full hover:bg-white/15" aria-label="Fechar">
                 <X className="h-5 w-5" />
               </button>
@@ -2702,7 +2702,7 @@ function MessagesPage() {
                   <img src={avatars[selected.id]!} alt="" className="h-32 w-32 rounded-full object-cover shadow" />
                 </button>
               ) : (
-                <div className="h-32 w-32 rounded-full grid place-items-center text-3xl font-semibold text-white shadow" style={{ background: WA.headerTeal }}>
+                <div className="h-32 w-32 rounded-full grid place-items-center text-3xl font-semibold text-foreground shadow" style={{ background: WA.headerTeal }}>
                   {initials(selected.name, selected.phone)}
                 </div>
               )}
@@ -2718,7 +2718,7 @@ function MessagesPage() {
                 <label className="text-xs font-medium text-gray-500">Telefone</label>
                 <Input value={selected.phone} readOnly disabled className="mt-1 cursor-not-allowed opacity-70" />
               </div>
-              <Button onClick={saveContact} disabled={savingContact || editName.trim() === (selected.name ?? "").trim()} className="w-full text-white hover:opacity-90" style={{ background: WA.accent }}>
+              <Button onClick={saveContact} disabled={savingContact || editName.trim() === (selected.name ?? "").trim()} className="w-full text-foreground hover:opacity-90" style={{ background: WA.accent }}>
                 {savingContact ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Save className="h-4 w-4 mr-2" />}
                 Salvar
               </Button>
@@ -2728,12 +2728,12 @@ function MessagesPage() {
       </div>
       {lightbox && (
         <div
-          className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center p-4"
+          className="fixed inset-0 z-50 bg-background/90 flex items-center justify-center p-4"
           onClick={() => setLightbox(null)}
         >
           <button
             onClick={(e) => { e.stopPropagation(); setLightbox(null); }}
-            className="absolute top-4 right-4 p-2 rounded-full bg-white/10 hover:bg-white/20 text-white"
+            className="absolute top-4 right-4 p-2 rounded-full bg-muted/60 hover:bg-white/20 text-foreground"
             aria-label="Fechar"
           >
             <X className="h-6 w-6" />
@@ -2872,7 +2872,7 @@ function MediaMissing({ kind, onRetry }: { kind: "audio" | "sticker"; onRetry: (
     <button
       type="button"
       onClick={(e) => { e.stopPropagation(); onRetry(); }}
-      className="flex items-center gap-2 rounded-lg bg-black/5 px-2.5 py-2 text-gray-600 hover:bg-black/10 transition"
+      className="flex items-center gap-2 rounded-lg bg-background/5 px-2.5 py-2 text-gray-600 hover:bg-background/10 transition"
       title="Tentar carregar mídia"
     >
       {kind === "audio" ? <Mic className="h-4 w-4" /> : <ImageIcon className="h-4 w-4" />}
@@ -2911,15 +2911,15 @@ function LinkPreview({ url }: { url: string }) {
     return () => { cancelled = true; };
   }, [url]);
   if (data === undefined) {
-    return <div className="mb-1 rounded-md bg-black/5 h-16 animate-pulse" />;
+    return <div className="mb-1 rounded-md bg-background/5 h-16 animate-pulse" />;
   }
   if (data === null) return null;
   let domain = "";
   try { domain = new URL(data.url).hostname.replace(/^www\./, ""); } catch { /* ignore */ }
   return (
-    <a href={data.url} target="_blank" rel="noreferrer" className="mb-1 block w-full max-w-[260px] rounded-lg overflow-hidden bg-black/5 hover:bg-black/10 transition">
+    <a href={data.url} target="_blank" rel="noreferrer" className="mb-1 block w-full max-w-[260px] rounded-lg overflow-hidden bg-background/5 hover:bg-background/10 transition">
       {data.image && (
-        <img src={data.image} alt="" className="w-full max-h-[260px] object-cover bg-black" loading="lazy" />
+        <img src={data.image} alt="" className="w-full max-h-[260px] object-cover bg-background" loading="lazy" />
       )}
       <div className="px-2.5 py-1.5">
         {data.title && <div className="text-[13px] font-medium text-gray-800 line-clamp-2 leading-snug">{data.title}</div>}
@@ -3036,7 +3036,7 @@ function AudioPlayer({
     <div className="flex items-center gap-2.5 min-w-[260px] py-1 pr-1">
       <button
         onClick={toggle}
-        className="h-8 w-8 grid place-items-center rounded-full text-gray-700 shrink-0 hover:bg-black/5"
+        className="h-8 w-8 grid place-items-center rounded-full text-gray-700 shrink-0 hover:bg-background/5"
         aria-label={playing ? "Pausar áudio" : "Tocar áudio"}
       >
         {loading ? <Loader2 className="h-5 w-5 animate-spin" /> : playing ? <Pause className="h-5 w-5" /> : <Play className="h-5 w-5 ml-0.5" />}
@@ -3090,7 +3090,7 @@ function AudioPlayer({
         {avatarUrl ? (
           <img src={avatarUrl} alt="" className="h-11 w-11 rounded-full object-cover" />
         ) : (
-          <div className="h-11 w-11 rounded-full grid place-items-center text-white text-xs font-semibold" style={{ background: WA.headerTeal }}>
+          <div className="h-11 w-11 rounded-full grid place-items-center text-foreground text-xs font-semibold" style={{ background: WA.headerTeal }}>
             {isOutbound ? "EU" : "?"}
           </div>
         )}
@@ -3098,7 +3098,7 @@ function AudioPlayer({
           className="absolute -bottom-0.5 -right-0.5 h-4 w-4 rounded-full grid place-items-center ring-2 ring-white"
           style={{ background: WA.accent }}
         >
-          <Mic className="h-2.5 w-2.5 text-white" />
+          <Mic className="h-2.5 w-2.5 text-foreground" />
         </div>
       </div>
       <audio ref={audioRef} src={src} preload="metadata" className="hidden" data-audio-id={id} />
@@ -3178,20 +3178,20 @@ function FlowLauncher({ contactId }: { contactId: string | null }) {
         <TooltipContent side="top">Iniciar fluxo</TooltipContent>
       </Tooltip>
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="max-w-lg p-0 overflow-hidden border-0 bg-gradient-to-br from-slate-900 via-slate-950 to-black text-white">
-          <div className="p-5 border-b border-white/10 bg-gradient-to-r from-emerald-500/10 to-transparent">
+        <DialogContent className="max-w-lg p-0 overflow-hidden border-0 bg-gradient-to-br from-card via-background to-black text-foreground">
+          <div className="p-5 border-b border-border bg-gradient-to-r from-emerald-500/10 to-transparent">
             <DialogHeader>
-              <DialogTitle className="flex items-center gap-2 text-white">
+              <DialogTitle className="flex items-center gap-2 text-foreground">
                 <div className="h-8 w-8 rounded-lg bg-emerald-500/20 grid place-items-center ring-1 ring-emerald-400/30">
                   <Workflow className="h-4 w-4 text-emerald-400" />
                 </div>
                 Fluxos disponíveis
               </DialogTitle>
-              <p className="text-xs text-white/60 mt-1">Ative, defina palavras-chave e inicie um fluxo para este contato.</p>
+              <p className="text-xs text-foreground/60 mt-1">Ative, defina palavras-chave e inicie um fluxo para este contato.</p>
             </DialogHeader>
           </div>
           <div className="max-h-[60vh] overflow-y-auto p-4 space-y-3">
-            {loading && <div className="p-6 text-center text-xs text-white/60">Carregando...</div>}
+            {loading && <div className="p-6 text-center text-xs text-foreground/60">Carregando...</div>}
             {!loading && flows.map((f) => {
               const kws = f.trigger_keywords ?? [];
               const draftValue = kwDraft[f.id];
@@ -3199,7 +3199,7 @@ function FlowLauncher({ contactId }: { contactId: string | null }) {
               return (
                 <div
                   key={f.id}
-                  className="rounded-xl border border-white/10 bg-white/[0.03] hover:bg-white/[0.05] transition p-4 space-y-3 shadow-lg shadow-black/20"
+                  className="rounded-xl border border-border bg-white/[0.03] hover:bg-white/[0.05] transition p-4 space-y-3 shadow-lg shadow-black/20"
                 >
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0 flex-1">
@@ -3207,12 +3207,12 @@ function FlowLauncher({ contactId }: { contactId: string | null }) {
                         <div className="text-sm font-semibold truncate">{f.name}</div>
                         <Badge
                           variant="outline"
-                          className={`text-[10px] px-1.5 py-0 h-4 border ${f.is_active ? "border-emerald-400/40 text-emerald-300 bg-emerald-500/10" : "border-white/20 text-white/50"}`}
+                          className={`text-[10px] px-1.5 py-0 h-4 border ${f.is_active ? "border-emerald-400/40 text-emerald-300 bg-emerald-500/10" : "border-border text-foreground/50"}`}
                         >
                           {f.is_active ? "Ativo" : "Inativo"}
                         </Badge>
                       </div>
-                      <div className="text-[11px] text-white/50 mt-0.5">
+                      <div className="text-[11px] text-foreground/50 mt-0.5">
                         {kws.length ? `Dispara com: ${kws.join(", ")}` : "Sem palavras-chave configuradas"}
                       </div>
                     </div>
@@ -3226,14 +3226,14 @@ function FlowLauncher({ contactId }: { contactId: string | null }) {
                       placeholder="Palavras-chave separadas por vírgula (ex: oi, olá, começar)"
                       value={editing ? draftValue : kws.join(", ")}
                       onChange={(e) => setKwDraft((prev) => ({ ...prev, [f.id]: e.target.value }))}
-                      className="h-8 bg-white/5 border-white/10 text-white placeholder:text-white/30 text-xs"
+                      className="h-8 bg-muted/40 border-border text-foreground placeholder:text-foreground/30 text-xs"
                     />
                     <Button
                       size="sm"
                       variant="outline"
                       disabled={!editing || savingId === f.id}
                       onClick={() => saveKeywords(f.id)}
-                      className="h-8 border-white/15 bg-white/5 text-white hover:bg-white/10"
+                      className="h-8 border-white/15 bg-muted/40 text-foreground hover:bg-muted/60"
                     >
                       {savingId === f.id ? "..." : "Salvar"}
                     </Button>
@@ -3264,7 +3264,7 @@ function FlowLauncher({ contactId }: { contactId: string | null }) {
                 </div>
               );
             })}
-            {!loading && !flows.length && <div className="p-6 text-center text-xs text-white/60">Nenhum fluxo cadastrado</div>}
+            {!loading && !flows.length && <div className="p-6 text-center text-xs text-foreground/60">Nenhum fluxo cadastrado</div>}
           </div>
         </DialogContent>
       </Dialog>

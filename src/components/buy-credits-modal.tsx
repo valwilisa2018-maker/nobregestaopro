@@ -115,7 +115,7 @@ export function BuyCreditsModal({
                     />
                   </div>
                   {p.badge && (
-                    <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-emerald-500 text-white text-[10px] font-black uppercase tracking-widest px-3 py-1 rounded-full shadow-lg shadow-emerald-500/30 whitespace-nowrap z-10">
+                    <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-emerald-500 text-foreground text-[10px] font-black uppercase tracking-widest px-3 py-1 rounded-full shadow-lg shadow-emerald-500/30 whitespace-nowrap z-10">
                       {p.badge}
                     </div>
                   )}
@@ -165,7 +165,7 @@ export function BuyCreditsModal({
                     disabled={buyingId !== null}
                     className={`relative mt-5 w-full py-2.5 h-auto rounded-xl font-bold text-sm transition-all ${
                       highlight
-                        ? "bg-emerald-500 hover:bg-emerald-600 text-white shadow-lg shadow-emerald-500/30 active:scale-95"
+                        ? "bg-emerald-500 hover:bg-emerald-600 text-foreground shadow-lg shadow-emerald-500/30 active:scale-95"
                         : "bg-muted/40 border border-border text-foreground hover:bg-muted/70 hover:border-primary/40"
                     }`}
                   >

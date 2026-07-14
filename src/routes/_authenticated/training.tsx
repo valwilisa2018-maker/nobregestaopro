@@ -172,23 +172,23 @@ function TrainingPage() {
 
   if (openKey && openModule) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-[#0b0d1a] via-[#0f1130] to-[#1a0b2e] text-white">
+      <div className="min-h-screen bg-gradient-to-br from-[#0b0d1a] via-[#0f1130] to-[#1a0b2e] text-foreground">
         {/* Top bar */}
-        <div className="sticky top-0 z-30 border-b border-white/10 bg-black/40 backdrop-blur-xl">
+        <div className="sticky top-0 z-30 border-b border-border bg-background/40 backdrop-blur-xl">
           <div className="mx-auto flex max-w-[1600px] items-center gap-4 px-4 py-3 sm:px-6">
-            <Button variant="ghost" size="sm" onClick={() => setOpenKey(null)} className="gap-2 text-white/80 hover:bg-white/10 hover:text-white">
+            <Button variant="ghost" size="sm" onClick={() => setOpenKey(null)} className="gap-2 text-foreground/80 hover:bg-muted/60 hover:text-foreground">
               <ArrowLeft className="h-4 w-4" /> Voltar
             </Button>
             <div className="hidden min-w-0 flex-1 sm:block">
-              <div className="truncate text-xs uppercase tracking-widest text-white/50">Curso AgentIA</div>
+              <div className="truncate text-xs uppercase tracking-widest text-foreground/50">Curso AgentIA</div>
               <div className="truncate text-sm font-semibold">{openModule.label}</div>
             </div>
             <div className="flex min-w-[140px] items-center gap-3 sm:min-w-[220px]">
               <div className="hidden text-right sm:block">
-                <div className="text-[10px] uppercase tracking-widest text-white/50">Progresso</div>
+                <div className="text-[10px] uppercase tracking-widest text-foreground/50">Progresso</div>
                 <div className="text-sm font-bold tabular-nums">{pct}%</div>
               </div>
-              <div className="h-2 flex-1 overflow-hidden rounded-full bg-white/10">
+              <div className="h-2 flex-1 overflow-hidden rounded-full bg-muted/60">
                 <motion.div initial={{ width: 0 }} animate={{ width: `${pct}%` }} transition={{ duration: 0.6 }} className="h-full rounded-full bg-gradient-to-r from-sky-400 via-indigo-500 to-fuchsia-500" />
               </div>
             </div>
@@ -198,27 +198,27 @@ function TrainingPage() {
         <div className="mx-auto grid max-w-[1600px] gap-6 px-4 py-6 sm:px-6 lg:grid-cols-[minmax(0,1fr)_360px]">
           {/* Player + info */}
           <div className="min-w-0 space-y-5">
-            <div className="relative overflow-hidden rounded-2xl bg-black shadow-2xl ring-1 ring-white/10">
+            <div className="relative overflow-hidden rounded-2xl bg-background shadow-2xl ring-1 ring-white/10">
               <div className="relative w-full" style={{ aspectRatio: "16 / 9" }}>
                 {embed?.kind === "iframe" ? (
                   <iframe src={embed.src} title={openModule.label} referrerPolicy="origin" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen className="absolute inset-0 h-full w-full" />
                 ) : embed?.kind === "video" ? (
                   <video ref={videoRef} src={embed.src} controls autoPlay controlsList="nodownload" onEnded={() => { setEnded(true); if (openKey) void markWatched(openKey); }} className="absolute inset-0 h-full w-full" />
                 ) : (
-                  <div className="absolute inset-0 grid place-items-center text-white/60">Vídeo indisponível</div>
+                  <div className="absolute inset-0 grid place-items-center text-foreground/60">Vídeo indisponível</div>
                 )}
 
                 <AnimatePresence>
                   {ended && (
-                    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 grid place-items-center bg-black/80 backdrop-blur-sm">
+                    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 grid place-items-center bg-background/80 backdrop-blur-sm">
                       <motion.div initial={{ scale: 0.9, y: 10 }} animate={{ scale: 1, y: 0 }} className="max-w-md p-6 text-center">
                         <div className="mx-auto grid h-16 w-16 place-items-center rounded-full bg-gradient-to-br from-emerald-400 to-teal-600 shadow-xl">
-                          <CheckCircle2 className="h-8 w-8 text-white" />
+                          <CheckCircle2 className="h-8 w-8 text-foreground" />
                         </div>
                         <h3 className="mt-4 text-2xl font-black">🎉 Parabéns!</h3>
-                        <p className="mt-1 text-sm text-white/70">Você concluiu esta aula.</p>
+                        <p className="mt-1 text-sm text-foreground/70">Você concluiu esta aula.</p>
                         <div className="mt-5 flex flex-wrap justify-center gap-2">
-                          <Button variant="outline" onClick={replay} className="gap-2 border-white/20 bg-white/5 text-white hover:bg-white/10">
+                          <Button variant="outline" onClick={replay} className="gap-2 border-border bg-muted/40 text-foreground hover:bg-muted/60">
                             <RotateCcw className="h-4 w-4" /> Assistir novamente
                           </Button>
                           <Button onClick={goNext} className="gap-2 bg-gradient-to-r from-sky-500 to-fuchsia-500 hover:opacity-90">
@@ -232,15 +232,15 @@ function TrainingPage() {
               </div>
             </div>
 
-            <div className="rounded-2xl border border-white/10 bg-white/5 p-5 backdrop-blur-xl">
+            <div className="rounded-2xl border border-border bg-muted/40 p-5 backdrop-blur-xl">
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div className="min-w-0">
-                  <div className="text-xs uppercase tracking-widest text-white/50">{openModule.subtitle}</div>
+                  <div className="text-xs uppercase tracking-widest text-foreground/50">{openModule.subtitle}</div>
                   <h1 className="mt-1 text-xl font-bold sm:text-2xl">{openModule.label}</h1>
-                  <p className="mt-2 text-sm text-white/60">Instrutor: Equipe AgentIA · Atualizado recentemente</p>
+                  <p className="mt-2 text-sm text-foreground/60">Instrutor: Equipe AgentIA · Atualizado recentemente</p>
                 </div>
                 <div className="flex flex-wrap gap-2">
-                  <Button variant="outline" onClick={() => openKey && markWatched(openKey)} disabled={!!(openKey && progress[openKey])} className="gap-2 border-white/20 bg-white/5 text-white hover:bg-white/10">
+                  <Button variant="outline" onClick={() => openKey && markWatched(openKey)} disabled={!!(openKey && progress[openKey])} className="gap-2 border-border bg-muted/40 text-foreground hover:bg-muted/60">
                     <CheckCircle2 className="h-4 w-4" /> {openKey && progress[openKey] ? "Concluída" : "Aula concluída"}
                   </Button>
                   <Button onClick={goNext} className="gap-2 bg-gradient-to-r from-sky-500 to-fuchsia-500 hover:opacity-90">
@@ -248,23 +248,23 @@ function TrainingPage() {
                   </Button>
                 </div>
               </div>
-              <div className="mt-4 flex flex-wrap items-center gap-3 border-t border-white/10 pt-4">
-                <span className="text-xs uppercase tracking-widest text-white/60">Gostou do conteúdo?</span>
+              <div className="mt-4 flex flex-wrap items-center gap-3 border-t border-border pt-4">
+                <span className="text-xs uppercase tracking-widest text-foreground/60">Gostou do conteúdo?</span>
                 <StarRating value={ratings[openKey] ?? 0} onChange={(v) => rateModule(openKey, v)} />
-                {ratings[openKey] ? <span className="text-xs text-white/50">Sua nota: {ratings[openKey]}/5</span> : null}
+                {ratings[openKey] ? <span className="text-xs text-foreground/50">Sua nota: {ratings[openKey]}/5</span> : null}
               </div>
             </div>
 
-            <div className="rounded-2xl border border-white/10 bg-white/5 backdrop-blur-xl">
+            <div className="rounded-2xl border border-border bg-muted/40 backdrop-blur-xl">
               <CommentsPanel moduleKey={openKey} />
             </div>
           </div>
 
           {/* Lesson list */}
           <aside className="lg:sticky lg:top-[76px] lg:self-start">
-            <div className="overflow-hidden rounded-2xl border border-white/10 bg-white/5 backdrop-blur-xl">
-              <div className="border-b border-white/10 px-4 py-3">
-                <div className="text-xs uppercase tracking-widest text-white/50">Curso AgentIA</div>
+            <div className="overflow-hidden rounded-2xl border border-border bg-muted/40 backdrop-blur-xl">
+              <div className="border-b border-border px-4 py-3">
+                <div className="text-xs uppercase tracking-widest text-foreground/50">Curso AgentIA</div>
                 <div className="text-sm font-semibold">Aulas do curso</div>
               </div>
               <ScrollArea className="max-h-[70vh]">
@@ -281,15 +281,15 @@ function TrainingPage() {
                           onClick={() => { setOpenKey(m.key); setEnded(false); }}
                           className={cn(
                             "flex w-full items-center gap-3 p-3 text-left transition-colors disabled:opacity-50 disabled:cursor-not-allowed",
-                            active ? "bg-gradient-to-r from-sky-500/20 to-fuchsia-500/10" : "hover:bg-white/5",
+                            active ? "bg-gradient-to-r from-sky-500/20 to-fuchsia-500/10" : "hover:bg-muted/40",
                           )}
                         >
-                          <div className="relative h-14 w-24 shrink-0 overflow-hidden rounded-lg bg-black">
+                          <div className="relative h-14 w-24 shrink-0 overflow-hidden rounded-lg bg-background">
                             {cover && <img src={cover} alt="" className="h-full w-full object-cover" />}
-                            {active && <div className="absolute inset-0 grid place-items-center bg-black/50"><Play className="h-5 w-5 fill-white text-white" /></div>}
+                            {active && <div className="absolute inset-0 grid place-items-center bg-background/50"><Play className="h-5 w-5 fill-white text-foreground" /></div>}
                           </div>
                           <div className="min-w-0 flex-1">
-                            <div className="flex items-center gap-1.5 text-[10px] uppercase tracking-widest text-white/50">
+                            <div className="flex items-center gap-1.5 text-[10px] uppercase tracking-widest text-foreground/50">
                               Aula {String(idx + 1).padStart(2, "0")}
                               {!url && <Lock className="h-3 w-3" />}
                             </div>
@@ -301,7 +301,7 @@ function TrainingPage() {
                             ) : active ? (
                               <Play className="h-4 w-4 fill-sky-400 text-sky-400" />
                             ) : (
-                              <Circle className="h-4 w-4 text-white/30" />
+                              <Circle className="h-4 w-4 text-foreground/30" />
                             )}
                           </div>
                         </button>
@@ -377,12 +377,12 @@ function TrainingPage() {
                 <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/30 to-transparent" />
 
                 {watched && (
-                  <div className="absolute top-3 right-3 flex items-center gap-1 rounded-full bg-emerald-500/95 px-2.5 py-1 text-[11px] font-semibold text-white shadow-lg">
+                  <div className="absolute top-3 right-3 flex items-center gap-1 rounded-full bg-emerald-500/95 px-2.5 py-1 text-[11px] font-semibold text-foreground shadow-lg">
                     <CheckCircle2 className="h-3.5 w-3.5" /> Assistido
                   </div>
                 )}
                 {locked && (
-                  <div className="absolute top-3 right-3 flex items-center gap-1 rounded-full bg-black/70 px-2.5 py-1 text-[11px] font-semibold text-white/90 backdrop-blur">
+                  <div className="absolute top-3 right-3 flex items-center gap-1 rounded-full bg-background/70 px-2.5 py-1 text-[11px] font-semibold text-foreground/90 backdrop-blur">
                     <Lock className="h-3.5 w-3.5" /> Em breve
                   </div>
                 )}
@@ -393,8 +393,8 @@ function TrainingPage() {
                   </motion.div>
                 </div>
 
-                <div className="absolute bottom-0 left-0 right-0 p-4 text-white">
-                  <div className="text-[11px] font-semibold uppercase tracking-wider text-white/70">{m.subtitle}</div>
+                <div className="absolute bottom-0 left-0 right-0 p-4 text-foreground">
+                  <div className="text-[11px] font-semibold uppercase tracking-wider text-foreground/70">{m.subtitle}</div>
                   <div className="mt-1 text-base font-bold leading-tight drop-shadow">{m.label}</div>
                 </div>
               </motion.button>
@@ -426,7 +426,7 @@ function StarRating({ value, onChange }: { value: number; onChange: (v: number) 
           className="p-0.5 transition-transform hover:scale-110"
           aria-label={`Avaliar com ${n} estrela${n > 1 ? "s" : ""}`}
         >
-          <Star className={cn("h-6 w-6 transition-colors", n <= active ? "fill-amber-400 text-amber-400" : "text-white/30")} />
+          <Star className={cn("h-6 w-6 transition-colors", n <= active ? "fill-amber-400 text-amber-400" : "text-foreground/30")} />
         </button>
       ))}
     </div>

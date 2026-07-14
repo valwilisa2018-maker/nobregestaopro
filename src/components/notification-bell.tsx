@@ -106,7 +106,7 @@ export function NotificationBell() {
             {unread > 0 && (
               <motion.span
                 initial={{ scale: 0 }} animate={{ scale: 1 }} exit={{ scale: 0 }}
-                className="absolute -top-1 -right-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-gradient-to-br from-red-500 to-pink-600 px-1 text-[10px] font-bold text-white shadow-lg shadow-red-500/50 ring-2 ring-background"
+                className="absolute -top-1 -right-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-gradient-to-br from-red-500 to-pink-600 px-1 text-[10px] font-bold text-foreground shadow-lg shadow-red-500/50 ring-2 ring-background"
               >
                 {unread > 99 ? "99+" : unread}
               </motion.span>

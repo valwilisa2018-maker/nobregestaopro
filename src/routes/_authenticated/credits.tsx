@@ -261,7 +261,7 @@ function Page() {
       actions={
         <Button
           onClick={() => setBuyOpen(true)}
-          className="bg-emerald-500 hover:bg-emerald-600 text-white font-bold shadow-lg shadow-emerald-500/30"
+          className="bg-emerald-500 hover:bg-emerald-600 text-foreground font-bold shadow-lg shadow-emerald-500/30"
         >
           <ShoppingCart className="h-4 w-4 mr-2" /> Comprar Créditos
         </Button>

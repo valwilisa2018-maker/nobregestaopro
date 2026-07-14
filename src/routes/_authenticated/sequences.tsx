@@ -207,7 +207,7 @@ function SequencesPage() {
 
   return (
     <div
-      className="-m-3 sm:-m-6 min-h-[calc(100vh-3rem)] p-3 sm:p-6 text-slate-100"
+      className="-m-3 sm:-m-6 min-h-[calc(100vh-3rem)] p-3 sm:p-6 text-foreground"
       style={{
         background: [
           "radial-gradient(circle at 15% 10%, rgba(52,120,255,0.14), transparent 32%)",
@@ -343,11 +343,11 @@ function SequenceHeader({ onNew }: { onNew: () => void }) {
           border: "1px solid rgba(135,165,255,0.4)",
         }}
       >
-        <Layers className="h-5 w-5 text-white" />
+        <Layers className="h-5 w-5 text-foreground" />
       </div>
       <div className="min-w-0 flex-1">
         <div className="flex flex-wrap items-center gap-2">
-          <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-white leading-none">
+          <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-foreground leading-none">
             Sequências
           </h1>
           <span
@@ -362,7 +362,7 @@ function SequenceHeader({ onNew }: { onNew: () => void }) {
             Ativo
           </span>
         </div>
-        <p className="mt-0.5 text-xs sm:text-[13px] text-slate-400 max-w-2xl leading-snug">
+        <p className="mt-0.5 text-xs sm:text-[13px] text-muted-foreground max-w-2xl leading-snug">
           Jornadas automatizadas de mensagens com fluxos, janelas de envio e ativação por palavra-chave.
         </p>
       </div>
@@ -416,7 +416,7 @@ function SequenceHero({ onNew }: { onNew: () => void }) {
           >
             Automação premium de jornadas
           </span>
-          <h2 className="text-lg sm:text-xl font-bold tracking-tight leading-[1.2] text-white">
+          <h2 className="text-lg sm:text-xl font-bold tracking-tight leading-[1.2] text-foreground">
             Conduza seus contatos por uma jornada perfeita —{" "}
             <span
               style={{
@@ -428,7 +428,7 @@ function SequenceHero({ onNew }: { onNew: () => void }) {
               sem esforço manual.
             </span>
           </h2>
-          <p className="text-[12px] text-slate-400 max-w-xl leading-snug">
+          <p className="text-[12px] text-muted-foreground max-w-xl leading-snug">
             Envie fluxos do WhatsApp em cadência programada (minutos, dias, semanas), respeitando janelas e palavras-chave.
           </p>
           <div className="grid auto-rows-fr sm:grid-cols-3 gap-2">
@@ -465,9 +465,9 @@ function JourneyStepCard({ icon: Icon, title, desc }: { icon: typeof Settings2; 
         >
           <Icon className="h-3.5 w-3.5" />
         </div>
-        <span className="text-xs font-semibold text-white">{title}</span>
+        <span className="text-xs font-semibold text-foreground">{title}</span>
       </div>
-      <p className="text-[11px] text-slate-400 leading-snug">{desc}</p>
+      <p className="text-[11px] text-muted-foreground leading-snug">{desc}</p>
     </div>
   );
 }
@@ -545,8 +545,8 @@ function MetricCard({ title, value, icon: Icon, accent }: MetricEntry) {
           <Icon size={16} strokeWidth={1.9} />
         </div>
         <div className="min-w-0">
-          <p className="text-[10.5px] font-medium uppercase tracking-wide text-slate-400 truncate">{title}</p>
-          <strong className="mt-0.5 block text-lg font-bold tracking-tight text-white leading-none">
+          <p className="text-[10.5px] font-medium uppercase tracking-wide text-muted-foreground truncate">{title}</p>
+          <strong className="mt-0.5 block text-lg font-bold tracking-tight text-foreground leading-none">
             {value}
           </strong>
         </div>
@@ -579,8 +579,8 @@ function EmptySequenceState({ onNew }: { onNew: () => void }) {
       >
         <Wand2 className="h-6 w-6" />
       </div>
-      <h2 className="mt-3 text-base sm:text-lg font-semibold text-white">Crie sua primeira sequência</h2>
-      <p className="mt-1.5 text-xs sm:text-sm text-slate-400 max-w-md mx-auto leading-relaxed">
+      <h2 className="mt-3 text-base sm:text-lg font-semibold text-foreground">Crie sua primeira sequência</h2>
+      <p className="mt-1.5 text-xs sm:text-sm text-muted-foreground max-w-md mx-auto leading-relaxed">
         Inscreva contatos em uma jornada e envie fluxos automaticamente ao longo de dias, semanas ou meses —
         respeitando janelas de horário e palavras-chave.
       </p>
@@ -629,7 +629,7 @@ function SequenceEditor(props: {
   return (
     <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
       <DialogContent
-        className="max-w-5xl w-[95vw] max-h-[92vh] overflow-y-auto p-0 border-0 text-slate-100"
+        className="max-w-5xl w-[95vw] max-h-[92vh] overflow-y-auto p-0 border-0 text-foreground"
         style={{
           background: "linear-gradient(160deg,#0b1428 0%,#050914 60%,#050914 100%)",
           boxShadow: "0 30px 80px rgba(0,0,0,.55), inset 0 1px 0 rgba(255,255,255,.04)",
@@ -645,7 +645,7 @@ function SequenceEditor(props: {
           }}
         >
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2.5 text-xl text-white">
+            <DialogTitle className="flex items-center gap-2.5 text-xl text-foreground">
               <div
                 className="grid h-10 w-10 place-items-center rounded-xl"
                 style={{
@@ -668,10 +668,10 @@ function SequenceEditor(props: {
               borderRadius: 12,
             }}
           >
-            <TabsTrigger value="geral" className="gap-1.5 data-[state=active]:text-white data-[state=active]:shadow-none data-[state=active]:bg-gradient-to-r data-[state=active]:from-[#2387ff] data-[state=active]:to-[#7c3cff] text-slate-300"><Settings2 className="h-3.5 w-3.5" /> Geral</TabsTrigger>
-            <TabsTrigger value="janela" className="gap-1.5 data-[state=active]:text-white data-[state=active]:bg-gradient-to-r data-[state=active]:from-[#2387ff] data-[state=active]:to-[#7c3cff] text-slate-300"><Clock className="h-3.5 w-3.5" /> Janela & regras</TabsTrigger>
-            <TabsTrigger value="keywords" className="gap-1.5 data-[state=active]:text-white data-[state=active]:bg-gradient-to-r data-[state=active]:from-[#2387ff] data-[state=active]:to-[#7c3cff] text-slate-300"><KeyRound className="h-3.5 w-3.5" /> Palavras-chave</TabsTrigger>
-            <TabsTrigger value="etapas" className="gap-1.5 data-[state=active]:text-white data-[state=active]:bg-gradient-to-r data-[state=active]:from-[#2387ff] data-[state=active]:to-[#7c3cff] text-slate-300"><Zap className="h-3.5 w-3.5" /> Etapas ({draft.steps.length})</TabsTrigger>
+            <TabsTrigger value="geral" className="gap-1.5 data-[state=active]:text-foreground data-[state=active]:shadow-none data-[state=active]:bg-gradient-to-r data-[state=active]:from-[#2387ff] data-[state=active]:to-[#7c3cff] text-muted-foreground"><Settings2 className="h-3.5 w-3.5" /> Geral</TabsTrigger>
+            <TabsTrigger value="janela" className="gap-1.5 data-[state=active]:text-foreground data-[state=active]:bg-gradient-to-r data-[state=active]:from-[#2387ff] data-[state=active]:to-[#7c3cff] text-muted-foreground"><Clock className="h-3.5 w-3.5" /> Janela & regras</TabsTrigger>
+            <TabsTrigger value="keywords" className="gap-1.5 data-[state=active]:text-foreground data-[state=active]:bg-gradient-to-r data-[state=active]:from-[#2387ff] data-[state=active]:to-[#7c3cff] text-muted-foreground"><KeyRound className="h-3.5 w-3.5" /> Palavras-chave</TabsTrigger>
+            <TabsTrigger value="etapas" className="gap-1.5 data-[state=active]:text-foreground data-[state=active]:bg-gradient-to-r data-[state=active]:from-[#2387ff] data-[state=active]:to-[#7c3cff] text-muted-foreground"><Zap className="h-3.5 w-3.5" /> Etapas ({draft.steps.length})</TabsTrigger>
           </TabsList>
 
           <TabsContent value="geral" className="space-y-4 mt-4">
@@ -814,7 +814,7 @@ function SequenceEditor(props: {
             background: "rgba(5,10,22,.6)",
           }}
         >
-          <div className="text-xs text-slate-400 flex items-center gap-1.5"><Info className="h-3.5 w-3.5 text-[#a5c0ff]" /> Alterações só passam a valer após salvar.</div>
+          <div className="text-xs text-muted-foreground flex items-center gap-1.5"><Info className="h-3.5 w-3.5 text-[#a5c0ff]" /> Alterações só passam a valer após salvar.</div>
           <div className="flex gap-2">
             <button type="button" onClick={onClose} className="secondary-dark-btn">Cancelar</button>
             <button type="button" onClick={onSave} disabled={saving} className="primary-gradient-btn disabled:opacity-60">

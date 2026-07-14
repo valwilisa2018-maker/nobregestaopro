@@ -88,7 +88,7 @@ export function TabAgents() {
               {/* Ambient glow */}
               <div className="pointer-events-none absolute -inset-1 rounded-[2rem] bg-gradient-to-r from-emerald-500/20 to-blue-500/20 blur-xl opacity-40 group-hover:opacity-100 transition-opacity duration-700" />
               {/* Card */}
-              <div className="relative rounded-[2rem] border border-white/10 bg-[hsl(240_10%_6%/0.8)] backdrop-blur-2xl p-6 shadow-2xl overflow-hidden">
+              <div className="relative rounded-[2rem] border border-border bg-[hsl(240_10%_6%/0.8)] backdrop-blur-2xl p-6 shadow-2xl overflow-hidden">
                 {/* Header */}
                 <div className="flex items-center justify-between mb-8">
                   <div className="flex items-center gap-3 min-w-0">
@@ -96,13 +96,13 @@ export function TabAgents() {
                       <div className={`h-3 w-3 rounded-full ${r.is_active ? "bg-emerald-500" : "bg-muted-foreground"}`} />
                       {r.is_active && <div className="absolute inset-0 h-3 w-3 rounded-full bg-emerald-500 animate-ping opacity-75" />}
                     </div>
-                    <h3 className="text-white font-semibold text-xl tracking-tight truncate">{r.name || "Sem nome"}</h3>
+                    <h3 className="text-foreground font-semibold text-xl tracking-tight truncate">{r.name || "Sem nome"}</h3>
                   </div>
                   <div className="flex gap-2 shrink-0">
-                    <button onClick={() => duplicate(r)} className="p-2 rounded-xl text-slate-400 hover:bg-white/5 hover:text-white transition-colors">
+                    <button onClick={() => duplicate(r)} className="p-2 rounded-xl text-muted-foreground hover:bg-muted/40 hover:text-foreground transition-colors">
                       <Copy className="h-4 w-4" />
                     </button>
-                    <button onClick={() => remove(r)} className="p-2 rounded-xl text-slate-400 hover:bg-red-500/10 hover:text-red-400 transition-colors">
+                    <button onClick={() => remove(r)} className="p-2 rounded-xl text-muted-foreground hover:bg-red-500/10 hover:text-red-400 transition-colors">
                       <Trash2 className="h-4 w-4" />
                     </button>
                   </div>
@@ -115,30 +115,30 @@ export function TabAgents() {
                       <Zap className="h-4 w-4" />
                     </div>
                     <div className="flex flex-col min-w-0">
-                      <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Model Intelligence</span>
-                      <span className="text-sm text-slate-200 font-medium truncate">IA · Configurações Globais</span>
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Model Intelligence</span>
+                      <span className="text-sm text-foreground font-medium truncate">IA · Configurações Globais</span>
                     </div>
                   </div>
 
                   <div className="grid grid-cols-2 gap-3">
                     <div className="flex flex-col gap-1 p-3 rounded-2xl bg-white/[0.03] border border-white/[0.05]">
-                      <div className="flex items-center gap-2 text-slate-500">
+                      <div className="flex items-center gap-2 text-muted-foreground">
                         <Sliders className="h-3 w-3" />
                         <span className="text-[10px] font-bold uppercase tracking-wider">Temp</span>
                       </div>
-                      <span className="text-sm text-slate-200">{r.temperature ?? 0.7}</span>
+                      <span className="text-sm text-foreground">{r.temperature ?? 0.7}</span>
                     </div>
                     <div className="flex flex-col gap-1 p-3 rounded-2xl bg-white/[0.03] border border-white/[0.05]">
-                      <div className="flex items-center gap-2 text-slate-500">
+                      <div className="flex items-center gap-2 text-muted-foreground">
                         <Hash className="h-3 w-3" />
                         <span className="text-[10px] font-bold uppercase tracking-wider">Tokens</span>
                       </div>
-                      <span className="text-sm text-slate-200">{r.max_tokens ?? 2048}</span>
+                      <span className="text-sm text-foreground">{r.max_tokens ?? 2048}</span>
                     </div>
                   </div>
 
                   <div className="flex items-center justify-between px-3">
-                    <div className="flex items-center gap-3 text-slate-400">
+                    <div className="flex items-center gap-3 text-muted-foreground">
                       <Clock className="h-4 w-4" />
                       <span className="text-sm font-medium">Timer Mode</span>
                     </div>

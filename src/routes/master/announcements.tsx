@@ -139,7 +139,7 @@ function Page() {
           return (
             <button key={t.key} onClick={() => openTemplate(t)}
               className="group relative overflow-hidden rounded-xl border border-border bg-card p-4 text-left transition hover:border-primary/50 hover:shadow-md">
-              <div className={`mb-2 grid h-10 w-10 place-items-center rounded-lg bg-gradient-to-br ${t.accent} text-white shadow-sm`}>
+              <div className={`mb-2 grid h-10 w-10 place-items-center rounded-lg bg-gradient-to-br ${t.accent} text-foreground shadow-sm`}>
                 <Icon className="h-5 w-5" />
               </div>
               <div className="text-sm font-semibold">{t.label}</div>

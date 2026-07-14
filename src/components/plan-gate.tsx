@@ -170,20 +170,20 @@ function PlanModal({ variant, dismissible, onClose, onNavigateToPlans, daysLeft,
   };
 
   return (
-    <div className="fixed inset-0 z-[70] grid place-items-center p-4 bg-black/70 backdrop-blur-sm">
+    <div className="fixed inset-0 z-[70] grid place-items-center p-4 bg-background/70 backdrop-blur-sm">
       <motion.div
         initial={{ opacity: 0, scale: 0.94, y: 10 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.95 }}
         transition={{ type: "spring", stiffness: 220, damping: 22 }}
-        className="relative w-full max-w-md overflow-hidden rounded-3xl border border-white/10 bg-[#07061a] text-white shadow-[0_40px_120px_-20px_rgba(0,0,0,0.8)]"
+        className="relative w-full max-w-md overflow-hidden rounded-3xl border border-border bg-[#07061a] text-foreground shadow-[0_40px_120px_-20px_rgba(0,0,0,0.8)]"
       >
 
         {dismissible && (
           <button
             aria-label="Fechar"
             onClick={onClose}
-            className="absolute right-3 top-3 z-10 grid h-8 w-8 place-items-center rounded-full bg-white/5 text-white/60 hover:bg-white/10 hover:text-white"
+            className="absolute right-3 top-3 z-10 grid h-8 w-8 place-items-center rounded-full bg-muted/40 text-foreground/60 hover:bg-muted/60 hover:text-foreground"
           >
             <X className="h-4 w-4" />
           </button>
@@ -195,7 +195,7 @@ function PlanModal({ variant, dismissible, onClose, onNavigateToPlans, daysLeft,
             <img src={logoAsset.url} alt="Agent IA" className="h-9 w-9 rounded-lg object-cover ring-1 ring-white/10" />
             <div className="text-left leading-none">
               <div className="text-lg font-black tracking-tight bg-gradient-to-r from-sky-300 via-white to-sky-300 bg-clip-text text-transparent">AGENTIA</div>
-              <div className="text-[8px] uppercase tracking-[0.25em] text-white/50">Plataforma Inteligente</div>
+              <div className="text-[8px] uppercase tracking-[0.25em] text-foreground/50">Plataforma Inteligente</div>
             </div>
           </div>
 
@@ -210,9 +210,9 @@ function PlanModal({ variant, dismissible, onClose, onNavigateToPlans, daysLeft,
             <div className={`absolute -bottom-1 -right-1 grid h-9 w-9 place-items-center rounded-full ring-2 ring-slate-950 shadow-lg ${
               orange ? "bg-gradient-to-br from-orange-500 to-amber-600" : "bg-gradient-to-br from-sky-500 to-indigo-600"
             }`}>
-              {variant === "welcome" ? <PartyPopper className="h-4 w-4 text-white" />
-                : variant === "expired" ? <AlertTriangle className="h-4 w-4 text-white" />
-                : <Hourglass className="h-4 w-4 text-white" />}
+              {variant === "welcome" ? <PartyPopper className="h-4 w-4 text-foreground" />
+                : variant === "expired" ? <AlertTriangle className="h-4 w-4 text-foreground" />
+                : <Hourglass className="h-4 w-4 text-foreground" />}
             </div>
           </div>
 
@@ -222,22 +222,22 @@ function PlanModal({ variant, dismissible, onClose, onNavigateToPlans, daysLeft,
             <span className={orange ? "text-orange-400" : "text-sky-400"}>{heading.strong}</span>{" "}
             {heading.emoji && <span>{heading.emoji}</span>}
           </h2>
-          <p className="mt-3 px-2 text-sm text-white/70">{subtitle}</p>
+          <p className="mt-3 px-2 text-sm text-foreground/70">{subtitle}</p>
 
           {/* Plan info card (expiring/expired) */}
           {variant !== "welcome" && (
-            <div className="mt-5 grid grid-cols-2 gap-2 rounded-2xl border border-white/10 bg-white/5 p-3 text-left">
-              <div className="rounded-xl bg-white/5 p-3">
-                <div className="flex items-center gap-1.5 text-[10px] uppercase tracking-wider text-white/50">
+            <div className="mt-5 grid grid-cols-2 gap-2 rounded-2xl border border-border bg-muted/40 p-3 text-left">
+              <div className="rounded-xl bg-muted/40 p-3">
+                <div className="flex items-center gap-1.5 text-[10px] uppercase tracking-wider text-foreground/50">
                   <CreditCard className="h-3 w-3" /> Seu plano atual
                 </div>
-                <div className="mt-1 font-bold text-white truncate">{planName ?? "—"}</div>
+                <div className="mt-1 font-bold text-foreground truncate">{planName ?? "—"}</div>
                 <div className="mt-1 inline-block rounded-md bg-orange-500/20 px-1.5 py-0.5 text-[10px] font-semibold text-orange-300">
                   {variant === "expired" ? "Vencido" : "Expira em"}
                 </div>
               </div>
-              <div className="rounded-xl bg-white/5 p-3">
-                <div className="flex items-center gap-1.5 text-[10px] uppercase tracking-wider text-white/50">
+              <div className="rounded-xl bg-muted/40 p-3">
+                <div className="flex items-center gap-1.5 text-[10px] uppercase tracking-wider text-foreground/50">
                   <CalendarDays className="h-3 w-3" /> {variant === "expired" ? "Venceu em" : "Vencimento em"}
                 </div>
                 <div className="mt-1 font-bold text-orange-300">
@@ -245,7 +245,7 @@ function PlanModal({ variant, dismissible, onClose, onNavigateToPlans, daysLeft,
                     ? (expiresAt ? expiresAt.toLocaleDateString("pt-BR") : "—")
                     : `${daysLeft ?? 0} dia${daysLeft === 1 ? "" : "s"}`}
                 </div>
-                <div className="mt-1 text-[10px] text-white/50">
+                <div className="mt-1 text-[10px] text-foreground/50">
                   {expiresAt ? expiresAt.toLocaleDateString("pt-BR") : ""}
                 </div>
               </div>
@@ -254,8 +254,8 @@ function PlanModal({ variant, dismissible, onClose, onNavigateToPlans, daysLeft,
 
           {/* Feature strip */}
           {variant === "welcome" ? (
-            <div className="mt-5 rounded-2xl border border-white/10 bg-white/[0.03] p-4">
-              <div className="text-xs font-semibold text-white/80 mb-3">O que você vai encontrar aqui:</div>
+            <div className="mt-5 rounded-2xl border border-border bg-white/[0.03] p-4">
+              <div className="text-xs font-semibold text-foreground/80 mb-3">O que você vai encontrar aqui:</div>
               <div className="grid grid-cols-2 gap-3 text-left">
                 <Feature icon={Brain} title="Automação Inteligente" desc="Crie agentes e fluxos poderosos" tint="sky" />
                 <Feature icon={Zap} title="Alta Performance" desc="Plataforma rápida e estável" tint="fuchsia" />
@@ -266,7 +266,7 @@ function PlanModal({ variant, dismissible, onClose, onNavigateToPlans, daysLeft,
           ) : (
             <div className="mt-5 rounded-2xl border border-orange-400/20 bg-orange-500/[0.04] p-4">
               <div className="text-xs font-semibold text-orange-300 mb-3">O que você pode perder?</div>
-              <ul className="space-y-2 text-left text-xs text-white/80">
+              <ul className="space-y-2 text-left text-xs text-foreground/80">
                 <li className="flex items-center gap-2"><Zap className="h-3.5 w-3.5 text-orange-400 shrink-0" /> Seus agentes podem ser pausados</li>
                 <li className="flex items-center gap-2"><Rocket className="h-3.5 w-3.5 text-orange-400 shrink-0" /> Suas integrações podem ser limitadas</li>
                 <li className="flex items-center gap-2"><Sparkles className="h-3.5 w-3.5 text-orange-400 shrink-0" /> Seus fluxos podem parar de funcionar</li>
@@ -277,9 +277,9 @@ function PlanModal({ variant, dismissible, onClose, onNavigateToPlans, daysLeft,
           {/* CTA */}
           <div className="mt-6">
             {variant === "welcome" ? (
-              <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
-                <div className="text-sm font-bold text-white">Pronto para começar?</div>
-                <div className="mt-1 text-xs text-white/70">Escolha o plano ideal para desbloquear todo o potencial da AgentIA.</div>
+              <div className="rounded-2xl border border-border bg-muted/40 p-4">
+                <div className="text-sm font-bold text-foreground">Pronto para começar?</div>
+                <div className="mt-1 text-xs text-foreground/70">Escolha o plano ideal para desbloquear todo o potencial da AgentIA.</div>
                 <Button
                   onClick={goPlan}
                   disabled={navigating}
@@ -287,7 +287,7 @@ function PlanModal({ variant, dismissible, onClose, onNavigateToPlans, daysLeft,
                 >
                   {navigating ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Abrindo…</> : cta}
                 </Button>
-                <div className="mt-2 text-[10px] text-white/50">🔒 Pagamento seguro • Cancelamento fácil</div>
+                <div className="mt-2 text-[10px] text-foreground/50">🔒 Pagamento seguro • Cancelamento fácil</div>
               </div>
             ) : (
               <Button
@@ -300,8 +300,8 @@ function PlanModal({ variant, dismissible, onClose, onNavigateToPlans, daysLeft,
             )}
           </div>
 
-          <div className="mt-4 text-[10px] text-white/40">🔒 Pagamento 100% seguro</div>
-          <div className="mt-4 border-t border-white/5 pt-3 text-[10px] tracking-widest text-white/40">
+          <div className="mt-4 text-[10px] text-foreground/40">🔒 Pagamento 100% seguro</div>
+          <div className="mt-4 border-t border-border pt-3 text-[10px] tracking-widest text-foreground/40">
             AGENTIA — Inteligência que impulsiona resultados.
           </div>
         </div>
@@ -323,8 +323,8 @@ function Feature({ icon: Icon, title, desc, tint }: { icon: React.ComponentType<
         <Icon className="h-4 w-4" />
       </div>
       <div className="min-w-0">
-        <div className="text-[11px] font-bold text-white truncate">{title}</div>
-        <div className="text-[10px] text-white/60 leading-tight">{desc}</div>
+        <div className="text-[11px] font-bold text-foreground truncate">{title}</div>
+        <div className="text-[10px] text-foreground/60 leading-tight">{desc}</div>
       </div>
     </div>
   );

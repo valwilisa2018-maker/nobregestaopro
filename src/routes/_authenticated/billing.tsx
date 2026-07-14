@@ -76,17 +76,17 @@ function Page() {
           <button
             onClick={() => setCycle("monthly")}
             className={`px-5 py-1.5 rounded-full text-sm font-semibold transition ${
-              cycle === "monthly" ? "bg-emerald-500 text-white shadow-lg shadow-emerald-500/25" : "text-muted-foreground hover:text-foreground"
+              cycle === "monthly" ? "bg-emerald-500 text-foreground shadow-lg shadow-emerald-500/25" : "text-muted-foreground hover:text-foreground"
             }`}
           >Mensal</button>
           <button
             onClick={() => setCycle("annual")}
             className={`px-5 py-1.5 rounded-full text-sm font-semibold transition inline-flex items-center gap-2 ${
-              cycle === "annual" ? "bg-emerald-500 text-white shadow-lg shadow-emerald-500/25" : "text-muted-foreground hover:text-foreground"
+              cycle === "annual" ? "bg-emerald-500 text-foreground shadow-lg shadow-emerald-500/25" : "text-muted-foreground hover:text-foreground"
             }`}
           >
             Anual
-            <span className={`text-[10px] px-2 py-0.5 rounded-full border ${cycle === "annual" ? "bg-white/15 text-white border-white/20" : "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"}`}>-2 meses</span>
+            <span className={`text-[10px] px-2 py-0.5 rounded-full border ${cycle === "annual" ? "bg-white/15 text-foreground border-border" : "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"}`}>-2 meses</span>
           </button>
         </div>
       </div>
@@ -120,7 +120,7 @@ function Page() {
                 <div className={`absolute inset-x-0 -top-24 h-40 opacity-60 blur-2xl ${p.highlight ? "bg-emerald-500/20" : "bg-primary/10"}`} />
               </div>
               {p.highlight && (
-                <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-emerald-500 text-white text-[10px] font-black uppercase tracking-widest px-3 py-1 rounded-full shadow-lg shadow-emerald-500/30 whitespace-nowrap z-10">
+                <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-emerald-500 text-foreground text-[10px] font-black uppercase tracking-widest px-3 py-1 rounded-full shadow-lg shadow-emerald-500/30 whitespace-nowrap z-10">
                   Mais vendido
                 </div>
               )}
@@ -185,7 +185,7 @@ function Page() {
               <Button
                 className={`relative mt-6 w-full py-2.5 h-auto rounded-xl font-bold text-sm transition-all ${
                   p.highlight
-                    ? "bg-emerald-500 hover:bg-emerald-600 text-white shadow-lg shadow-emerald-500/30 active:scale-95"
+                    ? "bg-emerald-500 hover:bg-emerald-600 text-foreground shadow-lg shadow-emerald-500/30 active:scale-95"
                     : "bg-transparent border border-border text-foreground hover:bg-muted/60"
                 }`}
               >

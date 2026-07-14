@@ -254,7 +254,7 @@ function Page() {
       actions={
         <Dialog open={openNew} onOpenChange={setOpenNew}>
           <DialogTrigger asChild>
-            <Button className="bg-[#25D366] hover:bg-[#1ebe5b] text-white"><Plus className="h-4 w-4" /> Nova instância</Button>
+            <Button className="bg-[#25D366] hover:bg-[#1ebe5b] text-foreground"><Plus className="h-4 w-4" /> Nova instância</Button>
           </DialogTrigger>
           <DialogContent>
             <DialogHeader>
@@ -384,7 +384,7 @@ function Page() {
                     <button
                       onClick={() => reconnect(c)}
                       disabled={!!busy[c.id]}
-                      className="col-span-2 flex items-center justify-center gap-2 rounded-xl bg-[#25D366] px-4 py-2.5 text-sm font-semibold text-white transition-all hover:bg-[#1ebe5b] disabled:opacity-60"
+                      className="col-span-2 flex items-center justify-center gap-2 rounded-xl bg-[#25D366] px-4 py-2.5 text-sm font-semibold text-foreground transition-all hover:bg-[#1ebe5b] disabled:opacity-60"
                     >
                       <QrCode className="h-4 w-4" /> Conectar via QR
                     </button>
@@ -457,21 +457,21 @@ function Page() {
                     style={{ backgroundImage: "radial-gradient(circle at 30% 20%, rgba(255,255,255,0.35), transparent 50%)" }} />
                   <DialogHeader className="relative space-y-0">
                     <div className="flex items-center gap-3">
-                      <div className="grid h-11 w-11 place-items-center rounded-2xl bg-white/20 backdrop-blur ring-1 ring-white/30 text-white">
+                      <div className="grid h-11 w-11 place-items-center rounded-2xl bg-white/20 backdrop-blur ring-1 ring-white/30 text-foreground">
                         <MessageCircle className="h-5 w-5" />
                       </div>
-                      <div className="text-left text-white">
+                      <div className="text-left text-foreground">
                         <DialogTitle className="text-base font-semibold">
                           {online ? "WhatsApp conectado" : "Conectar WhatsApp"}
                         </DialogTitle>
-                        <DialogDescription className="text-xs text-white/80">
+                        <DialogDescription className="text-xs text-foreground/80">
                           {qrModal.name || (online ? "Instância pronta para atender" : "Sincronizar com seu dispositivo")}
                         </DialogDescription>
                       </div>
                     </div>
                   </DialogHeader>
                   {online && current?.phone_number && (
-                    <div className="relative mt-5 flex items-end gap-3 text-white">
+                    <div className="relative mt-5 flex items-end gap-3 text-foreground">
                       <div>
                         <div className="text-[10px] uppercase tracking-widest opacity-80">Número conectado</div>
                         <div className="mt-0.5 font-mono text-xl font-semibold">+{current.phone_number}</div>
@@ -490,7 +490,7 @@ function Page() {
                   {online ? (
                     <>
                       <div className="rounded-2xl border border-[#25D366]/30 bg-[#25D366]/[0.05] p-4 flex items-center gap-3">
-                        <div className="grid h-10 w-10 place-items-center rounded-full bg-[#25D366] text-white">
+                        <div className="grid h-10 w-10 place-items-center rounded-full bg-[#25D366] text-foreground">
                           <Wifi className="h-5 w-5" />
                         </div>
                         <div className="text-sm">

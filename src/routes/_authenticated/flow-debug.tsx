@@ -259,7 +259,7 @@ function Page() {
                     </div>
                     {l.message && <div className="mt-0.5 whitespace-pre-wrap break-words">{l.message}</div>}
                     {l.data && Object.keys(l.data).length > 0 && (
-                      <pre className="mt-1 text-[10px] text-muted-foreground bg-black/5 rounded p-1 overflow-x-auto">{JSON.stringify(l.data, null, 2)}</pre>
+                      <pre className="mt-1 text-[10px] text-muted-foreground bg-background/5 rounded p-1 overflow-x-auto">{JSON.stringify(l.data, null, 2)}</pre>
                     )}
                   </div>
                 ))}
@@ -387,7 +387,7 @@ function Page() {
                     </div>
                     {l.message && <div className="mt-1 whitespace-pre-wrap break-words">{l.message}</div>}
                     {Object.keys(meta).length > 0 && (
-                      <pre className="mt-1 text-[10px] text-muted-foreground bg-black/5 rounded p-2 overflow-x-auto">{JSON.stringify(meta, null, 2)}</pre>
+                      <pre className="mt-1 text-[10px] text-muted-foreground bg-background/5 rounded p-2 overflow-x-auto">{JSON.stringify(meta, null, 2)}</pre>
                     )}
                   </div>
                 );
