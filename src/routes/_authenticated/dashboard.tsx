@@ -307,13 +307,13 @@ function Dashboard() {
               Visão consolidada de agentes, WhatsApp, disparos, pipeline e agenda — {range.label.toLowerCase()}.
             </p>
           </div>
-          <div className="flex flex-1 items-center justify-center gap-2 flex-nowrap">
+          <div className="flex flex-1 items-center justify-center gap-3 flex-nowrap">
             <div className="relative shrink-0">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500" />
-              <Input placeholder="Buscar agentes, conversas..." className="pl-9 w-56 md:w-64 h-9 rounded-full bg-black/60 border-white/10 text-slate-200 placeholder:text-slate-500" />
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-500" />
+              <Input placeholder="Buscar agentes, conversas..." className="pl-11 w-72 md:w-96 h-12 text-base rounded-full bg-black/60 border-white/10 text-slate-200 placeholder:text-slate-500" />
             </div>
-            <Button onClick={() => dash.refetch()} disabled={dash.isFetching} className="h-9 shrink-0 rounded-full bg-black text-white border border-white/10 hover:bg-white/10 gap-2">
-              <RefreshCw className={`h-4 w-4 ${dash.isFetching ? "animate-spin" : ""}`} /> Atualizar
+            <Button onClick={() => dash.refetch()} disabled={dash.isFetching} className="h-12 px-6 text-base shrink-0 rounded-full bg-black text-white border border-white/10 hover:bg-white/10 gap-2">
+              <RefreshCw className={`h-5 w-5 ${dash.isFetching ? "animate-spin" : ""}`} /> Atualizar
             </Button>
           </div>
           <div className="hidden lg:flex items-center relative flex-1 justify-end">
