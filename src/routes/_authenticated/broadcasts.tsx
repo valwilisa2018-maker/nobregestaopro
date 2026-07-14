@@ -241,8 +241,8 @@ function BroadcastsPage() {
             </div>
           </div>
           <div className="grid grid-cols-3 gap-3 md:min-w-[380px]">
-            <HeroStat icon={<Send className="h-4 w-4" />} label="Campanhas" value={broadcasts.data?.length ?? 0} />
-            <HeroStat icon={<Zap className="h-4 w-4" />} label="Ativas" value={(broadcasts.data ?? []).filter((b: any) => b.status === "running").length} accent />
+            <HeroStat icon={<Send className="h-4 w-4" />} label="Campanhas" value={broadcasts.data?.rows?.length ?? 0} />
+            <HeroStat icon={<Zap className="h-4 w-4" />} label="Ativas" value={(broadcasts.data?.rows ?? []).filter((b: any) => b.status === "running").length} accent />
             <HeroStat icon={<Users className="h-4 w-4" />} label="Contatos" value={contacts.data?.total ?? 0} />
           </div>
         </div>
