@@ -951,6 +951,16 @@ function SalesPage() {
       >
         <div className="pointer-events-none absolute -top-24 -right-24 h-64 w-64 rounded-full bg-primary/20 blur-3xl" />
         <div className="pointer-events-none absolute -bottom-24 -left-24 h-64 w-64 rounded-full bg-primary/10 blur-3xl" />
+        <div className="pointer-events-none absolute inset-0 hidden lg:flex items-center justify-center">
+          <div className="pointer-events-auto text-center">
+            <div className="text-[10px] font-medium uppercase tracking-[0.18em] text-muted-foreground">
+              Vendas de hoje
+            </div>
+            <div className="mt-1 bg-gradient-to-br from-primary to-primary/70 bg-clip-text text-3xl font-bold tracking-tight text-transparent sm:text-4xl tabular-nums">
+              {formatCurrency(totalVendasHoje)}
+            </div>
+          </div>
+        </div>
         <div className="relative grid grid-cols-[minmax(0,1fr)_auto] items-center gap-4 sm:flex sm:flex-wrap sm:justify-between">
           <div className="min-w-0 space-y-2">
             <div className="inline-flex items-center gap-2 rounded-full border border-border/60 bg-background/60 px-3 py-1 text-[11px] font-medium uppercase tracking-[0.16em] text-muted-foreground backdrop-blur">
