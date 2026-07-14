@@ -72,17 +72,17 @@ export function AppSidebar() {
 
   return (
     <Sidebar collapsible="icon">
-      <SidebarHeader className="border-b border-sidebar-border">
+      <SidebarHeader className="border-b border-sidebar-border/60">
         <div className="flex items-center gap-3 px-2 py-3 group">
           <div className="relative shrink-0">
-            <div className="relative w-10 h-10 rounded-xl bg-black flex items-center justify-center overflow-hidden transition-transform group-hover:scale-105">
+            <div className="relative w-10 h-10 rounded-xl bg-black flex items-center justify-center overflow-hidden ring-1 ring-white/10 shadow-md transition-all duration-300 group-hover:scale-105 group-hover:shadow-lg">
               <img src={logoUrl} alt="Nobre MKT" className="w-8 h-8 object-contain" />
             </div>
           </div>
           {!collapsed && (
             <div className="leading-tight overflow-hidden">
               <div
-                className="font-bold tracking-tight text-base"
+                className="font-bold tracking-tight text-base truncate"
                 style={{
                   background: "var(--gradient-primary)",
                   WebkitBackgroundClip: "text",
@@ -103,17 +103,27 @@ export function AppSidebar() {
       <SidebarContent>
         {groups.map((g) => (
           <SidebarGroup key={g.label}>
-            <SidebarGroupLabel>{g.label}</SidebarGroupLabel>
+            <SidebarGroupLabel className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground/70 px-3">
+              {g.label}
+            </SidebarGroupLabel>
             <SidebarGroupContent>
-              <SidebarMenu>
+              <SidebarMenu className="gap-0.5">
                 {g.items.map((it) => {
                   const active = current === it.url || current.startsWith(it.url + "/");
                   return (
                     <SidebarMenuItem key={it.url}>
-                      <SidebarMenuButton asChild isActive={active} tooltip={it.title}>
+                      <SidebarMenuButton
+                        asChild
+                        isActive={active}
+                        tooltip={it.title}
+                        className="group/item relative rounded-lg transition-all duration-200 data-[active=true]:bg-sidebar-accent/80 data-[active=true]:shadow-sm data-[active=true]:font-semibold hover:bg-sidebar-accent/50"
+                      >
                         <Link to={it.url} className="flex items-center gap-3" data-tour={`menu-${it.url.replace(/\//g, "")}`}>
-                          <it.icon className="w-4 h-4" />
-                          <span>{it.title}</span>
+                          {active && (
+                            <span className="absolute left-0 top-1/2 -translate-y-1/2 h-5 w-0.5 rounded-r-full bg-primary" />
+                          )}
+                          <it.icon className={`w-4 h-4 shrink-0 transition-colors ${active ? "text-primary" : "text-muted-foreground group-hover/item:text-foreground"}`} />
+                          <span className="truncate">{it.title}</span>
                         </Link>
                       </SidebarMenuButton>
                     </SidebarMenuItem>
@@ -124,16 +134,24 @@ export function AppSidebar() {
           </SidebarGroup>
         ))}
       </SidebarContent>
-      <SidebarFooter className="border-t border-sidebar-border">
-        <SidebarMenu>
+      <SidebarFooter className="border-t border-sidebar-border/60">
+        <SidebarMenu className="gap-0.5">
           <SidebarMenuItem>
-            <SidebarMenuButton onClick={toggle} tooltip={theme === "dark" ? "Modo claro" : "Modo escuro"}>
+            <SidebarMenuButton
+              onClick={toggle}
+              tooltip={theme === "dark" ? "Modo claro" : "Modo escuro"}
+              className="rounded-lg transition-all duration-200 hover:bg-sidebar-accent/50"
+            >
               {theme === "dark" ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
               <span>{theme === "dark" ? "Modo claro" : "Modo escuro"}</span>
             </SidebarMenuButton>
           </SidebarMenuItem>
           <SidebarMenuItem>
-            <SidebarMenuButton onClick={logout} tooltip="Sair">
+            <SidebarMenuButton
+              onClick={logout}
+              tooltip="Sair"
+              className="rounded-lg transition-all duration-200 hover:bg-destructive/10 hover:text-destructive"
+            >
               <LogOut className="w-4 h-4" />
               <span>Sair</span>
             </SidebarMenuButton>
