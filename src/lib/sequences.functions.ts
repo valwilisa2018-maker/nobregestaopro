@@ -121,11 +121,13 @@ export const saveSequence = createServerFn({ method: "POST" })
     // replace steps
     await supabase.from("sequence_steps" as never).delete().eq("sequence_id", seqId!);
     if (steps.length) {
-      const rows = steps.map((s, i) => ({
-        ...s, id: undefined, sequence_id: seqId!, user_id: userId, position: i,
-      }));
+      const rows = steps.map((s, i) => {
+        const { id: _omit, ...rest } = s;
+        void _omit;
+        return { ...rest, sequence_id: seqId!, user_id: userId, position: i };
+      });
       const { error } = await supabase.from("sequence_steps" as never).insert(rows as never);
-      if (error) throw new Error(error.message);
+      if (error) throw new Error(`Erro ao salvar etapas da sequência: ${error.message}`);
     }
     return { id: seqId };
   });
@@ -175,10 +177,9 @@ export const duplicateSequence = createServerFn({ method: "POST" })
       .select("*").eq("sequence_id", data.id).order("position");
     if (steps?.length) {
       const rows = steps.map((s) => {
-        const row = { ...(s as Record<string, unknown>), id: undefined,
-          sequence_id: newId, user_id: userId,
-          created_at: undefined, updated_at: undefined };
-        return row;
+        const { id: _id, created_at: _c, updated_at: _u, ...rest } = s as Record<string, unknown>;
+        void _id; void _c; void _u;
+        return { ...rest, sequence_id: newId, user_id: userId };
       });
       await supabase.from("sequence_steps" as never).insert(rows as never);
     }
