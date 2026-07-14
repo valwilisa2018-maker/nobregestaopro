@@ -14,6 +14,7 @@ import { reportLovableError } from "../lib/lovable-error-reporting";
 import { supabase } from "@/integrations/supabase/client";
 import { Toaster } from "@/components/ui/sonner";
 import { UpdateBanner } from "@/components/update-banner";
+import { WhiteLabelProvider } from "@/components/white-label-provider";
 import "@fontsource/bebas-neue/400.css";
 import "@fontsource/barlow/400.css";
 import "@fontsource/barlow/500.css";
@@ -148,6 +149,7 @@ function RootComponent() {
   return (
     <QueryClientProvider client={queryClient}>
       <div translate="no" className="notranslate">
+        <WhiteLabelProvider />
         <Outlet />
         <Toaster richColors theme="dark" position="top-right" />
         <UpdateBanner />
