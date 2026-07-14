@@ -546,6 +546,27 @@ function BroadcastsPage() {
               <div className="text-sm whitespace-pre-wrap">{flowId ? "Enviando via fluxo selecionado." : message}</div>
             </div>
             {!connectionId && <p className="text-sm text-destructive">Selecione uma instância WhatsApp na etapa 2.</p>}
+
+            <div className="mt-4 relative overflow-hidden rounded-2xl border bg-gradient-to-br from-primary/15 via-primary/5 to-transparent p-5">
+              <div className="absolute -right-10 -top-10 h-40 w-40 rounded-full bg-primary/10 blur-3xl" />
+              <div className="relative flex flex-col md:flex-row md:items-center gap-4">
+                <div className="grid h-12 w-12 place-items-center rounded-xl bg-primary/20 text-primary ring-1 ring-primary/30">
+                  <Layers className="h-6 w-6" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <h3 className="text-base font-semibold">Disparo em Sequência</h3>
+                    <Badge variant="outline" className="bg-primary/15 text-primary border-primary/30"><Sparkles className="h-3 w-3" /> Premium</Badge>
+                  </div>
+                  <p className="text-sm text-muted-foreground max-w-2xl mt-1">
+                    Precisa enviar fluxos ao longo de dias, semanas ou meses respeitando horário, dia da semana e palavras-chave? Use o módulo Disparo em Sequência — cada contato tem sua própria jornada individual.
+                  </p>
+                </div>
+                <Link to="/sequences">
+                  <Button size="sm"><ArrowRight className="h-4 w-4" /> Abrir Disparo em Sequência</Button>
+                </Link>
+              </div>
+            </div>
           </div>
         )}
 
