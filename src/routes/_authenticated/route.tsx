@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { SidebarProvider, SidebarTrigger, SidebarInset } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/app-sidebar";
-import { Loader2 } from "lucide-react";
+import { Loader2, Clock } from "lucide-react";
 import { useTelaoSettingsSync } from "@/hooks/use-telao-settings-sync";
 import { ReleaseNoteCard } from "@/components/release-note-card";
 
@@ -16,6 +16,11 @@ function AuthLayout() {
   const [ready, setReady] = useState(false);
   const [authed, setAuthed] = useState(false);
   useTelaoSettingsSync();
+  const [nowBR, setNowBR] = useState(() => formatBrasilia(new Date()));
+  useEffect(() => {
+    const id = setInterval(() => setNowBR(formatBrasilia(new Date())), 1000);
+    return () => clearInterval(id);
+  }, []);
 
   useEffect(() => {
     let mounted = true;
@@ -100,9 +105,10 @@ function AuthLayout() {
               </span>
             </div>
             <div className="ml-auto flex items-center gap-2">
-              <span className="hidden sm:inline-flex items-center gap-1.5 rounded-full border border-border/60 bg-card/60 px-2.5 py-1 text-[10px] font-medium uppercase tracking-wider text-muted-foreground backdrop-blur">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                Online
+              <span className="hidden sm:inline-flex items-center gap-1.5 rounded-full border border-border/60 bg-card/60 px-2.5 py-1 text-[11px] font-medium tabular-nums text-muted-foreground backdrop-blur">
+                <Clock className="w-3 h-3 text-emerald-500" />
+                <span className="tracking-wide">{nowBR}</span>
+                <span className="text-[9px] uppercase tracking-[0.16em] text-muted-foreground/70">BRT</span>
               </span>
             </div>
           </header>
@@ -114,4 +120,14 @@ function AuthLayout() {
       </div>
     </SidebarProvider>
   );
+}
+
+function formatBrasilia(d: Date) {
+  return new Intl.DateTimeFormat("pt-BR", {
+    timeZone: "America/Sao_Paulo",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hour12: false,
+  }).format(d);
 }
