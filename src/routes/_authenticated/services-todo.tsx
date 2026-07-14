@@ -1,4 +1,5 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { PageHero } from "@/components/page-hero";
 import { useQuery } from "@tanstack/react-query";
 import { useState, useMemo, Fragment } from "react";
 import { supabase } from "@/integrations/supabase/client";
