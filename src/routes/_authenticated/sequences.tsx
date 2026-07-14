@@ -209,15 +209,10 @@ function SequencesPage() {
     <div
       className="-m-3 sm:-m-6 min-h-[calc(100vh-3rem)] p-3 sm:p-6 text-foreground"
       style={{
-        background: [
-          "radial-gradient(circle at 15% 10%, rgba(52,120,255,0.14), transparent 32%)",
-          "radial-gradient(circle at 85% 15%, rgba(124,60,255,0.12), transparent 34%)",
-          "radial-gradient(circle at 50% 100%, rgba(25,211,230,0.06), transparent 38%)",
-          "#050914",
-        ].join(","),
+        backgroundColor: "var(--background)",
         backgroundImage:
-          "radial-gradient(rgba(148,163,184,0.06) 1px, transparent 1px), radial-gradient(circle at 15% 10%, rgba(52,120,255,0.14), transparent 32%), radial-gradient(circle at 85% 15%, rgba(124,60,255,0.12), transparent 34%), linear-gradient(#050914,#050914)",
-        backgroundSize: "22px 22px, auto, auto, auto",
+          "radial-gradient(color-mix(in oklch, var(--foreground) 6%, transparent) 1px, transparent 1px), radial-gradient(circle at 15% 10%, rgba(52,120,255,0.14), transparent 32%), radial-gradient(circle at 85% 15%, rgba(124,60,255,0.12), transparent 34%)",
+        backgroundSize: "22px 22px, auto, auto",
       }}
     >
       <SequenceHeader onNew={openNew} />
@@ -328,7 +323,7 @@ function SequenceHeader({ onNew }: { onNew: () => void }) {
       style={{
         borderColor: "rgba(93,137,255,0.18)",
         background:
-          "linear-gradient(145deg, rgba(13,25,49,0.92), rgba(5,10,22,0.96))",
+          "linear-gradient(145deg, color-mix(in oklch, var(--card) 92%, transparent), color-mix(in oklch, var(--background) 96%, transparent))",
         boxShadow:
           "0 22px 60px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.03)",
       }}
@@ -383,10 +378,10 @@ const primaryButtonCss = `
 .primary-gradient-btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:44px;padding:0 20px;border:1px solid rgba(135,165,255,.42);border-radius:12px;color:#fff;font-weight:600;cursor:pointer;background:linear-gradient(110deg,#2387ff 0%,#4f6cff 48%,#7c3cff 100%);box-shadow:0 10px 30px rgba(61,103,255,.28), inset 0 1px 0 rgba(255,255,255,.25);transition:transform .18s ease, filter .18s ease, box-shadow .18s ease;}
 .primary-gradient-btn:hover{transform:translateY(-2px);filter:brightness(1.1);box-shadow:0 14px 36px rgba(82,85,255,.42), 0 0 25px rgba(124,60,255,.22);}
 .primary-gradient-btn:active{transform:translateY(0);}
-.secondary-dark-btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:44px;padding:0 18px;border:1px solid rgba(93,137,255,.28);border-radius:12px;color:#e2e8f0;font-weight:600;cursor:pointer;background:rgba(10,19,38,.75);transition:transform .18s ease, border-color .18s ease, background .18s ease;}
-.secondary-dark-btn:hover{transform:translateY(-2px);border-color:rgba(93,137,255,.5);background:rgba(15,26,52,.9);}
-.premium-shell{position:relative;overflow:hidden;border:1px solid rgba(93,137,255,.18);border-radius:22px;background:linear-gradient(145deg, rgba(13,25,49,.92), rgba(5,10,22,.96));box-shadow:0 22px 60px rgba(0,0,0,.32), inset 0 1px 0 rgba(255,255,255,.025);}
-.step-tile{position:relative;overflow:hidden;border:1px solid rgba(93,137,255,.18);border-radius:16px;background:linear-gradient(160deg, rgba(11,21,42,.9), rgba(5,10,22,.95));padding:14px;transition:transform .18s ease, border-color .18s ease;}
+.secondary-dark-btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:44px;padding:0 18px;border:1px solid rgba(93,137,255,.28);border-radius:12px;color:#e2e8f0;font-weight:600;cursor:pointer;background:color-mix(in oklch, var(--card) 80%, transparent);transition:transform .18s ease, border-color .18s ease, background .18s ease;}
+.secondary-dark-btn:hover{transform:translateY(-2px);border-color:rgba(93,137,255,.5);background:color-mix(in oklch, var(--muted) 90%, transparent);}
+.premium-shell{position:relative;overflow:hidden;border:1px solid rgba(93,137,255,.18);border-radius:22px;background:linear-gradient(145deg, color-mix(in oklch, var(--card) 92%, transparent), color-mix(in oklch, var(--background) 96%, transparent));box-shadow:0 22px 60px rgba(0,0,0,.32), inset 0 1px 0 rgba(255,255,255,.025);}
+.step-tile{position:relative;overflow:hidden;border:1px solid rgba(93,137,255,.18);border-radius:16px;background:linear-gradient(160deg, color-mix(in oklch, var(--card) 92%, transparent), color-mix(in oklch, var(--background) 96%, transparent));padding:14px;transition:transform .18s ease, border-color .18s ease;}
 .step-tile:hover{transform:translateY(-3px);border-color:rgba(93,137,255,.42);}
 .step-tile::after{content:"";position:absolute;left:14px;right:14px;bottom:10px;height:2px;border-radius:2px;background:linear-gradient(90deg,#2387ff,#7c3cff,transparent);}
 @keyframes seq-fade-in{from{opacity:0;transform:translateY(6px);}to{opacity:1;transform:translateY(0);}}
@@ -524,7 +519,7 @@ function MetricCard({ title, value, icon: Icon, accent }: MetricEntry) {
       className="group relative flex h-full min-h-[74px] overflow-hidden rounded-xl border p-2.5 transition-all duration-200 hover:-translate-y-1"
       style={{
         borderColor: `${accent}45`,
-        background: `linear-gradient(135deg, ${accent}1f 0%, rgba(6,12,25,0.96) 65%)`,
+        background: `linear-gradient(135deg, ${accent}1f 0%, color-mix(in oklch, var(--background) 96%, transparent) 65%)`,
         boxShadow: `0 10px 28px rgba(0,0,0,.28)`,
       }}
     >
@@ -562,9 +557,9 @@ function EmptySequenceState({ onNew }: { onNew: () => void }) {
       style={{
         borderColor: "rgba(93,137,255,0.22)",
         background:
-          "radial-gradient(circle at 50% 20%, rgba(52,120,255,0.10), transparent 55%), linear-gradient(160deg, rgba(11,21,42,.85), rgba(5,10,22,.95))",
+          "radial-gradient(circle at 50% 20%, rgba(52,120,255,0.10), transparent 55%), linear-gradient(160deg, color-mix(in oklch, var(--card) 92%, transparent), color-mix(in oklch, var(--background) 96%, transparent))",
         backgroundImage:
-          "radial-gradient(rgba(148,163,184,0.06) 1px, transparent 1px), radial-gradient(circle at 50% 20%, rgba(52,120,255,0.10), transparent 55%), linear-gradient(160deg, rgba(11,21,42,.85), rgba(5,10,22,.95))",
+          "radial-gradient(rgba(148,163,184,0.06) 1px, transparent 1px), radial-gradient(circle at 50% 20%, rgba(52,120,255,0.10), transparent 55%), linear-gradient(160deg, color-mix(in oklch, var(--card) 92%, transparent), color-mix(in oklch, var(--background) 96%, transparent))",
         backgroundSize: "18px 18px, auto, auto",
       }}
     >
@@ -631,9 +626,9 @@ function SequenceEditor(props: {
       <DialogContent
         className="max-w-5xl w-[95vw] max-h-[92vh] overflow-y-auto p-0 border-0 text-foreground"
         style={{
-          background: "linear-gradient(160deg,#0b1428 0%,#050914 60%,#050914 100%)",
-          boxShadow: "0 30px 80px rgba(0,0,0,.55), inset 0 1px 0 rgba(255,255,255,.04)",
-          border: "1px solid rgba(93,137,255,.22)",
+          background: "linear-gradient(160deg, color-mix(in oklch, var(--primary) 12%, var(--card)) 0%, var(--card) 60%, var(--card) 100%)",
+          boxShadow: "0 30px 80px color-mix(in oklch, var(--foreground) 25%, transparent), inset 0 1px 0 color-mix(in oklch, var(--foreground) 4%, transparent)",
+          border: "1px solid color-mix(in oklch, var(--primary) 22%, transparent)",
           borderRadius: 20,
         }}
       >
@@ -663,7 +658,7 @@ function SequenceEditor(props: {
           <TabsList
             className="gap-1 p-1 h-auto"
             style={{
-              background: "rgba(10,19,38,.75)",
+              background: "color-mix(in oklch, var(--card) 80%, transparent)",
               border: "1px solid rgba(93,137,255,.18)",
               borderRadius: 12,
             }}
@@ -811,7 +806,7 @@ function SequenceEditor(props: {
           className="p-4 flex items-center justify-between"
           style={{
             borderTop: "1px solid rgba(93,137,255,.18)",
-            background: "rgba(5,10,22,.6)",
+            background: "color-mix(in oklch, var(--background) 96%, transparent)",
           }}
         >
           <div className="text-xs text-muted-foreground flex items-center gap-1.5"><Info className="h-3.5 w-3.5 text-[#a5c0ff]" /> Alterações só passam a valer após salvar.</div>
