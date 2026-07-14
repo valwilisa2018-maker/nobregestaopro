@@ -225,11 +225,26 @@ function BroadcastsPage() {
 
   return (
     <div className="p-4 md:p-6 space-y-6">
-      <div className="flex items-center gap-3">
-        <div className="h-10 w-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center"><Send className="h-5 w-5" /></div>
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">Disparos</h1>
-          <p className="text-xs text-muted-foreground">Campanhas em massa com humanização, janela de horário e limites</p>
+      {/* Hero premium */}
+      <div className="relative overflow-hidden rounded-3xl border border-primary/20 bg-gradient-to-br from-primary/15 via-background to-background p-6 md:p-8 shadow-[0_20px_60px_-30px_hsl(var(--primary)/0.5)]">
+        <div aria-hidden className="pointer-events-none absolute -top-24 -right-24 h-72 w-72 rounded-full bg-primary/20 blur-3xl" />
+        <div aria-hidden className="pointer-events-none absolute -bottom-32 -left-24 h-72 w-72 rounded-full bg-accent/20 blur-3xl" />
+        <div className="relative flex flex-col md:flex-row md:items-center md:justify-between gap-6">
+          <div className="flex items-center gap-4">
+            <div className="h-14 w-14 rounded-2xl bg-gradient-to-br from-primary to-primary/60 text-primary-foreground flex items-center justify-center shadow-lg shadow-primary/30 ring-1 ring-primary/40">
+              <Rocket className="h-7 w-7" />
+            </div>
+            <div className="space-y-1">
+              <Badge variant="outline" className="bg-primary/10 text-primary border-primary/30 gap-1"><Sparkles className="h-3 w-3" /> Central de Disparos</Badge>
+              <h1 className="text-3xl md:text-4xl font-bold tracking-tight bg-gradient-to-r from-primary via-primary to-primary/60 bg-clip-text text-transparent">Disparo em Massa</h1>
+              <p className="text-sm text-muted-foreground max-w-xl">Campanhas com humanização, janela comercial, limites diários e proteção anti-bloqueio.</p>
+            </div>
+          </div>
+          <div className="grid grid-cols-3 gap-3 md:min-w-[380px]">
+            <HeroStat icon={<Send className="h-4 w-4" />} label="Campanhas" value={broadcasts.data?.rows?.length ?? 0} />
+            <HeroStat icon={<Zap className="h-4 w-4" />} label="Ativas" value={(broadcasts.data?.rows ?? []).filter((b: any) => b.status === "running").length} accent />
+            <HeroStat icon={<Users className="h-4 w-4" />} label="Contatos" value={contacts.data?.total ?? 0} />
+          </div>
         </div>
       </div>
       <TutorialVideo moduleKey="modulo_03" title="Como fazer Disparos em massa" />
@@ -260,16 +275,46 @@ function BroadcastsPage() {
         </Card>
       )}
 
-      {/* Stepper */}
-      <div className="flex items-center gap-2 overflow-x-auto">
-        {[1, 2, 3, 4].map((n) => (
-          <div key={n} className="flex items-center gap-2">
-            <div className={`h-8 w-8 rounded-full flex items-center justify-center text-xs font-semibold ${step >= n ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"}`}>{n}</div>
-            {n < 4 && <div className={`h-0.5 w-10 ${step > n ? "bg-primary" : "bg-muted"}`} />}
-          </div>
-        ))}
-        <div className="ml-3 text-sm text-muted-foreground">
-          {step === 1 && "Origem dos contatos"} {step === 2 && "Conteúdo"} {step === 3 && "Configuração"} {step === 4 && "Simulação & envio"}
+      {/* Stepper premium */}
+      <div className="rounded-2xl border bg-card/60 backdrop-blur p-4 md:p-5">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          {[
+            { n: 1, title: "Origem", desc: "Contatos & segmentação", icon: <Users className="h-4 w-4" /> },
+            { n: 2, title: "Conteúdo", desc: "Mensagem ou fluxo", icon: <Send className="h-4 w-4" /> },
+            { n: 3, title: "Configuração", desc: "Ritmo, janela, limites", icon: <Settings2 className="h-4 w-4" /> },
+            { n: 4, title: "Simulação & envio", desc: "Revise e dispare", icon: <Rocket className="h-4 w-4" /> },
+          ].map((it) => {
+            const active = step === it.n;
+            const done = step > it.n;
+            return (
+              <button
+                key={it.n}
+                type="button"
+                onClick={() => setStep(it.n)}
+                className={`text-left rounded-xl border p-3 transition group relative overflow-hidden ${
+                  active
+                    ? "border-primary/50 bg-gradient-to-br from-primary/15 to-primary/5 shadow-md shadow-primary/10"
+                    : done
+                    ? "border-primary/30 bg-primary/5"
+                    : "border-border/60 bg-muted/30 hover:bg-muted/50"
+                }`}
+              >
+                <div className="flex items-center gap-3">
+                  <div className={`h-9 w-9 rounded-lg flex items-center justify-center text-xs font-bold ${
+                    active ? "bg-primary text-primary-foreground shadow-sm shadow-primary/40" :
+                    done ? "bg-primary/20 text-primary" : "bg-muted text-muted-foreground"
+                  }`}>
+                    {done ? <CheckCircle2 className="h-4 w-4" /> : it.icon}
+                  </div>
+                  <div className="min-w-0">
+                    <div className={`text-xs uppercase tracking-wide ${active ? "text-primary" : "text-muted-foreground"}`}>Etapa {it.n}</div>
+                    <div className="text-sm font-semibold truncate">{it.title}</div>
+                    <div className="text-[11px] text-muted-foreground truncate">{it.desc}</div>
+                  </div>
+                </div>
+              </button>
+            );
+          })}
         </div>
       </div>
 
@@ -750,6 +795,18 @@ function Stat({ label, value, tone }: { label: string; value: number | string; t
     <div className="border rounded-lg p-3">
       <div className="text-xs text-muted-foreground">{label}</div>
       <div className={`text-xl font-bold tabular-nums ${tone === "ok" ? "text-emerald-500" : tone === "err" ? "text-destructive" : ""}`}>{value}</div>
+    </div>
+  );
+}
+
+function HeroStat({ icon, label, value, accent }: { icon: React.ReactNode; label: string; value: number | string; accent?: boolean }) {
+  return (
+    <div className={`relative overflow-hidden rounded-xl border p-3 backdrop-blur ${accent ? "border-primary/40 bg-primary/10" : "border-border/60 bg-card/60"}`}>
+      <div className="flex items-center gap-2 text-xs text-muted-foreground">
+        <span className={`h-6 w-6 rounded-md flex items-center justify-center ${accent ? "bg-primary/20 text-primary" : "bg-muted text-foreground/70"}`}>{icon}</span>
+        <span className="uppercase tracking-wide">{label}</span>
+      </div>
+      <div className={`mt-1 text-2xl font-bold tabular-nums ${accent ? "text-primary" : ""}`}>{value}</div>
     </div>
   );
 }
