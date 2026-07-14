@@ -88,7 +88,7 @@ export function TabAgents() {
               {/* Ambient glow */}
               <div className="pointer-events-none absolute -inset-1 rounded-[2rem] bg-gradient-to-r from-emerald-500/20 to-blue-500/20 blur-xl opacity-40 group-hover:opacity-100 transition-opacity duration-700" />
               {/* Card */}
-              <div className="relative rounded-[2rem] border border-border bg-[hsl(240_10%_6%/0.8)] backdrop-blur-2xl p-6 shadow-2xl overflow-hidden">
+              <div className="relative rounded-[2rem] border border-border bg-card/80 backdrop-blur-2xl p-6 shadow-2xl overflow-hidden">
                 {/* Header */}
                 <div className="flex items-center justify-between mb-8">
                   <div className="flex items-center gap-3 min-w-0">

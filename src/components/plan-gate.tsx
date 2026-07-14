@@ -176,7 +176,7 @@ function PlanModal({ variant, dismissible, onClose, onNavigateToPlans, daysLeft,
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.95 }}
         transition={{ type: "spring", stiffness: 220, damping: 22 }}
-        className="relative w-full max-w-md overflow-hidden rounded-3xl border border-border bg-[#07061a] text-foreground shadow-[0_40px_120px_-20px_rgba(0,0,0,0.8)]"
+        className="relative w-full max-w-md overflow-hidden rounded-3xl border border-border bg-card text-foreground shadow-[0_40px_120px_-20px_rgba(0,0,0,0.8)]"
       >
 
         {dismissible && (
@@ -192,7 +192,7 @@ function PlanModal({ variant, dismissible, onClose, onNavigateToPlans, daysLeft,
         <div className="relative px-6 pt-8 pb-6 text-center">
           {/* Logo header */}
           <div className="flex items-center justify-center gap-2">
-            <img src={logoAsset.url} alt="Agent IA" className="h-9 w-9 rounded-lg object-cover ring-1 ring-white/10" />
+            <img src={logoAsset.url} alt="Agent IA" className="h-9 w-9 rounded-lg object-cover ring-1 ring-border" />
             <div className="text-left leading-none">
               <div className="text-lg font-black tracking-tight bg-gradient-to-r from-sky-300 via-white to-sky-300 bg-clip-text text-transparent">AGENTIA</div>
               <div className="text-[8px] uppercase tracking-[0.25em] text-foreground/50">Plataforma Inteligente</div>

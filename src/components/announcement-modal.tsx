@@ -75,12 +75,12 @@ export function AnnouncementModal() {
           <DialogPrimitive.Title className="sr-only">{current.title}</DialogPrimitive.Title>
           <DialogPrimitive.Description className="sr-only">{current.body}</DialogPrimitive.Description>
 
-          <div className="relative rounded-[28px] border border-border bg-[#0b1220] p-8 shadow-[0_30px_80px_-20px_rgba(0,0,0,0.9)]">
+          <div className="relative rounded-[28px] border border-border bg-card p-8 shadow-[0_30px_80px_-20px_rgba(0,0,0,0.9)]">
             {/* subtle inner gradient */}
             <div className="pointer-events-none absolute inset-0 rounded-[28px] bg-[radial-gradient(ellipse_at_top,rgba(56,189,248,0.06),transparent_60%)]" />
 
             {/* Close */}
-            <DialogPrimitive.Close className="absolute right-5 top-5 z-10 grid h-9 w-9 place-items-center rounded-full bg-muted/40 text-foreground/70 ring-1 ring-white/10 transition hover:bg-muted/60 hover:text-foreground">
+            <DialogPrimitive.Close className="absolute right-5 top-5 z-10 grid h-9 w-9 place-items-center rounded-full bg-muted/40 text-foreground/70 ring-1 ring-border transition hover:bg-muted/60 hover:text-foreground">
               <X className="h-4 w-4" />
             </DialogPrimitive.Close>
 
@@ -88,7 +88,7 @@ export function AnnouncementModal() {
             <div className="relative mx-auto mt-2 mb-6 h-28 w-28">
               <div className="absolute inset-0 rounded-full" style={{ boxShadow: `0 0 60px 8px ${cfg.ring}` }} />
               <div className="absolute inset-2 rounded-full border" style={{ borderColor: cfg.ring }} />
-              <div className="absolute inset-5 rounded-full bg-[#0b1220] ring-1 ring-white/10 grid place-items-center">
+              <div className="absolute inset-5 rounded-full bg-card ring-1 ring-border grid place-items-center">
                 <Icon className="h-9 w-9 text-foreground" strokeWidth={2.5} />
               </div>
               {/* sparkles */}
