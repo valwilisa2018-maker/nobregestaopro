@@ -68,7 +68,7 @@ export function MasterSidebar() {
       <SidebarHeader className="p-4 border-b border-sidebar-border/60">
         <div className="flex items-center gap-2.5">
           <div className="grid h-9 w-9 place-items-center rounded-xl bg-gradient-to-br from-amber-500 to-yellow-600 ring-1 ring-amber-400/40 shadow-lg shadow-amber-500/20">
-            <Crown className="h-5 w-5 text-white" />
+            <Crown className="h-5 w-5 text-foreground" />
           </div>
           {!collapsed && (
             <div className="flex flex-col leading-tight min-w-0">

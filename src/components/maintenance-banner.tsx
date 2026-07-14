@@ -31,7 +31,7 @@ export function MaintenanceBanner() {
 
   if (!item) return null;
   return (
-    <div className="relative overflow-hidden bg-gradient-to-r from-amber-500 via-orange-500 to-amber-500 text-white">
+    <div className="relative overflow-hidden bg-gradient-to-r from-amber-500 via-orange-500 to-amber-500 text-foreground">
       <div className="flex items-center justify-center gap-2 px-4 py-2 text-xs sm:text-sm font-medium">
         <Wrench className="h-4 w-4 shrink-0 animate-pulse" />
         <span className="truncate">

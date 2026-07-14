@@ -115,7 +115,7 @@ function EmailConfigPage() {
   return (
     <div className="mx-auto max-w-4xl space-y-4">
       <div className="flex items-center gap-3">
-        <div className="grid h-10 w-10 place-items-center rounded-xl bg-gradient-to-br from-amber-500 to-yellow-600 text-white">
+        <div className="grid h-10 w-10 place-items-center rounded-xl bg-gradient-to-br from-amber-500 to-yellow-600 text-foreground">
           <Mail className="h-5 w-5" />
         </div>
         <div>

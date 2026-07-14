@@ -199,7 +199,7 @@ function AuthPage() {
         </CardContent>
       </Card>
       {resetOpen && (
-        <div className="fixed inset-0 z-50 grid place-items-center bg-black/60 p-4" onClick={() => setResetOpen(false)}>
+        <div className="fixed inset-0 z-50 grid place-items-center bg-background/60 p-4" onClick={() => setResetOpen(false)}>
           <Card className="w-full max-w-sm" onClick={(e) => e.stopPropagation()}>
             <CardHeader>
               <CardTitle className="text-lg">Recuperar senha</CardTitle>

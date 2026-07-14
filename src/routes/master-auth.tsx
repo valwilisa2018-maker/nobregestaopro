@@ -61,7 +61,7 @@ function MasterAuthPage() {
           <div className="relative mb-3">
             <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-amber-500 to-orange-600 blur-xl opacity-40" />
             <div className="relative grid h-16 w-16 place-items-center rounded-2xl bg-gradient-to-br from-amber-400 via-amber-500 to-orange-600 shadow-lg">
-              <Crown className="h-8 w-8 text-white" />
+              <Crown className="h-8 w-8 text-foreground" />
             </div>
           </div>
           <div className="inline-flex items-center gap-1.5 rounded-full border border-amber-500/40 bg-amber-500/10 px-3 py-1 text-xs font-semibold text-amber-500">
@@ -80,7 +80,7 @@ function MasterAuthPage() {
               <Label htmlFor="pw">Senha</Label>
               <Input id="pw" type="password" autoComplete="current-password" value={password} onChange={(e) => setPassword(e.target.value)} required />
             </div>
-            <Button type="submit" className="w-full bg-gradient-to-r from-amber-500 to-orange-600 hover:opacity-90 text-white" disabled={loading}>
+            <Button type="submit" className="w-full bg-gradient-to-r from-amber-500 to-orange-600 hover:opacity-90 text-foreground" disabled={loading}>
               {loading && <Loader2 className="h-4 w-4 animate-spin mr-1" />}
               Entrar como Master
             </Button>

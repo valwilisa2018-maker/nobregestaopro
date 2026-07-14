@@ -208,7 +208,7 @@ function BlockNode({ data, selected }: NodeProps) {
     <div className={`rounded-lg border bg-card shadow-md w-[220px] max-w-[220px] transition ${selected ? "ring-2 ring-primary" : ""} ${invalid ? "border-destructive ring-2 ring-destructive animate-pulse" : "border-emerald-500/40"}`}>
       {d.kind !== "START" && <Handle type="target" position={Position.Left} />}
       <div className="flex items-center gap-2 px-3 py-1.5 text-[10px] uppercase tracking-wide text-muted-foreground border-b border-border/50">
-        <span className={`h-4 w-4 rounded flex items-center justify-center text-white ${meta.color}`}>{meta.icon}</span>
+        <span className={`h-4 w-4 rounded flex items-center justify-center text-foreground ${meta.color}`}>{meta.icon}</span>
         <span>{meta.label}</span>
       </div>
       <div className="px-3 py-2 min-h-[36px] overflow-hidden">
@@ -585,7 +585,7 @@ function Builder() {
                         onClick={() => addBlock(k)}
                         className="w-full flex items-center gap-3 px-2 py-2 rounded-md hover:bg-accent text-left transition"
                       >
-                        <span className={`h-6 w-6 rounded flex items-center justify-center text-white shrink-0 ${m.color}`}>{m.icon}</span>
+                        <span className={`h-6 w-6 rounded flex items-center justify-center text-foreground shrink-0 ${m.color}`}>{m.icon}</span>
                         <span className="flex flex-col min-w-0">
                           <span className="text-xs font-medium truncate">{m.label}</span>
                           <span className="text-[10px] text-muted-foreground truncate">{m.sub}</span>

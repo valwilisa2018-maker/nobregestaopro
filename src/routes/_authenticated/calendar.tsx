@@ -391,7 +391,7 @@ function TimeGrid({ days, events, onSlot, onOpen }: {
                     <button
                       key={e.id}
                       onClick={() => onOpen(e)}
-                      className="absolute left-1 right-1 rounded-md px-2 py-1 text-left text-white text-xs shadow-sm hover:brightness-110 hover:shadow-md transition-all overflow-hidden"
+                      className="absolute left-1 right-1 rounded-md px-2 py-1 text-left text-foreground text-xs shadow-sm hover:brightness-110 hover:shadow-md transition-all overflow-hidden"
                       style={{ top, height, background: meta.color }}
                     >
                       <div className="flex items-center gap-1 font-medium truncate">
@@ -440,7 +440,7 @@ function MonthView({ cursor, events, onDay, onOpen }: {
                 const meta = CAL_META[e.calendar];
                 return (
                   <button key={e.id} onClick={(ev) => { ev.stopPropagation(); onOpen(e); }}
-                    className="text-[11px] rounded px-1.5 py-0.5 text-white truncate text-left flex items-center gap-1 hover:brightness-110"
+                    className="text-[11px] rounded px-1.5 py-0.5 text-foreground truncate text-left flex items-center gap-1 hover:brightness-110"
                     style={{ background: meta.color }}>
                     {e.createdByAi && <Sparkles className="h-2.5 w-2.5" />}
                     {format(new Date(e.start), "HH:mm")} {e.title}
@@ -546,7 +546,7 @@ function EventModal({ open, event, onOpenChange, onSave, onDelete, connections }
             <div className="flex flex-wrap gap-2 pt-1">
               {(Object.keys(CAL_META) as CalId[]).map((k) => (
                 <button key={k} onClick={() => setDraft({ ...draft, calendar: k })}
-                  className={cn("flex items-center gap-1.5 px-3 py-1 rounded-full border text-sm transition-colors", draft.calendar === k ? "border-transparent text-white" : "hover:bg-accent")}
+                  className={cn("flex items-center gap-1.5 px-3 py-1 rounded-full border text-sm transition-colors", draft.calendar === k ? "border-transparent text-foreground" : "hover:bg-accent")}
                   style={draft.calendar === k ? { background: CAL_META[k].color } : {}}>
                   <span className={cn("h-2 w-2 rounded-full", CAL_META[k].bg)} />
                   {CAL_META[k].label}
@@ -631,7 +631,7 @@ function AiChat({ onPropose, events }: { onPropose: (e: Partial<EventItem>) => v
     <>
       <button
         onClick={() => setOpen((v) => !v)}
-        className="fixed bottom-6 right-6 z-40 h-14 w-14 rounded-full shadow-xl flex items-center justify-center text-white hover:scale-105 transition-transform"
+        className="fixed bottom-6 right-6 z-40 h-14 w-14 rounded-full shadow-xl flex items-center justify-center text-foreground hover:scale-105 transition-transform"
         style={{ background: "linear-gradient(135deg,#8b5cf6,#3b82f6)" }}
         aria-label="Assistente IA"
       >
@@ -640,7 +640,7 @@ function AiChat({ onPropose, events }: { onPropose: (e: Partial<EventItem>) => v
       {open && (
         <div className="fixed bottom-24 right-6 z-40 w-[360px] max-w-[calc(100vw-2rem)] h-[520px] max-h-[calc(100vh-8rem)] rounded-2xl border bg-background shadow-2xl flex flex-col overflow-hidden">
           <div className="p-3 border-b flex items-center gap-2 bg-gradient-to-r from-purple-500/10 to-blue-500/10">
-            <div className="h-8 w-8 rounded-full flex items-center justify-center text-white" style={{ background: "linear-gradient(135deg,#8b5cf6,#3b82f6)" }}>
+            <div className="h-8 w-8 rounded-full flex items-center justify-center text-foreground" style={{ background: "linear-gradient(135deg,#8b5cf6,#3b82f6)" }}>
               <Sparkles className="h-4 w-4" />
             </div>
             <div>

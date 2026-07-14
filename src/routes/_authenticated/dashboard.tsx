@@ -292,7 +292,7 @@ function Dashboard() {
   return (
     <div className="space-y-6 animate-fade-in">
       {/* Hero */}
-      <div className="relative overflow-hidden rounded-3xl border border-white/10 bg-[#05070d] px-6 py-4 md:px-8 md:py-5">
+      <div className="relative overflow-hidden rounded-3xl border border-border bg-[#05070d] px-6 py-4 md:px-8 md:py-5">
         <div className="absolute inset-0 opacity-70" style={{ background: "radial-gradient(1200px 300px at 20% 0%, rgba(59,130,246,0.18), transparent 60%), radial-gradient(800px 260px at 90% 100%, rgba(168,85,247,0.16), transparent 60%)" }} />
         <div className="relative flex flex-col xl:flex-row xl:items-center xl:justify-between gap-4">
           <div className="min-w-0 space-y-2 flex-1">
@@ -302,16 +302,16 @@ function Dashboard() {
             <h1 className="text-3xl md:text-4xl font-black tracking-tight leading-none bg-clip-text text-transparent" style={{ backgroundImage: "linear-gradient(90deg,#3b82f6,#6366f1 45%,#a855f7)" }}>
               Central de Comando
             </h1>
-            <p className="text-xs text-slate-400 max-w-xl">
+            <p className="text-xs text-muted-foreground max-w-xl">
               Visão consolidada de agentes, WhatsApp, disparos, pipeline e agenda — {range.label.toLowerCase()}.
             </p>
           </div>
           <div className="flex flex-1 items-center justify-center gap-3 flex-nowrap">
             <div className="relative shrink-0">
-              <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-500" />
-              <Input placeholder="Buscar agentes, conversas..." className="pl-11 w-72 md:w-96 h-12 text-base rounded-full bg-black/60 border-white/10 text-slate-200 placeholder:text-slate-500" />
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+              <Input placeholder="Buscar agentes, conversas..." className="pl-11 w-72 md:w-96 h-12 text-base rounded-full bg-background/60 border-border text-foreground placeholder:text-muted-foreground" />
             </div>
-            <Button onClick={() => dash.refetch()} disabled={dash.isFetching} className="h-12 px-6 text-base shrink-0 rounded-full bg-black text-white border border-white/10 hover:bg-white/10 gap-2">
+            <Button onClick={() => dash.refetch()} disabled={dash.isFetching} className="h-12 px-6 text-base shrink-0 rounded-full bg-background text-foreground border border-border hover:bg-muted/60 gap-2">
               <RefreshCw className={`h-5 w-5 ${dash.isFetching ? "animate-spin" : ""}`} /> Atualizar
             </Button>
           </div>

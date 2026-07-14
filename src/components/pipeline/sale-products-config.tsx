@@ -357,7 +357,7 @@ export function SaleProductsConfig() {
       )}
 
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="max-w-3xl max-h-[92vh] overflow-y-auto border-slate-800/70 bg-gradient-to-b from-slate-950 to-slate-900 text-slate-100 shadow-2xl">
+        <DialogContent className="max-w-3xl max-h-[92vh] overflow-y-auto border-slate-800/70 bg-gradient-to-b from-background to-card text-foreground shadow-2xl">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-3 text-2xl font-bold">
               <span className="grid h-10 w-10 place-items-center rounded-xl bg-gradient-to-br from-blue-500/30 to-indigo-600/30 ring-1 ring-blue-500/40">
@@ -368,7 +368,7 @@ export function SaleProductsConfig() {
           </DialogHeader>
 
           <Tabs defaultValue="basic" className="space-y-5">
-            <TabsList className="grid grid-cols-4 w-full h-auto gap-1 rounded-xl bg-slate-900/60 p-1 ring-1 ring-slate-800/80">
+            <TabsList className="grid grid-cols-4 w-full h-auto gap-1 rounded-xl bg-card/60 p-1 ring-1 ring-slate-800/80">
               <TabsTrigger value="basic" className="gap-2 rounded-lg py-2.5 data-[state=active]:bg-gradient-to-br data-[state=active]:from-blue-600/30 data-[state=active]:to-indigo-600/20 data-[state=active]:text-blue-300 data-[state=active]:ring-1 data-[state=active]:ring-blue-500/50 data-[state=active]:shadow-[0_0_20px_-4px_rgba(59,130,246,0.5)]">
                 <Save className="h-4 w-4" /> Básico
               </TabsTrigger>
@@ -385,17 +385,17 @@ export function SaleProductsConfig() {
 
             <TabsContent value="basic" className="space-y-5">
               <div className="grid gap-2">
-                <Label className="text-slate-200 font-semibold">Nome <span className="text-blue-400">*</span></Label>
+                <Label className="text-foreground font-semibold">Nome <span className="text-blue-400">*</span></Label>
                 <Input placeholder="Digite o nome do produto" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })}
-                  className="h-12 bg-slate-900/60 border-slate-800 text-slate-100 placeholder:text-slate-500 focus-visible:ring-2 focus-visible:ring-blue-500/60 focus-visible:border-blue-500/60" />
+                  className="h-12 bg-card/60 border-slate-800 text-foreground placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-blue-500/60 focus-visible:border-blue-500/60" />
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="grid gap-2">
-                  <Label className="text-slate-200 font-semibold">Tipo</Label>
+                  <Label className="text-foreground font-semibold">Tipo</Label>
                   <Select value={form.product_type || "none"} onValueChange={(v) => setForm({ ...form, product_type: (v === "none" ? "" : v) as ProductType })}>
-                    <SelectTrigger className="h-12 bg-slate-900/60 border-slate-800 text-slate-100 [&_svg]:text-slate-400">
+                    <SelectTrigger className="h-12 bg-card/60 border-slate-800 text-foreground [&_svg]:text-muted-foreground">
                       <div className="flex items-center gap-2">
-                        <Tag className="h-4 w-4 text-slate-400" />
+                        <Tag className="h-4 w-4 text-muted-foreground" />
                         <SelectValue />
                       </div>
                     </SelectTrigger>
@@ -408,15 +408,15 @@ export function SaleProductsConfig() {
                   </Select>
                 </div>
                 <div className="grid gap-2">
-                  <Label className="text-slate-200 font-semibold">Status</Label>
+                  <Label className="text-foreground font-semibold">Status</Label>
                   <div className="flex gap-2">
                     <button type="button" onClick={() => setForm({ ...form, active: true })}
-                      className={`flex-1 h-12 rounded-lg px-4 text-sm font-semibold inline-flex items-center justify-center gap-2 transition-all ${form.active ? "bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-[0_0_20px_-4px_rgba(59,130,246,0.7)] ring-1 ring-blue-400/50" : "bg-slate-900/60 text-slate-300 ring-1 ring-slate-800 hover:bg-slate-800/60"}`}>
+                      className={`flex-1 h-12 rounded-lg px-4 text-sm font-semibold inline-flex items-center justify-center gap-2 transition-all ${form.active ? "bg-gradient-to-r from-blue-600 to-indigo-600 text-foreground shadow-[0_0_20px_-4px_rgba(59,130,246,0.7)] ring-1 ring-blue-400/50" : "bg-card/60 text-muted-foreground ring-1 ring-slate-800 hover:bg-muted/60"}`}>
                       <span className={`h-2 w-2 rounded-full ${form.active ? "bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.9)]" : "bg-slate-500"}`} />
                       Ativo
                     </button>
                     <button type="button" onClick={() => setForm({ ...form, active: false })}
-                      className={`flex-1 h-12 rounded-lg px-4 text-sm font-semibold inline-flex items-center justify-center gap-2 transition-all ${!form.active ? "bg-gradient-to-r from-slate-700 to-slate-800 text-white ring-1 ring-slate-600" : "bg-slate-900/60 text-slate-300 ring-1 ring-slate-800 hover:bg-slate-800/60"}`}>
+                      className={`flex-1 h-12 rounded-lg px-4 text-sm font-semibold inline-flex items-center justify-center gap-2 transition-all ${!form.active ? "bg-gradient-to-r from-slate-700 to-slate-800 text-foreground ring-1 ring-slate-600" : "bg-card/60 text-muted-foreground ring-1 ring-slate-800 hover:bg-muted/60"}`}>
                       <span className={`h-2 w-2 rounded-full ${!form.active ? "bg-slate-300" : "bg-slate-600"}`} />
                       Inativo
                     </button>
@@ -424,38 +424,38 @@ export function SaleProductsConfig() {
                 </div>
               </div>
               <div className="grid gap-2">
-                <Label className="text-slate-200 font-semibold">Descrição</Label>
+                <Label className="text-foreground font-semibold">Descrição</Label>
                 <Textarea placeholder="Digite uma descrição para o produto (opcional)" value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} rows={4}
-                  className="bg-slate-900/60 border-slate-800 text-slate-100 placeholder:text-slate-500 focus-visible:ring-2 focus-visible:ring-blue-500/60" />
+                  className="bg-card/60 border-slate-800 text-foreground placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-blue-500/60" />
               </div>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="grid gap-2">
-                  <Label className="text-slate-200 font-semibold">Preço (R$) <span className="text-blue-400">*</span></Label>
+                  <Label className="text-foreground font-semibold">Preço (R$) <span className="text-blue-400">*</span></Label>
                   <div className="relative">
-                    <Tag className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                    <Tag className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                     <Input type="number" min={0} step="0.01" placeholder="R$ 0,00" value={form.price} onChange={(e) => setForm({ ...form, price: e.target.value })}
-                      className="h-12 pl-9 bg-slate-900/60 border-slate-800 text-slate-100 placeholder:text-slate-500 focus-visible:ring-2 focus-visible:ring-blue-500/60" />
+                      className="h-12 pl-9 bg-card/60 border-slate-800 text-foreground placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-blue-500/60" />
                   </div>
                 </div>
                 <div className="grid gap-2">
-                  <Label className="text-slate-200 font-semibold">Custo (R$)</Label>
+                  <Label className="text-foreground font-semibold">Custo (R$)</Label>
                   <div className="relative">
-                    <Wallet className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                    <Wallet className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                     <Input type="number" min={0} step="0.01" placeholder="R$ 0,00" value={form.cost} onChange={(e) => setForm({ ...form, cost: e.target.value })}
-                      className="h-12 pl-9 bg-slate-900/60 border-slate-800 text-slate-100 placeholder:text-slate-500 focus-visible:ring-2 focus-visible:ring-blue-500/60" />
+                      className="h-12 pl-9 bg-card/60 border-slate-800 text-foreground placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-blue-500/60" />
                   </div>
                 </div>
                 <div className="grid gap-2">
-                  <Label className="text-slate-200 font-semibold">Unidade</Label>
+                  <Label className="text-foreground font-semibold">Unidade</Label>
                   <div className="relative">
-                    <Box className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                    <Box className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                     <Input placeholder="un, kg, hr..." value={form.unit} onChange={(e) => setForm({ ...form, unit: e.target.value })}
-                      className="h-12 pl-9 bg-slate-900/60 border-slate-800 text-slate-100 placeholder:text-slate-500 focus-visible:ring-2 focus-visible:ring-blue-500/60" />
+                      className="h-12 pl-9 bg-card/60 border-slate-800 text-foreground placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-blue-500/60" />
                   </div>
                 </div>
               </div>
               {margin && (
-                <p className="text-xs text-slate-400">Margem: <span className="font-bold text-blue-400">{margin}%</span></p>
+                <p className="text-xs text-muted-foreground">Margem: <span className="font-bold text-blue-400">{margin}%</span></p>
               )}
             </TabsContent>
 
@@ -656,11 +656,11 @@ export function SaleProductsConfig() {
 
           <DialogFooter className="border-t border-slate-800/70 pt-4 mt-2">
             <Button variant="outline" onClick={() => setOpen(false)} disabled={saving}
-              className="h-11 px-6 bg-transparent border-slate-700 text-slate-200 hover:bg-slate-800/60 hover:text-white">
+              className="h-11 px-6 bg-transparent border-slate-700 text-foreground hover:bg-muted/60 hover:text-foreground">
               Cancelar
             </Button>
             <Button onClick={save} disabled={saving}
-              className="h-11 px-6 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-semibold shadow-[0_0_24px_-4px_rgba(59,130,246,0.7)] ring-1 ring-blue-400/50">
+              className="h-11 px-6 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-foreground font-semibold shadow-[0_0_24px_-4px_rgba(59,130,246,0.7)] ring-1 ring-blue-400/50">
               {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
               Salvar
             </Button>

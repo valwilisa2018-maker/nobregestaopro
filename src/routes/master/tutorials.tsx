@@ -45,7 +45,7 @@ const GRADIENTS = [
   "from-amber-500 via-orange-600 to-rose-700",
   "from-fuchsia-600 via-purple-700 to-indigo-800",
   "from-pink-500 via-rose-600 to-red-700",
-  "from-slate-600 via-slate-700 to-slate-900",
+  "from-slate-600 via-slate-700 to-card",
 ];
 
 function Page() {

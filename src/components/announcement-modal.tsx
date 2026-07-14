@@ -68,19 +68,19 @@ export function AnnouncementModal() {
   return (
     <DialogPrimitive.Root open onOpenChange={(v) => !v && close()}>
       <DialogPrimitive.Portal>
-        <DialogPrimitive.Overlay className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0" />
+        <DialogPrimitive.Overlay className="fixed inset-0 z-50 bg-background/80 backdrop-blur-sm data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0" />
         <DialogPrimitive.Content
           className="fixed left-1/2 top-1/2 z-50 w-[92vw] max-w-[520px] -translate-x-1/2 -translate-y-1/2 outline-none data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95"
         >
           <DialogPrimitive.Title className="sr-only">{current.title}</DialogPrimitive.Title>
           <DialogPrimitive.Description className="sr-only">{current.body}</DialogPrimitive.Description>
 
-          <div className="relative rounded-[28px] border border-white/10 bg-[#0b1220] p-8 shadow-[0_30px_80px_-20px_rgba(0,0,0,0.9)]">
+          <div className="relative rounded-[28px] border border-border bg-[#0b1220] p-8 shadow-[0_30px_80px_-20px_rgba(0,0,0,0.9)]">
             {/* subtle inner gradient */}
             <div className="pointer-events-none absolute inset-0 rounded-[28px] bg-[radial-gradient(ellipse_at_top,rgba(56,189,248,0.06),transparent_60%)]" />
 
             {/* Close */}
-            <DialogPrimitive.Close className="absolute right-5 top-5 z-10 grid h-9 w-9 place-items-center rounded-full bg-white/5 text-white/70 ring-1 ring-white/10 transition hover:bg-white/10 hover:text-white">
+            <DialogPrimitive.Close className="absolute right-5 top-5 z-10 grid h-9 w-9 place-items-center rounded-full bg-muted/40 text-foreground/70 ring-1 ring-white/10 transition hover:bg-muted/60 hover:text-foreground">
               <X className="h-4 w-4" />
             </DialogPrimitive.Close>
 
@@ -89,7 +89,7 @@ export function AnnouncementModal() {
               <div className="absolute inset-0 rounded-full" style={{ boxShadow: `0 0 60px 8px ${cfg.ring}` }} />
               <div className="absolute inset-2 rounded-full border" style={{ borderColor: cfg.ring }} />
               <div className="absolute inset-5 rounded-full bg-[#0b1220] ring-1 ring-white/10 grid place-items-center">
-                <Icon className="h-9 w-9 text-white" strokeWidth={2.5} />
+                <Icon className="h-9 w-9 text-foreground" strokeWidth={2.5} />
               </div>
               {/* sparkles */}
               <Sparkle className={cn("h-1.5 w-1.5", cfg.sparkleA)} style={{ top: "-4px",  left: "18%" }} />
@@ -101,7 +101,7 @@ export function AnnouncementModal() {
             </div>
 
             {/* Title */}
-            <h2 className="relative text-center text-3xl font-bold leading-tight text-white">
+            <h2 className="relative text-center text-3xl font-bold leading-tight text-foreground">
               {current.title.split(" ").slice(0, Math.ceil(current.title.split(" ").length / 2)).join(" ")}{" "}
               <span className={cn("bg-gradient-to-r bg-clip-text text-transparent", cfg.gradFrom, cfg.gradTo)}>
                 {current.title.split(" ").slice(Math.ceil(current.title.split(" ").length / 2)).join(" ") || current.title}
@@ -110,7 +110,7 @@ export function AnnouncementModal() {
 
             {/* Body */}
             <p className={cn(
-              "relative mx-auto mt-3 max-w-sm text-center text-sm leading-relaxed text-slate-400 whitespace-pre-wrap",
+              "relative mx-auto mt-3 max-w-sm text-center text-sm leading-relaxed text-muted-foreground whitespace-pre-wrap",
               !showDetails && "line-clamp-2"
             )}>
               {current.body}
@@ -118,20 +118,20 @@ export function AnnouncementModal() {
 
             {/* Details card */}
             {showDetails ? (
-              <div className="relative mt-6 rounded-2xl border border-white/10 bg-white/[0.03] p-4 space-y-3 max-h-[45vh] overflow-y-auto">
+              <div className="relative mt-6 rounded-2xl border border-border bg-white/[0.03] p-4 space-y-3 max-h-[45vh] overflow-y-auto">
                 <div className="flex items-center gap-2">
-                  <span className={cn("inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider bg-gradient-to-r text-white", cfg.gradFrom, cfg.gradTo)}>
+                  <span className={cn("inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider bg-gradient-to-r text-foreground", cfg.gradFrom, cfg.gradTo)}>
                     {cfg.label}
                   </span>
-                  {dateStr && <span className="text-[11px] text-slate-500">Publicado em {dateStr}</span>}
+                  {dateStr && <span className="text-[11px] text-muted-foreground">Publicado em {dateStr}</span>}
                 </div>
                 <div>
-                  <p className="text-xs font-semibold uppercase tracking-wider text-slate-500 mb-1">Mensagem completa</p>
-                  <p className="text-sm leading-relaxed text-slate-200 whitespace-pre-wrap">{current.body}</p>
+                  <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1">Mensagem completa</p>
+                  <p className="text-sm leading-relaxed text-foreground whitespace-pre-wrap">{current.body}</p>
                 </div>
                 {current.cta_url && (
                   <div>
-                    <p className="text-xs font-semibold uppercase tracking-wider text-slate-500 mb-1">Link relacionado</p>
+                    <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1">Link relacionado</p>
                     <a href={current.cta_url} target="_blank" rel="noreferrer" className="text-sm text-sky-400 hover:underline break-all">
                       {current.cta_url}
                     </a>
@@ -139,13 +139,13 @@ export function AnnouncementModal() {
                 )}
               </div>
             ) : dateStr && (
-              <div className="relative mt-6 flex items-start gap-3 rounded-2xl border border-white/10 bg-white/[0.03] p-4">
+              <div className="relative mt-6 flex items-start gap-3 rounded-2xl border border-border bg-white/[0.03] p-4">
                 <div className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-sky-500/15 ring-1 ring-sky-500/30">
                   <Info className="h-5 w-5 text-sky-400" />
                 </div>
                 <div className="min-w-0">
-                  <p className="text-sm font-semibold text-white">Detalhes</p>
-                  <p className="text-xs text-slate-400">Publicado em {dateStr}. Clique em "Ver detalhes" para ler tudo.</p>
+                  <p className="text-sm font-semibold text-foreground">Detalhes</p>
+                  <p className="text-xs text-muted-foreground">Publicado em {dateStr}. Clique em "Ver detalhes" para ler tudo.</p>
                 </div>
               </div>
             )}
@@ -154,7 +154,7 @@ export function AnnouncementModal() {
             <div className="relative mt-6 grid grid-cols-2 gap-3">
               <button
                 onClick={() => setShowDetails(v => !v)}
-                className="inline-flex h-12 items-center justify-center gap-2 rounded-xl border border-white/10 bg-white/[0.03] text-sm font-semibold text-white transition hover:bg-white/[0.06]"
+                className="inline-flex h-12 items-center justify-center gap-2 rounded-xl border border-border bg-white/[0.03] text-sm font-semibold text-foreground transition hover:bg-white/[0.06]"
               >
                 <FileText className="h-4 w-4 text-sky-400" />
                 {showDetails ? "Ocultar detalhes" : "Ver detalhes"}
@@ -162,7 +162,7 @@ export function AnnouncementModal() {
               <button
                 onClick={close}
                 className={cn(
-                  "inline-flex h-12 items-center justify-center gap-2 rounded-xl bg-gradient-to-r text-sm font-semibold text-white shadow-lg transition hover:opacity-95",
+                  "inline-flex h-12 items-center justify-center gap-2 rounded-xl bg-gradient-to-r text-sm font-semibold text-foreground shadow-lg transition hover:opacity-95",
                   cfg.gradFrom,
                   cfg.gradTo,
                 )}

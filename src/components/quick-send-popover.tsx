@@ -211,7 +211,7 @@ export function QuickSendPopover({
                 <button
                   onClick={() => handleSend(qs)}
                   disabled={!contactId || !!sendingId}
-                  className="p-1.5 rounded-full bg-emerald-500 text-white hover:bg-emerald-600 disabled:opacity-50 shrink-0"
+                  className="p-1.5 rounded-full bg-emerald-500 text-foreground hover:bg-emerald-600 disabled:opacity-50 shrink-0"
                   aria-label="Enviar"
                   title="Enviar agora"
                 >
@@ -446,7 +446,7 @@ function QuickSendEditor({
           <Button variant="ghost" onClick={() => onOpenChange(false)} disabled={saving}>
             Cancelar
           </Button>
-          <Button onClick={handleSave} disabled={saving} className="bg-amber-500 hover:bg-amber-600 text-white">
+          <Button onClick={handleSave} disabled={saving} className="bg-amber-500 hover:bg-amber-600 text-foreground">
             {saving ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <Zap className="h-4 w-4 mr-1" />}
             {initial ? "Salvar" : "Criar"}
           </Button>

@@ -112,27 +112,27 @@ function ResetPasswordPage() {
             <img src={logoAsset.url} alt="Agent IA" className="relative h-16 w-16 rounded-2xl object-contain" />
           </div>
           <div className="text-center">
-            <h1 className="text-2xl font-bold tracking-tight text-white">Agent IA</h1>
-            <p className="text-xs text-white/50">Redefinição segura de senha</p>
+            <h1 className="text-2xl font-bold tracking-tight text-foreground">Agent IA</h1>
+            <p className="text-xs text-foreground/50">Redefinição segura de senha</p>
           </div>
         </div>
 
-        <Card className="border-white/10 bg-white/[0.03] shadow-2xl backdrop-blur-xl">
+        <Card className="border-border bg-white/[0.03] shadow-2xl backdrop-blur-xl">
           <CardHeader className="space-y-3">
             <div className="mx-auto grid h-12 w-12 place-items-center rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 shadow-lg shadow-blue-500/30">
-              <KeyRound className="h-6 w-6 text-white" />
+              <KeyRound className="h-6 w-6 text-foreground" />
             </div>
-            <CardTitle className="text-center text-xl text-white">Redefinir senha</CardTitle>
-            <CardDescription className="text-center text-white/60">
+            <CardTitle className="text-center text-xl text-foreground">Redefinir senha</CardTitle>
+            <CardDescription className="text-center text-foreground/60">
               {errorMsg ? errorMsg : ready ? "Crie uma nova senha para acessar sua conta." : "Validando link de recuperação..."}
             </CardDescription>
           </CardHeader>
           <CardContent>
             <form className="space-y-4" onSubmit={onSubmit}>
               <div className="space-y-2">
-                <Label htmlFor="password" className="text-white/80">Nova senha</Label>
+                <Label htmlFor="password" className="text-foreground/80">Nova senha</Label>
                 <div className="relative">
-                  <Lock className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/40" />
+                  <Lock className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-foreground/40" />
                   <Input
                     id="password"
                     type={showPwd ? "text" : "password"}
@@ -141,12 +141,12 @@ function ResetPasswordPage() {
                     required
                     disabled={!ready}
                     placeholder="Mínimo 6 caracteres"
-                    className="border-white/10 bg-white/5 pl-9 pr-10 text-white placeholder:text-white/30 focus-visible:ring-blue-500"
+                    className="border-border bg-muted/40 pl-9 pr-10 text-foreground placeholder:text-foreground/30 focus-visible:ring-blue-500"
                   />
                   <button
                     type="button"
                     onClick={() => setShowPwd((v) => !v)}
-                    className="absolute right-2 top-1/2 -translate-y-1/2 rounded p-1 text-white/50 hover:text-white"
+                    className="absolute right-2 top-1/2 -translate-y-1/2 rounded p-1 text-foreground/50 hover:text-foreground"
                     tabIndex={-1}
                   >
                     {showPwd ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
@@ -156,18 +156,18 @@ function ResetPasswordPage() {
                   <div className="space-y-1">
                     <div className="flex h-1.5 gap-1">
                       {[0,1,2,3,4].map((i) => (
-                        <div key={i} className={`h-full flex-1 rounded-full ${i < strength ? strengthColor : "bg-white/10"}`} />
+                        <div key={i} className={`h-full flex-1 rounded-full ${i < strength ? strengthColor : "bg-muted/60"}`} />
                       ))}
                     </div>
-                    <p className="text-xs text-white/50">Força: {strengthLabel}</p>
+                    <p className="text-xs text-foreground/50">Força: {strengthLabel}</p>
                   </div>
                 )}
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="confirm" className="text-white/80">Confirmar senha</Label>
+                <Label htmlFor="confirm" className="text-foreground/80">Confirmar senha</Label>
                 <div className="relative">
-                  <ShieldCheck className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/40" />
+                  <ShieldCheck className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-foreground/40" />
                   <Input
                     id="confirm"
                     type={showConfirm ? "text" : "password"}
@@ -176,12 +176,12 @@ function ResetPasswordPage() {
                     required
                     disabled={!ready}
                     placeholder="Repita a nova senha"
-                    className="border-white/10 bg-white/5 pl-9 pr-10 text-white placeholder:text-white/30 focus-visible:ring-blue-500"
+                    className="border-border bg-muted/40 pl-9 pr-10 text-foreground placeholder:text-foreground/30 focus-visible:ring-blue-500"
                   />
                   <button
                     type="button"
                     onClick={() => setShowConfirm((v) => !v)}
-                    className="absolute right-2 top-1/2 -translate-y-1/2 rounded p-1 text-white/50 hover:text-white"
+                    className="absolute right-2 top-1/2 -translate-y-1/2 rounded p-1 text-foreground/50 hover:text-foreground"
                     tabIndex={-1}
                   >
                     {showConfirm ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
@@ -194,13 +194,13 @@ function ResetPasswordPage() {
 
               <Button
                 type="submit"
-                className="w-full bg-gradient-to-r from-blue-500 to-indigo-600 font-semibold text-white shadow-lg shadow-blue-500/30 hover:from-blue-400 hover:to-indigo-500"
+                className="w-full bg-gradient-to-r from-blue-500 to-indigo-600 font-semibold text-foreground shadow-lg shadow-blue-500/30 hover:from-blue-400 hover:to-indigo-500"
                 disabled={loading || !ready}
               >
                 {loading ? "Salvando..." : "Salvar nova senha"}
               </Button>
 
-              <p className="flex items-center justify-center gap-1.5 text-center text-xs text-white/40">
+              <p className="flex items-center justify-center gap-1.5 text-center text-xs text-foreground/40">
                 <ShieldCheck className="h-3 w-3" /> Conexão criptografada • Agent IA
               </p>
             </form>
