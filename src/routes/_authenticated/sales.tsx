@@ -932,12 +932,23 @@ function SalesPage() {
           no faturamento, comissão e Kanban.
         </div>
       </div>
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Vendas</h1>
-          <p className="text-muted-foreground">Cadastre e acompanhe todas as vendas</p>
-        </div>
-        <div className="flex items-center gap-2">
+      <div
+        className="relative overflow-hidden rounded-2xl border border-border/50 bg-gradient-to-br from-primary/10 via-card to-card p-6 sm:p-8"
+        style={{ boxShadow: "0 10px 40px -12px oklch(0.55 0.20 25 / 0.35)" }}
+      >
+        <div className="pointer-events-none absolute -top-24 -right-24 h-64 w-64 rounded-full bg-primary/20 blur-3xl" />
+        <div className="pointer-events-none absolute -bottom-24 -left-24 h-64 w-64 rounded-full bg-primary/10 blur-3xl" />
+        <div className="relative grid grid-cols-[minmax(0,1fr)_auto] items-center gap-4 sm:flex sm:flex-wrap sm:justify-between">
+          <div className="min-w-0 space-y-2">
+            <div className="inline-flex items-center gap-2 rounded-full border border-border/60 bg-background/60 px-3 py-1 text-[11px] font-medium uppercase tracking-[0.16em] text-muted-foreground backdrop-blur">
+              <ShoppingCart className="h-3.5 w-3.5" /> Comercial
+            </div>
+            <h1 className="truncate bg-gradient-to-br from-foreground to-foreground/70 bg-clip-text text-3xl font-bold tracking-tight text-transparent sm:text-4xl">
+              Vendas
+            </h1>
+            <p className="text-sm text-muted-foreground">Cadastre e acompanhe todas as vendas</p>
+          </div>
+          <div className="flex shrink-0 flex-wrap items-center gap-2">
           {isGeneratingLink && (
             <div className="flex items-center gap-2 text-sm text-muted-foreground mr-4">
               <Loader2 className="w-4 h-4 animate-spin" />
@@ -949,7 +960,7 @@ function SalesPage() {
             <Button variant={viewMode === "card" ? "secondary" : "ghost"} size="sm" className="h-8 w-8 p-0" onClick={() => setViewMode("card")}><LayoutGrid className="h-4 w-4" /></Button>
           </div>
           <Dialog open={open} onOpenChange={setOpen}>
-            <DialogTrigger asChild><Button><Plus className="w-4 h-4 mr-2" />Nova Venda</Button></DialogTrigger>
+            <DialogTrigger asChild><Button variant="premium"><Plus className="w-4 h-4 mr-2" />Nova Venda</Button></DialogTrigger>
             <DialogContent className="w-[calc(100%-1rem)] sm:w-full max-w-[95vw] sm:max-w-2xl max-h-[90vh] overflow-y-auto p-0 gap-0 border border-[#E8E8E8] dark:border-white/10 rounded-[18px] bg-white dark:bg-[#0B0B0D] shadow-[0_30px_80px_-20px_rgba(0,0,0,0.35)] [&_input]:h-10 [&_input]:rounded-lg [&_input]:border-[#ECECEC] [&_input]:bg-white [&_input]:pl-9 [&_input]:text-sm [&_input]:transition-all [&_input]:duration-200 [&_input:hover]:border-[#E30613]/60 [&_input:focus]:border-[#E30613] [&_input:focus]:ring-2 [&_input:focus]:ring-[#E30613]/15 dark:[&_input]:bg-white/[0.03] dark:[&_input]:border-white/10 dark:[&_input]:text-white [&_[data-slot=select-trigger]]:h-10 [&_[data-slot=select-trigger]]:rounded-lg [&_[data-slot=select-trigger]]:border-[#ECECEC] [&_[data-slot=select-trigger]]:bg-white [&_[data-slot=select-trigger]]:pl-9 [&_[data-slot=select-trigger]:hover]:border-[#E30613]/60 [&_[data-slot=select-trigger]:focus]:border-[#E30613] [&_[data-slot=select-trigger]:focus]:ring-2 [&_[data-slot=select-trigger]:focus]:ring-[#E30613]/15 dark:[&_[data-slot=select-trigger]]:bg-white/[0.03] dark:[&_[data-slot=select-trigger]]:border-white/10 dark:[&_[data-slot=select-trigger]]:text-white [&_textarea]:rounded-lg [&_textarea]:border-[#ECECEC] [&_textarea]:bg-white [&_textarea]:transition-all [&_textarea:focus]:border-[#E30613] [&_textarea:focus]:ring-2 [&_textarea:focus]:ring-[#E30613]/15 dark:[&_textarea]:bg-white/[0.03] dark:[&_textarea]:border-white/10 dark:[&_textarea]:text-white [&_label]:text-[12px] [&_label]:font-medium [&_label]:text-neutral-700 dark:[&_label]:text-neutral-300">
               <DialogHeader className="relative overflow-hidden bg-[#0B0B0D] px-4 sm:px-6 py-4 space-y-0 border-b border-white/5">
                 <div aria-hidden className="pointer-events-none absolute inset-y-0 right-0 w-2/3">
@@ -1293,6 +1304,7 @@ function SalesPage() {
             </DialogContent>
           </Dialog>
         </div>
+      </div>
       </div>
 
       <Card className="border-border/50">
