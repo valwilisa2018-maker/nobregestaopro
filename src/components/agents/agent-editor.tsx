@@ -1148,7 +1148,7 @@ function KeywordsSection({ ext, setExt, onSave, saving }: ExtProps) {
       <FieldRow label="Palavras-chave">
         <div className="flex gap-2">
           <Input placeholder="Digite uma palavra-chave..." value={input} onChange={(e) => setInput(e.target.value)} onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), add())} />
-          <Button type="button" onClick={add} size="icon" className="rounded-lg" style={{ background: "hsl(var(--primary) / .2)", color: "hsl(var(--primary))" }}><Plus className="h-4 w-4" /></Button>
+          <Button type="button" onClick={add} size="icon" className="rounded-lg bg-primary/20 text-primary hover:bg-primary/30"><Plus className="h-4 w-4" /></Button>
         </div>
         {list.length === 0 ? (
           <p className="text-[11px] italic text-muted-foreground mt-2">Nenhuma palavra-chave adicionada. Adicione pelo menos uma para o filtro funcionar.</p>
@@ -1187,14 +1187,14 @@ function HoursSection({ ext, setExt, onSave, saving }: ExtProps) {
         <Label className="text-xs uppercase tracking-wider text-muted-foreground">Dias de atendimento</Label>
         <div className="flex flex-wrap gap-1.5">
           {DAYS.map((d) => (
-            <button key={d} type="button" onClick={() => toggleDay(d)} className={`rounded-lg px-3 py-1.5 text-xs font-medium transition ${activeDays.includes(d) ? "bg-primary text-primary-foreground shadow-[0_0_12px_hsl(var(--primary)/.5)]" : "bg-muted/40 text-muted-foreground"}`}>{d}</button>
+            <button key={d} type="button" onClick={() => toggleDay(d)} className={`rounded-lg px-3 py-1.5 text-xs font-medium transition ${activeDays.includes(d) ? "bg-primary text-primary-foreground shadow-md shadow-primary/30" : "bg-muted/40 text-muted-foreground"}`}>{d}</button>
           ))}
         </div>
       </div>
       <FieldRow label="📅 Datas bloqueadas (feriados)">
         <div className="flex gap-2">
           <Input type="date" value={dateInput} onChange={(e) => setDateInput(e.target.value)} />
-          <Button type="button" size="icon" onClick={() => { if (!dateInput) return; setExt("hours", { blockedDates: [...blocked, dateInput] }); setDateInput(""); }} style={{ background: "hsl(var(--primary) / .2)", color: "hsl(var(--primary))" }}><Plus className="h-4 w-4" /></Button>
+          <Button type="button" size="icon" className="bg-primary/20 text-primary hover:bg-primary/30" onClick={() => { if (!dateInput) return; setExt("hours", { blockedDates: [...blocked, dateInput] }); setDateInput(""); }}><Plus className="h-4 w-4" /></Button>
         </div>
         {blocked.length > 0 && (
           <div className="flex flex-wrap gap-1.5 mt-2">

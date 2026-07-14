@@ -253,7 +253,7 @@ export function SalesDashboard() {
                     <stop offset="100%" stopColor="#6366f1" stopOpacity={0} />
                   </linearGradient>
                 </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
                 <XAxis dataKey="day" tick={{ fontSize: 11 }} />
                 <YAxis tick={{ fontSize: 11 }} />
                 <Tooltip formatter={(v: number, k: string) => k === "total" ? formatBRL(v * 100) : v} />
@@ -284,7 +284,7 @@ export function SalesDashboard() {
           {byProduct.length === 0 ? <EmptyChart /> : (
             <ResponsiveContainer width="100%" height={260}>
               <BarChart data={byProduct} layout="vertical">
-                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
                 <XAxis type="number" tick={{ fontSize: 11 }} />
                 <YAxis dataKey="name" type="category" tick={{ fontSize: 11 }} width={110} />
                 <Tooltip formatter={(v: number) => formatBRL(v * 100)} />
@@ -299,7 +299,7 @@ export function SalesDashboard() {
           {byPayment.length === 0 ? <EmptyChart /> : (
             <ResponsiveContainer width="100%" height={260}>
               <BarChart data={byPayment}>
-                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
                 <XAxis dataKey="name" tick={{ fontSize: 11 }} />
                 <YAxis tick={{ fontSize: 11 }} />
                 <Tooltip formatter={(v: number) => formatBRL(v * 100)} />
@@ -341,7 +341,7 @@ export function SalesDashboard() {
           {bySeller.length === 0 ? <EmptyChart /> : (
             <ResponsiveContainer width="100%" height={260}>
               <BarChart data={bySeller}>
-                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
                 <XAxis dataKey="name" tick={{ fontSize: 11 }} />
                 <YAxis tick={{ fontSize: 11 }} />
                 <Tooltip formatter={(v: number, k: string) => k === "value" ? formatBRL(v * 100) : v} />

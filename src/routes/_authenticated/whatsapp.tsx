@@ -450,7 +450,7 @@ function Page() {
                   style={{
                     background: online
                       ? "linear-gradient(135deg, #25D366 0%, #128C7E 100%)"
-                      : "linear-gradient(135deg, hsl(var(--primary)) 0%, hsl(var(--primary) / 0.75) 100%)",
+                      : "linear-gradient(135deg, var(--primary) 0%, color-mix(in oklch, var(--primary) 75%, transparent) 100%)",
                   }}
                 >
                   <div className="absolute inset-0 opacity-20 pointer-events-none"

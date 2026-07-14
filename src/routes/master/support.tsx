@@ -272,10 +272,10 @@ function Page() {
                     <stop offset="100%" stopColor="#10b981" stopOpacity={0} />
                   </linearGradient>
                 </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.3} />
-                <XAxis dataKey="date" stroke="hsl(var(--muted-foreground))" fontSize={11} />
-                <YAxis stroke="hsl(var(--muted-foreground))" fontSize={11} allowDecimals={false} />
-                <Tooltip contentStyle={{ background: "hsl(var(--popover))", border: "1px solid hsl(var(--border))", borderRadius: 8, fontSize: 12 }} />
+                <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" opacity={0.3} />
+                <XAxis dataKey="date" stroke="var(--muted-foreground)" fontSize={11} />
+                <YAxis stroke="var(--muted-foreground)" fontSize={11} allowDecimals={false} />
+                <Tooltip contentStyle={{ background: "var(--popover)", border: "1px solid var(--border)", borderRadius: 8, fontSize: 12 }} />
                 <Legend wrapperStyle={{ fontSize: 12 }} />
                 <Area type="monotone" dataKey="abertos" name="Abertos" stroke="#3b82f6" fill="url(#gAbertos)" strokeWidth={2} />
                 <Area type="monotone" dataKey="resolvidos" name="Resolvidos" stroke="#10b981" fill="url(#gResolvidos)" strokeWidth={2} />
@@ -292,7 +292,7 @@ function Page() {
                 <Pie data={statusPie} dataKey="value" nameKey="name" cx="50%" cy="50%" innerRadius={55} outerRadius={95} paddingAngle={3}>
                   {statusPie.map((e, i) => <Cell key={i} fill={e.color} />)}
                 </Pie>
-                <Tooltip contentStyle={{ background: "hsl(var(--popover))", border: "1px solid hsl(var(--border))", borderRadius: 8, fontSize: 12 }} />
+                <Tooltip contentStyle={{ background: "var(--popover)", border: "1px solid var(--border)", borderRadius: 8, fontSize: 12 }} />
                 <Legend wrapperStyle={{ fontSize: 11 }} />
               </PieChart>
             </ResponsiveContainer>
@@ -306,10 +306,10 @@ function Page() {
             <h3 className="font-semibold mb-3 flex items-center gap-2"><AlertTriangle className="h-4 w-4 text-orange-500" /> Chamados por prioridade</h3>
             <ResponsiveContainer width="100%" height={240}>
               <BarChart data={priorityBar}>
-                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.3} />
-                <XAxis dataKey="name" stroke="hsl(var(--muted-foreground))" fontSize={11} />
-                <YAxis stroke="hsl(var(--muted-foreground))" fontSize={11} allowDecimals={false} />
-                <Tooltip contentStyle={{ background: "hsl(var(--popover))", border: "1px solid hsl(var(--border))", borderRadius: 8, fontSize: 12 }} />
+                <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" opacity={0.3} />
+                <XAxis dataKey="name" stroke="var(--muted-foreground)" fontSize={11} />
+                <YAxis stroke="var(--muted-foreground)" fontSize={11} allowDecimals={false} />
+                <Tooltip contentStyle={{ background: "var(--popover)", border: "1px solid var(--border)", borderRadius: 8, fontSize: 12 }} />
                 <Bar dataKey="total" radius={[8, 8, 0, 0]}>
                   {priorityBar.map((e, i) => <Cell key={i} fill={e.color} />)}
                 </Bar>
@@ -326,11 +326,11 @@ function Page() {
             ) : (
               <ResponsiveContainer width="100%" height={240}>
                 <BarChart data={categoryBar} layout="vertical">
-                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.3} />
-                  <XAxis type="number" stroke="hsl(var(--muted-foreground))" fontSize={11} allowDecimals={false} />
-                  <YAxis type="category" dataKey="name" stroke="hsl(var(--muted-foreground))" fontSize={11} width={140} />
-                  <Tooltip contentStyle={{ background: "hsl(var(--popover))", border: "1px solid hsl(var(--border))", borderRadius: 8, fontSize: 12 }} />
-                  <Bar dataKey="total" fill="hsl(var(--primary))" radius={[0, 8, 8, 0]} />
+                  <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" opacity={0.3} />
+                  <XAxis type="number" stroke="var(--muted-foreground)" fontSize={11} allowDecimals={false} />
+                  <YAxis type="category" dataKey="name" stroke="var(--muted-foreground)" fontSize={11} width={140} />
+                  <Tooltip contentStyle={{ background: "var(--popover)", border: "1px solid var(--border)", borderRadius: 8, fontSize: 12 }} />
+                  <Bar dataKey="total" fill="var(--primary)" radius={[0, 8, 8, 0]} />
                 </BarChart>
               </ResponsiveContainer>
             )}

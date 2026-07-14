@@ -360,14 +360,14 @@ function Page() {
                   <div className="h-64">
                     <ResponsiveContainer width="100%" height="100%">
                       <BarChart data={daily.slice(-30)}>
-                        <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                        <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
                         <XAxis dataKey="date" fontSize={10} tickFormatter={(v) => v.slice(5)} />
                         <YAxis fontSize={10} tickFormatter={(v) => fmtTokens(v as number)} />
                         <Tooltip
-                          contentStyle={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))" }}
+                          contentStyle={{ background: "var(--card)", border: "1px solid var(--border)" }}
                           formatter={(v: number) => fmtTokens(v)}
                         />
-                        <Bar dataKey="tokens" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
+                        <Bar dataKey="tokens" fill="var(--primary)" radius={[4, 4, 0, 0]} />
                       </BarChart>
                     </ResponsiveContainer>
                   </div>
@@ -376,14 +376,14 @@ function Page() {
                   <div className="h-64">
                     <ResponsiveContainer width="100%" height="100%">
                       <BarChart data={weekly}>
-                        <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                        <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
                         <XAxis dataKey="week" fontSize={10} tickFormatter={(v) => v.slice(5)} />
                         <YAxis fontSize={10} tickFormatter={(v) => fmtTokens(v as number)} />
                         <Tooltip
-                          contentStyle={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))" }}
+                          contentStyle={{ background: "var(--card)", border: "1px solid var(--border)" }}
                           formatter={(v: number) => fmtTokens(v)}
                         />
-                        <Bar dataKey="tokens" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
+                        <Bar dataKey="tokens" fill="var(--primary)" radius={[4, 4, 0, 0]} />
                       </BarChart>
                     </ResponsiveContainer>
                   </div>
@@ -392,14 +392,14 @@ function Page() {
                   <div className="h-64">
                     <ResponsiveContainer width="100%" height="100%">
                       <BarChart data={monthly}>
-                        <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                        <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
                         <XAxis dataKey="month" fontSize={10} />
                         <YAxis fontSize={10} tickFormatter={(v) => fmtTokens(v as number)} />
                         <Tooltip
-                          contentStyle={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))" }}
+                          contentStyle={{ background: "var(--card)", border: "1px solid var(--border)" }}
                           formatter={(v: number) => fmtTokens(v)}
                         />
-                        <Bar dataKey="tokens" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
+                        <Bar dataKey="tokens" fill="var(--primary)" radius={[4, 4, 0, 0]} />
                       </BarChart>
                     </ResponsiveContainer>
                   </div>
