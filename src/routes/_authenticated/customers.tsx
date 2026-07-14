@@ -10,7 +10,8 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { MessageCircle, Search, Mail, Phone, Building2, FileText, Paperclip, Loader2, LayoutGrid, List, User, Trash2 } from "lucide-react";
+import { MessageCircle, Search, Mail, Phone, Building2, FileText, Paperclip, Loader2, LayoutGrid, List, User, Trash2, Users } from "lucide-react";
+import { PageHero } from "@/components/page-hero";
 import { formatCurrency } from "@/lib/auth";
 import { fmtDate } from "@/lib/format";
 import { toast } from "sonner";
@@ -210,13 +211,18 @@ function CustomersPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div><h1 className="text-3xl font-bold tracking-tight">Clientes</h1><p className="text-muted-foreground">Histórico completo de clientes e contratos</p></div>
-        <div className="flex items-center bg-muted rounded-lg p-1">
-          <Button variant={viewMode === "table" ? "secondary" : "ghost"} size="sm" className="h-8 w-8 p-0" onClick={() => setViewMode("table")}><List className="h-4 w-4" /></Button>
-          <Button variant={viewMode === "card" ? "secondary" : "ghost"} size="sm" className="h-8 w-8 p-0" onClick={() => setViewMode("card")}><LayoutGrid className="h-4 w-4" /></Button>
-        </div>
-      </div>
+      <PageHero
+        eyebrow="CRM"
+        icon={Users}
+        title="Clientes"
+        description="Histórico completo de clientes e contratos"
+        actions={
+          <div className="flex items-center bg-muted rounded-lg p-1">
+            <Button variant={viewMode === "table" ? "secondary" : "ghost"} size="sm" className="h-8 w-8 p-0" onClick={() => setViewMode("table")}><List className="h-4 w-4" /></Button>
+            <Button variant={viewMode === "card" ? "secondary" : "ghost"} size="sm" className="h-8 w-8 p-0" onClick={() => setViewMode("card")}><LayoutGrid className="h-4 w-4" /></Button>
+          </div>
+        }
+      />
       <Card className="border-border/50">
         <CardContent className="p-4 space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
