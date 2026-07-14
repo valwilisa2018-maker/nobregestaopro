@@ -9,7 +9,8 @@ import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Trash2, Pencil, Upload, LayoutGrid, List, User, Settings2 } from "lucide-react";
+import { Plus, Trash2, Pencil, Upload, LayoutGrid, List, User, Settings2, Video } from "lucide-react";
+import { PageHero } from "@/components/page-hero";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/producers")({
@@ -99,13 +100,22 @@ export const Route = createFileRoute("/_authenticated/producers")({
     };
     return (
       <div className="space-y-6">
-        <div className="flex items-center justify-between">
-          <div><h1 className="text-3xl font-bold tracking-tight">Produtores</h1><p className="text-muted-foreground">Equipe de produção</p></div>
-          <div className="flex items-center gap-2">
-            <div className="flex items-center bg-muted rounded-lg p-1">
-              <Button variant={viewMode === "table" ? "secondary" : "ghost"} size="sm" className="h-8 w-8 p-0" onClick={() => setViewMode("table")}><List className="h-4 w-4" /></Button>
-              <Button variant={viewMode === "card" ? "secondary" : "ghost"} size="sm" className="h-8 w-8 p-0" onClick={() => setViewMode("card")}><LayoutGrid className="h-4 w-4" /></Button>
-            </div>
+        <PageHero
+          eyebrow="Produção"
+          icon={Video}
+          title="Produtores"
+          description="Equipe de produção"
+          actions={
+            <>
+              <div className="flex items-center bg-muted rounded-lg p-1">
+                <Button variant={viewMode === "table" ? "secondary" : "ghost"} size="sm" className="h-8 w-8 p-0" onClick={() => setViewMode("table")}><List className="h-4 w-4" /></Button>
+                <Button variant={viewMode === "card" ? "secondary" : "ghost"} size="sm" className="h-8 w-8 p-0" onClick={() => setViewMode("card")}><LayoutGrid className="h-4 w-4" /></Button>
+              </div>
+              <Button variant="premium" onClick={() => setOpen(true)}><Plus className="w-4 h-4 mr-2" />Novo produtor</Button>
+            </>
+          }
+        />
+        <div className="hidden">
             <Dialog open={open} onOpenChange={setOpen}>
               <DialogTrigger asChild><Button><Plus className="w-4 h-4 mr-2" />Novo produtor</Button></DialogTrigger>
             <DialogContent><DialogHeader><DialogTitle>Novo produtor</DialogTitle></DialogHeader>
