@@ -403,22 +403,6 @@ function BroadcastsPage() {
 
         {step === 3 && (
           <div className="space-y-4">
-            {/* Seção: Modo */}
-            <Section icon={<Rocket className="h-4 w-4" />} title="Modo de envio" desc="Como a campanha deve ser disparada">
-              <RadioGroup value={mode} onValueChange={(v) => setMode(v as never)} className="grid md:grid-cols-2 gap-3">
-                <label className={`relative border rounded-xl p-4 cursor-pointer transition-all ${mode === "quick" ? "border-primary bg-gradient-to-br from-primary/10 to-primary/5 shadow-sm ring-1 ring-primary/30" : "hover:bg-muted/40"}`}>
-                  <div className="flex items-start gap-3"><RadioGroupItem value="quick" className="mt-1" />
-                    <div className="flex-1"><div className="font-semibold flex items-center gap-2"><Rocket className="h-4 w-4 text-primary" /> Massa</div><p className="text-xs text-muted-foreground mt-1">Envio único agora para toda a base.</p></div>
-                  </div>
-                </label>
-                <label className={`relative border rounded-xl p-4 cursor-pointer transition-all ${mode === "sequential" ? "border-primary bg-gradient-to-br from-primary/10 to-primary/5 shadow-sm ring-1 ring-primary/30" : "hover:bg-muted/40"}`}>
-                  <div className="flex items-start gap-3"><RadioGroupItem value="sequential" className="mt-1" />
-                    <div className="flex-1"><div className="font-semibold flex items-center gap-2"><Clock className="h-4 w-4 text-primary" /> Sequencial</div><p className="text-xs text-muted-foreground mt-1">Cadência programada em várias etapas.</p></div>
-                  </div>
-                </label>
-              </RadioGroup>
-            </Section>
-
             {mode === "sequential" && (
               <Section icon={<Clock className="h-4 w-4" />} title="Etapas da sequência" desc="A etapa 1 dispara imediatamente; as próximas aguardam o intervalo definido"
                 right={
