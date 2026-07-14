@@ -268,7 +268,8 @@ function PastasArquivosPage() {
           </DialogContent>
         </Dialog>
         </div>
-      </div>
+        }
+      />
 
       <div className="flex flex-wrap gap-2 items-center">
         <div className="relative">
