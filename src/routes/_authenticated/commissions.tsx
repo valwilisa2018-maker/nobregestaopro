@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { PageHero } from "@/components/page-hero";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -260,13 +261,12 @@ function CommissionsPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between flex-wrap gap-3">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Comissões</h1>
-          <p className="text-muted-foreground">Cálculo automático com base no valor pago de cada venda</p>
-        </div>
-        <Button variant="outline" onClick={exportCsv}><Download className="w-4 h-4 mr-2" />Exportar</Button>
-      </div>
+      <PageHero
+        eyebrow="Financeiro"
+        title="Comissões"
+        description="Cálculo automático com base no valor pago de cada venda"
+        actions={<Button variant="outline" onClick={exportCsv}><Download className="w-4 h-4 mr-2" />Exportar</Button>}
+      />
 
       <Card className="border-border/50" style={{ boxShadow: "var(--shadow-card)" }}>
         <CardContent className="p-4 flex flex-wrap items-end gap-3">

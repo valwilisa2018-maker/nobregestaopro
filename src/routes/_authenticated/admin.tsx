@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { PageHero } from "@/components/page-hero";
 import { useNavigate } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
@@ -377,10 +378,12 @@ function AdminPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-start justify-between gap-3">
-        <div><h1 className="text-3xl font-bold tracking-tight">Configurações</h1><p className="text-muted-foreground">Painel administrativo</p></div>
-        <Button variant="outline" size="sm" onClick={() => { sessionStorage.removeItem(SESSION_KEY); setUnlocked(false); }}>Bloquear</Button>
-      </div>
+      <PageHero
+        eyebrow="Administração"
+        title="Configurações"
+        description="Painel administrativo"
+        actions={<Button variant="outline" size="sm" onClick={() => { sessionStorage.removeItem(SESSION_KEY); setUnlocked(false); }}>Bloquear</Button>}
+      />
       <Tabs defaultValue="goals">
         <TabsList className="flex-wrap h-auto gap-1">
           <TabsTrigger value="health">

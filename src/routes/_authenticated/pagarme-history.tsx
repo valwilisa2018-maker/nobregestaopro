@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { PageHero } from "@/components/page-hero";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState, useMemo, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -170,15 +171,16 @@ function PagarmeHistoryPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Histórico Pagar.me</h1>
-          <p className="text-muted-foreground">Acompanhe confirmações de pagamento via cartão/PIX</p>
-        </div>
-        <div className="bg-emerald-100 p-2 rounded-lg border border-emerald-200 w-fit">
-          <CreditCard className="w-6 h-6 text-emerald-600" />
-        </div>
-      </div>
+      <PageHero
+        eyebrow="Pagamentos"
+        title="Histórico Pagar.me"
+        description="Acompanhe confirmações de pagamento via cartão/PIX"
+        actions={
+          <div className="bg-emerald-500/15 border border-emerald-500/30 p-2 rounded-lg w-fit">
+            <CreditCard className="w-6 h-6 text-emerald-500" />
+          </div>
+        }
+      />
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <Card className="bg-emerald-50 border-emerald-100">

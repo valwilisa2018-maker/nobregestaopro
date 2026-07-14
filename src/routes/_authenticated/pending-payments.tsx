@@ -1,4 +1,5 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { PageHero } from "@/components/page-hero";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -153,18 +154,19 @@ function PendingPaymentsPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-end justify-between gap-3 flex-wrap">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Valores Pendentes</h1>
-          <p className="text-muted-foreground">Clientes com pagamentos parciais ou em débito</p>
-        </div>
-        <Card className="border-border/50">
-          <CardContent className="p-4">
-            <div className="text-xs text-muted-foreground">Total em aberto</div>
-            <div className="text-2xl font-bold text-red-500">{formatCurrency(totalPending)}</div>
-          </CardContent>
-        </Card>
-      </div>
+      <PageHero
+        eyebrow="Financeiro"
+        title="Valores Pendentes"
+        description="Clientes com pagamentos parciais ou em débito"
+        actions={
+          <Card className="border-border/50">
+            <CardContent className="p-4">
+              <div className="text-xs text-muted-foreground">Total em aberto</div>
+              <div className="text-2xl font-bold text-red-500">{formatCurrency(totalPending)}</div>
+            </CardContent>
+          </Card>
+        }
+      />
 
       <Card className="border-border/50">
         <CardContent className="p-4">
