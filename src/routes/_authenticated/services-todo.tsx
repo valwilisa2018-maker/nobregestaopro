@@ -62,7 +62,11 @@ export const Route = createFileRoute("/_authenticated/services-todo")({
     const [expanded, setExpanded] = useState<Record<string, boolean>>({});
     return (
       <div className="space-y-6">
-        <div><h1 className="text-3xl font-bold tracking-tight">Serviços a Fazer</h1><p className="text-muted-foreground">Atualiza automaticamente conforme o Kanban</p></div>
+        <PageHero
+          eyebrow="Produção"
+          title="Serviços a Fazer"
+          description="Atualiza automaticamente conforme o Kanban"
+        />
         <div className="relative max-w-md">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
           <Input className="pl-9" placeholder="Buscar por cliente ou empresa…"
