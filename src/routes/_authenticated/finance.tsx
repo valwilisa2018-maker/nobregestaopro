@@ -23,6 +23,7 @@ import {
   PieChart, Pie, Cell, XAxis, YAxis, Tooltip, CartesianGrid, Legend,
 } from "recharts";
 import { formatCurrency } from "@/lib/auth";
+import { PageHero } from "@/components/page-hero";
 import { fmtDate } from "@/lib/format";
 import { toast } from "sonner";
 
