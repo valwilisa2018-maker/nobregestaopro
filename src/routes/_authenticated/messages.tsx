@@ -1583,7 +1583,7 @@ function MessagesPage() {
             }}>
               <PopoverTrigger asChild>
                 <button
-                  className="h-10 w-10 rounded-full grid place-items-center bg-white/20 font-semibold shrink-0 overflow-hidden hover:ring-2 hover:ring-white/40 transition"
+                  className="h-10 w-10 rounded-full grid place-items-center bg-white/20 font-semibold shrink-0 overflow-hidden hover:ring-2 hover:ring-ring transition"
                   aria-label="Perfil da instância"
                   title="Perfil da instância"
                 >
@@ -1751,7 +1751,7 @@ function MessagesPage() {
               <TooltipTrigger asChild>
                 <button
                   onClick={() => setSidebarCollapsed((v) => !v)}
-                  className="hidden md:grid h-8 w-8 place-items-center rounded-full text-foreground/90 hover:bg-white/15 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/60 transition"
+                  className="hidden md:grid h-8 w-8 place-items-center rounded-full text-foreground/90 hover:bg-muted focus:outline-none focus-visible:ring-2 focus-visible:ring-ring transition"
                   aria-label={sidebarCollapsed ? "Expandir" : "Recolher"}
                 >
                   {sidebarCollapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
@@ -2020,7 +2020,7 @@ function MessagesPage() {
                   <TooltipTrigger asChild>
                     <button
                       onClick={() => setSidebarCollapsed((v) => !v)}
-                      className="hidden lg:grid h-9 w-9 -ml-1 place-items-center rounded-full bg-white/15 hover:bg-white/25 text-foreground transition focus:outline-none focus-visible:ring-2 focus-visible:ring-white/70"
+                      className="hidden lg:grid h-9 w-9 -ml-1 place-items-center rounded-full bg-white/15 hover:bg-muted text-foreground transition focus:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                       aria-label={sidebarCollapsed ? "Expandir lista de conversas" : "Recolher lista de conversas"}
                     >
                       {sidebarCollapsed ? <ChevronRight className="h-5 w-5" /> : <ChevronLeft className="h-5 w-5" />}
@@ -2067,7 +2067,7 @@ function MessagesPage() {
                 </button>
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <button onClick={() => setInfoOpen((v) => !v)} className={`p-2 rounded-full hover:bg-white/15 transition ${infoOpen ? "bg-white/15" : ""}`} aria-label="Dados do contato">
+                    <button onClick={() => setInfoOpen((v) => !v)} className={`p-2 rounded-full hover:bg-muted transition ${infoOpen ? "bg-white/15" : ""}`} aria-label="Dados do contato">
                       <Info className="h-5 w-5" />
                     </button>
                   </TooltipTrigger>
@@ -2094,7 +2094,7 @@ function MessagesPage() {
                           }
                         }
                       }}
-                      className="p-2 rounded-full hover:bg-white/15 transition"
+                      className="p-2 rounded-full hover:bg-muted transition"
                       aria-label="Gravar vídeo"
                     >
                       <Video className="h-5 w-5" />
@@ -2106,7 +2106,7 @@ function MessagesPage() {
                   <TooltipTrigger asChild>
                     <button
                       onClick={() => { setSoundOn((v) => !v); if (!soundOn) playBell(); }}
-                      className="p-2 rounded-full hover:bg-white/15 transition"
+                      className="p-2 rounded-full hover:bg-muted transition"
                       aria-label={soundOn ? "Desligar som" : "Ligar som"}
                     >
                       {soundOn ? <Bell className="h-5 w-5" /> : <BellOff className="h-5 w-5" />}
@@ -2691,7 +2691,7 @@ function MessagesPage() {
         {selected && infoOpen && (
           <aside className="hidden xl:flex flex-col w-80 border-l border-black/10 bg-white overflow-y-auto">
             <div className="px-4 py-3 flex items-center gap-2 text-foreground" style={{ background: WA.headerDark }}>
-              <button onClick={() => setInfoOpen(false)} className="p-1 rounded-full hover:bg-white/15" aria-label="Fechar">
+              <button onClick={() => setInfoOpen(false)} className="p-1 rounded-full hover:bg-muted" aria-label="Fechar">
                 <X className="h-5 w-5" />
               </button>
               <div className="text-sm font-semibold">Dados do contato</div>
@@ -2733,7 +2733,7 @@ function MessagesPage() {
         >
           <button
             onClick={(e) => { e.stopPropagation(); setLightbox(null); }}
-            className="absolute top-4 right-4 p-2 rounded-full bg-muted/60 hover:bg-white/20 text-foreground"
+            className="absolute top-4 right-4 p-2 rounded-full bg-muted/60 hover:bg-muted text-foreground"
             aria-label="Fechar"
           >
             <X className="h-6 w-6" />
