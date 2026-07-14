@@ -171,8 +171,6 @@ function SellersPage() {
             <DialogFooter><Button onClick={save}>Salvar</Button></DialogFooter>
           </DialogContent>
         </Dialog>
-      </div>
-      </div>
 
       {viewMode === "table" ? (
         <Card className="border-border/50" style={{ boxShadow: "var(--shadow-card)" }}><CardContent className="p-0">
