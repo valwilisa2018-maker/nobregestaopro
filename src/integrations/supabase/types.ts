@@ -294,6 +294,118 @@ export type Database = {
           },
         ]
       }
+      master_account_invoices: {
+        Row: {
+          account_id: string
+          amount_cents: number
+          created_at: string
+          due_date: string
+          id: string
+          notes: string | null
+          pagarme_charge_id: string | null
+          paid_at: string | null
+          payment_method: string | null
+          reference_month: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          account_id: string
+          amount_cents: number
+          created_at?: string
+          due_date: string
+          id?: string
+          notes?: string | null
+          pagarme_charge_id?: string | null
+          paid_at?: string | null
+          payment_method?: string | null
+          reference_month: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          account_id?: string
+          amount_cents?: number
+          created_at?: string
+          due_date?: string
+          id?: string
+          notes?: string | null
+          pagarme_charge_id?: string | null
+          paid_at?: string | null
+          payment_method?: string | null
+          reference_month?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "master_account_invoices_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "master_accounts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      master_accounts: {
+        Row: {
+          activated_at: string | null
+          billing_day: number
+          contact_email: string | null
+          contact_phone: string | null
+          created_at: string
+          custom_price_cents: number | null
+          document: string | null
+          id: string
+          name: string
+          next_billing_at: string | null
+          notes: string | null
+          plan_id: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          activated_at?: string | null
+          billing_day?: number
+          contact_email?: string | null
+          contact_phone?: string | null
+          created_at?: string
+          custom_price_cents?: number | null
+          document?: string | null
+          id?: string
+          name: string
+          next_billing_at?: string | null
+          notes?: string | null
+          plan_id?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          activated_at?: string | null
+          billing_day?: number
+          contact_email?: string | null
+          contact_phone?: string | null
+          created_at?: string
+          custom_price_cents?: number | null
+          document?: string | null
+          id?: string
+          name?: string
+          next_billing_at?: string | null
+          notes?: string | null
+          plan_id?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "master_accounts_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "plans"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       om_eventos: {
         Row: {
           card_key: string
