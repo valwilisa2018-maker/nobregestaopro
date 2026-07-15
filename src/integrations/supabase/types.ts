@@ -406,6 +406,36 @@ export type Database = {
           },
         ]
       }
+      master_admins: {
+        Row: {
+          created_at: string
+          email: string
+          id: string
+          last_login_at: string | null
+          name: string
+          password_hash: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          id?: string
+          last_login_at?: string | null
+          name?: string
+          password_hash: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          id?: string
+          last_login_at?: string | null
+          name?: string
+          password_hash?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       om_eventos: {
         Row: {
           card_key: string
@@ -1606,6 +1636,18 @@ export type Database = {
           _user_id: string
         }
         Returns: boolean
+      }
+      master_change_password: {
+        Args: { _admin_id: string; _new_password: string }
+        Returns: undefined
+      }
+      master_verify_login: {
+        Args: { _email: string; _password: string }
+        Returns: {
+          email: string
+          id: string
+          name: string
+        }[]
       }
       purge_old_project_folders: { Args: never; Returns: Json }
       renumber_service_orders_for_customer: {
