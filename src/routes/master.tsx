@@ -223,6 +223,9 @@ function MasterPage() {
             <Button onClick={() => setCreating(true)}>
               <Plus className="mr-2 h-4 w-4" /> Nova conta
             </Button>
+            <Button variant="ghost" onClick={handleLogout} title={`Sair (${admin?.email ?? ""})`}>
+              <LogOut className="mr-2 h-4 w-4" /> Sair
+            </Button>
           </div>
         }
       />
