@@ -809,29 +809,3 @@ function initAccountForm(a: MasterAccount | null) {
     notes: a?.notes ?? "",
   };
 }
-
-function LockMasterButton() {
-  const router = useRouter();
-  const lock = useServerFn(lockMaster);
-  const [busy, setBusy] = useState(false);
-  return (
-    <Button
-      variant="ghost"
-      size="icon"
-      title="Bloquear Admin Master"
-      disabled={busy}
-      onClick={async () => {
-        setBusy(true);
-        try {
-          await lock({});
-          toast.success("Admin Master bloqueado.");
-          await router.navigate({ to: "/master-login" });
-        } finally {
-          setBusy(false);
-        }
-      }}
-    >
-      <Lock className="h-4 w-4" />
-    </Button>
-  );
-}
