@@ -184,27 +184,18 @@ function MasterPage() {
     };
   }, [accountsQ.data, invoicesQ.data]);
 
-  if (!isSuperAdmin(roles)) {
-    return (
-      <Card className="mx-auto max-w-lg">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <ShieldCheck className="h-5 w-5" /> Acesso restrito
-          </CardTitle>
-          <CardDescription>
-            Esta área é exclusiva do dono da plataforma (super-admin).
-          </CardDescription>
-        </CardHeader>
-      </Card>
-    );
-  }
-
   const handleStatus = async (a: MasterAccount, status: MasterAccount["status"]) => {
     try {
       await statusFn({ data: { id: a.id, status } });
       toast.success(`Conta ${a.name} → ${STATUS_LABEL[status]}`);
       qc.invalidateQueries({ queryKey: ["master_accounts"] });
     } catch (e: any) { toast.error(e?.message ?? "Erro"); }
+  };
+
+  const handleLogout = async () => {
+    await logoutFn({});
+    qc.clear();
+    navigate({ to: "/master-login", replace: true });
   };
 
   const handleGenerateMonth = async () => {
