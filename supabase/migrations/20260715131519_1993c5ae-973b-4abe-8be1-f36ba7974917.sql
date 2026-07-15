@@ -1,0 +1,1 @@
+UPDATE public.sellers SET user_id = 'e96036a9-8737-4300-b6a2-d70a5df01396' WHERE id = '7a3c32b8-f4e0-4205-a5ad-c4720cd3c8bc' AND user_id IS NULL;
