@@ -549,6 +549,57 @@ export type Database = {
         }
         Relationships: []
       }
+      plans: {
+        Row: {
+          billing_period: string
+          created_at: string
+          description: string | null
+          features: Json
+          id: string
+          is_active: boolean
+          is_highlight: boolean
+          limits: Json
+          name: string
+          pagarme_plan_id: string | null
+          price_cents: number
+          slug: string
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          billing_period?: string
+          created_at?: string
+          description?: string | null
+          features?: Json
+          id?: string
+          is_active?: boolean
+          is_highlight?: boolean
+          limits?: Json
+          name: string
+          pagarme_plan_id?: string | null
+          price_cents?: number
+          slug: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          billing_period?: string
+          created_at?: string
+          description?: string | null
+          features?: Json
+          id?: string
+          is_active?: boolean
+          is_highlight?: boolean
+          limits?: Json
+          name?: string
+          pagarme_plan_id?: string | null
+          price_cents?: number
+          slug?: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       producers: {
         Row: {
           active: boolean
@@ -1212,6 +1263,50 @@ export type Database = {
           sort_order?: number | null
         }
         Relationships: []
+      }
+      subscription: {
+        Row: {
+          created_at: string
+          current_period_end: string | null
+          id: boolean
+          notes: string | null
+          pagarme_subscription_id: string | null
+          plan_id: string | null
+          started_at: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          current_period_end?: string | null
+          id?: boolean
+          notes?: string | null
+          pagarme_subscription_id?: string | null
+          plan_id?: string | null
+          started_at?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          current_period_end?: string | null
+          id?: boolean
+          notes?: string | null
+          pagarme_subscription_id?: string | null
+          plan_id?: string | null
+          started_at?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "subscription_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "plans"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       system_announcements: {
         Row: {
