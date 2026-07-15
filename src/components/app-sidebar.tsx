@@ -49,6 +49,7 @@ const groups = [
   {
     label: "Administração",
     items: [
+      { title: "Planos & Assinatura", url: "/planos", icon: CreditCard },
       { title: "Backup", url: "/backup", icon: Database },
       { title: "Conectar WhatsApp", url: "/whatsapp", icon: Smartphone },
       { title: "Auditoria", url: "/auditoria", icon: ShieldCheck },

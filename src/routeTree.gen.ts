@@ -21,6 +21,7 @@ import { Route as AuthenticatedServicesTodoRouteImport } from './routes/_authent
 import { Route as AuthenticatedSellersRouteImport } from './routes/_authenticated/sellers'
 import { Route as AuthenticatedSalesRouteImport } from './routes/_authenticated/sales'
 import { Route as AuthenticatedProducersRouteImport } from './routes/_authenticated/producers'
+import { Route as AuthenticatedPlanosRouteImport } from './routes/_authenticated/planos'
 import { Route as AuthenticatedPendingPaymentsRouteImport } from './routes/_authenticated/pending-payments'
 import { Route as AuthenticatedPaymentLinkRouteImport } from './routes/_authenticated/payment-link'
 import { Route as AuthenticatedPagarmeHistoryRouteImport } from './routes/_authenticated/pagarme-history'
@@ -103,6 +104,11 @@ const AuthenticatedSalesRoute = AuthenticatedSalesRouteImport.update({
 const AuthenticatedProducersRoute = AuthenticatedProducersRouteImport.update({
   id: '/producers',
   path: '/producers',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedPlanosRoute = AuthenticatedPlanosRouteImport.update({
+  id: '/planos',
+  path: '/planos',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedPendingPaymentsRoute =
@@ -254,6 +260,7 @@ export interface FileRoutesByFullPath {
   '/pagarme-history': typeof AuthenticatedPagarmeHistoryRoute
   '/payment-link': typeof AuthenticatedPaymentLinkRoute
   '/pending-payments': typeof AuthenticatedPendingPaymentsRoute
+  '/planos': typeof AuthenticatedPlanosRoute
   '/producers': typeof AuthenticatedProducersRoute
   '/sales': typeof AuthenticatedSalesRoute
   '/sellers': typeof AuthenticatedSellersRoute
@@ -289,6 +296,7 @@ export interface FileRoutesByTo {
   '/pagarme-history': typeof AuthenticatedPagarmeHistoryRoute
   '/payment-link': typeof AuthenticatedPaymentLinkRoute
   '/pending-payments': typeof AuthenticatedPendingPaymentsRoute
+  '/planos': typeof AuthenticatedPlanosRoute
   '/producers': typeof AuthenticatedProducersRoute
   '/sales': typeof AuthenticatedSalesRoute
   '/sellers': typeof AuthenticatedSellersRoute
@@ -327,6 +335,7 @@ export interface FileRoutesById {
   '/_authenticated/pagarme-history': typeof AuthenticatedPagarmeHistoryRoute
   '/_authenticated/payment-link': typeof AuthenticatedPaymentLinkRoute
   '/_authenticated/pending-payments': typeof AuthenticatedPendingPaymentsRoute
+  '/_authenticated/planos': typeof AuthenticatedPlanosRoute
   '/_authenticated/producers': typeof AuthenticatedProducersRoute
   '/_authenticated/sales': typeof AuthenticatedSalesRoute
   '/_authenticated/sellers': typeof AuthenticatedSellersRoute
@@ -365,6 +374,7 @@ export interface FileRouteTypes {
     | '/pagarme-history'
     | '/payment-link'
     | '/pending-payments'
+    | '/planos'
     | '/producers'
     | '/sales'
     | '/sellers'
@@ -400,6 +410,7 @@ export interface FileRouteTypes {
     | '/pagarme-history'
     | '/payment-link'
     | '/pending-payments'
+    | '/planos'
     | '/producers'
     | '/sales'
     | '/sellers'
@@ -437,6 +448,7 @@ export interface FileRouteTypes {
     | '/_authenticated/pagarme-history'
     | '/_authenticated/payment-link'
     | '/_authenticated/pending-payments'
+    | '/_authenticated/planos'
     | '/_authenticated/producers'
     | '/_authenticated/sales'
     | '/_authenticated/sellers'
@@ -549,6 +561,13 @@ declare module '@tanstack/react-router' {
       path: '/producers'
       fullPath: '/producers'
       preLoaderRoute: typeof AuthenticatedProducersRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/planos': {
+      id: '/_authenticated/planos'
+      path: '/planos'
+      fullPath: '/planos'
+      preLoaderRoute: typeof AuthenticatedPlanosRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/pending-payments': {
@@ -756,6 +775,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedPagarmeHistoryRoute: typeof AuthenticatedPagarmeHistoryRoute
   AuthenticatedPaymentLinkRoute: typeof AuthenticatedPaymentLinkRoute
   AuthenticatedPendingPaymentsRoute: typeof AuthenticatedPendingPaymentsRoute
+  AuthenticatedPlanosRoute: typeof AuthenticatedPlanosRoute
   AuthenticatedProducersRoute: typeof AuthenticatedProducersRoute
   AuthenticatedSalesRoute: typeof AuthenticatedSalesRoute
   AuthenticatedSellersRoute: typeof AuthenticatedSellersRoute
@@ -782,6 +802,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedPagarmeHistoryRoute: AuthenticatedPagarmeHistoryRoute,
   AuthenticatedPaymentLinkRoute: AuthenticatedPaymentLinkRoute,
   AuthenticatedPendingPaymentsRoute: AuthenticatedPendingPaymentsRoute,
+  AuthenticatedPlanosRoute: AuthenticatedPlanosRoute,
   AuthenticatedProducersRoute: AuthenticatedProducersRoute,
   AuthenticatedSalesRoute: AuthenticatedSalesRoute,
   AuthenticatedSellersRoute: AuthenticatedSellersRoute,
