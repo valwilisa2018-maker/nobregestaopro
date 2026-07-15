@@ -30,14 +30,23 @@ import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
 
-import { supabase } from "@/integrations/supabase/client";
-import { useAuth, isSuperAdmin, formatCurrency } from "@/lib/auth";
+import { formatCurrency } from "@/lib/auth";
 import {
   upsertMasterAccount, deleteMasterAccount, changeAccountStatus,
   upsertAccountInvoice, markInvoicePaid, deleteAccountInvoice, generateMonthlyInvoices,
 } from "@/lib/master.functions";
+import {
+  listMasterAccounts, listMasterInvoices, listPlansMin,
+  masterMe, masterLogout,
+} from "@/lib/master-auth.functions";
 
 export const Route = createFileRoute("/master")({
+  ssr: false,
+  loader: async () => {
+    const me: any = await masterMe();
+    if (!me?.authenticated) throw redirect({ to: "/master-login" });
+    return { admin: me };
+  },
   head: () => ({
     meta: [
       { title: "Admin Master — Gestão Nobre MKT" },
