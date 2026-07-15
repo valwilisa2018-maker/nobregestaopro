@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import {
   ShieldCheck, Building2, Plus, Pencil, Trash2, Loader2, DollarSign,
   Ban, PlayCircle, PauseCircle, TrendingUp, AlertTriangle, CheckCircle2, Receipt, LogOut,
+  Package, Users, ShoppingCart, Activity, Star,
 } from "lucide-react";
 
 import { PageHero } from "@/components/page-hero";
@@ -34,6 +35,7 @@ import { formatCurrency } from "@/lib/auth";
 import {
   upsertMasterAccount, deleteMasterAccount, changeAccountStatus,
   upsertAccountInvoice, markInvoicePaid, deleteAccountInvoice, generateMonthlyInvoices,
+  listPlansAll, upsertMasterPlan, deleteMasterPlan, getPlatformStats,
 } from "@/lib/master.functions";
 import {
   listMasterAccounts, listMasterInvoices, listPlansMin,
@@ -89,6 +91,29 @@ type Invoice = {
 
 type Plan = { id: string; name: string; price_cents: number };
 
+type PlanFull = {
+  id: string;
+  slug: string;
+  name: string;
+  description: string | null;
+  price_cents: number;
+  billing_period: "monthly" | "yearly";
+  features: string[] | null;
+  is_active: boolean;
+  is_highlight: boolean;
+  sort_order: number;
+};
+
+type PlatformStats = {
+  sales: { total: number; month: number };
+  revenue: { total: number; month: number; paid: number };
+  customers: number;
+  producers: number;
+  sellers: number;
+  users: number;
+  orders: { open: number; delivered: number };
+};
+
 const STATUS_LABEL: Record<MasterAccount["status"], string> = {
   trial: "Avaliação", active: "Ativa", past_due: "Em atraso",
   suspended: "Suspensa", canceled: "Cancelada",
@@ -115,6 +140,8 @@ function MasterPage() {
   const accountsSF = useServerFn(listMasterAccounts);
   const invoicesSF = useServerFn(listMasterInvoices);
   const plansSF = useServerFn(listPlansMin);
+  const plansAllSF = useServerFn(listPlansAll);
+  const statsSF = useServerFn(getPlatformStats);
 
   const accountsQ = useQuery({
     queryKey: ["master_accounts"],
@@ -140,16 +167,33 @@ function MasterPage() {
     },
   });
 
+  const plansFullQ = useQuery({
+    queryKey: ["master_plans_all"],
+    queryFn: async () => {
+      const data = await plansAllSF({});
+      return (data ?? []) as unknown as PlanFull[];
+    },
+  });
+
+  const statsQ = useQuery({
+    queryKey: ["platform_stats"],
+    queryFn: async () => (await statsSF({})) as unknown as PlatformStats,
+  });
+
   const [editing, setEditing] = useState<MasterAccount | null>(null);
   const [creating, setCreating] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState<MasterAccount | null>(null);
   const [invoiceFor, setInvoiceFor] = useState<MasterAccount | null>(null);
+  const [editingPlan, setEditingPlan] = useState<PlanFull | null>(null);
+  const [creatingPlan, setCreatingPlan] = useState(false);
+  const [confirmDeletePlan, setConfirmDeletePlan] = useState<PlanFull | null>(null);
 
   const statusFn = useServerFn(changeAccountStatus);
   const deleteAccFn = useServerFn(deleteMasterAccount);
   const markPaidFn = useServerFn(markInvoicePaid);
   const deleteInvFn = useServerFn(deleteAccountInvoice);
   const generateFn = useServerFn(generateMonthlyInvoices);
+  const deletePlanFn = useServerFn(deleteMasterPlan);
 
   const stats = useMemo(() => {
     const accs = accountsQ.data ?? [];
@@ -260,9 +304,66 @@ function MasterPage() {
 
       <Tabs defaultValue="accounts">
         <TabsList>
+          <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
           <TabsTrigger value="accounts">Contas</TabsTrigger>
           <TabsTrigger value="invoices">Faturas</TabsTrigger>
+          <TabsTrigger value="plans">Planos</TabsTrigger>
         </TabsList>
+
+        <TabsContent value="dashboard" className="space-y-4">
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle>Uso da plataforma</CardTitle>
+              <CardDescription>
+                Volume agregado de todas as operações rodando na plataforma.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {statsQ.isLoading || !statsQ.data ? (
+                <div className="flex justify-center py-8">
+                  <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                </div>
+              ) : (
+                <div className="grid gap-4 md:grid-cols-4">
+                  <KpiCard
+                    icon={<ShoppingCart className="h-4 w-4" />}
+                    label="Vendas (total)"
+                    value={String(statsQ.data.sales.total)}
+                    hint={`${statsQ.data.sales.month} este mês`}
+                  />
+                  <KpiCard
+                    icon={<DollarSign className="h-4 w-4" />}
+                    label="Faturamento (total)"
+                    value={formatCurrency(statsQ.data.revenue.total)}
+                    hint={`${formatCurrency(statsQ.data.revenue.month)} este mês`}
+                  />
+                  <KpiCard
+                    icon={<CheckCircle2 className="h-4 w-4" />}
+                    label="Recebido acumulado"
+                    value={formatCurrency(statsQ.data.revenue.paid)}
+                  />
+                  <KpiCard
+                    icon={<Users className="h-4 w-4" />}
+                    label="Usuários"
+                    value={String(statsQ.data.users)}
+                    hint={`${statsQ.data.sellers} vend · ${statsQ.data.producers} prod`}
+                  />
+                  <KpiCard
+                    icon={<Users className="h-4 w-4" />}
+                    label="Clientes cadastrados"
+                    value={String(statsQ.data.customers)}
+                  />
+                  <KpiCard
+                    icon={<Activity className="h-4 w-4" />}
+                    label="Ordens abertas"
+                    value={String(statsQ.data.orders.open)}
+                    hint={`${statsQ.data.orders.delivered} entregues`}
+                  />
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
 
         <TabsContent value="accounts" className="space-y-4">
           <Card>
@@ -465,6 +566,85 @@ function MasterPage() {
             </CardContent>
           </Card>
         </TabsContent>
+
+        <TabsContent value="plans" className="space-y-4">
+          <Card>
+            <CardHeader className="pb-3 flex-row items-center justify-between space-y-0">
+              <div>
+                <CardTitle>Planos disponíveis</CardTitle>
+                <CardDescription>
+                  Configure os planos oferecidos e ative-os nas contas na aba <b>Contas</b>.
+                </CardDescription>
+              </div>
+              <Button onClick={() => setCreatingPlan(true)}>
+                <Plus className="mr-2 h-4 w-4" /> Novo plano
+              </Button>
+            </CardHeader>
+            <CardContent>
+              {plansFullQ.isLoading ? (
+                <div className="flex justify-center py-8">
+                  <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                </div>
+              ) : (plansFullQ.data ?? []).length === 0 ? (
+                <div className="py-12 text-center text-sm text-muted-foreground">
+                  Nenhum plano cadastrado.
+                </div>
+              ) : (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Plano</TableHead>
+                      <TableHead>Preço</TableHead>
+                      <TableHead>Período</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead className="text-right">Ações</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {(plansFullQ.data ?? []).map((p) => (
+                      <TableRow key={p.id}>
+                        <TableCell>
+                          <div className="font-medium flex items-center gap-2">
+                            <Package className="h-3.5 w-3.5 text-muted-foreground" />
+                            {p.name}
+                            {p.is_highlight && (
+                              <Star className="h-3.5 w-3.5 fill-amber-500 text-amber-500" />
+                            )}
+                          </div>
+                          <div className="text-xs text-muted-foreground">{p.slug}</div>
+                        </TableCell>
+                        <TableCell className="font-medium">
+                          {formatCurrency(p.price_cents / 100)}
+                        </TableCell>
+                        <TableCell className="text-sm">
+                          {p.billing_period === "monthly" ? "Mensal" : "Anual"}
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant={p.is_active ? "default" : "outline"}>
+                            {p.is_active ? "Ativo" : "Inativo"}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <Button size="sm" variant="ghost" onClick={() => setEditingPlan(p)}>
+                            <Pencil className="h-3.5 w-3.5" />
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="text-destructive"
+                            onClick={() => setConfirmDeletePlan(p)}
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
       </Tabs>
 
       <AccountFormDialog
@@ -501,6 +681,44 @@ function MasterPage() {
                   qc.invalidateQueries({ queryKey: ["master_accounts"] });
                   qc.invalidateQueries({ queryKey: ["master_invoices"] });
                   setConfirmDelete(null);
+                } catch (e: any) { toast.error(e?.message ?? "Erro"); }
+              }}
+            >
+              Excluir
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <PlanFormDialog
+        open={creatingPlan || !!editingPlan}
+        plan={editingPlan}
+        onClose={() => { setCreatingPlan(false); setEditingPlan(null); }}
+        onSaved={() => {
+          qc.invalidateQueries({ queryKey: ["master_plans_all"] });
+          qc.invalidateQueries({ queryKey: ["plans_min"] });
+        }}
+      />
+
+      <AlertDialog open={!!confirmDeletePlan} onOpenChange={(o) => !o && setConfirmDeletePlan(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir plano?</AlertDialogTitle>
+            <AlertDialogDescription>
+              O plano <b>{confirmDeletePlan?.name}</b> será removido. Contas com este plano ficarão sem plano vinculado.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={async () => {
+                if (!confirmDeletePlan) return;
+                try {
+                  await deletePlanFn({ data: { id: confirmDeletePlan.id } });
+                  toast.success("Plano removido");
+                  qc.invalidateQueries({ queryKey: ["master_plans_all"] });
+                  qc.invalidateQueries({ queryKey: ["plans_min"] });
+                  setConfirmDeletePlan(null);
                 } catch (e: any) { toast.error(e?.message ?? "Erro"); }
               }}
             >
