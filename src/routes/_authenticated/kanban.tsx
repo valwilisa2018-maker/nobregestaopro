@@ -491,7 +491,7 @@ function KanbanPage() {
 
   const transferCard = async (cardId: string, producerId: string) => {
     if (!canTransferProducer) {
-      toast.error("Apenas o admin pode transferir cards para outro produtor.");
+      toast.error("Somente o admin pode transferir serviços. Procure seu admin.");
       return;
     }
     const { data: so, error: soErr } = await supabase
@@ -525,7 +525,7 @@ function KanbanPage() {
 
   const transferMany = async (cardIds: string[], producerId: string) => {
     if (!canTransferProducer) {
-      toast.error("Apenas o admin pode transferir cards para outro produtor.");
+      toast.error("Somente o admin pode transferir serviços. Procure seu admin.");
       return;
     }
     const { data: sos, error } = await supabase
