@@ -1010,6 +1010,158 @@ function F({ label, children }: { label: string; children: React.ReactNode }) {
   );
 }
 
+function PlanFormDialog({
+  open, plan, onClose, onSaved,
+}: {
+  open: boolean;
+  plan: PlanFull | null;
+  onClose: () => void;
+  onSaved: () => void;
+}) {
+  const save = useServerFn(upsertMasterPlan);
+  const [saving, setSaving] = useState(false);
+  const [form, setForm] = useState(() => initPlanForm(plan));
+
+  useMemo(() => {
+    if (open) setForm(initPlanForm(plan));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, plan?.id]);
+
+  const submit = async () => {
+    setSaving(true);
+    try {
+      await save({
+        data: {
+          id: plan?.id,
+          slug: form.slug.trim(),
+          name: form.name.trim(),
+          description: form.description || null,
+          price_cents: Math.round(Number(form.price_reais.replace(",", ".")) * 100) || 0,
+          billing_period: form.billing_period,
+          features: form.features
+            .split("\n")
+            .map((s) => s.trim())
+            .filter(Boolean),
+          is_active: form.is_active,
+          is_highlight: form.is_highlight,
+          sort_order: Number(form.sort_order) || 0,
+        },
+      });
+      toast.success(plan ? "Plano atualizado" : "Plano criado");
+      onSaved();
+      onClose();
+    } catch (e: any) { toast.error(e?.message ?? "Erro ao salvar"); }
+    finally { setSaving(false); }
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
+      <DialogContent className="max-w-2xl">
+        <DialogHeader>
+          <DialogTitle>{plan ? `Editar ${plan.name}` : "Novo plano"}</DialogTitle>
+          <DialogDescription>
+            Configure preço, período e benefícios exibidos para as contas.
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="grid gap-4 py-2 sm:grid-cols-2">
+          <F label="Nome">
+            <Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
+          </F>
+          <F label="Slug (identificador)">
+            <Input value={form.slug} onChange={(e) => setForm({ ...form, slug: e.target.value })} placeholder="ex: pro" />
+          </F>
+          <F label="Preço (R$)">
+            <Input
+              inputMode="decimal"
+              value={form.price_reais}
+              onChange={(e) => setForm({ ...form, price_reais: e.target.value })}
+            />
+          </F>
+          <F label="Período">
+            <select
+              className="h-10 rounded-md border border-input bg-background px-3 text-sm"
+              value={form.billing_period}
+              onChange={(e) => setForm({ ...form, billing_period: e.target.value as any })}
+            >
+              <option value="monthly">Mensal</option>
+              <option value="yearly">Anual</option>
+            </select>
+          </F>
+          <F label="Ordem">
+            <Input
+              inputMode="numeric"
+              value={form.sort_order}
+              onChange={(e) => setForm({ ...form, sort_order: e.target.value })}
+            />
+          </F>
+          <F label="Opções">
+            <div className="flex items-center gap-4 h-10">
+              <label className="flex items-center gap-2 text-sm">
+                <input
+                  type="checkbox"
+                  checked={form.is_active}
+                  onChange={(e) => setForm({ ...form, is_active: e.target.checked })}
+                />
+                Ativo
+              </label>
+              <label className="flex items-center gap-2 text-sm">
+                <input
+                  type="checkbox"
+                  checked={form.is_highlight}
+                  onChange={(e) => setForm({ ...form, is_highlight: e.target.checked })}
+                />
+                Destaque
+              </label>
+            </div>
+          </F>
+          <div className="sm:col-span-2">
+            <F label="Descrição">
+              <Textarea
+                rows={2}
+                value={form.description}
+                onChange={(e) => setForm({ ...form, description: e.target.value })}
+              />
+            </F>
+          </div>
+          <div className="sm:col-span-2">
+            <F label="Benefícios (um por linha)">
+              <Textarea
+                rows={5}
+                value={form.features}
+                onChange={(e) => setForm({ ...form, features: e.target.value })}
+                placeholder={"Vendas ilimitadas\nKanban completo\nRelatórios avançados"}
+              />
+            </F>
+          </div>
+        </div>
+
+        <DialogFooter>
+          <Button variant="ghost" onClick={onClose} disabled={saving}>Cancelar</Button>
+          <Button onClick={submit} disabled={saving}>
+            {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            Salvar
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function initPlanForm(p: PlanFull | null) {
+  return {
+    slug: p?.slug ?? "",
+    name: p?.name ?? "",
+    description: p?.description ?? "",
+    price_reais: p?.price_cents != null ? (p.price_cents / 100).toFixed(2) : "",
+    billing_period: (p?.billing_period ?? "monthly") as "monthly" | "yearly",
+    features: (p?.features ?? []).join("\n"),
+    is_active: p?.is_active ?? true,
+    is_highlight: p?.is_highlight ?? false,
+    sort_order: String(p?.sort_order ?? 0),
+  };
+}
+
 function initAccountForm(a: MasterAccount | null) {
   return {
     name: a?.name ?? "",
