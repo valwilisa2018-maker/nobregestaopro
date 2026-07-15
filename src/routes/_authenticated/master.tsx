@@ -1,11 +1,11 @@
-import { createFileRoute, useRouter, redirect } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import {
   ShieldCheck, Building2, Plus, Pencil, Trash2, Loader2, DollarSign,
-  Ban, PlayCircle, PauseCircle, TrendingUp, AlertTriangle, CheckCircle2, Receipt, Lock,
+  Ban, PlayCircle, PauseCircle, TrendingUp, AlertTriangle, CheckCircle2, Receipt,
 } from "lucide-react";
 
 import { PageHero } from "@/components/page-hero";
@@ -36,18 +36,8 @@ import {
   upsertMasterAccount, deleteMasterAccount, changeAccountStatus,
   upsertAccountInvoice, markInvoicePaid, deleteAccountInvoice, generateMonthlyInvoices,
 } from "@/lib/master.functions";
-import { isMasterUnlocked, lockMaster } from "@/lib/master-gate.functions";
 
 export const Route = createFileRoute("/_authenticated/master")({
-  beforeLoad: async ({ location }) => {
-    const res = await isMasterUnlocked();
-    if (!res.unlocked) {
-      throw redirect({
-        to: "/master-login",
-        search: { redirect: location.pathname },
-      });
-    }
-  },
   head: () => ({
     meta: [
       { title: "Admin Master — Gestão Nobre MKT" },
