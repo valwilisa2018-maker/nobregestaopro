@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import type { Session, User } from "@supabase/supabase-js";
 
-export type AppRole = "admin" | "vendedor" | "produtor" | "financeiro";
+export type AppRole = "admin" | "vendedor" | "produtor" | "financeiro" | "super_admin";
 
 export interface AuthState {
   user: User | null;
@@ -52,6 +52,7 @@ export function useAuth(): AuthState {
 
 export const hasRole = (roles: AppRole[], role: AppRole) => roles.includes(role);
 export const isAdmin = (roles: AppRole[]) => roles.includes("admin");
+export const isSuperAdmin = (roles: AppRole[]) => roles.includes("super_admin");
 
 export const formatCurrency = (v: number | string | null | undefined) => {
   const n = typeof v === "string" ? parseFloat(v) : v ?? 0;
