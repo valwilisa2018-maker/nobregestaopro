@@ -15,9 +15,13 @@ serve(async (req) => {
     // Verify authenticity: Pagar.me sends HTTP Basic Auth using the
     // user/password configured on the webhook endpoint. Require a shared
     // secret so forged requests can't mark sales as paid.
-    const expectedSecret = Deno.env.get("PAGARME_WEBHOOK_SECRET");
+    // Aceita PAGARME_WEBHOOK_SECRET; se não existir, usa PAGARME_API_KEY
+    // como segredo compartilhado (o mesmo valor deve ser configurado como
+    // senha do webhook no painel do Pagar.me).
+    const expectedSecret =
+      Deno.env.get("PAGARME_WEBHOOK_SECRET") ?? Deno.env.get("PAGARME_API_KEY");
     if (!expectedSecret) {
-      console.error("[Webhook] PAGARME_WEBHOOK_SECRET not configured");
+      console.error("[Webhook] Nenhum segredo configurado (PAGARME_WEBHOOK_SECRET ou PAGARME_API_KEY)");
       return new Response(JSON.stringify({ error: "webhook not configured" }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
         status: 503,
