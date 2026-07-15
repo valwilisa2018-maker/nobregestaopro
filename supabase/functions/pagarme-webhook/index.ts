@@ -12,16 +12,30 @@ serve(async (req) => {
   }
 
   try {
+    const supabaseAdmin = createClient(
+      Deno.env.get("SUPABASE_URL") ?? "",
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
+    );
+
     // Verify authenticity: Pagar.me sends HTTP Basic Auth using the
-    // user/password configured on the webhook endpoint. Require a shared
-    // secret so forged requests can't mark sales as paid.
-    // Aceita PAGARME_WEBHOOK_SECRET; se não existir, usa PAGARME_API_KEY
-    // como segredo compartilhado (o mesmo valor deve ser configurado como
-    // senha do webhook no painel do Pagar.me).
-    const expectedSecret =
-      Deno.env.get("PAGARME_WEBHOOK_SECRET") ?? Deno.env.get("PAGARME_API_KEY");
+    // user/password configured no painel do webhook. Usamos a mesma
+    // chave secreta do Pagar.me (armazenada em pagarme_settings) como
+    // senha esperada — assim não precisa cadastrar outro segredo.
+    // Fallback: PAGARME_WEBHOOK_SECRET ou PAGARME_API_KEY se existirem.
+    let expectedSecret =
+      Deno.env.get("PAGARME_WEBHOOK_SECRET") ??
+      Deno.env.get("PAGARME_API_KEY") ??
+      "";
     if (!expectedSecret) {
-      console.error("[Webhook] Nenhum segredo configurado (PAGARME_WEBHOOK_SECRET ou PAGARME_API_KEY)");
+      const { data: cfg } = await supabaseAdmin
+        .from("pagarme_settings")
+        .select("api_key")
+        .eq("id", true)
+        .maybeSingle();
+      expectedSecret = (cfg?.api_key as string | undefined) ?? "";
+    }
+    if (!expectedSecret) {
+      console.error("[Webhook] Nenhum segredo disponível para validar a requisição");
       return new Response(JSON.stringify({ error: "webhook not configured" }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
         status: 503,
@@ -34,7 +48,6 @@ serve(async (req) => {
         const decoded = atob(authHeader.slice(6).trim());
         const idx = decoded.indexOf(":");
         const pass = idx >= 0 ? decoded.slice(idx + 1) : decoded;
-        // constant-time compare
         const a = new TextEncoder().encode(pass);
         const b = new TextEncoder().encode(expectedSecret);
         if (a.length === b.length) {
@@ -45,16 +58,12 @@ serve(async (req) => {
       } catch { /* fall through */ }
     }
     if (!authorized) {
+      console.warn("[Webhook] Requisição rejeitada: Basic Auth inválido");
       return new Response(JSON.stringify({ error: "unauthorized" }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
         status: 401,
       });
     }
-
-    const supabaseAdmin = createClient(
-      Deno.env.get("SUPABASE_URL") ?? "",
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
-    );
 
     const payload = await req.json();
     console.log("[Webhook] Recebido:", JSON.stringify(payload, null, 2));
