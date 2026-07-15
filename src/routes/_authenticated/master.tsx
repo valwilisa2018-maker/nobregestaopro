@@ -239,6 +239,7 @@ function MasterPage() {
             <Button onClick={() => setCreating(true)}>
               <Plus className="mr-2 h-4 w-4" /> Nova conta
             </Button>
+            <LockMasterButton />
           </div>
         }
       />
