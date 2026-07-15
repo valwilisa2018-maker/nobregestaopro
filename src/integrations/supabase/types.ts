@@ -1515,7 +1515,7 @@ export type Database = {
     }
     Enums: {
       announcement_type: "info" | "warning" | "maintenance" | "update"
-      app_role: "admin" | "vendedor" | "produtor" | "financeiro"
+      app_role: "admin" | "vendedor" | "produtor" | "financeiro" | "super_admin"
       cash_movement_type: "entrada" | "saida"
       expense_category:
         | "trafego_pago"
@@ -1671,7 +1671,7 @@ export const Constants = {
   public: {
     Enums: {
       announcement_type: ["info", "warning", "maintenance", "update"],
-      app_role: ["admin", "vendedor", "produtor", "financeiro"],
+      app_role: ["admin", "vendedor", "produtor", "financeiro", "super_admin"],
       cash_movement_type: ["entrada", "saida"],
       expense_category: [
         "trafego_pago",
