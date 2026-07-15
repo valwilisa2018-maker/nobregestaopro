@@ -95,17 +95,87 @@ serve(async (req) => {
         data.charge?.id,
         data.invoice?.id,
         data.subscription?.id,
-      ].filter(Boolean);
+      ].filter((v) => typeof v === "string" && v.length > 0);
+
+      // Valor pago reportado pelo Pagar.me (em centavos)
+      const paidAmountCents: number | null =
+        typeof data.amount === "number" ? data.amount
+        : typeof data.charge?.amount === "number" ? data.charge.amount
+        : typeof data.invoice?.amount === "number" ? data.invoice.amount
+        : null;
 
       // 1a) match em master_account_invoices por pagarme_charge_id
-      const { data: invoice } = await supabaseAdmin
-        .from("master_account_invoices")
-        .select("id, account_id, amount_cents, reference_month")
-        .in("pagarme_charge_id", candidateIds)
-        .maybeSingle();
+      let invoice: any = null;
+      if (candidateIds.length > 0) {
+        const { data: inv } = await supabaseAdmin
+          .from("master_account_invoices")
+          .select("id, account_id, amount_cents, reference_month, status, pagarme_charge_id")
+          .in("pagarme_charge_id", candidateIds)
+          .maybeSingle();
+        invoice = inv;
+      }
 
       if (invoice) {
-        console.log("[Webhook] Fatura da plataforma paga:", invoice.id);
+        // Guardas de segurança antes de mutar qualquer status
+        if (!invoice.account_id) {
+          console.warn("[Webhook] Fatura sem account_id vinculada — ignorando:", invoice.id);
+          return new Response(JSON.stringify({ ok: false, error: "invoice_without_account" }), {
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+            status: 409,
+          });
+        }
+        if (!candidateIds.includes(invoice.pagarme_charge_id)) {
+          console.warn("[Webhook] pagarme_charge_id não confere com o payload:", invoice.id);
+          return new Response(JSON.stringify({ ok: false, error: "charge_id_mismatch" }), {
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+            status: 409,
+          });
+        }
+        // Confirma que a conta existe e está em um status elegível
+        const { data: account } = await supabaseAdmin
+          .from("master_accounts")
+          .select("id, status, activated_at, billing_day")
+          .eq("id", invoice.account_id)
+          .maybeSingle();
+
+        if (!account) {
+          console.warn("[Webhook] account_id da fatura não existe:", invoice.account_id);
+          return new Response(JSON.stringify({ ok: false, error: "account_not_found" }), {
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+            status: 409,
+          });
+        }
+        if (account.status === "canceled") {
+          console.warn("[Webhook] Conta cancelada — ignorando pagamento:", account.id);
+          return new Response(JSON.stringify({ ok: false, error: "account_canceled" }), {
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+            status: 409,
+          });
+        }
+        // Idempotência: se já está paga/estornada/cancelada, não sobrescreve
+        if (["paid", "refunded", "canceled"].includes(String(invoice.status))) {
+          console.log("[Webhook] Fatura já finalizada, ignorando reentrada:", invoice.id, invoice.status);
+          return new Response(JSON.stringify({ ok: true, skipped: "already_finalized" }), {
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+            status: 200,
+          });
+        }
+        // Confere o valor pago com o valor da fatura (tolerância de 1%)
+        if (paidAmountCents !== null && invoice.amount_cents) {
+          const diff = Math.abs(paidAmountCents - invoice.amount_cents);
+          const tol = Math.max(100, Math.round(invoice.amount_cents * 0.01));
+          if (diff > tol) {
+            console.warn("[Webhook] Valor pago diverge da fatura:", {
+              invoice: invoice.id, expected: invoice.amount_cents, paid: paidAmountCents,
+            });
+            return new Response(JSON.stringify({ ok: false, error: "amount_mismatch" }), {
+              headers: { ...corsHeaders, "Content-Type": "application/json" },
+              status: 409,
+            });
+          }
+        }
+
+        console.log("[Webhook] Fatura da plataforma paga:", invoice.id, "conta:", account.id);
         const paidAt = new Date().toISOString();
 
         await supabaseAdmin
@@ -118,24 +188,16 @@ serve(async (req) => {
           .eq("id", invoice.id);
 
         // Ativa a conta e reprograma a próxima cobrança (+1 mês)
-        const { data: account } = await supabaseAdmin
+        const now = new Date();
+        const next = new Date(now.getFullYear(), now.getMonth() + 1, account.billing_day || 1);
+        await supabaseAdmin
           .from("master_accounts")
-          .select("id, status, activated_at, billing_day")
-          .eq("id", invoice.account_id)
-          .maybeSingle();
-
-        if (account) {
-          const now = new Date();
-          const next = new Date(now.getFullYear(), now.getMonth() + 1, account.billing_day || 1);
-          await supabaseAdmin
-            .from("master_accounts")
-            .update({
-              status: "active",
-              activated_at: account.activated_at ?? paidAt,
-              next_billing_at: next.toISOString().split("T")[0],
-            })
-            .eq("id", account.id);
-        }
+          .update({
+            status: "active",
+            activated_at: account.activated_at ?? paidAt,
+            next_billing_at: next.toISOString().split("T")[0],
+          })
+          .eq("id", account.id);
       }
 
       // 1b) Assinatura única da plataforma (tabela subscription)
@@ -145,7 +207,18 @@ serve(async (req) => {
         .eq("id", true)
         .maybeSingle();
 
-      if (sub && sub.pagarme_subscription_id && candidateIds.includes(sub.pagarme_subscription_id)) {
+      const subscriptionIdFromPayload: string | null =
+        (typeof data.subscription_id === "string" && data.subscription_id) ||
+        (typeof data.subscription?.id === "string" && data.subscription.id) ||
+        null;
+
+      // Só renova se o subscription_id do payload bater EXATAMENTE com o registrado
+      if (
+        sub &&
+        sub.pagarme_subscription_id &&
+        subscriptionIdFromPayload &&
+        subscriptionIdFromPayload === sub.pagarme_subscription_id
+      ) {
         console.log("[Webhook] Assinatura da plataforma renovada.");
         const base = new Date();
         const nextEnd = new Date(base.getFullYear(), base.getMonth() + 1, base.getDate());
@@ -157,6 +230,8 @@ serve(async (req) => {
             current_period_end: nextEnd.toISOString(),
           })
           .eq("id", true);
+      } else if (sub?.pagarme_subscription_id && subscriptionIdFromPayload && subscriptionIdFromPayload !== sub.pagarme_subscription_id) {
+        console.warn("[Webhook] subscription_id do payload não confere com o registrado — ignorado.");
       }
     }
 
@@ -167,15 +242,49 @@ serve(async (req) => {
         data.charge_id,
         data.invoice_id,
         data.subscription_id,
-      ].filter(Boolean);
+      ].filter((v) => typeof v === "string" && v.length > 0);
+      if (candidateIds.length === 0) {
+        return new Response(JSON.stringify({ ok: true, skipped: "no_ids" }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          status: 200,
+        });
+      }
 
       const { data: invoice } = await supabaseAdmin
         .from("master_account_invoices")
-        .select("id, account_id")
+        .select("id, account_id, status, pagarme_charge_id")
         .in("pagarme_charge_id", candidateIds)
         .maybeSingle();
 
       if (invoice) {
+        if (!invoice.account_id || !candidateIds.includes(invoice.pagarme_charge_id)) {
+          console.warn("[Webhook] Fatura sem vínculo válido — ignorando evento de falha:", invoice.id);
+          return new Response(JSON.stringify({ ok: false, error: "invalid_linkage" }), {
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+            status: 409,
+          });
+        }
+        // Não sobrescreve uma fatura já paga com um evento posterior de "canceled"/"failed"
+        if (invoice.status === "paid" && !/refunded|charged_back/i.test(eventType)) {
+          console.log("[Webhook] Fatura paga — ignorando evento negativo não-estorno:", eventType);
+          return new Response(JSON.stringify({ ok: true, skipped: "paid_invoice" }), {
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+            status: 200,
+          });
+        }
+        // Verifica que a conta realmente existe antes de mudar seu status
+        const { data: acc } = await supabaseAdmin
+          .from("master_accounts")
+          .select("id")
+          .eq("id", invoice.account_id)
+          .maybeSingle();
+        if (!acc) {
+          console.warn("[Webhook] account_id inexistente — ignorando:", invoice.account_id);
+          return new Response(JSON.stringify({ ok: false, error: "account_not_found" }), {
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+            status: 409,
+          });
+        }
         const newStatus = /refunded/i.test(eventType) ? "refunded"
           : /canceled/i.test(eventType) ? "canceled"
           : "overdue";
@@ -186,7 +295,7 @@ serve(async (req) => {
         if (newStatus === "overdue") {
           await supabaseAdmin.from("master_accounts")
             .update({ status: "past_due" })
-            .eq("id", invoice.account_id);
+            .eq("id", acc.id);
         }
       }
     }
