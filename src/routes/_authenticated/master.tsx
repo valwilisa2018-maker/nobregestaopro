@@ -1,11 +1,11 @@
-import { createFileRoute, useRouter, redirect } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import {
   ShieldCheck, Building2, Plus, Pencil, Trash2, Loader2, DollarSign,
-  Ban, PlayCircle, PauseCircle, TrendingUp, AlertTriangle, CheckCircle2, Receipt, Lock,
+  Ban, PlayCircle, PauseCircle, TrendingUp, AlertTriangle, CheckCircle2, Receipt,
 } from "lucide-react";
 
 import { PageHero } from "@/components/page-hero";
@@ -36,18 +36,8 @@ import {
   upsertMasterAccount, deleteMasterAccount, changeAccountStatus,
   upsertAccountInvoice, markInvoicePaid, deleteAccountInvoice, generateMonthlyInvoices,
 } from "@/lib/master.functions";
-import { isMasterUnlocked, lockMaster } from "@/lib/master-gate.functions";
 
 export const Route = createFileRoute("/_authenticated/master")({
-  beforeLoad: async ({ location }) => {
-    const res = await isMasterUnlocked();
-    if (!res.unlocked) {
-      throw redirect({
-        to: "/master-login",
-        search: { redirect: location.pathname },
-      });
-    }
-  },
   head: () => ({
     meta: [
       { title: "Admin Master — Gestão Nobre MKT" },
@@ -238,7 +228,6 @@ function MasterPage() {
             <Button onClick={() => setCreating(true)}>
               <Plus className="mr-2 h-4 w-4" /> Nova conta
             </Button>
-            <LockMasterButton />
           </div>
         }
       />
@@ -819,30 +808,4 @@ function initAccountForm(a: MasterAccount | null) {
     next_billing_at: a?.next_billing_at ?? "",
     notes: a?.notes ?? "",
   };
-}
-
-function LockMasterButton() {
-  const router = useRouter();
-  const lock = useServerFn(lockMaster);
-  const [busy, setBusy] = useState(false);
-  return (
-    <Button
-      variant="ghost"
-      size="icon"
-      title="Bloquear Admin Master"
-      disabled={busy}
-      onClick={async () => {
-        setBusy(true);
-        try {
-          await lock({});
-          toast.success("Admin Master bloqueado.");
-          await router.navigate({ to: "/master-login" });
-        } finally {
-          setBusy(false);
-        }
-      }}
-    >
-      <Lock className="h-4 w-4" />
-    </Button>
-  );
 }
