@@ -1,16 +1,13 @@
 import { createServerFn } from "@tanstack/react-start";
-import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
-async function assertSuperAdmin(ctx: any) {
-  const { data, error } = await ctx.supabase.rpc("has_role", {
-    _user_id: ctx.userId,
-    _role: "super_admin",
-  });
-  if (error || !data) throw new Error("Forbidden: super_admin only");
+async function getAdmin() {
+  const { requireMasterAdmin } = await import("./master-auth.server");
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  await requireMasterAdmin();
+  return supabaseAdmin;
 }
 
 export const upsertMasterAccount = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
   .inputValidator(
     (d: {
       id?: string;
@@ -26,8 +23,8 @@ export const upsertMasterAccount = createServerFn({ method: "POST" })
       notes?: string | null;
     }) => d,
   )
-  .handler(async ({ data, context }) => {
-    await assertSuperAdmin(context);
+  .handler(async ({ data }) => {
+    const db = await getAdmin();
     const payload: Record<string, any> = {
       name: data.name.trim(),
       contact_email: data.contact_email ?? null,
@@ -42,46 +39,39 @@ export const upsertMasterAccount = createServerFn({ method: "POST" })
     };
     if (data.status === "active") payload.activated_at = new Date().toISOString();
     if (data.id) {
-      const { error } = await context.supabase
-        .from("master_accounts" as any).update(payload).eq("id", data.id);
+      const { error } = await db.from("master_accounts" as any).update(payload).eq("id", data.id);
       if (error) throw error;
       return { ok: true, id: data.id };
     }
-    const { data: row, error } = await context.supabase
-      .from("master_accounts" as any).insert(payload).select("id").single();
+    const { data: row, error } = await db.from("master_accounts" as any).insert(payload).select("id").single();
     if (error) throw error;
     return { ok: true, id: (row as any).id };
   });
 
 export const deleteMasterAccount = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
   .inputValidator((d: { id: string }) => d)
-  .handler(async ({ data, context }) => {
-    await assertSuperAdmin(context);
-    const { error } = await context.supabase
-      .from("master_accounts" as any).delete().eq("id", data.id);
+  .handler(async ({ data }) => {
+    const db = await getAdmin();
+    const { error } = await db.from("master_accounts" as any).delete().eq("id", data.id);
     if (error) throw error;
     return { ok: true };
   });
 
 export const changeAccountStatus = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
   .inputValidator((d: {
     id: string;
     status: "trial" | "active" | "past_due" | "suspended" | "canceled";
   }) => d)
-  .handler(async ({ data, context }) => {
-    await assertSuperAdmin(context);
+  .handler(async ({ data }) => {
+    const db = await getAdmin();
     const payload: any = { status: data.status };
     if (data.status === "active") payload.activated_at = new Date().toISOString();
-    const { error } = await context.supabase
-      .from("master_accounts" as any).update(payload).eq("id", data.id);
+    const { error } = await db.from("master_accounts" as any).update(payload).eq("id", data.id);
     if (error) throw error;
     return { ok: true };
   });
 
 export const upsertAccountInvoice = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
   .inputValidator(
     (d: {
       id?: string;
@@ -95,8 +85,8 @@ export const upsertAccountInvoice = createServerFn({ method: "POST" })
       notes?: string | null;
     }) => d,
   )
-  .handler(async ({ data, context }) => {
-    await assertSuperAdmin(context);
+  .handler(async ({ data }) => {
+    const db = await getAdmin();
     const payload: Record<string, any> = {
       account_id: data.account_id,
       amount_cents: data.amount_cents,
@@ -108,23 +98,20 @@ export const upsertAccountInvoice = createServerFn({ method: "POST" })
       notes: data.notes ?? null,
     };
     if (data.id) {
-      const { error } = await context.supabase
-        .from("master_account_invoices" as any).update(payload).eq("id", data.id);
+      const { error } = await db.from("master_account_invoices" as any).update(payload).eq("id", data.id);
       if (error) throw error;
       return { ok: true, id: data.id };
     }
-    const { data: row, error } = await context.supabase
-      .from("master_account_invoices" as any).insert(payload).select("id").single();
+    const { data: row, error } = await db.from("master_account_invoices" as any).insert(payload).select("id").single();
     if (error) throw error;
     return { ok: true, id: (row as any).id };
   });
 
 export const markInvoicePaid = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
   .inputValidator((d: { id: string; payment_method?: string }) => d)
-  .handler(async ({ data, context }) => {
-    await assertSuperAdmin(context);
-    const { error } = await context.supabase
+  .handler(async ({ data }) => {
+    const db = await getAdmin();
+    const { error } = await db
       .from("master_account_invoices" as any)
       .update({
         status: "paid",
@@ -137,22 +124,19 @@ export const markInvoicePaid = createServerFn({ method: "POST" })
   });
 
 export const deleteAccountInvoice = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
   .inputValidator((d: { id: string }) => d)
-  .handler(async ({ data, context }) => {
-    await assertSuperAdmin(context);
-    const { error } = await context.supabase
-      .from("master_account_invoices" as any).delete().eq("id", data.id);
+  .handler(async ({ data }) => {
+    const db = await getAdmin();
+    const { error } = await db.from("master_account_invoices" as any).delete().eq("id", data.id);
     if (error) throw error;
     return { ok: true };
   });
 
 export const generateMonthlyInvoices = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
-  .inputValidator((d: { reference_month: string }) => d) // 'YYYY-MM-01'
-  .handler(async ({ data, context }) => {
-    await assertSuperAdmin(context);
-    const { data: accounts, error } = await context.supabase
+  .inputValidator((d: { reference_month: string }) => d)
+  .handler(async ({ data }) => {
+    const db = await getAdmin();
+    const { data: accounts, error } = await db
       .from("master_accounts" as any)
       .select("id, billing_day, custom_price_cents, status, plan_id, plans(price_cents)")
       .in("status", ["active", "trial", "past_due"]);
@@ -164,7 +148,7 @@ export const generateMonthlyInvoices = createServerFn({ method: "POST" })
       const amount = a.custom_price_cents ?? a.plans?.price_cents ?? 0;
       if (!amount) continue;
 
-      const { data: existing } = await context.supabase
+      const { data: existing } = await db
         .from("master_account_invoices" as any)
         .select("id")
         .eq("account_id", a.id)
@@ -173,7 +157,7 @@ export const generateMonthlyInvoices = createServerFn({ method: "POST" })
       if (existing) continue;
 
       const due = new Date(Date.UTC(ref.getUTCFullYear(), ref.getUTCMonth(), a.billing_day));
-      const { error: insErr } = await context.supabase
+      const { error: insErr } = await db
         .from("master_account_invoices" as any)
         .insert({
           account_id: a.id,

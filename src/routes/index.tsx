@@ -1,6 +1,6 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect } from "react";
-import { useAuth, isSuperAdmin } from "@/lib/auth";
+import { useAuth } from "@/lib/auth";
 
 export const Route = createFileRoute("/")({
   ssr: false,
@@ -9,7 +9,7 @@ export const Route = createFileRoute("/")({
 
 function IndexRedirect() {
   const navigate = useNavigate();
-  const { loading, session, roles } = useAuth();
+  const { loading, session } = useAuth();
 
   useEffect(() => {
     if (loading) return;
@@ -17,12 +17,8 @@ function IndexRedirect() {
       navigate({ to: "/login", replace: true });
       return;
     }
-    if (isSuperAdmin(roles)) {
-      navigate({ to: "/master", replace: true });
-    } else {
-      navigate({ to: "/dashboard", replace: true });
-    }
-  }, [loading, session, roles, navigate]);
+    navigate({ to: "/dashboard", replace: true });
+  }, [loading, session, navigate]);
 
   return null;
 }

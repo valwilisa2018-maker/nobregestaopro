@@ -1,11 +1,11 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useNavigate, redirect } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import {
   ShieldCheck, Building2, Plus, Pencil, Trash2, Loader2, DollarSign,
-  Ban, PlayCircle, PauseCircle, TrendingUp, AlertTriangle, CheckCircle2, Receipt,
+  Ban, PlayCircle, PauseCircle, TrendingUp, AlertTriangle, CheckCircle2, Receipt, LogOut,
 } from "lucide-react";
 
 import { PageHero } from "@/components/page-hero";
@@ -30,14 +30,23 @@ import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
 
-import { supabase } from "@/integrations/supabase/client";
-import { useAuth, isSuperAdmin, formatCurrency } from "@/lib/auth";
+import { formatCurrency } from "@/lib/auth";
 import {
   upsertMasterAccount, deleteMasterAccount, changeAccountStatus,
   upsertAccountInvoice, markInvoicePaid, deleteAccountInvoice, generateMonthlyInvoices,
 } from "@/lib/master.functions";
+import {
+  listMasterAccounts, listMasterInvoices, listPlansMin,
+  masterMe, masterLogout,
+} from "@/lib/master-auth.functions";
 
-export const Route = createFileRoute("/_authenticated/master")({
+export const Route = createFileRoute("/master")({
+  ssr: false,
+  loader: async () => {
+    const me: any = await masterMe();
+    if (!me?.authenticated) throw redirect({ to: "/master-login" });
+    return { admin: me };
+  },
   head: () => ({
     meta: [
       { title: "Admin Master — Gestão Nobre MKT" },
@@ -99,17 +108,18 @@ const INV_STATUS_VARIANT: Record<Invoice["status"], "default" | "secondary" | "d
 };
 
 function MasterPage() {
-  const { roles } = useAuth();
   const qc = useQueryClient();
+  const navigate = useNavigate();
+  const { admin } = Route.useLoaderData();
+  const logoutFn = useServerFn(masterLogout);
+  const accountsSF = useServerFn(listMasterAccounts);
+  const invoicesSF = useServerFn(listMasterInvoices);
+  const plansSF = useServerFn(listPlansMin);
 
   const accountsQ = useQuery({
     queryKey: ["master_accounts"],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("master_accounts" as any)
-        .select("*, plans(name, price_cents)")
-        .order("created_at", { ascending: false });
-      if (error) throw error;
+      const data = await accountsSF({});
       return (data ?? []) as unknown as MasterAccount[];
     },
   });
@@ -117,11 +127,7 @@ function MasterPage() {
   const invoicesQ = useQuery({
     queryKey: ["master_invoices"],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("master_account_invoices" as any)
-        .select("*, master_accounts(name)")
-        .order("due_date", { ascending: false });
-      if (error) throw error;
+      const data = await invoicesSF({});
       return (data ?? []) as unknown as Invoice[];
     },
   });
@@ -129,9 +135,7 @@ function MasterPage() {
   const plansQ = useQuery({
     queryKey: ["plans_min"],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("plans" as any).select("id, name, price_cents").order("sort_order");
-      if (error) throw error;
+      const data = await plansSF({});
       return (data ?? []) as unknown as Plan[];
     },
   });
@@ -180,27 +184,18 @@ function MasterPage() {
     };
   }, [accountsQ.data, invoicesQ.data]);
 
-  if (!isSuperAdmin(roles)) {
-    return (
-      <Card className="mx-auto max-w-lg">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <ShieldCheck className="h-5 w-5" /> Acesso restrito
-          </CardTitle>
-          <CardDescription>
-            Esta área é exclusiva do dono da plataforma (super-admin).
-          </CardDescription>
-        </CardHeader>
-      </Card>
-    );
-  }
-
   const handleStatus = async (a: MasterAccount, status: MasterAccount["status"]) => {
     try {
       await statusFn({ data: { id: a.id, status } });
       toast.success(`Conta ${a.name} → ${STATUS_LABEL[status]}`);
       qc.invalidateQueries({ queryKey: ["master_accounts"] });
     } catch (e: any) { toast.error(e?.message ?? "Erro"); }
+  };
+
+  const handleLogout = async () => {
+    await logoutFn({});
+    qc.clear();
+    navigate({ to: "/master-login", replace: true });
   };
 
   const handleGenerateMonth = async () => {
@@ -227,6 +222,9 @@ function MasterPage() {
             </Button>
             <Button onClick={() => setCreating(true)}>
               <Plus className="mr-2 h-4 w-4" /> Nova conta
+            </Button>
+            <Button variant="ghost" onClick={handleLogout} title={`Sair (${admin?.email ?? ""})`}>
+              <LogOut className="mr-2 h-4 w-4" /> Sair
             </Button>
           </div>
         }

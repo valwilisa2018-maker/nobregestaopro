@@ -12,7 +12,7 @@ import {
 } from "@/components/ui/sidebar";
 import { supabase } from "@/integrations/supabase/client";
 import { useTheme } from "@/hooks/use-theme";
-import { useAuth, isSuperAdmin } from "@/lib/auth";
+import { useAuth } from "@/lib/auth";
 
 const groups = [
   {
@@ -60,22 +60,14 @@ const groups = [
   },
 ];
 
-const masterGroup = {
-  label: "Plataforma",
-  items: [
-    { title: "Admin Master", url: "/master", icon: ShieldCheck },
-  ],
-};
-
 export function AppSidebar() {
   const { state } = useSidebar();
   const collapsed = state === "collapsed";
   const navigate = useNavigate();
   const current = useRouterState({ select: (s) => s.location.pathname });
   const { theme, toggle } = useTheme();
-  const { roles } = useAuth();
-  const showMaster = isSuperAdmin(roles);
-  const displayedGroups = showMaster ? [masterGroup, ...groups] : groups;
+  useAuth();
+  const displayedGroups = groups;
 
   const logout = async () => {
     await supabase.auth.signOut();
