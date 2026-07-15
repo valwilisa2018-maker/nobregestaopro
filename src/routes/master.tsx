@@ -108,17 +108,18 @@ const INV_STATUS_VARIANT: Record<Invoice["status"], "default" | "secondary" | "d
 };
 
 function MasterPage() {
-  const { roles } = useAuth();
   const qc = useQueryClient();
+  const navigate = useNavigate();
+  const { admin } = Route.useLoaderData();
+  const logoutFn = useServerFn(masterLogout);
+  const accountsSF = useServerFn(listMasterAccounts);
+  const invoicesSF = useServerFn(listMasterInvoices);
+  const plansSF = useServerFn(listPlansMin);
 
   const accountsQ = useQuery({
     queryKey: ["master_accounts"],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("master_accounts" as any)
-        .select("*, plans(name, price_cents)")
-        .order("created_at", { ascending: false });
-      if (error) throw error;
+      const data = await accountsSF({});
       return (data ?? []) as unknown as MasterAccount[];
     },
   });
@@ -126,11 +127,7 @@ function MasterPage() {
   const invoicesQ = useQuery({
     queryKey: ["master_invoices"],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("master_account_invoices" as any)
-        .select("*, master_accounts(name)")
-        .order("due_date", { ascending: false });
-      if (error) throw error;
+      const data = await invoicesSF({});
       return (data ?? []) as unknown as Invoice[];
     },
   });
@@ -138,9 +135,7 @@ function MasterPage() {
   const plansQ = useQuery({
     queryKey: ["plans_min"],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("plans" as any).select("id, name, price_cents").order("sort_order");
-      if (error) throw error;
+      const data = await plansSF({});
       return (data ?? []) as unknown as Plan[];
     },
   });
