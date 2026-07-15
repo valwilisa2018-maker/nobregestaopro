@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/sidebar";
 import { supabase } from "@/integrations/supabase/client";
 import { useTheme } from "@/hooks/use-theme";
+import { useAuth, isSuperAdmin } from "@/lib/auth";
 
 const groups = [
   {
@@ -59,12 +60,22 @@ const groups = [
   },
 ];
 
+const masterGroup = {
+  label: "Plataforma",
+  items: [
+    { title: "Admin Master", url: "/master", icon: ShieldCheck },
+  ],
+};
+
 export function AppSidebar() {
   const { state } = useSidebar();
   const collapsed = state === "collapsed";
   const navigate = useNavigate();
   const current = useRouterState({ select: (s) => s.location.pathname });
   const { theme, toggle } = useTheme();
+  const { roles } = useAuth();
+  const showMaster = isSuperAdmin(roles);
+  const displayedGroups = showMaster ? [masterGroup, ...groups] : groups;
 
   const logout = async () => {
     await supabase.auth.signOut();
@@ -102,7 +113,7 @@ export function AppSidebar() {
         </div>
       </SidebarHeader>
       <SidebarContent>
-        {groups.map((g) => (
+        {displayedGroups.map((g) => (
           <SidebarGroup key={g.label}>
             <SidebarGroupLabel className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground/70 px-3">
               {g.label}
