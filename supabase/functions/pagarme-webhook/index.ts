@@ -67,6 +67,117 @@ serve(async (req) => {
       payload: payload,
     });
 
+    // ============================================================
+    // 1) Assinatura da plataforma (master_account_invoices / subscription)
+    // ============================================================
+    // Aceita: charge.paid, invoice.paid, order.paid, subscription.* etc.
+    const isPaidEvent = /(paid|payment_confirmed)/i.test(String(eventType));
+    if (isPaidEvent) {
+      const candidateIds = [
+        data.id,
+        data.charge_id,
+        data.invoice_id,
+        data.subscription_id,
+        data.order?.id,
+        data.charge?.id,
+        data.invoice?.id,
+        data.subscription?.id,
+      ].filter(Boolean);
+
+      // 1a) match em master_account_invoices por pagarme_charge_id
+      const { data: invoice } = await supabaseAdmin
+        .from("master_account_invoices")
+        .select("id, account_id, amount_cents, reference_month")
+        .in("pagarme_charge_id", candidateIds)
+        .maybeSingle();
+
+      if (invoice) {
+        console.log("[Webhook] Fatura da plataforma paga:", invoice.id);
+        const paidAt = new Date().toISOString();
+
+        await supabaseAdmin
+          .from("master_account_invoices")
+          .update({
+            status: "paid",
+            paid_at: paidAt,
+            payment_method: data.payment_method ?? data.charge?.payment_method ?? "pagarme",
+          })
+          .eq("id", invoice.id);
+
+        // Ativa a conta e reprograma a próxima cobrança (+1 mês)
+        const { data: account } = await supabaseAdmin
+          .from("master_accounts")
+          .select("id, status, activated_at, billing_day")
+          .eq("id", invoice.account_id)
+          .maybeSingle();
+
+        if (account) {
+          const now = new Date();
+          const next = new Date(now.getFullYear(), now.getMonth() + 1, account.billing_day || 1);
+          await supabaseAdmin
+            .from("master_accounts")
+            .update({
+              status: "active",
+              activated_at: account.activated_at ?? paidAt,
+              next_billing_at: next.toISOString().split("T")[0],
+            })
+            .eq("id", account.id);
+        }
+      }
+
+      // 1b) Assinatura única da plataforma (tabela subscription)
+      const { data: sub } = await supabaseAdmin
+        .from("subscription")
+        .select("id, pagarme_subscription_id, current_period_end")
+        .eq("id", true)
+        .maybeSingle();
+
+      if (sub && sub.pagarme_subscription_id && candidateIds.includes(sub.pagarme_subscription_id)) {
+        console.log("[Webhook] Assinatura da plataforma renovada.");
+        const base = new Date();
+        const nextEnd = new Date(base.getFullYear(), base.getMonth() + 1, base.getDate());
+        await supabaseAdmin
+          .from("subscription")
+          .update({
+            status: "active",
+            started_at: (sub as any).started_at ?? base.toISOString(),
+            current_period_end: nextEnd.toISOString(),
+          })
+          .eq("id", true);
+      }
+    }
+
+    // Eventos de falha/suspensão da assinatura
+    if (/(failed|canceled|refunded|charged_back|past_due|suspended)/i.test(String(eventType))) {
+      const candidateIds = [
+        data.id,
+        data.charge_id,
+        data.invoice_id,
+        data.subscription_id,
+      ].filter(Boolean);
+
+      const { data: invoice } = await supabaseAdmin
+        .from("master_account_invoices")
+        .select("id, account_id")
+        .in("pagarme_charge_id", candidateIds)
+        .maybeSingle();
+
+      if (invoice) {
+        const newStatus = /refunded/i.test(eventType) ? "refunded"
+          : /canceled/i.test(eventType) ? "canceled"
+          : "overdue";
+        await supabaseAdmin.from("master_account_invoices")
+          .update({ status: newStatus })
+          .eq("id", invoice.id);
+
+        if (newStatus === "overdue") {
+          await supabaseAdmin.from("master_accounts")
+            .update({ status: "past_due" })
+            .eq("id", invoice.account_id);
+        }
+      }
+    }
+
     // Processar apenas eventos de pagamento bem-sucedido
     if (eventType === "order.paid") {
       console.log("[Webhook] Processando pagamento aprovado para Order:", pagarmeId, "Link:", paymentLinkId);
