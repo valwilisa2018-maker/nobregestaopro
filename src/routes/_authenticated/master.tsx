@@ -5,7 +5,7 @@ import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import {
   ShieldCheck, Building2, Plus, Pencil, Trash2, Loader2, DollarSign,
-  Ban, PlayCircle, PauseCircle, TrendingUp, AlertTriangle, CheckCircle2, Receipt,
+  Ban, PlayCircle, PauseCircle, TrendingUp, AlertTriangle, CheckCircle2, Receipt, Lock,
 } from "lucide-react";
 
 import { PageHero } from "@/components/page-hero";
@@ -30,14 +30,25 @@ import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
 
+import { redirect } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth, isSuperAdmin, formatCurrency } from "@/lib/auth";
 import {
   upsertMasterAccount, deleteMasterAccount, changeAccountStatus,
   upsertAccountInvoice, markInvoicePaid, deleteAccountInvoice, generateMonthlyInvoices,
 } from "@/lib/master.functions";
+import { isMasterUnlocked, lockMaster } from "@/lib/master-gate.functions";
 
 export const Route = createFileRoute("/_authenticated/master")({
+  beforeLoad: async ({ location }) => {
+    const res = await isMasterUnlocked();
+    if (!res.unlocked) {
+      throw redirect({
+        to: "/master-login",
+        search: { redirect: location.pathname },
+      });
+    }
+  },
   head: () => ({
     meta: [
       { title: "Admin Master — Gestão Nobre MKT" },
