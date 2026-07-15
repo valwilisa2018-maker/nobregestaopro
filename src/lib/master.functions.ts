@@ -170,3 +170,124 @@ export const generateMonthlyInvoices = createServerFn({ method: "POST" })
     }
     return { ok: true, created };
   });
+
+// ---------------- Plans (master-scoped, bypass RLS) ----------------
+
+export const listPlansAll = createServerFn({ method: "GET" }).handler(async () => {
+  const db = await getAdmin();
+  const { data, error } = await db
+    .from("plans" as any)
+    .select("*")
+    .order("sort_order", { ascending: true });
+  if (error) throw error;
+  return data ?? [];
+});
+
+export const upsertMasterPlan = createServerFn({ method: "POST" })
+  .inputValidator(
+    (d: {
+      id?: string;
+      slug: string;
+      name: string;
+      description?: string | null;
+      price_cents: number;
+      billing_period: "monthly" | "yearly";
+      features: string[];
+      is_active: boolean;
+      is_highlight: boolean;
+      sort_order: number;
+    }) => d,
+  )
+  .handler(async ({ data }) => {
+    const db = await getAdmin();
+    const payload: Record<string, any> = {
+      slug: data.slug.trim(),
+      name: data.name.trim(),
+      description: data.description ?? null,
+      price_cents: data.price_cents,
+      billing_period: data.billing_period,
+      features: data.features ?? [],
+      is_active: data.is_active,
+      is_highlight: data.is_highlight,
+      sort_order: data.sort_order,
+    };
+    if (data.id) {
+      const { error } = await db.from("plans" as any).update(payload).eq("id", data.id);
+      if (error) throw error;
+      return { ok: true, id: data.id };
+    }
+    const { data: row, error } = await db.from("plans" as any).insert(payload).select("id").single();
+    if (error) throw error;
+    return { ok: true, id: (row as any).id };
+  });
+
+export const deleteMasterPlan = createServerFn({ method: "POST" })
+  .inputValidator((d: { id: string }) => d)
+  .handler(async ({ data }) => {
+    const db = await getAdmin();
+    const { error } = await db.from("plans" as any).delete().eq("id", data.id);
+    if (error) throw error;
+    return { ok: true };
+  });
+
+// ---------------- Platform usage aggregates (global) ----------------
+
+export const getPlatformStats = createServerFn({ method: "GET" }).handler(async () => {
+  const db = await getAdmin();
+  const now = new Date();
+  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
+
+  const count = async (table: string, filter?: (q: any) => any) => {
+    let q = db.from(table as any).select("*", { count: "exact", head: true });
+    if (filter) q = filter(q);
+    const { count: c } = await q;
+    return c ?? 0;
+  };
+
+  const [
+    salesTotal,
+    salesMonth,
+    customersTotal,
+    producersTotal,
+    sellersTotal,
+    profilesTotal,
+    ordersOpen,
+    ordersDelivered,
+  ] = await Promise.all([
+    count("sales"),
+    count("sales", (q) => q.gte("created_at", monthStart)),
+    count("customers"),
+    count("producers"),
+    count("sellers"),
+    count("profiles"),
+    count("service_orders", (q) => q.is("delivered_at", null)),
+    count("service_orders", (q) => q.not("delivered_at", "is", null)),
+  ]);
+
+  const { data: revRows } = await db
+    .from("sales" as any)
+    .select("total_amount, paid_amount, sale_date, created_at");
+
+  let revenueTotal = 0;
+  let revenueMonth = 0;
+  let paidTotal = 0;
+  const ms = new Date(monthStart).getTime();
+  for (const r of (revRows ?? []) as any[]) {
+    const t = Number(r.total_amount ?? 0);
+    const p = Number(r.paid_amount ?? 0);
+    revenueTotal += t;
+    paidTotal += p;
+    const when = new Date(r.created_at ?? r.sale_date ?? 0).getTime();
+    if (when >= ms) revenueMonth += t;
+  }
+
+  return {
+    sales: { total: salesTotal, month: salesMonth },
+    revenue: { total: revenueTotal, month: revenueMonth, paid: paidTotal },
+    customers: customersTotal,
+    producers: producersTotal,
+    sellers: sellersTotal,
+    users: profilesTotal,
+    orders: { open: ordersOpen, delivered: ordersDelivered },
+  };
+});
