@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
+import { Route as MasterRouteImport } from './routes/master'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as IndexRouteImport } from './routes/index'
@@ -26,7 +27,6 @@ import { Route as AuthenticatedPendingPaymentsRouteImport } from './routes/_auth
 import { Route as AuthenticatedPaymentLinkRouteImport } from './routes/_authenticated/payment-link'
 import { Route as AuthenticatedPagarmeHistoryRouteImport } from './routes/_authenticated/pagarme-history'
 import { Route as AuthenticatedOperacaoMetaRouteImport } from './routes/_authenticated/operacao-meta'
-import { Route as AuthenticatedMasterRouteImport } from './routes/_authenticated/master'
 import { Route as AuthenticatedKanbanRouteImport } from './routes/_authenticated/kanban'
 import { Route as AuthenticatedInvoicesRouteImport } from './routes/_authenticated/invoices'
 import { Route as AuthenticatedFinanceRouteImport } from './routes/_authenticated/finance'
@@ -55,6 +55,11 @@ const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
 const ResetPasswordRoute = ResetPasswordRouteImport.update({
   id: '/reset-password',
   path: '/reset-password',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const MasterRoute = MasterRouteImport.update({
+  id: '/master',
+  path: '/master',
   getParentRoute: () => rootRouteImport,
 } as any)
 const LoginRoute = LoginRouteImport.update({
@@ -136,11 +141,6 @@ const AuthenticatedOperacaoMetaRoute =
     path: '/operacao-meta',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
-const AuthenticatedMasterRoute = AuthenticatedMasterRouteImport.update({
-  id: '/master',
-  path: '/master',
-  getParentRoute: () => AuthenticatedRouteRoute,
-} as any)
 const AuthenticatedKanbanRoute = AuthenticatedKanbanRouteImport.update({
   id: '/kanban',
   path: '/kanban',
@@ -250,6 +250,7 @@ const AuthenticatedOperacaoMetaProdutoresRoute =
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
+  '/master': typeof MasterRoute
   '/reset-password': typeof ResetPasswordRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/admin': typeof AuthenticatedAdminRoute
@@ -262,7 +263,6 @@ export interface FileRoutesByFullPath {
   '/finance': typeof AuthenticatedFinanceRoute
   '/invoices': typeof AuthenticatedInvoicesRoute
   '/kanban': typeof AuthenticatedKanbanRoute
-  '/master': typeof AuthenticatedMasterRoute
   '/operacao-meta': typeof AuthenticatedOperacaoMetaRouteWithChildren
   '/pagarme-history': typeof AuthenticatedPagarmeHistoryRoute
   '/payment-link': typeof AuthenticatedPaymentLinkRoute
@@ -288,6 +288,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
+  '/master': typeof MasterRoute
   '/reset-password': typeof ResetPasswordRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/admin': typeof AuthenticatedAdminRoute
@@ -300,7 +301,6 @@ export interface FileRoutesByTo {
   '/finance': typeof AuthenticatedFinanceRoute
   '/invoices': typeof AuthenticatedInvoicesRoute
   '/kanban': typeof AuthenticatedKanbanRoute
-  '/master': typeof AuthenticatedMasterRoute
   '/pagarme-history': typeof AuthenticatedPagarmeHistoryRoute
   '/payment-link': typeof AuthenticatedPaymentLinkRoute
   '/pending-payments': typeof AuthenticatedPendingPaymentsRoute
@@ -327,6 +327,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/login': typeof LoginRoute
+  '/master': typeof MasterRoute
   '/reset-password': typeof ResetPasswordRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/_authenticated/admin': typeof AuthenticatedAdminRoute
@@ -339,7 +340,6 @@ export interface FileRoutesById {
   '/_authenticated/finance': typeof AuthenticatedFinanceRoute
   '/_authenticated/invoices': typeof AuthenticatedInvoicesRoute
   '/_authenticated/kanban': typeof AuthenticatedKanbanRoute
-  '/_authenticated/master': typeof AuthenticatedMasterRoute
   '/_authenticated/operacao-meta': typeof AuthenticatedOperacaoMetaRouteWithChildren
   '/_authenticated/pagarme-history': typeof AuthenticatedPagarmeHistoryRoute
   '/_authenticated/payment-link': typeof AuthenticatedPaymentLinkRoute
@@ -367,6 +367,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/login'
+    | '/master'
     | '/reset-password'
     | '/sitemap.xml'
     | '/admin'
@@ -379,7 +380,6 @@ export interface FileRouteTypes {
     | '/finance'
     | '/invoices'
     | '/kanban'
-    | '/master'
     | '/operacao-meta'
     | '/pagarme-history'
     | '/payment-link'
@@ -405,6 +405,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/login'
+    | '/master'
     | '/reset-password'
     | '/sitemap.xml'
     | '/admin'
@@ -417,7 +418,6 @@ export interface FileRouteTypes {
     | '/finance'
     | '/invoices'
     | '/kanban'
-    | '/master'
     | '/pagarme-history'
     | '/payment-link'
     | '/pending-payments'
@@ -443,6 +443,7 @@ export interface FileRouteTypes {
     | '/'
     | '/_authenticated'
     | '/login'
+    | '/master'
     | '/reset-password'
     | '/sitemap.xml'
     | '/_authenticated/admin'
@@ -455,7 +456,6 @@ export interface FileRouteTypes {
     | '/_authenticated/finance'
     | '/_authenticated/invoices'
     | '/_authenticated/kanban'
-    | '/_authenticated/master'
     | '/_authenticated/operacao-meta'
     | '/_authenticated/pagarme-history'
     | '/_authenticated/payment-link'
@@ -483,6 +483,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   LoginRoute: typeof LoginRoute
+  MasterRoute: typeof MasterRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   ApiPublicEvolutionWebhookRoute: typeof ApiPublicEvolutionWebhookRoute
@@ -503,6 +504,13 @@ declare module '@tanstack/react-router' {
       path: '/reset-password'
       fullPath: '/reset-password'
       preLoaderRoute: typeof ResetPasswordRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/master': {
+      id: '/master'
+      path: '/master'
+      fullPath: '/master'
+      preLoaderRoute: typeof MasterRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/login': {
@@ -608,13 +616,6 @@ declare module '@tanstack/react-router' {
       path: '/operacao-meta'
       fullPath: '/operacao-meta'
       preLoaderRoute: typeof AuthenticatedOperacaoMetaRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
-    '/_authenticated/master': {
-      id: '/_authenticated/master'
-      path: '/master'
-      fullPath: '/master'
-      preLoaderRoute: typeof AuthenticatedMasterRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/kanban': {
@@ -790,7 +791,6 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedFinanceRoute: typeof AuthenticatedFinanceRoute
   AuthenticatedInvoicesRoute: typeof AuthenticatedInvoicesRoute
   AuthenticatedKanbanRoute: typeof AuthenticatedKanbanRoute
-  AuthenticatedMasterRoute: typeof AuthenticatedMasterRoute
   AuthenticatedOperacaoMetaRoute: typeof AuthenticatedOperacaoMetaRouteWithChildren
   AuthenticatedPagarmeHistoryRoute: typeof AuthenticatedPagarmeHistoryRoute
   AuthenticatedPaymentLinkRoute: typeof AuthenticatedPaymentLinkRoute
@@ -818,7 +818,6 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedFinanceRoute: AuthenticatedFinanceRoute,
   AuthenticatedInvoicesRoute: AuthenticatedInvoicesRoute,
   AuthenticatedKanbanRoute: AuthenticatedKanbanRoute,
-  AuthenticatedMasterRoute: AuthenticatedMasterRoute,
   AuthenticatedOperacaoMetaRoute: AuthenticatedOperacaoMetaRouteWithChildren,
   AuthenticatedPagarmeHistoryRoute: AuthenticatedPagarmeHistoryRoute,
   AuthenticatedPaymentLinkRoute: AuthenticatedPaymentLinkRoute,
@@ -843,6 +842,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   LoginRoute: LoginRoute,
+  MasterRoute: MasterRoute,
   ResetPasswordRoute: ResetPasswordRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
   ApiPublicEvolutionWebhookRoute: ApiPublicEvolutionWebhookRoute,

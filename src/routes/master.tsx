@@ -37,7 +37,7 @@ import {
   upsertAccountInvoice, markInvoicePaid, deleteAccountInvoice, generateMonthlyInvoices,
 } from "@/lib/master.functions";
 
-export const Route = createFileRoute("/_authenticated/master")({
+export const Route = createFileRoute("/master")({
   head: () => ({
     meta: [
       { title: "Admin Master — Gestão Nobre MKT" },
