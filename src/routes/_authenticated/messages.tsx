@@ -3007,7 +3007,8 @@ function extractFirstUrl(text: string): string | null {
 
 const linkPreviewCache = new Map<string, { title?: string; description?: string; image?: string; publisher?: string; url: string } | null>();
 
-function LinkPreview({ url }: { url: string }) {
+function LinkPreview({ url, dark = false }: { url: string; dark?: boolean }) {
+  const theme = chatTheme(dark);
   const [data, setData] = useState<{ title?: string; description?: string; image?: string; publisher?: string; url: string } | null | undefined>(
     () => linkPreviewCache.get(url),
   );
