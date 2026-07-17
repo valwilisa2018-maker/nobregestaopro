@@ -283,7 +283,6 @@ function Page() {
     </div>
   );
 
-  const totalExecs = execs.length;
   const activeExecs = execs.filter((e) => e.status === "processing" || e.status === "waiting_user_input").length;
   const completedExecs = execs.filter((e) => e.status === "completed").length;
   const diagErrors = diag.filter((d) => d.level === "error").length;
