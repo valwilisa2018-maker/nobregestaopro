@@ -239,25 +239,30 @@ function Page() {
     const t = toast.loading("Limpando logs…");
     try {
       let processed = 0;
-      // Apaga em lotes pequenos para evitar timeout do banco em volumes altos.
-      const BATCH = 200;
+      // Apaga em lotes bem pequenos e sem ordenação: para limpeza, a ordem não importa
+      // e ordenar milhões de registros pode causar timeout antes mesmo de apagar.
+      const BATCH = 50;
       // eslint-disable-next-line no-constant-condition
       while (true) {
         const { data: batch, error: selErr } = await supabase
           .from("logs")
           .select("id")
           .eq("user_id", user.id)
-          .order("created_at", { ascending: false })
           .limit(BATCH);
         if (selErr) throw selErr;
         if (!batch || batch.length === 0) break;
         const ids = batch.map((r) => r.id);
-        const { error: delErr } = await supabase.from("logs").delete().in("id", ids);
+        const { error: delErr } = await supabase
+          .from("logs")
+          .delete()
+          .eq("user_id", user.id)
+          .in("id", ids);
         if (delErr) throw delErr;
         processed += ids.length;
         const total = Math.max(estimatedTotal, processed);
         setClearState({ status: "running", processed, total, message: `Removendo em lote (${ids.length})…` });
         toast.loading(`Limpando logs… ${processed} removido(s)`, { id: t });
+        await new Promise((resolve) => setTimeout(resolve, 80));
         if (batch.length < BATCH) break;
       }
       // Verificação leve: uma leitura curta confirma se ainda restam registros.
@@ -287,7 +292,7 @@ function Page() {
         toast.warning("Ainda restam registros após a limpeza — rode novamente", { id: t });
       }
     } catch (e: any) {
-      const msg = e?.message ?? "Falha ao limpar logs";
+      const msg = traduzErro(e?.message ?? "Falha ao limpar logs").replace("Erro ao carregar logs:", "Erro ao limpar logs:");
       setClearState((s) => ({ status: "error", processed: s.processed, total: s.total, message: msg }));
       toast.error(msg, { id: t });
     }
