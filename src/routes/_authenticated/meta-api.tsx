@@ -15,7 +15,7 @@ import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogTrigger } from "@/components/ui/dialog";
-import { Loader2, Save, ShieldCheck, RefreshCw, Send, Plus, Trash2, Copy, Facebook, CheckCircle2, XCircle, Info } from "lucide-react";
+import { Loader2, Save, ShieldCheck, RefreshCw, Send, Plus, Trash2, Copy, Facebook, CheckCircle2, XCircle, Info, Sparkles, FileCheck2, Webhook } from "lucide-react";
 import { toast } from "sonner";
 import {
   verifyMetaConfig, syncMetaTemplates, createMetaTemplate, deleteMetaTemplate, sendMetaTemplate, sendMetaText,
@@ -127,27 +127,59 @@ function Page() {
   const statusOk = cfg.last_status === "ok";
 
   return (
-    <PageShell title="Meta API Oficial" description="Configure a WhatsApp Cloud API oficial da Meta — templates aprovados, janela 24h e disparo em massa."
-      icon={<Facebook className="h-6 w-6" />} status="ativo"
-      actions={
-        <div className="flex items-center gap-2">
-          <Badge variant="outline" className={statusOk ? "bg-emerald-500/10 text-emerald-500 border-emerald-500/40" : "bg-muted"}>
-            {statusOk ? <CheckCircle2 className="h-3.5 w-3.5 mr-1" /> : <XCircle className="h-3.5 w-3.5 mr-1" />}
-            {cfg.last_status ?? "não verificado"}
-          </Badge>
-          <Button variant="outline" size="sm" onClick={verify} disabled={busy === "verify"}>
-            {busy === "verify" ? <Loader2 className="h-4 w-4 animate-spin" /> : <ShieldCheck className="h-4 w-4" />} Verificar
-          </Button>
+    <PageShell>
+      {/* Hero premium */}
+      <div className="relative overflow-hidden rounded-3xl border border-white/10 bg-gradient-to-br from-[#0b1120] via-[#0f172a] to-[#1e1b4b] p-6 md:p-8 shadow-premium">
+        <div className="pointer-events-none absolute -top-24 -right-24 h-72 w-72 rounded-full bg-blue-500/20 blur-3xl" />
+        <div className="pointer-events-none absolute -bottom-24 -left-16 h-72 w-72 rounded-full bg-indigo-500/20 blur-3xl" />
+        <div className="relative flex flex-col md:flex-row md:items-center md:justify-between gap-6">
+          <div className="flex items-start gap-4">
+            <div className="grid h-14 w-14 place-items-center rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-600 shadow-lg shadow-blue-500/40">
+              <Facebook className="h-7 w-7 text-white" />
+            </div>
+            <div className="space-y-1.5">
+              <div className="flex items-center gap-2 flex-wrap">
+                <h1 className="text-2xl md:text-3xl font-bold bg-gradient-to-r from-white via-blue-100 to-indigo-200 bg-clip-text text-transparent">
+                  Meta API Oficial
+                </h1>
+                <Badge className="bg-emerald-500/20 text-emerald-300 border border-emerald-400/40 gap-1">
+                  <Sparkles className="h-3 w-3" /> Ativo
+                </Badge>
+              </div>
+              <p className="text-sm text-slate-300/80 max-w-2xl">
+                Configure a WhatsApp Cloud API oficial da Meta — templates aprovados, janela de 24h e disparo em massa com alta entregabilidade.
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <Badge variant="outline" className={`h-9 px-3 ${statusOk ? "bg-emerald-500/10 text-emerald-300 border-emerald-400/40" : "bg-white/5 text-slate-300 border-white/10"}`}>
+              {statusOk ? <CheckCircle2 className="h-3.5 w-3.5 mr-1.5" /> : <XCircle className="h-3.5 w-3.5 mr-1.5" />}
+              {cfg.last_status ?? "não verificado"}
+            </Badge>
+            <Button onClick={verify} disabled={busy === "verify"} className="h-9 bg-white/10 hover:bg-white/15 text-white border border-white/15 backdrop-blur">
+              {busy === "verify" ? <Loader2 className="h-4 w-4 animate-spin" /> : <ShieldCheck className="h-4 w-4" />} Verificar
+            </Button>
+          </div>
         </div>
-      }
-    >
-      <Tabs defaultValue="credentials" className="space-y-4">
-        <TabsList className="bg-card/40 border border-border/60">
-          <TabsTrigger value="credentials">Credenciais</TabsTrigger>
-          <TabsTrigger value="webhook">Webhook</TabsTrigger>
-          <TabsTrigger value="templates">Templates</TabsTrigger>
-          <TabsTrigger value="test">Teste de envio</TabsTrigger>
-          <TabsTrigger value="guide">Como configurar</TabsTrigger>
+      </div>
+
+      <Tabs defaultValue="credentials" className="space-y-4 mt-4">
+        <TabsList className="bg-card/40 border border-border/60 p-1 rounded-xl">
+          <TabsTrigger value="credentials" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-500 data-[state=active]:to-indigo-600 data-[state=active]:text-white rounded-lg gap-1.5">
+            <ShieldCheck className="h-3.5 w-3.5" /> Credenciais
+          </TabsTrigger>
+          <TabsTrigger value="webhook" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-500 data-[state=active]:to-indigo-600 data-[state=active]:text-white rounded-lg gap-1.5">
+            <Webhook className="h-3.5 w-3.5" /> Webhook
+          </TabsTrigger>
+          <TabsTrigger value="templates" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-500 data-[state=active]:to-indigo-600 data-[state=active]:text-white rounded-lg gap-1.5">
+            <FileCheck2 className="h-3.5 w-3.5" /> Templates
+          </TabsTrigger>
+          <TabsTrigger value="test" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-500 data-[state=active]:to-indigo-600 data-[state=active]:text-white rounded-lg gap-1.5">
+            <Send className="h-3.5 w-3.5" /> Teste de envio
+          </TabsTrigger>
+          <TabsTrigger value="guide" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-500 data-[state=active]:to-indigo-600 data-[state=active]:text-white rounded-lg gap-1.5">
+            <Info className="h-3.5 w-3.5" /> Como configurar
+          </TabsTrigger>
         </TabsList>
         <TutorialVideo moduleKey="modulo_02" title="Tutorial — Meta API Oficial" />
 
