@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Bot, Plus, Zap, Sliders, Clock, Copy, Trash2, Loader2, ArrowLeft, ArrowRight, Hash, Sparkles } from "lucide-react";
+import { Bot, Plus, Zap, Sliders, Clock, Copy, Trash2, Loader2, ArrowLeft, ArrowRight, Hash } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
