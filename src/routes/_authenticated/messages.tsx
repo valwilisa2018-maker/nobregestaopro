@@ -705,12 +705,13 @@ function MessagesPage() {
     if (!user) return;
     (async () => {
       const { data } = await supabase.from("conversations")
-        .select("connection_id,metadata,last_message_at,updated_at")
+        .select("id,connection_id,metadata,last_message_at,updated_at")
         .eq("user_id", user.id)
         .limit(5000);
       const map: Record<string, Set<string>> = {};
       // digits -> newest activity timestamp across all conversations for that phone
       const digitsTs: Record<string, number> = {};
+      const convDigits: Record<string, string> = {};
       for (const row of data ?? []) {
         const jid = (row.metadata as { remoteJid?: string } | null)?.remoteJid ?? "";
         const digits = String(jid).split("@")[0].replace(/\D+/g, "");
@@ -718,6 +719,7 @@ function MessagesPage() {
         if (row.connection_id) (map[digits] ??= new Set()).add(row.connection_id);
         const ts = new Date((row.last_message_at as string | null) ?? (row.updated_at as string | null) ?? 0).getTime() || 0;
         if (ts > (digitsTs[digits] ?? 0)) digitsTs[digits] = ts;
+        if (row.id) convDigits[row.id] = digits;
       }
       setContactConnMap(map);
       // Map contact.id -> latest activity by matching phone variants
@@ -731,6 +733,41 @@ function MessagesPage() {
         if (best) activity[c.id] = best;
       }
       setLastActivityMap(activity);
+
+      // Fetch recent messages to build a "last message" preview per digits
+      const { data: msgs } = await supabase.from("messages")
+        .select("conversation_id,content,type,direction,created_at")
+        .eq("user_id", user.id)
+        .order("created_at", { ascending: false })
+        .limit(3000);
+      const digitsPreview: Record<string, { text: string; direction: string; ts: number }> = {};
+      for (const m of msgs ?? []) {
+        const d = convDigits[m.conversation_id as string];
+        if (!d) continue;
+        if (digitsPreview[d]) continue;
+        const t = (m.type as string) || "text";
+        let text = (m.content as string | null)?.trim() || "";
+        if (!text) {
+          if (t === "image") text = "📷 Foto";
+          else if (t === "audio") text = "🎤 Áudio";
+          else if (t === "video") text = "🎬 Vídeo";
+          else if (t === "document") text = "📄 Documento";
+          else if (t === "sticker") text = "🩷 Figurinha";
+          else text = "Mensagem";
+        }
+        digitsPreview[d] = {
+          text,
+          direction: (m.direction as string) || "in",
+          ts: new Date(m.created_at as string).getTime() || 0,
+        };
+      }
+      const previewByContact: Record<string, { text: string; direction: string; ts: number }> = {};
+      for (const c of contacts) {
+        for (const d of phoneVariants(c.phone)) {
+          if (digitsPreview[d]) { previewByContact[c.id] = digitsPreview[d]; break; }
+        }
+      }
+      setLastPreviewMap(previewByContact);
     })();
   }, [user, contacts.length]);
 
