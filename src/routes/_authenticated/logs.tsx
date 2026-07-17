@@ -16,6 +16,41 @@ export const Route = createFileRoute("/_authenticated/logs")({
   component: Page,
 });
 
+function LogRowItem({ r }: { r: LogRow }) {
+  const { title, detail } = translateMessage(r.message);
+  const sourceLabel = translateSource(r.source);
+  const levelLabel = LEVEL_LABELS[r.level] ?? r.level;
+  return (
+    <div className="px-4 py-3 flex items-start gap-3 text-sm hover:bg-muted/30">
+      <Badge variant="outline" className={`shrink-0 ${LEVEL_STYLES[r.level] ?? ""}`}>{levelLabel}</Badge>
+      <div className="flex-1 min-w-0">
+        <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+          <span>{new Date(r.created_at).toLocaleString("pt-BR")}</span>
+          <span>· {sourceLabel}</span>
+        </div>
+        <div className="text-foreground font-medium break-words">{title}</div>
+        <div className="text-muted-foreground text-xs mt-0.5 break-words">{detail}</div>
+        <details className="mt-1">
+          <summary className="text-xs text-muted-foreground cursor-pointer">Ver detalhes técnicos</summary>
+          <div className="mt-1 space-y-1">
+            <div className="text-[11px] text-muted-foreground">
+              <span className="font-semibold">Código original:</span> <span className="font-mono">{r.message}</span>
+            </div>
+            {r.source && (
+              <div className="text-[11px] text-muted-foreground">
+                <span className="font-semibold">Origem:</span> <span className="font-mono">{r.source}</span>
+              </div>
+            )}
+            {r.metadata && Object.keys(r.metadata).length > 0 && (
+              <pre className="rounded bg-muted/50 p-2 text-xs overflow-x-auto"><code>{JSON.stringify(r.metadata, null, 2)}</code></pre>
+            )}
+          </div>
+        </details>
+      </div>
+    </div>
+  );
+}
+
 type LogRow = {
   id: string; level: string; source: string | null; message: string;
   metadata: Record<string, unknown> | null; created_at: string;
