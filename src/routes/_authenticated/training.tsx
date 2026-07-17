@@ -446,13 +446,13 @@ function StatItem({ icon, value, label, tone }: { icon: React.ReactNode; value: 
   };
   const t = toneMap[tone];
   return (
-    <div className="flex items-center gap-4 rounded-2xl border border-border/60 bg-muted/40 p-4">
-      <div className={cn("grid h-12 w-12 shrink-0 place-items-center rounded-xl", t.bg, t.text)}>
+    <div className="flex items-center gap-3 rounded-xl border border-border/60 bg-muted/40 p-3">
+      <div className={cn("grid h-9 w-9 shrink-0 place-items-center rounded-lg", t.bg, t.text)}>
         {icon}
       </div>
       <div className="min-w-0">
-        <div className="text-xl font-bold tabular-nums sm:text-2xl">{value}</div>
-        <div className="text-xs text-muted-foreground sm:text-sm">{label}</div>
+        <div className="text-base font-bold tabular-nums sm:text-lg">{value}</div>
+        <div className="text-[11px] text-muted-foreground sm:text-xs">{label}</div>
       </div>
     </div>
   );
