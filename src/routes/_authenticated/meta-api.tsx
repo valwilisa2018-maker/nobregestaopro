@@ -142,9 +142,15 @@ function Page() {
                 <h1 className="text-2xl md:text-3xl font-bold bg-gradient-to-r from-white via-blue-100 to-indigo-200 bg-clip-text text-transparent">
                   Meta API Oficial
                 </h1>
-                <Badge className="bg-emerald-500/20 text-emerald-300 border border-emerald-400/40 gap-1">
-                  <Sparkles className="h-3 w-3" /> Ativo
-                </Badge>
+                {statusOk ? (
+                  <Badge className="bg-emerald-500/20 text-emerald-300 border border-emerald-400/40 gap-1">
+                    <Sparkles className="h-3 w-3" /> Ativo
+                  </Badge>
+                ) : (
+                  <Badge className="bg-slate-500/15 text-slate-300 border border-slate-400/30 gap-1">
+                    <XCircle className="h-3 w-3" /> Inativo
+                  </Badge>
+                )}
               </div>
               <p className="text-sm text-slate-300/80 max-w-2xl">
                 Configure a WhatsApp Cloud API oficial da Meta — templates aprovados, janela de 24h e disparo em massa com alta entregabilidade.
