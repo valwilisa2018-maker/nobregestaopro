@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { ScrollText, RefreshCw, Loader2, Inbox, Trash2, Search, Activity, AlertTriangle, Info, Bug, XCircle, Download, Filter } from "lucide-react";
+import { ScrollText, RefreshCw, Loader2, Inbox, Trash2, Search, Activity, AlertTriangle, Info, Bug, XCircle, Download, Filter, CheckCircle2 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
@@ -124,6 +124,12 @@ function Page() {
   const [loading, setLoading] = useState(true);
   const [level, setLevel] = useState<string>("all");
   const [search, setSearch] = useState("");
+  const [clearState, setClearState] = useState<{
+    status: "idle" | "running" | "done" | "error";
+    processed: number;
+    total: number;
+    message?: string;
+  }>({ status: "idle", processed: 0, total: 0 });
 
   const load = async () => {
     if (!user) return;
@@ -155,9 +161,26 @@ function Page() {
   const clearAll = async () => {
     if (!confirm("Limpar todos os logs? Esta ação é irreversível.")) return;
     if (!user) return;
+    // Conta o total antes para calcular o progresso.
+    const { count: totalCount, error: countErr } = await supabase
+      .from("logs")
+      .select("id", { count: "exact", head: true })
+      .eq("user_id", user.id);
+    if (countErr) {
+      setClearState({ status: "error", processed: 0, total: 0, message: countErr.message });
+      toast.error(countErr.message);
+      return;
+    }
+    const total = totalCount ?? 0;
+    if (total === 0) {
+      setClearState({ status: "done", processed: 0, total: 0, message: "Nada para limpar" });
+      toast.info("Não há logs para limpar");
+      return;
+    }
+    setClearState({ status: "running", processed: 0, total, message: "Iniciando limpeza…" });
     const t = toast.loading("Limpando logs…");
     try {
-      let total = 0;
+      let processed = 0;
       // Apaga em lotes para evitar timeout do banco em volumes altos.
       // eslint-disable-next-line no-constant-condition
       while (true) {
@@ -171,15 +194,19 @@ function Page() {
         const ids = batch.map((r) => r.id);
         const { error: delErr } = await supabase.from("logs").delete().in("id", ids);
         if (delErr) throw delErr;
-        total += ids.length;
-        toast.loading(`Limpando logs… (${total})`, { id: t });
+        processed += ids.length;
+        setClearState({ status: "running", processed, total, message: `Removendo em lote (${ids.length})…` });
+        toast.loading(`Limpando logs… ${processed}/${total}`, { id: t });
         if (batch.length < 500) break;
       }
-      toast.success(`Logs limpos (${total})`, { id: t });
+      setClearState({ status: "done", processed, total, message: "Limpeza concluída" });
+      toast.success(`Logs limpos (${processed})`, { id: t });
       setRows([]);
       load();
     } catch (e: any) {
-      toast.error(e?.message ?? "Falha ao limpar logs", { id: t });
+      const msg = e?.message ?? "Falha ao limpar logs";
+      setClearState((s) => ({ status: "error", processed: s.processed, total: s.total, message: msg }));
+      toast.error(msg, { id: t });
     }
   };
 
