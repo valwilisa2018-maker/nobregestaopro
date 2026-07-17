@@ -338,21 +338,91 @@ function Page() {
         </TabsContent>
 
         {/* Guide */}
-        <TabsContent value="guide">
-          <Card><CardContent className="prose prose-sm dark:prose-invert max-w-none p-6">
-            <h3>Passo a passo Meta Cloud API</h3>
-            <ol>
-              <li>Acesse <a href="https://business.facebook.com" target="_blank" rel="noreferrer">business.facebook.com</a> e crie/selecione a conta comercial.</li>
-              <li>Em <b>WhatsApp Manager</b>, adicione um número e faça a verificação por SMS/voz.</li>
-              <li>Em <b>Configurações → Usuários do sistema</b>, crie um <b>System User</b> e gere um <b>Access Token permanente</b> com as permissões <code>whatsapp_business_messaging</code> e <code>whatsapp_business_management</code>.</li>
-              <li>Copie o <b>Phone Number ID</b> e o <b>WhatsApp Business Account ID</b> na tela "Configuração da API".</li>
-              <li>Cole tudo aqui em <b>Credenciais</b> e clique em <b>Verificar</b>.</li>
-              <li>Em <b>Webhook</b>, copie a Callback URL e o Verify Token para o painel da Meta e assine os campos <b>messages</b> e <b>message_template_status_update</b>.</li>
-              <li>Em <b>Templates</b>, crie ou sincronize seus templates. Somente templates <b>APPROVED</b> podem iniciar conversa fora da janela 24h.</li>
-            </ol>
-            <h4>Janela de 24 horas</h4>
-            <p>Após o cliente enviar uma mensagem, você tem 24h para responder livremente com texto/mídia. Passado esse tempo, é obrigatório usar um <b>template aprovado</b> para reabrir a conversa (usaremos isso automaticamente no Disparo em Massa).</p>
-          </CardContent></Card>
+        <TabsContent value="guide" className="space-y-4">
+          <div className="grid gap-4">
+            <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-br from-blue-500/20 to-indigo-600/20 p-5 backdrop-blur-md shadow-premium">
+              <div className="flex items-center gap-3">
+                <div className="grid h-10 w-10 place-items-center rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 text-white shadow-lg">
+                  <Info className="h-5 w-5" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-semibold text-white">Passo a passo Meta Cloud API</h3>
+                  <p className="text-sm text-slate-300/80">Siga cada etapa na ordem para conectar a API oficial da Meta.</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="grid gap-4 md:grid-cols-2">
+              {[
+                {
+                  n: 1,
+                  title: "Crie sua conta comercial",
+                  desc: "Acesse o business.facebook.com e crie ou selecione a conta comercial que será usada para o WhatsApp."
+                },
+                {
+                  n: 2,
+                  title: "Adicione um número no WhatsApp Manager",
+                  desc: "No WhatsApp Manager, adicione o número de telefone e faça a verificação por SMS ou chamada de voz."
+                },
+                {
+                  n: 3,
+                  title: "Crie o System User e o Access Token",
+                  desc: "Em Configurações → Usuários do sistema, crie um System User e gere um Access Token permanente com as permissões whatsapp_business_messaging e whatsapp_business_management."
+                },
+                {
+                  n: 4,
+                  title: "Copie os IDs da API",
+                  desc: "Copie o Phone Number ID e o WhatsApp Business Account ID na tela Configuração da API."
+                },
+                {
+                  n: 5,
+                  title: "Cole as credenciais e verifique",
+                  desc: "Cole os dados aqui na aba Credenciais e clique em Verificar para ativar a conexão."
+                },
+                {
+                  n: 6,
+                  title: "Configure o webhook",
+                  desc: "Na aba Webhook, copie a Callback URL e o Verify Token para o painel da Meta e assine os campos messages e message_template_status_update."
+                },
+                {
+                  n: 7,
+                  title: "Sincronize os templates",
+                  desc: "Na aba Templates, crie ou sincronize seus templates. Somente templates APPROVED podem iniciar conversa fora da janela de 24h."
+                }
+              ].map((step, i, arr) => (
+                <div key={step.n} className="relative flex gap-4 rounded-2xl border border-white/10 bg-white/5 p-5 backdrop-blur-sm hover:bg-white/10 transition">
+                  <div className="flex flex-col items-center gap-1">
+                    <div className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 text-white font-bold shadow-lg shadow-blue-500/30">
+                      {step.n}
+                    </div>
+                    {i < arr.length - 1 && (
+                      <div className="w-px flex-1 bg-gradient-to-b from-blue-500/50 to-transparent" />
+                    )}
+                  </div>
+                  <div className="space-y-1.5 pt-1">
+                    <h4 className="font-semibold text-white">{step.title}</h4>
+                    <p className="text-sm text-slate-300/80 leading-relaxed">{step.desc}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <div className="rounded-2xl border border-amber-400/30 bg-amber-500/10 p-5 backdrop-blur-sm">
+              <div className="flex items-start gap-3">
+                <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-amber-500/20 text-amber-300">
+                  <Info className="h-5 w-5" />
+                </div>
+                <div className="space-y-1">
+                  <h4 className="font-semibold text-amber-100">Janela de 24 horas</h4>
+                  <p className="text-sm text-amber-200/80 leading-relaxed">
+                    Após o cliente enviar uma mensagem, você tem 24h para responder livremente com texto ou mídia.
+                    Passado esse tempo, é obrigatório usar um <span className="font-semibold text-amber-100">template aprovado</span> para reabrir a conversa.
+                    O sistema usa templates automaticamente no Disparo em Massa quando necessário.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
         </TabsContent>
       </Tabs>
     </PageShell>
