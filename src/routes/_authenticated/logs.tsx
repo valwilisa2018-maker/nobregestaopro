@@ -164,7 +164,7 @@ function Page() {
     // when new logs arrive between page loads, unlike offset-based paging.
     let q = supabase
       .from("logs")
-      .select("*")
+      .select("id,user_id,level,source,message,metadata,created_at")
       .eq("user_id", user.id)
       .order("created_at", { ascending: false })
       .order("id", { ascending: false })
