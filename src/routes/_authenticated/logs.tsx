@@ -16,6 +16,41 @@ export const Route = createFileRoute("/_authenticated/logs")({
   component: Page,
 });
 
+function LogRowItem({ r }: { r: LogRow }) {
+  const { title, detail } = translateMessage(r.message);
+  const sourceLabel = translateSource(r.source);
+  const levelLabel = LEVEL_LABELS[r.level] ?? r.level;
+  return (
+    <div className="px-4 py-3 flex items-start gap-3 text-sm hover:bg-muted/30">
+      <Badge variant="outline" className={`shrink-0 ${LEVEL_STYLES[r.level] ?? ""}`}>{levelLabel}</Badge>
+      <div className="flex-1 min-w-0">
+        <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+          <span>{new Date(r.created_at).toLocaleString("pt-BR")}</span>
+          <span>· {sourceLabel}</span>
+        </div>
+        <div className="text-foreground font-medium break-words">{title}</div>
+        <div className="text-muted-foreground text-xs mt-0.5 break-words">{detail}</div>
+        <details className="mt-1">
+          <summary className="text-xs text-muted-foreground cursor-pointer">Ver detalhes técnicos</summary>
+          <div className="mt-1 space-y-1">
+            <div className="text-[11px] text-muted-foreground">
+              <span className="font-semibold">Código original:</span> <span className="font-mono">{r.message}</span>
+            </div>
+            {r.source && (
+              <div className="text-[11px] text-muted-foreground">
+                <span className="font-semibold">Origem:</span> <span className="font-mono">{r.source}</span>
+              </div>
+            )}
+            {r.metadata && Object.keys(r.metadata).length > 0 && (
+              <pre className="rounded bg-muted/50 p-2 text-xs overflow-x-auto"><code>{JSON.stringify(r.metadata, null, 2)}</code></pre>
+            )}
+          </div>
+        </details>
+      </div>
+    </div>
+  );
+}
+
 type LogRow = {
   id: string; level: string; source: string | null; message: string;
   metadata: Record<string, unknown> | null; created_at: string;
@@ -27,6 +62,63 @@ const LEVEL_STYLES: Record<string, string> = {
   info: "bg-primary/15 text-primary border-primary/30",
   debug: "bg-muted text-muted-foreground border-border",
 };
+
+const LEVEL_LABELS: Record<string, string> = {
+  error: "Erro",
+  warn: "Aviso",
+  info: "Informação",
+  debug: "Depuração",
+};
+
+// Traduz códigos técnicos comuns em descrições humanas em português.
+function translateMessage(msg: string): { title: string; detail: string } {
+  const m = (msg || "").trim();
+  const low = m.toLowerCase();
+  const map: Array<{ match: RegExp; title: string; detail: string }> = [
+    { match: /^connection\.update/, title: "Atualização de conexão do WhatsApp", detail: "O status da conexão da instância foi atualizado (conectando, conectado ou desconectado)." },
+    { match: /^qrcode\.updated/, title: "Novo QR Code gerado", detail: "Um novo QR Code foi gerado para parear o WhatsApp com a instância." },
+    { match: /^messages\.upsert/, title: "Nova mensagem recebida", detail: "Uma nova mensagem chegou pelo WhatsApp e foi registrada na conversa." },
+    { match: /^messages\.update/, title: "Mensagem atualizada", detail: "O status de uma mensagem mudou (entregue, lida ou editada)." },
+    { match: /^messages\.delete/, title: "Mensagem apagada", detail: "Uma mensagem foi removida da conversa no WhatsApp." },
+    { match: /^presence\.update/, title: "Presença do contato", detail: "O contato mudou o status (digitando, gravando áudio ou online)." },
+    { match: /^contacts\.(upsert|update)/, title: "Contato sincronizado", detail: "As informações de um contato do WhatsApp foram criadas ou atualizadas." },
+    { match: /^chats\.(upsert|update)/, title: "Conversa sincronizada", detail: "Os dados de uma conversa foram criados ou atualizados." },
+    { match: /^send\b|message.?sent|enviad/, title: "Mensagem enviada", detail: "Uma mensagem foi enviada com sucesso pelo WhatsApp." },
+    { match: /apikey matched: secret/, title: "Webhook autenticado (chave secreta)", detail: "O webhook recebido foi validado com a chave secreta da instância." },
+    { match: /apikey matched: global/, title: "Webhook autenticado (chave global)", detail: "O webhook recebido foi validado com a chave global do sistema." },
+    { match: /apikey (mismatch|invalid|not match)/, title: "Chave de API inválida", detail: "Um webhook foi recebido com chave incorreta e foi rejeitado." },
+    { match: /unauthorized|401/, title: "Acesso não autorizado", detail: "Uma requisição foi bloqueada por falta de autenticação válida." },
+    { match: /forbidden|403/, title: "Acesso proibido", detail: "A operação foi bloqueada por falta de permissão." },
+    { match: /not.?found|404/, title: "Recurso não encontrado", detail: "O item solicitado não foi encontrado no servidor." },
+    { match: /rate.?limit|429/, title: "Limite de requisições atingido", detail: "Muitas requisições em pouco tempo — aguarde alguns segundos e tente novamente." },
+    { match: /timeout/, title: "Tempo esgotado", detail: "A operação demorou demais para responder e foi cancelada." },
+    { match: /webhook/, title: "Evento de webhook recebido", detail: "Um evento externo foi recebido e processado pela plataforma." },
+    { match: /flow/, title: "Fluxo de automação executado", detail: "Um passo de um fluxo de automação foi executado." },
+    { match: /sequence|sequência/, title: "Sequência de mensagens", detail: "Um passo de uma sequência de mensagens foi disparado." },
+    { match: /broadcast|disparo/, title: "Disparo em massa", detail: "Um envio em massa foi processado." },
+    { match: /follow.?up/, title: "Follow-up automático", detail: "Uma mensagem de follow-up foi enviada automaticamente." },
+    { match: /credit/, title: "Movimentação de créditos", detail: "Houve consumo ou adição de créditos na sua conta." },
+    { match: /login|sign.?in|auth/, title: "Autenticação de usuário", detail: "Uma tentativa de login ou autenticação foi registrada." },
+  ];
+  for (const r of map) if (r.match.test(low)) return { title: r.title, detail: r.detail };
+  return { title: m || "Evento", detail: "Evento técnico registrado pela plataforma." };
+}
+
+function translateSource(src: string | null): string {
+  if (!src) return "Sistema";
+  const s = src.toLowerCase();
+  if (s.startsWith("evolution:")) return `WhatsApp · ${src.split(":")[1] ?? ""}`;
+  if (s === "evolution.webhook") return "Webhook do WhatsApp";
+  if (s.includes("meta")) return "API oficial da Meta";
+  if (s.includes("flow")) return "Fluxos de automação";
+  if (s.includes("sequence")) return "Sequências de mensagens";
+  if (s.includes("broadcast")) return "Disparos em massa";
+  if (s.includes("followup")) return "Follow-ups";
+  if (s.includes("auth")) return "Autenticação";
+  if (s.includes("credit")) return "Créditos";
+  if (s.includes("ai") || s.includes("agent")) return "Agente de IA";
+  return src;
+}
 
 function Page() {
   const { user } = useAuth();
@@ -103,22 +195,7 @@ function Page() {
           ) : (
             <div className="divide-y divide-border">
               {filtered.map((r) => (
-                <div key={r.id} className="px-4 py-3 flex items-start gap-3 text-sm hover:bg-muted/30">
-                  <Badge variant="outline" className={`shrink-0 ${LEVEL_STYLES[r.level] ?? ""}`}>{r.level}</Badge>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                      <span>{new Date(r.created_at).toLocaleString("pt-BR")}</span>
-                      {r.source && <span className="font-mono">· {r.source}</span>}
-                    </div>
-                    <div className="text-foreground break-words">{r.message}</div>
-                    {r.metadata && Object.keys(r.metadata).length > 0 && (
-                      <details className="mt-1">
-                        <summary className="text-xs text-muted-foreground cursor-pointer">metadata</summary>
-                        <pre className="mt-1 rounded bg-muted/50 p-2 text-xs overflow-x-auto"><code>{JSON.stringify(r.metadata, null, 2)}</code></pre>
-                      </details>
-                    )}
-                  </div>
-                </div>
+                <LogRowItem key={r.id} r={r} />
               ))}
             </div>
           )}
