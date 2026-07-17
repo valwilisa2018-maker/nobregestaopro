@@ -158,43 +158,65 @@ function Page() {
 
   return (
     <div className="p-4 md:p-6 space-y-6 max-w-7xl mx-auto">
-      <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-4 sm:flex sm:justify-between">
-        <div className="min-w-0">
-          <div className="flex items-center gap-3">
-            <div className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-primary/10 text-primary">
-              <Timer className="h-5 w-5" />
+      {/* Premium Hero */}
+      <div className="relative overflow-hidden rounded-3xl border border-white/10 bg-gradient-to-br from-slate-900/90 via-indigo-950/60 to-slate-950/90 p-6 shadow-[0_20px_60px_-20px_rgba(0,0,0,0.6)] backdrop-blur-xl">
+        <div className="pointer-events-none absolute -right-24 -top-24 h-72 w-72 rounded-full bg-blue-500/25 blur-3xl" />
+        <div className="pointer-events-none absolute -left-24 -bottom-24 h-72 w-72 rounded-full bg-violet-500/20 blur-3xl" />
+        <div className="relative flex flex-wrap items-center justify-between gap-4">
+          <div className="flex items-center gap-4">
+            <div className="grid h-14 w-14 place-items-center rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-600 shadow-[0_10px_30px_-10px_rgba(59,130,246,0.7)] ring-1 ring-white/20">
+              <Timer className="h-7 w-7 text-white" />
             </div>
-            <div className="min-w-0">
-              <h1 className="truncate text-xl sm:text-2xl font-black">Follow-up</h1>
-              <p className="text-sm text-muted-foreground truncate">Réguas automáticas de acompanhamento por inatividade.</p>
+            <div>
+              <div className="flex items-center gap-2">
+                <h1 className="bg-gradient-to-r from-blue-300 via-indigo-200 to-violet-300 bg-clip-text text-3xl font-bold tracking-tight text-transparent">
+                  Follow-up
+                </h1>
+                <Badge variant="outline" className="border-blue-500/40 bg-blue-500/10 text-blue-300">Automático</Badge>
+              </div>
+              <p className="text-sm text-muted-foreground">Réguas automáticas de acompanhamento por inatividade.</p>
             </div>
           </div>
+          <Button onClick={openNew} className="bg-gradient-to-br from-blue-500 to-indigo-600 text-white shadow-[0_10px_30px_-10px_rgba(59,130,246,0.6)] hover:opacity-90">
+            <Plus className="mr-2 h-4 w-4" /> Novo follow-up
+          </Button>
         </div>
-        <Button onClick={openNew} className="shrink-0"><Plus className="h-4 w-4 mr-1" /> Novo follow-up</Button>
+
+        {/* KPIs */}
+        <div className="relative mt-6 grid grid-cols-2 gap-3 md:grid-cols-4">
+          {[
+            { label: "Ativos", value: metrics.active, icon: <Zap className="h-4 w-4" />, tone: "from-emerald-500/25 to-teal-500/10", ring: "ring-emerald-500/30", text: "text-emerald-300" },
+            { label: "Envios", value: metrics.sent, icon: <Send className="h-4 w-4" />, tone: "from-blue-500/25 to-cyan-500/10", ring: "ring-blue-500/30", text: "text-blue-300" },
+            { label: "Taxa de resposta", value: `${metrics.replyRate}%`, icon: <MessageCircleReply className="h-4 w-4" />, tone: "from-violet-500/25 to-fuchsia-500/10", ring: "ring-violet-500/30", text: "text-violet-300", sub: `${metrics.replied} respostas` },
+            { label: "Conversões", value: `${metrics.convRate}%`, icon: <Target className="h-4 w-4" />, tone: "from-amber-500/25 to-orange-500/10", ring: "ring-amber-500/30", text: "text-amber-300", sub: `${metrics.conv} conversões` },
+          ].map((k) => (
+            <div key={k.label} className={`rounded-2xl border border-white/10 bg-gradient-to-br ${k.tone} p-4 ring-1 ${k.ring} backdrop-blur`}>
+              <div className={`flex items-center gap-2 text-xs uppercase tracking-wider ${k.text}`}>{k.icon}<span>{k.label}</span></div>
+              <div className="mt-1 text-2xl font-bold tabular-nums">{k.value}</div>
+              {k.sub && <div className="mt-0.5 text-[11px] text-muted-foreground">{k.sub}</div>}
+            </div>
+          ))}
+        </div>
       </div>
 
-      <Card className={`p-3 flex items-center gap-3 border ${anyConnected ? "border-green-500/40 bg-green-500/5" : "border-amber-500/40 bg-amber-500/5"}`}>
-        {anyConnected ? <CheckCircle2 className="h-5 w-5 text-green-600 shrink-0" /> : <AlertCircle className="h-5 w-5 text-amber-600 shrink-0" />}
-        <div className="text-sm min-w-0 flex-1">
+      <Card className={`flex items-center gap-3 border p-3 ${anyConnected ? "border-emerald-500/40 bg-emerald-500/5" : "border-amber-500/40 bg-amber-500/5"}`}>
+        {anyConnected ? <CheckCircle2 className="h-5 w-5 shrink-0 text-emerald-500" /> : <AlertCircle className="h-5 w-5 shrink-0 text-amber-500" />}
+        <div className="min-w-0 flex-1 text-sm">
           <div className="font-semibold">
             {anyConnected ? "Follow-up pronto para disparar" : "Nenhuma instância conectada"}
           </div>
-          <div className="text-xs text-muted-foreground truncate">
+          <div className="truncate text-xs text-muted-foreground">
             {connections.length} instância(s) · dispara automaticamente quando o cliente ficar inativo · para ao receber resposta.
           </div>
         </div>
       </Card>
 
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <Metric icon={<Zap className="h-4 w-4" />} label="Ativos" value={metrics.active} />
-        <Metric icon={<Send className="h-4 w-4" />} label="Envios" value={metrics.sent} />
-        <Metric icon={<MessageCircleReply className="h-4 w-4" />} label="Taxa de resposta" value={`${metrics.replyRate}%`} sub={`${metrics.replied} respostas`} />
-        <Metric icon={<Target className="h-4 w-4" />} label="Conversões" value={`${metrics.convRate}%`} sub={`${metrics.conv} conversões`} />
-      </div>
-
-      <Card className="p-0 overflow-hidden">
-        <div className="p-4 border-b flex items-center justify-between">
-          <h2 className="font-bold">Campanhas</h2>
+      <Card className="overflow-hidden p-0">
+        <div className="flex items-center justify-between border-b p-4">
+          <div className="flex items-center gap-2">
+            <div className="h-2 w-2 rounded-full bg-blue-500" />
+            <h2 className="font-bold">Campanhas</h2>
+          </div>
           <span className="text-xs text-muted-foreground">{rows.length} total</span>
         </div>
         {loading ? (
