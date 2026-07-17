@@ -39,7 +39,7 @@ function AuthedLayout() {
               <NotificationBell />
             </div>
           </header>
-          <main className="flex-1 p-3 sm:p-6 bg-muted/20 min-w-0">
+          <main className="flex-1 p-3 sm:p-6 bg-muted/20 min-w-0 min-h-0 h-full">
             <PlanGate>
               <Outlet />
             </PlanGate>
