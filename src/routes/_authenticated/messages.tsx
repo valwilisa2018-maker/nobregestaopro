@@ -5,6 +5,7 @@ import EmojiPicker, { EmojiStyle, Theme } from "emoji-picker-react";
 import { PageShell } from "@/components/page-shell";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
+import { useTheme } from "@/hooks/use-theme";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
@@ -183,18 +184,8 @@ function DownloadBtn({ url, filename, dark = false }: { url: string; filename: s
 
 function MessagesPage() {
   const { user } = useAuth();
-  const [chatDarkMode, setChatDarkMode] = useState<boolean>(() => {
-    if (typeof window === "undefined") return false;
-    try {
-      return localStorage.getItem(scopedWaKey("wa-dark", user?.id)) === "1";
-    } catch { return false; }
-  });
-  useEffect(() => {
-    if (typeof window === "undefined" || !user?.id) return;
-    try {
-      localStorage.setItem(scopedWaKey("wa-dark", user.id), chatDarkMode ? "1" : "0");
-    } catch {}
-  }, [chatDarkMode, user?.id]);
+  const { theme: appTheme, toggle: toggleAppTheme } = useTheme();
+  const chatDarkMode = appTheme === "dark";
   const theme = chatTheme(chatDarkMode);
   // Debug logger — ligue no console com: localStorage.setItem('wa-debug','1')
   // Desligue com: localStorage.removeItem('wa-debug')
@@ -2220,7 +2211,7 @@ function MessagesPage() {
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <button
-                      onClick={() => setChatDarkMode((v) => !v)}
+                      onClick={() => toggleAppTheme()}
                       className="p-2 rounded-full hover:bg-muted transition"
                       aria-label={chatDarkMode ? "Modo claro" : "Modo escuro"}
                     >
