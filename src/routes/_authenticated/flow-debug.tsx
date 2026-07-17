@@ -283,6 +283,17 @@ function Page() {
     </div>
   );
 
+  const activeExecs = execs.filter((e) => e.status === "processing" || e.status === "waiting_user_input").length;
+  const completedExecs = execs.filter((e) => e.status === "completed").length;
+  const diagErrors = diag.filter((d) => d.level === "error").length;
+
+  const kpis = [
+    { label: "Execuções ao vivo", value: liveExecs.length, icon: Activity, grad: "from-blue-500/25 to-cyan-500/10", ring: "ring-blue-500/30", tone: "text-blue-500" },
+    { label: "Ativas agora", value: activeExecs, icon: Loader2, grad: "from-emerald-500/25 to-teal-500/10", ring: "ring-emerald-500/30", tone: "text-emerald-500" },
+    { label: "Concluídas", value: completedExecs, icon: CheckCircle2, grad: "from-violet-500/25 to-fuchsia-500/10", ring: "ring-violet-500/30", tone: "text-violet-500" },
+    { label: "Erros", value: liveErrors + diagErrors, icon: AlertTriangle, grad: "from-red-500/25 to-orange-500/10", ring: "ring-red-500/30", tone: "text-red-500" },
+  ];
+
   return (
     <PageShell
       title="Debug de Fluxo"
@@ -290,23 +301,66 @@ function Page() {
       icon={<Bug className="h-6 w-6" />}
       status="ativo"
     >
+      {/* Premium hero */}
+      <div className="relative overflow-hidden rounded-3xl border border-border/60 bg-gradient-to-br from-indigo-600/20 via-violet-600/10 to-fuchsia-600/20 p-6 mb-5 shadow-[0_10px_40px_-15px_rgba(99,102,241,0.35)]">
+        <div className="absolute -top-20 -right-20 h-64 w-64 rounded-full bg-violet-500/20 blur-3xl" aria-hidden />
+        <div className="absolute -bottom-24 -left-16 h-64 w-64 rounded-full bg-indigo-500/20 blur-3xl" aria-hidden />
+        <div className="relative flex flex-col md:flex-row md:items-center gap-5">
+          <div className="flex items-center gap-4">
+            <div className="relative">
+              <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-indigo-500 to-violet-600 blur-md opacity-70" aria-hidden />
+              <div className="relative h-14 w-14 rounded-2xl bg-gradient-to-br from-indigo-500 to-violet-600 grid place-items-center shadow-lg">
+                <Bug className="h-7 w-7 text-white" />
+              </div>
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <h2 className="text-2xl font-bold tracking-tight">Central de Debug</h2>
+                <Badge variant="outline" className="border-emerald-500/40 bg-emerald-500/10 text-emerald-500 gap-1">
+                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" /> Ao vivo
+                </Badge>
+              </div>
+              <p className="text-sm text-muted-foreground mt-1 max-w-xl">Monitore execuções reais, simule fluxos como se fosse o contato e diagnostique por que uma mensagem não disparou um fluxo.</p>
+            </div>
+          </div>
+          <div className="md:ml-auto flex items-center gap-2">
+            <Button variant="outline" onClick={() => void reload()} className="gap-2 border-border/60 bg-background/40 backdrop-blur">
+              <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} /> Atualizar
+            </Button>
+          </div>
+        </div>
+
+        {/* KPI grid */}
+        <div className="relative mt-6 grid grid-cols-2 md:grid-cols-4 gap-3">
+          {kpis.map((k) => (
+            <div key={k.label} className={`relative overflow-hidden rounded-2xl border border-border/60 bg-gradient-to-br ${k.grad} p-4 ring-1 ${k.ring}`}>
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">{k.label}</span>
+                <k.icon className={`h-4 w-4 ${k.tone} ${k.label === "Ativas agora" && activeExecs > 0 ? "animate-spin" : ""}`} />
+              </div>
+              <div className={`mt-2 text-3xl font-bold ${k.tone}`}>{k.value}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+
       <Tabs value={tab} onValueChange={(v) => setTab(v as "live" | "sim" | "diag")} className="w-full">
-        <TabsList className="mb-4">
-          <TabsTrigger value="live" className="gap-2">
+        <TabsList className="mb-4 bg-card/40 border border-border/60 backdrop-blur p-1 h-auto">
+          <TabsTrigger value="live" className="gap-2 data-[state=active]:bg-gradient-to-br data-[state=active]:from-blue-500/20 data-[state=active]:to-cyan-500/10 data-[state=active]:shadow-sm">
             <Activity className="h-4 w-4" /> Execuções ao vivo
             <Badge variant="outline" className="ml-1 text-[10px]">{liveExecs.length}</Badge>
             {liveErrors > 0 && <Badge variant="outline" className="text-[10px] bg-red-500/15 text-red-600 border-red-500/30">{liveErrors} erro{liveErrors === 1 ? "" : "s"}</Badge>}
           </TabsTrigger>
-          <TabsTrigger value="sim" className="gap-2">
+          <TabsTrigger value="sim" className="gap-2 data-[state=active]:bg-gradient-to-br data-[state=active]:from-violet-500/20 data-[state=active]:to-fuchsia-500/10 data-[state=active]:shadow-sm">
             <FlaskConical className="h-4 w-4" /> Simulador
             <Badge variant="outline" className="ml-1 text-[10px]">{simExecs.length}</Badge>
           </TabsTrigger>
-          <TabsTrigger value="diag" className="gap-2">
+          <TabsTrigger value="diag" className="gap-2 data-[state=active]:bg-gradient-to-br data-[state=active]:from-amber-500/20 data-[state=active]:to-orange-500/10 data-[state=active]:shadow-sm">
             <Stethoscope className="h-4 w-4" /> Diagnóstico
             <Badge variant="outline" className="ml-1 text-[10px]">{diag.length}</Badge>
-            {diag.some((d) => d.level === "error") && (
+            {diagErrors > 0 && (
               <Badge variant="outline" className="text-[10px] bg-red-500/15 text-red-600 border-red-500/30">
-                {diag.filter((d) => d.level === "error").length} erro{diag.filter((d) => d.level === "error").length === 1 ? "" : "s"}
+                {diagErrors} erro{diagErrors === 1 ? "" : "s"}
               </Badge>
             )}
           </TabsTrigger>
