@@ -15,6 +15,32 @@ import {
   Timer, Send, MessageCircleReply, Target, Plus, Trash2, Play, Pause, Pencil, Clock, Zap,
   Plug, CheckCircle2, AlertCircle, Layers,
 } from "lucide-react";
+import { z } from "zod";
+
+const stepSchema = z.object({
+  delay_value: z.number().int().min(0, "Delay não pode ser negativo").max(9999, "Delay muito alto"),
+  delay_unit: z.enum(["minutes", "hours", "days"]),
+  message: z.string().trim().min(1, "Mensagem obrigatória").max(2000, "Máximo 2000 caracteres"),
+});
+const followupSchema = z.object({
+  name: z.string().trim().min(2, "Nome deve ter ao menos 2 caracteres").max(80, "Máximo 80 caracteres"),
+  description: z.string().trim().max(300, "Máximo 300 caracteres").optional(),
+  invValue: z.number().int().min(1, "Deve ser ≥ 1").max(9999, "Valor muito alto"),
+  invUnit: z.enum(["minutes", "hours", "days"]),
+  connectionId: z.string().min(1, "Selecione uma instância"),
+  steps: z.array(stepSchema).min(1, "Adicione ao menos uma etapa"),
+});
+type FieldErrors = { name?: string; description?: string; invValue?: string; connectionId?: string; steps?: string; stepMsgs?: Record<number, string>; stepDelays?: Record<number, string> };
+
+function InlineError({ msg }: { msg?: string }) {
+  if (!msg) return null;
+  return (
+    <div className="mt-1.5 flex items-center gap-1.5 rounded-lg border border-red-500/30 bg-red-500/10 px-2.5 py-1.5 text-xs font-medium text-red-300 backdrop-blur-md shadow-[0_4px_12px_-4px_rgba(239,68,68,0.35)] animate-in fade-in slide-in-from-top-1 duration-200">
+      <AlertCircle className="h-3.5 w-3.5 shrink-0" />
+      <span>{msg}</span>
+    </div>
+  );
+}
 
 export const Route = createFileRoute("/_authenticated/followups")({
   head: () => ({ meta: [{ title: "Follow-up — Plataforma IA WhatsApp" }] }),
@@ -58,6 +84,7 @@ function Page() {
   const [stopOnReply, setStopOnReply] = useState(true);
   const [isActive, setIsActive] = useState(true);
   const [connectionId, setConnectionId] = useState<string>("all");
+  const [errors, setErrors] = useState<FieldErrors>({});
 
   async function load() {
     setLoading(true);
@@ -93,6 +120,7 @@ function Page() {
     setStopOnReply(true); setIsActive(true);
     setConnectionId("all");
     setSteps([{ step_order: 0, delay_value: 0, delay_unit: "minutes", message: "" }]);
+    setErrors({});
     setOpen(true);
   }
   async function openEdit(f: Followup) {
@@ -104,12 +132,30 @@ function Page() {
     if (!user) return;
     const { data } = await supabase.from("followup_steps").select("*").eq("followup_id", f.id).eq("user_id", user.id).order("step_order");
     setSteps((data as Step[])?.length ? (data as Step[]) : [{ step_order: 0, delay_value: 0, delay_unit: "minutes", message: "" }]);
+    setErrors({});
     setOpen(true);
   }
 
   async function save() {
-    if (!name.trim()) { toast.error("Informe um nome"); return; }
-    if (!steps.some((s) => s.message.trim())) { toast.error("Adicione ao menos uma mensagem"); return; }
+    const parsed = followupSchema.safeParse({ name, description, invValue, invUnit, connectionId, steps });
+    if (!parsed.success) {
+      const fe: FieldErrors = { stepMsgs: {}, stepDelays: {} };
+      for (const issue of parsed.error.issues) {
+        const [k, idx, sub] = issue.path as (string | number)[];
+        if (k === "steps" && typeof idx === "number") {
+          if (sub === "message") fe.stepMsgs![idx] = issue.message;
+          else if (sub === "delay_value") fe.stepDelays![idx] = issue.message;
+          else fe.steps = issue.message;
+        } else if (k === "name") fe.name = issue.message;
+        else if (k === "description") fe.description = issue.message;
+        else if (k === "invValue") fe.invValue = issue.message;
+        else if (k === "connectionId") fe.connectionId = issue.message;
+      }
+      setErrors(fe);
+      toast.error("Corrija os campos destacados");
+      return;
+    }
+    setErrors({});
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) { toast.error("Sem sessão"); return; }
     const payload = {
