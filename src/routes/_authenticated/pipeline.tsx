@@ -199,26 +199,54 @@ function PipelinePage() {
   );
 
   return (
-    <PageShell
-      title="Pipeline CRM"
-      description="Acompanhe a jornada do cliente do primeiro contato ao pós-venda."
-      icon={<Kanban className="h-6 w-6" />}
-      status="ativo"
-      actions={
-        <div className="flex gap-2">
-          <Button variant="default" onClick={() => setSaleOpen(true)}>
-            <ShoppingCart className="h-4 w-4" /> Nova Venda
-          </Button>
-          <Button variant="outline" onClick={importContacts} disabled={importing || loading}>
-            {importing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
-            Importar Contatos
-          </Button>
-          <Button variant="outline" onClick={() => openCreate()}>
-            <Plus className="h-4 w-4" /> Novo Cartão
-          </Button>
+    <PageShell>
+      {/* Premium hero */}
+      <div className="relative overflow-hidden rounded-3xl border border-white/10 bg-gradient-to-br from-slate-950 via-slate-900/90 to-slate-950 p-6 shadow-[0_25px_70px_-25px_rgba(59,130,246,0.35)]">
+        <div className="pointer-events-none absolute -right-24 -top-24 h-72 w-72 rounded-full bg-blue-500/25 blur-3xl" />
+        <div className="pointer-events-none absolute -left-24 -bottom-24 h-72 w-72 rounded-full bg-violet-500/20 blur-3xl" />
+        <div className="pointer-events-none absolute inset-0 opacity-30" style={{ backgroundImage: "radial-gradient(circle at 30% 20%, rgba(255,255,255,0.08), transparent 55%)" }} />
+        <div className="relative flex flex-wrap items-center justify-between gap-4">
+          <div className="flex items-center gap-4">
+            <div className="relative">
+              <div className="pointer-events-none absolute -inset-2 rounded-2xl bg-gradient-to-br from-blue-500/50 to-violet-500/40 blur-xl" />
+              <div className="relative grid h-14 w-14 place-items-center rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-600 shadow-[0_10px_30px_-10px_rgba(59,130,246,0.7)] ring-1 ring-white/20">
+                <Kanban className="h-7 w-7 text-white" />
+              </div>
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <h1 className="bg-gradient-to-r from-white via-blue-100 to-violet-200 bg-clip-text text-3xl font-bold tracking-tight text-transparent">
+                  Pipeline CRM
+                </h1>
+                <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2.5 py-0.5 text-[11px] font-medium text-emerald-300">
+                  <span className="relative flex h-1.5 w-1.5">
+                    <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
+                    <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-emerald-400" />
+                  </span>
+                  Ativo
+                </span>
+              </div>
+              <p className="mt-1 text-sm text-muted-foreground">Acompanhe a jornada do cliente do primeiro contato ao pós-venda.</p>
+            </div>
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <Button onClick={() => setSaleOpen(true)}
+              className="bg-gradient-to-br from-blue-500 to-indigo-600 text-white shadow-[0_10px_30px_-10px_rgba(59,130,246,0.7)] ring-1 ring-white/20 hover:opacity-90">
+              <ShoppingCart className="mr-2 h-4 w-4" /> Nova Venda
+            </Button>
+            <Button variant="outline" onClick={importContacts} disabled={importing || loading}
+              className="border-white/10 bg-white/[0.03] backdrop-blur hover:bg-white/[0.06]">
+              {importing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}
+              Importar Contatos
+            </Button>
+            <Button variant="outline" onClick={() => openCreate()}
+              className="border-white/10 bg-white/[0.03] backdrop-blur hover:bg-white/[0.06]">
+              <Plus className="mr-2 h-4 w-4" /> Novo Cartão
+            </Button>
+          </div>
         </div>
-      }
-    >
+      </div>
+
       {loading ? (
         <div className="flex justify-center py-24"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>
       ) : (
