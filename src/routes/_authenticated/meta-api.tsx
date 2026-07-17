@@ -118,7 +118,7 @@ function Page() {
 
   if (loading || !cfg) {
     return (
-      <PageShell title="Meta API Oficial" description="WhatsApp Cloud API" icon={<Facebook className="h-6 w-6" />} status="ativo">
+      <PageShell title="Meta API Oficial" description="WhatsApp Cloud API" icon={<Facebook className="h-6 w-6" />}>
         <div className="grid place-items-center py-24"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>
       </PageShell>
     );
