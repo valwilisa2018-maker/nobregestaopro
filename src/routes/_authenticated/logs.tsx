@@ -1,15 +1,13 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { ScrollText, RefreshCw, Loader2, Inbox, Trash2 } from "lucide-react";
+import { ScrollText, RefreshCw, Loader2, Inbox, Trash2, Search, Activity, AlertTriangle, Info, Bug, XCircle, Download, Filter } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 import { toast } from "sonner";
-import { PageShell } from "@/components/page-shell";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_authenticated/logs")({
   head: () => ({ meta: [{ title: "Logs — Plataforma IA WhatsApp" }] }),
@@ -130,23 +128,29 @@ function Page() {
   const load = async () => {
     if (!user) return;
     setLoading(true);
-    let q = supabase.from("logs").select("*").eq("user_id", user.id).order("created_at", { ascending: false }).limit(500);
-    if (level !== "all") q = q.eq("level", level);
-    const { data, error } = await q;
+    const { data, error } = await supabase.from("logs").select("*").eq("user_id", user.id).order("created_at", { ascending: false }).limit(500);
     setLoading(false);
     if (error) return toast.error(error.message);
     setRows((data ?? []) as LogRow[]);
   };
-  useEffect(() => { load(); /* eslint-disable-next-line */ }, [user, level]);
+  useEffect(() => { load(); /* eslint-disable-next-line */ }, [user]);
 
   const filtered = useMemo(() => {
     const term = search.trim().toLowerCase();
-    if (!term) return rows;
-    return rows.filter((r) =>
-      r.message.toLowerCase().includes(term) ||
-      (r.source ?? "").toLowerCase().includes(term)
-    );
-  }, [rows, search]);
+    return rows.filter((r) => {
+      if (level !== "all" && r.level !== level) return false;
+      if (!term) return true;
+      return r.message.toLowerCase().includes(term) || (r.source ?? "").toLowerCase().includes(term);
+    });
+  }, [rows, search, level]);
+
+  const counts = useMemo(() => ({
+    all: rows.length,
+    error: rows.filter((r) => r.level === "error").length,
+    warn: rows.filter((r) => r.level === "warn").length,
+    info: rows.filter((r) => r.level === "info").length,
+    debug: rows.filter((r) => r.level === "debug").length,
+  }), [rows]);
 
   const clearAll = async () => {
     if (!confirm("Limpar todos os logs? Esta ação é irreversível.")) return;
@@ -157,50 +161,134 @@ function Page() {
     load();
   };
 
+  const exportJson = () => {
+    const blob = new Blob([JSON.stringify(filtered, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url; a.download = `logs-${new Date().toISOString().slice(0,10)}.json`; a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const levelChips: Array<{ id: string; label: string; icon: React.ReactNode; count: number; tone: string }> = [
+    { id: "all", label: "Todos", icon: <Activity className="h-3.5 w-3.5" />, count: counts.all, tone: "primary" },
+    { id: "error", label: "Erros", icon: <XCircle className="h-3.5 w-3.5" />, count: counts.error, tone: "destructive" },
+    { id: "warn", label: "Avisos", icon: <AlertTriangle className="h-3.5 w-3.5" />, count: counts.warn, tone: "warn" },
+    { id: "info", label: "Informações", icon: <Info className="h-3.5 w-3.5" />, count: counts.info, tone: "primary" },
+    { id: "debug", label: "Depuração", icon: <Bug className="h-3.5 w-3.5" />, count: counts.debug, tone: "muted" },
+  ];
+
   return (
-    <PageShell
-      title="Logs"
-      description="Eventos técnicos gerados pela plataforma em tempo real."
-      icon={<ScrollText className="h-6 w-6" />}
-      status="ativo"
-      actions={
-        <div className="flex gap-2">
-          <Button variant="outline" onClick={load}><RefreshCw className="h-4 w-4" /> Atualizar</Button>
-          <Button variant="outline" onClick={clearAll}><Trash2 className="h-4 w-4" /> Limpar</Button>
+    <div className="space-y-6">
+      {/* Hero */}
+      <div className="relative overflow-hidden rounded-3xl border border-border bg-gradient-to-br from-card via-card to-accent/20 p-6 sm:p-8">
+        <div className="absolute -right-24 -top-24 h-72 w-72 rounded-full bg-primary/20 blur-3xl" />
+        <div className="absolute -bottom-32 -left-16 h-64 w-64 rounded-full bg-accent/20 blur-3xl" />
+        <div className="relative flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
+          <div className="flex items-start gap-4">
+            <div className="grid h-14 w-14 shrink-0 place-items-center rounded-2xl bg-gradient-to-br from-primary to-accent text-primary-foreground shadow-lg shadow-primary/30 ring-1 ring-primary/40">
+              <ScrollText className="h-7 w-7" />
+            </div>
+            <div className="min-w-0 space-y-2">
+              <div className="flex flex-wrap items-center gap-2">
+                <h1 className="text-3xl font-bold tracking-tight bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text text-transparent">
+                  Central de Logs
+                </h1>
+                <Badge variant="outline" className="bg-primary/15 text-primary border-primary/30 gap-1">
+                  <span className="relative flex h-2 w-2">
+                    <span className="absolute inline-flex h-full w-full rounded-full bg-primary opacity-75 animate-ping" />
+                    <span className="relative inline-flex h-2 w-2 rounded-full bg-primary" />
+                  </span>
+                  Ao vivo
+                </Badge>
+              </div>
+              <p className="text-sm text-muted-foreground max-w-2xl">
+                Monitoramento em tempo real de todos os eventos técnicos da plataforma. Filtre, busque e exporte para análise.
+              </p>
+            </div>
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <Button variant="outline" onClick={exportJson} className="gap-2"><Download className="h-4 w-4" />Exportar</Button>
+            <Button variant="outline" onClick={load} className="gap-2"><RefreshCw className={cn("h-4 w-4", loading && "animate-spin")} />Atualizar</Button>
+            <Button variant="outline" onClick={clearAll} className="gap-2 text-destructive hover:text-destructive"><Trash2 className="h-4 w-4" />Limpar</Button>
+          </div>
         </div>
-      }
-    >
-      <div className="flex flex-col sm:flex-row gap-2 mb-4">
-        <Input placeholder="Buscar mensagem ou origem…" value={search} onChange={(e) => setSearch(e.target.value)} className="sm:max-w-sm" />
-        <Select value={level} onValueChange={setLevel}>
-          <SelectTrigger className="sm:w-44"><SelectValue /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Todos os níveis</SelectItem>
-            <SelectItem value="info">Info</SelectItem>
-            <SelectItem value="warn">Warn</SelectItem>
-            <SelectItem value="error">Error</SelectItem>
-            <SelectItem value="debug">Debug</SelectItem>
-          </SelectContent>
-        </Select>
+
+        {/* KPIs */}
+        <div className="relative mt-6 grid grid-cols-2 gap-3 sm:grid-cols-5">
+          {levelChips.map((c) => {
+            const active = level === c.id;
+            const toneCls =
+              c.tone === "destructive" ? "from-destructive/20 to-destructive/5 text-destructive" :
+              c.tone === "warn" ? "from-yellow-500/20 to-yellow-500/5 text-yellow-500" :
+              c.tone === "muted" ? "from-muted-foreground/20 to-muted-foreground/5 text-muted-foreground" :
+              "from-primary/20 to-primary/5 text-primary";
+            return (
+              <button
+                key={c.id}
+                onClick={() => setLevel(c.id)}
+                className={cn(
+                  "group relative overflow-hidden rounded-2xl border p-4 text-left transition-all",
+                  "bg-gradient-to-br", toneCls,
+                  active ? "border-primary/50 ring-2 ring-primary/30 scale-[1.02]" : "border-border hover:border-primary/30 hover:scale-[1.01]",
+                )}
+              >
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-1.5 text-xs font-medium uppercase tracking-wider opacity-80">
+                    {c.icon}
+                    {c.label}
+                  </div>
+                </div>
+                <div className="mt-2 text-3xl font-bold text-foreground tabular-nums">{c.count}</div>
+              </button>
+            );
+          })}
+        </div>
       </div>
-      <Card>
-        <CardContent className="p-0">
-          {loading ? (
-            <div className="p-12 flex justify-center"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>
-          ) : filtered.length === 0 ? (
-            <div className="p-12 text-center space-y-3">
-              <div className="mx-auto grid h-14 w-14 place-items-center rounded-full bg-primary/10 text-primary"><Inbox className="h-6 w-6" /></div>
-              <p className="text-muted-foreground">Nenhum log encontrado.</p>
+
+      {/* Search bar */}
+      <div className="rounded-2xl border border-border bg-card p-3 shadow-sm">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              placeholder="Buscar por mensagem ou origem…"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="h-11 pl-10 border-0 bg-muted/40 focus-visible:ring-1 focus-visible:ring-primary/40"
+            />
+          </div>
+          <div className="flex items-center gap-2 px-2 text-xs text-muted-foreground">
+            <Filter className="h-3.5 w-3.5" />
+            <span className="tabular-nums">{filtered.length} de {rows.length} registros</span>
+          </div>
+        </div>
+      </div>
+
+      {/* List */}
+      <div className="rounded-2xl border border-border bg-card overflow-hidden shadow-sm">
+        {loading ? (
+          <div className="p-16 flex flex-col items-center justify-center gap-3">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            <p className="text-sm text-muted-foreground">Carregando eventos…</p>
+          </div>
+        ) : filtered.length === 0 ? (
+          <div className="p-16 text-center space-y-3">
+            <div className="mx-auto grid h-16 w-16 place-items-center rounded-2xl bg-primary/10 text-primary">
+              <Inbox className="h-7 w-7" />
             </div>
-          ) : (
-            <div className="divide-y divide-border">
-              {filtered.map((r) => (
-                <LogRowItem key={r.id} r={r} />
-              ))}
+            <div>
+              <p className="font-medium text-foreground">Nenhum log encontrado</p>
+              <p className="text-sm text-muted-foreground">Ajuste os filtros ou aguarde novos eventos.</p>
             </div>
-          )}
-        </CardContent>
-      </Card>
-    </PageShell>
+          </div>
+        ) : (
+          <div className="divide-y divide-border">
+            {filtered.map((r) => (
+              <LogRowItem key={r.id} r={r} />
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
   );
 }
