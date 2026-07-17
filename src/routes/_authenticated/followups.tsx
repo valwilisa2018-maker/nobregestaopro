@@ -331,11 +331,13 @@ function Page() {
               <div className="grid gap-5 md:grid-cols-2">
                 <div className="space-y-2">
                   <Label className="text-sm font-semibold">Nome</Label>
-                  <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Ex.: Reengajamento 24h" className="h-11 bg-slate-900/60 border-white/10 focus:border-blue-500/50 focus:ring-2 focus:ring-blue-500/20 transition" />
+                  <Input value={name} onChange={(e) => { setName(e.target.value); if (errors.name) setErrors((x) => ({ ...x, name: undefined })); }} placeholder="Ex.: Reengajamento 24h" className={`h-11 bg-slate-900/60 border-white/10 focus:border-blue-500/50 focus:ring-2 focus:ring-blue-500/20 transition ${errors.name ? "border-red-500/60 focus:border-red-500/60 focus:ring-red-500/20" : ""}`} />
+                  <InlineError msg={errors.name} />
                 </div>
                 <div className="space-y-2">
                   <Label className="text-sm font-semibold">Descrição</Label>
-                  <Textarea rows={2} value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Opcional" className="bg-slate-900/60 border-white/10 focus:border-blue-500/50 focus:ring-2 focus:ring-blue-500/20 resize-none transition" />
+                  <Textarea rows={2} value={description} onChange={(e) => { setDescription(e.target.value); if (errors.description) setErrors((x) => ({ ...x, description: undefined })); }} placeholder="Opcional" className={`bg-slate-900/60 border-white/10 focus:border-blue-500/50 focus:ring-2 focus:ring-blue-500/20 resize-none transition ${errors.description ? "border-red-500/60 focus:border-red-500/60 focus:ring-red-500/20" : ""}`} />
+                  <InlineError msg={errors.description} />
                 </div>
               </div>
 
@@ -349,7 +351,7 @@ function Page() {
                 </div>
                 <p className="relative text-xs text-muted-foreground mb-3">Dispara quando o cliente não responder pelo tempo abaixo.</p>
                 <div className="relative flex items-center gap-2">
-                  <Input type="number" min={1} value={invValue} onChange={(e) => setInvValue(Number(e.target.value) || 1)} className="h-11 w-28 bg-slate-950/50 border-white/10 focus:border-blue-500/50" />
+                  <Input type="number" min={1} value={invValue} onChange={(e) => { setInvValue(Number(e.target.value) || 1); if (errors.invValue) setErrors((x) => ({ ...x, invValue: undefined })); }} className={`h-11 w-28 bg-slate-950/50 border-white/10 focus:border-blue-500/50 ${errors.invValue ? "border-red-500/60" : ""}`} />
                   <Select value={invUnit} onValueChange={(v) => setInvUnit(v as Unit)}>
                     <SelectTrigger className="h-11 w-40 bg-slate-950/50 border-white/10 focus:ring-blue-500/20"><SelectValue /></SelectTrigger>
                     <SelectContent>
@@ -357,6 +359,7 @@ function Page() {
                     </SelectContent>
                   </Select>
                 </div>
+                <InlineError msg={errors.invValue} />
               </div>
 
               <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-slate-900/60 p-5">
@@ -369,7 +372,7 @@ function Page() {
                 </div>
                 <p className="relative text-xs text-muted-foreground mb-3">Escolha uma instância específica ou dispare por todas.</p>
                 <Select value={connectionId} onValueChange={setConnectionId}>
-                  <SelectTrigger className="h-11 bg-slate-950/50 border-white/10 focus:ring-indigo-500/20"><SelectValue /></SelectTrigger>
+                  <SelectTrigger className={`h-11 bg-slate-950/50 border-white/10 focus:ring-indigo-500/20 ${errors.connectionId ? "border-red-500/60" : ""}`}><SelectValue /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">🌐 Todas as instâncias</SelectItem>
                     {connections.map((c) => {
@@ -383,6 +386,7 @@ function Page() {
                     })}
                   </SelectContent>
                 </Select>
+                <InlineError msg={errors.connectionId} />
                 {connections.length === 0 && (
                   <p className="relative mt-2 text-xs font-medium text-amber-500">Nenhuma instância cadastrada. Conecte um WhatsApp primeiro.</p>
                 )}
@@ -409,7 +413,7 @@ function Page() {
                       <span className="text-xs text-muted-foreground">Aguardar</span>
                       <Input type="number" min={0} value={s.delay_value} disabled={i === 0}
                         onChange={(e) => setSteps((xs) => xs.map((x, j) => j === i ? { ...x, delay_value: Number(e.target.value) || 0 } : x))}
-                        className="w-24 h-9 bg-slate-950/50 border-white/10 disabled:opacity-40" />
+                        className={`w-24 h-9 bg-slate-950/50 border-white/10 disabled:opacity-40 ${errors.stepDelays?.[i] ? "border-red-500/60" : ""}`} />
                       <Select value={s.delay_unit} onValueChange={(v) => setSteps((xs) => xs.map((x, j) => j === i ? { ...x, delay_unit: v as Unit } : x))}>
                         <SelectTrigger className="w-32 h-9 bg-slate-950/50 border-white/10"><SelectValue /></SelectTrigger>
                         <SelectContent>
@@ -418,11 +422,14 @@ function Page() {
                       </Select>
                       {i === 0 && <span className="text-xs text-muted-foreground">(dispara ao gatilho)</span>}
                     </div>
+                    <InlineError msg={errors.stepDelays?.[i]} />
                     <Textarea rows={3} value={s.message} placeholder="Mensagem para o cliente..."
-                      onChange={(e) => setSteps((xs) => xs.map((x, j) => j === i ? { ...x, message: e.target.value } : x))}
-                      className="bg-slate-950/50 border-white/10 focus:border-blue-500/50 focus:ring-2 focus:ring-blue-500/20 resize-none transition" />
+                      onChange={(e) => { setSteps((xs) => xs.map((x, j) => j === i ? { ...x, message: e.target.value } : x)); if (errors.stepMsgs?.[i]) setErrors((x) => ({ ...x, stepMsgs: { ...(x.stepMsgs ?? {}), [i]: undefined as unknown as string } })); }}
+                      className={`bg-slate-950/50 border-white/10 focus:border-blue-500/50 focus:ring-2 focus:ring-blue-500/20 resize-none transition ${errors.stepMsgs?.[i] ? "border-red-500/60 focus:border-red-500/60 focus:ring-red-500/20" : ""}`} />
+                    <InlineError msg={errors.stepMsgs?.[i]} />
                   </div>
                 ))}
+                <InlineError msg={errors.steps} />
               </div>
 
               <div className="grid gap-3 sm:grid-cols-2">
