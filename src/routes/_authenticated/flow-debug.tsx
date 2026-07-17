@@ -340,21 +340,34 @@ function Page() {
       </div>
 
       <Tabs value={tab} onValueChange={(v) => setTab(v as "live" | "sim" | "diag")} className="w-full">
-        <TabsList className="mb-4 bg-card/40 border border-border/60 backdrop-blur p-1 h-auto">
-          <TabsTrigger value="live" className="gap-2 data-[state=active]:bg-gradient-to-br data-[state=active]:from-blue-500/20 data-[state=active]:to-cyan-500/10 data-[state=active]:shadow-sm">
+        <TabsList className="mb-6 inline-flex h-auto flex-wrap gap-1.5 rounded-2xl border border-white/10 bg-gradient-to-br from-slate-900/80 via-slate-900/60 to-slate-950/80 p-1.5 shadow-[0_8px_32px_-12px_rgba(0,0,0,0.5)] backdrop-blur-xl">
+          <TabsTrigger
+            value="live"
+            className="group relative gap-2 rounded-xl px-4 py-2.5 text-sm font-medium text-muted-foreground transition-all hover:text-foreground data-[state=active]:bg-gradient-to-br data-[state=active]:from-blue-500/90 data-[state=active]:to-cyan-500/80 data-[state=active]:text-white data-[state=active]:shadow-[0_8px_24px_-8px_rgba(59,130,246,0.6)] data-[state=active]:ring-1 data-[state=active]:ring-blue-400/40"
+          >
+            <span className="relative flex h-2 w-2">
+              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-blue-400 opacity-60 group-data-[state=inactive]:hidden" />
+              <span className="relative inline-flex h-2 w-2 rounded-full bg-blue-400 group-data-[state=active]:bg-white" />
+            </span>
             <Activity className="h-4 w-4" /> Execuções ao vivo
-            <Badge variant="outline" className="ml-1 text-[10px]">{liveExecs.length}</Badge>
-            {liveErrors > 0 && <Badge variant="outline" className="text-[10px] bg-red-500/15 text-red-600 border-red-500/30">{liveErrors} erro{liveErrors === 1 ? "" : "s"}</Badge>}
+            <Badge variant="outline" className="ml-1 h-5 min-w-5 justify-center rounded-full border-white/20 bg-white/10 px-1.5 text-[10px] font-semibold text-foreground group-data-[state=active]:border-white/40 group-data-[state=active]:bg-white/20 group-data-[state=active]:text-white">{liveExecs.length}</Badge>
+            {liveErrors > 0 && <Badge variant="outline" className="h-5 rounded-full border-red-500/40 bg-red-500/20 px-1.5 text-[10px] font-semibold text-red-300">{liveErrors} erro{liveErrors === 1 ? "" : "s"}</Badge>}
           </TabsTrigger>
-          <TabsTrigger value="sim" className="gap-2 data-[state=active]:bg-gradient-to-br data-[state=active]:from-violet-500/20 data-[state=active]:to-fuchsia-500/10 data-[state=active]:shadow-sm">
+          <TabsTrigger
+            value="sim"
+            className="group relative gap-2 rounded-xl px-4 py-2.5 text-sm font-medium text-muted-foreground transition-all hover:text-foreground data-[state=active]:bg-gradient-to-br data-[state=active]:from-violet-500/90 data-[state=active]:to-fuchsia-500/80 data-[state=active]:text-white data-[state=active]:shadow-[0_8px_24px_-8px_rgba(139,92,246,0.6)] data-[state=active]:ring-1 data-[state=active]:ring-violet-400/40"
+          >
             <FlaskConical className="h-4 w-4" /> Simulador
-            <Badge variant="outline" className="ml-1 text-[10px]">{simExecs.length}</Badge>
+            <Badge variant="outline" className="ml-1 h-5 min-w-5 justify-center rounded-full border-white/20 bg-white/10 px-1.5 text-[10px] font-semibold text-foreground group-data-[state=active]:border-white/40 group-data-[state=active]:bg-white/20 group-data-[state=active]:text-white">{simExecs.length}</Badge>
           </TabsTrigger>
-          <TabsTrigger value="diag" className="gap-2 data-[state=active]:bg-gradient-to-br data-[state=active]:from-amber-500/20 data-[state=active]:to-orange-500/10 data-[state=active]:shadow-sm">
+          <TabsTrigger
+            value="diag"
+            className="group relative gap-2 rounded-xl px-4 py-2.5 text-sm font-medium text-muted-foreground transition-all hover:text-foreground data-[state=active]:bg-gradient-to-br data-[state=active]:from-amber-500/90 data-[state=active]:to-orange-500/80 data-[state=active]:text-white data-[state=active]:shadow-[0_8px_24px_-8px_rgba(245,158,11,0.6)] data-[state=active]:ring-1 data-[state=active]:ring-amber-400/40"
+          >
             <Stethoscope className="h-4 w-4" /> Diagnóstico
-            <Badge variant="outline" className="ml-1 text-[10px]">{diag.length}</Badge>
+            <Badge variant="outline" className="ml-1 h-5 min-w-5 justify-center rounded-full border-white/20 bg-white/10 px-1.5 text-[10px] font-semibold text-foreground group-data-[state=active]:border-white/40 group-data-[state=active]:bg-white/20 group-data-[state=active]:text-white">{diag.length}</Badge>
             {diagErrors > 0 && (
-              <Badge variant="outline" className="text-[10px] bg-red-500/15 text-red-600 border-red-500/30">
+              <Badge variant="outline" className="h-5 rounded-full border-red-500/40 bg-red-500/20 px-1.5 text-[10px] font-semibold text-red-300">
                 {diagErrors} erro{diagErrors === 1 ? "" : "s"}
               </Badge>
             )}
