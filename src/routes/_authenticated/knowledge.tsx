@@ -161,68 +161,92 @@ function Page() {
   };
 
   return (
-    <PageShell
-      title="Base de Conhecimento"
-      description="Alimente seus agentes com contexto: textos, URLs e documentos consultados na hierarquia de resposta."
-      icon={<BookOpen className="h-6 w-6" />}
-      status="ativo"
-      actions={
-        <Button onClick={openCreate}>
-          <Plus className="h-4 w-4" /> Novo documento
-        </Button>
-      }
-    >
-      <div className="grid gap-3 sm:grid-cols-3">
-        <StatCard label="Documentos" value={rows.length} icon={<BookOpen className="h-4 w-4" />} />
-        <StatCard label="Tokens estimados" value={totalTokens.toLocaleString("pt-BR")} icon={<Type className="h-4 w-4" />} />
-        <StatCard label="Agentes com KB" value={new Set(rows.map((r) => r.agent_id).filter(Boolean)).size} icon={<Bot className="h-4 w-4" />} />
-      </div>
-
-      <div className="flex flex-col sm:flex-row gap-2">
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input placeholder="Buscar por título ou conteúdo…" className="pl-9" value={q} onChange={(e) => setQ(e.target.value)} />
+    <PageShell>
+      {/* Premium Hero */}
+      <div className="relative overflow-hidden rounded-3xl border border-white/10 bg-gradient-to-br from-slate-900/90 via-slate-900/70 to-slate-950/90 p-6 shadow-[0_20px_60px_-20px_rgba(0,0,0,0.6)] backdrop-blur-xl">
+        <div className="pointer-events-none absolute -right-24 -top-24 h-72 w-72 rounded-full bg-blue-500/20 blur-3xl" />
+        <div className="pointer-events-none absolute -left-24 -bottom-24 h-72 w-72 rounded-full bg-violet-500/15 blur-3xl" />
+        <div className="relative flex flex-wrap items-center justify-between gap-4">
+          <div className="flex items-center gap-4">
+            <div className="grid h-14 w-14 place-items-center rounded-2xl bg-gradient-to-br from-blue-500 to-violet-500 shadow-[0_10px_30px_-10px_rgba(139,92,246,0.7)] ring-1 ring-white/20">
+              <BookOpen className="h-7 w-7 text-white" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <h1 className="bg-gradient-to-r from-blue-300 via-cyan-200 to-violet-300 bg-clip-text text-3xl font-bold tracking-tight text-transparent">
+                  Base de Conhecimento
+                </h1>
+                <Badge variant="outline" className="border-emerald-500/40 bg-emerald-500/10 text-emerald-300">Ativo</Badge>
+              </div>
+              <p className="text-sm text-muted-foreground">Alimente seus agentes com contexto: textos, URLs e documentos consultados na hierarquia de resposta.</p>
+            </div>
+          </div>
+          <Button onClick={openCreate} className="bg-gradient-to-br from-blue-500 to-violet-500 text-white shadow-[0_10px_30px_-10px_rgba(59,130,246,0.7)] hover:opacity-90">
+            <Plus className="mr-2 h-4 w-4" /> Novo documento
+          </Button>
         </div>
-        <Select value={agentFilter} onValueChange={setAgentFilter}>
-          <SelectTrigger className="sm:w-64"><SelectValue /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Todos os agentes</SelectItem>
-            <SelectItem value="global">Global (sem agente)</SelectItem>
-            {agents.map((a) => <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>)}
-          </SelectContent>
-        </Select>
+
+        <div className="relative mt-6 grid grid-cols-1 gap-3 sm:grid-cols-3">
+          <StatCard label="Documentos" value={rows.length} icon={<BookOpen className="h-4 w-4" />} tone="from-blue-500/25 to-cyan-500/10" ring="ring-blue-500/30" />
+          <StatCard label="Tokens estimados" value={totalTokens.toLocaleString("pt-BR")} icon={<Type className="h-4 w-4" />} tone="from-violet-500/25 to-fuchsia-500/10" ring="ring-violet-500/30" />
+          <StatCard label="Agentes com KB" value={new Set(rows.map((r) => r.agent_id).filter(Boolean)).size} icon={<Bot className="h-4 w-4" />} tone="from-emerald-500/25 to-teal-500/10" ring="ring-emerald-500/30" />
+        </div>
       </div>
 
-      <Card>
+      {/* Filtros */}
+      <div className="rounded-2xl border border-white/10 bg-card/60 p-4 backdrop-blur-xl">
+        <div className="flex flex-col gap-2 sm:flex-row">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Input placeholder="Buscar por título ou conteúdo…" className="h-10 border-white/10 bg-background/60 pl-9" value={q} onChange={(e) => setQ(e.target.value)} />
+          </div>
+          <Select value={agentFilter} onValueChange={setAgentFilter}>
+            <SelectTrigger className="h-10 border-white/10 bg-background/60 sm:w-64"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todos os agentes</SelectItem>
+              <SelectItem value="global">Global (sem agente)</SelectItem>
+              {agents.map((a) => <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>)}
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+
+      <Card className="border-white/10 bg-gradient-to-b from-card/60 to-card/30 backdrop-blur-xl">
         <CardContent className="p-0">
           {loading ? (
             <div className="p-12 flex justify-center"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>
           ) : filtered.length === 0 ? (
-            <div className="p-12 text-center space-y-3">
-              <div className="mx-auto grid h-14 w-14 place-items-center rounded-full bg-primary/10 text-primary">
-                <Inbox className="h-6 w-6" />
+            <div className="p-16 text-center space-y-4">
+              <div className="relative mx-auto grid h-20 w-20 place-items-center">
+                <div className="absolute inset-0 rounded-full bg-gradient-to-br from-blue-500/30 to-violet-500/20 blur-xl" />
+                <div className="relative grid h-20 w-20 place-items-center rounded-2xl bg-gradient-to-br from-blue-500/20 to-violet-500/20 text-blue-300 ring-1 ring-white/10">
+                  <Inbox className="h-8 w-8" />
+                </div>
               </div>
-              <p className="text-muted-foreground">Nenhum documento na base ainda.</p>
-              <Button onClick={openCreate} variant="outline">
-                <Plus className="h-4 w-4" /> Adicionar primeiro documento
+              <div>
+                <p className="text-lg font-medium">Nenhum documento na base ainda.</p>
+                <p className="text-sm text-muted-foreground">Adicione textos, URLs ou PDFs para alimentar seus agentes.</p>
+              </div>
+              <Button onClick={openCreate} className="bg-gradient-to-br from-blue-500 to-violet-500 text-white hover:opacity-90">
+                <Plus className="mr-2 h-4 w-4" /> Adicionar primeiro documento
               </Button>
             </div>
           ) : (
-            <ul className="divide-y divide-border">
+            <ul className="divide-y divide-white/5">
               {filtered.map((r) => {
                 const m = SOURCE_META[r.source_type] ?? SOURCE_META.text;
                 const Icon = m.icon;
                 const agent = agents.find((a) => a.id === r.agent_id);
                 return (
-                  <li key={r.id} className="p-4 hover:bg-muted/30 transition flex items-start gap-3">
-                    <div className="grid h-10 w-10 shrink-0 place-items-center rounded-lg bg-primary/10 text-primary ring-1 ring-primary/20">
+                  <li key={r.id} className="group flex items-start gap-3 p-4 transition-colors hover:bg-white/[0.03]">
+                    <div className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-gradient-to-br from-blue-500/20 to-violet-500/20 text-blue-300 ring-1 ring-white/10">
                       <Icon className="h-5 w-5" />
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex flex-wrap items-center gap-2">
                         <h3 className="font-semibold truncate">{r.title}</h3>
-                        <Badge variant="outline" className={m.cls}>{m.label}</Badge>
-                        <Badge variant="outline">{agent ? agent.name : "Global"}</Badge>
+                        <Badge variant="outline" className={`rounded-full ${m.cls}`}>{m.label}</Badge>
+                        <Badge variant="outline" className="rounded-full border-white/10 bg-white/5">{agent ? agent.name : "Global"}</Badge>
                         <span className="text-xs text-muted-foreground">~{(r.tokens || 0).toLocaleString("pt-BR")} tokens</span>
                       </div>
                       {r.content && (
@@ -349,16 +373,16 @@ function Page() {
   );
 }
 
-function StatCard({ label, value, icon }: { label: string; value: number | string; icon: React.ReactNode }) {
+function StatCard({ label, value, icon, tone, ring }: { label: string; value: number | string; icon: React.ReactNode; tone?: string; ring?: string }) {
   return (
-    <Card>
-      <CardContent className="p-4 flex items-center gap-3">
-        <div className="grid h-10 w-10 place-items-center rounded-lg bg-primary/10 text-primary">{icon}</div>
+    <div className={`rounded-2xl border border-white/10 bg-gradient-to-br ${tone ?? "from-white/5 to-white/[0.02]"} p-4 ring-1 ${ring ?? "ring-white/10"} backdrop-blur transition-transform hover:-translate-y-0.5`}>
+      <div className="flex items-center gap-3">
+        <div className="grid h-10 w-10 place-items-center rounded-xl bg-white/10 text-foreground ring-1 ring-white/10">{icon}</div>
         <div>
-          <div className="text-xs text-muted-foreground">{label}</div>
-          <div className="text-lg font-bold">{value}</div>
+          <div className="text-xs uppercase tracking-wider text-muted-foreground">{label}</div>
+          <div className="text-xl font-bold tabular-nums">{value}</div>
         </div>
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   );
 }
