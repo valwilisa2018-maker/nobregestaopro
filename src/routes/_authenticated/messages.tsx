@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Mic, Search, Send, Square, MessageCircle, Check, CheckCheck, Loader2, ArrowLeft, Smile, Play, Pause, Paperclip, ChevronLeft, ChevronRight, X, FileText, Image as ImageIcon, Video, Music, File as FileIcon, MoreVertical, Star, Archive, ArchiveRestore, Pin, PinOff, Tag, Info, Save, Bell, BellOff, Trash2, Forward, ChevronDown, Reply, CornerUpLeft, Download, Bot, BotOff, Camera, Pencil, Plug, Settings, RefreshCw, Workflow } from "lucide-react";
+import { Mic, Search, Send, Square, MessageCircle, Check, CheckCheck, Loader2, ArrowLeft, Smile, Play, Pause, Paperclip, ChevronLeft, ChevronRight, X, FileText, Image as ImageIcon, Video, Music, File as FileIcon, MoreVertical, Star, Archive, ArchiveRestore, Pin, PinOff, Tag, Info, Save, Bell, BellOff, Trash2, Forward, ChevronDown, Reply, CornerUpLeft, Download, Bot, BotOff, Camera, Pencil, Plug, Settings, RefreshCw, Workflow, Sun, Moon } from "lucide-react";
 import EmojiPicker, { EmojiStyle, Theme } from "emoji-picker-react";
 import { PageShell } from "@/components/page-shell";
 import { supabase } from "@/integrations/supabase/client";
@@ -39,15 +39,57 @@ type Msg = {
   metadata: Record<string, unknown> | null;
 };
 
-const WA = {
-  headerDark: "#4c1d95",   // violet-900
-  headerTeal: "#7c3aed",   // violet-600
-  accent: "#8b5cf6",       // violet-500
-  chatBg: "#ECE5DD",       // WhatsApp original
-  outBubble: "#DCF8C6",    // WhatsApp original
-  inBubble: "#FFFFFF",
-  read: "#34B7F1",         // WhatsApp original
+const CHAT_THEME = {
+  light: {
+    headerDark: "#4c1d95",    // violet-900
+    headerTeal: "#7c3aed",    // violet-600
+    accent: "#8b5cf6",        // violet-500
+    chatBg: "#ECE5DD",        // WhatsApp original
+    outBubble: "#DCF8C6",     // WhatsApp original
+    inBubble: "#FFFFFF",
+    read: "#34B7F1",          // WhatsApp original
+    sidebarBg: "#ffffff",
+    sidebarSub: "#F6F6F6",
+    emptyBg: "#F0F2F5",
+    textMain: "#1f2937",
+    textMuted: "#6b7280",
+    textSecondary: "#9ca3af",
+    inputBg: "#ffffff",
+    border: "rgba(0,0,0,0.1)",
+    popoverBg: "#ffffff",
+    hoverBg: "#f9fafb",
+    activeBg: "#f3f4f6",
+  },
+  dark: {
+    headerDark: "#2e1065",    // violet-950
+    headerTeal: "#5b21b6",    // violet-800
+    accent: "#7c3aed",        // violet-600
+    chatBg: "#0b1220",        // deep navy/slate
+    outBubble: "#1e3a5f",     // dark blue
+    inBubble: "#1f2937",       // dark slate
+    read: "#38bdf8",          // sky-400
+    sidebarBg: "#111827",      // gray-900
+    sidebarSub: "#1f2937",     // gray-800
+    emptyBg: "#0b1220",
+    textMain: "#e5e7eb",
+    textMuted: "#9ca3af",
+    textSecondary: "#6b7280",
+    inputBg: "#1f2937",
+    border: "rgba(255,255,255,0.1)",
+    popoverBg: "#1f2937",
+    hoverBg: "#1f2937",
+    activeBg: "#374151",
+  },
 };
+
+function chatTheme(dark: boolean) {
+  return CHAT_THEME[dark ? "dark" : "light"];
+}
+
+function chatClass(dark: boolean, light: string, darkClass: string) {
+  return dark ? darkClass : light;
+}
+
 
 const STICKERS = ["😀","😂","😍","🥰","😎","🤩","🥳","😭","😡","🤔","👍","👏","🙏","🔥","💯","🎉","❤️","💔","😅","🤣","😴","🤗","🤝","👀","💪","🌹","🍀","⭐","☀️","🌙","🎂","🍕","☕","⚽","🎮","🎵","📸","💡","✅","❌"];
 const MESSAGE_PAGE_SIZE = 30;
@@ -132,7 +174,7 @@ function DownloadBtn({ url, filename, dark = false }: { url: string; filename: s
       type="button"
       onClick={(e) => { e.stopPropagation(); downloadFile(url, filename); }}
       title="Baixar"
-      className={`absolute top-1 right-1 z-10 grid place-items-center h-6 w-6 rounded-full backdrop-blur transition ${dark ? "bg-background/50 hover:bg-background/70 text-foreground" : "bg-white/85 hover:bg-white text-gray-700"}`}
+      className={`absolute top-1 right-1 z-10 grid place-items-center h-6 w-6 rounded-full backdrop-blur transition ${dark ? "bg-background/50 hover:bg-background/70 text-foreground" : "bg-white/85 hover:bg-white text-foreground"}`}
     >
       <Download className="h-3.5 w-3.5" />
     </button>
@@ -141,6 +183,19 @@ function DownloadBtn({ url, filename, dark = false }: { url: string; filename: s
 
 function MessagesPage() {
   const { user } = useAuth();
+  const [chatDarkMode, setChatDarkMode] = useState<boolean>(() => {
+    if (typeof window === "undefined") return false;
+    try {
+      return localStorage.getItem(scopedWaKey("wa-dark", user?.id)) === "1";
+    } catch { return false; }
+  });
+  useEffect(() => {
+    if (typeof window === "undefined" || !user?.id) return;
+    try {
+      localStorage.setItem(scopedWaKey("wa-dark", user.id), chatDarkMode ? "1" : "0");
+    } catch {}
+  }, [chatDarkMode, user?.id]);
+  const theme = chatTheme(chatDarkMode);
   // Debug logger — ligue no console com: localStorage.setItem('wa-debug','1')
   // Desligue com: localStorage.removeItem('wa-debug')
   const waDebug = useCallback((event: string, payload?: Record<string, unknown>) => {
@@ -1610,9 +1665,10 @@ function MessagesPage() {
       >
         {/* Contacts */}
         <aside
-          className={`${selected ? "hidden lg:flex" : "flex animate-in fade-in slide-in-from-left-4 duration-200"} flex-col bg-white border-r border-black/10 transition-all duration-300 overflow-hidden`}
+          className={`${selected ? "hidden lg:flex" : "flex animate-in fade-in slide-in-from-left-4 duration-200"} flex-col border-r transition-all duration-300 overflow-hidden`}
+          style={{ backgroundColor: theme.sidebarBg, borderColor: theme.border }}
         >
-          <div className="px-3 py-3 flex items-center gap-2" style={{ background: WA.headerDark, color: "white" }}>
+          <div className="px-3 py-3 flex items-center gap-2" style={{ background: theme.headerDark, color: "white" }}>
             <Popover onOpenChange={(o) => {
               if (o) {
                 const inst = instances.find((i) => i.id === activeInstance);
@@ -1798,19 +1854,19 @@ function MessagesPage() {
               <TooltipContent side="right">{sidebarCollapsed ? "Expandir lista" : "Recolher lista"}</TooltipContent>
             </Tooltip>
           </div>
-          {!sidebarCollapsed && <div className="p-2 bg-[#F6F6F6]">
+          {!sidebarCollapsed && <div className="p-2" style={{ backgroundColor: theme.sidebarSub }}>
             <div className="relative">
-              <Search className="absolute left-3 top-2.5 h-4 w-4 text-gray-500" />
+              <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
               <Input
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 placeholder="Pesquisar ou começar uma nova conversa"
-                className="pl-9 bg-white border-transparent rounded-full h-9 text-sm text-gray-800 placeholder:text-gray-500"
+                className="pl-9 border-transparent rounded-full h-9 text-sm placeholder:text-muted-foreground" style={{ backgroundColor: theme.inputBg, color: theme.textMain }}
               />
             </div>
           </div>}
           {!sidebarCollapsed && (
-            <div className="px-2 pb-2 pt-1 bg-[#F6F6F6] flex items-center gap-1 overflow-x-auto no-scrollbar">
+            <div className="px-2 pb-2 pt-1 flex items-center gap-1 overflow-x-auto no-scrollbar" style={{ backgroundColor: theme.sidebarSub }}>
               {([
                 { key: "all", label: "Tudo", count: null as number | null },
                 { key: "unread", label: "Não lidas", count: unreadTotal },
@@ -1825,20 +1881,20 @@ function MessagesPage() {
                     onClick={() => setFilterMode(t.key)}
                     className={`shrink-0 flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium transition border ${
                       active
-                        ? "bg-emerald-100 text-emerald-800 border-emerald-200"
-                        : "bg-white text-gray-700 border-gray-200 hover:bg-gray-100"
+                        ? "bg-emerald-500/20 text-emerald-300 border-emerald-500/30"
+                        : "border hover:bg-white/10"
                     }`}
                   >
                     <span>{t.label}</span>
                     {t.count != null && t.count > 0 && (
-                      <span className={`text-[9px] leading-none px-1 py-0.5 rounded-full ${active ? "bg-emerald-600 text-foreground" : "bg-gray-200 text-gray-700"}`}>{t.count}</span>
+                      <span className={`text-[9px] leading-none px-1 py-0.5 rounded-full ${active ? "bg-emerald-600 text-foreground" : "bg-white/10 text-foreground"}`}>{t.count}</span>
                     )}
                   </button>
                 );
               })}
             </div>
           )}
-          <div className="flex-1 overflow-y-auto bg-white">
+          <div className="flex-1 overflow-y-auto" style={{ backgroundColor: theme.sidebarBg }}>
             {filtered.map((c) => {
               const active = selected?.id === c.id;
               const isFav = favorites.has(c.id);
@@ -1848,32 +1904,32 @@ function MessagesPage() {
               return (
                 <div
                   key={c.id}
-                  className={`group w-full flex items-center gap-3 px-3 py-3 border-b border-black/5 hover:bg-gray-50 transition ${active ? "bg-gray-100" : ""} ${sidebarCollapsed ? "justify-center" : ""}`}
+                  className={`group w-full flex items-center gap-3 px-3 py-3 border-b transition hover:bg-white/5 ${active ? "bg-white/10" : ""} ${sidebarCollapsed ? "justify-center" : ""}`} style={{ borderColor: theme.border }}
                   title={sidebarCollapsed ? (c.name || c.phone) : undefined}
                 >
                   <button onClick={() => setSelected(c)} className="flex items-center gap-3 flex-1 min-w-0 text-left focus:outline-none">
                     {avatars[c.id] ? (
                       <img src={avatars[c.id]!} alt="" className="h-12 w-12 rounded-full object-cover shrink-0" />
                     ) : (
-                      <div className="h-12 w-12 rounded-full grid place-items-center text-sm font-semibold text-foreground shrink-0" style={{ background: WA.headerTeal }}>
+                      <div className="h-12 w-12 rounded-full grid place-items-center text-sm font-semibold text-foreground shrink-0" style={{ background: theme.headerTeal }}>
                         {initials(c.name, c.phone)}
                       </div>
                     )}
                     {!sidebarCollapsed && (
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-1.5">
-                          <div className="text-sm font-medium truncate text-gray-900 flex-1">{c.name || c.phone}</div>
+                          <div className="text-sm font-medium truncate flex-1" style={{ color: theme.textMain }}>{c.name || c.phone}</div>
                           {isPin && <Pin className="h-3.5 w-3.5 text-emerald-600 shrink-0" />}
                           {isFav && <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400 shrink-0" />}
-                          {isArch && <Archive className="h-3.5 w-3.5 text-gray-400 shrink-0" />}
+                          {isArch && <Archive className="h-3.5 w-3.5 text-muted-foreground shrink-0" />}
                           {label && <span className="h-2.5 w-2.5 rounded-full shrink-0" style={{ background: label }} />}
                         </div>
                         <div className="flex items-center gap-2">
-                          <div className="text-xs text-gray-500 truncate flex-1">
+                          <div className="text-xs truncate flex-1" style={{ color: theme.textMuted }}>
                             {lastPreviewMap[c.id]?.text
                               ? (
                                 <>
-                                  {lastPreviewMap[c.id].direction === "out" && <span className="text-gray-400 mr-1">Você:</span>}
+                                  {lastPreviewMap[c.id].direction === "out" && <span className="mr-1" style={{ color: theme.textSecondary }}>Você:</span>}
                                   {lastPreviewMap[c.id].text}
                                 </>
                               )
@@ -1882,7 +1938,7 @@ function MessagesPage() {
                           {(unreadMap[c.id] ?? 0) > 0 && (
                             <span
                               className="shrink-0 min-w-[20px] h-5 px-1.5 rounded-full text-[11px] font-semibold text-foreground grid place-items-center"
-                              style={{ background: WA.headerTeal }}
+                              style={{ background: theme.headerTeal }}
                               aria-label={`${unreadMap[c.id]} mensagens não lidas`}
                             >
                               {unreadMap[c.id] > 99 ? "99+" : unreadMap[c.id]}
@@ -1895,7 +1951,7 @@ function MessagesPage() {
                   {!sidebarCollapsed && (
                     <Popover>
                       <PopoverTrigger asChild>
-                        <button className="p-1.5 rounded-full text-gray-400 hover:text-gray-700 hover:bg-gray-200 opacity-0 group-hover:opacity-100 focus:opacity-100 transition" aria-label="Opções">
+                        <button className="p-1.5 rounded-full text-muted-foreground hover:text-foreground hover:bg-white/10 opacity-0 group-hover:opacity-100 focus:opacity-100 transition" aria-label="Opções">
                           <MoreVertical className="h-4 w-4" />
                         </button>
                       </PopoverTrigger>
@@ -1906,7 +1962,7 @@ function MessagesPage() {
                             writeScopedJson("wa-pin", user?.id, [...n]);
                             return n;
                           })}
-                          className="w-full flex items-center gap-2 px-3 py-2 rounded-md hover:bg-accent text-sm"
+                          className="w-full flex items-center gap-2 px-3 py-2 rounded-md hover:bg-white/10 text-sm"
                         >
                           {isPin ? <PinOff className="h-4 w-4 text-emerald-600" /> : <Pin className="h-4 w-4 text-emerald-600" />}
                           <span>{isPin ? "Desafixar" : "Fixar"}</span>
@@ -1917,7 +1973,7 @@ function MessagesPage() {
                             writeScopedJson("wa-fav", user?.id, [...n]);
                             return n;
                           })}
-                          className="w-full flex items-center gap-2 px-3 py-2 rounded-md hover:bg-accent text-sm"
+                          className="w-full flex items-center gap-2 px-3 py-2 rounded-md hover:bg-white/10 text-sm"
                         >
                           <Star className={`h-4 w-4 ${isFav ? "fill-amber-400 text-amber-400" : "text-amber-500"}`} />
                           <span>{isFav ? "Remover favorito" : "Favoritar"}</span>
@@ -1928,12 +1984,12 @@ function MessagesPage() {
                             writeScopedJson("wa-arch", user?.id, [...n]);
                             return n;
                           })}
-                          className="w-full flex items-center gap-2 px-3 py-2 rounded-md hover:bg-accent text-sm"
+                          className="w-full flex items-center gap-2 px-3 py-2 rounded-md hover:bg-white/10 text-sm"
                         >
-                          {isArch ? <ArchiveRestore className="h-4 w-4 text-gray-600" /> : <Archive className="h-4 w-4 text-gray-600" />}
+                          {isArch ? <ArchiveRestore className="h-4 w-4 text-muted-foreground" /> : <Archive className="h-4 w-4 text-muted-foreground" />}
                           <span>{isArch ? "Desarquivar" : "Arquivar"}</span>
                         </button>
-                        <div className="px-3 pt-2 pb-1 flex items-center gap-2 text-xs text-gray-500 border-t mt-1">
+                        <div className="px-3 pt-2 pb-1 flex items-center gap-2 text-xs text-muted-foreground border-t mt-1">
                           <Tag className="h-3.5 w-3.5" /> Etiqueta
                         </div>
                         <div className="px-2 pb-2 flex flex-wrap gap-1.5">
@@ -1946,7 +2002,7 @@ function MessagesPage() {
                                 writeScopedJson("wa-labels", user?.id, n);
                                 return n;
                               })}
-                              className={`h-5 w-5 rounded-full border-2 transition ${label === color ? "border-gray-900 scale-110" : "border-white shadow"}`}
+                              className={`h-5 w-5 rounded-full border-2 transition ${label === color ? "border-foreground scale-110" : "border-transparent shadow"}`}
                               style={{ background: color }}
                               aria-label={`Etiqueta ${color}`}
                             />
@@ -1958,7 +2014,7 @@ function MessagesPage() {
                                 writeScopedJson("wa-labels", user?.id, n);
                                 return n;
                               })}
-                              className="h-5 w-5 rounded-full border grid place-items-center text-gray-500 hover:bg-gray-100"
+                              className="h-5 w-5 rounded-full border grid place-items-center text-muted-foreground hover:bg-white/10"
                               aria-label="Remover etiqueta"
                             >
                               <X className="h-3 w-3" />
@@ -1986,7 +2042,7 @@ function MessagesPage() {
                                 toast.error("Não foi possível excluir", { description: e instanceof Error ? e.message : String(e) });
                               }
                             }}
-                            className="w-full flex items-center gap-2 px-3 py-2 rounded-md hover:bg-red-50 text-sm text-red-600"
+                            className="w-full flex items-center gap-2 px-3 py-2 rounded-md hover:bg-red-500/10 text-sm text-red-500"
                           >
                             <Trash2 className="h-4 w-4" />
                             <span>Excluir contato</span>
@@ -1998,7 +2054,7 @@ function MessagesPage() {
                 </div>
               );
             })}
-            {!filtered.length && !sidebarCollapsed && <div className="p-6 text-center text-xs text-gray-500">Nenhum contato</div>}
+            {!filtered.length && !sidebarCollapsed && <div className="p-6 text-center text-xs text-muted-foreground">Nenhum contato</div>}
           </div>
         </aside>
 
@@ -2036,7 +2092,7 @@ function MessagesPage() {
             files.forEach((f, i) => sendOneFile(f, i === 0 ? cap || undefined : undefined));
           }}
           className={`${selected ? "flex animate-in fade-in slide-in-from-right-4 duration-200" : "hidden lg:flex"} flex-col min-w-0 min-h-0 overflow-hidden h-full relative`}
-          style={{ background: WA.chatBg }}
+          style={{ background: theme.chatBg }}
         >
           {dragActive && (
             <div className="pointer-events-none absolute inset-0 z-40 p-4 flex items-center justify-center transition-opacity duration-200">
@@ -2048,19 +2104,19 @@ function MessagesPage() {
             </div>
           )}
           {!selected ? (
-            <div className="flex-1 grid place-items-center text-center px-6" style={{ background: "#F0F2F5" }}>
+            <div className="flex-1 grid place-items-center text-center px-6" style={{ backgroundColor: theme.emptyBg }}>
               <div>
-                <div className="mx-auto h-40 w-40 rounded-full grid place-items-center mb-6" style={{ background: WA.headerTeal }}>
+                <div className="mx-auto h-40 w-40 rounded-full grid place-items-center mb-6" style={{ background: theme.headerTeal }}>
                   <MessageCircle className="h-20 w-20 text-foreground" />
                 </div>
-                <h2 className="text-2xl font-light text-gray-700">Agent IA — Mensagens</h2>
-                <p className="text-sm text-gray-500 mt-2 max-w-sm mx-auto">Selecione uma conversa para começar a enviar mensagens, áudios e figurinhas.</p>
+                <h2 className="text-2xl font-light" style={{ color: theme.textMain }}>Agent IA — Mensagens</h2>
+                <p className="text-sm mt-2 max-w-sm mx-auto" style={{ color: theme.textMuted }}>Selecione uma conversa para começar a enviar mensagens, áudios e figurinhas.</p>
               </div>
             </div>
           ) : (
             <>
-              <header className="px-4 py-2.5 flex items-center gap-3 text-foreground shadow-sm" style={{ background: WA.headerTeal }}>
-                <button className="lg:hidden p-1 -ml-1 active:bg-white/20 rounded-full" onClick={() => setSelected(null)}>
+              <header className="px-4 py-2.5 flex items-center gap-3 text-foreground shadow-sm" style={{ background: theme.headerTeal }}>
+                <button className="lg:hidden p-1 -ml-1 active:bg-white/20 rounded-full text-foreground" onClick={() => setSelected(null)}>
                   <ArrowLeft className="h-5 w-5" />
                 </button>
                 <Tooltip>
@@ -2080,7 +2136,7 @@ function MessagesPage() {
                     <img src={avatars[selected.id]!} alt="" className="h-10 w-10 rounded-full object-cover hover:opacity-90" />
                   </button>
                 ) : (
-                  <div className="h-10 w-10 rounded-full grid place-items-center text-xs font-semibold bg-white/20 shrink-0">
+                  <div className="h-10 w-10 rounded-full grid place-items-center text-xs font-semibold text-foreground shrink-0" style={{ backgroundColor: "rgba(255,255,255,0.2)" }}>
                     {initials(selected.name, selected.phone)}
                   </div>
                 )}
@@ -2161,6 +2217,18 @@ function MessagesPage() {
                   </TooltipTrigger>
                   <TooltipContent side="bottom">{soundOn ? "Desligar som de notificação" : "Ligar som de notificação"}</TooltipContent>
                 </Tooltip>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <button
+                      onClick={() => setChatDarkMode((v) => !v)}
+                      className="p-2 rounded-full hover:bg-muted transition"
+                      aria-label={chatDarkMode ? "Modo claro" : "Modo escuro"}
+                    >
+                      {chatDarkMode ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
+                    </button>
+                  </TooltipTrigger>
+                  <TooltipContent side="bottom">{chatDarkMode ? "Modo claro" : "Modo escuro"}</TooltipContent>
+                </Tooltip>
               </header>
 
               <div
@@ -2170,7 +2238,7 @@ function MessagesPage() {
                 }}
                 className="flex-1 overflow-y-auto px-4 py-4 space-y-1.5"
                 style={{
-                  backgroundColor: WA.chatBg,
+                  backgroundColor: theme.chatBg,
                   backgroundImage:
                     "url(\"data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='60' height='60'><circle cx='30' cy='30' r='1' fill='%23000000' opacity='0.04'/></svg>\")",
                 }}
@@ -2181,7 +2249,7 @@ function MessagesPage() {
                       type="button"
                       onClick={loadOlderMessages}
                       disabled={olderLoading}
-                      className="inline-flex items-center gap-1.5 rounded-full bg-white/90 px-3 py-1 text-xs font-medium text-gray-700 shadow-sm hover:bg-white disabled:opacity-70"
+                      className="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium shadow-sm hover:bg-white/20 disabled:opacity-70" style={{ backgroundColor: chatDarkMode ? "rgba(255,255,255,0.15)" : "rgba(255,255,255,0.9)", color: theme.textMain }}
                     >
                       {olderLoading ? <Loader2 className="h-3 w-3 animate-spin" /> : <ChevronDown className="h-3 w-3 rotate-180" />}
                       Mensagens antigas
@@ -2189,8 +2257,8 @@ function MessagesPage() {
                   </div>
                 )}
                 {messagesLoading && !msgs.length && (
-                  <div className="text-center text-xs text-gray-600 py-12">
-                    <span className="inline-flex items-center gap-2 bg-white/80 px-3 py-1.5 rounded-full shadow-sm">
+                  <div className="text-center text-xs py-12" style={{ color: theme.textMuted }}>
+                    <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full shadow-sm" style={{ backgroundColor: chatDarkMode ? "rgba(255,255,255,0.1)" : "rgba(255,255,255,0.8)", color: theme.textMain }}>
                       <Loader2 className="h-3.5 w-3.5 animate-spin" /> Carregando mensagens…
                     </span>
                   </div>
@@ -2206,16 +2274,16 @@ function MessagesPage() {
                   return (
                     <div key={m.id} data-msg-id={m.id} className={`group flex ${out ? "justify-end" : "justify-start"}`}>
                       <div
-                        className={`relative max-w-[75%] rounded-lg shadow-sm text-sm text-gray-800 ${linkUrl ? "px-1 py-1" : "px-2.5 py-1.5"} ${(m.metadata as { reaction?: string } | null)?.reaction ? "mb-3" : ""}`}
-                        style={{ background: out ? WA.outBubble : WA.inBubble }}
+                        className={`relative max-w-[75%] rounded-lg shadow-sm text-sm ${linkUrl ? "px-1 py-1" : "px-2.5 py-1.5"} ${(m.metadata as { reaction?: string } | null)?.reaction ? "mb-3" : ""}`}
+                        style={{ color: theme.textMain, background: out ? theme.outBubble : theme.inBubble }}
                       >
                         <Popover>
                           <PopoverTrigger asChild>
                             <button
-                              className={`absolute -top-3 ${out ? "right-8" : "left-1"} p-1 rounded-full bg-white shadow border border-black/10 opacity-0 group-hover:opacity-100 hover:bg-gray-50 transition`}
+                              className={`absolute -top-3 ${out ? "right-8" : "left-1"} p-1 rounded-full shadow opacity-0 group-hover:opacity-100 hover:bg-white/10 transition`} style={{ backgroundColor: theme.popoverBg, borderColor: theme.border, borderWidth: 1 }}
                               aria-label="Reagir"
                             >
-                              <Smile className="h-3.5 w-3.5 text-gray-600" />
+                              <Smile className="h-3.5 w-3.5 text-muted-foreground" />
                             </button>
                           </PopoverTrigger>
                           <PopoverContent align={out ? "end" : "start"} side="top" className="p-1 w-auto rounded-full">
@@ -2224,7 +2292,7 @@ function MessagesPage() {
                                 <button
                                   key={e}
                                   onClick={() => performReact(m, e)}
-                                  className={`h-9 w-9 grid place-items-center text-xl rounded-full hover:bg-gray-100 transition ${((m.metadata as { reaction?: string } | null)?.reaction === e) ? "bg-gray-100" : ""}`}
+                                  className={`h-9 w-9 grid place-items-center text-xl rounded-full hover:bg-white/10 transition ${((m.metadata as { reaction?: string } | null)?.reaction === e) ? "bg-white/10" : ""}`}
                                 >
                                   {e}
                                 </button>
@@ -2238,7 +2306,7 @@ function MessagesPage() {
                               className="absolute top-0.5 right-0.5 p-0.5 rounded-full opacity-0 group-hover:opacity-100 hover:bg-background/10 transition"
                               aria-label="Opções da mensagem"
                             >
-                              <ChevronDown className="h-3.5 w-3.5 text-gray-600" />
+                              <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />
                             </button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align={out ? "end" : "start"} className="w-48">
@@ -2247,7 +2315,7 @@ function MessagesPage() {
                                 <button
                                   key={e}
                                   onClick={() => performReact(m, e)}
-                                  className={`h-8 w-8 grid place-items-center text-lg rounded-full hover:bg-gray-100 transition ${((m.metadata as { reaction?: string } | null)?.reaction === e) ? "bg-gray-100" : ""}`}
+                                  className={`h-8 w-8 grid place-items-center text-lg rounded-full hover:bg-white/10 transition ${((m.metadata as { reaction?: string } | null)?.reaction === e) ? "bg-white/10" : ""}`}
                                 >
                                   {e}
                                 </button>
@@ -2279,7 +2347,7 @@ function MessagesPage() {
                           const q = (m.metadata ?? {}) as { quotedId?: string; quotedText?: string; quotedType?: string; quotedDeleted?: boolean };
                           if (q.quotedDeleted) {
                             return (
-                              <div className="mb-1 w-full rounded border-l-4 border-gray-400 bg-background/5 px-2 py-1 text-xs italic text-gray-500">
+                              <div className="mb-1 w-full rounded border-l-4 border-muted-foreground bg-background/5 px-2 py-1 text-xs italic" style={{ color: theme.textMuted }}>
                                 Mensagem apagada
                               </div>
                             );
@@ -2297,7 +2365,7 @@ function MessagesPage() {
                                 const el = scrollRef.current?.querySelector(`[data-msg-id="${q.quotedId}"]`) as HTMLElement | null;
                                 if (el) { el.scrollIntoView({ behavior: "smooth", block: "center" }); el.classList.add("ring-2","ring-emerald-400"); setTimeout(() => el.classList.remove("ring-2","ring-emerald-400"), 1400); }
                               }}
-                              className="mb-1 w-full text-left rounded border-l-4 border-emerald-500 bg-background/5 px-2 py-1 text-xs text-gray-700 hover:bg-background/10 transition"
+                              className="mb-1 w-full text-left rounded border-l-4 border-emerald-500 bg-background/5 px-2 py-1 text-xs hover:bg-background/10 transition" style={{ color: theme.textMuted }}
                             >
                               <div className="font-medium text-emerald-700 text-[11px]">Resposta</div>
                               <div className="truncate">{label}</div>
@@ -2321,6 +2389,7 @@ function MessagesPage() {
                                  }
                                  direction={m.direction as "inbound" | "outbound"}
                                  onDownload={() => downloadFile(m.media_url!, `audio-${m.id}.ogg`)}
+                                 dark={chatDarkMode}
                                />
                             )
                             : <MediaMissing kind="audio" onRetry={() => loadMessagesRef.current?.()} />
@@ -2339,10 +2408,10 @@ function MessagesPage() {
                               </button>
                               {(m.metadata as { pending?: boolean } | null)?.pending ? (
                                 <div className="absolute inset-0 grid place-items-center rounded-md bg-background/10">
-                                  <Loader2 className="h-6 w-6 text-gray-700 animate-spin" />
+                                  <Loader2 className="h-6 w-6 text-muted-foreground animate-spin" />
                                 </div>
                               ) : (
-                                <DownloadBtn url={m.media_url!} filename={`figurinha-${m.id}.webp`} />
+                                <DownloadBtn url={m.media_url!} filename={`figurinha-${m.id}.webp`} dark={chatDarkMode} />
                               )}
                             </div>
                           ) : <MediaMissing kind="sticker" onRetry={() => loadMessagesRef.current?.()} />
@@ -2372,7 +2441,7 @@ function MessagesPage() {
                                 <Loader2 className="h-8 w-8 text-foreground animate-spin drop-shadow" />
                               </div>
                             ) : (
-                              <DownloadBtn url={m.media_url!} filename={`image-${m.id}.jpg`} />
+                              <DownloadBtn url={m.media_url!} filename={`image-${m.id}.jpg`} dark={chatDarkMode} />
                             )}
                           </div>
                         ) : isVideo ? (
@@ -2391,7 +2460,7 @@ function MessagesPage() {
                                 <Loader2 className="h-8 w-8 text-foreground animate-spin drop-shadow" />
                               </div>
                             ) : (
-                              <DownloadBtn url={m.media_url!} filename={`video-${m.id}.mp4`} dark />
+                              <DownloadBtn url={m.media_url!} filename={`video-${m.id}.mp4`} dark={chatDarkMode} />
                             )}
                           </div>
                         ) : isFile ? (() => {
@@ -2412,7 +2481,7 @@ function MessagesPage() {
                               target="_blank"
                               rel="noreferrer"
                               onClick={pending ? (e) => e.preventDefault() : undefined}
-                              className={`group/file flex items-center gap-3 min-w-[240px] max-w-[300px] rounded-xl border border-black/5 bg-white/70 px-2.5 py-2 shadow-sm hover:bg-white transition ${pending ? "cursor-default" : "cursor-pointer"}`}
+                              className={`group/file flex items-center gap-3 min-w-[240px] max-w-[300px] rounded-xl border px-2.5 py-2 shadow-sm hover:bg-white/10 transition ${pending ? "cursor-default" : "cursor-pointer"}`} style={{ backgroundColor: chatDarkMode ? "rgba(255,255,255,0.1)" : "rgba(255,255,255,0.7)", borderColor: theme.border }}
                             >
                               <div className={`relative h-12 w-10 shrink-0 rounded-md grid place-items-end justify-items-center overflow-hidden ${isPdf ? "bg-gradient-to-b from-red-500 to-red-600" : "bg-gradient-to-b from-sky-500 to-sky-600"}`}>
                                 <div className="absolute top-0 right-0 h-3 w-3 bg-white/30" style={{ clipPath: "polygon(100% 0, 0 0, 100% 100%)" }} />
@@ -2424,8 +2493,8 @@ function MessagesPage() {
                                 <span className="mb-0.5 text-[8px] font-bold tracking-wide text-foreground leading-none">{badge}</span>
                               </div>
                               <div className="min-w-0 flex-1">
-                                <div className="truncate text-[13px] font-medium text-gray-800" title={name}>{name}</div>
-                                <div className="mt-0.5 flex items-center gap-1.5 text-[11px] text-gray-500">
+                                <div className="truncate text-[13px] font-medium" title={name} style={{ color: theme.textMain }}>{name}</div>
+                                <div className="mt-0.5 flex items-center gap-1.5 text-[11px]" style={{ color: theme.textMuted }}>
                                   {sizeLabel && <span className="tabular-nums">{sizeLabel}</span>}
                                   {sizeLabel && <span aria-hidden>·</span>}
                                   <span className="uppercase">{isPdf ? "PDF" : (ext || "arquivo")}</span>
@@ -2436,7 +2505,7 @@ function MessagesPage() {
                                   type="button"
                                   onClick={(e) => { e.preventDefault(); e.stopPropagation(); downloadFile(m.media_url!, name); }}
                                   title="Baixar"
-                                  className="ml-1 grid place-items-center h-8 w-8 rounded-full bg-background/5 hover:bg-background/10 text-gray-700 shrink-0"
+                                  className="ml-1 grid place-items-center h-8 w-8 rounded-full bg-background/5 hover:bg-background/10 text-muted-foreground shrink-0"
                                   aria-label="Baixar arquivo"
                                 >
                                   <Download className="h-4 w-4" />
@@ -2448,12 +2517,12 @@ function MessagesPage() {
                           const url = linkUrl;
                           return (
                             <div className={url ? "w-[260px] max-w-full" : "pr-14"}>
-                              {url && <LinkPreview url={url} />}
+                              {url && <LinkPreview url={url} dark={chatDarkMode} />}
                               <div className="whitespace-pre-wrap break-words">{m.content}</div>
                             </div>
                           );
                         })()}
-                        <div className="mt-0.5 flex items-center justify-end gap-1 text-[10px] text-gray-500">
+                        <div className="mt-0.5 flex items-center justify-end gap-1 text-[10px]" style={{ color: theme.textSecondary }}>
                           {starred.has(m.id) && <Star className="h-3 w-3 fill-yellow-400 text-yellow-500" />}
                           {(m.metadata as { edited?: boolean } | null)?.edited && (
                             <span className="italic">editada</span>
@@ -2489,7 +2558,7 @@ function MessagesPage() {
                             );
                             const s = meta.pending || !meta.status ? "pending" : meta.status;
                             const color =
-                              s === "read" ? WA.read :
+                              s === "read" ? theme.read :
                               s === "delivered" || s === "sent" ? "#6b7280" :
                               "#9ca3af";
                             const Icon = s === "delivered" || s === "read" ? CheckCheck : Check;
@@ -2508,7 +2577,7 @@ function MessagesPage() {
                         {(m.metadata as { reaction?: string } | null)?.reaction && (
                           <button
                             onClick={() => performReact(m, (m.metadata as { reaction?: string }).reaction!)}
-                            className={`absolute -bottom-3 ${out ? "right-2" : "left-2"} bg-white rounded-full shadow border border-black/10 px-1.5 py-0.5 text-sm leading-none hover:scale-110 transition`}
+                            className={`absolute -bottom-3 ${out ? "right-2" : "left-2"} rounded-full shadow px-1.5 py-0.5 text-sm leading-none hover:scale-110 transition`} style={{ backgroundColor: theme.popoverBg, borderColor: theme.border, borderWidth: 1 }}
                             title="Remover reação"
                           >
                             {(m.metadata as { reaction?: string }).reaction}
@@ -2519,8 +2588,8 @@ function MessagesPage() {
                   );
                 })}
                 {!msgs.length && !messagesLoading && (
-                  <div className="text-center text-xs text-gray-600 py-12">
-                    <span className="inline-block bg-white/70 px-3 py-1 rounded-full shadow-sm">Nenhuma mensagem ainda — diga olá!</span>
+                  <div className="text-center text-xs py-12" style={{ color: theme.textMuted }}>
+                    <span className="inline-block px-3 py-1 rounded-full shadow-sm" style={{ backgroundColor: chatDarkMode ? "rgba(255,255,255,0.1)" : "rgba(255,255,255,0.7)", color: theme.textMain }}>Nenhuma mensagem ainda — diga olá!</span>
                   </div>
                 )}
               </div>
@@ -2532,24 +2601,24 @@ function MessagesPage() {
                   <>
                     <Tooltip>
                       <TooltipTrigger asChild>
-                        <Button size="icon" onClick={cancelRecording} variant="ghost" className="rounded-full h-11 w-11 text-red-600 hover:bg-red-50" aria-label="Cancelar gravação">
+                        <Button size="icon" onClick={cancelRecording} variant="ghost" className="rounded-full h-11 w-11 text-red-500 hover:bg-red-500/10" aria-label="Cancelar gravação">
                           <X className="h-5 w-5" />
                         </Button>
                       </TooltipTrigger>
                       <TooltipContent side="top">Cancelar</TooltipContent>
                     </Tooltip>
-                    <div className="flex-1 flex items-center gap-3 px-4 py-2 rounded-full bg-white shadow-sm">
+                    <div className="flex-1 flex items-center gap-3 px-4 py-2 rounded-full shadow-sm" style={{ backgroundColor: theme.inputBg }}>
                       <Mic className="h-4 w-4 text-red-500 animate-pulse shrink-0" />
                       <div className="flex-1 flex items-center gap-[2px] h-6">
                         {recLevels.map((lv, i) => (
                           <div
                             key={i}
                             className="flex-1 rounded-sm transition-[height] duration-75"
-                            style={{ height: `${Math.round(lv * 100)}%`, background: WA.accent, minHeight: 3 }}
+                            style={{ height: `${Math.round(lv * 100)}%`, background: theme.accent, minHeight: 3 }}
                           />
                         ))}
                       </div>
-                      <span className="text-xs font-mono text-gray-600 tabular-nums shrink-0">
+                      <span className="text-xs font-mono tabular-nums shrink-0" style={{ color: theme.textMuted }}>
                         {Math.floor(recTime / 60)}:{String(recTime % 60).padStart(2, "0")}
                       </span>
                     </div>
@@ -2558,7 +2627,7 @@ function MessagesPage() {
                   <>
                     <Popover>
                       <PopoverTrigger asChild>
-                        <button className="p-2 text-gray-500 hover:text-gray-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 rounded-full transition" aria-label="Emojis">
+                        <button className="p-2 text-muted-foreground hover:text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 rounded-full transition" aria-label="Emojis">
                           <Smile className="h-6 w-6" />
                         </button>
                       </PopoverTrigger>
@@ -2578,7 +2647,7 @@ function MessagesPage() {
                       <TooltipTrigger asChild>
                         <button
                           onClick={toggleAgent}
-                          className={`p-2 rounded-full transition focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 ${agentPaused ? "text-gray-400 hover:text-gray-600" : "text-emerald-600 hover:text-emerald-700"}`}
+                          className={`p-2 rounded-full transition focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 ${agentPaused ? "text-muted-foreground hover:text-foreground" : "text-emerald-600 hover:text-emerald-700"}`}
                           aria-label={agentPaused ? "Ativar IA" : "Desativar IA"}
                         >
                           {agentPaused ? <BotOff className="h-6 w-6" /> : <Bot className="h-6 w-6" />}
@@ -2589,7 +2658,7 @@ function MessagesPage() {
                     <Popover>
                       <PopoverTrigger asChild>
                         <button
-                          className="p-2 text-gray-500 hover:text-gray-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 rounded-full transition"
+                          className="p-2 text-muted-foreground hover:text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 rounded-full transition"
                           aria-label="Anexar"
                         >
                           <Paperclip className="h-6 w-6" />
@@ -2645,13 +2714,13 @@ function MessagesPage() {
                     />
                     <div className="flex-1 flex flex-col gap-1">
                        {replyTo && (
-                         <div className="flex items-stretch gap-2 bg-white rounded-lg px-2 py-1.5 shadow-sm text-sm">
+                         <div className="flex items-stretch gap-2 rounded-lg px-2 py-1.5 shadow-sm text-sm" style={{ backgroundColor: theme.inputBg }}>
                            <div className="w-1 rounded bg-emerald-500" />
                            <div className="min-w-0 flex-1">
                              <div className="text-[11px] font-medium text-emerald-700">
                                Respondendo {replyTo.direction === "outbound" ? "você" : (selected?.name || selected?.phone || "contato")}
                              </div>
-                             <div className="truncate text-gray-700">
+                             <div className="truncate" style={{ color: theme.textMuted }}>
                                {replyTo.type === "audio" ? "🎤 Mensagem de voz"
                                  : replyTo.type === "image" ? "🖼️ Imagem"
                                  : replyTo.type === "video" ? "🎬 Vídeo"
@@ -2659,7 +2728,7 @@ function MessagesPage() {
                                  : (replyTo.content || "")}
                              </div>
                            </div>
-                           <button onClick={() => setReplyTo(null)} className="p-1 rounded-full hover:bg-gray-100 text-gray-500" aria-label="Cancelar resposta">
+                           <button onClick={() => setReplyTo(null)} className="p-1 rounded-full hover:bg-white/10 text-muted-foreground" aria-label="Cancelar resposta">
                              <X className="h-4 w-4" />
                            </button>
                          </div>
@@ -2671,7 +2740,7 @@ function MessagesPage() {
                          const isAud = t.startsWith("audio/");
                          const isPdf = t === "application/pdf" || attachment.file.name.toLowerCase().endsWith(".pdf");
                          return (
-                         <div className="flex items-center gap-2 bg-white rounded-lg px-3 py-2 shadow-sm text-sm">
+                         <div className="flex items-center gap-2 rounded-lg px-3 py-2 shadow-sm text-sm" style={{ backgroundColor: theme.inputBg }}>
                            {isImg ? (
                              <img src={attachment.url} alt="" className="h-12 w-12 object-cover rounded" />
                            ) : isVid ? (
@@ -2684,12 +2753,12 @@ function MessagesPage() {
                              <div className="h-12 w-12 rounded grid place-items-center bg-sky-100 text-sky-600"><FileIcon className="h-6 w-6" /></div>
                            )}
                           <div className="min-w-0 flex-1">
-                            <div className="truncate text-gray-800">{attachment.file.name}</div>
-                            <div className="text-[11px] text-gray-500">{Math.round(attachment.file.size / 1024)} KB</div>
+                            <div className="truncate" style={{ color: theme.textMain }}>{attachment.file.name}</div>
+                            <div className="text-[11px]" style={{ color: theme.textMuted }}>{Math.round(attachment.file.size / 1024)} KB</div>
                           </div>
                           <button
                             onClick={() => { URL.revokeObjectURL(attachment.url); setAttachment(null); }}
-                            className="p-1 rounded-full hover:bg-gray-100 text-gray-500"
+                            className="p-1 rounded-full hover:bg-white/10 text-muted-foreground"
                             aria-label="Remover anexo"
                           >
                             <X className="h-4 w-4" />
@@ -2703,7 +2772,7 @@ function MessagesPage() {
                       onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); if (attachment) handleSendAttachment(); else handleSendText(); } }}
                       placeholder="Digite uma mensagem"
                       rows={1}
-                      className="w-full resize-none rounded-full bg-white px-4 py-2.5 text-sm text-gray-800 outline-none focus:ring-2 focus:ring-emerald-500/40 max-h-32 shadow-sm placeholder:text-gray-500"
+                      className="w-full resize-none rounded-full px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-emerald-500/40 max-h-32 shadow-sm placeholder:text-muted-foreground" style={{ backgroundColor: theme.inputBg, color: theme.textMain }}
                       />
                     </div>
                   </>
@@ -2718,13 +2787,13 @@ function MessagesPage() {
                     <TooltipContent side="top">Parar gravação</TooltipContent>
                   </Tooltip>
                 ) : text.trim() || attachment ? (
-                  <Button size="icon" onClick={() => { if (attachment) handleSendAttachment(); else if (text.trim()) handleSendText(); }} className="rounded-full h-11 w-11 text-foreground hover:opacity-90" style={{ background: WA.accent }}>
+                  <Button size="icon" onClick={() => { if (attachment) handleSendAttachment(); else if (text.trim()) handleSendText(); }} className="rounded-full h-11 w-11 text-foreground hover:opacity-90" style={{ background: theme.accent }}>
                     <Send className="h-5 w-5" />
                   </Button>
                 ) : (
                   <Tooltip>
                     <TooltipTrigger asChild>
-                      <Button size="icon" onClick={startRecording} className="rounded-full h-11 w-11 text-foreground hover:opacity-90" style={{ background: WA.headerTeal }}>
+                      <Button size="icon" onClick={startRecording} className="rounded-full h-11 w-11 text-foreground hover:opacity-90" style={{ background: theme.headerTeal }}>
                         <Mic className="h-5 w-5" />
                       </Button>
                     </TooltipTrigger>
@@ -2736,36 +2805,36 @@ function MessagesPage() {
           )}
         </section>
         {selected && infoOpen && (
-          <aside className="hidden xl:flex flex-col w-80 border-l border-black/10 bg-white overflow-y-auto">
-            <div className="px-4 py-3 flex items-center gap-2 text-foreground" style={{ background: WA.headerDark }}>
+          <aside className="hidden xl:flex flex-col w-80 border-l overflow-y-auto" style={{ backgroundColor: theme.sidebarBg, borderColor: theme.border }}>
+            <div className="px-4 py-3 flex items-center gap-2 text-foreground" style={{ background: theme.headerDark }}>
               <button onClick={() => setInfoOpen(false)} className="p-1 rounded-full hover:bg-muted" aria-label="Fechar">
                 <X className="h-5 w-5" />
               </button>
               <div className="text-sm font-semibold">Dados do contato</div>
             </div>
-            <div className="flex flex-col items-center py-6 border-b border-black/5">
+            <div className="flex flex-col items-center py-6 border-b" style={{ borderColor: theme.border }}>
               {avatars[selected.id] ? (
                 <button onClick={() => setLightbox({ type: "image", src: avatars[selected.id]! })}>
                   <img src={avatars[selected.id]!} alt="" className="h-32 w-32 rounded-full object-cover shadow" />
                 </button>
               ) : (
-                <div className="h-32 w-32 rounded-full grid place-items-center text-3xl font-semibold text-foreground shadow" style={{ background: WA.headerTeal }}>
+                <div className="h-32 w-32 rounded-full grid place-items-center text-3xl font-semibold text-foreground shadow" style={{ background: theme.headerTeal }}>
                   {initials(selected.name, selected.phone)}
                 </div>
               )}
-              <div className="mt-3 text-lg font-medium text-gray-900">{selected.name || selected.phone}</div>
-              <div className="text-xs text-gray-500">{selected.phone}</div>
+              <div className="mt-3 text-lg font-medium" style={{ color: theme.textMain }}>{selected.name || selected.phone}</div>
+              <div className="text-xs" style={{ color: theme.textMuted }}>{selected.phone}</div>
             </div>
             <div className="p-4 space-y-4">
               <div>
-                <label className="text-xs font-medium text-gray-500">Nome</label>
+                <label className="text-xs font-medium" style={{ color: theme.textMuted }}>Nome</label>
                 <Input value={editName} onChange={(e) => setEditName(e.target.value)} placeholder="Nome do contato" className="mt-1" />
               </div>
               <div>
-                <label className="text-xs font-medium text-gray-500">Telefone</label>
+                <label className="text-xs font-medium" style={{ color: theme.textMuted }}>Telefone</label>
                 <Input value={selected.phone} readOnly disabled className="mt-1 cursor-not-allowed opacity-70" />
               </div>
-              <Button onClick={saveContact} disabled={savingContact || editName.trim() === (selected.name ?? "").trim()} className="w-full text-foreground hover:opacity-90" style={{ background: WA.accent }}>
+              <Button onClick={saveContact} disabled={savingContact || editName.trim() === (selected.name ?? "").trim()} className="w-full text-foreground hover:opacity-90" style={{ background: theme.accent }}>
                 {savingContact ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Save className="h-4 w-4 mr-2" />}
                 Salvar
               </Button>
@@ -2852,7 +2921,7 @@ function MessagesPage() {
           <DialogHeader>
             <DialogTitle>Excluir mensagem?</DialogTitle>
           </DialogHeader>
-          <p className="text-sm text-gray-600">Escolha como deseja excluir esta mensagem.</p>
+          <p className="text-sm text-muted-foreground">Escolha como deseja excluir esta mensagem.</p>
           <div className="flex flex-col gap-2 pt-2">
             {deleteConfirm && deleteConfirm.direction === "outbound" && (deleteConfirm.metadata as { evoId?: string } | null)?.evoId && (
               <Button variant="destructive" onClick={() => performDelete(deleteConfirm, true)}>
@@ -2881,7 +2950,7 @@ function MessagesPage() {
               if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) { e.preventDefault(); performEdit(); }
             }}
           />
-          <p className="text-xs text-gray-500">O WhatsApp permite editar apenas mensagens enviadas nos últimos 15 minutos.</p>
+          <p className="text-xs text-muted-foreground">O WhatsApp permite editar apenas mensagens enviadas nos últimos 15 minutos.</p>
           <div className="flex justify-end gap-2 pt-2">
             <Button variant="ghost" onClick={() => setEditMsg(null)} disabled={editSaving}>Cancelar</Button>
             <Button onClick={performEdit} disabled={editSaving || !editText.trim()}>
@@ -2919,7 +2988,7 @@ function MediaMissing({ kind, onRetry }: { kind: "audio" | "sticker"; onRetry: (
     <button
       type="button"
       onClick={(e) => { e.stopPropagation(); onRetry(); }}
-      className="flex items-center gap-2 rounded-lg bg-background/5 px-2.5 py-2 text-gray-600 hover:bg-background/10 transition"
+      className="flex items-center gap-2 rounded-lg bg-background/5 px-2.5 py-2 text-muted-foreground hover:bg-background/10 transition"
       title="Tentar carregar mídia"
     >
       {kind === "audio" ? <Mic className="h-4 w-4" /> : <ImageIcon className="h-4 w-4" />}
@@ -2938,7 +3007,8 @@ function extractFirstUrl(text: string): string | null {
 
 const linkPreviewCache = new Map<string, { title?: string; description?: string; image?: string; publisher?: string; url: string } | null>();
 
-function LinkPreview({ url }: { url: string }) {
+function LinkPreview({ url, dark = false }: { url: string; dark?: boolean }) {
+  const theme = chatTheme(dark);
   const [data, setData] = useState<{ title?: string; description?: string; image?: string; publisher?: string; url: string } | null | undefined>(
     () => linkPreviewCache.get(url),
   );
@@ -2969,8 +3039,8 @@ function LinkPreview({ url }: { url: string }) {
         <img src={data.image} alt="" className="w-full max-h-[260px] object-cover bg-background" loading="lazy" />
       )}
       <div className="px-2.5 py-1.5">
-        {data.title && <div className="text-[13px] font-medium text-gray-800 line-clamp-2 leading-snug">{data.title}</div>}
-        {domain && <div className="mt-0.5 text-[11px] text-gray-500 truncate">{domain}</div>}
+        {data.title && <div className="text-[13px] font-medium line-clamp-2 leading-snug" style={{ color: theme.textMain }}>{data.title}</div>}
+        {domain && <div className="mt-0.5 text-[11px] truncate" style={{ color: theme.textSecondary }}>{domain}</div>}
       </div>
     </a>
   );
@@ -2982,13 +3052,16 @@ function AudioPlayer({
   avatarUrl,
   direction,
   onDownload,
+  dark,
 }: {
   src: string;
   id: string;
   avatarUrl?: string | null;
   direction?: "inbound" | "outbound";
   onDownload?: () => void;
+  dark?: boolean;
 }) {
+  const theme = chatTheme(dark ?? false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const [playing, setPlaying] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -3083,7 +3156,7 @@ function AudioPlayer({
     <div className="flex items-center gap-2.5 min-w-[260px] py-1 pr-1">
       <button
         onClick={toggle}
-        className="h-8 w-8 grid place-items-center rounded-full text-gray-700 shrink-0 hover:bg-background/5"
+        className="h-8 w-8 grid place-items-center rounded-full text-muted-foreground shrink-0 hover:bg-background/5"
         aria-label={playing ? "Pausar áudio" : "Tocar áudio"}
       >
         {loading ? <Loader2 className="h-5 w-5 animate-spin" /> : playing ? <Pause className="h-5 w-5" /> : <Play className="h-5 w-5 ml-0.5" />}
@@ -3110,12 +3183,12 @@ function AudioPlayer({
           })}
         </div>
         <div className="flex items-center gap-2 mt-0.5">
-          <span className="text-[11px] text-gray-500">
+          <span className="text-[11px] text-muted-foreground">
             {failed ? "toque para tentar novamente" : fmtTime(playing || cur > 0 ? cur : dur)}
           </span>
           <button
             onClick={cycleRate}
-            className="text-[10px] font-semibold text-gray-500 hover:text-gray-700 px-1 rounded"
+            className="text-[10px] font-semibold text-muted-foreground hover:text-foreground px-1 rounded"
             aria-label="Velocidade de reprodução"
             title="Velocidade"
           >
@@ -3126,7 +3199,7 @@ function AudioPlayer({
               type="button"
               onClick={(e) => { e.stopPropagation(); onDownload(); }}
               title="Baixar áudio"
-              className="ml-auto text-gray-400 hover:text-gray-600"
+              className="ml-auto text-muted-foreground hover:text-foreground"
             >
               <Download className="h-3.5 w-3.5" />
             </button>
@@ -3137,13 +3210,13 @@ function AudioPlayer({
         {avatarUrl ? (
           <img src={avatarUrl} alt="" className="h-11 w-11 rounded-full object-cover" />
         ) : (
-          <div className="h-11 w-11 rounded-full grid place-items-center text-foreground text-xs font-semibold" style={{ background: WA.headerTeal }}>
+          <div className="h-11 w-11 rounded-full grid place-items-center text-foreground text-xs font-semibold" style={{ background: theme.headerTeal }}>
             {isOutbound ? "EU" : "?"}
           </div>
         )}
         <div
           className="absolute -bottom-0.5 -right-0.5 h-4 w-4 rounded-full grid place-items-center ring-2 ring-white"
-          style={{ background: WA.accent }}
+          style={{ background: theme.accent }}
         >
           <Mic className="h-2.5 w-2.5 text-foreground" />
         </div>
@@ -3216,7 +3289,7 @@ function FlowLauncher({ contactId }: { contactId: string | null }) {
           <button
             onClick={openDialog}
             disabled={!contactId}
-            className="p-2 text-gray-500 hover:text-gray-700 disabled:opacity-40 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 rounded-full transition"
+            className="p-2 text-muted-foreground hover:text-foreground disabled:opacity-40 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 rounded-full transition"
             aria-label="Iniciar fluxo"
           >
             <Workflow className="h-6 w-6" />
