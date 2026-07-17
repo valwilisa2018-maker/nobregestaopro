@@ -3143,11 +3143,18 @@ function AudioPlayer({
 
   const isOutbound = direction === "outbound";
 
+  // Cores que destacam no escuro: branco/íris para play e ondas vivas
+  const audioFg = dark ? "#ffffff" : "#374151";
+  const playedColor = dark ? "#a78bfa" : "#54656f";   // violet-400 no escuro
+  const unplayedColor = dark ? "#94a3b8" : "#9aa3a8"; // slate-400 no escuro
+  const glow = dark ? "0 0 6px rgba(167,139,250,0.45)" : "none";
+
   return (
     <div className="flex items-center gap-2.5 min-w-[260px] py-1 pr-1">
       <button
         onClick={toggle}
-        className="h-8 w-8 grid place-items-center rounded-full text-muted-foreground shrink-0 hover:bg-background/5"
+        className={`h-8 w-8 grid place-items-center rounded-full shrink-0 transition hover:scale-105 ${dark ? "bg-white/10 hover:bg-white/20 text-white" : "hover:bg-black/5 text-foreground"}`}
+        style={{ color: audioFg }}
         aria-label={playing ? "Pausar áudio" : "Tocar áudio"}
       >
         {loading ? <Loader2 className="h-5 w-5 animate-spin" /> : playing ? <Pause className="h-5 w-5" /> : <Play className="h-5 w-5 ml-0.5" />}
@@ -3163,23 +3170,24 @@ function AudioPlayer({
             return (
               <div
                 key={i}
-                className="w-[2.5px] rounded-full"
+                className="w-[2.5px] rounded-full transition"
                 style={{
                   height: `${Math.round(h * 22)}px`,
-                  background: played ? "#54656f" : "#9aa3a8",
-                  opacity: played ? 1 : 0.55,
+                  background: played ? playedColor : unplayedColor,
+                  opacity: played ? 1 : 0.75,
+                  boxShadow: played ? glow : "none",
                 }}
               />
             );
           })}
         </div>
         <div className="flex items-center gap-2 mt-0.5">
-          <span className="text-[11px] text-muted-foreground">
+          <span className="text-[11px]" style={{ color: dark ? "#e2e8f0" : undefined }}>
             {failed ? "toque para tentar novamente" : fmtTime(playing || cur > 0 ? cur : dur)}
           </span>
           <button
             onClick={cycleRate}
-            className="text-[10px] font-semibold text-muted-foreground hover:text-foreground px-1 rounded"
+            className={`text-[10px] font-semibold px-1 rounded transition ${dark ? "text-slate-300 hover:text-white" : "text-muted-foreground hover:text-foreground"}`}
             aria-label="Velocidade de reprodução"
             title="Velocidade"
           >
@@ -3190,7 +3198,7 @@ function AudioPlayer({
               type="button"
               onClick={(e) => { e.stopPropagation(); onDownload(); }}
               title="Baixar áudio"
-              className="ml-auto text-muted-foreground hover:text-foreground"
+              className={`ml-auto transition ${dark ? "text-slate-300 hover:text-white" : "text-muted-foreground hover:text-foreground"}`}
             >
               <Download className="h-3.5 w-3.5" />
             </button>
@@ -3206,7 +3214,7 @@ function AudioPlayer({
           </div>
         )}
         <div
-          className="absolute -bottom-0.5 -right-0.5 h-4 w-4 rounded-full grid place-items-center ring-2 ring-white"
+          className={`absolute -bottom-0.5 -right-0.5 h-4 w-4 rounded-full grid place-items-center ring-2 ${dark ? "ring-slate-900" : "ring-white"}`}
           style={{ background: theme.accent }}
         >
           <Mic className="h-2.5 w-2.5 text-foreground" />
