@@ -262,127 +262,152 @@ function Page() {
       </Card>
 
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>{editing ? "Editar follow-up" : "Novo follow-up"}</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-5">
-            <div className="grid gap-2">
-              <Label>Nome</Label>
-              <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Ex.: Reengajamento 24h" />
-            </div>
-            <div className="grid gap-2">
-              <Label>Descrição</Label>
-              <Textarea rows={2} value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Opcional" />
-            </div>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto border border-white/10 bg-slate-950/95 p-0 shadow-[0_25px_70px_-25px_rgba(0,0,0,0.7)] backdrop-blur-2xl">
+          <div className="relative overflow-hidden">
+            <div className="pointer-events-none absolute -right-20 -top-20 h-64 w-64 rounded-full bg-blue-500/20 blur-3xl" />
+            <div className="pointer-events-none absolute -left-20 -bottom-20 h-64 w-64 rounded-full bg-indigo-500/15 blur-3xl" />
 
-            <div className="rounded-xl border p-4 bg-primary/5 space-y-3">
-              <div className="flex items-center gap-2">
-                <Timer className="h-4 w-4 text-primary" />
-                <Label className="font-semibold">Gatilho de inatividade</Label>
+            <DialogHeader className="relative border-b border-white/10 p-6">
+              <div className="flex items-center gap-3">
+                <div className="grid h-11 w-11 place-items-center rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-600 shadow-[0_10px_30px_-10px_rgba(59,130,246,0.6)] ring-1 ring-white/20">
+                  <Timer className="h-5 w-5 text-white" />
+                </div>
+                <div>
+                  <DialogTitle className="bg-gradient-to-r from-blue-300 via-indigo-200 to-violet-300 bg-clip-text text-2xl font-bold text-transparent">
+                    {editing ? "Editar follow-up" : "Novo follow-up"}
+                  </DialogTitle>
+                  <p className="text-xs text-muted-foreground">Configure a régua automática de reengajamento.</p>
+                </div>
               </div>
-              <p className="text-xs text-muted-foreground">Dispara quando o cliente não responder pelo tempo abaixo.</p>
-              <div className="flex items-center gap-2">
-                <Input type="number" min={1} value={invValue} onChange={(e) => setInvValue(Number(e.target.value) || 1)} className="w-28" />
-                <Select value={invUnit} onValueChange={(v) => setInvUnit(v as Unit)}>
-                  <SelectTrigger className="w-40"><SelectValue /></SelectTrigger>
+            </DialogHeader>
+
+            <div className="relative space-y-5 p-6">
+              <div className="grid gap-5 md:grid-cols-2">
+                <div className="space-y-2">
+                  <Label className="text-sm font-semibold">Nome</Label>
+                  <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Ex.: Reengajamento 24h" className="h-11 bg-slate-900/60 border-white/10 focus:border-blue-500/50 focus:ring-2 focus:ring-blue-500/20 transition" />
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-sm font-semibold">Descrição</Label>
+                  <Textarea rows={2} value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Opcional" className="bg-slate-900/60 border-white/10 focus:border-blue-500/50 focus:ring-2 focus:ring-blue-500/20 resize-none transition" />
+                </div>
+              </div>
+
+              <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-br from-blue-500/10 via-slate-900/60 to-slate-900/60 p-5">
+                <div className="pointer-events-none absolute -right-10 -top-10 h-32 w-32 rounded-full bg-blue-500/20 blur-2xl" />
+                <div className="relative flex items-center gap-2 mb-1">
+                  <div className="grid h-7 w-7 place-items-center rounded-lg bg-blue-500/20 ring-1 ring-blue-500/20">
+                    <Timer className="h-4 w-4 text-blue-400" />
+                  </div>
+                  <Label className="font-semibold">Gatilho de inatividade</Label>
+                </div>
+                <p className="relative text-xs text-muted-foreground mb-3">Dispara quando o cliente não responder pelo tempo abaixo.</p>
+                <div className="relative flex items-center gap-2">
+                  <Input type="number" min={1} value={invValue} onChange={(e) => setInvValue(Number(e.target.value) || 1)} className="h-11 w-28 bg-slate-950/50 border-white/10 focus:border-blue-500/50" />
+                  <Select value={invUnit} onValueChange={(v) => setInvUnit(v as Unit)}>
+                    <SelectTrigger className="h-11 w-40 bg-slate-950/50 border-white/10 focus:ring-blue-500/20"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      {UNITS.map((u) => <SelectItem key={u.value} value={u.value}>{u.label}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-slate-900/60 p-5">
+                <div className="pointer-events-none absolute -right-10 -top-10 h-32 w-32 rounded-full bg-indigo-500/15 blur-2xl" />
+                <div className="relative flex items-center gap-2 mb-1">
+                  <div className="grid h-7 w-7 place-items-center rounded-lg bg-indigo-500/20 ring-1 ring-indigo-500/20">
+                    <Plug className="h-4 w-4 text-indigo-400" />
+                  </div>
+                  <Label className="font-semibold">Instância WhatsApp</Label>
+                </div>
+                <p className="relative text-xs text-muted-foreground mb-3">Escolha uma instância específica ou dispare por todas.</p>
+                <Select value={connectionId} onValueChange={setConnectionId}>
+                  <SelectTrigger className="h-11 bg-slate-950/50 border-white/10 focus:ring-indigo-500/20"><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    {UNITS.map((u) => <SelectItem key={u.value} value={u.value}>{u.label}</SelectItem>)}
+                    <SelectItem value="all">🌐 Todas as instâncias</SelectItem>
+                    {connections.map((c) => {
+                      const s = (c.status ?? "").toLowerCase();
+                      const on = s.includes("open") || s.includes("connect") || s.includes("online") || s === "ready";
+                      return (
+                        <SelectItem key={c.id} value={c.id}>
+                          {on ? "🟢" : "⚪"} {c.name} {c.phone_number ? `· ${c.phone_number}` : ""}
+                        </SelectItem>
+                      );
+                    })}
                   </SelectContent>
                 </Select>
+                {connections.length === 0 && (
+                  <p className="relative mt-2 text-xs font-medium text-amber-500">Nenhuma instância cadastrada. Conecte um WhatsApp primeiro.</p>
+                )}
               </div>
-            </div>
 
-            <div className="rounded-xl border p-4 space-y-3">
-              <div className="flex items-center gap-2">
-                <Plug className="h-4 w-4 text-primary" />
-                <Label className="font-semibold">Instância WhatsApp</Label>
-              </div>
-              <p className="text-xs text-muted-foreground">Escolha uma instância específica ou dispare por todas.</p>
-              <Select value={connectionId} onValueChange={setConnectionId}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">🌐 Todas as instâncias</SelectItem>
-                  {connections.map((c) => {
-                    const s = (c.status ?? "").toLowerCase();
-                    const on = s.includes("open") || s.includes("connect") || s.includes("online") || s === "ready";
-                    return (
-                      <SelectItem key={c.id} value={c.id}>
-                        {on ? "🟢" : "⚪"} {c.name} {c.phone_number ? `· ${c.phone_number}` : ""}
-                      </SelectItem>
-                    );
-                  })}
-                </SelectContent>
-              </Select>
-              {connections.length === 0 && (
-                <p className="text-xs text-amber-600">Nenhuma instância cadastrada. Conecte um WhatsApp primeiro.</p>
-              )}
-            </div>
-
-            <div className="space-y-3">
-              <div className="flex items-center justify-between">
-                <Label className="font-semibold">Etapas da régua</Label>
-                <Button type="button" size="sm" variant="outline" onClick={() => setSteps((s) => [...s, { step_order: s.length, delay_value: 24, delay_unit: "hours", message: "" }])}>
-                  <Plus className="h-3.5 w-3.5 mr-1" /> Etapa
-                </Button>
-              </div>
-              {steps.map((s, i) => (
-                <div key={i} className="rounded-lg border p-3 space-y-2 bg-card">
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-bold text-muted-foreground">Etapa {i + 1}</span>
-                    {steps.length > 1 && (
-                      <Button size="icon" variant="ghost" onClick={() => setSteps((xs) => xs.filter((_, j) => j !== i))}>
-                        <Trash2 className="h-3.5 w-3.5 text-destructive" />
-                      </Button>
-                    )}
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs text-muted-foreground">Aguardar</span>
-                    <Input type="number" min={0} value={s.delay_value} disabled={i === 0}
-                      onChange={(e) => setSteps((xs) => xs.map((x, j) => j === i ? { ...x, delay_value: Number(e.target.value) || 0 } : x))}
-                      className="w-24 h-8" />
-                    <Select value={s.delay_unit} onValueChange={(v) => setSteps((xs) => xs.map((x, j) => j === i ? { ...x, delay_unit: v as Unit } : x))}>
-                      <SelectTrigger className="w-32 h-8"><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        {UNITS.map((u) => <SelectItem key={u.value} value={u.value}>{u.label}</SelectItem>)}
-                      </SelectContent>
-                    </Select>
-                    {i === 0 && <span className="text-xs text-muted-foreground">(dispara ao gatilho)</span>}
-                  </div>
-                  <Textarea rows={3} value={s.message} placeholder="Mensagem para o cliente..."
-                    onChange={(e) => setSteps((xs) => xs.map((x, j) => j === i ? { ...x, message: e.target.value } : x))} />
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <Label className="font-semibold">Etapas da régua</Label>
+                  <Button type="button" size="sm" onClick={() => setSteps((s) => [...s, { step_order: s.length, delay_value: 24, delay_unit: "hours", message: "" }])} className="bg-gradient-to-br from-blue-500 to-indigo-600 text-white shadow-[0_8px_20px_-8px_rgba(59,130,246,0.6)] hover:opacity-90">
+                    <Plus className="h-3.5 w-3.5 mr-1" /> Etapa
+                  </Button>
                 </div>
-              ))}
+                {steps.map((s, i) => (
+                  <div key={i} className="relative overflow-hidden rounded-2xl border border-white/10 bg-slate-900/60 p-4">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-xs font-bold uppercase tracking-wider text-blue-400">Etapa {i + 1}</span>
+                      {steps.length > 1 && (
+                        <Button size="icon" variant="ghost" onClick={() => setSteps((xs) => xs.filter((_, j) => j !== i))} className="h-8 w-8 hover:bg-destructive/10 hover:text-destructive">
+                          <Trash2 className="h-3.5 w-3.5 text-destructive" />
+                        </Button>
+                      )}
+                    </div>
+                    <div className="flex flex-wrap items-center gap-2 mb-2">
+                      <span className="text-xs text-muted-foreground">Aguardar</span>
+                      <Input type="number" min={0} value={s.delay_value} disabled={i === 0}
+                        onChange={(e) => setSteps((xs) => xs.map((x, j) => j === i ? { ...x, delay_value: Number(e.target.value) || 0 } : x))}
+                        className="w-24 h-9 bg-slate-950/50 border-white/10 disabled:opacity-40" />
+                      <Select value={s.delay_unit} onValueChange={(v) => setSteps((xs) => xs.map((x, j) => j === i ? { ...x, delay_unit: v as Unit } : x))}>
+                        <SelectTrigger className="w-32 h-9 bg-slate-950/50 border-white/10"><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          {UNITS.map((u) => <SelectItem key={u.value} value={u.value}>{u.label}</SelectItem>)}
+                        </SelectContent>
+                      </Select>
+                      {i === 0 && <span className="text-xs text-muted-foreground">(dispara ao gatilho)</span>}
+                    </div>
+                    <Textarea rows={3} value={s.message} placeholder="Mensagem para o cliente..."
+                      onChange={(e) => setSteps((xs) => xs.map((x, j) => j === i ? { ...x, message: e.target.value } : x))}
+                      className="bg-slate-950/50 border-white/10 focus:border-blue-500/50 focus:ring-2 focus:ring-blue-500/20 resize-none transition" />
+                  </div>
+                ))}
+              </div>
+
+              <div className="grid gap-3 sm:grid-cols-2">
+                <label className="group flex items-center gap-3 rounded-2xl border border-white/10 bg-slate-900/60 p-4 cursor-pointer transition hover:bg-slate-800/60 hover:border-blue-500/20">
+                  <Switch checked={stopOnReply} onCheckedChange={setStopOnReply} />
+                  <div className="text-sm">
+                    <div className="font-semibold group-hover:text-blue-300 transition">Parar ao responder</div>
+                    <div className="text-xs text-muted-foreground">Cancela ao receber resposta</div>
+                  </div>
+                </label>
+                <label className="group flex items-center gap-3 rounded-2xl border border-white/10 bg-slate-900/60 p-4 cursor-pointer transition hover:bg-slate-800/60 hover:border-indigo-500/20">
+                  <Switch checked={isActive} onCheckedChange={setIsActive} />
+                  <div className="text-sm">
+                    <div className="font-semibold group-hover:text-indigo-300 transition">Ativar agora</div>
+                    <div className="text-xs text-muted-foreground">Começa a rodar após salvar</div>
+                  </div>
+                </label>
+              </div>
             </div>
 
-            <div className="grid gap-3 sm:grid-cols-2">
-              <label className="flex items-center gap-2 rounded-lg border p-3 cursor-pointer">
-                <Switch checked={stopOnReply} onCheckedChange={setStopOnReply} />
-                <div className="text-sm"><div className="font-medium">Parar ao responder</div><div className="text-xs text-muted-foreground">Cancela ao receber resposta</div></div>
-              </label>
-              <label className="flex items-center gap-2 rounded-lg border p-3 cursor-pointer">
-                <Switch checked={isActive} onCheckedChange={setIsActive} />
-                <div className="text-sm"><div className="font-medium">Ativar agora</div><div className="text-xs text-muted-foreground">Começa a rodar após salvar</div></div>
-              </label>
-            </div>
+            <DialogFooter className="relative border-t border-white/10 p-6 gap-2">
+              <Button variant="ghost" onClick={() => setOpen(false)} className="text-muted-foreground hover:text-foreground hover:bg-white/5">Cancelar</Button>
+              <Button onClick={save} className="bg-gradient-to-br from-blue-500 to-indigo-600 text-white shadow-[0_10px_30px_-10px_rgba(59,130,246,0.6)] hover:opacity-90">
+                <CheckCircle2 className="h-4 w-4 mr-2" />
+                {editing ? "Salvar alterações" : "Criar follow-up"}
+              </Button>
+            </DialogFooter>
           </div>
-          <DialogFooter>
-            <Button variant="ghost" onClick={() => setOpen(false)}>Cancelar</Button>
-            <Button onClick={save}>{editing ? "Salvar" : "Criar follow-up"}</Button>
-          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>
-  );
-}
-
-function Metric({ icon, label, value, sub }: { icon: React.ReactNode; label: string; value: React.ReactNode; sub?: string }) {
-  return (
-    <Card className="p-4">
-      <div className="flex items-center gap-2 text-xs text-muted-foreground">{icon}<span>{label}</span></div>
-      <div className="text-2xl font-black mt-1">{value}</div>
-      {sub && <div className="text-xs text-muted-foreground mt-0.5">{sub}</div>}
-    </Card>
   );
 }
 
