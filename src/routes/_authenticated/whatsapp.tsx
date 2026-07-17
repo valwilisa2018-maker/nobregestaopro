@@ -245,16 +245,16 @@ function Page() {
     }
   };
 
-  return (
-    <PageShell
-      title="Conexão WhatsApp"
-      description="Conecte, gerencie e reconecte seus números do WhatsApp."
-      icon={<MessageCircle className="h-6 w-6" />}
-      status="ativo"
-      actions={
-        <Dialog open={openNew} onOpenChange={setOpenNew}>
+  const onlineCount = items.filter((i) => i.status === "online").length;
+  const offlineCount = items.filter((i) => i.status === "offline").length;
+  const connectingCount = items.filter((i) => i.status === "connecting").length;
+
+  const newInstanceDialog = (
+    <Dialog open={openNew} onOpenChange={setOpenNew}>
           <DialogTrigger asChild>
-            <Button className="bg-[#25D366] hover:bg-[#1ebe5b] text-foreground"><Plus className="h-4 w-4" /> Nova instância</Button>
+        <Button className="bg-gradient-to-br from-[#25D366] to-[#1ebe5b] text-white shadow-[0_10px_30px_-10px_rgba(37,211,102,0.6)] hover:opacity-90">
+          <Plus className="mr-2 h-4 w-4" /> Nova instância
+        </Button>
           </DialogTrigger>
           <DialogContent>
             <DialogHeader>
@@ -288,9 +288,49 @@ function Page() {
               </DialogFooter>
             </form>
           </DialogContent>
-        </Dialog>
-      }
-    >
+    </Dialog>
+  );
+
+  return (
+    <PageShell>
+      {/* Premium Hero */}
+      <div className="relative overflow-hidden rounded-3xl border border-white/10 bg-gradient-to-br from-slate-900/90 via-slate-900/70 to-slate-950/90 p-6 shadow-[0_20px_60px_-20px_rgba(0,0,0,0.6)] backdrop-blur-xl">
+        <div className="pointer-events-none absolute -right-24 -top-24 h-72 w-72 rounded-full bg-emerald-500/25 blur-3xl" />
+        <div className="pointer-events-none absolute -left-24 -bottom-24 h-72 w-72 rounded-full bg-teal-500/15 blur-3xl" />
+        <div className="relative flex flex-wrap items-center justify-between gap-4">
+          <div className="flex items-center gap-4">
+            <div className="grid h-14 w-14 place-items-center rounded-2xl bg-gradient-to-br from-[#25D366] to-[#1ebe5b] shadow-[0_10px_30px_-10px_rgba(37,211,102,0.7)] ring-1 ring-white/20">
+              <MessageCircle className="h-7 w-7 text-white" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <h1 className="bg-gradient-to-r from-emerald-300 via-green-200 to-teal-300 bg-clip-text text-3xl font-bold tracking-tight text-transparent">
+                  Conexão WhatsApp
+                </h1>
+                <Badge variant="outline" className="border-emerald-500/40 bg-emerald-500/10 text-emerald-300">Ativo</Badge>
+              </div>
+              <p className="text-sm text-muted-foreground">Conecte, gerencie e reconecte seus números do WhatsApp.</p>
+            </div>
+          </div>
+          {newInstanceDialog}
+        </div>
+
+        {/* KPIs */}
+        <div className="relative mt-6 grid grid-cols-2 gap-3 md:grid-cols-4">
+          {[
+            { label: "Instâncias", value: items.length, tone: "from-blue-500/25 to-cyan-500/10", ring: "ring-blue-500/30" },
+            { label: "Conectadas", value: onlineCount, tone: "from-emerald-500/25 to-teal-500/10", ring: "ring-emerald-500/30" },
+            { label: "Conectando", value: connectingCount, tone: "from-amber-500/25 to-orange-500/10", ring: "ring-amber-500/30" },
+            { label: "Offline", value: offlineCount, tone: "from-rose-500/25 to-red-500/10", ring: "ring-rose-500/30" },
+          ].map((k) => (
+            <div key={k.label} className={`rounded-2xl border border-white/10 bg-gradient-to-br ${k.tone} p-4 ring-1 ${k.ring} backdrop-blur`}>
+              <div className="text-xs uppercase tracking-wider text-muted-foreground">{k.label}</div>
+              <div className="mt-1 text-2xl font-bold tabular-nums">{k.value}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+
       {items.some((c) => c.status === "offline") && (
         <Card className="border-destructive/40 bg-destructive/5 mb-4">
           <CardContent className="py-3 flex items-center gap-3 text-sm">
@@ -304,17 +344,21 @@ function Page() {
       {loading ? (
         <div className="p-12 flex justify-center"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>
       ) : items.length === 0 ? (
-        <Card className="border-dashed">
-          <CardContent className="py-16 text-center space-y-3">
-            <div className="mx-auto grid h-14 w-14 place-items-center rounded-full bg-primary/10 text-primary">
-              <Smartphone className="h-6 w-6" />
+        <div className="relative overflow-hidden rounded-3xl border border-white/10 bg-gradient-to-b from-card/60 to-card/30 p-16 text-center backdrop-blur-xl">
+          <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(37,211,102,0.10),transparent_60%)]" />
+          <div className="relative mx-auto grid h-24 w-24 place-items-center">
+            <div className="absolute inset-0 rounded-full bg-emerald-500/30 blur-2xl" />
+            <div className="absolute inset-0 animate-ping rounded-full bg-emerald-500/20" />
+            <div className="relative grid h-24 w-24 place-items-center rounded-3xl bg-gradient-to-br from-emerald-500/20 to-teal-500/20 text-emerald-300 ring-1 ring-white/10">
+              <Smartphone className="h-10 w-10" />
             </div>
-            <h3 className="text-lg font-semibold">Conecte seu WhatsApp em segundos</h3>
-            <p className="text-sm text-muted-foreground max-w-md mx-auto">
-              Clique em <span className="font-medium text-foreground">Nova instância</span>, escaneie o QR Code e pronto — seu WhatsApp estará conectado em menos de 1 minuto.
-            </p>
-          </CardContent>
-        </Card>
+          </div>
+          <h3 className="relative mt-6 text-xl font-semibold">Conecte seu WhatsApp em segundos</h3>
+          <p className="relative mx-auto mt-2 max-w-md text-sm text-muted-foreground">
+            Clique em <span className="font-medium text-foreground">Nova instância</span>, escaneie o QR Code e pronto — seu WhatsApp estará conectado em menos de 1 minuto.
+          </p>
+          <div className="relative mt-6 inline-flex">{newInstanceDialog}</div>
+        </div>
       ) : (
         <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-3">
           {items.map((c) => {
