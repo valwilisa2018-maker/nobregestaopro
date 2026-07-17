@@ -118,6 +118,24 @@ function translateSource(src: string | null): string {
   return src;
 }
 
+// Traduz mensagens de erro comuns do Supabase para português claro.
+function traduzErro(msg: string): string {
+  const m = (msg || "").toLowerCase();
+  if (m.includes("failed to fetch") || m.includes("networkerror") || m.includes("network request failed"))
+    return "Falha de conexão — verifique sua internet e tente novamente.";
+  if (m.includes("timeout") || m.includes("timed out") || m.includes("statement timeout"))
+    return "O servidor demorou demais para responder. Tente novamente em instantes.";
+  if (m.includes("jwt") || m.includes("unauthorized") || m.includes("401"))
+    return "Sua sessão expirou. Faça login novamente para continuar.";
+  if (m.includes("permission") || m.includes("forbidden") || m.includes("403") || m.includes("rls"))
+    return "Você não tem permissão para acessar estes logs.";
+  if (m.includes("rate limit") || m.includes("429"))
+    return "Muitas requisições em pouco tempo. Aguarde alguns segundos e tente novamente.";
+  if (m.includes("not found") || m.includes("404"))
+    return "Nenhum log encontrado no servidor.";
+  return msg ? `Erro ao carregar logs: ${msg}` : "Não foi possível carregar os logs. Tente novamente.";
+}
+
 function Page() {
   const { user } = useAuth();
   const [rows, setRows] = useState<LogRow[]>([]);
@@ -129,6 +147,7 @@ function Page() {
   // Cursor stack: cursors[i] = starting cursor for page i (null = first page).
   const [cursors, setCursors] = useState<Array<{ created_at: string; id: string } | null>>([null]);
   const [hasNext, setHasNext] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [clearState, setClearState] = useState<{
     status: "idle" | "running" | "done" | "error";
     processed: number;
@@ -139,6 +158,7 @@ function Page() {
   const loadPage = async (index: number, stack: Array<{ created_at: string; id: string } | null>) => {
     if (!user) return;
     setLoading(true);
+    setLoadError(null);
     const cursor = stack[index] ?? null;
     // Keyset pagination on (created_at desc, id desc) — avoids duplicates/skips
     // when new logs arrive between page loads, unlike offset-based paging.
@@ -156,7 +176,12 @@ function Page() {
     }
     const { data, error } = await q;
     setLoading(false);
-    if (error) return toast.error(error.message);
+    if (error) {
+      const msg = traduzErro(error.message);
+      setLoadError(msg);
+      toast.error(msg);
+      return;
+    }
     const list = (data ?? []) as LogRow[];
     const more = list.length > PAGE_SIZE;
     const pageRows = more ? list.slice(0, PAGE_SIZE) : list;
@@ -182,6 +207,7 @@ function Page() {
     // Reset to first page and reload.
     await loadPage(0, [null]);
   };
+  const retry = () => { loadPage(pageIndex, cursors); };
   const goNext = () => { if (hasNext) loadPage(pageIndex + 1, cursors); };
   const goPrev = () => { if (pageIndex > 0) loadPage(pageIndex - 1, cursors); };
   useEffect(() => { load(); /* eslint-disable-next-line */ }, [user]);
@@ -430,6 +456,19 @@ function Page() {
           <div className="p-16 flex flex-col items-center justify-center gap-3">
             <Loader2 className="h-8 w-8 animate-spin text-primary" />
             <p className="text-sm text-muted-foreground">Carregando eventos…</p>
+          </div>
+        ) : loadError ? (
+          <div className="p-16 text-center space-y-4">
+            <div className="mx-auto grid h-16 w-16 place-items-center rounded-2xl bg-destructive/10 text-destructive">
+              <XCircle className="h-7 w-7" />
+            </div>
+            <div className="space-y-1">
+              <p className="font-medium text-foreground">Não foi possível carregar os logs</p>
+              <p className="text-sm text-muted-foreground max-w-md mx-auto">{loadError}</p>
+            </div>
+            <Button onClick={retry} className="gap-2">
+              <RefreshCw className="h-4 w-4" /> Tentar novamente
+            </Button>
           </div>
         ) : filtered.length === 0 ? (
           <div className="p-16 text-center space-y-3">
