@@ -295,12 +295,7 @@ function Page() {
   ];
 
   return (
-    <PageShell
-      title="Debug de Fluxo"
-      description="Acompanhe execuções reais em tempo real e simule fluxos antes de publicar."
-      icon={<Bug className="h-6 w-6" />}
-      status="ativo"
-    >
+    <PageShell>
       {/* Premium hero */}
       <div className="relative overflow-hidden rounded-3xl border border-border/60 bg-gradient-to-br from-indigo-600/20 via-violet-600/10 to-fuchsia-600/20 p-6 mb-5 shadow-[0_10px_40px_-15px_rgba(99,102,241,0.35)]">
         <div className="absolute -top-20 -right-20 h-64 w-64 rounded-full bg-violet-500/20 blur-3xl" aria-hidden />
