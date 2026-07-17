@@ -15,6 +15,32 @@ import {
   Timer, Send, MessageCircleReply, Target, Plus, Trash2, Play, Pause, Pencil, Clock, Zap,
   Plug, CheckCircle2, AlertCircle, Layers,
 } from "lucide-react";
+import { z } from "zod";
+
+const stepSchema = z.object({
+  delay_value: z.number().int().min(0, "Delay não pode ser negativo").max(9999, "Delay muito alto"),
+  delay_unit: z.enum(["minutes", "hours", "days"]),
+  message: z.string().trim().min(1, "Mensagem obrigatória").max(2000, "Máximo 2000 caracteres"),
+});
+const followupSchema = z.object({
+  name: z.string().trim().min(2, "Nome deve ter ao menos 2 caracteres").max(80, "Máximo 80 caracteres"),
+  description: z.string().trim().max(300, "Máximo 300 caracteres").optional(),
+  invValue: z.number().int().min(1, "Deve ser ≥ 1").max(9999, "Valor muito alto"),
+  invUnit: z.enum(["minutes", "hours", "days"]),
+  connectionId: z.string().min(1, "Selecione uma instância"),
+  steps: z.array(stepSchema).min(1, "Adicione ao menos uma etapa"),
+});
+type FieldErrors = { name?: string; description?: string; invValue?: string; connectionId?: string; steps?: string; stepMsgs?: Record<number, string>; stepDelays?: Record<number, string> };
+
+function InlineError({ msg }: { msg?: string }) {
+  if (!msg) return null;
+  return (
+    <div className="mt-1.5 flex items-center gap-1.5 rounded-lg border border-red-500/30 bg-red-500/10 px-2.5 py-1.5 text-xs font-medium text-red-300 backdrop-blur-md shadow-[0_4px_12px_-4px_rgba(239,68,68,0.35)] animate-in fade-in slide-in-from-top-1 duration-200">
+      <AlertCircle className="h-3.5 w-3.5 shrink-0" />
+      <span>{msg}</span>
+    </div>
+  );
+}
 
 export const Route = createFileRoute("/_authenticated/followups")({
   head: () => ({ meta: [{ title: "Follow-up — Plataforma IA WhatsApp" }] }),
@@ -58,6 +84,7 @@ function Page() {
   const [stopOnReply, setStopOnReply] = useState(true);
   const [isActive, setIsActive] = useState(true);
   const [connectionId, setConnectionId] = useState<string>("all");
+  const [errors, setErrors] = useState<FieldErrors>({});
 
   async function load() {
     setLoading(true);
@@ -93,6 +120,7 @@ function Page() {
     setStopOnReply(true); setIsActive(true);
     setConnectionId("all");
     setSteps([{ step_order: 0, delay_value: 0, delay_unit: "minutes", message: "" }]);
+    setErrors({});
     setOpen(true);
   }
   async function openEdit(f: Followup) {
@@ -104,12 +132,30 @@ function Page() {
     if (!user) return;
     const { data } = await supabase.from("followup_steps").select("*").eq("followup_id", f.id).eq("user_id", user.id).order("step_order");
     setSteps((data as Step[])?.length ? (data as Step[]) : [{ step_order: 0, delay_value: 0, delay_unit: "minutes", message: "" }]);
+    setErrors({});
     setOpen(true);
   }
 
   async function save() {
-    if (!name.trim()) { toast.error("Informe um nome"); return; }
-    if (!steps.some((s) => s.message.trim())) { toast.error("Adicione ao menos uma mensagem"); return; }
+    const parsed = followupSchema.safeParse({ name, description, invValue, invUnit, connectionId, steps });
+    if (!parsed.success) {
+      const fe: FieldErrors = { stepMsgs: {}, stepDelays: {} };
+      for (const issue of parsed.error.issues) {
+        const [k, idx, sub] = issue.path as (string | number)[];
+        if (k === "steps" && typeof idx === "number") {
+          if (sub === "message") fe.stepMsgs![idx] = issue.message;
+          else if (sub === "delay_value") fe.stepDelays![idx] = issue.message;
+          else fe.steps = issue.message;
+        } else if (k === "name") fe.name = issue.message;
+        else if (k === "description") fe.description = issue.message;
+        else if (k === "invValue") fe.invValue = issue.message;
+        else if (k === "connectionId") fe.connectionId = issue.message;
+      }
+      setErrors(fe);
+      toast.error("Corrija os campos destacados");
+      return;
+    }
+    setErrors({});
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) { toast.error("Sem sessão"); return; }
     const payload = {
@@ -285,11 +331,13 @@ function Page() {
               <div className="grid gap-5 md:grid-cols-2">
                 <div className="space-y-2">
                   <Label className="text-sm font-semibold">Nome</Label>
-                  <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Ex.: Reengajamento 24h" className="h-11 bg-slate-900/60 border-white/10 focus:border-blue-500/50 focus:ring-2 focus:ring-blue-500/20 transition" />
+                  <Input value={name} onChange={(e) => { setName(e.target.value); if (errors.name) setErrors((x) => ({ ...x, name: undefined })); }} placeholder="Ex.: Reengajamento 24h" className={`h-11 bg-slate-900/60 border-white/10 focus:border-blue-500/50 focus:ring-2 focus:ring-blue-500/20 transition ${errors.name ? "border-red-500/60 focus:border-red-500/60 focus:ring-red-500/20" : ""}`} />
+                  <InlineError msg={errors.name} />
                 </div>
                 <div className="space-y-2">
                   <Label className="text-sm font-semibold">Descrição</Label>
-                  <Textarea rows={2} value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Opcional" className="bg-slate-900/60 border-white/10 focus:border-blue-500/50 focus:ring-2 focus:ring-blue-500/20 resize-none transition" />
+                  <Textarea rows={2} value={description} onChange={(e) => { setDescription(e.target.value); if (errors.description) setErrors((x) => ({ ...x, description: undefined })); }} placeholder="Opcional" className={`bg-slate-900/60 border-white/10 focus:border-blue-500/50 focus:ring-2 focus:ring-blue-500/20 resize-none transition ${errors.description ? "border-red-500/60 focus:border-red-500/60 focus:ring-red-500/20" : ""}`} />
+                  <InlineError msg={errors.description} />
                 </div>
               </div>
 
@@ -303,7 +351,7 @@ function Page() {
                 </div>
                 <p className="relative text-xs text-muted-foreground mb-3">Dispara quando o cliente não responder pelo tempo abaixo.</p>
                 <div className="relative flex items-center gap-2">
-                  <Input type="number" min={1} value={invValue} onChange={(e) => setInvValue(Number(e.target.value) || 1)} className="h-11 w-28 bg-slate-950/50 border-white/10 focus:border-blue-500/50" />
+                  <Input type="number" min={1} value={invValue} onChange={(e) => { setInvValue(Number(e.target.value) || 1); if (errors.invValue) setErrors((x) => ({ ...x, invValue: undefined })); }} className={`h-11 w-28 bg-slate-950/50 border-white/10 focus:border-blue-500/50 ${errors.invValue ? "border-red-500/60" : ""}`} />
                   <Select value={invUnit} onValueChange={(v) => setInvUnit(v as Unit)}>
                     <SelectTrigger className="h-11 w-40 bg-slate-950/50 border-white/10 focus:ring-blue-500/20"><SelectValue /></SelectTrigger>
                     <SelectContent>
@@ -311,6 +359,7 @@ function Page() {
                     </SelectContent>
                   </Select>
                 </div>
+                <InlineError msg={errors.invValue} />
               </div>
 
               <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-slate-900/60 p-5">
@@ -323,7 +372,7 @@ function Page() {
                 </div>
                 <p className="relative text-xs text-muted-foreground mb-3">Escolha uma instância específica ou dispare por todas.</p>
                 <Select value={connectionId} onValueChange={setConnectionId}>
-                  <SelectTrigger className="h-11 bg-slate-950/50 border-white/10 focus:ring-indigo-500/20"><SelectValue /></SelectTrigger>
+                  <SelectTrigger className={`h-11 bg-slate-950/50 border-white/10 focus:ring-indigo-500/20 ${errors.connectionId ? "border-red-500/60" : ""}`}><SelectValue /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">🌐 Todas as instâncias</SelectItem>
                     {connections.map((c) => {
@@ -337,6 +386,7 @@ function Page() {
                     })}
                   </SelectContent>
                 </Select>
+                <InlineError msg={errors.connectionId} />
                 {connections.length === 0 && (
                   <p className="relative mt-2 text-xs font-medium text-amber-500">Nenhuma instância cadastrada. Conecte um WhatsApp primeiro.</p>
                 )}
@@ -363,7 +413,7 @@ function Page() {
                       <span className="text-xs text-muted-foreground">Aguardar</span>
                       <Input type="number" min={0} value={s.delay_value} disabled={i === 0}
                         onChange={(e) => setSteps((xs) => xs.map((x, j) => j === i ? { ...x, delay_value: Number(e.target.value) || 0 } : x))}
-                        className="w-24 h-9 bg-slate-950/50 border-white/10 disabled:opacity-40" />
+                        className={`w-24 h-9 bg-slate-950/50 border-white/10 disabled:opacity-40 ${errors.stepDelays?.[i] ? "border-red-500/60" : ""}`} />
                       <Select value={s.delay_unit} onValueChange={(v) => setSteps((xs) => xs.map((x, j) => j === i ? { ...x, delay_unit: v as Unit } : x))}>
                         <SelectTrigger className="w-32 h-9 bg-slate-950/50 border-white/10"><SelectValue /></SelectTrigger>
                         <SelectContent>
@@ -372,11 +422,14 @@ function Page() {
                       </Select>
                       {i === 0 && <span className="text-xs text-muted-foreground">(dispara ao gatilho)</span>}
                     </div>
+                    <InlineError msg={errors.stepDelays?.[i]} />
                     <Textarea rows={3} value={s.message} placeholder="Mensagem para o cliente..."
-                      onChange={(e) => setSteps((xs) => xs.map((x, j) => j === i ? { ...x, message: e.target.value } : x))}
-                      className="bg-slate-950/50 border-white/10 focus:border-blue-500/50 focus:ring-2 focus:ring-blue-500/20 resize-none transition" />
+                      onChange={(e) => { setSteps((xs) => xs.map((x, j) => j === i ? { ...x, message: e.target.value } : x)); if (errors.stepMsgs?.[i]) setErrors((x) => ({ ...x, stepMsgs: { ...(x.stepMsgs ?? {}), [i]: undefined as unknown as string } })); }}
+                      className={`bg-slate-950/50 border-white/10 focus:border-blue-500/50 focus:ring-2 focus:ring-blue-500/20 resize-none transition ${errors.stepMsgs?.[i] ? "border-red-500/60 focus:border-red-500/60 focus:ring-red-500/20" : ""}`} />
+                    <InlineError msg={errors.stepMsgs?.[i]} />
                   </div>
                 ))}
+                <InlineError msg={errors.steps} />
               </div>
 
               <div className="grid gap-3 sm:grid-cols-2">
