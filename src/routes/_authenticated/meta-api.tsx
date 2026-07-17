@@ -15,7 +15,7 @@ import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogTrigger } from "@/components/ui/dialog";
-import { Loader2, Save, ShieldCheck, RefreshCw, Send, Plus, Trash2, Copy, Facebook, CheckCircle2, XCircle, Info, Sparkles, MessageSquare, FileCheck2, Webhook } from "lucide-react";
+import { Loader2, Save, ShieldCheck, RefreshCw, Send, Plus, Trash2, Copy, Facebook, CheckCircle2, XCircle, Info, Sparkles, FileCheck2, Webhook } from "lucide-react";
 import { toast } from "sonner";
 import {
   verifyMetaConfig, syncMetaTemplates, createMetaTemplate, deleteMetaTemplate, sendMetaTemplate, sendMetaText,
