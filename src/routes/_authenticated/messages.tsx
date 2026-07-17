@@ -2211,7 +2211,7 @@ function MessagesPage() {
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <button
-                      onClick={() => setChatDarkMode((v) => !v)}
+                      onClick={() => toggleAppTheme()}
                       className="p-2 rounded-full hover:bg-muted transition"
                       aria-label={chatDarkMode ? "Modo claro" : "Modo escuro"}
                     >
