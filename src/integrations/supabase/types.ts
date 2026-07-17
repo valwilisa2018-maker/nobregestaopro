@@ -1254,6 +1254,7 @@ export type Database = {
           created_at: string
           delay_unit: string
           delay_value: number
+          flow_id: string | null
           followup_id: string
           id: string
           media_url: string | null
@@ -1265,6 +1266,7 @@ export type Database = {
           created_at?: string
           delay_unit?: string
           delay_value?: number
+          flow_id?: string | null
           followup_id: string
           id?: string
           media_url?: string | null
@@ -1276,6 +1278,7 @@ export type Database = {
           created_at?: string
           delay_unit?: string
           delay_value?: number
+          flow_id?: string | null
           followup_id?: string
           id?: string
           media_url?: string | null
@@ -1284,6 +1287,13 @@ export type Database = {
           user_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "followup_steps_flow_id_fkey"
+            columns: ["flow_id"]
+            isOneToOne: false
+            referencedRelation: "flows"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "followup_steps_followup_id_fkey"
             columns: ["followup_id"]
