@@ -129,6 +129,7 @@ function Page() {
   // Cursor stack: cursors[i] = starting cursor for page i (null = first page).
   const [cursors, setCursors] = useState<Array<{ created_at: string; id: string } | null>>([null]);
   const [hasNext, setHasNext] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [clearState, setClearState] = useState<{
     status: "idle" | "running" | "done" | "error";
     processed: number;
@@ -139,6 +140,7 @@ function Page() {
   const loadPage = async (index: number, stack: Array<{ created_at: string; id: string } | null>) => {
     if (!user) return;
     setLoading(true);
+    setLoadError(null);
     const cursor = stack[index] ?? null;
     // Keyset pagination on (created_at desc, id desc) — avoids duplicates/skips
     // when new logs arrive between page loads, unlike offset-based paging.
@@ -156,7 +158,12 @@ function Page() {
     }
     const { data, error } = await q;
     setLoading(false);
-    if (error) return toast.error(error.message);
+    if (error) {
+      const msg = traduzErro(error.message);
+      setLoadError(msg);
+      toast.error(msg);
+      return;
+    }
     const list = (data ?? []) as LogRow[];
     const more = list.length > PAGE_SIZE;
     const pageRows = more ? list.slice(0, PAGE_SIZE) : list;
@@ -182,6 +189,7 @@ function Page() {
     // Reset to first page and reload.
     await loadPage(0, [null]);
   };
+  const retry = () => { loadPage(pageIndex, cursors); };
   const goNext = () => { if (hasNext) loadPage(pageIndex + 1, cursors); };
   const goPrev = () => { if (pageIndex > 0) loadPage(pageIndex - 1, cursors); };
   useEffect(() => { load(); /* eslint-disable-next-line */ }, [user]);
