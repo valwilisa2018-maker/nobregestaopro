@@ -4,7 +4,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { useRef, useState, useMemo } from "react";
 import { toast } from "sonner";
 import {
-  Contact2, Download, FileSpreadsheet, FileText, Loader2, Plus, Search, Trash2, Upload, UserPlus,
+  Contact2, Download, FileSpreadsheet, FileText, Filter, Loader2, Plus, Search, Trash2, Upload, UserPlus,
   CheckCircle2, Pencil, Users, Shield, Archive, X, Phone, Clock,
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
