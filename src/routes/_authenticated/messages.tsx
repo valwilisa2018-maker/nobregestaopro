@@ -898,10 +898,9 @@ function MessagesPage() {
   }, [msgs]);
 
   const hydrateSignedUrls = useCallback((rows: Msg[], reqId: string) => {
-    // Only hydrate the most recent media rows first — the older ones are off-screen
-    // and can be hydrated lazily. Signing every URL up-front is the main reason
-    // the chat feels slow to open on threads with lots of media.
-    const rowsWithStorage = rows.filter((m) => storagePathFrom(m)).slice(-15);
+    // Sign all media rows so scrolling up doesn't reveal broken images.
+    // createSignedUrls is a single batch call, and we cache results per path.
+    const rowsWithStorage = rows.filter((m) => storagePathFrom(m));
     if (!rowsWithStorage.length) return;
     (async () => {
       // Split cached vs uncached, then batch-sign the uncached in a single request.
@@ -916,11 +915,15 @@ function MessagesPage() {
       }
       if (toSign.length) {
         const paths = Array.from(new Set(toSign.map((r) => r.path)));
-        const { data } = await supabase.storage.from("agent-media").createSignedUrls(paths, 60 * 60 * 24);
         const byPath = new Map<string, string>();
-        for (const s of data ?? []) if (s.path && s.signedUrl) {
-          byPath.set(s.path, s.signedUrl);
-          signedUrlCacheRef.current.set(s.path, s.signedUrl);
+        // Batch in chunks of 100 to keep each request small.
+        for (let i = 0; i < paths.length; i += 100) {
+          const chunk = paths.slice(i, i + 100);
+          const { data } = await supabase.storage.from("agent-media").createSignedUrls(chunk, 60 * 60 * 24);
+          for (const s of data ?? []) if (s.path && s.signedUrl) {
+            byPath.set(s.path, s.signedUrl);
+            signedUrlCacheRef.current.set(s.path, s.signedUrl);
+          }
         }
         for (const r of toSign) {
           const url = byPath.get(r.path);
