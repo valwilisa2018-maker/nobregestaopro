@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Bot, Plus, Zap, Sliders, Clock, Copy, Trash2, Loader2, ArrowLeft, ArrowRight, Hash, Sparkles } from "lucide-react";
+import { Bot, Plus, Zap, Sliders, Clock, Copy, Trash2, Loader2, ArrowLeft, ArrowRight, Hash } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
@@ -61,7 +61,6 @@ export function TabAgents() {
           onClick={() => setEditing(emptyAgent(user?.id ?? ""))}
           className="relative rounded-xl px-5 h-11 text-white font-semibold bg-gradient-to-r from-indigo-500 via-violet-500 to-purple-600 hover:from-indigo-400 hover:via-violet-400 hover:to-purple-500 shadow-[0_10px_40px_-10px_rgba(139,92,246,0.7)]"
         >
-          <Sparkles className="h-4 w-4 -ml-1 opacity-80" />
           <Plus className="h-4 w-4" /> Novo Agente
         </Button>
       </div>
@@ -84,8 +83,6 @@ export function TabAgents() {
               <div className="absolute inset-8 grid place-items-center rounded-full bg-gradient-to-br from-indigo-500/20 to-violet-600/20 ring-1 ring-violet-400/30">
                 <Bot className="h-12 w-12 text-violet-300" />
               </div>
-              <Sparkles className="absolute -right-1 top-6 h-3 w-3 text-violet-300/70" />
-              <Sparkles className="absolute -left-2 bottom-8 h-3 w-3 text-indigo-300/70" />
             </div>
             <div className="space-y-2">
               <h3 className="text-2xl font-bold tracking-tight">Nenhum agente criado</h3>
