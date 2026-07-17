@@ -13,14 +13,18 @@ import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import {
   Timer, Send, MessageCircleReply, Target, Plus, Trash2, Play, Pause, Pencil, Clock, Zap,
-  Plug, CheckCircle2, AlertCircle, Layers,
+  Plug, CheckCircle2, AlertCircle, Layers, Workflow,
 } from "lucide-react";
 import { z } from "zod";
 
 const stepSchema = z.object({
   delay_value: z.number().int().min(0, "Delay não pode ser negativo").max(9999, "Delay muito alto"),
   delay_unit: z.enum(["minutes", "hours", "days"]),
-  message: z.string().trim().min(1, "Mensagem obrigatória").max(2000, "Máximo 2000 caracteres"),
+  message: z.string().trim().max(2000, "Máximo 2000 caracteres").optional().default(""),
+  flow_id: z.string().uuid().nullable().optional(),
+}).refine((s) => (s.flow_id && s.flow_id.length > 0) || (s.message && s.message.trim().length > 0), {
+  message: "Escolha um fluxo ou escreva a mensagem",
+  path: ["message"],
 });
 const followupSchema = z.object({
   name: z.string().trim().min(2, "Nome deve ter ao menos 2 caracteres").max(80, "Máximo 80 caracteres"),
@@ -61,7 +65,9 @@ type Step = {
   id?: string; step_order: number;
   delay_value: number; delay_unit: Unit;
   message: string; media_url?: string | null;
+  flow_id?: string | null;
 };
+type FlowRow = { id: string; name: string; is_active: boolean };
 
 const UNITS: { value: Unit; label: string }[] = [
   { value: "minutes", label: "minutos" },
@@ -72,6 +78,7 @@ const UNITS: { value: Unit; label: string }[] = [
 function Page() {
   const [rows, setRows] = useState<Followup[]>([]);
   const [connections, setConnections] = useState<Connection[]>([]);
+  const [flows, setFlows] = useState<FlowRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<Followup | null>(null);
@@ -90,12 +97,14 @@ function Page() {
     setLoading(true);
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) { setRows([]); setConnections([]); setLoading(false); return; }
-    const [{ data, error }, { data: conns }] = await Promise.all([
+    const [{ data, error }, { data: conns }, { data: fls }] = await Promise.all([
       supabase.from("followups").select("*").eq("user_id", user.id).order("created_at", { ascending: false }),
       supabase.from("connections").select("id,name,instance_name,status,phone_number").eq("user_id", user.id).order("created_at"),
+      supabase.from("flows").select("id,name,is_active").eq("user_id", user.id).order("updated_at", { ascending: false }),
     ]);
     if (error) toast.error(error.message); else setRows((data as Followup[]) ?? []);
     setConnections((conns as Connection[]) ?? []);
+    setFlows((fls as FlowRow[]) ?? []);
     setLoading(false);
   }
   useEffect(() => { void load(); }, []);
@@ -119,7 +128,7 @@ function Page() {
     setInvValue(1); setInvUnit("hours");
     setStopOnReply(true); setIsActive(true);
     setConnectionId("all");
-    setSteps([{ step_order: 0, delay_value: 0, delay_unit: "minutes", message: "" }]);
+    setSteps([{ step_order: 0, delay_value: 0, delay_unit: "minutes", message: "", flow_id: null }]);
     setErrors({});
     setOpen(true);
   }
@@ -131,7 +140,7 @@ function Page() {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
     const { data } = await supabase.from("followup_steps").select("*").eq("followup_id", f.id).eq("user_id", user.id).order("step_order");
-    setSteps((data as Step[])?.length ? (data as Step[]) : [{ step_order: 0, delay_value: 0, delay_unit: "minutes", message: "" }]);
+    setSteps((data as Step[])?.length ? (data as Step[]) : [{ step_order: 0, delay_value: 0, delay_unit: "minutes", message: "", flow_id: null }]);
     setErrors({});
     setOpen(true);
   }
@@ -174,10 +183,11 @@ function Page() {
       if (error) { toast.error(error.message); return; }
       followupId = data.id;
     }
-    const clean = steps.filter((s) => s.message.trim()).map((s, i) => ({
+    const clean = steps.filter((s) => (s.flow_id && s.flow_id.length > 0) || s.message.trim()).map((s, i) => ({
       followup_id: followupId!, user_id: user.id, step_order: i,
       delay_value: s.delay_value, delay_unit: s.delay_unit,
-      message: s.message, media_url: s.media_url ?? null,
+      message: s.message ?? "", media_url: s.media_url ?? null,
+      flow_id: s.flow_id && s.flow_id.length > 0 ? s.flow_id : null,
     }));
     if (clean.length) {
       const { error } = await supabase.from("followup_steps").insert(clean);
