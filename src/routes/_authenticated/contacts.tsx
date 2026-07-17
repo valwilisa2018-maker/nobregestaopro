@@ -219,7 +219,7 @@ function ContactsPage() {
       </Card>
 
       {/* Table */}
-      <Card className="overflow-hidden border border-white/10 bg-slate-900/60 backdrop-blur p-0">
+      <Card className="flex-1 flex flex-col min-h-0 overflow-hidden border border-white/10 bg-slate-900/60 backdrop-blur p-0">
         {query.isLoading ? (
           <div className="p-4 space-y-3">
             {Array.from({ length: 6 }).map((_, i) => (
@@ -241,9 +241,9 @@ function ContactsPage() {
             <Button variant="outline" onClick={openNew} className="relative border-white/10 bg-slate-950/50 hover:bg-slate-800/60"><Plus className="h-4 w-4 mr-1" /> Adicionar manualmente</Button>
           </div>
         ) : (
-          <div className="overflow-x-auto">
+          <div className="flex-1 overflow-auto">
             <table className="w-full text-sm">
-              <thead className="bg-white/5 text-xs uppercase tracking-wider text-muted-foreground">
+              <thead className="bg-white/5 text-xs uppercase tracking-wider text-muted-foreground sticky top-0">
                 <tr>
                   <th className="text-left px-4 py-3 font-semibold">Nome</th>
                   <th className="text-left px-4 py-3 font-semibold">Telefone</th>
