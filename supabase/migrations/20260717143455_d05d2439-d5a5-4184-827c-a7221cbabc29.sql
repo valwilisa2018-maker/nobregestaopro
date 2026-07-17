@@ -1,0 +1,1 @@
+CREATE INDEX IF NOT EXISTS idx_logs_user_created_id ON public.logs (user_id, created_at DESC, id DESC);
