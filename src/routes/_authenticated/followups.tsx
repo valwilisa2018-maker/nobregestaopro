@@ -405,7 +405,7 @@ function Page() {
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
                   <Label className="font-semibold">Etapas da régua</Label>
-                  <Button type="button" size="sm" onClick={() => setSteps((s) => [...s, { step_order: s.length, delay_value: 24, delay_unit: "hours", message: "" }])} className="bg-gradient-to-br from-blue-500 to-indigo-600 text-white shadow-[0_8px_20px_-8px_rgba(59,130,246,0.6)] hover:opacity-90">
+                  <Button type="button" size="sm" onClick={() => setSteps((s) => [...s, { step_order: s.length, delay_value: 24, delay_unit: "hours", message: "", flow_id: null }])} className="bg-gradient-to-br from-blue-500 to-indigo-600 text-white shadow-[0_8px_20px_-8px_rgba(59,130,246,0.6)] hover:opacity-90">
                     <Plus className="h-3.5 w-3.5 mr-1" /> Etapa
                   </Button>
                 </div>
@@ -433,10 +433,43 @@ function Page() {
                       {i === 0 && <span className="text-xs text-muted-foreground">(dispara ao gatilho)</span>}
                     </div>
                     <InlineError msg={errors.stepDelays?.[i]} />
-                    <Textarea rows={3} value={s.message} placeholder="Mensagem para o cliente..."
-                      onChange={(e) => { setSteps((xs) => xs.map((x, j) => j === i ? { ...x, message: e.target.value } : x)); if (errors.stepMsgs?.[i]) setErrors((x) => ({ ...x, stepMsgs: { ...(x.stepMsgs ?? {}), [i]: undefined as unknown as string } })); }}
-                      className={`bg-slate-950/50 border-white/10 focus:border-blue-500/50 focus:ring-2 focus:ring-blue-500/20 resize-none transition ${errors.stepMsgs?.[i] ? "border-red-500/60 focus:border-red-500/60 focus:ring-red-500/20" : ""}`} />
-                    <InlineError msg={errors.stepMsgs?.[i]} />
+                    <div className="mb-2 inline-flex rounded-lg border border-white/10 bg-slate-950/50 p-0.5 text-xs">
+                      <button type="button"
+                        onClick={() => setSteps((xs) => xs.map((x, j) => j === i ? { ...x, flow_id: null } : x))}
+                        className={`px-3 py-1.5 rounded-md font-medium transition ${!s.flow_id ? "bg-blue-500/20 text-blue-300 ring-1 ring-blue-500/40" : "text-muted-foreground hover:text-foreground"}`}>
+                        <Send className="h-3 w-3 mr-1 inline" /> Mensagem
+                      </button>
+                      <button type="button"
+                        onClick={() => setSteps((xs) => xs.map((x, j) => j === i ? { ...x, flow_id: x.flow_id ?? (flows[0]?.id ?? "") } : x))}
+                        className={`px-3 py-1.5 rounded-md font-medium transition ${s.flow_id ? "bg-violet-500/20 text-violet-300 ring-1 ring-violet-500/40" : "text-muted-foreground hover:text-foreground"}`}>
+                        <Workflow className="h-3 w-3 mr-1 inline" /> Fluxo
+                      </button>
+                    </div>
+                    {s.flow_id ? (
+                      <>
+                        <Select value={s.flow_id ?? ""} onValueChange={(v) => setSteps((xs) => xs.map((x, j) => j === i ? { ...x, flow_id: v } : x))}>
+                          <SelectTrigger className="h-11 bg-slate-950/50 border-white/10 focus:ring-violet-500/20"><SelectValue placeholder="Selecione um fluxo" /></SelectTrigger>
+                          <SelectContent>
+                            {flows.length === 0 ? (
+                              <div className="px-3 py-2 text-xs text-muted-foreground">Nenhum fluxo criado. Crie um em Workflows.</div>
+                            ) : flows.map((f) => (
+                              <SelectItem key={f.id} value={f.id}>
+                                {f.is_active ? "🟢" : "⚪"} {f.name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <p className="mt-2 text-[11px] text-violet-300/80">Ao disparar, o fluxo inteiro será executado para o contato.</p>
+                        <InlineError msg={errors.stepMsgs?.[i]} />
+                      </>
+                    ) : (
+                      <>
+                        <Textarea rows={3} value={s.message} placeholder="Mensagem para o cliente..."
+                          onChange={(e) => { setSteps((xs) => xs.map((x, j) => j === i ? { ...x, message: e.target.value } : x)); if (errors.stepMsgs?.[i]) setErrors((x) => ({ ...x, stepMsgs: { ...(x.stepMsgs ?? {}), [i]: undefined as unknown as string } })); }}
+                          className={`bg-slate-950/50 border-white/10 focus:border-blue-500/50 focus:ring-2 focus:ring-blue-500/20 resize-none transition ${errors.stepMsgs?.[i] ? "border-red-500/60 focus:border-red-500/60 focus:ring-red-500/20" : ""}`} />
+                        <InlineError msg={errors.stepMsgs?.[i]} />
+                      </>
+                    )}
                   </div>
                 ))}
                 <InlineError msg={errors.steps} />
