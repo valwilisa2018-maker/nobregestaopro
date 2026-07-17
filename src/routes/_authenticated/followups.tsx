@@ -213,9 +213,9 @@ function Page() {
   }
 
   return (
-    <div className="p-4 md:p-6 space-y-6 max-w-7xl mx-auto">
+    <div className="h-full flex flex-col gap-4 md:gap-6 p-4 md:p-6">
       {/* Premium Hero */}
-      <div className="relative overflow-hidden rounded-3xl border border-white/10 bg-gradient-to-br from-slate-900/90 via-indigo-950/60 to-slate-950/90 p-6 shadow-[0_20px_60px_-20px_rgba(0,0,0,0.6)] backdrop-blur-xl">
+      <div className="relative overflow-hidden rounded-3xl border border-white/10 bg-gradient-to-br from-slate-900/90 via-indigo-950/60 to-slate-950/90 p-6 shadow-[0_20px_60px_-20px_rgba(0,0,0,0.6)] backdrop-blur-xl shrink-0">
         <div className="pointer-events-none absolute -right-24 -top-24 h-72 w-72 rounded-full bg-blue-500/25 blur-3xl" />
         <div className="pointer-events-none absolute -left-24 -bottom-24 h-72 w-72 rounded-full bg-violet-500/20 blur-3xl" />
         <div className="relative flex flex-wrap items-center justify-between gap-4">
@@ -255,7 +255,7 @@ function Page() {
         </div>
       </div>
 
-      <Card className={`flex items-center gap-3 border p-3 ${anyConnected ? "border-emerald-500/40 bg-emerald-500/5" : "border-amber-500/40 bg-amber-500/5"}`}>
+      <Card className={`shrink-0 flex items-center gap-3 border p-3 ${anyConnected ? "border-emerald-500/40 bg-emerald-500/5" : "border-amber-500/40 bg-amber-500/5"}`}>
         {anyConnected ? <CheckCircle2 className="h-5 w-5 shrink-0 text-emerald-500" /> : <AlertCircle className="h-5 w-5 shrink-0 text-amber-500" />}
         <div className="min-w-0 flex-1 text-sm">
           <div className="font-semibold">
@@ -267,8 +267,8 @@ function Page() {
         </div>
       </Card>
 
-      <Card className="overflow-hidden p-0">
-        <div className="flex items-center justify-between border-b p-4">
+      <Card className="flex-1 flex flex-col min-h-0 overflow-hidden p-0">
+        <div className="shrink-0 flex items-center justify-between border-b p-4">
           <div className="flex items-center gap-2">
             <div className="h-2 w-2 rounded-full bg-blue-500" />
             <h2 className="font-bold">Campanhas</h2>
@@ -284,7 +284,7 @@ function Page() {
             <Button onClick={openNew} variant="outline" size="sm" className="mt-3"><Plus className="h-4 w-4 mr-1" /> Criar primeiro</Button>
           </div>
         ) : (
-          <div className="divide-y">
+          <div className="flex-1 overflow-auto divide-y">
             {rows.map((f) => (
               <div key={f.id} className="p-4 flex items-center gap-3 hover:bg-muted/30 transition">
                 <div className={`h-10 w-10 shrink-0 rounded-xl grid place-items-center ${f.is_active ? "bg-green-500/15 text-green-600" : "bg-muted text-muted-foreground"}`}>

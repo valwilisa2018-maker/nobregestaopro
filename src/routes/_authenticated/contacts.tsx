@@ -114,9 +114,9 @@ function ContactsPage() {
   };
 
   return (
-    <div className="p-4 md:p-6 space-y-6 max-w-7xl mx-auto">
+    <div className="h-full flex flex-col gap-4 md:gap-6 p-4 md:p-6">
       {/* Premium Hero */}
-      <div className="relative overflow-hidden rounded-3xl border border-white/10 bg-gradient-to-br from-slate-900/90 via-blue-950/40 to-slate-950/90 p-6 shadow-[0_20px_60px_-20px_rgba(0,0,0,0.6)] backdrop-blur-xl">
+      <div className="relative overflow-hidden rounded-3xl border border-white/10 bg-gradient-to-br from-slate-900/90 via-blue-950/40 to-slate-950/90 p-6 shadow-[0_20px_60px_-20px_rgba(0,0,0,0.6)] backdrop-blur-xl shrink-0">
         <div className="pointer-events-none absolute -right-24 -top-24 h-72 w-72 rounded-full bg-blue-500/20 blur-3xl" />
         <div className="pointer-events-none absolute -left-24 -bottom-24 h-72 w-72 rounded-full bg-indigo-500/15 blur-3xl" />
         <div className="relative flex flex-col gap-6">
@@ -155,7 +155,7 @@ function ContactsPage() {
       </div>
 
       {/* Toolbar */}
-      <Card className="overflow-hidden border border-white/10 bg-slate-900/60 p-4 backdrop-blur">
+      <Card className="shrink-0 overflow-hidden border border-white/10 bg-slate-900/60 p-4 backdrop-blur">
         <div className="flex flex-wrap items-center gap-3">
           <div className="relative flex-1 min-w-[220px] max-w-md">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
@@ -219,7 +219,7 @@ function ContactsPage() {
       </Card>
 
       {/* Table */}
-      <Card className="overflow-hidden border border-white/10 bg-slate-900/60 backdrop-blur p-0">
+      <Card className="flex-1 flex flex-col min-h-0 overflow-hidden border border-white/10 bg-slate-900/60 backdrop-blur p-0">
         {query.isLoading ? (
           <div className="p-4 space-y-3">
             {Array.from({ length: 6 }).map((_, i) => (
@@ -241,9 +241,9 @@ function ContactsPage() {
             <Button variant="outline" onClick={openNew} className="relative border-white/10 bg-slate-950/50 hover:bg-slate-800/60"><Plus className="h-4 w-4 mr-1" /> Adicionar manualmente</Button>
           </div>
         ) : (
-          <div className="overflow-x-auto">
+          <div className="flex-1 overflow-auto">
             <table className="w-full text-sm">
-              <thead className="bg-white/5 text-xs uppercase tracking-wider text-muted-foreground">
+              <thead className="bg-white/5 text-xs uppercase tracking-wider text-muted-foreground sticky top-0">
                 <tr>
                   <th className="text-left px-4 py-3 font-semibold">Nome</th>
                   <th className="text-left px-4 py-3 font-semibold">Telefone</th>
@@ -294,7 +294,7 @@ function ContactsPage() {
       </Card>
 
       {totalPages > 1 && (
-        <div className="flex items-center justify-end gap-2 text-sm">
+        <div className="shrink-0 flex items-center justify-end gap-2 text-sm">
           <Button size="sm" variant="outline" disabled={page <= 1} onClick={() => setPage((p) => p - 1)} className="border-white/10 bg-slate-950/50 hover:bg-slate-800/60">Anterior</Button>
           <span className="text-muted-foreground">Página {page} de {totalPages}</span>
           <Button size="sm" variant="outline" disabled={page >= totalPages} onClick={() => setPage((p) => p + 1)} className="border-white/10 bg-slate-950/50 hover:bg-slate-800/60">Próxima</Button>
