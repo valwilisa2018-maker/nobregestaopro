@@ -155,7 +155,7 @@ function ContactsPage() {
       </div>
 
       {/* Toolbar */}
-      <Card className="overflow-hidden border border-white/10 bg-slate-900/60 p-4 backdrop-blur">
+      <Card className="shrink-0 overflow-hidden border border-white/10 bg-slate-900/60 p-4 backdrop-blur">
         <div className="flex flex-wrap items-center gap-3">
           <div className="relative flex-1 min-w-[220px] max-w-md">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
