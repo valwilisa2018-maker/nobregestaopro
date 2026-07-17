@@ -4,7 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { LayoutGrid } from "lucide-react";
 
 interface PageShellProps {
-  title: string;
+  title?: string;
   description?: string;
   icon?: ReactNode;
   actions?: ReactNode;
