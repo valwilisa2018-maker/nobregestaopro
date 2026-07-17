@@ -294,7 +294,7 @@ function ContactsPage() {
       </Card>
 
       {totalPages > 1 && (
-        <div className="flex items-center justify-end gap-2 text-sm">
+        <div className="shrink-0 flex items-center justify-end gap-2 text-sm">
           <Button size="sm" variant="outline" disabled={page <= 1} onClick={() => setPage((p) => p - 1)} className="border-white/10 bg-slate-950/50 hover:bg-slate-800/60">Anterior</Button>
           <span className="text-muted-foreground">Página {page} de {totalPages}</span>
           <Button size="sm" variant="outline" disabled={page >= totalPages} onClick={() => setPage((p) => p + 1)} className="border-white/10 bg-slate-950/50 hover:bg-slate-800/60">Próxima</Button>
