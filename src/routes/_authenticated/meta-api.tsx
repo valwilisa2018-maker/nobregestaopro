@@ -354,7 +354,7 @@ function Page() {
 
             <div className="relative space-y-0">
               {/* Vertical timeline line */}
-              <div className="absolute left-[2.125rem] top-4 bottom-4 w-px bg-gradient-to-b from-blue-500/40 via-indigo-500/40 to-blue-500/10" />
+              <div className="absolute left-5 top-4 bottom-4 w-px bg-gradient-to-b from-blue-500/40 via-indigo-500/40 to-blue-500/10" />
               {[
                 {
                   n: 1,
