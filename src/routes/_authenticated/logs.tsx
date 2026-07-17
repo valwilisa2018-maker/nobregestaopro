@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { ScrollText, RefreshCw, Loader2, Inbox, Trash2, Search, Activity, AlertTriangle, Info, Bug, XCircle, Download, Filter } from "lucide-react";
+import { ScrollText, RefreshCw, Loader2, Inbox, Trash2, Search, Activity, AlertTriangle, Info, Bug, XCircle, Download, Filter, CheckCircle2 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
@@ -124,6 +124,12 @@ function Page() {
   const [loading, setLoading] = useState(true);
   const [level, setLevel] = useState<string>("all");
   const [search, setSearch] = useState("");
+  const [clearState, setClearState] = useState<{
+    status: "idle" | "running" | "done" | "error";
+    processed: number;
+    total: number;
+    message?: string;
+  }>({ status: "idle", processed: 0, total: 0 });
 
   const load = async () => {
     if (!user) return;
@@ -155,9 +161,26 @@ function Page() {
   const clearAll = async () => {
     if (!confirm("Limpar todos os logs? Esta ação é irreversível.")) return;
     if (!user) return;
+    // Conta o total antes para calcular o progresso.
+    const { count: totalCount, error: countErr } = await supabase
+      .from("logs")
+      .select("id", { count: "exact", head: true })
+      .eq("user_id", user.id);
+    if (countErr) {
+      setClearState({ status: "error", processed: 0, total: 0, message: countErr.message });
+      toast.error(countErr.message);
+      return;
+    }
+    const total = totalCount ?? 0;
+    if (total === 0) {
+      setClearState({ status: "done", processed: 0, total: 0, message: "Nada para limpar" });
+      toast.info("Não há logs para limpar");
+      return;
+    }
+    setClearState({ status: "running", processed: 0, total, message: "Iniciando limpeza…" });
     const t = toast.loading("Limpando logs…");
     try {
-      let total = 0;
+      let processed = 0;
       // Apaga em lotes para evitar timeout do banco em volumes altos.
       // eslint-disable-next-line no-constant-condition
       while (true) {
@@ -171,15 +194,19 @@ function Page() {
         const ids = batch.map((r) => r.id);
         const { error: delErr } = await supabase.from("logs").delete().in("id", ids);
         if (delErr) throw delErr;
-        total += ids.length;
-        toast.loading(`Limpando logs… (${total})`, { id: t });
+        processed += ids.length;
+        setClearState({ status: "running", processed, total, message: `Removendo em lote (${ids.length})…` });
+        toast.loading(`Limpando logs… ${processed}/${total}`, { id: t });
         if (batch.length < 500) break;
       }
-      toast.success(`Logs limpos (${total})`, { id: t });
+      setClearState({ status: "done", processed, total, message: "Limpeza concluída" });
+      toast.success(`Logs limpos (${processed})`, { id: t });
       setRows([]);
       load();
     } catch (e: any) {
-      toast.error(e?.message ?? "Falha ao limpar logs", { id: t });
+      const msg = e?.message ?? "Falha ao limpar logs";
+      setClearState((s) => ({ status: "error", processed: s.processed, total: s.total, message: msg }));
+      toast.error(msg, { id: t });
     }
   };
 
@@ -231,7 +258,10 @@ function Page() {
           <div className="flex flex-wrap items-center gap-2">
             <Button variant="outline" onClick={exportJson} className="gap-2"><Download className="h-4 w-4" />Exportar</Button>
             <Button variant="outline" onClick={load} className="gap-2"><RefreshCw className={cn("h-4 w-4", loading && "animate-spin")} />Atualizar</Button>
-            <Button variant="outline" onClick={clearAll} className="gap-2 text-destructive hover:text-destructive"><Trash2 className="h-4 w-4" />Limpar</Button>
+            <Button variant="outline" onClick={clearAll} disabled={clearState.status === "running"} className="gap-2 text-destructive hover:text-destructive">
+              {clearState.status === "running" ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+              {clearState.status === "running" ? "Limpando…" : "Limpar"}
+            </Button>
           </div>
         </div>
 
@@ -268,6 +298,57 @@ function Page() {
       </div>
 
       {/* Search bar */}
+      {clearState.status !== "idle" && (
+        <div
+          className={cn(
+            "rounded-2xl border p-4 shadow-sm",
+            clearState.status === "running" && "border-primary/40 bg-primary/5",
+            clearState.status === "done" && "border-emerald-500/40 bg-emerald-500/5",
+            clearState.status === "error" && "border-destructive/40 bg-destructive/5",
+          )}
+        >
+          <div className="flex items-center gap-3">
+            {clearState.status === "running" && <Loader2 className="h-5 w-5 animate-spin text-primary" />}
+            {clearState.status === "done" && <CheckCircle2 className="h-5 w-5 text-emerald-500" />}
+            {clearState.status === "error" && <XCircle className="h-5 w-5 text-destructive" />}
+            <div className="flex-1 min-w-0">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <p className="text-sm font-medium text-foreground">
+                  {clearState.status === "running" && "Limpeza em andamento"}
+                  {clearState.status === "done" && "Limpeza concluída"}
+                  {clearState.status === "error" && "Erro ao limpar logs"}
+                </p>
+                <span className="text-xs tabular-nums text-muted-foreground">
+                  {clearState.processed}
+                  {clearState.total > 0 && ` / ${clearState.total}`}
+                  {clearState.total > 0 && ` (${Math.min(100, Math.round((clearState.processed / clearState.total) * 100))}%)`}
+                </span>
+              </div>
+              {clearState.total > 0 && (
+                <div className="mt-2 h-2 w-full overflow-hidden rounded-full bg-muted">
+                  <div
+                    className={cn(
+                      "h-full transition-all duration-300",
+                      clearState.status === "error" ? "bg-destructive" :
+                      clearState.status === "done" ? "bg-emerald-500" : "bg-primary",
+                    )}
+                    style={{ width: `${Math.min(100, (clearState.processed / clearState.total) * 100)}%` }}
+                  />
+                </div>
+              )}
+              {clearState.message && (
+                <p className="mt-1.5 text-xs text-muted-foreground truncate">{clearState.message}</p>
+              )}
+            </div>
+            {clearState.status !== "running" && (
+              <Button variant="ghost" size="sm" onClick={() => setClearState({ status: "idle", processed: 0, total: 0 })}>
+                Fechar
+              </Button>
+            )}
+          </div>
+        </div>
+      )}
+
       <div className="rounded-2xl border border-border bg-card p-3 shadow-sm">
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
           <div className="relative flex-1">
