@@ -1869,7 +1869,16 @@ function MessagesPage() {
                           {label && <span className="h-2.5 w-2.5 rounded-full shrink-0" style={{ background: label }} />}
                         </div>
                         <div className="flex items-center gap-2">
-                          <div className="text-xs text-gray-500 truncate flex-1">{c.phone}</div>
+                          <div className="text-xs text-gray-500 truncate flex-1">
+                            {lastPreviewMap[c.id]?.text
+                              ? (
+                                <>
+                                  {lastPreviewMap[c.id].direction === "out" && <span className="text-gray-400 mr-1">Você:</span>}
+                                  {lastPreviewMap[c.id].text}
+                                </>
+                              )
+                              : c.phone}
+                          </div>
                           {(unreadMap[c.id] ?? 0) > 0 && (
                             <span
                               className="shrink-0 min-w-[20px] h-5 px-1.5 rounded-full text-[11px] font-semibold text-foreground grid place-items-center"
