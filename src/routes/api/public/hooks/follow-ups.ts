@@ -158,7 +158,7 @@ type Campaign = {
   is_active: boolean; stop_on_reply: boolean;
   total_sent: number; total_replied: number;
 };
-type CampaignStep = { step_order: number; delay_value: number; delay_unit: "minutes" | "hours" | "days"; message: string };
+type CampaignStep = { step_order: number; delay_value: number; delay_unit: "minutes" | "hours" | "days"; message: string; flow_id?: string | null };
 
 function toMs(v: number, u: "minutes" | "hours" | "days") {
   const m = u === "minutes" ? 60_000 : u === "hours" ? 3_600_000 : 86_400_000;
@@ -231,21 +231,53 @@ async function runCampaignFollowups(db: { from: (t: string) => any }) {
         : "https://" + (conn.url_api ?? "").trim().replace(/\/+$/, "");
 
       const text = stepList[stepIdx].message;
-      const r = await fetch(`${base}/message/sendText/${conn.instance_name}`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json", apikey: apiKey },
-        body: JSON.stringify({ number: remoteJid, text }),
-      });
-      if (!r.ok) {
-        await db.from("logs").insert({ user_id: c.user_id, level: "error", source: "followup_campaign", message: `sendText failed ${r.status}`, metadata: { followupId: c.id, convId: conv.id } });
-        continue;
+      const stepFlowId = stepList[stepIdx].flow_id ?? null;
+      if (stepFlowId) {
+        const { data: fl } = await db.from("flows").select("definition,is_active").eq("id", stepFlowId).eq("user_id", c.user_id).maybeSingle();
+        const def = (fl?.definition ?? null) as { nodes?: unknown[]; edges?: unknown[] } | null;
+        if (!fl || !def || !Array.isArray(def.nodes) || !Array.isArray(def.edges)) {
+          await db.from("logs").insert({ user_id: c.user_id, level: "error", source: "followup_campaign", message: "Fluxo vinculado inválido ou removido", metadata: { followupId: c.id, convId: conv.id, flowId: stepFlowId } });
+          continue;
+        }
+        try {
+          const { runFlowTracked } = await import("@/lib/flow-tracking.server");
+          const result = await runFlowTracked({
+            db: db as never,
+            conn: { id: conv.connection_id, user_id: c.user_id, url_api: conn.url_api, api_key: apiKey, instance_name: conn.instance_name },
+            recipient: remoteJid,
+            userText: "",
+            def: { nodes: def.nodes, edges: def.edges } as never,
+            state: { variables: {} },
+            flowId: stepFlowId,
+            conversationId: conv.id,
+            connectionId: conv.connection_id,
+            userId: c.user_id,
+            source: "manual",
+          });
+          await db.from("conversations").update({
+            flow_state: result.state as never,
+            last_message_at: new Date().toISOString(),
+          }).eq("id", conv.id);
+        } catch (e) {
+          await db.from("logs").insert({ user_id: c.user_id, level: "error", source: "followup_campaign", message: `Falha ao executar fluxo: ${(e as Error).message}`, metadata: { followupId: c.id, convId: conv.id, flowId: stepFlowId } });
+          continue;
+        }
+      } else {
+        const r = await fetch(`${base}/message/sendText/${conn.instance_name}`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", apikey: apiKey },
+          body: JSON.stringify({ number: remoteJid, text }),
+        });
+        if (!r.ok) {
+          await db.from("logs").insert({ user_id: c.user_id, level: "error", source: "followup_campaign", message: `sendText failed ${r.status}`, metadata: { followupId: c.id, convId: conv.id } });
+          continue;
+        }
+        await db.from("messages").insert({
+          user_id: c.user_id, conversation_id: conv.id,
+          direction: "outbound", type: "text", content: text,
+          metadata: { remoteJid, followup_campaign_id: c.id, step: stepIdx + 1 },
+        });
       }
-
-      await db.from("messages").insert({
-        user_id: c.user_id, conversation_id: conv.id,
-        direction: "outbound", type: "text", content: text,
-        metadata: { remoteJid, followup_campaign_id: c.id, step: stepIdx + 1 },
-      });
 
       const nextIdx = stepIdx + 1;
       const nextAt = nextIdx < stepList.length
