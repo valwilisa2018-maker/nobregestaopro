@@ -323,70 +323,59 @@ function TrainingPage() {
         <div className="flex justify-center py-24"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>
       ) : (
         <>
-          {/* Hero Card */}
-          <div className="relative overflow-hidden rounded-3xl border border-border/60 bg-card p-6 sm:p-8">
+          {/* Combined Hero + Progress block */}
+          <div className="relative overflow-hidden rounded-3xl border border-border/60 bg-card p-5 sm:p-6">
             <div className="absolute inset-0 bg-gradient-to-r from-card via-card to-primary/5" />
-            <div className="absolute -right-16 -top-16 h-72 w-72 rounded-full bg-primary/15 blur-3xl" />
-            <div className="absolute -right-10 bottom-0 h-56 w-56 rounded-full bg-accent/15 blur-3xl" />
-            <div className="relative flex flex-col items-center gap-6 lg:flex-row lg:justify-between">
-              <div className="flex items-start gap-4 sm:gap-6">
-                <div className="grid h-16 w-16 shrink-0 place-items-center rounded-2xl bg-primary/15 text-primary ring-1 ring-primary/30 sm:h-20 sm:w-20">
-                  <GraduationCap className="h-8 w-8 sm:h-10 sm:w-10" />
+            <div className="absolute -right-10 -top-10 h-48 w-48 rounded-full bg-primary/15 blur-3xl" />
+            <div className="absolute -right-6 bottom-0 h-40 w-40 rounded-full bg-accent/15 blur-3xl" />
+            <div className="relative flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
+              <div className="flex items-start gap-4 sm:gap-5 min-w-0 flex-1">
+                <div className="grid h-14 w-14 shrink-0 place-items-center rounded-2xl bg-primary/15 text-primary ring-1 ring-primary/30">
+                  <GraduationCap className="h-7 w-7" />
                 </div>
-                <div className="min-w-0 space-y-3">
-                  <div className="flex flex-wrap items-center gap-3">
-                    <h1 className="text-2xl font-bold tracking-tight sm:text-4xl">Central de Treinamento</h1>
-                    <Badge variant="outline" className="border-emerald-500/30 bg-emerald-500/15 text-emerald-500">
+                <div className="min-w-0 space-y-1.5">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <h1 className="text-xl font-bold tracking-tight sm:text-2xl">Central de Treinamento</h1>
+                    <Badge variant="outline" className="border-emerald-500/30 bg-emerald-500/15 text-emerald-500 text-xs">
                       <span className="mr-1.5 h-2 w-2 animate-pulse rounded-full bg-emerald-500" /> Ativo
                     </Badge>
                   </div>
-                  <p className="max-w-xl text-sm text-muted-foreground sm:text-base">
+                  <p className="max-w-md text-sm text-muted-foreground">
                     Aprenda a dominar cada módulo da plataforma.
                   </p>
-                  <div className="flex flex-wrap items-center gap-3 text-sm">
+                  <div className="flex flex-wrap items-center gap-2 text-xs sm:text-sm">
                     <span className="font-medium text-primary">{totalWatched} de {modules.length} aulas concluídas</span>
                     <span className="text-muted-foreground">•</span>
                     <span className="font-medium text-accent">{modules.length - totalWatched} aulas restantes</span>
                   </div>
                 </div>
               </div>
-              <div className="relative shrink-0">
-                <div className="absolute inset-0 -z-10 rounded-full bg-primary/20 blur-3xl" />
-                <img src={cover01.url} alt="" className="relative h-36 w-36 object-contain drop-shadow-2xl sm:h-48 sm:w-48" />
-              </div>
-            </div>
-          </div>
 
-          {/* Progress Card */}
-          <div className="rounded-3xl border border-border/60 bg-card p-6 sm:p-8">
-            <div className="mb-6 flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-center">
-              <div className="flex items-center gap-4">
-                <div className="grid h-12 w-12 shrink-0 place-items-center rounded-xl bg-primary/15 text-primary">
-                  <TrendingUp className="h-6 w-6" />
+              <div className="flex items-center gap-4 shrink-0">
+                <div className="relative hidden sm:block">
+                  <div className="absolute inset-0 -z-10 rounded-full bg-primary/20 blur-2xl" />
+                  <img src={cover01.url} alt="" className="relative h-20 w-20 object-contain drop-shadow-xl" />
                 </div>
-                <div>
-                  <h2 className="text-lg font-semibold">Seu progresso</h2>
-                  <p className="text-sm text-muted-foreground">Continue assim! Você está indo muito bem.</p>
+                <div className="min-w-[140px]">
+                  <div className="text-2xl font-bold text-primary tabular-nums">{pct}%</div>
+                  <div className="text-xs text-muted-foreground">Concluído</div>
+                  <div className="mt-1.5 h-2.5 w-full overflow-hidden rounded-full bg-muted">
+                    <motion.div
+                      initial={{ width: 0 }}
+                      animate={{ width: `${pct}%` }}
+                      transition={{ duration: 0.8, ease: "easeOut" }}
+                      className="h-full rounded-full bg-gradient-to-r from-primary via-indigo-500 to-purple-600"
+                    />
+                  </div>
                 </div>
               </div>
-              <div className="text-right">
-                <div className="text-3xl font-bold text-primary tabular-nums sm:text-4xl">{pct}%</div>
-                <div className="text-sm text-muted-foreground">Concluído</div>
-              </div>
             </div>
-            <div className="h-4 w-full overflow-hidden rounded-full bg-muted">
-              <motion.div
-                initial={{ width: 0 }}
-                animate={{ width: `${pct}%` }}
-                transition={{ duration: 0.8, ease: "easeOut" }}
-                className="h-full rounded-full bg-gradient-to-r from-primary via-indigo-500 to-purple-600"
-              />
-            </div>
-            <div className="mt-6 grid grid-cols-2 gap-4 sm:grid-cols-4">
-              <StatItem icon={<BookOpen className="h-5 w-5" />} value={modules.length} label="Total de aulas" tone="primary" />
-              <StatItem icon={<CheckCircle2 className="h-5 w-5" />} value={totalWatched} label="Aula concluída" tone="success" />
-              <StatItem icon={<Clock className="h-5 w-5" />} value={modules.length - totalWatched} label="Aulas restantes" tone="warning" />
-              <StatItem icon={<Star className="h-5 w-5" />} value={`${pct}%`} label="Progresso geral" tone="success" />
+
+            <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
+              <StatItem icon={<BookOpen className="h-4 w-4" />} value={modules.length} label="Total de aulas" tone="primary" />
+              <StatItem icon={<CheckCircle2 className="h-4 w-4" />} value={totalWatched} label="Aula concluída" tone="success" />
+              <StatItem icon={<Clock className="h-4 w-4" />} value={modules.length - totalWatched} label="Aulas restantes" tone="warning" />
+              <StatItem icon={<Star className="h-4 w-4" />} value={`${pct}%`} label="Progresso geral" tone="success" />
             </div>
           </div>
 
@@ -457,13 +446,13 @@ function StatItem({ icon, value, label, tone }: { icon: React.ReactNode; value: 
   };
   const t = toneMap[tone];
   return (
-    <div className="flex items-center gap-4 rounded-2xl border border-border/60 bg-muted/40 p-4">
-      <div className={cn("grid h-12 w-12 shrink-0 place-items-center rounded-xl", t.bg, t.text)}>
+    <div className="flex items-center gap-3 rounded-xl border border-border/60 bg-muted/40 p-3">
+      <div className={cn("grid h-9 w-9 shrink-0 place-items-center rounded-lg", t.bg, t.text)}>
         {icon}
       </div>
       <div className="min-w-0">
-        <div className="text-xl font-bold tabular-nums sm:text-2xl">{value}</div>
-        <div className="text-xs text-muted-foreground sm:text-sm">{label}</div>
+        <div className="text-base font-bold tabular-nums sm:text-lg">{value}</div>
+        <div className="text-[11px] text-muted-foreground sm:text-xs">{label}</div>
       </div>
     </div>
   );
