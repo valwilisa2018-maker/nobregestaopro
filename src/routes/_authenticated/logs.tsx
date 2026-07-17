@@ -162,19 +162,31 @@ function Page() {
     const cursor = stack[index] ?? null;
     // Keyset pagination on (created_at desc, id desc) — avoids duplicates/skips
     // when new logs arrive between page loads, unlike offset-based paging.
-    let q = supabase
-      .from("logs")
-      .select("id,user_id,level,source,message,metadata,created_at")
-      .eq("user_id", user.id)
-      .order("created_at", { ascending: false })
-      .order("id", { ascending: false })
-      .limit(PAGE_SIZE + 1);
-    if (cursor) {
-      q = q.or(
-        `created_at.lt.${cursor.created_at},and(created_at.eq.${cursor.created_at},id.lt.${cursor.id})`,
-      );
+    // Retry once on transient failures (network/timeout) before surfacing an error.
+    const runQuery = async () => {
+      let q = supabase
+        .from("logs")
+        .select("id,user_id,level,source,message,metadata,created_at")
+        .eq("user_id", user.id)
+        .order("created_at", { ascending: false })
+        .order("id", { ascending: false })
+        .limit(PAGE_SIZE + 1);
+      if (cursor) {
+        q = q.or(
+          `created_at.lt.${cursor.created_at},and(created_at.eq.${cursor.created_at},id.lt.${cursor.id})`,
+        );
+      }
+      return q;
+    };
+    let { data, error } = await runQuery();
+    if (error) {
+      const low = (error.message || "").toLowerCase();
+      const transient = low.includes("timeout") || low.includes("fetch") || low.includes("network");
+      if (transient) {
+        await new Promise((r) => setTimeout(r, 800));
+        ({ data, error } = await runQuery());
+      }
     }
-    const { data, error } = await q;
     setLoading(false);
     if (error) {
       const msg = traduzErro(error.message);
