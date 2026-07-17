@@ -256,37 +256,55 @@ function Page() {
           <Plus className="mr-2 h-4 w-4" /> Nova instância
         </Button>
           </DialogTrigger>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Nova instância de WhatsApp</DialogTitle>
-              <DialogDescription>
-                Damos um nome e um identificador único. O QR Code é gerado em seguida.
-              </DialogDescription>
-            </DialogHeader>
-            <form onSubmit={create} className="space-y-3">
-              <div className="space-y-1.5">
-                <Label>Nome</Label>
-                <Input required placeholder="Ex.: Atendimento Vendas" value={form.name}
-                  onChange={(e) => {
-                    const name = e.target.value;
-                    const slug = name.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "")
-                      .replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
-                    setForm({ name, instance_name: slug });
-                  }} />
-              </div>
-              <div className="space-y-1.5">
-                <Label>Identificador (instance name)</Label>
-                <Input required pattern="[a-zA-Z0-9_-]+" value={form.instance_name}
-                  onChange={(e) => setForm({ ...form, instance_name: e.target.value })} />
-                <p className="text-xs text-muted-foreground">Somente letras, números, "_" e "-".</p>
-              </div>
-              <DialogFooter>
-                <Button type="submit" disabled={creating}>
-                  {creating ? <Loader2 className="h-4 w-4 animate-spin" /> : <QrCode className="h-4 w-4" />}
-                  Gerar QR Code
-                </Button>
-              </DialogFooter>
-            </form>
+          <DialogContent className="overflow-hidden border-white/10 bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 p-0 shadow-[0_30px_80px_-20px_rgba(16,185,129,0.35)] sm:max-w-[520px]">
+            <div className="pointer-events-none absolute -right-20 -top-20 h-56 w-56 rounded-full bg-emerald-500/25 blur-3xl" />
+            <div className="pointer-events-none absolute -left-20 -bottom-24 h-56 w-56 rounded-full bg-teal-500/20 blur-3xl" />
+            <div className="relative p-6">
+              <DialogHeader className="space-y-3">
+                <div className="flex items-center gap-3">
+                  <div className="grid h-12 w-12 place-items-center rounded-2xl bg-gradient-to-br from-[#25D366] to-[#1ebe5b] shadow-[0_10px_30px_-10px_rgba(37,211,102,0.7)] ring-1 ring-white/20">
+                    <MessageCircle className="h-6 w-6 text-white" />
+                  </div>
+                  <div>
+                    <DialogTitle className="bg-gradient-to-r from-emerald-300 via-green-200 to-teal-300 bg-clip-text text-2xl font-bold tracking-tight text-transparent">
+                      Nova instância de WhatsApp
+                    </DialogTitle>
+                    <DialogDescription className="text-sm text-muted-foreground">
+                      Dê um nome e um identificador único. O QR Code será gerado em seguida.
+                    </DialogDescription>
+                  </div>
+                </div>
+              </DialogHeader>
+              <form onSubmit={create} className="mt-6 space-y-4">
+                <div className="space-y-1.5 rounded-2xl border border-white/10 bg-white/[0.03] p-4 backdrop-blur-xl">
+                  <Label className="text-xs font-semibold uppercase tracking-wider text-emerald-300/80">Nome</Label>
+                  <Input required placeholder="Ex.: Atendimento Vendas"
+                    className="border-white/10 bg-slate-950/40 text-base focus-visible:ring-emerald-500/50"
+                    value={form.name}
+                    onChange={(e) => {
+                      const name = e.target.value;
+                      const slug = name.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+                        .replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+                      setForm({ name, instance_name: slug });
+                    }} />
+                </div>
+                <div className="space-y-1.5 rounded-2xl border border-white/10 bg-white/[0.03] p-4 backdrop-blur-xl">
+                  <Label className="text-xs font-semibold uppercase tracking-wider text-emerald-300/80">Identificador (instance name)</Label>
+                  <Input required pattern="[a-zA-Z0-9_-]+"
+                    className="border-white/10 bg-slate-950/40 font-mono text-sm focus-visible:ring-emerald-500/50"
+                    value={form.instance_name}
+                    onChange={(e) => setForm({ ...form, instance_name: e.target.value })} />
+                  <p className="text-xs text-muted-foreground">Somente letras, números, "_" e "-".</p>
+                </div>
+                <DialogFooter className="pt-2">
+                  <Button type="submit" disabled={creating}
+                    className="w-full bg-gradient-to-br from-[#25D366] to-[#1ebe5b] text-white shadow-[0_15px_40px_-10px_rgba(37,211,102,0.7)] hover:opacity-90 sm:w-auto">
+                    {creating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <QrCode className="mr-2 h-4 w-4" />}
+                    Gerar QR Code
+                  </Button>
+                </DialogFooter>
+              </form>
+            </div>
           </DialogContent>
     </Dialog>
   );
