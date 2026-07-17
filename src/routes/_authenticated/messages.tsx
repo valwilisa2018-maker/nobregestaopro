@@ -2415,7 +2415,7 @@ function MessagesPage() {
                                  alt={m.content ?? ""}
                                  loading="lazy"
                                  decoding="async"
-                                 className={`rounded-md max-h-64 object-cover ${(m.metadata as { pending?: boolean } | null)?.pending ? "opacity-70" : "cursor-zoom-in"}`}
+                                  className={`rounded-md max-h-72 max-w-[280px] w-auto h-auto object-contain bg-black/5 ${(m.metadata as { pending?: boolean } | null)?.pending ? "opacity-70" : "cursor-zoom-in hover:opacity-95 transition-opacity"}`}
                                  onError={(e) => {
                                    const el = e.currentTarget;
                                    if (el.dataset.retried) return;
@@ -2836,18 +2836,31 @@ function MessagesPage() {
       </div>
       {lightbox && (
         <div
-          className="fixed inset-0 z-50 bg-background/90 flex items-center justify-center p-4"
+          className="fixed inset-0 z-[100] bg-black/90 backdrop-blur-sm flex items-center justify-center p-4"
           onClick={() => setLightbox(null)}
         >
           <button
             onClick={(e) => { e.stopPropagation(); setLightbox(null); }}
-            className="absolute top-4 right-4 p-2 rounded-full bg-muted/60 hover:bg-muted text-foreground"
+            className="absolute top-4 right-4 p-2 rounded-full bg-white/10 hover:bg-white/20 text-white transition"
             aria-label="Fechar"
           >
             <X className="h-6 w-6" />
           </button>
           {lightbox.type === "image" ? (
-            <img src={lightbox.src} alt="" className="max-h-[90vh] max-w-[95vw] object-contain" onClick={(e) => e.stopPropagation()} />
+            <>
+              <a
+                href={lightbox.src}
+                download
+                target="_blank"
+                rel="noreferrer"
+                onClick={(e) => e.stopPropagation()}
+                className="absolute top-4 right-16 p-2 rounded-full bg-white/10 hover:bg-white/20 text-white transition"
+                aria-label="Baixar"
+              >
+                <Download className="h-6 w-6" />
+              </a>
+              <img src={lightbox.src} alt="" className="max-h-[90vh] max-w-[95vw] object-contain select-none" onClick={(e) => e.stopPropagation()} />
+            </>
           ) : (
             <video src={lightbox.src} controls autoPlay className="max-h-[90vh] max-w-[95vw]" onClick={(e) => e.stopPropagation()} />
           )}
