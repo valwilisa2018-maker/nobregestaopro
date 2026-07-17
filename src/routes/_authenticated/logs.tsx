@@ -118,6 +118,24 @@ function translateSource(src: string | null): string {
   return src;
 }
 
+// Traduz mensagens de erro comuns do Supabase para português claro.
+function traduzErro(msg: string): string {
+  const m = (msg || "").toLowerCase();
+  if (m.includes("failed to fetch") || m.includes("networkerror") || m.includes("network request failed"))
+    return "Falha de conexão — verifique sua internet e tente novamente.";
+  if (m.includes("timeout") || m.includes("timed out") || m.includes("statement timeout"))
+    return "O servidor demorou demais para responder. Tente novamente em instantes.";
+  if (m.includes("jwt") || m.includes("unauthorized") || m.includes("401"))
+    return "Sua sessão expirou. Faça login novamente para continuar.";
+  if (m.includes("permission") || m.includes("forbidden") || m.includes("403") || m.includes("rls"))
+    return "Você não tem permissão para acessar estes logs.";
+  if (m.includes("rate limit") || m.includes("429"))
+    return "Muitas requisições em pouco tempo. Aguarde alguns segundos e tente novamente.";
+  if (m.includes("not found") || m.includes("404"))
+    return "Nenhum log encontrado no servidor.";
+  return msg ? `Erro ao carregar logs: ${msg}` : "Não foi possível carregar os logs. Tente novamente.";
+}
+
 function Page() {
   const { user } = useAuth();
   const [rows, setRows] = useState<LogRow[]>([]);
