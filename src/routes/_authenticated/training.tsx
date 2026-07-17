@@ -2,11 +2,11 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
-import { PageShell } from "@/components/page-shell";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { GraduationCap, Loader2, Play, CheckCircle2, MessageCircle, Trash2, Send, Lock, ArrowLeft, RotateCcw, ChevronRight, Circle, Star } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { GraduationCap, Loader2, Play, CheckCircle2, MessageCircle, Trash2, Send, Lock, ArrowLeft, RotateCcw, ChevronRight, Circle, Star, TrendingUp, BookOpen, Clock } from "lucide-react";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
@@ -318,92 +318,154 @@ function TrainingPage() {
   }
 
   return (
-    <PageShell
-      title="Central de Treinamento"
-      description={`Aprenda a dominar cada módulo da plataforma. ${totalWatched}/${modules.length} aulas concluídas.`}
-      icon={<GraduationCap className="h-6 w-6" />}
-      status="ativo"
-    >
+    <div className="min-h-screen space-y-6 bg-background p-4 pb-12 sm:p-6 sm:pb-16">
       {loading ? (
         <div className="flex justify-center py-24"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>
       ) : (
         <>
-        <div className="mb-6 rounded-2xl border border-border/60 bg-card p-5 shadow-sm">
-          <div className="flex items-center justify-between gap-3 mb-3">
-            <div>
-              <div className="text-sm font-semibold">Seu progresso</div>
-              <div className="text-xs text-muted-foreground">
-                {totalWatched} de {modules.length} aulas concluídas · {modules.length - totalWatched} restante{modules.length - totalWatched === 1 ? "" : "s"}
+          {/* Hero Card */}
+          <div className="relative overflow-hidden rounded-3xl border border-border/60 bg-card p-6 sm:p-8">
+            <div className="absolute inset-0 bg-gradient-to-r from-card via-card to-primary/5" />
+            <div className="absolute -right-16 -top-16 h-72 w-72 rounded-full bg-primary/15 blur-3xl" />
+            <div className="absolute -right-10 bottom-0 h-56 w-56 rounded-full bg-accent/15 blur-3xl" />
+            <div className="relative flex flex-col items-center gap-6 lg:flex-row lg:justify-between">
+              <div className="flex items-start gap-4 sm:gap-6">
+                <div className="grid h-16 w-16 shrink-0 place-items-center rounded-2xl bg-primary/15 text-primary ring-1 ring-primary/30 sm:h-20 sm:w-20">
+                  <GraduationCap className="h-8 w-8 sm:h-10 sm:w-10" />
+                </div>
+                <div className="min-w-0 space-y-3">
+                  <div className="flex flex-wrap items-center gap-3">
+                    <h1 className="text-2xl font-bold tracking-tight sm:text-4xl">Central de Treinamento</h1>
+                    <Badge variant="outline" className="border-emerald-500/30 bg-emerald-500/15 text-emerald-500">
+                      <span className="mr-1.5 h-2 w-2 animate-pulse rounded-full bg-emerald-500" /> Ativo
+                    </Badge>
+                  </div>
+                  <p className="max-w-xl text-sm text-muted-foreground sm:text-base">
+                    Aprenda a dominar cada módulo da plataforma.
+                  </p>
+                  <div className="flex flex-wrap items-center gap-3 text-sm">
+                    <span className="font-medium text-primary">{totalWatched} de {modules.length} aulas concluídas</span>
+                    <span className="text-muted-foreground">•</span>
+                    <span className="font-medium text-accent">{modules.length - totalWatched} aulas restantes</span>
+                  </div>
+                </div>
+              </div>
+              <div className="relative shrink-0">
+                <div className="absolute inset-0 -z-10 rounded-full bg-primary/20 blur-3xl" />
+                <img src={cover01.url} alt="" className="relative h-36 w-36 object-contain drop-shadow-2xl sm:h-48 sm:w-48" />
               </div>
             </div>
-            <div className="text-2xl font-bold text-primary tabular-nums">
-              {pct}%
+          </div>
+
+          {/* Progress Card */}
+          <div className="rounded-3xl border border-border/60 bg-card p-6 sm:p-8">
+            <div className="mb-6 flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-center">
+              <div className="flex items-center gap-4">
+                <div className="grid h-12 w-12 shrink-0 place-items-center rounded-xl bg-primary/15 text-primary">
+                  <TrendingUp className="h-6 w-6" />
+                </div>
+                <div>
+                  <h2 className="text-lg font-semibold">Seu progresso</h2>
+                  <p className="text-sm text-muted-foreground">Continue assim! Você está indo muito bem.</p>
+                </div>
+              </div>
+              <div className="text-right">
+                <div className="text-3xl font-bold text-primary tabular-nums sm:text-4xl">{pct}%</div>
+                <div className="text-sm text-muted-foreground">Concluído</div>
+              </div>
+            </div>
+            <div className="h-4 w-full overflow-hidden rounded-full bg-muted">
+              <motion.div
+                initial={{ width: 0 }}
+                animate={{ width: `${pct}%` }}
+                transition={{ duration: 0.8, ease: "easeOut" }}
+                className="h-full rounded-full bg-gradient-to-r from-primary via-indigo-500 to-purple-600"
+              />
+            </div>
+            <div className="mt-6 grid grid-cols-2 gap-4 sm:grid-cols-4">
+              <StatItem icon={<BookOpen className="h-5 w-5" />} value={modules.length} label="Total de aulas" tone="primary" />
+              <StatItem icon={<CheckCircle2 className="h-5 w-5" />} value={totalWatched} label="Aula concluída" tone="success" />
+              <StatItem icon={<Clock className="h-5 w-5" />} value={modules.length - totalWatched} label="Aulas restantes" tone="warning" />
+              <StatItem icon={<Star className="h-5 w-5" />} value={`${pct}%`} label="Progresso geral" tone="success" />
             </div>
           </div>
-          <div className="h-2.5 w-full overflow-hidden rounded-full bg-muted">
-            <motion.div
-              initial={{ width: 0 }}
-              animate={{ width: `${pct}%` }}
-              transition={{ duration: 0.6, ease: "easeOut" }}
-              className="h-full rounded-full bg-gradient-to-r from-primary via-indigo-500 to-purple-600"
-            />
+
+          {/* Modules grid */}
+          <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+            {modules.map((m, idx) => {
+              const url = videos[m.key]?.trim();
+              const cover = covers[m.key]?.trim() || DEFAULT_COVERS[m.key];
+              const watched = !!progress[m.key];
+              const locked = !url;
+              return (
+                <motion.button
+                  key={m.key}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: idx * 0.08 }}
+                  whileHover={{ y: -6 }}
+                  onClick={() => !locked && setOpenKey(m.key)}
+                  disabled={locked}
+                  className="group relative overflow-hidden rounded-2xl border border-border/60 bg-card text-left shadow-lg disabled:cursor-not-allowed disabled:opacity-60"
+                  style={{ aspectRatio: "9 / 16" }}
+                >
+                  {cover ? (
+                    <img src={cover} alt={m.label} className="absolute inset-0 h-full w-full object-cover transition-transform duration-500 group-hover:scale-110" />
+                  ) : (
+                    <div className={`absolute inset-0 bg-gradient-to-br ${m.gradient} transition-transform duration-500 group-hover:scale-110`}>
+                      <div className="absolute inset-0 opacity-30 mix-blend-overlay" style={{ backgroundImage: "radial-gradient(circle at 20% 20%, white 0, transparent 50%), radial-gradient(circle at 80% 80%, white 0, transparent 40%)" }} />
+                    </div>
+                  )}
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/30 to-transparent" />
+
+                  {watched && (
+                    <div className="absolute right-3 top-3 flex items-center gap-1 rounded-full bg-emerald-500/95 px-2.5 py-1 text-[11px] font-semibold text-foreground shadow-lg">
+                      <CheckCircle2 className="h-3.5 w-3.5" /> Assistido
+                    </div>
+                  )}
+                  {locked && (
+                    <div className="absolute right-3 top-3 flex items-center gap-1 rounded-full bg-background/70 px-2.5 py-1 text-[11px] font-semibold text-foreground/90 backdrop-blur">
+                      <Lock className="h-3.5 w-3.5" /> Em breve
+                    </div>
+                  )}
+
+                  <div className="absolute inset-0 grid place-items-center opacity-0 transition-opacity duration-300 group-hover:opacity-100">
+                    <motion.div whileHover={{ scale: 1.1 }} className="grid h-20 w-20 place-items-center rounded-full bg-primary/95 text-primary-foreground shadow-2xl ring-4 ring-white/30">
+                      <Play className="ml-1 h-9 w-9 fill-current" />
+                    </motion.div>
+                  </div>
+
+                  <div className="absolute bottom-0 left-0 right-0 p-4 text-foreground">
+                    <div className="text-[11px] font-semibold uppercase tracking-wider text-foreground/70">{m.subtitle}</div>
+                    <div className="mt-1 text-base font-bold leading-tight drop-shadow">{m.label}</div>
+                  </div>
+                </motion.button>
+              );
+            })}
           </div>
-        </div>
-        <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
-          {modules.map((m, idx) => {
-            const url = videos[m.key]?.trim();
-            const cover = covers[m.key]?.trim() || DEFAULT_COVERS[m.key];
-            const watched = !!progress[m.key];
-            const locked = !url;
-            return (
-              <motion.button
-                key={m.key}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: idx * 0.08 }}
-                whileHover={{ y: -6 }}
-                onClick={() => !locked && setOpenKey(m.key)}
-                disabled={locked}
-                className="group relative overflow-hidden rounded-2xl border border-border/60 bg-card text-left shadow-lg disabled:opacity-60 disabled:cursor-not-allowed"
-                style={{ aspectRatio: "9 / 16" }}
-              >
-                {cover ? (
-                  <img src={cover} alt={m.label} className="absolute inset-0 h-full w-full object-cover transition-transform duration-500 group-hover:scale-110" />
-                ) : (
-                  <div className={`absolute inset-0 bg-gradient-to-br ${m.gradient} transition-transform duration-500 group-hover:scale-110`}>
-                    <div className="absolute inset-0 opacity-30 mix-blend-overlay" style={{ backgroundImage: "radial-gradient(circle at 20% 20%, white 0, transparent 50%), radial-gradient(circle at 80% 80%, white 0, transparent 40%)" }} />
-                  </div>
-                )}
-                <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/30 to-transparent" />
-
-                {watched && (
-                  <div className="absolute top-3 right-3 flex items-center gap-1 rounded-full bg-emerald-500/95 px-2.5 py-1 text-[11px] font-semibold text-foreground shadow-lg">
-                    <CheckCircle2 className="h-3.5 w-3.5" /> Assistido
-                  </div>
-                )}
-                {locked && (
-                  <div className="absolute top-3 right-3 flex items-center gap-1 rounded-full bg-background/70 px-2.5 py-1 text-[11px] font-semibold text-foreground/90 backdrop-blur">
-                    <Lock className="h-3.5 w-3.5" /> Em breve
-                  </div>
-                )}
-
-                <div className="absolute inset-0 grid place-items-center opacity-0 transition-opacity duration-300 group-hover:opacity-100">
-                  <motion.div whileHover={{ scale: 1.1 }} className="grid h-20 w-20 place-items-center rounded-full bg-primary/95 text-primary-foreground shadow-2xl ring-4 ring-white/30">
-                    <Play className="h-9 w-9 fill-current ml-1" />
-                  </motion.div>
-                </div>
-
-                <div className="absolute bottom-0 left-0 right-0 p-4 text-foreground">
-                  <div className="text-[11px] font-semibold uppercase tracking-wider text-foreground/70">{m.subtitle}</div>
-                  <div className="mt-1 text-base font-bold leading-tight drop-shadow">{m.label}</div>
-                </div>
-              </motion.button>
-            );
-          })}
-        </div>
         </>
       )}
-    </PageShell>
+    </div>
+  );
+}
+
+function StatItem({ icon, value, label, tone }: { icon: React.ReactNode; value: string | number; label: string; tone: "primary" | "success" | "warning" }) {
+  const toneMap = {
+    primary: { bg: "bg-primary/15", text: "text-primary" },
+    success: { bg: "bg-emerald-500/15", text: "text-emerald-500" },
+    warning: { bg: "bg-amber-500/15", text: "text-amber-500" },
+  };
+  const t = toneMap[tone];
+  return (
+    <div className="flex items-center gap-4 rounded-2xl border border-border/60 bg-muted/40 p-4">
+      <div className={cn("grid h-12 w-12 shrink-0 place-items-center rounded-xl", t.bg, t.text)}>
+        {icon}
+      </div>
+      <div className="min-w-0">
+        <div className="text-xl font-bold tabular-nums sm:text-2xl">{value}</div>
+        <div className="text-xs text-muted-foreground sm:text-sm">{label}</div>
+      </div>
+    </div>
   );
 }
 
