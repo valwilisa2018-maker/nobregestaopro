@@ -80,6 +80,7 @@ type ConvMeta = {
   last_manual_at?: string;     // ISO
   handoff?: boolean;
   agent_disabled?: boolean;    // desligado manualmente pelo operador (persistente)
+  agent_user_override?: boolean; // operador escolheu explicitamente ativar/desativar; não sofrer auto-pause
 };
 
 const MEDIA_BUCKET = "agent-media";
@@ -650,7 +651,10 @@ export const Route = createFileRoute("/api/public/evolution/$instance")({
 
             // Outbound-from-operator (fromMe): mark manual takeover & pause agent
             if (fromMe) {
-              if (agent && convo && (ext.conversation?.stopAfterManual || ext.timing?.humanIntervention)) {
+              // Se o operador ativou a IA manualmente nesta conversa, respeita
+              // essa decisão e NÃO pausa automaticamente por envio manual.
+              const userForcedActive = cmeta.agent_user_override === true && cmeta.agent_disabled !== true;
+              if (agent && convo && !userForcedActive && (ext.conversation?.stopAfterManual || ext.timing?.humanIntervention)) {
                 const reactHrs = Math.max(0, Number(ext.timing?.reactivation ?? 0));
                 const until = reactHrs > 0
                   ? new Date(Date.now() + reactHrs * 3600_000).toISOString()
