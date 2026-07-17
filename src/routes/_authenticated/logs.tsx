@@ -155,10 +155,32 @@ function Page() {
   const clearAll = async () => {
     if (!confirm("Limpar todos os logs? Esta ação é irreversível.")) return;
     if (!user) return;
-    const { error } = await supabase.from("logs").delete().eq("user_id", user.id);
-    if (error) return toast.error(error.message);
-    toast.success("Logs limpos");
-    load();
+    const t = toast.loading("Limpando logs…");
+    try {
+      let total = 0;
+      // Apaga em lotes para evitar timeout do banco em volumes altos.
+      // eslint-disable-next-line no-constant-condition
+      while (true) {
+        const { data: batch, error: selErr } = await supabase
+          .from("logs")
+          .select("id")
+          .eq("user_id", user.id)
+          .limit(500);
+        if (selErr) throw selErr;
+        if (!batch || batch.length === 0) break;
+        const ids = batch.map((r) => r.id);
+        const { error: delErr } = await supabase.from("logs").delete().in("id", ids);
+        if (delErr) throw delErr;
+        total += ids.length;
+        toast.loading(`Limpando logs… (${total})`, { id: t });
+        if (batch.length < 500) break;
+      }
+      toast.success(`Logs limpos (${total})`, { id: t });
+      setRows([]);
+      load();
+    } catch (e: any) {
+      toast.error(e?.message ?? "Falha ao limpar logs", { id: t });
+    }
   };
 
   const exportJson = () => {
