@@ -199,10 +199,34 @@ function Page() {
         toast.loading(`Limpando logs… ${processed}/${total}`, { id: t });
         if (batch.length < 500) break;
       }
-      setClearState({ status: "done", processed, total, message: "Limpeza concluída" });
-      toast.success(`Logs limpos (${processed})`, { id: t });
-      setRows([]);
-      load();
+      // Verificação automática: reconta os registros restantes.
+      setClearState({ status: "running", processed, total, message: "Verificando…" });
+      const { count: remainingCount, error: verifyErr } = await supabase
+        .from("logs")
+        .select("id", { count: "exact", head: true })
+        .eq("user_id", user.id);
+      if (verifyErr) throw verifyErr;
+      const remaining = remainingCount ?? 0;
+      const removed = total - remaining;
+      // Atualiza a lista automaticamente, sem refresh manual.
+      await load();
+      if (remaining === 0) {
+        setClearState({
+          status: "done",
+          processed: removed,
+          total,
+          message: `Verificado: ${removed} registro(s) removido(s), 0 restante(s).`,
+        });
+        toast.success(`Limpeza confirmada: ${removed} removido(s)`, { id: t });
+      } else {
+        setClearState({
+          status: "error",
+          processed: removed,
+          total,
+          message: `Removidos ${removed}, mas ainda restam ${remaining}. Rode a limpeza novamente.`,
+        });
+        toast.warning(`${remaining} registro(s) ainda presentes após a limpeza`, { id: t });
+      }
     } catch (e: any) {
       const msg = e?.message ?? "Falha ao limpar logs";
       setClearState((s) => ({ status: "error", processed: s.processed, total: s.total, message: msg }));
