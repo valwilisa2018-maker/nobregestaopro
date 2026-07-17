@@ -1169,11 +1169,12 @@ function MessagesPage() {
     if (!convoId || !user) { toast.error("Sem conversa vinculada ainda."); return; }
     const { data: row } = await supabase.from("conversations").select("metadata").eq("id", convoId).eq("user_id", user.id).maybeSingle();
     const meta = (row?.metadata ?? {}) as Record<string, unknown>;
-    // Regra: quando o operador desliga a IA no chat, ela fica REALMENTE
-    // desligada (flag booleana persistente) e só volta se ele reativar.
+    // Regra: a escolha do operador é persistente. Ao ATIVAR marcamos
+    // agent_user_override=true para que envios manuais não pausem a IA
+    // automaticamente. Ao DESATIVAR, mantém desligada até ele reativar.
     const next = agentPaused
-      ? { ...meta, agent_disabled: false, agent_paused_until: null }
-      : { ...meta, agent_disabled: true, agent_paused_until: null };
+      ? { ...meta, agent_disabled: false, agent_paused_until: null, agent_user_override: true }
+      : { ...meta, agent_disabled: true, agent_paused_until: null, agent_user_override: true };
     const { error } = await supabase.from("conversations").update({ metadata: next } as never).eq("id", convoId).eq("user_id", user.id);
     if (error) { toast.error("Não foi possível alterar a IA."); return; }
     setAgentPaused(!agentPaused);
