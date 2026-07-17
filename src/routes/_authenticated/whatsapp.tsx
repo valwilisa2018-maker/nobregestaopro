@@ -357,7 +357,11 @@ function Page() {
           <p className="relative mx-auto mt-2 max-w-md text-sm text-muted-foreground">
             Clique em <span className="font-medium text-foreground">Nova instância</span>, escaneie o QR Code e pronto — seu WhatsApp estará conectado em menos de 1 minuto.
           </p>
-          <div className="relative mt-6 inline-flex">{newInstanceDialog}</div>
+          <div className="relative mt-6 inline-flex">
+            <Button onClick={() => setOpenNew(true)} className="bg-gradient-to-br from-[#25D366] to-[#1ebe5b] text-white shadow-[0_10px_30px_-10px_rgba(37,211,102,0.6)] hover:opacity-90">
+              <Plus className="mr-2 h-4 w-4" /> Nova instância
+            </Button>
+          </div>
         </div>
       ) : (
         <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-3">
