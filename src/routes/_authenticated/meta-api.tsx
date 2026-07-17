@@ -352,7 +352,9 @@ function Page() {
               </div>
             </div>
 
-            <div className="grid gap-4 md:grid-cols-2">
+            <div className="relative space-y-0">
+              {/* Vertical timeline line */}
+              <div className="absolute left-[2.125rem] top-4 bottom-4 w-px bg-gradient-to-b from-blue-500/40 via-indigo-500/40 to-blue-500/10" />
               {[
                 {
                   n: 1,
@@ -389,19 +391,14 @@ function Page() {
                   title: "Sincronize os templates",
                   desc: "Na aba Templates, crie ou sincronize seus templates. Somente templates APPROVED podem iniciar conversa fora da janela de 24h."
                 }
-              ].map((step, i, arr) => (
-                <div key={step.n} className="relative flex gap-4 rounded-2xl border border-white/10 bg-white/5 p-5 backdrop-blur-sm hover:bg-white/10 transition">
-                  <div className="flex flex-col items-center gap-1">
-                    <div className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 text-white font-bold shadow-lg shadow-blue-500/30">
-                      {step.n}
-                    </div>
-                    {i < arr.length - 1 && (
-                      <div className="w-px flex-1 bg-gradient-to-b from-blue-500/50 to-transparent" />
-                    )}
+              ].map((step) => (
+                <div key={step.n} className="relative flex gap-4 py-4">
+                  <div className="relative z-10 grid h-10 w-10 shrink-0 place-items-center rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 text-white font-bold shadow-lg shadow-blue-500/30">
+                    {step.n}
                   </div>
-                  <div className="space-y-1.5 pt-1">
+                  <div className="flex-1 rounded-2xl border border-white/10 bg-white/5 p-5 backdrop-blur-sm hover:bg-white/10 transition">
                     <h4 className="font-semibold text-white">{step.title}</h4>
-                    <p className="text-sm text-slate-300/80 leading-relaxed">{step.desc}</p>
+                    <p className="text-sm text-slate-300/80 leading-relaxed mt-1.5">{step.desc}</p>
                   </div>
                 </div>
               ))}
