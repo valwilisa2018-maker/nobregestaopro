@@ -457,6 +457,19 @@ function Page() {
             <Loader2 className="h-8 w-8 animate-spin text-primary" />
             <p className="text-sm text-muted-foreground">Carregando eventos…</p>
           </div>
+        ) : loadError ? (
+          <div className="p-16 text-center space-y-4">
+            <div className="mx-auto grid h-16 w-16 place-items-center rounded-2xl bg-destructive/10 text-destructive">
+              <XCircle className="h-7 w-7" />
+            </div>
+            <div className="space-y-1">
+              <p className="font-medium text-foreground">Não foi possível carregar os logs</p>
+              <p className="text-sm text-muted-foreground max-w-md mx-auto">{loadError}</p>
+            </div>
+            <Button onClick={retry} className="gap-2">
+              <RefreshCw className="h-4 w-4" /> Tentar novamente
+            </Button>
+          </div>
         ) : filtered.length === 0 ? (
           <div className="p-16 text-center space-y-3">
             <div className="mx-auto grid h-16 w-16 place-items-center rounded-2xl bg-primary/10 text-primary">
