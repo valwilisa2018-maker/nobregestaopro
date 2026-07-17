@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { ScrollText, RefreshCw, Loader2, Inbox, Trash2, Search, Activity, AlertTriangle, Info, Bug, XCircle, Download, Filter, CheckCircle2 } from "lucide-react";
+import { ScrollText, RefreshCw, Loader2, Inbox, Trash2, Search, Activity, AlertTriangle, Info, Bug, XCircle, Download, Filter, CheckCircle2, ChevronLeft, ChevronRight } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
@@ -124,6 +124,11 @@ function Page() {
   const [loading, setLoading] = useState(true);
   const [level, setLevel] = useState<string>("all");
   const [search, setSearch] = useState("");
+  const PAGE_SIZE = 100;
+  const [pageIndex, setPageIndex] = useState(0);
+  // Cursor stack: cursors[i] = starting cursor for page i (null = first page).
+  const [cursors, setCursors] = useState<Array<{ created_at: string; id: string } | null>>([null]);
+  const [hasNext, setHasNext] = useState(false);
   const [clearState, setClearState] = useState<{
     status: "idle" | "running" | "done" | "error";
     processed: number;
@@ -131,14 +136,54 @@ function Page() {
     message?: string;
   }>({ status: "idle", processed: 0, total: 0 });
 
-  const load = async () => {
+  const loadPage = async (index: number, stack: Array<{ created_at: string; id: string } | null>) => {
     if (!user) return;
     setLoading(true);
-    const { data, error } = await supabase.from("logs").select("*").eq("user_id", user.id).order("created_at", { ascending: false }).limit(500);
+    const cursor = stack[index] ?? null;
+    // Keyset pagination on (created_at desc, id desc) — avoids duplicates/skips
+    // when new logs arrive between page loads, unlike offset-based paging.
+    let q = supabase
+      .from("logs")
+      .select("*")
+      .eq("user_id", user.id)
+      .order("created_at", { ascending: false })
+      .order("id", { ascending: false })
+      .limit(PAGE_SIZE + 1);
+    if (cursor) {
+      q = q.or(
+        `created_at.lt.${cursor.created_at},and(created_at.eq.${cursor.created_at},id.lt.${cursor.id})`,
+      );
+    }
+    const { data, error } = await q;
     setLoading(false);
     if (error) return toast.error(error.message);
-    setRows((data ?? []) as LogRow[]);
+    const list = (data ?? []) as LogRow[];
+    const more = list.length > PAGE_SIZE;
+    const pageRows = more ? list.slice(0, PAGE_SIZE) : list;
+    // Deduplicate defensively in case of realtime overlap.
+    const seen = new Set<string>();
+    const unique = pageRows.filter((r) => (seen.has(r.id) ? false : (seen.add(r.id), true)));
+    setRows(unique);
+    setHasNext(more);
+    setPageIndex(index);
+    // Prepare cursor for the next page (last row of this page).
+    if (more) {
+      const last = pageRows[pageRows.length - 1];
+      const next = { created_at: last.created_at, id: last.id };
+      const newStack = stack.slice(0, index + 1);
+      newStack.push(next);
+      setCursors(newStack);
+    } else {
+      setCursors(stack.slice(0, index + 1));
+    }
   };
+
+  const load = async () => {
+    // Reset to first page and reload.
+    await loadPage(0, [null]);
+  };
+  const goNext = () => { if (hasNext) loadPage(pageIndex + 1, cursors); };
+  const goPrev = () => { if (pageIndex > 0) loadPage(pageIndex - 1, cursors); };
   useEffect(() => { load(); /* eslint-disable-next-line */ }, [user]);
 
   const filtered = useMemo(() => {
@@ -374,7 +419,7 @@ function Page() {
           </div>
           <div className="flex items-center gap-2 px-2 text-xs text-muted-foreground">
             <Filter className="h-3.5 w-3.5" />
-            <span className="tabular-nums">{filtered.length} de {rows.length} registros</span>
+            <span className="tabular-nums">{filtered.length} de {rows.length} nesta página</span>
           </div>
         </div>
       </div>
@@ -403,6 +448,21 @@ function Page() {
             ))}
           </div>
         )}
+      </div>
+
+      {/* Pagination */}
+      <div className="flex items-center justify-between gap-3 rounded-2xl border border-border bg-card p-3 shadow-sm">
+        <span className="text-xs text-muted-foreground tabular-nums">
+          Página {pageIndex + 1}{!hasNext && pageIndex === 0 ? "" : ""}
+        </span>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" size="sm" onClick={goPrev} disabled={pageIndex === 0 || loading} className="gap-1">
+            <ChevronLeft className="h-4 w-4" /> Anterior
+          </Button>
+          <Button variant="outline" size="sm" onClick={goNext} disabled={!hasNext || loading} className="gap-1">
+            Próxima <ChevronRight className="h-4 w-4" />
+          </Button>
+        </div>
       </div>
     </div>
   );
