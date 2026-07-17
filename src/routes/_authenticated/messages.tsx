@@ -2587,7 +2587,7 @@ function MessagesPage() {
 
               {/* Upload progress is shown inline on the message bubble (WhatsApp-style),
                   so we intentionally do not render a separate upload queue bar here. */}
-              <div className="px-3 py-2 flex items-end gap-2" style={{ background: "#F0F2F5" }}>
+              <div className="px-3 py-2 flex items-end gap-2" style={{ background: theme.emptyBg, borderTop: `1px solid ${theme.border}` }}>
                 {recording ? (
                   <>
                     <Tooltip>
