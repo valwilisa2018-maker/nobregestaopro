@@ -146,7 +146,121 @@ async function runFollowups(request: Request | undefined) {
           sent++;
         }
 
-        return Response.json({ ok: true, processed, sent });
+  // === UI-based followup campaigns (public.followups + followup_steps) ===
+  const campaign = await runCampaignFollowups(supabaseAdmin);
+
+  return Response.json({ ok: true, processed, sent, campaign });
+}
+
+type Campaign = {
+  id: string; user_id: string; connection_id: string | null;
+  inactivity_value: number; inactivity_unit: "minutes" | "hours" | "days";
+  is_active: boolean; stop_on_reply: boolean;
+  total_sent: number; total_replied: number;
+};
+type CampaignStep = { step_order: number; delay_value: number; delay_unit: "minutes" | "hours" | "days"; message: string };
+
+function toMs(v: number, u: "minutes" | "hours" | "days") {
+  const m = u === "minutes" ? 60_000 : u === "hours" ? 3_600_000 : 86_400_000;
+  return Math.max(1, v) * m;
+}
+
+async function runCampaignFollowups(db: { from: (t: string) => any }) {
+  const { data: campaigns } = await db.from("followups").select("*").eq("is_active", true).limit(200);
+  let enrolled = 0, sent = 0, stopped = 0;
+  const now = Date.now();
+
+  for (const c of (campaigns ?? []) as Campaign[]) {
+    const { data: steps } = await db.from("followup_steps").select("*").eq("followup_id", c.id).order("step_order");
+    const stepList = (steps ?? []) as CampaignStep[];
+    if (!stepList.length) continue;
+
+    // Load connection(s) to send from
+    let connectionIds: string[] = [];
+    if (c.connection_id) {
+      connectionIds = [c.connection_id];
+    } else {
+      const { data: conns } = await db.from("connections").select("id").eq("user_id", c.user_id).eq("status", "online");
+      connectionIds = ((conns ?? []) as Array<{ id: string }>).map((x) => x.id);
+    }
+    if (!connectionIds.length) continue;
+
+    // Fetch candidate conversations
+    const { data: convs } = await db
+      .from("conversations")
+      .select("id,user_id,connection_id,last_message_at,metadata")
+      .eq("user_id", c.user_id)
+      .in("connection_id", connectionIds)
+      .not("last_message_at", "is", null)
+      .limit(500);
+
+    for (const conv of (convs ?? []) as Array<{ id: string; user_id: string; connection_id: string; last_message_at: string; metadata: any }>) {
+      const meta = (conv.metadata ?? {}) as Record<string, any>;
+      const camps = (meta.campaign_followups ?? {}) as Record<string, { step: number; next_at: string | null; sent_at: string | null; done?: boolean }>;
+      const state = camps[c.id];
+      const lastMsg = new Date(conv.last_message_at).getTime();
+
+      // Stop-on-reply: if there's a state, sent_at exists, and last_message_at is newer than sent_at → user replied
+      if (state && state.sent_at && !state.done && c.stop_on_reply && lastMsg > new Date(state.sent_at).getTime()) {
+        camps[c.id] = { ...state, done: true };
+        await db.from("conversations").update({ metadata: { ...meta, campaign_followups: camps } }).eq("id", conv.id);
+        await db.from("followups").update({ total_replied: (c.total_replied ?? 0) + 1 }).eq("id", c.id);
+        c.total_replied = (c.total_replied ?? 0) + 1;
+        stopped++;
+        continue;
+      }
+      if (state?.done) continue;
+
+      const stepIdx = state?.step ?? 0;
+      if (stepIdx >= stepList.length) continue;
+
+      // Determine when to fire this step
+      const triggerAt = stepIdx === 0
+        ? lastMsg + toMs(c.inactivity_value, c.inactivity_unit)
+        : (state?.next_at ? new Date(state.next_at).getTime() : lastMsg + toMs(stepList[stepIdx].delay_value, stepList[stepIdx].delay_unit));
+      if (now < triggerAt) continue;
+
+      // Load remoteJid + connection creds
+      const remoteJid = (meta.remoteJid ?? meta.jid) as string | undefined;
+      if (!remoteJid) continue;
+      const { data: conn } = await db.from("connections").select("url_api,api_key,instance_name,status").eq("id", conv.connection_id).maybeSingle();
+      if (!conn || conn.status !== "online") continue;
+      const apiKey = await loadEvolutionCommandKey(db, conn.api_key ?? "");
+      const base = /^https?:\/\//i.test((conn.url_api ?? "").trim())
+        ? (conn.url_api ?? "").trim().replace(/\/+$/, "")
+        : "https://" + (conn.url_api ?? "").trim().replace(/\/+$/, "");
+
+      const text = stepList[stepIdx].message;
+      const r = await fetch(`${base}/message/sendText/${conn.instance_name}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", apikey: apiKey },
+        body: JSON.stringify({ number: remoteJid, text }),
+      });
+      if (!r.ok) {
+        await db.from("logs").insert({ user_id: c.user_id, level: "error", source: "followup_campaign", message: `sendText failed ${r.status}`, metadata: { followupId: c.id, convId: conv.id } });
+        continue;
+      }
+
+      await db.from("messages").insert({
+        user_id: c.user_id, conversation_id: conv.id,
+        direction: "outbound", type: "text", content: text,
+        metadata: { remoteJid, followup_campaign_id: c.id, step: stepIdx + 1 },
+      });
+
+      const nextIdx = stepIdx + 1;
+      const nextAt = nextIdx < stepList.length
+        ? new Date(now + toMs(stepList[nextIdx].delay_value, stepList[nextIdx].delay_unit)).toISOString()
+        : null;
+      camps[c.id] = { step: nextIdx, next_at: nextAt, sent_at: new Date(now).toISOString(), done: nextIdx >= stepList.length };
+      await db.from("conversations").update({ metadata: { ...meta, campaign_followups: camps } }).eq("id", conv.id);
+      await db.from("followups").update({ total_sent: (c.total_sent ?? 0) + 1 }).eq("id", c.id);
+      c.total_sent = (c.total_sent ?? 0) + 1;
+      if (stepIdx === 0) enrolled++;
+      sent++;
+    }
+  }
+
+  return { enrolled, sent, stopped };
 }
 
 function inWorkingHours(h: Ext["hours"], tz: string | null | undefined) {
