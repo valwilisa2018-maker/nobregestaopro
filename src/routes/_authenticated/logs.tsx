@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { ScrollText, RefreshCw, Loader2, Inbox, Trash2, Search, Activity, AlertTriangle, Info, Bug, XCircle, Download, Filter, CheckCircle2, ChevronLeft, ChevronRight } from "lucide-react";
+import { ScrollText, RefreshCw, Loader2, Inbox, Trash2, Search, Activity, AlertTriangle, Info, Bug, XCircle, Download, Filter, CheckCircle2, ChevronLeft, ChevronRight, CalendarRange } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
@@ -148,6 +148,22 @@ function Page() {
   const [cursors, setCursors] = useState<Array<{ created_at: string; id: string } | null>>([null]);
   const [hasNext, setHasNext] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
+  // Intervalo de datas: por padrão carrega apenas as últimas 24h para não travar
+  // em contas com milhões de eventos. Presets rápidos + intervalo personalizado.
+  type RangePreset = "24h" | "7d" | "30d" | "custom";
+  const [rangePreset, setRangePreset] = useState<RangePreset>("24h");
+  const toLocalInput = (d: Date) => {
+    const off = d.getTimezoneOffset() * 60000;
+    return new Date(d.getTime() - off).toISOString().slice(0, 16);
+  };
+  const now = new Date();
+  const [dateFrom, setDateFrom] = useState<string>(toLocalInput(new Date(now.getTime() - 24 * 3600 * 1000)));
+  const [dateTo, setDateTo] = useState<string>(toLocalInput(now));
+  const rangeIso = useMemo(() => {
+    const from = dateFrom ? new Date(dateFrom).toISOString() : null;
+    const to = dateTo ? new Date(dateTo).toISOString() : null;
+    return { from, to };
+  }, [dateFrom, dateTo]);
   const [clearState, setClearState] = useState<{
     status: "idle" | "running" | "done" | "error";
     processed: number;
@@ -171,6 +187,8 @@ function Page() {
         .order("created_at", { ascending: false })
         .order("id", { ascending: false })
         .limit(PAGE_SIZE + 1);
+      if (rangeIso.from) q = q.gte("created_at", rangeIso.from);
+      if (rangeIso.to) q = q.lte("created_at", rangeIso.to);
       if (cursor) {
         q = q.or(
           `created_at.lt.${cursor.created_at},and(created_at.eq.${cursor.created_at},id.lt.${cursor.id})`,
@@ -222,7 +240,17 @@ function Page() {
   const retry = () => { loadPage(pageIndex, cursors); };
   const goNext = () => { if (hasNext) loadPage(pageIndex + 1, cursors); };
   const goPrev = () => { if (pageIndex > 0) loadPage(pageIndex - 1, cursors); };
-  useEffect(() => { load(); /* eslint-disable-next-line */ }, [user]);
+  useEffect(() => { load(); /* eslint-disable-next-line */ }, [user, rangeIso.from, rangeIso.to]);
+
+  const applyPreset = (p: RangePreset) => {
+    setRangePreset(p);
+    if (p === "custom") return;
+    const end = new Date();
+    const hours = p === "24h" ? 24 : p === "7d" ? 24 * 7 : 24 * 30;
+    const start = new Date(end.getTime() - hours * 3600 * 1000);
+    setDateFrom(toLocalInput(start));
+    setDateTo(toLocalInput(end));
+  };
 
   const filtered = useMemo(() => {
     const term = search.trim().toLowerCase();
@@ -450,7 +478,50 @@ function Page() {
       )}
 
       <div className="rounded-2xl border border-border bg-card p-3 shadow-sm">
-        <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+        <div className="flex flex-col gap-3">
+          {/* Filtro de intervalo de datas */}
+          <div className="flex flex-wrap items-center gap-2">
+            <div className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground pr-1">
+              <CalendarRange className="h-3.5 w-3.5" /> Período:
+            </div>
+            {([
+              { id: "24h", label: "Últimas 24h" },
+              { id: "7d", label: "7 dias" },
+              { id: "30d", label: "30 dias" },
+              { id: "custom", label: "Personalizado" },
+            ] as Array<{ id: RangePreset; label: string }>).map((p) => (
+              <button
+                key={p.id}
+                onClick={() => applyPreset(p.id)}
+                className={cn(
+                  "px-3 h-8 rounded-lg text-xs font-medium border transition",
+                  rangePreset === p.id
+                    ? "border-primary/50 bg-primary/10 text-primary"
+                    : "border-border bg-muted/30 text-muted-foreground hover:text-foreground hover:border-primary/30",
+                )}
+              >
+                {p.label}
+              </button>
+            ))}
+            {rangePreset === "custom" && (
+              <div className="flex flex-wrap items-center gap-2 ml-auto">
+                <Input
+                  type="datetime-local"
+                  value={dateFrom}
+                  onChange={(e) => setDateFrom(e.target.value)}
+                  className="h-8 w-[190px] text-xs"
+                />
+                <span className="text-xs text-muted-foreground">até</span>
+                <Input
+                  type="datetime-local"
+                  value={dateTo}
+                  onChange={(e) => setDateTo(e.target.value)}
+                  className="h-8 w-[190px] text-xs"
+                />
+              </div>
+            )}
+          </div>
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input
@@ -463,6 +534,7 @@ function Page() {
           <div className="flex items-center gap-2 px-2 text-xs text-muted-foreground">
             <Filter className="h-3.5 w-3.5" />
             <span className="tabular-nums">{filtered.length} de {rows.length} nesta página</span>
+          </div>
           </div>
         </div>
       </div>
