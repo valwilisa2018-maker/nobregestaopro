@@ -504,7 +504,7 @@ function Page() {
 
       {/* Premium connection modal */}
       <Dialog open={qrModal.open} onOpenChange={(o) => setQrModal({ ...qrModal, open: o })}>
-        <DialogContent className="max-w-md overflow-hidden p-0 border-border/60">
+        <DialogContent className="max-w-md overflow-hidden border-white/10 bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 p-0 shadow-[0_30px_80px_-20px_rgba(16,185,129,0.4)]">
           {(() => {
             const current = items.find((x) => x.id === qrModal.connectionId);
             const online = current?.status === "online";
@@ -512,25 +512,27 @@ function Page() {
               <>
                 {/* Header with gradient */}
                 <div
-                  className="relative px-6 pt-6 pb-8"
+                  className="relative overflow-hidden px-6 pt-6 pb-8"
                   style={{
                     background: online
-                      ? "linear-gradient(135deg, #25D366 0%, #128C7E 100%)"
-                      : "linear-gradient(135deg, var(--primary) 0%, color-mix(in oklch, var(--primary) 75%, transparent) 100%)",
+                      ? "linear-gradient(135deg, #25D366 0%, #0f766e 100%)"
+                      : "linear-gradient(135deg, #10b981 0%, #059669 55%, #0f766e 100%)",
                   }}
                 >
-                  <div className="absolute inset-0 opacity-20 pointer-events-none"
-                    style={{ backgroundImage: "radial-gradient(circle at 30% 20%, rgba(255,255,255,0.35), transparent 50%)" }} />
+                  <div className="pointer-events-none absolute -right-16 -top-16 h-56 w-56 rounded-full bg-white/20 blur-3xl" />
+                  <div className="pointer-events-none absolute -left-16 -bottom-16 h-56 w-56 rounded-full bg-emerald-300/20 blur-3xl" />
+                  <div className="pointer-events-none absolute inset-0 opacity-30"
+                    style={{ backgroundImage: "radial-gradient(circle at 25% 15%, rgba(255,255,255,0.4), transparent 55%)" }} />
                   <DialogHeader className="relative space-y-0">
                     <div className="flex items-center gap-3">
-                      <div className="grid h-11 w-11 place-items-center rounded-2xl bg-white/20 backdrop-blur ring-1 ring-white/30 text-foreground">
-                        <MessageCircle className="h-5 w-5" />
+                      <div className="grid h-12 w-12 place-items-center rounded-2xl bg-white/25 shadow-[0_10px_30px_-8px_rgba(0,0,0,0.4)] ring-1 ring-white/40 backdrop-blur-xl">
+                        <MessageCircle className="h-6 w-6 text-white" />
                       </div>
-                      <div className="text-left text-foreground">
-                        <DialogTitle className="text-base font-semibold">
+                      <div className="text-left text-white">
+                        <DialogTitle className="text-lg font-bold tracking-tight text-white">
                           {online ? "WhatsApp conectado" : "Conectar WhatsApp"}
                         </DialogTitle>
-                        <DialogDescription className="text-xs text-foreground/80">
+                        <DialogDescription className="text-xs font-medium text-white/85">
                           {qrModal.name || (online ? "Instância pronta para atender" : "Sincronizar com seu dispositivo")}
                         </DialogDescription>
                       </div>
@@ -552,7 +554,8 @@ function Page() {
                   )}
                 </div>
 
-                <div className="p-5 space-y-5">
+                <div className="relative p-5 space-y-5">
+                  <div className="pointer-events-none absolute -right-24 top-1/3 h-56 w-56 rounded-full bg-emerald-500/10 blur-3xl" />
                   {online ? (
                     <>
                       <div className="rounded-2xl border border-[#25D366]/30 bg-[#25D366]/[0.05] p-4 flex items-center gap-3">
@@ -591,19 +594,27 @@ function Page() {
                     </>
                   ) : (
                     <>
-                      <div className="rounded-2xl border-2 border-dashed border-primary/30 bg-primary/[0.03] p-6 flex flex-col items-center gap-4">
+                      <div className="relative flex flex-col items-center gap-4 overflow-hidden rounded-3xl border border-white/10 bg-gradient-to-br from-slate-900/90 to-slate-950/90 p-6 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] backdrop-blur-xl">
+                        <div className="pointer-events-none absolute inset-0 rounded-3xl bg-[radial-gradient(circle_at_50%_0%,rgba(16,185,129,0.15),transparent_60%)]" />
                         {qrModal.qr ? (
-                          <div className="rounded-xl bg-white p-3 ring-1 ring-border shadow-lg">
-                            <img
-                              src={qrModal.qr.startsWith("data:") ? qrModal.qr : `data:image/png;base64,${qrModal.qr}`}
-                              alt="QR Code" className="h-48 w-48"
-                            />
+                          <div className="relative">
+                            <div className="pointer-events-none absolute -inset-3 rounded-3xl bg-gradient-to-br from-emerald-400/40 to-teal-500/30 blur-xl" />
+                            <div className="relative rounded-2xl bg-white p-3 shadow-2xl ring-1 ring-white/40">
+                              <img
+                                src={qrModal.qr.startsWith("data:") ? qrModal.qr : `data:image/png;base64,${qrModal.qr}`}
+                                alt="QR Code" className="h-52 w-52"
+                              />
+                            </div>
                           </div>
                         ) : (
-                          <QrCode className="h-20 w-20 text-primary/70" strokeWidth={1.2} />
+                          <div className="relative">
+                            <div className="pointer-events-none absolute -inset-4 rounded-full bg-emerald-500/20 blur-2xl" />
+                            <div className="relative grid h-52 w-52 place-items-center rounded-2xl border-2 border-dashed border-emerald-400/40 bg-slate-950/60">
+                              <QrCode className="h-20 w-20 text-emerald-400/70" strokeWidth={1.2} />
+                            </div>
+                          </div>
                         )}
                         <Button
-                          variant={qrModal.qr ? "outline" : "default"}
                           onClick={async () => {
                             if (!qrModal.connectionId) return;
                             setQrModal((m) => ({ ...m, qr: null }));
@@ -613,21 +624,24 @@ function Page() {
                               if (!r.qr) toast.error("QR ainda não disponível — tente novamente");
                             } catch (e: any) { toast.error(e.message ?? "Falha ao gerar QR"); }
                           }}
-                          className="rounded-full px-6"
+                          className="relative rounded-full bg-gradient-to-br from-[#25D366] to-[#0f766e] px-6 text-white shadow-[0_15px_40px_-10px_rgba(16,185,129,0.7)] ring-1 ring-white/20 hover:opacity-90"
                         >
-                          <RefreshCw className="h-4 w-4" /> {qrModal.qr ? "Atualizar QR" : "Gerar QR Code"}
+                          <RefreshCw className="mr-2 h-4 w-4" /> {qrModal.qr ? "Atualizar QR" : "Gerar QR Code"}
                         </Button>
                         {qrModal.qr && (
-                          <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                            <Wifi className="h-3.5 w-3.5 animate-pulse text-primary" />
+                          <div className="flex items-center gap-2 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-3 py-1 text-xs font-medium text-emerald-300 backdrop-blur">
+                            <span className="relative flex h-2 w-2">
+                              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
+                              <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-400" />
+                            </span>
                             Aguardando conexão…
                           </div>
                         )}
                       </div>
 
-                      <div className="space-y-3">
-                        <div className="flex items-center gap-2 text-sm font-medium text-primary">
-                          <Plus className="h-4 w-4" /> Como conectar
+                      <div className="relative space-y-3 rounded-2xl border border-white/10 bg-white/[0.03] p-4 backdrop-blur-xl">
+                        <div className="flex items-center gap-2 text-sm font-semibold text-emerald-300">
+                          <Smartphone className="h-4 w-4" /> Como conectar
                         </div>
                         <ol className="space-y-2.5 text-xs">
                           {[
@@ -636,10 +650,10 @@ function Page() {
                             "Toque em Conectar um dispositivo e escaneie o código",
                           ].map((step, i) => (
                             <li key={i} className="flex gap-2.5 items-start">
-                              <div className="grid h-5 w-5 shrink-0 place-items-center rounded-full bg-primary/15 text-primary text-[10px] font-bold ring-1 ring-primary/30">
+                              <div className="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-gradient-to-br from-emerald-400 to-teal-600 text-[10px] font-bold text-white shadow-[0_6px_20px_-6px_rgba(16,185,129,0.7)] ring-1 ring-white/20">
                                 {i + 1}
                               </div>
-                              <span className="text-muted-foreground pt-0.5">{step}</span>
+                              <span className="pt-1 text-muted-foreground">{step}</span>
                             </li>
                           ))}
                         </ol>
