@@ -156,7 +156,7 @@ function Page() {
   }>({ status: "idle", processed: 0, total: 0 });
 
   const loadPage = async (index: number, stack: Array<{ created_at: string; id: string } | null>) => {
-    if (!user) return;
+    if (!user) { setLoading(false); return; }
     setLoading(true);
     setLoadError(null);
     const cursor = stack[index] ?? null;
