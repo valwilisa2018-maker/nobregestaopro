@@ -255,7 +255,7 @@ function Page() {
         </div>
       </div>
 
-      <Card className={`flex items-center gap-3 border p-3 ${anyConnected ? "border-emerald-500/40 bg-emerald-500/5" : "border-amber-500/40 bg-amber-500/5"}`}>
+      <Card className={`shrink-0 flex items-center gap-3 border p-3 ${anyConnected ? "border-emerald-500/40 bg-emerald-500/5" : "border-amber-500/40 bg-amber-500/5"}`}>
         {anyConnected ? <CheckCircle2 className="h-5 w-5 shrink-0 text-emerald-500" /> : <AlertCircle className="h-5 w-5 shrink-0 text-amber-500" />}
         <div className="min-w-0 flex-1 text-sm">
           <div className="font-semibold">
@@ -267,8 +267,8 @@ function Page() {
         </div>
       </Card>
 
-      <Card className="overflow-hidden p-0">
-        <div className="flex items-center justify-between border-b p-4">
+      <Card className="flex-1 flex flex-col min-h-0 overflow-hidden p-0">
+        <div className="shrink-0 flex items-center justify-between border-b p-4">
           <div className="flex items-center gap-2">
             <div className="h-2 w-2 rounded-full bg-blue-500" />
             <h2 className="font-bold">Campanhas</h2>
@@ -284,7 +284,7 @@ function Page() {
             <Button onClick={openNew} variant="outline" size="sm" className="mt-3"><Plus className="h-4 w-4 mr-1" /> Criar primeiro</Button>
           </div>
         ) : (
-          <div className="divide-y">
+          <div className="flex-1 overflow-auto divide-y">
             {rows.map((f) => (
               <div key={f.id} className="p-4 flex items-center gap-3 hover:bg-muted/30 transition">
                 <div className={`h-10 w-10 shrink-0 rounded-xl grid place-items-center ${f.is_active ? "bg-green-500/15 text-green-600" : "bg-muted text-muted-foreground"}`}>
