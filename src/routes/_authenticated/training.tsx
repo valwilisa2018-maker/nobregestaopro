@@ -371,7 +371,7 @@ function TrainingPage() {
               </div>
             </div>
 
-            <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
+            <div className="relative mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
               <StatItem icon={<BookOpen className="h-4 w-4" />} value={modules.length} label="Total de aulas" tone="primary" />
               <StatItem icon={<CheckCircle2 className="h-4 w-4" />} value={totalWatched} label="Aula concluída" tone="success" />
               <StatItem icon={<Clock className="h-4 w-4" />} value={modules.length - totalWatched} label="Aulas restantes" tone="warning" />
