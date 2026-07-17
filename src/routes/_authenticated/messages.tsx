@@ -2517,7 +2517,7 @@ function MessagesPage() {
                           const url = linkUrl;
                           return (
                             <div className={url ? "w-[260px] max-w-full" : "pr-14"}>
-                              {url && <LinkPreview url={url} />}
+                              {url && <LinkPreview url={url} dark={chatDarkMode} />}
                               <div className="whitespace-pre-wrap break-words">{m.content}</div>
                             </div>
                           );
