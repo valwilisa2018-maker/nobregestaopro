@@ -761,6 +761,7 @@ export const sendChatAudio = createServerFn({ method: "POST" })
     if (!contact) throw new Error("Contato não encontrado");
     const number = String(contact.phone).replace(/\D+/g, "");
     const conn = await pickConnectionForContact(context.supabase, context.userId, number);
+    assertOnlineConnection(conn);
     const apiKey = await loadEvolutionCommandKey(context.supabase, conn.api_key);
     const remoteJid = `${number}@s.whatsapp.net`;
     const audio = data.audioBase64.replace(/^data:[^;]+;base64,/, "");
