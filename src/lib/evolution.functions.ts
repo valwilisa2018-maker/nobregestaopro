@@ -481,6 +481,12 @@ function parseEvoError(json: any, status: number) {
   }`;
 }
 
+function shouldRetryWithoutQuoted(json: any, status: number) {
+  if (status < 400 || status >= 500) return false;
+  const hay = JSON.stringify(json ?? {}).toLowerCase();
+  return hay.includes("reading 'id'") || hay.includes('reading "id"') || hay.includes("quoted") || hay.includes("contextinfo");
+}
+
 const SendChatTextInput = z.object({
   contactId: z.string().uuid(),
   text: z.string().min(1).max(4096),
