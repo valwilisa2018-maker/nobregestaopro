@@ -411,9 +411,15 @@ async function pickConnectionForContact(supabase: any, userId: string, phone: st
       .eq("id", match.connection_id)
       .eq("user_id", userId)
       .maybeSingle();
-    if (conn) return conn;
+    if (conn?.status === "online") return conn;
   }
   return pickActiveConnection(supabase, userId);
+}
+
+function assertOnlineConnection(conn: any) {
+  if (conn?.status !== "online") {
+    throw new Error("Conexão WhatsApp offline. Reconecte o WhatsApp antes de enviar mensagens.");
+  }
 }
 
 type SerializableJson = string | number | boolean | null | SerializableJson[] | { [key: string]: SerializableJson };
@@ -481,6 +487,12 @@ function parseEvoError(json: any, status: number) {
   }`;
 }
 
+function shouldRetryWithoutQuoted(json: any, status: number) {
+  if (status < 400 || status >= 500) return false;
+  const hay = JSON.stringify(json ?? {}).toLowerCase();
+  return hay.includes("reading 'id'") || hay.includes('reading "id"') || hay.includes("quoted") || hay.includes("contextinfo");
+}
+
 const SendChatTextInput = z.object({
   contactId: z.string().uuid(),
   text: z.string().min(1).max(4096),
@@ -496,14 +508,21 @@ export const sendChatText = createServerFn({ method: "POST" })
     if (!contact) throw new Error("Contato não encontrado");
     const number = String(contact.phone).replace(/\D+/g, "");
     const conn = await pickConnectionForContact(context.supabase, context.userId, number);
+    assertOnlineConnection(conn);
     const apiKey = await loadEvolutionCommandKey(context.supabase, conn.api_key);
     const remoteJid = `${number}@s.whatsapp.net`;
     const convoId = await getOrCreateConversationForJid(context.supabase, context.userId, conn.id, remoteJid);
     const quoted = await buildQuoted(context.supabase, context.userId, data.quotedMessageId);
-    const r = await evoFetch(`${baseUrl(conn.url_api)}/message/sendText/${conn.instance_name}`, apiKey, {
+    let r = await evoFetch(`${baseUrl(conn.url_api)}/message/sendText/${conn.instance_name}`, apiKey, {
       method: "POST",
       body: JSON.stringify({ number, text: data.text, ...(quoted.evo ? { quoted: quoted.evo } : {}) }),
     });
+    if (!r.ok && quoted.evo && shouldRetryWithoutQuoted(r.json, r.status)) {
+      r = await evoFetch(`${baseUrl(conn.url_api)}/message/sendText/${conn.instance_name}`, apiKey, {
+        method: "POST",
+        body: JSON.stringify({ number, text: data.text }),
+      });
+    }
     if (!r.ok) {
       const error = parseEvoError(r.json, r.status);
       return { ok: false as const, error, conversationId: convoId, message: null };
@@ -549,6 +568,7 @@ export const startFlowForContact = createServerFn({ method: "POST" })
 
     const number = String(contact.phone).replace(/\D+/g, "");
     const conn = await pickConnectionForContact(context.supabase, context.userId, number);
+    assertOnlineConnection(conn);
     const apiKey = await loadEvolutionCommandKey(context.supabase, conn.api_key);
     const remoteJid = `${number}@s.whatsapp.net`;
     const convoId = await getOrCreateConversationForJid(context.supabase, context.userId, conn.id, remoteJid);
@@ -596,6 +616,7 @@ export const sendChatMedia = createServerFn({ method: "POST" })
     if (!contact) throw new Error("Contato não encontrado");
     const number = String(contact.phone).replace(/\D+/g, "");
     const conn = await pickConnectionForContact(context.supabase, context.userId, number);
+    assertOnlineConnection(conn);
     const apiKey = await loadEvolutionCommandKey(context.supabase, conn.api_key);
     const remoteJid = `${number}@s.whatsapp.net`;
     const b64 = data.base64.replace(/^data:[^;]+;base64,/, "");
@@ -614,7 +635,7 @@ export const sendChatMedia = createServerFn({ method: "POST" })
     await context.supabase.from("conversations").update({
       last_message_at: new Date().toISOString(),
     }).eq("id", convoId).eq("user_id", context.userId);
-    const r = await evoFetch(`${baseUrl(conn.url_api)}/message/sendMedia/${conn.instance_name}`, apiKey, {
+    let r = await evoFetch(`${baseUrl(conn.url_api)}/message/sendMedia/${conn.instance_name}`, apiKey, {
       method: "POST",
       body: JSON.stringify({
         number, mediatype, media: b64, mimetype: data.mime,
@@ -622,6 +643,15 @@ export const sendChatMedia = createServerFn({ method: "POST" })
         ...(quoted.evo ? { quoted: quoted.evo } : {}),
       }),
     });
+    if (!r.ok && quoted.evo && shouldRetryWithoutQuoted(r.json, r.status)) {
+      r = await evoFetch(`${baseUrl(conn.url_api)}/message/sendMedia/${conn.instance_name}`, apiKey, {
+        method: "POST",
+        body: JSON.stringify({
+          number, mediatype, media: b64, mimetype: data.mime,
+          fileName: data.fileName, caption: data.caption ?? "",
+        }),
+      });
+    }
     if (!r.ok) {
       const error = parseEvoError(r.json, r.status);
       if (saved?.id) await context.supabase.from("messages").update({ metadata: { ...metadataObject(saved.metadata), pending: false, failed: true, error } as never }).eq("id", saved.id).eq("user_id", context.userId);
@@ -731,6 +761,7 @@ export const sendChatAudio = createServerFn({ method: "POST" })
     if (!contact) throw new Error("Contato não encontrado");
     const number = String(contact.phone).replace(/\D+/g, "");
     const conn = await pickConnectionForContact(context.supabase, context.userId, number);
+    assertOnlineConnection(conn);
     const apiKey = await loadEvolutionCommandKey(context.supabase, conn.api_key);
     const remoteJid = `${number}@s.whatsapp.net`;
     const audio = data.audioBase64.replace(/^data:[^;]+;base64,/, "");
@@ -746,10 +777,16 @@ export const sendChatAudio = createServerFn({ method: "POST" })
     await context.supabase.from("conversations").update({
       last_message_at: new Date().toISOString(),
     }).eq("id", convoId).eq("user_id", context.userId);
-    const r = await evoFetch(`${baseUrl(conn.url_api)}/message/sendWhatsAppAudio/${conn.instance_name}`, apiKey, {
+    let r = await evoFetch(`${baseUrl(conn.url_api)}/message/sendWhatsAppAudio/${conn.instance_name}`, apiKey, {
       method: "POST",
       body: JSON.stringify({ number, audio, encoding: true, ...(quoted.evo ? { quoted: quoted.evo } : {}) }),
     });
+    if (!r.ok && quoted.evo && shouldRetryWithoutQuoted(r.json, r.status)) {
+      r = await evoFetch(`${baseUrl(conn.url_api)}/message/sendWhatsAppAudio/${conn.instance_name}`, apiKey, {
+        method: "POST",
+        body: JSON.stringify({ number, audio, encoding: true }),
+      });
+    }
     if (!r.ok) {
       const error = parseEvoError(r.json, r.status);
       if (saved?.id) await context.supabase.from("messages").update({ metadata: { ...metadataObject(saved.metadata), pending: false, failed: true, error } as never }).eq("id", saved.id).eq("user_id", context.userId);
