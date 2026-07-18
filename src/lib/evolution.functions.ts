@@ -411,9 +411,15 @@ async function pickConnectionForContact(supabase: any, userId: string, phone: st
       .eq("id", match.connection_id)
       .eq("user_id", userId)
       .maybeSingle();
-    if (conn) return conn;
+    if (conn?.status === "online") return conn;
   }
   return pickActiveConnection(supabase, userId);
+}
+
+function assertOnlineConnection(conn: any) {
+  if (conn?.status !== "online") {
+    throw new Error("Conexão WhatsApp offline. Reconecte o WhatsApp antes de enviar mensagens.");
+  }
 }
 
 type SerializableJson = string | number | boolean | null | SerializableJson[] | { [key: string]: SerializableJson };
@@ -502,6 +508,7 @@ export const sendChatText = createServerFn({ method: "POST" })
     if (!contact) throw new Error("Contato não encontrado");
     const number = String(contact.phone).replace(/\D+/g, "");
     const conn = await pickConnectionForContact(context.supabase, context.userId, number);
+    assertOnlineConnection(conn);
     const apiKey = await loadEvolutionCommandKey(context.supabase, conn.api_key);
     const remoteJid = `${number}@s.whatsapp.net`;
     const convoId = await getOrCreateConversationForJid(context.supabase, context.userId, conn.id, remoteJid);
@@ -561,6 +568,7 @@ export const startFlowForContact = createServerFn({ method: "POST" })
 
     const number = String(contact.phone).replace(/\D+/g, "");
     const conn = await pickConnectionForContact(context.supabase, context.userId, number);
+    assertOnlineConnection(conn);
     const apiKey = await loadEvolutionCommandKey(context.supabase, conn.api_key);
     const remoteJid = `${number}@s.whatsapp.net`;
     const convoId = await getOrCreateConversationForJid(context.supabase, context.userId, conn.id, remoteJid);
@@ -608,6 +616,7 @@ export const sendChatMedia = createServerFn({ method: "POST" })
     if (!contact) throw new Error("Contato não encontrado");
     const number = String(contact.phone).replace(/\D+/g, "");
     const conn = await pickConnectionForContact(context.supabase, context.userId, number);
+    assertOnlineConnection(conn);
     const apiKey = await loadEvolutionCommandKey(context.supabase, conn.api_key);
     const remoteJid = `${number}@s.whatsapp.net`;
     const b64 = data.base64.replace(/^data:[^;]+;base64,/, "");
