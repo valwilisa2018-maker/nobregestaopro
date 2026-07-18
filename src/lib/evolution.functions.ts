@@ -515,7 +515,7 @@ export const sendChatText = createServerFn({ method: "POST" })
     const quoted = await buildQuoted(context.supabase, context.userId, data.quotedMessageId);
     let r = await evoFetch(`${baseUrl(conn.url_api)}/message/sendText/${conn.instance_name}`, apiKey, {
       method: "POST",
-      body: JSON.stringify({ number, text: data.text, ...(quoted.evo ? { quoted: quoted.evo } : {}) }),
+      body: JSON.stringify({ number, text: data.text }),
     });
     if (!r.ok && quoted.evo && shouldRetryWithoutQuoted(r.json, r.status)) {
       r = await evoFetch(`${baseUrl(conn.url_api)}/message/sendText/${conn.instance_name}`, apiKey, {
@@ -640,7 +640,6 @@ export const sendChatMedia = createServerFn({ method: "POST" })
       body: JSON.stringify({
         number, mediatype, media: b64, mimetype: data.mime,
         fileName: data.fileName, caption: data.caption ?? "",
-        ...(quoted.evo ? { quoted: quoted.evo } : {}),
       }),
     });
     if (!r.ok && quoted.evo && shouldRetryWithoutQuoted(r.json, r.status)) {
@@ -779,7 +778,7 @@ export const sendChatAudio = createServerFn({ method: "POST" })
     }).eq("id", convoId).eq("user_id", context.userId);
     let r = await evoFetch(`${baseUrl(conn.url_api)}/message/sendWhatsAppAudio/${conn.instance_name}`, apiKey, {
       method: "POST",
-      body: JSON.stringify({ number, audio, encoding: true, ...(quoted.evo ? { quoted: quoted.evo } : {}) }),
+      body: JSON.stringify({ number, audio, encoding: true }),
     });
     if (!r.ok && quoted.evo && shouldRetryWithoutQuoted(r.json, r.status)) {
       r = await evoFetch(`${baseUrl(conn.url_api)}/message/sendWhatsAppAudio/${conn.instance_name}`, apiKey, {
