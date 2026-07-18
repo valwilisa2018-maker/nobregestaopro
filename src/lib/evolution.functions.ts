@@ -514,8 +514,9 @@ export const sendChatText = createServerFn({ method: "POST" })
     });
     if (!r.ok) {
       const error = parseEvoError(r.json, r.status);
-      if (saved?.id) await context.supabase.from("messages").update({ metadata: { ...metadataObject(saved.metadata), pending: false, failed: true, error } as never }).eq("id", saved.id).eq("user_id", context.userId);
-      return { ok: false as const, error, conversationId: convoId, message: messageDto(saved, { ...metadataObject(saved?.metadata), pending: false, failed: true, error }) };
+      // Remove the persisted row so retries don't multiply "failed" bubbles via realtime.
+      if (saved?.id) await context.supabase.from("messages").delete().eq("id", saved.id).eq("user_id", context.userId);
+      return { ok: false as const, error, conversationId: convoId, message: null };
     }
     const evoId = findEvoId(r.json);
     const status = normalizeEvoStatus(r.json?.status ?? r.json?.ack ?? r.json?.messageStatus) ?? "sent";
