@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { Brain, Loader2, Send, Mic, Square, Copy, Save, Bot, User as UserIcon, Pencil, Plus, MessageSquare, Trash2, PanelLeftOpen, PanelLeftClose, SquarePen } from "lucide-react";
+import { Brain, Loader2, Send, Mic, Square, Copy, Save, Bot, User as UserIcon, Pencil, Plus, MessageSquare, Trash2, PanelLeftOpen, PanelLeftClose, SquarePen, Sparkles, Zap } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -24,15 +24,36 @@ function Page() {
   const { user } = useAuth();
 
   return (
-    <div className="flex h-[100dvh] flex-col p-4">
-      <div className="mb-3 flex items-center gap-3">
-        <div className="rounded-xl bg-primary/10 p-2 text-primary"><Brain className="h-6 w-6" /></div>
-        <div>
-          <h1 className="text-2xl font-semibold">Prompts</h1>
-          <p className="text-sm text-muted-foreground">Converse com o Especialista e gere prompts prontos para seus agentes.</p>
+    <div className="relative flex h-[100dvh] flex-col overflow-hidden bg-gradient-to-br from-background via-background to-primary/5 p-4">
+      {/* ambient glow */}
+      <div className="pointer-events-none absolute -top-32 -left-24 h-96 w-96 rounded-full bg-primary/20 blur-3xl" />
+      <div className="pointer-events-none absolute -top-24 right-0 h-80 w-80 rounded-full bg-violet-500/20 blur-3xl" />
+      <div className="pointer-events-none absolute bottom-0 left-1/3 h-72 w-72 rounded-full bg-fuchsia-500/10 blur-3xl" />
+
+      <div className="relative mb-4 overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-r from-primary/15 via-violet-500/10 to-fuchsia-500/10 p-5 backdrop-blur-xl shadow-[0_8px_32px_-8px_rgba(99,102,241,0.35)]">
+        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(255,255,255,0.08),transparent_60%)]" />
+        <div className="relative flex items-center gap-4">
+          <div className="relative flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-primary to-violet-600 shadow-lg shadow-primary/40">
+            <Brain className="h-7 w-7 text-white" />
+            <span className="absolute -right-1 -top-1 flex h-4 w-4 items-center justify-center rounded-full bg-fuchsia-500 shadow-md">
+              <Sparkles className="h-2.5 w-2.5 text-white" />
+            </span>
+          </div>
+          <div className="flex-1">
+            <div className="flex items-center gap-2">
+              <h1 className="bg-gradient-to-r from-white via-white to-primary/80 bg-clip-text text-2xl font-bold tracking-tight text-transparent dark:from-white dark:to-primary/70">
+                Prompts
+              </h1>
+              <span className="inline-flex items-center gap-1 rounded-full border border-primary/30 bg-primary/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-primary">
+                <Zap className="h-3 w-3" /> Premium
+              </span>
+            </div>
+            <p className="text-sm text-muted-foreground">Converse com o Especialista e gere prompts prontos para seus agentes de IA.</p>
+          </div>
         </div>
       </div>
-      <div className="min-h-0 flex-1">
+
+      <div className="relative min-h-0 flex-1">
         <PromptChat userId={user?.id ?? null} />
       </div>
     </div>
@@ -268,7 +289,7 @@ function PromptChat({ userId }: { userId: string | null }) {
   }
 
   return (
-    <Card className="flex h-full overflow-hidden">
+    <Card className="flex h-full overflow-hidden border-white/10 bg-background/60 backdrop-blur-xl shadow-[0_20px_60px_-20px_rgba(0,0,0,0.5)]">
       {sideOpen && (
       <aside className="flex w-64 shrink-0 flex-col border-r bg-muted/30">
         <div className="flex items-center gap-2 p-3">
@@ -328,10 +349,12 @@ function PromptChat({ userId }: { userId: string | null }) {
           return (
             <div key={i} className={`flex gap-3 ${m.role === "user" ? "justify-end" : "justify-start"}`}>
               {m.role === "assistant" && (
-                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary"><Bot className="h-4 w-4" /></div>
+                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-primary to-violet-600 text-white shadow-md shadow-primary/30 ring-2 ring-primary/20">
+                  <Bot className="h-4 w-4" />
+                </div>
               )}
               <div className={`max-w-[80%] space-y-2 ${m.role === "user" ? "order-first" : ""}`}>
-                <div className={`whitespace-pre-wrap rounded-2xl px-4 py-2.5 text-sm leading-relaxed ${m.role === "user" ? "bg-primary text-primary-foreground" : "bg-muted"}`}>
+                <div className={`whitespace-pre-wrap rounded-2xl px-4 py-3 text-sm leading-relaxed shadow-sm ${m.role === "user" ? "bg-gradient-to-br from-primary to-violet-600 text-white shadow-primary/30" : "border border-white/10 bg-muted/60 backdrop-blur-sm"}`}>
                   {m.content}
                 </div>
                 {blocks.map((b, bi) => (
@@ -349,7 +372,7 @@ function PromptChat({ userId }: { userId: string | null }) {
                 ))}
               </div>
               {m.role === "user" && (
-                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-muted"><UserIcon className="h-4 w-4" /></div>
+                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-white/10 bg-muted shadow-sm"><UserIcon className="h-4 w-4" /></div>
               )}
             </div>
           );
