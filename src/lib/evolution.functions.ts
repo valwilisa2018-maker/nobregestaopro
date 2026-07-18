@@ -500,28 +500,25 @@ export const sendChatText = createServerFn({ method: "POST" })
     const remoteJid = `${number}@s.whatsapp.net`;
     const convoId = await getOrCreateConversationForJid(context.supabase, context.userId, conn.id, remoteJid);
     const quoted = await buildQuoted(context.supabase, context.userId, data.quotedMessageId);
-    const { data: saved } = await context.supabase.from("messages").insert({
-      user_id: context.userId, conversation_id: convoId,
-      direction: "outbound", type: "text", content: data.text,
-      metadata: { remoteJid, manual: true, pending: true, ...(quoted.meta ?? {}) } as never,
-    }).select("id,direction,type,content,media_url,created_at,metadata").single();
-    await context.supabase.from("conversations").update({
-      last_message_at: new Date().toISOString(),
-    }).eq("id", convoId).eq("user_id", context.userId);
     const r = await evoFetch(`${baseUrl(conn.url_api)}/message/sendText/${conn.instance_name}`, apiKey, {
       method: "POST",
       body: JSON.stringify({ number, text: data.text, ...(quoted.evo ? { quoted: quoted.evo } : {}) }),
     });
     if (!r.ok) {
       const error = parseEvoError(r.json, r.status);
-      // Remove the persisted row so retries don't multiply "failed" bubbles via realtime.
-      if (saved?.id) await context.supabase.from("messages").delete().eq("id", saved.id).eq("user_id", context.userId);
       return { ok: false as const, error, conversationId: convoId, message: null };
     }
     const evoId = findEvoId(r.json);
     const status = normalizeEvoStatus(r.json?.status ?? r.json?.ack ?? r.json?.messageStatus) ?? "sent";
-    const nextMeta = { ...metadataObject(saved?.metadata), pending: false, sent: true, status, ...(evoId ? { evoId } : {}) };
-    if (saved?.id) await context.supabase.from("messages").update({ metadata: nextMeta as never }).eq("id", saved.id).eq("user_id", context.userId);
+    const nextMeta = { remoteJid, manual: true, pending: false, sent: true, status, ...(quoted.meta ?? {}), ...(evoId ? { evoId } : {}) };
+    const { data: saved } = await context.supabase.from("messages").insert({
+      user_id: context.userId, conversation_id: convoId,
+      direction: "outbound", type: "text", content: data.text,
+      metadata: nextMeta as never,
+    }).select("id,direction,type,content,media_url,created_at,metadata").single();
+    await context.supabase.from("conversations").update({
+      last_message_at: new Date().toISOString(),
+    }).eq("id", convoId).eq("user_id", context.userId);
     return { ok: true, conversationId: convoId, message: messageDto(saved, nextMeta) };
   });
 
