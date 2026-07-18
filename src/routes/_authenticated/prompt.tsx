@@ -349,10 +349,12 @@ function PromptChat({ userId }: { userId: string | null }) {
           return (
             <div key={i} className={`flex gap-3 ${m.role === "user" ? "justify-end" : "justify-start"}`}>
               {m.role === "assistant" && (
-                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary"><Bot className="h-4 w-4" /></div>
+                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-primary to-violet-600 text-white shadow-md shadow-primary/30 ring-2 ring-primary/20">
+                  <Bot className="h-4 w-4" />
+                </div>
               )}
               <div className={`max-w-[80%] space-y-2 ${m.role === "user" ? "order-first" : ""}`}>
-                <div className={`whitespace-pre-wrap rounded-2xl px-4 py-2.5 text-sm leading-relaxed ${m.role === "user" ? "bg-primary text-primary-foreground" : "bg-muted"}`}>
+                <div className={`whitespace-pre-wrap rounded-2xl px-4 py-3 text-sm leading-relaxed shadow-sm ${m.role === "user" ? "bg-gradient-to-br from-primary to-violet-600 text-white shadow-primary/30" : "border border-white/10 bg-muted/60 backdrop-blur-sm"}`}>
                   {m.content}
                 </div>
                 {blocks.map((b, bi) => (
@@ -370,7 +372,7 @@ function PromptChat({ userId }: { userId: string | null }) {
                 ))}
               </div>
               {m.role === "user" && (
-                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-muted"><UserIcon className="h-4 w-4" /></div>
+                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-white/10 bg-muted shadow-sm"><UserIcon className="h-4 w-4" /></div>
               )}
             </div>
           );
