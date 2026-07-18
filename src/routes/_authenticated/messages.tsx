@@ -464,24 +464,23 @@ function MessagesPage() {
     return out;
   }
 
-  const attemptSendText = useCallback((tmpId: string, contactId: string, body: string, attempt = 0, quotedMessageId?: string) => {
-    const MAX = 3;
+  const attemptSendText = useCallback((tmpId: string, contactId: string, body: string, _attempt = 0, quotedMessageId?: string) => {
     sendText({ data: { contactId, text: body, quotedMessageId } })
       .then((res) => {
-        if (res && "ok" in res && res.ok === false) throw new Error(res.error || "send failed");
-        retryRegistry.current.delete(tmpId);
         const serverMsg = (res as { message?: Msg | null } | null)?.message;
+        if (res && "ok" in res && res.ok === false) {
+          if (serverMsg) mergeMessageIntoThread(serverMsg, tmpId, contactId);
+          retryRegistry.current.set(serverMsg?.id ?? tmpId, { contactId, body });
+          toast.error(res.error || "Falha ao enviar — toque em ! para tentar novamente");
+          return;
+        }
+        retryRegistry.current.delete(tmpId);
         if (serverMsg) mergeMessageIntoThread(serverMsg, tmpId, contactId);
       })
       .catch((e) => {
-        if (attempt < MAX) {
-          const delay = 1000 * Math.pow(2, attempt); // 1s, 2s, 4s
-          setTimeout(() => attemptSendText(tmpId, contactId, body, attempt + 1, quotedMessageId), delay);
-        } else {
-          retryRegistry.current.set(tmpId, { contactId, body });
-          setMsgs((prev) => prev.map((m) => m.id === tmpId ? { ...m, metadata: { ...(m.metadata ?? {}), pending: false, failed: true } } : m));
-          toast.error(e instanceof Error ? e.message : "Falha ao enviar — toque em ! para tentar novamente");
-        }
+        retryRegistry.current.set(tmpId, { contactId, body });
+        setMsgs((prev) => prev.map((m) => m.id === tmpId ? { ...m, metadata: { ...(m.metadata ?? {}), pending: false, failed: true } } : m));
+        toast.error(e instanceof Error ? e.message : "Falha ao enviar — toque em ! para tentar novamente");
       });
   }, [sendText]);
 
