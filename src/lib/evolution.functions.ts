@@ -506,10 +506,16 @@ export const sendChatText = createServerFn({ method: "POST" })
     const remoteJid = `${number}@s.whatsapp.net`;
     const convoId = await getOrCreateConversationForJid(context.supabase, context.userId, conn.id, remoteJid);
     const quoted = await buildQuoted(context.supabase, context.userId, data.quotedMessageId);
-    const r = await evoFetch(`${baseUrl(conn.url_api)}/message/sendText/${conn.instance_name}`, apiKey, {
+    let r = await evoFetch(`${baseUrl(conn.url_api)}/message/sendText/${conn.instance_name}`, apiKey, {
       method: "POST",
       body: JSON.stringify({ number, text: data.text, ...(quoted.evo ? { quoted: quoted.evo } : {}) }),
     });
+    if (!r.ok && quoted.evo && shouldRetryWithoutQuoted(r.json, r.status)) {
+      r = await evoFetch(`${baseUrl(conn.url_api)}/message/sendText/${conn.instance_name}`, apiKey, {
+        method: "POST",
+        body: JSON.stringify({ number, text: data.text }),
+      });
+    }
     if (!r.ok) {
       const error = parseEvoError(r.json, r.status);
       return { ok: false as const, error, conversationId: convoId, message: null };
@@ -620,7 +626,7 @@ export const sendChatMedia = createServerFn({ method: "POST" })
     await context.supabase.from("conversations").update({
       last_message_at: new Date().toISOString(),
     }).eq("id", convoId).eq("user_id", context.userId);
-    const r = await evoFetch(`${baseUrl(conn.url_api)}/message/sendMedia/${conn.instance_name}`, apiKey, {
+    let r = await evoFetch(`${baseUrl(conn.url_api)}/message/sendMedia/${conn.instance_name}`, apiKey, {
       method: "POST",
       body: JSON.stringify({
         number, mediatype, media: b64, mimetype: data.mime,
@@ -628,6 +634,15 @@ export const sendChatMedia = createServerFn({ method: "POST" })
         ...(quoted.evo ? { quoted: quoted.evo } : {}),
       }),
     });
+    if (!r.ok && quoted.evo && shouldRetryWithoutQuoted(r.json, r.status)) {
+      r = await evoFetch(`${baseUrl(conn.url_api)}/message/sendMedia/${conn.instance_name}`, apiKey, {
+        method: "POST",
+        body: JSON.stringify({
+          number, mediatype, media: b64, mimetype: data.mime,
+          fileName: data.fileName, caption: data.caption ?? "",
+        }),
+      });
+    }
     if (!r.ok) {
       const error = parseEvoError(r.json, r.status);
       if (saved?.id) await context.supabase.from("messages").update({ metadata: { ...metadataObject(saved.metadata), pending: false, failed: true, error } as never }).eq("id", saved.id).eq("user_id", context.userId);
@@ -752,10 +767,16 @@ export const sendChatAudio = createServerFn({ method: "POST" })
     await context.supabase.from("conversations").update({
       last_message_at: new Date().toISOString(),
     }).eq("id", convoId).eq("user_id", context.userId);
-    const r = await evoFetch(`${baseUrl(conn.url_api)}/message/sendWhatsAppAudio/${conn.instance_name}`, apiKey, {
+    let r = await evoFetch(`${baseUrl(conn.url_api)}/message/sendWhatsAppAudio/${conn.instance_name}`, apiKey, {
       method: "POST",
       body: JSON.stringify({ number, audio, encoding: true, ...(quoted.evo ? { quoted: quoted.evo } : {}) }),
     });
+    if (!r.ok && quoted.evo && shouldRetryWithoutQuoted(r.json, r.status)) {
+      r = await evoFetch(`${baseUrl(conn.url_api)}/message/sendWhatsAppAudio/${conn.instance_name}`, apiKey, {
+        method: "POST",
+        body: JSON.stringify({ number, audio, encoding: true }),
+      });
+    }
     if (!r.ok) {
       const error = parseEvoError(r.json, r.status);
       if (saved?.id) await context.supabase.from("messages").update({ metadata: { ...metadataObject(saved.metadata), pending: false, failed: true, error } as never }).eq("id", saved.id).eq("user_id", context.userId);
