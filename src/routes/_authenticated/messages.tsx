@@ -146,7 +146,26 @@ function jidVariants(phone: string) {
 
 function storagePathFrom(m: Msg) {
   const path = (m.metadata as { storagePath?: unknown } | null)?.storagePath;
-  return typeof path === "string" && path ? path : null;
+  if (typeof path === "string" && path) return path;
+
+  // Some older sent media rows only stored the signed URL in media_url.
+  // Signed URLs expire, so recover the private storage path from the URL and re-sign it.
+  const url = m.media_url;
+  if (typeof url !== "string" || !url) return null;
+  if (!/^https?:\/\//i.test(url)) return url.startsWith("blob:") || url.startsWith("data:") ? null : url;
+  try {
+    const pathname = new URL(url).pathname;
+    const markers = [
+      "/storage/v1/object/sign/agent-media/",
+      "/storage/v1/object/public/agent-media/",
+      "/storage/v1/object/authenticated/agent-media/",
+    ];
+    for (const marker of markers) {
+      const idx = pathname.indexOf(marker);
+      if (idx >= 0) return decodeURIComponent(pathname.slice(idx + marker.length));
+    }
+  } catch { /* ignore malformed URL */ }
+  return null;
 }
 
 function initials(name: string | null, phone: string) {
