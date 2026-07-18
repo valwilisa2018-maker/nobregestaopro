@@ -470,6 +470,7 @@ function MessagesPage() {
         const serverMsg = (res as { message?: Msg | null } | null)?.message;
         if (res && "ok" in res && res.ok === false) {
           if (serverMsg) mergeMessageIntoThread(serverMsg, tmpId, contactId);
+          else setMsgs((prev) => prev.map((m) => m.id === tmpId ? { ...m, metadata: { ...(m.metadata ?? {}), pending: false, failed: true } } : m));
           retryRegistry.current.set(serverMsg?.id ?? tmpId, { contactId, body });
           toast.error(res.error || "Falha ao enviar — toque em ! para tentar novamente");
           return;
