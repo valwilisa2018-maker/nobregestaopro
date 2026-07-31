@@ -267,10 +267,11 @@ function SalesPage() {
       if (fSeller !== "all" && s.seller_id !== fSeller) return false;
       if (fProducer !== "all" && s.producer_id !== fProducer) return false;
       if (fService !== "all" && s.service_type_id !== fService) return false;
-      const d = s.sale_date ? new Date(s.sale_date) : null;
-      if (d) {
-        if (fYear !== "all" && String(d.getFullYear()) !== fYear) return false;
-        if (fMonth !== "all" && String(d.getMonth() + 1) !== fMonth) return false;
+      const sd = s.sale_date ? String(s.sale_date).slice(0, 10) : "";
+      if (sd) {
+        const [sy, sm] = sd.split("-");
+        if (fYear !== "all" && sy !== fYear) return false;
+        if (fMonth !== "all" && String(Number(sm)) !== fMonth) return false;
         if (fFrom && s.sale_date < fFrom) return false;
         if (fTo && s.sale_date > fTo + "T23:59:59") return false;
       }
@@ -287,7 +288,7 @@ function SalesPage() {
 
   const yearOptions = useMemo(() => {
     const ys = new Set<string>();
-    (salesList ?? []).forEach((s: any) => { if (s.sale_date) ys.add(String(new Date(s.sale_date).getFullYear())); });
+    (salesList ?? []).forEach((s: any) => { if (s.sale_date) ys.add(String(s.sale_date).slice(0, 4)); });
     return Array.from(ys).sort((a, b) => Number(b) - Number(a));
   }, [salesList]);
 
