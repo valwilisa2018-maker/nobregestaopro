@@ -137,7 +137,7 @@ export const Route = createFileRoute("/_authenticated/producers")({
                 <div className="flex items-center gap-4">
                   <div className="w-20 h-20 rounded-full bg-muted overflow-hidden border-2 border-border flex items-center justify-center text-2xl font-bold text-muted-foreground">
                     {editing.avatar_url ? (
-                      <img src={editing.avatar_url} alt={editing.name} className="w-full h-full object-cover" />
+                      <PrivateImage bucket="producer-avatars" value={editing.avatar_url} alt={editing.name} className="w-full h-full object-cover" />
                     ) : (editing.name?.charAt(0)?.toUpperCase() ?? "?")}
                   </div>
                   <div className="flex-1">
@@ -189,7 +189,7 @@ export const Route = createFileRoute("/_authenticated/producers")({
                   <TableRow key={p.id}>
                     <TableCell>
                       <div className="w-10 h-10 rounded-full bg-muted overflow-hidden border flex items-center justify-center text-sm font-bold text-muted-foreground">
-                        {p.avatar_url ? <img src={p.avatar_url} alt={p.name} className="w-full h-full object-cover" /> : (p.name?.charAt(0)?.toUpperCase() ?? "?")}
+                        {p.avatar_url ? <PrivateImage bucket="producer-avatars" value={p.avatar_url} alt={p.name} className="w-full h-full object-cover" /> : (p.name?.charAt(0)?.toUpperCase() ?? "?")}
                       </div>
                     </TableCell>
                     <TableCell className="font-medium">{p.name}</TableCell>
@@ -227,7 +227,7 @@ export const Route = createFileRoute("/_authenticated/producers")({
                   <div className="flex items-start justify-between">
                     <div className="flex items-center gap-3">
                       <div className="w-12 h-12 rounded-full bg-muted overflow-hidden border flex items-center justify-center text-lg font-bold text-muted-foreground">
-                        {p.avatar_url ? <img src={p.avatar_url} alt={p.name} className="w-full h-full object-cover" /> : (p.name?.charAt(0)?.toUpperCase() ?? "?")}
+                        {p.avatar_url ? <PrivateImage bucket="producer-avatars" value={p.avatar_url} alt={p.name} className="w-full h-full object-cover" /> : (p.name?.charAt(0)?.toUpperCase() ?? "?")}
                       </div>
                       <div>
                         <h3 className="font-bold leading-tight">{p.name}</h3>
