@@ -11,6 +11,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Plus, Trash2, Pencil, Upload, LayoutGrid, List, User, Settings2, Video } from "lucide-react";
 import { PageHero } from "@/components/page-hero";
+import { PrivateImage } from "@/components/private-image";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/producers")({
@@ -61,8 +62,7 @@ export const Route = createFileRoute("/_authenticated/producers")({
         const path = `${editing.id}/${Date.now()}.${ext}`;
         const { error: upErr } = await supabase.storage.from("producer-avatars").upload(path, file, { upsert: true });
         if (upErr) throw upErr;
-        const { data } = supabase.storage.from("producer-avatars").getPublicUrl(path);
-        setEditing({ ...editing, avatar_url: data.publicUrl });
+        setEditing({ ...editing, avatar_url: path });
         toast.success("Foto enviada");
       } catch (e: any) {
         toast.error(e.message ?? "Erro ao enviar foto");
