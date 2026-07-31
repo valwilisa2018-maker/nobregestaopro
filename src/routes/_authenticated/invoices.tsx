@@ -469,8 +469,8 @@ function InvoicesPage() {
                           </Button>
                         </label>
                         {i.file_url && (
-                          <Button size="sm" variant="ghost" asChild>
-                           <a href={i.file_url} target="_blank" rel="noreferrer" aria-label="Abrir nota fiscal em nova aba"><ExternalLink className="w-4 h-4" /></a>
+                          <Button size="sm" variant="ghost" aria-label="Abrir nota fiscal em nova aba" onClick={() => openSignedUrl("invoices", i.file_url)}>
+                            <ExternalLink className="w-4 h-4" />
                           </Button>
                         )}
                         {i.status === "pronto_para_envio" && (
