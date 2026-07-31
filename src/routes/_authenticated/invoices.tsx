@@ -18,6 +18,7 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { formatCurrency } from "@/lib/auth";
 import { fmtDate } from "@/lib/format";
+import { getSignedUrl, openSignedUrl } from "@/lib/storage-signed";
 
 export const Route = createFileRoute("/_authenticated/invoices")({
   component: InvoicesPage,
@@ -175,8 +176,7 @@ function InvoicesPage() {
         const path = `${inserted.id}/${Date.now()}.${ext}`;
         const { error: upErr } = await supabase.storage.from("invoices").upload(path, dialogFile, { upsert: true });
         if (!upErr) {
-          const { data: pub } = supabase.storage.from("invoices").getPublicUrl(path);
-          await supabase.from("invoices").update({ file_url: pub.publicUrl }).eq("id", inserted.id);
+          await supabase.from("invoices").update({ file_url: path }).eq("id", inserted.id);
         }
       }
       toast.success("Nota fiscal criada");
@@ -210,8 +210,7 @@ function InvoicesPage() {
       const path = `${id}/${Date.now()}.${ext}`;
       const { error: upErr } = await supabase.storage.from("invoices").upload(path, file, { upsert: true });
       if (upErr) throw upErr;
-      const { data: pub } = supabase.storage.from("invoices").getPublicUrl(path);
-      const { error } = await supabase.from("invoices").update({ file_url: pub.publicUrl }).eq("id", id);
+      const { error } = await supabase.from("invoices").update({ file_url: path }).eq("id", id);
       if (error) throw error;
       toast.success("Nota anexada");
       qc.invalidateQueries({ queryKey: ["invoices"] });
@@ -228,8 +227,7 @@ function InvoicesPage() {
       const path = `grouped/${ids[0]}/${Date.now()}.${ext}`;
       const { error: upErr } = await supabase.storage.from("invoices").upload(path, file, { upsert: true });
       if (upErr) throw upErr;
-      const { data: pub } = supabase.storage.from("invoices").getPublicUrl(path);
-      const { error } = await supabase.from("invoices").update({ file_url: pub.publicUrl }).in("id", ids);
+      const { error } = await supabase.from("invoices").update({ file_url: path }).in("id", ids);
       if (error) throw error;
       toast.success(`Nota anexada a ${ids.length} item(s)`);
       qc.invalidateQueries({ queryKey: ["invoices"] });
@@ -243,7 +241,8 @@ function InvoicesPage() {
     if (!phone) { toast.error("Cliente sem telefone cadastrado"); return; }
     const name = g.customers?.name ?? "cliente";
     const valorTxt = formatCurrency(g.amount);
-    const linkTxt = g.file_url ? `\n\nAcesse aqui: ${g.file_url}` : "";
+    const signed = g.file_url ? await getSignedUrl("invoices", g.file_url, 60 * 60 * 24 * 7) : null;
+    const linkTxt = signed ? `\n\nAcesse aqui: ${signed}` : "";
     const qtdTxt = g.count > 1 ? ` (${g.count} itens agrupados)` : "";
     const msg = `Olá ${name}, segue sua nota fiscal${qtdTxt} no valor total de ${valorTxt}.${linkTxt}`;
     const url = `https://wa.me/${phone}?text=${encodeURIComponent(msg)}`;
@@ -284,7 +283,8 @@ function InvoicesPage() {
     const name = inv.customers?.name ?? "cliente";
     const numberTxt = inv.number ? `nº ${inv.number}` : "";
     const valorTxt = formatCurrency(inv.amount);
-    const linkTxt = inv.file_url ? `\n\nAcesse aqui: ${inv.file_url}` : "";
+    const signed = inv.file_url ? await getSignedUrl("invoices", inv.file_url, 60 * 60 * 24 * 7) : null;
+    const linkTxt = signed ? `\n\nAcesse aqui: ${signed}` : "";
     const msg = `Olá ${name}, segue sua nota fiscal ${numberTxt} no valor de ${valorTxt}.${linkTxt}`;
     const url = `https://wa.me/${phone}?text=${encodeURIComponent(msg)}`;
     window.open(url, "_blank", "noopener,noreferrer");
@@ -469,8 +469,8 @@ function InvoicesPage() {
                           </Button>
                         </label>
                         {i.file_url && (
-                          <Button size="sm" variant="ghost" asChild>
-                           <a href={i.file_url} target="_blank" rel="noreferrer" aria-label="Abrir nota fiscal em nova aba"><ExternalLink className="w-4 h-4" /></a>
+                          <Button size="sm" variant="ghost" aria-label="Abrir nota fiscal em nova aba" onClick={() => openSignedUrl("invoices", i.file_url)}>
+                            <ExternalLink className="w-4 h-4" />
                           </Button>
                         )}
                         {i.status === "pronto_para_envio" && (
@@ -523,8 +523,8 @@ function InvoicesPage() {
                           </Button>
                         </label>
                         {g.file_url && (
-                          <Button size="sm" variant="ghost" asChild>
-                           <a href={g.file_url} target="_blank" rel="noreferrer" aria-label="Abrir nota fiscal em nova aba"><ExternalLink className="w-4 h-4" /></a>
+                          <Button size="sm" variant="ghost" aria-label="Abrir nota fiscal em nova aba" onClick={() => openSignedUrl("invoices", g.file_url)}>
+                            <ExternalLink className="w-4 h-4" />
                           </Button>
                         )}
                         {g.status === "pronto_para_envio" && (
@@ -595,10 +595,8 @@ function InvoicesPage() {
 
               <div className="flex gap-2 pt-2 border-t">
                 {detail.file_url ? (
-                  <Button asChild>
-                    <a href={detail.file_url} target="_blank" rel="noreferrer">
-                      <ExternalLink className="w-4 h-4 mr-2" />Ver nota fiscal
-                    </a>
+                  <Button onClick={() => openSignedUrl("invoices", detail.file_url)}>
+                    <ExternalLink className="w-4 h-4 mr-2" />Ver nota fiscal
                   </Button>
                 ) : (
                   <Button disabled variant="outline">
