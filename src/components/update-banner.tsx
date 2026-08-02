@@ -28,8 +28,10 @@ export function UpdateBanner() {
   useEffect(() => {
     let initial: string | null = null;
     let cancelled = false;
+    let lastCheck = 0;
 
     const check = async () => {
+      lastCheck = Date.now();
       try {
         const v = await getVersion();
         if (cancelled || !v) return;
