@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import confetti from "canvas-confetti";
+import { confetti, preloadConfetti } from "@/lib/confetti";
 import { cn } from "@/lib/utils";
 
 const LATEST_AUTO_UPDATE_ID = "update-operacao-metas-kanban-v1";
