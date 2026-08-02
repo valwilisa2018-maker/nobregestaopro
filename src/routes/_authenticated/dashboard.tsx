@@ -454,7 +454,7 @@ function Dashboard() {
   const saleById = useMemo(() => new Map(all.map((s: any) => [s.id, s])), [all]);
   const receiptsScope = (receipts.data ?? []).filter((r: any) => {
     const receiptKey = toDateKey(r.paid_at || r.created_at);
-    if (!dateKey || dateKey < scopeSince || dateKey > scopeUntil) return false;
+    if (!receiptKey || receiptKey < scopeSince || receiptKey > scopeUntil) return false;
     // Não conta o sinal (recebimento de venda do próprio escopo já entra em Sinal via paid_amount)
     if (scopeSaleIdSet.has(r.sale_id)) return false;
     // Respeita filtros de vendedor/serviço via venda pai
