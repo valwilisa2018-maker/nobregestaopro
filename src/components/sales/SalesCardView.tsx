@@ -1,8 +1,9 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, Pencil, Trash2, Check, Link2 } from "lucide-react";
+import { Pencil, Trash2, Check, Link2, Receipt } from "lucide-react";
 import { formatCurrency, fmtDate } from "@/lib/format";
+import { CardGridSkeleton, EmptyState } from "@/components/list-states";
 import { SaleReceiptDialog } from "./SaleReceiptDialog";
 import type { SaleRecord } from "./types";
 
@@ -31,12 +32,7 @@ export function SalesCardView({
 }: SalesCardViewProps) {
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-      {loadingSales && (
-        <div className="col-span-full py-20 text-center">
-          <Loader2 className="w-10 h-10 animate-spin mx-auto text-primary" />
-          <p className="mt-4 text-muted-foreground">Carregando...</p>
-        </div>
-      )}
+      {loadingSales && <CardGridSkeleton count={6} />}
       {!!salesError && (
         <div className="col-span-full py-20 text-center text-destructive">
           <p>Erro ao carregar vendas.</p>
@@ -141,10 +137,13 @@ export function SalesCardView({
             </CardContent>
           </Card>
         ))}
-      {filteredSales.length === 0 && (
-        <div className="col-span-full py-12 text-center text-muted-foreground italic">
-          Nenhuma venda cadastrada ainda
-        </div>
+      {!loadingSales && !salesError && filteredSales.length === 0 && (
+        <EmptyState
+          className="col-span-full py-16"
+          icon={<Receipt className="h-5 w-5" />}
+          title="Nenhuma venda encontrada"
+          description="Ajuste os filtros de período/status ou cadastre uma nova venda para vê-la aqui."
+        />
       )}
     </div>
   );
