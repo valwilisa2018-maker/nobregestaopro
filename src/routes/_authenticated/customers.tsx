@@ -51,6 +51,7 @@ import { toast } from "sonner";
 import { z } from "zod";
 import { waHref, formatPhoneBR } from "@/lib/phone";
 import { VirtualTableRows } from "@/components/virtual-list";
+import { TableSkeletonRows, TableEmptyRow, CardGridSkeleton, EmptyState } from "@/components/list-states";
 
 const customerSearchSchema = z.object({
   search: z.string().optional(),
@@ -494,6 +495,8 @@ function CustomersPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
+                {q.isLoading && <TableSkeletonRows rows={8} columns={8} />}
+                {!q.isLoading && (
                 <VirtualTableRows
                   items={rows as any[]}
                   scrollRef={tableScrollRef}
@@ -565,12 +568,14 @@ function CustomersPage() {
                   );
                   }}
                 />
-                {rows.length === 0 && (
-                  <TableRow>
-                    <TableCell colSpan={8} className="text-center text-muted-foreground py-8">
-                      Nenhum cliente encontrado
-                    </TableCell>
-                  </TableRow>
+                )}
+                {!q.isLoading && rows.length === 0 && (
+                  <TableEmptyRow
+                    colSpan={8}
+                    icon={<User className="h-5 w-5" />}
+                    title="Nenhum cliente encontrado"
+                    description="Tente limpar a busca ou os filtros de período para ver todos os clientes."
+                  />
                 )}
               </TableBody>
             </Table>
@@ -579,7 +584,8 @@ function CustomersPage() {
         </Card>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {rows.map((c: any) => {
+          {q.isLoading && <CardGridSkeleton count={6} />}
+          {!q.isLoading && rows.map((c: any) => {
             const isPaid = c._paid >= c._total && c._total > 0;
             const isPartial = c._paid > 0 && c._paid < c._total;
             const isPending = c._paid === 0 && c._total > 0;
@@ -682,10 +688,13 @@ function CustomersPage() {
               </Card>
             );
           })}
-          {rows.length === 0 && (
-            <div className="col-span-full py-12 text-center text-muted-foreground italic">
-              Nenhum cliente encontrado
-            </div>
+          {!q.isLoading && rows.length === 0 && (
+            <EmptyState
+              className="col-span-full py-16"
+              icon={<User className="h-5 w-5" />}
+              title="Nenhum cliente encontrado"
+              description="Tente limpar a busca ou os filtros de período para ver todos os clientes."
+            />
           )}
         </div>
       )}
