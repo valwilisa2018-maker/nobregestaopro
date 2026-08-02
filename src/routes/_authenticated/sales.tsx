@@ -229,7 +229,7 @@ function SalesPage() {
     const d = String(today.getDate()).padStart(2, "0");
     const todayStr = `${y}-${m}-${d}`;
     return list.reduce((sum, s: any) => {
-      const sd = String(s?.sale_date ?? "").slice(0, 10);
+      const sd = toDateKey(s?.sale_date);
       return sd === todayStr ? sum + Number(s?.total_amount ?? 0) : sum;
     }, 0);
   }, [salesList]);
@@ -262,7 +262,7 @@ function SalesPage() {
       if (fSeller !== "all" && s.seller_id !== fSeller) return false;
       if (fProducer !== "all" && s.producer_id !== fProducer) return false;
       if (fService !== "all" && s.service_type_id !== fService) return false;
-      const sd = s.sale_date ? String(s.sale_date).slice(0, 10) : "";
+      const sd = toDateKey(s.sale_date);
       if (sd) {
         const [sy, sm] = sd.split("-");
         if (fYear !== "all" && sy !== fYear) return false;
