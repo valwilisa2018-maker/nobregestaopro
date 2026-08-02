@@ -127,50 +127,10 @@ function CustomersPage() {
     };
   }, [queryClient]);
 
-  const sellers = useQuery({
-    queryKey: ["sellers-min"],
-    queryFn: async () => {
-      const { data, error } = await supabase.from("sellers").select("id, name");
-      if (error) {
-        toast.error("Erro ao carregar vendedores");
-        throw error;
-      }
-      return data ?? [];
-    },
-  });
-  const services = useQuery({
-    queryKey: ["service-types-min"],
-    queryFn: async () => {
-      const { data, error } = await supabase.from("service_types").select("id, name");
-      if (error) {
-        toast.error("Erro ao carregar serviços");
-        throw error;
-      }
-      return data ?? [];
-    },
-  });
-  const producers = useQuery({
-    queryKey: ["producers-min"],
-    queryFn: async () => {
-      const { data, error } = await supabase.from("producers").select("id, name");
-      if (error) {
-        toast.error("Erro ao carregar produtores");
-        throw error;
-      }
-      return data ?? [];
-    },
-  });
-  const packages = useQuery({
-    queryKey: ["packages-min"],
-    queryFn: async () => {
-      const { data, error } = await supabase.from("packages").select("id, name");
-      if (error) {
-        toast.error("Erro ao carregar pacotes");
-        throw error;
-      }
-      return data ?? [];
-    },
-  });
+  const sellers = useQuery(sellersMinQuery());
+  const services = useQuery(serviceTypesMinQuery());
+  const producers = useQuery(producersMinQuery());
+  const packages = useQuery(packagesMinQuery());
 
   const lookup = useMemo(
     () => ({
