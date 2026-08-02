@@ -2,6 +2,12 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useMemo, useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import {
+  sellersMinQuery,
+  serviceTypesMinQuery,
+  producersMinQuery,
+  packagesMinQuery,
+} from "@/lib/queries/lookups";
 import { Card, CardContent } from "@/components/ui/card";
 import {
   Table,
