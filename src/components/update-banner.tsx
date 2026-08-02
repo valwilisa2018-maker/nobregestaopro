@@ -64,8 +64,14 @@ export function UpdateBanner() {
     };
 
     check();
-    const id = setInterval(check, 60_000);
-    const onFocus = () => check();
+    // 5 min entre checagens: cada checagem baixa o HTML do documento,
+    // então reduzir a frequência elimina requests em segundo plano.
+    const id = setInterval(() => {
+      if (document.visibilityState === "visible") check();
+    }, 300_000);
+    const onFocus = () => {
+      if (Date.now() - lastCheck > 120_000) check();
+    };
     window.addEventListener("focus", onFocus);
     return () => {
       cancelled = true;
