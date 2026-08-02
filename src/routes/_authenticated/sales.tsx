@@ -8,69 +8,18 @@ import {
   activeServiceTypesQuery,
   activePackagesQuery,
 } from "@/lib/queries/lookups";
-import { Card, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { Badge } from "@/components/ui/badge";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-  DialogFooter,
-} from "@/components/ui/dialog";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { FileText, Download, History, LayoutGrid, List, QrCode } from "lucide-react";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import { Plus, Loader2, Pencil, Eye, Trash2, Check, Search, X, ShoppingCart } from "lucide-react";
-import {
-  User,
-  Building2,
-  Badge as BadgeIcon,
-  Phone,
-  Mail,
-  DollarSign,
-  CreditCard,
-  Package as PackageIcon,
-  Layers,
-  Calendar,
-  Compass,
-  MessageSquare,
-  Link as LinkIcon,
-  Upload as UploadIcon,
-  ShieldCheck,
-  Users,
-  Clapperboard,
-  Clock,
-  ReceiptText,
-} from "lucide-react";
 import { toast } from "sonner";
 import { logger } from "@/lib/logger";
-import { formatCurrency, formatVideoDuration, dateKey, toDateKey } from "@/lib/format";
-import { fmtDate } from "@/lib/format";
+import { formatVideoDuration, dateKey, toDateKey } from "@/lib/format";
 import { createPaymentLink } from "@/lib/pagarme.functions";
-import { Copy, Link2, ExternalLink } from "lucide-react";
-import { QRCodeSVG } from "qrcode.react";
 import { autoLinkFolderFromUrl } from "@/lib/project-folders";
-import { PhoneInputBR } from "@/components/phone-input-br";
-import { SafeSelect } from "@/components/safe-select";
+import { SalesHeroSection } from "@/components/sales/SalesHeroSection";
+import { SalesFiltersBar } from "@/components/sales/SalesFiltersBar";
+import { SalesTableView } from "@/components/sales/SalesTableView";
+import { SalesCardView } from "@/components/sales/SalesCardView";
+import { EditSaleDialog } from "@/components/sales/EditSaleDialog";
+import { PaymentLinkDialog } from "@/components/sales/PaymentLinkDialog";
+import type { EditingSale, SaleFormState, SaleRecord } from "@/components/sales/types";
 
 export const Route = createFileRoute("/_authenticated/sales")({
   component: SalesRouteBoundary,
@@ -207,28 +156,11 @@ function optionText(value: unknown, fallback = "—") {
   return text || fallback;
 }
 
-function optionValue(value: unknown) {
-  const text = String(value ?? "").trim();
-  return text || null;
-}
-
 function toCents(value: unknown): number {
   const n = Number(value || 0);
   if (!Number.isFinite(n)) return NaN;
   return Math.round(n * 100);
 }
-
-// Opções: 30s, 1min, 1min30, 2min, ..., 10min
-const VIDEO_DURATION_OPTIONS: { value: number; label: string }[] = Array.from(
-  { length: 20 },
-  (_, i) => {
-    const sec = (i + 1) * 30;
-    const m = Math.floor(sec / 60);
-    const s = sec % 60;
-    const label = m === 0 ? `${s}s` : s === 0 ? `${m}min` : `${m}min${s}s`;
-    return { value: sec, label };
-  },
-);
 
 export { formatVideoDuration } from "@/lib/format";
 
@@ -237,7 +169,7 @@ function SalesPage() {
   const [open, setOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [receiptFile, setReceiptFile] = useState<File | null>(null);
-  const [editing, setEditing] = useState<any>(null);
+  const [editing, setEditing] = useState<EditingSale | null>(null);
   const [viewMode, setViewMode] = useState<"table" | "card">("table");
   const [editSaving, setEditSaving] = useState(false);
   const [paymentLinkData, setPaymentLinkData] = useState<{ url: string; id: string } | null>(null);
@@ -355,7 +287,7 @@ function SalesPage() {
     setFFrom("");
     setFTo("");
   };
-  const hasFilters =
+  const hasFilters = !!(
     fSearch ||
     fSeller !== "all" ||
     fProducer !== "all" ||
@@ -363,7 +295,8 @@ function SalesPage() {
     fYear !== "all" ||
     fMonth !== "all" ||
     fFrom ||
-    fTo;
+    fTo
+  );
 
   const handleGenerateLink = async (sale: any) => {
     setIsGeneratingLink(true);
@@ -398,7 +331,7 @@ function SalesPage() {
       (await supabase.from("customers").select("id,name,company,document,phone,email")).data ?? [],
   });
 
-  const [form, setForm] = useState({
+  const [form, setForm] = useState<SaleFormState>({
     customer_name: "",
     company: "",
     document: "",
@@ -541,6 +474,27 @@ function SalesPage() {
   const formNeedsVideoDuration = isVideoService(selectedServiceName, !!form.package_id);
   const formReceiptRecommended =
     form.payment_status !== "pendente" || Number(form.paid_amount || 0) > 0;
+
+  const producerLockedByInfluencer =
+    (optionText(
+      serviceTypes.data?.find((st) => st.id === form.service_type_id)?.name,
+      "",
+    )
+      .toLowerCase()
+      .includes("pamela") ||
+      optionText(
+        serviceTypes.data?.find((st) => st.id === form.service_type_id)?.name,
+        "",
+      )
+        .toLowerCase()
+        .includes("ester") ||
+      optionText(sellers.data?.find((s) => s.id === form.seller_id)?.name, "")
+        .toLowerCase()
+        .includes("pamela") ||
+      optionText(sellers.data?.find((s) => s.id === form.seller_id)?.name, "")
+        .toLowerCase()
+        .includes("ester")) ??
+    false;
 
   const submit = async () => {
     if (saving) return; // Prevent double clicks
@@ -879,14 +833,14 @@ function SalesPage() {
     }
   };
 
-  const statusVariant = (s: string) =>
+  const statusVariant = (s: string): "default" | "secondary" | "destructive" =>
     s === "pago_total" ? "default" : s === "pago_parcial" ? "secondary" : "destructive";
 
   const editSet = useCallback(
     (k: string, v: any) => {
-      setEditing((e: any) => {
+      setEditing((e) => {
         if (!e) return e;
-        const updatedEditing = { ...e, [k]: v };
+        const updatedEditing: EditingSale = { ...e, [k]: v };
 
         // Auto-set amount for Pix/Card if status is total
         if (k === "payment_method" && (v === "pix" || v === "cartao")) {
@@ -940,6 +894,10 @@ function SalesPage() {
     [serviceTypes.data, sellers.data, producers.data],
   );
 
+  const editFieldChange = useCallback((patch: Partial<EditingSale>) => {
+    setEditing((prev) => (prev ? { ...prev, ...patch } : prev));
+  }, []);
+
   const submitEdit = async () => {
     if (!editing || editSaving) return;
 
@@ -963,7 +921,7 @@ function SalesPage() {
     ];
 
     for (const [k, label] of required) {
-      const val = String(editing[k] ?? "").trim();
+      const val = String((editing as any)[k] ?? "").trim();
       if (k === "trello_link") continue;
       if (!val) {
         toast.error(`Preencha o campo: ${label}`);
@@ -1161,1766 +1119,127 @@ function SalesPage() {
     }
   };
 
+  const openEdit = (sale: SaleRecord) => {
+    setEditing({
+      ...sale,
+      with_invoice: sale.customers?.document ? "sim" : "nao",
+      customer_name: sale.customers?.name ?? undefined,
+      company: sale.customers?.company ?? undefined,
+      document: sale.customers?.document ?? undefined,
+      phone: sale.customers?.phone ?? undefined,
+      email: sale.customers?.email ?? undefined,
+    });
+  };
+
   return (
     <div className="space-y-6">
-      <div
-        role="alert"
-        className="rounded-md border border-amber-400/70 bg-amber-50 dark:bg-amber-950/30 px-4 py-3 text-sm text-amber-900 dark:text-amber-200 flex items-start gap-2"
-      >
-        <span aria-hidden className="text-lg leading-none">
-          ⚠️
-        </span>
-        <div>
-          <strong className="font-semibold">Atenção:</strong> confirme se a venda é{" "}
-          <strong>Parcial</strong> ou <strong>Total</strong> para o sistema marcar o pagamento
-          corretamente. Preencha <strong>todas as informações com cautela</strong> para evitar erros
-          no faturamento, comissão e Kanban.
-        </div>
-      </div>
-      <div
-        className="relative overflow-hidden rounded-2xl border border-border/50 bg-gradient-to-br from-primary/10 via-card to-card p-6 sm:p-8"
-        style={{ boxShadow: "0 10px 40px -12px oklch(0.55 0.20 25 / 0.35)" }}
-      >
-        <div className="pointer-events-none absolute -top-24 -right-24 h-64 w-64 rounded-full bg-primary/20 blur-3xl" />
-        <div className="pointer-events-none absolute -bottom-24 -left-24 h-64 w-64 rounded-full bg-primary/10 blur-3xl" />
-        <div className="pointer-events-none absolute inset-0 hidden lg:flex items-center justify-center">
-          <div className="pointer-events-auto text-center">
-            <div className="text-[10px] font-medium uppercase tracking-[0.18em] text-muted-foreground">
-              Vendas de hoje
-            </div>
-            <div className="mt-1 bg-gradient-to-br from-primary to-primary/70 bg-clip-text text-3xl font-bold tracking-tight text-transparent sm:text-4xl tabular-nums">
-              {formatCurrency(totalVendasHoje)}
-            </div>
-          </div>
-        </div>
-        <div className="relative grid grid-cols-[minmax(0,1fr)_auto] items-center gap-4 sm:flex sm:flex-wrap sm:justify-between">
-          <div className="min-w-0 space-y-2">
-            <div className="inline-flex items-center gap-2 rounded-full border border-border/60 bg-background/60 px-3 py-1 text-[11px] font-medium uppercase tracking-[0.16em] text-muted-foreground backdrop-blur">
-              <ShoppingCart className="h-3.5 w-3.5" /> Comercial
-            </div>
-            <h1 className="truncate bg-gradient-to-br from-foreground to-foreground/70 bg-clip-text text-3xl font-bold tracking-tight text-transparent sm:text-4xl">
-              Vendas
-            </h1>
-            <p className="text-sm text-muted-foreground">Cadastre e acompanhe todas as vendas</p>
-          </div>
-          <div className="flex shrink-0 flex-wrap items-center gap-2">
-            {isGeneratingLink && (
-              <div className="flex items-center gap-2 text-sm text-muted-foreground mr-4">
-                <Loader2 className="w-4 h-4 animate-spin" />
-                Gerando link Pagar.me...
-              </div>
-            )}
-            <div className="flex items-center bg-muted rounded-lg p-1 mr-2">
-              <Button
-                variant={viewMode === "table" ? "secondary" : "ghost"}
-                size="sm"
-                className="h-8 w-8 p-0"
-                onClick={() => setViewMode("table")}
-              >
-                <List className="h-4 w-4" />
-              </Button>
-              <Button
-                variant={viewMode === "card" ? "secondary" : "ghost"}
-                size="sm"
-                className="h-8 w-8 p-0"
-                onClick={() => setViewMode("card")}
-              >
-                <LayoutGrid className="h-4 w-4" />
-              </Button>
-            </div>
-            <Dialog open={open} onOpenChange={setOpen}>
-              <DialogTrigger asChild>
-                <Button variant="premium">
-                  <Plus className="w-4 h-4 mr-2" />
-                  Nova Venda
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="w-[calc(100%-1rem)] sm:w-full max-w-[95vw] sm:max-w-2xl max-h-[90vh] overflow-y-auto p-0 gap-0 border border-[#E8E8E8] dark:border-white/10 rounded-[18px] bg-white dark:bg-[#0B0B0D] shadow-[0_30px_80px_-20px_rgba(0,0,0,0.35)] [&_input]:h-10 [&_input]:rounded-lg [&_input]:border-[#ECECEC] [&_input]:bg-white [&_input]:pl-9 [&_input]:text-sm [&_input]:transition-all [&_input]:duration-200 [&_input:hover]:border-[#E30613]/60 [&_input:focus]:border-[#E30613] [&_input:focus]:ring-2 [&_input:focus]:ring-[#E30613]/15 dark:[&_input]:bg-white/[0.03] dark:[&_input]:border-white/10 dark:[&_input]:text-white [&_[data-slot=select-trigger]]:h-10 [&_[data-slot=select-trigger]]:rounded-lg [&_[data-slot=select-trigger]]:border-[#ECECEC] [&_[data-slot=select-trigger]]:bg-white [&_[data-slot=select-trigger]]:pl-9 [&_[data-slot=select-trigger]:hover]:border-[#E30613]/60 [&_[data-slot=select-trigger]:focus]:border-[#E30613] [&_[data-slot=select-trigger]:focus]:ring-2 [&_[data-slot=select-trigger]:focus]:ring-[#E30613]/15 dark:[&_[data-slot=select-trigger]]:bg-white/[0.03] dark:[&_[data-slot=select-trigger]]:border-white/10 dark:[&_[data-slot=select-trigger]]:text-white [&_textarea]:rounded-lg [&_textarea]:border-[#ECECEC] [&_textarea]:bg-white [&_textarea]:transition-all [&_textarea:focus]:border-[#E30613] [&_textarea:focus]:ring-2 [&_textarea:focus]:ring-[#E30613]/15 dark:[&_textarea]:bg-white/[0.03] dark:[&_textarea]:border-white/10 dark:[&_textarea]:text-white [&_label]:text-[12px] [&_label]:font-medium [&_label]:text-neutral-700 dark:[&_label]:text-neutral-300">
-                <DialogHeader className="relative overflow-hidden bg-[#0B0B0D] px-4 sm:px-6 py-4 space-y-0 border-b border-white/5">
-                  <div aria-hidden className="pointer-events-none absolute inset-y-0 right-0 w-2/3">
-                    <div
-                      className="absolute inset-0 opacity-40"
-                      style={{
-                        background:
-                          "radial-gradient(60% 100% at 100% 50%, rgba(227,6,19,0.35), transparent 65%)",
-                      }}
-                    />
-                    <svg
-                      className="absolute right-0 top-0 h-full w-full opacity-70"
-                      viewBox="0 0 400 200"
-                      fill="none"
-                      preserveAspectRatio="none"
-                    >
-                      <path
-                        d="M0 120 Q100 40 200 120 T400 100"
-                        stroke="#E30613"
-                        strokeWidth="1.2"
-                        fill="none"
-                        opacity="0.35"
-                      />
-                      <path
-                        d="M0 140 Q120 60 240 140 T400 120"
-                        stroke="#E30613"
-                        strokeWidth="0.8"
-                        fill="none"
-                        opacity="0.25"
-                      />
-                      <path
-                        d="M0 160 Q140 90 260 160 T400 150"
-                        stroke="#E30613"
-                        strokeWidth="0.6"
-                        fill="none"
-                        opacity="0.2"
-                      />
-                    </svg>
-                  </div>
-                  <div className="relative flex items-center gap-3">
-                    <div className="flex h-11 w-11 items-center justify-center rounded-[14px] bg-gradient-to-br from-[#E30613] to-[#B00510] shadow-[0_0_25px_rgba(227,6,19,0.5)] ring-1 ring-white/10">
-                      <ShoppingCart className="h-5 w-5 text-white" strokeWidth={2.2} />
-                    </div>
-                    <div>
-                      <DialogTitle className="text-xl font-bold text-white tracking-tight">
-                        Nova <span className="text-[#E30613]">Venda</span>
-                      </DialogTitle>
-                      <p className="text-xs text-neutral-400 mt-0.5">
-                        Cadastre uma nova venda em poucos segundos.
-                      </p>
-                    </div>
-                  </div>
-                </DialogHeader>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-3 p-4 sm:p-5 bg-[#FAFAFA] dark:bg-[#0B0B0D]">
-                  <div className="md:col-span-2">
-                    <Label>Nome do cliente *</Label>
-                    <div className="relative mt-1.5">
-                      <User className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-neutral-400" />
-                      <Input
-                        list="customers-names"
-                        placeholder="Digite o nome do cliente"
-                        value={form.customer_name || ""}
-                        onChange={(e) => autofillFromCustomer("customer_name", e.target.value)}
-                      />
-                    </div>
-                    <datalist id="customers-names">
-                      {(customersAll.data ?? [])
-                        .map((c: any) => optionText(c.name, ""))
-                        .filter(Boolean)
-                        .map((name: string, index: number) => (
-                          <option key={`n-${index}-${name}`} value={name} />
-                        ))}
-                    </datalist>
-                    {customerSuggestions.length > 0 && (
-                      <div className="mt-2 rounded-xl border border-[#E8E8E8] bg-white dark:border-white/10 dark:bg-white/[0.02] p-3 text-xs space-y-1.5">
-                        <div className="text-muted-foreground">
-                          {linkedCustomerId
-                            ? "Usando dados de cliente já cadastrado:"
-                            : `Já existe ${customerSuggestions.length === 1 ? "um cliente" : `${customerSuggestions.length} clientes`} com esse nome. Selecione para reutilizar, ou continue digitando para criar um novo (homônimo).`}
-                        </div>
-                        <div className="flex flex-wrap gap-1">
-                          {customerSuggestions.map((c: any) => (
-                            <Button
-                              key={c.id}
-                              type="button"
-                              size="sm"
-                              variant={linkedCustomerId === c.id ? "default" : "outline"}
-                              className="h-7 text-xs"
-                              onClick={() => applyExistingCustomer(c)}
-                            >
-                              {c.name}
-                              {c.company ? ` — ${c.company}` : ""}
-                              {c.document ? ` (${c.document})` : ""}
-                            </Button>
-                          ))}
-                          {linkedCustomerId && (
-                            <Button
-                              type="button"
-                              size="sm"
-                              variant="ghost"
-                              className="h-7 text-xs"
-                              onClick={() => setLinkedCustomerId(null)}
-                            >
-                              Criar como novo cliente
-                            </Button>
-                          )}
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                  <div>
-                    <Label>Empresa {form.with_invoice === "sim" ? "*" : "(Opcional)"}</Label>
-                    <div className="relative mt-1.5">
-                      <Building2 className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-neutral-400" />
-                      <Input
-                        list="customers-companies"
-                        placeholder="Nome da empresa"
-                        value={form.company || ""}
-                        onChange={(e) => autofillFromCustomer("company", e.target.value)}
-                      />
-                    </div>
-                    <datalist id="customers-companies">
-                      {(customersAll.data ?? [])
-                        .map((c: any) => optionText(c.company, ""))
-                        .filter(Boolean)
-                        .map((company: string, index: number) => (
-                          <option key={`c-${index}-${company}`} value={company} />
-                        ))}
-                    </datalist>
-                  </div>
-                  <div>
-                    <Label>Com Nota? *</Label>
-                    <div className="mt-1.5">
-                      <SafeSelect
-                        ariaLabel="Com Nota"
-                        value={form.with_invoice || ""}
-                        onValueChange={(v) => set("with_invoice", v)}
-                        options={[
-                          { value: "sim", label: "Sim (Com Nota)" },
-                          { value: "nao", label: "Não (Sem Nota)" },
-                        ]}
-                      />
-                    </div>
-                  </div>
-                  <div>
-                    <Label>CPF/CNPJ {form.with_invoice === "sim" ? "*" : "(Opcional)"}</Label>
-                    <div className="relative mt-1.5">
-                      <BadgeIcon className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-neutral-400" />
-                      <Input
-                        placeholder="00.000.000/0000-00"
-                        value={form.document || ""}
-                        onChange={(e) => set("document", e.target.value)}
-                      />
-                    </div>
-                  </div>
-                  <div>
-                    <Label>Telefone *</Label>
-                    <div className="relative mt-1.5 [&_input]:pl-3">
-                      <PhoneInputBR value={form.phone || ""} onChange={(v) => set("phone", v)} />
-                    </div>
-                  </div>
-                  <div>
-                    <Label>E-mail (opcional)</Label>
-                    <div className="relative mt-1.5">
-                      <Mail className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-neutral-400" />
-                      <Input
-                        placeholder="exemplo@email.com"
-                        value={form.email || ""}
-                        onChange={(e) => set("email", e.target.value)}
-                      />
-                    </div>
-                  </div>
-                  <div>
-                    <Label>Valor total *</Label>
-                    <div className="relative mt-1.5">
-                      <DollarSign className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-neutral-400" />
-                      <Input
-                        type="number"
-                        step="0.01"
-                        placeholder="0,00"
-                        value={form.total_amount || ""}
-                        onChange={(e) => set("total_amount", e.target.value)}
-                      />
-                    </div>
-                  </div>
-                  <div>
-                    <Label>Valor pago *</Label>
-                    <div className="relative mt-1.5">
-                      <DollarSign className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-neutral-400" />
-                      <Input
-                        type="number"
-                        step="0.01"
-                        placeholder="0,00"
-                        value={form.paid_amount || ""}
-                        onChange={(e) => set("paid_amount", e.target.value)}
-                      />
-                    </div>
-                  </div>
-                  <div>
-                    <Label>Status pagamento *</Label>
-                    <div className="mt-1.5">
-                      <SafeSelect
-                        ariaLabel="Status pagamento"
-                        value={form.payment_status || ""}
-                        onValueChange={(v) => set("payment_status", v)}
-                        options={[
-                          { value: "pago_total", label: "Pago total" },
-                          { value: "pago_parcial", label: "Pago parcial" },
-                          { value: "pendente", label: "Pendente" },
-                        ]}
-                      />
-                    </div>
-                  </div>
-                  <div>
-                    <Label>Forma de pagamento *</Label>
-                    <div className="mt-1.5">
-                      <SafeSelect
-                        ariaLabel="Forma de pagamento"
-                        value={form.payment_method || ""}
-                        onValueChange={(v) => set("payment_method", v)}
-                        options={[
-                          { value: "pix", label: "Pix" },
-                          { value: "cartao", label: "Cartão" },
-                          { value: "boleto", label: "Boleto" },
-                        ]}
-                      />
-                    </div>
-                  </div>
-                  {form.payment_method === "cartao" && (
-                    <div>
-                      <Label>Parcelas Máx. (Pagar.me)</Label>
-                      <div className="mt-1.5">
-                        <SafeSelect
-                          ariaLabel="Parcelas máximas"
-                          value={form.installments || ""}
-                          onValueChange={(v) => set("installments", v)}
-                          options={[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map((n) => ({
-                            value: String(n),
-                            label: `${n}x`,
-                          }))}
-                        />
-                      </div>
-                    </div>
-                  )}
-                  <div data-sale-field="seller_id">
-                    <Label>Vendedor *</Label>
-                    <div className="mt-1.5">
-                      <SafeSelect
-                        ariaLabel="Vendedor"
-                        placeholder="—"
-                        value={form.seller_id || ""}
-                        onValueChange={(v) => set("seller_id", v)}
-                        options={(sellers.data ?? [])
-                          .filter((s: any) => !!optionValue(s.id))
-                          .map((s: any) => ({ value: String(s.id), label: optionText(s.name) }))}
-                      />
-                    </div>
-                  </div>
-                  <div data-sale-field="producer_id">
-                    <Label>Produtor *</Label>
-                    <div className="mt-1.5">
-                      <SafeSelect
-                        ariaLabel="Produtor"
-                        placeholder="—"
-                        value={form.producer_id || ""}
-                        onValueChange={(v) => set("producer_id", v)}
-                        disabled={
-                          (optionText(
-                            serviceTypes.data?.find((st) => st.id === form.service_type_id)?.name,
-                            "",
-                          )
-                            .toLowerCase()
-                            .includes("pamela") ||
-                            optionText(
-                              serviceTypes.data?.find((st) => st.id === form.service_type_id)?.name,
-                              "",
-                            )
-                              .toLowerCase()
-                              .includes("ester") ||
-                            optionText(sellers.data?.find((s) => s.id === form.seller_id)?.name, "")
-                              .toLowerCase()
-                              .includes("pamela") ||
-                            optionText(sellers.data?.find((s) => s.id === form.seller_id)?.name, "")
-                              .toLowerCase()
-                              .includes("ester")) ??
-                          false
-                        }
-                        options={(producers.data ?? [])
-                          .filter((p: any) => !!optionValue(p.id))
-                          .map((p: any) => ({ value: String(p.id), label: optionText(p.name) }))}
-                      />
-                    </div>
-                  </div>
-                  <div data-sale-field="service_type_id">
-                    <Label>Tipo de serviço *</Label>
-                    <div className="mt-1.5">
-                      <SafeSelect
-                        ariaLabel="Tipo de serviço"
-                        placeholder="—"
-                        value={form.service_type_id || ""}
-                        onValueChange={(v) => set("service_type_id", v)}
-                        options={(serviceTypes.data ?? [])
-                          .filter((s: any) => !!optionValue(s.id))
-                          .map((s: any) => ({ value: String(s.id), label: optionText(s.name) }))}
-                      />
-                    </div>
-                    {!form.service_type_id && (
-                      <p className="mt-1.5 text-[11px] text-muted-foreground">
-                        Escolha o tipo de serviço antes de confirmar.
-                      </p>
-                    )}
-                  </div>
-                  <div>
-                    <Label>Pacote (opcional)</Label>
-                    <div className="mt-1.5">
-                      <SafeSelect
-                        ariaLabel="Pacote"
-                        placeholder="—"
-                        value={form.package_id || ""}
-                        onValueChange={(v) => {
-                          const p = (packages.data ?? []).find((x: any) => x.id === v);
-                          set("package_id", v);
-                          setForm((f) => ({ ...f, package_name: p?.name ?? f.package_name }));
-                        }}
-                        options={(packages.data ?? [])
-                          .filter((p: any) => !!optionValue(p.id))
-                          .map((p: any) => ({ value: String(p.id), label: optionText(p.name) }))}
-                      />
-                    </div>
-                  </div>
-                  <div>
-                    <Label>Qtd. serviços *</Label>
-                    <div className="relative mt-1.5">
-                      <Layers className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-neutral-400" />
-                      <Input
-                        type="number"
-                        min="1"
-                        value={form.service_quantity || ""}
-                        onChange={(e) => set("service_quantity", e.target.value)}
-                      />
-                    </div>
-                  </div>
-                  {formNeedsVideoDuration && (
-                    <div
-                      data-sale-field="video_duration_seconds"
-                      className="rounded-xl border border-amber-300/70 bg-amber-50/70 p-3 dark:bg-amber-950/20"
-                    >
-                      <Label>Minutagem do vídeo *</Label>
-                      <div className="mt-1.5">
-                        <SafeSelect
-                          ariaLabel="Minutagem do vídeo"
-                          placeholder="Selecione (mín. 30s)"
-                          value={form.video_duration_seconds || ""}
-                          onValueChange={(v) => set("video_duration_seconds", v)}
-                          options={VIDEO_DURATION_OPTIONS.map((o) => ({
-                            value: String(o.value),
-                            label: o.label,
-                          }))}
-                        />
-                      </div>
-                      <p className="mt-1 text-[11px] text-amber-700 dark:text-amber-300">
-                        Obrigatório para vídeo/pacote. A pontuação é calculada por essa minutagem.
-                      </p>
-                    </div>
-                  )}
-                  <div>
-                    <Label>Data da venda *</Label>
-                    <div className="relative mt-1.5">
-                      <Calendar className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-neutral-400" />
-                      <Input
-                        type="date"
-                        value={form.sale_date || ""}
-                        onChange={(e) => set("sale_date", e.target.value)}
-                      />
-                    </div>
-                  </div>
-                  <div>
-                    <Label>Data de entrega *</Label>
-                    <div className="relative mt-1.5">
-                      <Calendar className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-neutral-400" />
-                      <Input
-                        type="date"
-                        value={form.expected_delivery_date || ""}
-                        onChange={(e) => set("expected_delivery_date", e.target.value)}
-                      />
-                    </div>
-                  </div>
-                  <div className="md:col-span-2">
-                    <Label>Origem da venda *</Label>
-                    <div className="mt-1.5">
-                      <SafeSelect
-                        ariaLabel="Origem da venda"
-                        placeholder="Selecione a origem"
-                        value={form.lead_source || ""}
-                        onValueChange={(v) => set("lead_source", v)}
-                        options={[
-                          { value: "cliente_recuperacao", label: "Cliente Recuperação" },
-                          { value: "trafego_pago", label: "Tráfego Pago" },
-                          { value: "indicacao", label: "Indicação" },
-                          { value: "organico", label: "Orgânico / Redes Sociais" },
-                          { value: "cliente_antigo", label: "Cliente Antigo" },
-                          { value: "prospeccao", label: "Prospecção Ativa" },
-                          { value: "outros", label: "Outros" },
-                        ]}
-                      />
-                    </div>
-                  </div>
-                  <div className="md:col-span-2" data-sale-field="receipt">
-                    <Label>
-                      Comprovante (imagem ou PDF){" "}
-                      {formReceiptRecommended ? "(recomendado)" : "(opcional enquanto pendente)"}
-                    </Label>
-                    <label className="group relative mt-1.5 flex cursor-pointer flex-col items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-[#E30613]/40 bg-gradient-to-b from-[#FFF5F6] to-white p-4 text-center transition-all duration-300 hover:border-[#E30613] hover:shadow-[0_10px_40px_-10px_rgba(227,6,19,0.35)] dark:from-white/[0.03] dark:to-transparent">
-                      <input
-                        type="file"
-                        accept="image/*,application/pdf"
-                        className="sr-only"
-                        onChange={(e) => setReceiptFile(e.target.files?.[0] ?? null)}
-                      />
-                      <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-[#E30613] to-[#B00510] shadow-[0_10px_30px_-5px_rgba(227,6,19,0.5)] transition-transform duration-300 group-hover:scale-105">
-                        <UploadIcon className="h-4 w-4 text-white" strokeWidth={2.2} />
-                      </div>
-                      {receiptFile ? (
-                        <div className="flex flex-col items-center gap-1">
-                          <p className="text-sm font-semibold text-neutral-800 dark:text-neutral-100 flex items-center gap-2">
-                            <Check className="h-4 w-4 text-emerald-600" /> {receiptFile.name}
-                          </p>
-                          <p className="text-xs text-neutral-500">
-                            {(receiptFile.size / 1024).toFixed(0)} KB
-                          </p>
-                          <button
-                            type="button"
-                            className="mt-1 text-xs font-medium text-[#E30613] hover:underline"
-                            onClick={(ev) => {
-                              ev.preventDefault();
-                              ev.stopPropagation();
-                              setReceiptFile(null);
-                            }}
-                          >
-                            Remover arquivo
-                          </button>
-                        </div>
-                      ) : (
-                        <>
-                          <p className="text-sm font-semibold text-neutral-800 dark:text-neutral-100">
-                            Clique ou arraste seu comprovante
-                          </p>
-                          <p className="text-xs text-neutral-500">PNG · JPG · PDF · até 10MB</p>
-                        </>
-                      )}
-                    </label>
-                  </div>
-                  <div className="md:col-span-2">
-                    <Label>Prazo de entrega *</Label>
-                    <div className="relative mt-1.5">
-                      <Clock className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-neutral-400" />
-                      <Input
-                        placeholder="Ex: 7 dias úteis"
-                        value={form.delivery_deadline || ""}
-                        onChange={(e) => set("delivery_deadline", e.target.value)}
-                      />
-                    </div>
-                  </div>
-                  <div className="md:col-span-2">
-                    <Label>Observações (opcional)</Label>
-                    <div className="relative mt-1.5 [&_textarea]:pl-10 [&_textarea]:pt-3">
-                      <MessageSquare className="pointer-events-none absolute left-3.5 top-3 h-4 w-4 text-neutral-400" />
-                      <Textarea
-                        placeholder="Adicione observações sobre esta venda..."
-                        value={form.notes || ""}
-                        onChange={(e) => set("notes", e.target.value)}
-                      />
-                    </div>
-                  </div>
-                  <div className="md:col-span-2">
-                    <Label>Link do Google Drive (opcional)</Label>
-                    <div className="mt-1.5 flex gap-2">
-                      <div className="relative flex-1">
-                        <LinkIcon className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-neutral-400" />
-                        <Input
-                          placeholder="https://drive.google.com/..."
-                          value={form.google_drive_link}
-                          onChange={(e) => set("google_drive_link", e.target.value)}
-                        />
-                      </div>
-                      <Button
-                        type="button"
-                        variant="outline"
-                        onClick={() =>
-                          window.open(
-                            "https://drive.google.com/drive/u/0/home",
-                            "_blank",
-                            "noopener,noreferrer",
-                          )
-                        }
-                      >
-                        Abrir Drive
-                      </Button>
-                    </div>
-                  </div>
-                  <div className="sm:col-span-2">
-                    <Label>Link da Plataforma (pasta interna) (opcional)</Label>
-                    <div className="mt-1.5 flex flex-col sm:flex-row gap-2">
-                      <div className="relative flex-1">
-                        <LinkIcon className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-neutral-400" />
-                        <Input
-                          placeholder="Cole aqui o link gerado no Chat Organizador"
-                          value={form.platform_link}
-                          onChange={(e) => set("platform_link", e.target.value)}
-                        />
-                      </div>
-                      <Button type="button" variant="outline" asChild>
-                        <a href="/chat-organizador" target="_blank" rel="noreferrer">
-                          Abrir Chat
-                        </a>
-                      </Button>
-                    </div>
-                    <p className="text-[11px] text-muted-foreground mt-1.5 flex items-center gap-1.5">
-                      <ShieldCheck className="h-3 w-3" /> Opcional. Informe um dos dois links (Drive
-                      ou Plataforma).
-                    </p>
-                  </div>
-                </div>
-                <div className="border-t border-[#E8E8E8] dark:border-white/10 bg-white dark:bg-[#0B0B0D] px-4 sm:px-5 py-3 flex flex-col gap-2">
-                  <p className="text-[11px] text-neutral-500 dark:text-neutral-400 flex items-center gap-1.5">
-                    <ShieldCheck className="h-3.5 w-3.5 text-emerald-600" /> Todos os dados são
-                    armazenados de forma segura.
-                  </p>
-                  <div className="flex flex-col-reverse sm:flex-row sm:items-center sm:justify-end gap-2">
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={() => setOpen(false)}
-                      className="w-full sm:w-auto h-10 rounded-lg px-4 border-[#E8E8E8] text-neutral-800 hover:bg-neutral-100 dark:border-white/10 dark:text-neutral-200 dark:hover:bg-white/[0.05]"
-                    >
-                      Cancelar
-                    </Button>
-                    <Button
-                      onClick={submit}
-                      disabled={saving}
-                      className="w-full sm:w-auto h-10 rounded-lg px-5 font-semibold text-white bg-gradient-to-r from-[#E30613] to-[#B00510] shadow-[0_10px_30px_-8px_rgba(227,6,19,0.6)] transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_16px_40px_-8px_rgba(227,6,19,0.7)] disabled:opacity-70"
-                    >
-                      {saving ? (
-                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                      ) : (
-                        <Check className="w-4 h-4 mr-2" />
-                      )}
-                      {form.payment_method === "pix" || form.payment_method === "cartao"
-                        ? "Confirmar Venda"
-                        : "Criar venda"}
-                    </Button>
-                  </div>
-                </div>
-              </DialogContent>
-            </Dialog>
-          </div>
-        </div>
-      </div>
+      <SalesHeroSection
+        totalVendasHoje={totalVendasHoje}
+        viewMode={viewMode}
+        onViewModeChange={setViewMode}
+        isGeneratingLink={isGeneratingLink}
+        newSaleDialogProps={{
+          open,
+          onOpenChange: setOpen,
+          form,
+          set,
+          onPackageChange: (v: string) => {
+            const p = (packages.data ?? []).find((x: any) => x.id === v);
+            set("package_id", v);
+            setForm((f) => ({ ...f, package_name: p?.name ?? f.package_name }));
+          },
+          customersAll: customersAll.data ?? [],
+          customerSuggestions,
+          linkedCustomerId,
+          onAutofillFromCustomer: autofillFromCustomer,
+          onApplyExistingCustomer: applyExistingCustomer,
+          onClearLinkedCustomer: () => setLinkedCustomerId(null),
+          sellers: sellers.data ?? [],
+          producers: producers.data ?? [],
+          serviceTypes: serviceTypes.data ?? [],
+          packages: packages.data ?? [],
+          producerLockedByInfluencer,
+          formNeedsVideoDuration,
+          formReceiptRecommended,
+          receiptFile,
+          onReceiptFileChange: setReceiptFile,
+          saving,
+          onSubmit: submit,
+        }}
+      />
 
-      <Card className="border-border/50">
-        <CardContent className="p-3 grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-2">
-          <div className="col-span-2 md:col-span-2 lg:col-span-2 relative">
-            <Search className="w-3.5 h-3.5 absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground" />
-            <Input
-              className="pl-7 h-9"
-              placeholder="Cliente, serviço, vendedor, produtor..."
-              value={fSearch}
-              onChange={(e) => setFSearch(e.target.value)}
-            />
-          </div>
-          <Select value={fSeller} onValueChange={setFSeller}>
-            <SelectTrigger className="h-9">
-              <SelectValue placeholder="Vendedor" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Todos vendedores</SelectItem>
-              {(sellers.data ?? []).map((s: any) =>
-                optionValue(s.id) ? (
-                  <SelectItem key={s.id} value={String(s.id)}>
-                    {optionText(s.name)}
-                  </SelectItem>
-                ) : null,
-              )}
-            </SelectContent>
-          </Select>
-          <Select value={fProducer} onValueChange={setFProducer}>
-            <SelectTrigger className="h-9">
-              <SelectValue placeholder="Produtor" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Todos produtores</SelectItem>
-              {(producers.data ?? []).map((p: any) =>
-                optionValue(p.id) ? (
-                  <SelectItem key={p.id} value={String(p.id)}>
-                    {optionText(p.name)}
-                  </SelectItem>
-                ) : null,
-              )}
-            </SelectContent>
-          </Select>
-          <Select value={fService} onValueChange={setFService}>
-            <SelectTrigger className="h-9">
-              <SelectValue placeholder="Serviço" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Todos serviços</SelectItem>
-              {(serviceTypes.data ?? []).map((st: any) =>
-                optionValue(st.id) ? (
-                  <SelectItem key={st.id} value={String(st.id)}>
-                    {optionText(st.name)}
-                  </SelectItem>
-                ) : null,
-              )}
-            </SelectContent>
-          </Select>
-          <Select value={fYear} onValueChange={setFYear}>
-            <SelectTrigger className="h-9">
-              <SelectValue placeholder="Ano" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Todos anos</SelectItem>
-              {yearOptions.map((y) => (
-                <SelectItem key={y} value={y}>
-                  {y}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <Select value={fMonth} onValueChange={setFMonth}>
-            <SelectTrigger className="h-9">
-              <SelectValue placeholder="Mês" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Todos meses</SelectItem>
-              {[
-                "Janeiro",
-                "Fevereiro",
-                "Março",
-                "Abril",
-                "Maio",
-                "Junho",
-                "Julho",
-                "Agosto",
-                "Setembro",
-                "Outubro",
-                "Novembro",
-                "Dezembro",
-              ].map((m, i) => (
-                <SelectItem key={i} value={String(i + 1)}>
-                  {m}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <Input
-            type="date"
-            className="h-9"
-            value={fFrom}
-            onChange={(e) => setFFrom(e.target.value)}
-            title="De"
-          />
-          <Input
-            type="date"
-            className="h-9"
-            value={fTo}
-            onChange={(e) => setFTo(e.target.value)}
-            title="Até"
-          />
-          <div className="col-span-2 md:col-span-4 lg:col-span-8 flex items-center justify-between text-xs text-muted-foreground">
-            <span>
-              {filteredSales.length} de {(salesList ?? []).length} vendas
-            </span>
-            {hasFilters && (
-              <Button variant="ghost" size="sm" className="h-7" onClick={clearFilters}>
-                <X className="w-3 h-3 mr-1" />
-                Limpar filtros
-              </Button>
-            )}
-          </div>
-        </CardContent>
-      </Card>
+      <SalesFiltersBar
+        fSearch={fSearch}
+        setFSearch={setFSearch}
+        fSeller={fSeller}
+        setFSeller={setFSeller}
+        fProducer={fProducer}
+        setFProducer={setFProducer}
+        fService={fService}
+        setFService={setFService}
+        fYear={fYear}
+        setFYear={setFYear}
+        fMonth={fMonth}
+        setFMonth={setFMonth}
+        fFrom={fFrom}
+        setFFrom={setFFrom}
+        fTo={fTo}
+        setFTo={setFTo}
+        sellers={sellers.data ?? []}
+        producers={producers.data ?? []}
+        serviceTypes={serviceTypes.data ?? []}
+        yearOptions={yearOptions}
+        filteredCount={filteredSales.length}
+        totalCount={(salesList ?? []).length}
+        hasFilters={hasFilters}
+        onClearFilters={clearFilters}
+      />
 
       {viewMode === "table" ? (
-        <Card className="border-border/50" style={{ boxShadow: "var(--shadow-card)" }}>
-          <CardContent className="p-0">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Data</TableHead>
-                  <TableHead>Cliente</TableHead>
-                  <TableHead>Serviço</TableHead>
-                  <TableHead>Vendedor</TableHead>
-                  <TableHead>Produtor</TableHead>
-                  <TableHead className="text-right">Valor</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead className="w-12"></TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {loadingSales && (
-                  <TableRow>
-                    <TableCell colSpan={8} className="text-center py-12">
-                      <Loader2 className="w-8 h-8 animate-spin mx-auto text-primary" />
-                      <p className="mt-2 text-sm text-muted-foreground">Carregando vendas...</p>
-                    </TableCell>
-                  </TableRow>
-                )}
-                {salesError && (
-                  <TableRow>
-                    <TableCell colSpan={8} className="text-center py-12 text-destructive">
-                      <p>Ocorreu um erro ao carregar as vendas.</p>
-                      <p className="text-xs mt-1 mb-2">
-                        {(salesError as any)?.message || "Erro desconhecido"}
-                      </p>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="mt-2"
-                        onClick={() => refetch()}
-                      >
-                        Tentar novamente
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                )}
-                {!loadingSales &&
-                  !salesError &&
-                  filteredSales.map((s: any) => (
-                    <TableRow key={s.id}>
-                      <TableCell className="whitespace-nowrap">{fmtDate(s.sale_date)}</TableCell>
-                      <TableCell>
-                        <div className="font-semibold text-base">{s.customers?.company || "—"}</div>
-                        <div className="text-xs text-muted-foreground">{s.customers?.name}</div>
-                      </TableCell>
-                      <TableCell>{s.service_types?.name ?? "—"}</TableCell>
-                      <TableCell>{s.sellers?.name ?? "—"}</TableCell>
-                      <TableCell>{s.producers?.name ?? "—"}</TableCell>
-                      <TableCell className="text-right font-semibold">
-                        {formatCurrency(s.total_amount)}
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant={statusVariant(s.payment_status) as any}>
-                          {String(s.payment_status ?? "—").replace("_", " ")}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-1">
-                          {(s.google_drive_link || s.trello_link) && (
-                            <a
-                              href={s.google_drive_link || s.trello_link}
-                              target="_blank"
-                              rel="noreferrer"
-                              title="Abrir Google Drive"
-                              className="inline-flex items-center justify-center h-9 w-9 rounded-md text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-950"
-                            >
-                              <ExternalLink className="w-4 h-4" />
-                            </a>
-                          )}
-                          {s.platform_link && (
-                            <a
-                              href={s.platform_link}
-                              target="_blank"
-                              rel="noreferrer"
-                              title="Abrir link da plataforma"
-                              className="inline-flex items-center justify-center h-9 w-9 rounded-md text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-950"
-                            >
-                              <Link2 className="w-4 h-4" />
-                            </a>
-                          )}
-                          {s.payment_method === "cartao" && !s.pagarme_id && (
-                            <Button
-                              size="icon"
-                              variant="ghost"
-                              className="text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50"
-                              title="Gerar Link Pagar.me"
-                              onClick={() => handleGenerateLink(s)}
-                            >
-                              <Link2 className="w-4 h-4" />
-                            </Button>
-                          )}
-                          <Button
-                            size="icon"
-                            variant="ghost"
-                            onClick={() =>
-                              setEditing({
-                                ...s,
-                                with_invoice: s.customers?.document ? "sim" : "nao",
-                                customer_name: s.customers?.name,
-                                company: s.customers?.company,
-                                document: s.customers?.document,
-                                phone: s.customers?.phone,
-                                email: s.customers?.email,
-                              })
-                            }
-                          >
-                            <Pencil className="w-4 h-4" />
-                          </Button>
-                          <Button
-                            size="icon"
-                            variant="ghost"
-                            className="text-destructive hover:text-destructive hover:bg-destructive/10"
-                            onClick={() => handleDelete(s.id)}
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </Button>
-                          {s.payment_status !== "pago_total" && (
-                            <Button
-                              size="icon"
-                              variant="ghost"
-                              className="text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50"
-                              title="Confirmar Pagamento"
-                              onClick={() => handleQuickConfirm(s)}
-                            >
-                              <Check className="w-4 h-4" />
-                            </Button>
-                          )}
-                          <Dialog>
-                            <DialogTrigger asChild>
-                              <Button size="icon" variant="ghost">
-                                <Eye className="w-4 h-4" />
-                              </Button>
-                            </DialogTrigger>
-                            <DialogContent className="max-w-xl">
-                              <DialogHeader>
-                                <DialogTitle>Histórico de Pagamentos e Comprovantes</DialogTitle>
-                              </DialogHeader>
-                              <div className="space-y-4 py-4">
-                                <div className="flex justify-between items-center pb-2 border-bottom">
-                                  <div>
-                                    <h3 className="font-semibold text-lg">
-                                      {s.customers?.company || "—"}
-                                    </h3>
-                                    <p className="text-xs text-muted-foreground">
-                                      {s.customers?.name}
-                                    </p>
-                                  </div>
-                                  <div className="text-right">
-                                    <p className="text-xs text-muted-foreground">Valor Total</p>
-                                    <p className="font-bold text-lg">
-                                      {formatCurrency(s.total_amount)}
-                                    </p>
-                                  </div>
-                                </div>
-                                <Tabs defaultValue="receipts" className="w-full">
-                                  <TabsList className="grid w-full grid-cols-2">
-                                    <TabsTrigger value="receipts" className="flex gap-2">
-                                      <FileText className="w-4 h-4" /> Comprovantes
-                                    </TabsTrigger>
-                                    <TabsTrigger value="history" className="flex gap-2">
-                                      <History className="w-4 h-4" /> Resumo
-                                    </TabsTrigger>
-                                  </TabsList>
-                                  <TabsContent value="receipts" className="mt-4">
-                                    {s.sale_receipts && s.sale_receipts.length > 0 ? (
-                                      <div className="space-y-3">
-                                        {s.sale_receipts.map((r: any) => (
-                                          <div
-                                            key={r.id}
-                                            className="flex items-center justify-between p-3 border rounded-lg bg-muted/30"
-                                          >
-                                            <div className="flex items-center gap-3">
-                                              <div className="bg-green-100 p-2 rounded-full">
-                                                <FileText className="w-4 h-4 text-green-700" />
-                                              </div>
-                                              <div>
-                                                <p className="font-medium">
-                                                  {formatCurrency(r.amount)}
-                                                </p>
-                                                <p className="text-xs text-muted-foreground">
-                                                  {fmtDate(r.paid_at)}{" "}
-                                                  {r.notes ? `• ${r.notes}` : ""}
-                                                </p>
-                                              </div>
-                                            </div>
-                                            <Button
-                                              variant="outline"
-                                              size="sm"
-                                              className="gap-2"
-                                              onClick={async () => {
-                                                const { data } = await supabase.storage
-                                                  .from("receipts")
-                                                  .createSignedUrl(r.file_path, 3600);
-                                                if (data?.signedUrl)
-                                                  window.open(data.signedUrl, "_blank");
-                                                else
-                                                  toast.error(
-                                                    "Não foi possível gerar o link do comprovante",
-                                                  );
-                                              }}
-                                            >
-                                              <Download className="w-4 h-4" />
-                                              Ver
-                                            </Button>
-                                          </div>
-                                        ))}
-                                      </div>
-                                    ) : (
-                                      <div className="text-center py-8 text-muted-foreground italic">
-                                        Nenhum comprovante anexado.
-                                      </div>
-                                    )}
-                                  </TabsContent>
-                                  <TabsContent value="history" className="mt-4">
-                                    <div className="space-y-3">
-                                      <div className="grid grid-cols-2 gap-4">
-                                        <div className="p-3 border rounded-lg bg-green-50">
-                                          <p className="text-xs text-green-700 uppercase font-semibold">
-                                            Total Pago
-                                          </p>
-                                          <p className="text-xl font-bold text-green-800">
-                                            {formatCurrency(s.paid_amount)}
-                                          </p>
-                                        </div>
-                                        <div className="p-3 border rounded-lg bg-red-50">
-                                          <p className="text-xs text-red-700 uppercase font-semibold">
-                                            Pendente
-                                          </p>
-                                          <p className="text-xl font-bold text-red-800">
-                                            {formatCurrency(
-                                              Number(s.total_amount) - Number(s.paid_amount),
-                                            )}
-                                          </p>
-                                        </div>
-                                      </div>
-                                      <div className="p-3 border rounded-lg">
-                                        <p className="text-xs text-muted-foreground uppercase font-semibold mb-1">
-                                          Status
-                                        </p>
-                                        <Badge variant={statusVariant(s.payment_status) as any}>
-                                          {String(s.payment_status ?? "—").replace("_", " ")}
-                                        </Badge>
-                                      </div>
-                                      <div className="grid grid-cols-2 gap-2">
-                                        {s.delivery_deadline && (
-                                          <div className="p-3 border rounded-lg">
-                                            <p className="text-xs text-muted-foreground uppercase font-semibold mb-1">
-                                              Prazo de Entrega
-                                            </p>
-                                            <p className="text-sm">{s.delivery_deadline}</p>
-                                          </div>
-                                        )}
-                                        {s.expected_delivery_date && (
-                                          <div className="p-3 border rounded-lg">
-                                            <p className="text-xs text-muted-foreground uppercase font-semibold mb-1">
-                                              Data de Entrega
-                                            </p>
-                                            <p className="text-sm">
-                                              {fmtDate(s.expected_delivery_date)}
-                                            </p>
-                                          </div>
-                                        )}
-                                      </div>
-                                      {s.notes && (
-                                        <div className="p-3 border rounded-lg">
-                                          <p className="text-xs text-muted-foreground uppercase font-semibold mb-1">
-                                            Observações da Venda
-                                          </p>
-                                          <p className="text-sm">{s.notes}</p>
-                                        </div>
-                                      )}
-                                    </div>
-                                  </TabsContent>
-                                </Tabs>
-                              </div>
-                            </DialogContent>
-                          </Dialog>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                {!loadingSales && !salesError && filteredSales.length === 0 && (
-                  <TableRow>
-                    <TableCell colSpan={8} className="text-center text-muted-foreground py-8">
-                      Nenhuma venda cadastrada ainda
-                    </TableCell>
-                  </TableRow>
-                )}
-              </TableBody>
-            </Table>
-          </CardContent>
-        </Card>
+        <SalesTableView
+          loadingSales={loadingSales}
+          salesError={salesError}
+          filteredSales={filteredSales}
+          onRefetch={() => refetch()}
+          statusVariant={statusVariant}
+          onGenerateLink={handleGenerateLink}
+          onEdit={openEdit}
+          onDelete={handleDelete}
+          onQuickConfirm={handleQuickConfirm}
+        />
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {loadingSales && (
-            <div className="col-span-full py-20 text-center">
-              <Loader2 className="w-10 h-10 animate-spin mx-auto text-primary" />
-              <p className="mt-4 text-muted-foreground">Carregando...</p>
-            </div>
-          )}
-          {salesError && (
-            <div className="col-span-full py-20 text-center text-destructive">
-              <p>Erro ao carregar vendas.</p>
-              <Button
-                variant="outline"
-                className="mt-4"
-                onClick={() => qc.invalidateQueries({ queryKey: ["sales-list"] })}
-              >
-                Tentar novamente
-              </Button>
-            </div>
-          )}
-          {!loadingSales &&
-            !salesError &&
-            filteredSales.map((s: any) => (
-              <Card
-                key={s.id}
-                className="border-border/50 overflow-hidden hover:shadow-md transition-shadow"
-              >
-                <CardContent className="p-0">
-                  <div className="p-4 space-y-3">
-                    <div className="flex justify-between items-start">
-                      <div>
-                        <h3 className="font-bold text-lg leading-tight">
-                          {s.customers?.company || "—"}
-                        </h3>
-                        <p className="text-xs text-muted-foreground">{s.customers?.name}</p>
-                      </div>
-                      <Badge variant={statusVariant(s.payment_status) as any}>
-                        {String(s.payment_status ?? "—").replace("_", " ")}
-                      </Badge>
-                    </div>
-                    <div className="grid grid-cols-2 gap-2 text-sm">
-                      <div>
-                        <p className="text-xs text-muted-foreground">Serviço</p>
-                        <p className="font-medium truncate">{s.service_types?.name ?? "—"}</p>
-                      </div>
-                      <div>
-                        <p className="text-xs text-muted-foreground">Data</p>
-                        <p className="font-medium">{fmtDate(s.sale_date)}</p>
-                      </div>
-                      <div>
-                        <p className="text-xs text-muted-foreground">Vendedor</p>
-                        <p className="font-medium truncate">{s.sellers?.name ?? "—"}</p>
-                      </div>
-                      <div>
-                        <p className="text-xs text-muted-foreground">Produtor</p>
-                        <p className="font-medium truncate">{s.producers?.name ?? "—"}</p>
-                      </div>
-                    </div>
-                    <div className="pt-2 border-t flex justify-between items-center">
-                      <div>
-                        <p className="text-xs text-muted-foreground">Valor Total</p>
-                        <p className="text-lg font-bold text-primary">
-                          {formatCurrency(s.total_amount)}
-                        </p>
-                      </div>
-                      <div className="flex gap-1">
-                        {s.payment_method === "cartao" && !s.pagarme_id && (
-                          <Button
-                            size="icon"
-                            variant="outline"
-                            className="h-8 w-8 text-emerald-600 border-emerald-100 hover:bg-emerald-50"
-                            title="Gerar Link Pagar.me"
-                            onClick={() => handleGenerateLink(s)}
-                          >
-                            <Link2 className="w-4 h-4" />
-                          </Button>
-                        )}
-                        <Button
-                          size="icon"
-                          variant="outline"
-                          className="h-8 w-8"
-                          onClick={() =>
-                            setEditing({
-                              ...s,
-                              with_invoice: s.customers?.document ? "sim" : "nao",
-                              customer_name: s.customers?.name,
-                              company: s.customers?.company,
-                              document: s.customers?.document,
-                              phone: s.customers?.phone,
-                              email: s.customers?.email,
-                            })
-                          }
-                        >
-                          <Pencil className="w-4 h-4" />
-                        </Button>
-                        <Button
-                          size="icon"
-                          variant="outline"
-                          className="h-8 w-8 text-destructive border-destructive/10 hover:bg-destructive/5"
-                          onClick={() => handleDelete(s.id)}
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </Button>
-                        {s.payment_status !== "pago_total" && (
-                          <Button
-                            size="icon"
-                            variant="outline"
-                            className="h-8 w-8 text-emerald-600 border-emerald-100 hover:bg-emerald-50"
-                            title="Confirmar Pagamento"
-                            onClick={() => handleQuickConfirm(s)}
-                          >
-                            <Check className="w-4 h-4" />
-                          </Button>
-                        )}
-                        <Dialog>
-                          <DialogTrigger asChild>
-                            <Button size="icon" variant="outline" className="h-8 w-8">
-                              <Eye className="w-4 h-4" />
-                            </Button>
-                          </DialogTrigger>
-                          <DialogContent className="max-w-xl">
-                            <DialogHeader>
-                              <DialogTitle>Histórico de Pagamentos e Comprovantes</DialogTitle>
-                            </DialogHeader>
-                            <div className="space-y-4 py-4">
-                              <div className="flex justify-between items-center pb-2 border-bottom">
-                                <div>
-                                  <h3 className="font-semibold text-lg">
-                                    {s.customers?.company || "—"}
-                                  </h3>
-                                  <p className="text-xs text-muted-foreground">
-                                    {s.customers?.name}
-                                  </p>
-                                </div>
-                                <div className="text-right">
-                                  <p className="text-xs text-muted-foreground">Valor Total</p>
-                                  <p className="font-bold text-lg">
-                                    {formatCurrency(s.total_amount)}
-                                  </p>
-                                </div>
-                              </div>
-                              <Tabs defaultValue="receipts" className="w-full">
-                                <TabsList className="grid w-full grid-cols-2">
-                                  <TabsTrigger value="receipts" className="flex gap-2">
-                                    <FileText className="w-4 h-4" /> Comprovantes
-                                  </TabsTrigger>
-                                  <TabsTrigger value="history" className="flex gap-2">
-                                    <History className="w-4 h-4" /> Resumo
-                                  </TabsTrigger>
-                                </TabsList>
-                                <TabsContent value="receipts" className="mt-4">
-                                  {s.sale_receipts && s.sale_receipts.length > 0 ? (
-                                    <div className="space-y-3">
-                                      {s.sale_receipts.map((r: any) => (
-                                        <div
-                                          key={r.id}
-                                          className="flex items-center justify-between p-3 border rounded-lg bg-muted/30"
-                                        >
-                                          <div className="flex items-center gap-3">
-                                            <div className="bg-green-100 p-2 rounded-full">
-                                              <FileText className="w-4 h-4 text-green-700" />
-                                            </div>
-                                            <div>
-                                              <p className="font-medium">
-                                                {formatCurrency(r.amount)}
-                                              </p>
-                                              <p className="text-xs text-muted-foreground">
-                                                {fmtDate(r.paid_at)} {r.notes ? `• ${r.notes}` : ""}
-                                              </p>
-                                            </div>
-                                          </div>
-                                          <Button
-                                            variant="outline"
-                                            size="sm"
-                                            className="gap-2"
-                                            onClick={async () => {
-                                              const { data } = await supabase.storage
-                                                .from("receipts")
-                                                .createSignedUrl(r.file_path, 3600);
-                                              if (data?.signedUrl)
-                                                window.open(data.signedUrl, "_blank");
-                                              else
-                                                toast.error(
-                                                  "Não foi possível gerar o link do comprovante",
-                                                );
-                                            }}
-                                          >
-                                            <Download className="w-4 h-4" />
-                                            Ver
-                                          </Button>
-                                        </div>
-                                      ))}
-                                    </div>
-                                  ) : (
-                                    <div className="text-center py-8 text-muted-foreground italic">
-                                      Nenhum comprovante anexado.
-                                    </div>
-                                  )}
-                                </TabsContent>
-                                <TabsContent value="history" className="mt-4">
-                                  <div className="space-y-3">
-                                    <div className="grid grid-cols-2 gap-4">
-                                      <div className="p-3 border rounded-lg bg-green-50">
-                                        <p className="text-xs text-green-700 uppercase font-semibold">
-                                          Total Pago
-                                        </p>
-                                        <p className="text-xl font-bold text-green-800">
-                                          {formatCurrency(s.paid_amount)}
-                                        </p>
-                                      </div>
-                                      <div className="p-3 border rounded-lg bg-red-50">
-                                        <p className="text-xs text-red-700 uppercase font-semibold">
-                                          Pendente
-                                        </p>
-                                        <p className="text-xl font-bold text-red-800">
-                                          {formatCurrency(
-                                            Number(s.total_amount) - Number(s.paid_amount),
-                                          )}
-                                        </p>
-                                      </div>
-                                    </div>
-                                    <div className="p-3 border rounded-lg">
-                                      <p className="text-xs text-muted-foreground uppercase font-semibold mb-1">
-                                        Status
-                                      </p>
-                                      <Badge variant={statusVariant(s.payment_status) as any}>
-                                        {String(s.payment_status ?? "—").replace("_", " ")}
-                                      </Badge>
-                                    </div>
-                                    {s.notes && (
-                                      <div className="p-3 border rounded-lg">
-                                        <p className="text-xs text-muted-foreground uppercase font-semibold mb-1">
-                                          Observações da Venda
-                                        </p>
-                                        <p className="text-sm">{s.notes}</p>
-                                      </div>
-                                    )}
-                                  </div>
-                                </TabsContent>
-                              </Tabs>
-                            </div>
-                          </DialogContent>
-                        </Dialog>
-                      </div>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          {filteredSales.length === 0 && (
-            <div className="col-span-full py-12 text-center text-muted-foreground italic">
-              Nenhuma venda cadastrada ainda
-            </div>
-          )}
-        </div>
+        <SalesCardView
+          loadingSales={loadingSales}
+          salesError={salesError}
+          filteredSales={filteredSales}
+          onRetry={() => qc.invalidateQueries({ queryKey: ["sales-list"] })}
+          statusVariant={statusVariant}
+          onGenerateLink={handleGenerateLink}
+          onEdit={openEdit}
+          onDelete={handleDelete}
+          onQuickConfirm={handleQuickConfirm}
+        />
       )}
 
-      <Dialog open={!!editing} onOpenChange={(o) => !o && setEditing(null)}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Editar venda</DialogTitle>
-          </DialogHeader>
-          {editing && (
-            <div className="grid grid-cols-2 gap-3">
-              <div className="col-span-2">
-                <Label>Nome do cliente *</Label>
-                <Input
-                  list="edit-customers-names"
-                  value={editing.customer_name ?? editing.customers?.name ?? ""}
-                  onChange={(e) =>
-                    setEditing((prev: any) => ({ ...prev, customer_name: e.target.value }))
-                  }
-                />
-                <datalist id="edit-customers-names">
-                  {(customersAll.data ?? [])
-                    .map((c: any) => optionText(c.name, ""))
-                    .filter(Boolean)
-                    .map((name: string, index: number) => (
-                      <option key={`en-${index}-${name}`} value={name} />
-                    ))}
-                </datalist>
-              </div>
-              <div>
-                <Label>Empresa {editing.with_invoice === "sim" ? "*" : "(Opcional)"}</Label>
-                <Input
-                  list="edit-customers-companies"
-                  value={editing.company ?? editing.customers?.company ?? ""}
-                  onChange={(e) =>
-                    setEditing((prev: any) => ({ ...prev, company: e.target.value }))
-                  }
-                />
-                <datalist id="edit-customers-companies">
-                  {(customersAll.data ?? [])
-                    .map((c: any) => optionText(c.company, ""))
-                    .filter(Boolean)
-                    .map((company: string, index: number) => (
-                      <option key={`ec-${index}-${company}`} value={company} />
-                    ))}
-                </datalist>
-              </div>
-              <div>
-                <Label>Com Nota? *</Label>
-                <Select
-                  value={editing.with_invoice || (editing.document ? "sim" : "nao")}
-                  onValueChange={(v) => setEditing((prev: any) => ({ ...prev, with_invoice: v }))}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="sim">Sim (Com Nota)</SelectItem>
-                    <SelectItem value="nao">Não (Sem Nota)</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
-                <Label>CPF/CNPJ {editing.with_invoice === "sim" ? "*" : "(Opcional)"}</Label>
-                <Input
-                  value={editing.document ?? editing.customers?.document ?? ""}
-                  onChange={(e) =>
-                    setEditing((prev: any) => ({ ...prev, document: e.target.value }))
-                  }
-                />
-              </div>
-              <div>
-                <Label>Telefone *</Label>
-                <PhoneInputBR
-                  value={editing.phone ?? editing.customers?.phone ?? ""}
-                  onChange={(v) => setEditing((prev: any) => ({ ...prev, phone: v }))}
-                />
-              </div>
-              <div>
-                <Label>E-mail (opcional)</Label>
-                <Input
-                  value={editing.email ?? editing.customers?.email ?? ""}
-                  onChange={(e) => setEditing((prev: any) => ({ ...prev, email: e.target.value }))}
-                />
-              </div>
-              <div>
-                <Label>Valor total *</Label>
-                <Input
-                  type="number"
-                  step="0.01"
-                  value={editing.total_amount ?? ""}
-                  onChange={(e) => editSet("total_amount", e.target.value)}
-                />
-              </div>
-              <div>
-                <Label>Valor pago *</Label>
-                <Input
-                  type="number"
-                  step="0.01"
-                  value={editing.paid_amount ?? ""}
-                  onChange={(e) => editSet("paid_amount", e.target.value)}
-                />
-              </div>
-              <div>
-                <Label>Status pagamento *</Label>
-                <Select
-                  value={editing.payment_status}
-                  onValueChange={(v) => editSet("payment_status", v)}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="pago_total">Pago total</SelectItem>
-                    <SelectItem value="pago_parcial">Pago parcial</SelectItem>
-                    <SelectItem value="pendente">Pendente</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
-                <Label>Forma de pagamento *</Label>
-                <Select
-                  value={editing.payment_method ?? ""}
-                  onValueChange={(v) => editSet("payment_method", v)}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="—" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="pix">Pix</SelectItem>
-                    <SelectItem value="cartao">Cartão</SelectItem>
-                    <SelectItem value="boleto">Boleto</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              {editing.payment_method === "cartao" && (
-                <div>
-                  <Label>Parcelas Máx. (Pagar.me)</Label>
-                  <Select
-                    value={editing.installments || "12"}
-                    onValueChange={(v) => editSet("installments", v)}
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map((n) => (
-                        <SelectItem key={n} value={String(n)}>
-                          {n}x
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              )}
-              <div>
-                <Label>Vendedor *</Label>
-                <Select
-                  value={editing.seller_id ?? ""}
-                  onValueChange={(v) => editSet("seller_id", v)}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="—" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {(sellers.data ?? []).map((s: any) =>
-                      optionValue(s.id) ? (
-                        <SelectItem key={s.id} value={String(s.id)}>
-                          {optionText(s.name)}
-                        </SelectItem>
-                      ) : null,
-                    )}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
-                <Label>Produtor *</Label>
-                <Select
-                  value={editing.producer_id ?? ""}
-                  onValueChange={(v) => editSet("producer_id", v)}
-                  disabled={
-                    (optionText(
-                      serviceTypes.data?.find((st) => st.id === editing.service_type_id)?.name,
-                      "",
-                    )
-                      .toLowerCase()
-                      .includes("pamela") ||
-                      optionText(
-                        serviceTypes.data?.find((st) => st.id === editing.service_type_id)?.name,
-                        "",
-                      )
-                        .toLowerCase()
-                        .includes("ester") ||
-                      optionText(sellers.data?.find((s) => s.id === editing.seller_id)?.name, "")
-                        .toLowerCase()
-                        .includes("pamela") ||
-                      optionText(sellers.data?.find((s) => s.id === editing.seller_id)?.name, "")
-                        .toLowerCase()
-                        .includes("ester")) ??
-                    false
-                  }
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="—" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {(producers.data ?? []).map((p: any) =>
-                      optionValue(p.id) ? (
-                        <SelectItem key={p.id} value={String(p.id)}>
-                          {optionText(p.name)}
-                        </SelectItem>
-                      ) : null,
-                    )}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
-                <Label>Tipo de serviço *</Label>
-                <Select
-                  value={editing.service_type_id ?? ""}
-                  onValueChange={(v) => editSet("service_type_id", v)}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="—" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {(serviceTypes.data ?? []).map((s: any) =>
-                      optionValue(s.id) ? (
-                        <SelectItem key={s.id} value={String(s.id)}>
-                          {optionText(s.name)}
-                        </SelectItem>
-                      ) : null,
-                    )}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
-                <Label>Pacote (opcional)</Label>
-                <Select
-                  value={editing.package_id ?? ""}
-                  onValueChange={(v) => {
-                    const p = (packages.data ?? []).find((x: any) => x.id === v);
-                    setEditing((prev: any) => ({
-                      ...prev,
-                      package_id: v,
-                      package_name: p?.name ?? prev.package_name,
-                    }));
-                  }}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="—" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {(packages.data ?? []).length === 0 ? (
-                      <div className="px-3 py-4 text-xs text-muted-foreground">
-                        Nenhum pacote cadastrado.
-                      </div>
-                    ) : (
-                      (packages.data ?? []).map((p: any) =>
-                        optionValue(p.id) ? (
-                          <SelectItem key={p.id} value={String(p.id)}>
-                            {optionText(p.name)}
-                          </SelectItem>
-                        ) : null,
-                      )
-                    )}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
-                <Label>Qtd. serviços *</Label>
-                <Input
-                  type="number"
-                  min="1"
-                  value={editing.service_quantity ?? 1}
-                  onChange={(e) => editSet("service_quantity", e.target.value)}
-                />
-              </div>
-              {isVideoService(
-                serviceTypes.data?.find((st: any) => st.id === editing.service_type_id)?.name,
-                !!editing.package_id,
-              ) && (
-                <div>
-                  <Label>Minutagem do vídeo *</Label>
-                  <Select
-                    value={String(editing.video_duration_seconds ?? "")}
-                    onValueChange={(v) => editSet("video_duration_seconds", v)}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Selecione (mín. 30s)" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {VIDEO_DURATION_OPTIONS.map((o) => (
-                        <SelectItem key={o.value} value={String(o.value)}>
-                          {o.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              )}
-              <div>
-                <Label>Data da venda *</Label>
-                <Input
-                  type="date"
-                  value={editing.sale_date ?? ""}
-                  onChange={(e) => editSet("sale_date", e.target.value)}
-                />
-              </div>
-              <div>
-                <Label>Data de entrega *</Label>
-                <Input
-                  type="date"
-                  value={editing.expected_delivery_date ?? ""}
-                  onChange={(e) => editSet("expected_delivery_date", e.target.value)}
-                />
-              </div>
-              <div className="col-span-2">
-                <Label>Origem da venda *</Label>
-                <Select
-                  value={editing.lead_source ?? ""}
-                  onValueChange={(v) => editSet("lead_source", v)}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Selecione a origem" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="cliente_recuperacao">Cliente Recuperação</SelectItem>
-                    <SelectItem value="trafego_pago">Tráfego Pago</SelectItem>
-                    <SelectItem value="indicacao">Indicação</SelectItem>
-                    <SelectItem value="organico">Orgânico / Redes Sociais</SelectItem>
-                    <SelectItem value="cliente_antigo">Cliente Antigo</SelectItem>
-                    <SelectItem value="prospeccao">Prospecção Ativa</SelectItem>
-                    <SelectItem value="outros">Outros</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="col-span-2">
-                <Label>Prazo de entrega *</Label>
-                <Input
-                  placeholder="Ex: 7 dias úteis"
-                  value={editing.delivery_deadline ?? ""}
-                  onChange={(e) => editSet("delivery_deadline", e.target.value)}
-                />
-              </div>
-              <div className="col-span-2">
-                <Label>Observações (opcional)</Label>
-                <Textarea
-                  value={editing.notes ?? ""}
-                  onChange={(e) => editSet("notes", e.target.value)}
-                />
-              </div>
-              <div className="col-span-2">
-                <Label>Link do Google Drive (opcional)</Label>
-                <div className="flex gap-2">
-                  <Input
-                    placeholder="https://drive.google.com/..."
-                    value={editing.google_drive_link ?? ""}
-                    onChange={(e) => editSet("google_drive_link", e.target.value)}
-                  />
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() =>
-                      window.open(
-                        "https://drive.google.com/drive/u/0/home",
-                        "_blank",
-                        "noopener,noreferrer",
-                      )
-                    }
-                  >
-                    Abrir Drive
-                  </Button>
-                </div>
-              </div>
-              <div className="col-span-2">
-                <Label>Link da Plataforma (pasta interna) (opcional)</Label>
-                <div className="flex gap-2">
-                  <Input
-                    placeholder="Cole aqui o link gerado no Chat Organizador"
-                    value={editing.platform_link ?? ""}
-                    onChange={(e) => editSet("platform_link", e.target.value)}
-                  />
-                  <Button type="button" variant="outline" asChild>
-                    <a href="/chat-organizador" target="_blank" rel="noreferrer">
-                      Abrir Chat
-                    </a>
-                  </Button>
-                </div>
-                <p className="text-[11px] text-muted-foreground mt-1">
-                  Opcional. Se quiser, informe um dos dois links (Drive ou Plataforma). Não precisa
-                  preencher os dois.
-                </p>
-              </div>
-            </div>
-          )}
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setEditing(null)}>
-              Cancelar
-            </Button>
-            <Button onClick={submitEdit} disabled={editSaving}>
-              {editSaving && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-              {editing?.payment_method === "pix" || editing?.payment_method === "cartao"
-                ? "Confirmar e Salvar"
-                : "Salvar"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-      <Dialog open={!!paymentLinkData} onOpenChange={(open) => !open && setPaymentLinkData(null)}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 text-emerald-600">
-              <QrCode className="w-5 h-5" />
-              Pagamento Gerado
-            </DialogTitle>
-          </DialogHeader>
-          <div className="flex flex-col items-center justify-center space-y-6 py-4">
-            <div className="p-4 bg-white rounded-2xl border-2 border-emerald-100 shadow-sm">
-              <QRCodeSVG value={paymentLinkData?.url || ""} size={200} />
-            </div>
+      <EditSaleDialog
+        editing={editing}
+        onOpenChange={(o) => !o && setEditing(null)}
+        onFieldChange={editFieldChange}
+        editSet={editSet}
+        customersAll={customersAll.data ?? []}
+        sellers={sellers.data ?? []}
+        producers={producers.data ?? []}
+        serviceTypes={serviceTypes.data ?? []}
+        packages={packages.data ?? []}
+        editSaving={editSaving}
+        onCancel={() => setEditing(null)}
+        onSubmit={submitEdit}
+      />
 
-            <div className="w-full space-y-2">
-              <Label className="text-xs text-muted-foreground uppercase font-bold tracking-wider">
-                Link de Pagamento
-              </Label>
-              <div className="flex items-center gap-2 p-3 bg-muted rounded-lg border group relative">
-                <span className="text-sm truncate flex-1 font-medium">{paymentLinkData?.url}</span>
-                <Button
-                  size="icon"
-                  variant="ghost"
-                  className="h-8 w-8 hover:bg-emerald-50 hover:text-emerald-600 transition-colors"
-                  onClick={() => {
-                    navigator.clipboard.writeText(paymentLinkData?.url || "");
-                    toast.success("Link copiado!");
-                  }}
-                >
-                  <Copy className="h-4 w-4" />
-                </Button>
-              </div>
-            </div>
-
-            <Button
-              className="w-full bg-emerald-600 hover:bg-emerald-700 h-11 text-base font-bold shadow-lg shadow-emerald-200"
-              onClick={() => window.open(paymentLinkData?.url, "_blank")}
-            >
-              <ExternalLink className="w-4 h-4 mr-2" />
-              Abrir Página de Pagamento
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
+      <PaymentLinkDialog
+        paymentLinkData={paymentLinkData}
+        onOpenChange={(o) => !o && setPaymentLinkData(null)}
+      />
     </div>
   );
 }
