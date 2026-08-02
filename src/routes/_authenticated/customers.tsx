@@ -51,6 +51,7 @@ import { toast } from "sonner";
 import { z } from "zod";
 import { waHref, formatPhoneBR } from "@/lib/phone";
 import { VirtualTableRows } from "@/components/virtual-list";
+import { TableSkeletonRows, TableEmptyRow, CardGridSkeleton, EmptyState } from "@/components/list-states";
 
 const customerSearchSchema = z.object({
   search: z.string().optional(),
