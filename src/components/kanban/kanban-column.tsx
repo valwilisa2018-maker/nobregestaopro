@@ -351,6 +351,7 @@ export function KanbanColumn({
           );
         }}
       />
+      )}
     </div>
   );
 }
