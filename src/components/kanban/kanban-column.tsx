@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Edit2, Plus } from "lucide-react";
 import { KanbanCard, KanbanCardBadgesRow } from "./kanban-card";
 import { KanbanGroupCard } from "./kanban-group-card";
+import { VirtualList } from "@/components/virtual-list";
 import type { KanbanCardData, KanbanColumnData, ProducerOption } from "./types";
 
 export interface KanbanColumnProps {
@@ -188,15 +189,20 @@ export function KanbanColumn({
           </Button>
         </div>
       </div>
-      <div className="space-y-2 min-h-[100px]">
-        {items.map((it) => {
+      <VirtualList
+        items={items}
+        estimateSize={132}
+        gap={8}
+        threshold={20}
+        className="min-h-[100px] max-h-[calc(100vh-260px)]"
+        keyFor={(it) => (it.kind === "group" ? `${col.id}:${it.saleId}` : it.card.id)}
+        renderItem={(it) => {
           if (it.kind === "group") {
             const groupKey = `${col.id}:${it.saleId}`;
             const isOpen = !!expandedGroups[groupKey];
             const first = it.cards[0];
             return (
               <div
-                key={groupKey}
                 className="space-y-2"
                 onDragOver={(e) => {
                   if (draggingFromCol === col.id) {
@@ -279,7 +285,6 @@ export function KanbanColumn({
           const c = it.card;
           return (
             <div
-              key={c.id}
               className="space-y-1"
               onDragOver={(e) => {
                 if (draggingFromCol === col.id) {
@@ -327,8 +332,8 @@ export function KanbanColumn({
               />
             </div>
           );
-        })}
-      </div>
+        }}
+      />
     </div>
   );
 }
