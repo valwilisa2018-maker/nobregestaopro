@@ -26,7 +26,7 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog";
-import { formatCurrency } from "@/lib/auth";
+import { formatCurrency, formatDuracao, dateKey, monthKey, toDateKey, toMonthKey } from "@/lib/format";
 import { toast } from "sonner";
 import {
   DollarSign,
@@ -100,16 +100,6 @@ function parseDuracaoSegundos(name: string): number {
   const mSec = s.match(/(\d+)\s*s\b/);
   if (mSec) return Number(mSec[1]);
   return 0;
-}
-
-function formatDuracao(totalSeconds: number): string {
-  if (!totalSeconds) return "0min";
-  const h = Math.floor(totalSeconds / 3600);
-  const m = Math.floor((totalSeconds % 3600) / 60);
-  const s = totalSeconds % 60;
-  if (h > 0) return `${h}h${m.toString().padStart(2, "0")}min`;
-  if (m > 0) return s > 0 ? `${m}min${s.toString().padStart(2, "0")}s` : `${m}min`;
-  return `${s}s`;
 }
 
 function Dashboard() {

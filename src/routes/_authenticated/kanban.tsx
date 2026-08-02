@@ -19,7 +19,8 @@ import { waHref, formatPhoneBR } from "@/lib/phone";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Search } from "lucide-react";
 import { fmtDate, fmtDateTime } from "@/lib/format";
-import { formatCurrency, useAuth, isAdmin as isAdminRole } from "@/lib/auth";
+import { useAuth, isAdmin as isAdminRole } from "@/lib/auth";
+import { formatCurrency, formatVideoDuration } from "@/lib/format";
 import { autoLinkFolderFromUrl } from "@/lib/project-folders";
 
 // Histórico de movimentação do card no Kanban.
@@ -113,13 +114,8 @@ async function checkDeliveryPaymentReminder(cardIds: string[], columnName?: stri
   }
 }
 
-// Formata segundos em rótulo curto: 30s, 1min, 1min30s, 2min...
-function fmtVideoDuration(sec?: number | null): string {
-  if (!sec || sec < 1) return "";
-  const m = Math.floor(sec / 60);
-  const s = sec % 60;
-  return m === 0 ? `${s}s` : s === 0 ? `${m}min` : `${m}min${s}s`;
-}
+// Rótulo curto de duração: ver @/lib/format
+const fmtVideoDuration = formatVideoDuration;
 
 // Converte "2:30", "1:02:30", "150s", "2min30s", "2min", "150" para segundos.
 // Retorna null se a entrada estiver vazia, 0 se ilegível.

@@ -95,15 +95,8 @@ export function parseDuracaoSegundos(name: string): number {
   return 0;
 }
 
-export function formatDuracao(totalSeconds: number): string {
-  if (!totalSeconds || totalSeconds <= 0) return "0min";
-  const h = Math.floor(totalSeconds / 3600);
-  const m = Math.floor((totalSeconds % 3600) / 60);
-  const s = totalSeconds % 60;
-  if (h > 0) return `${h}h${m.toString().padStart(2, "0")}min`;
-  if (m > 0) return s > 0 ? `${m}min${s.toString().padStart(2, "0")}s` : `${m}min`;
-  return `${s}s`;
-}
+export { formatDuracao } from "@/lib/format";
+import { formatDuracao } from "@/lib/format";
 
 export function useOmData() {
   const qc = useQueryClient();

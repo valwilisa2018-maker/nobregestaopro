@@ -17,7 +17,7 @@ import { Plus, Loader2, Pencil, Eye, Trash2, Check, Search, X, ShoppingCart } fr
 import { User, Building2, Badge as BadgeIcon, Phone, Mail, DollarSign, CreditCard, Package as PackageIcon, Layers, Calendar, Compass, MessageSquare, Link as LinkIcon, Upload as UploadIcon, ShieldCheck, Users, Clapperboard, Clock, ReceiptText } from "lucide-react";
 import { toast } from "sonner";
 import { logger } from "@/lib/logger";
-import { formatCurrency } from "@/lib/auth";
+import { formatCurrency, formatVideoDuration, toDateKey } from "@/lib/format";
 import { fmtDate } from "@/lib/format";
 import { createPaymentLink } from "@/lib/pagarme.functions";
 import { Copy, Link2, ExternalLink } from "lucide-react";
@@ -169,12 +169,7 @@ const VIDEO_DURATION_OPTIONS: { value: number; label: string }[] = Array.from({ 
   return { value: sec, label };
 });
 
-export function formatVideoDuration(sec?: number | null): string {
-  if (!sec || sec < 1) return "";
-  const m = Math.floor(sec / 60);
-  const s = sec % 60;
-  return m === 0 ? `${s}s` : s === 0 ? `${m}min` : `${m}min${s}s`;
-}
+export { formatVideoDuration } from "@/lib/format";
 
 function SalesPage() {
   const qc = useQueryClient();
