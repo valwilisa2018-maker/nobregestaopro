@@ -30,7 +30,7 @@ function AuthLayout() {
       try {
         const { data, error } = await supabase.auth.getSession();
         if (error) throw error;
-        
+
         if (!mounted) return;
 
         if (!data.session) {
@@ -47,15 +47,12 @@ function AuthLayout() {
         if (retryCount < 2 && mounted) {
           // Exponential backoff retry for network issues
           setTimeout(() => checkSession(retryCount + 1), 1000 * (retryCount + 1));
+          return;
         } else if (mounted) {
           navigate({ to: "/login" });
         }
       } finally {
-        if (mounted && retryCount >= 2) setReady(true);
-        else if (mounted && !ready && setReady) {
-          // If we got a result (even negative) or error out after retries
-          setReady(true);
-        }
+        if (mounted) setReady(true);
       }
     };
 
@@ -75,7 +72,7 @@ function AuthLayout() {
       mounted = false;
       if (authSubscription) authSubscription.unsubscribe();
     };
-  }, [navigate, ready]);
+  }, [navigate]);
 
   if (!ready || !authed) {
     return (
@@ -108,7 +105,9 @@ function AuthLayout() {
               <span className="hidden sm:inline-flex items-center gap-1.5 rounded-full border border-border/60 bg-card/60 px-2.5 py-1 text-[11px] font-medium tabular-nums text-muted-foreground backdrop-blur">
                 <Clock className="w-3 h-3 text-emerald-500" />
                 <span className="tracking-wide">{nowBR}</span>
-                <span className="text-[9px] uppercase tracking-[0.16em] text-muted-foreground/70">BRT</span>
+                <span className="text-[9px] uppercase tracking-[0.16em] text-muted-foreground/70">
+                  BRT
+                </span>
               </span>
             </div>
           </header>
