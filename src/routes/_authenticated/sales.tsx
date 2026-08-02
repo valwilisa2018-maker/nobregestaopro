@@ -294,57 +294,10 @@ function SalesPage() {
     }, 0);
   }, [salesList]);
 
-  const sellers = useQuery({
-    queryKey: ["sellers-all"],
-    queryFn: async () => {
-      const { data, error } = await supabase.from("sellers").select("id,name").eq("active", true);
-      if (error) {
-        toast.error("Erro ao carregar vendedores");
-        throw error;
-      }
-      return data ?? [];
-    },
-  });
-  const producers = useQuery({
-    queryKey: ["producers-all"],
-    queryFn: async () => {
-      const { data, error } = await supabase.from("producers").select("id,name").eq("active", true);
-      if (error) {
-        toast.error("Erro ao carregar produtores");
-        throw error;
-      }
-      return data ?? [];
-    },
-  });
-  const serviceTypes = useQuery({
-    queryKey: ["st-all"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("service_types")
-        .select("id,name")
-        .eq("active", true)
-        .order("sort_order");
-      if (error) {
-        toast.error("Erro ao carregar tipos de serviço");
-        throw error;
-      }
-      return data ?? [];
-    },
-  });
-  const packages = useQuery({
-    queryKey: ["pkg-all"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("packages")
-        .select("id,name,quantity")
-        .eq("active", true);
-      if (error) {
-        toast.error("Erro ao carregar pacotes");
-        throw error;
-      }
-      return data ?? [];
-    },
-  });
+  const sellers = useQuery(activeSellersQuery());
+  const producers = useQuery(activeProducersQuery());
+  const serviceTypes = useQuery(activeServiceTypesQuery());
+  const packages = useQuery(activePackagesQuery());
 
   const filteredSales = useMemo(() => {
     const list = salesList ?? [];
