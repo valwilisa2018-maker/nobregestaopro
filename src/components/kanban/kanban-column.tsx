@@ -193,6 +193,11 @@ export function KanbanColumn({
           </Button>
         </div>
       </div>
+      {loading ? (
+        <div className="min-h-[100px]">
+          <KanbanCardsSkeleton count={3} />
+        </div>
+      ) : (
       <VirtualList
         items={items}
         estimateSize={132}
@@ -200,6 +205,14 @@ export function KanbanColumn({
         threshold={20}
         className="min-h-[100px] max-h-[calc(100vh-260px)]"
         keyFor={(it) => (it.kind === "group" ? `${col.id}:${it.saleId}` : it.card.id)}
+        emptyState={
+          <EmptyState
+            className="min-h-[100px] justify-center py-6"
+            icon={<Inbox className="h-4 w-4" />}
+            title="Nenhum card"
+            description={search || producerFilter !== "all" ? "Nada corresponde aos filtros atuais." : "Arraste um card para cá ou use o + acima."}
+          />
+        }
         renderItem={(it) => {
           if (it.kind === "group") {
             const groupKey = `${col.id}:${it.saleId}`;
