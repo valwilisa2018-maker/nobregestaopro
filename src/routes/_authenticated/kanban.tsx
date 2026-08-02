@@ -727,6 +727,7 @@ function KanbanPage() {
             key={col.id}
             col={col}
             cards={cardsData}
+            loading={cards.isLoading}
             producers={producersData}
             search={search}
             producerFilter={producerFilter}
