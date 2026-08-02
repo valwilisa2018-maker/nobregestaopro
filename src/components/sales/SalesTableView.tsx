@@ -10,9 +10,10 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Loader2, Pencil, Trash2, Check, ExternalLink, Link2 } from "lucide-react";
+import { Pencil, Trash2, Check, ExternalLink, Link2, Receipt } from "lucide-react";
 import { formatCurrency, fmtDate } from "@/lib/format";
 import { VirtualTableRows } from "@/components/virtual-list";
+import { TableSkeletonRows, TableEmptyRow } from "@/components/list-states";
 import { SaleReceiptDialog } from "./SaleReceiptDialog";
 import type { SaleRecord } from "./types";
 
@@ -58,14 +59,7 @@ export function SalesTableView({
             </TableRow>
           </TableHeader>
           <TableBody>
-            {loadingSales && (
-              <TableRow>
-                <TableCell colSpan={8} className="text-center py-12">
-                  <Loader2 className="w-8 h-8 animate-spin mx-auto text-primary" />
-                  <p className="mt-2 text-sm text-muted-foreground">Carregando vendas...</p>
-                </TableCell>
-              </TableRow>
-            )}
+            {loadingSales && <TableSkeletonRows rows={8} columns={8} />}
             {!!salesError && (
               <TableRow>
                 <TableCell colSpan={8} className="text-center py-12 text-destructive">
