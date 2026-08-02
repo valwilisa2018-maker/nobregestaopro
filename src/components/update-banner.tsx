@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { RefreshCw } from "lucide-react";
-import { confetti, preloadConfetti } from "@/lib/confetti";
+import { confetti } from "@/lib/confetti";
 
 async function getVersion(): Promise<string | null> {
   try {

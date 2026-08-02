@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { confetti, preloadConfetti } from "@/lib/confetti";
+import { confetti } from "@/lib/confetti";
 import { playCelebrationSound, type SoundId } from "@/lib/celebration-sound";
 import { useCelebrationSettings } from "@/hooks/use-celebration-settings";
 
