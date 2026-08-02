@@ -543,14 +543,14 @@ function Dashboard() {
   }, [all, serviceTypes.data, packages.data, scopeSince]);
 
   const monthChart = Array.from({ length: 12 }, (_, i) => {
-    const m = new Date().getMonth();
-    const month = (m - 11 + i + 12) % 12;
-    const year = new Date().getFullYear() - (m - 11 + i < 0 ? 1 : 0);
+    const ref = new Date();
+    const d = new Date(ref.getFullYear(), ref.getMonth() - 11 + i, 1);
+    const month = d.getMonth();
+    const year = d.getFullYear();
+    // Comparação por texto "YYYY-MM" evita deslocamento de fuso horário
+    const key = `${year}-${String(month + 1).padStart(2, "0")}`;
     const total = all
-      .filter((s) => {
-        const d = new Date(s.sale_date || s.created_at);
-        return d.getMonth() === month && d.getFullYear() === year;
-      })
+      .filter((s) => String(s.sale_date || s.created_at).slice(0, 7) === key)
       .reduce((a, s) => a + Number(s.total_amount), 0);
     return { mes: ["Jan","Fev","Mar","Abr","Mai","Jun","Jul","Ago","Set","Out","Nov","Dez"][month], total };
   });
@@ -558,11 +558,13 @@ function Dashboard() {
   // Últimos 30 dias (Area)
   const last30 = useMemo(() => {
     const days: { dia: string; total: number }[] = [];
+    const toKey = (d: Date) =>
+      `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
     for (let i = 29; i >= 0; i--) {
       const d = new Date(); d.setHours(0, 0, 0, 0); d.setDate(d.getDate() - i);
-      const next = new Date(d); next.setDate(next.getDate() + 1);
+      const key = toKey(d);
       const total = all
-        .filter((s) => new Date(s.sale_date || s.created_at) >= d && new Date(s.sale_date || s.created_at) < next)
+        .filter((s) => String(s.sale_date || s.created_at).slice(0, 10) === key)
         .reduce((a, s) => a + Number(s.total_amount), 0);
       days.push({ dia: `${d.getDate().toString().padStart(2, "0")}/${(d.getMonth() + 1).toString().padStart(2, "0")}`, total });
     }
