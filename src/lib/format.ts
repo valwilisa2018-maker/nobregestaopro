@@ -1,7 +1,8 @@
-// Brazilian date/time/number formatting helpers.
-// Uses pt-BR with America/Sao_Paulo for consistent display.
+// Camada única de formatação (datas, moeda, duração) em pt-BR / America/Sao_Paulo.
+// Regra do projeto: nenhum componente deve declarar formatadores próprios —
+// importe daqui para manter a saída idêntica em todas as telas.
 
-const TZ = "America/Sao_Paulo";
+export const TZ = "America/Sao_Paulo";
 
 // Parse "YYYY-MM-DD" or ISO datetime into a Date without TZ shifting for date-only.
 function parse(d?: string | Date | null): Date | null {
