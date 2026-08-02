@@ -453,7 +453,7 @@ function Dashboard() {
   const scopeSaleIdSet = useMemo(() => new Set(scopeSalesList.map((s) => s.id)), [scopeSalesList]);
   const saleById = useMemo(() => new Map(all.map((s: any) => [s.id, s])), [all]);
   const receiptsScope = (receipts.data ?? []).filter((r: any) => {
-    const dateKey = (r.paid_at || r.created_at || "").slice(0, 10);
+    const receiptKey = toDateKey(r.paid_at || r.created_at);
     if (!dateKey || dateKey < scopeSince || dateKey > scopeUntil) return false;
     // Não conta o sinal (recebimento de venda do próprio escopo já entra em Sinal via paid_amount)
     if (scopeSaleIdSet.has(r.sale_id)) return false;
@@ -744,9 +744,8 @@ function Dashboard() {
     const month = d.getMonth();
     const year = d.getFullYear();
     // Comparação por texto "YYYY-MM" evita deslocamento de fuso horário
-    const key = `${year}-${String(month + 1).padStart(2, "0")}`;
-    const total = all
-      .filter((s) => String(s.sale_date || s.created_at).slice(0, 7) === key)
+    const key = monthKey(d);
+    const total = all.filter((s) => toMonthKey(s.sale_date || s.created_at) === key)
       .reduce((a, s) => a + Number(s.total_amount), 0);
     return {
       mes: ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"][
@@ -759,15 +758,13 @@ function Dashboard() {
   // Últimos 30 dias (Area)
   const last30 = useMemo(() => {
     const days: { dia: string; total: number }[] = [];
-    const toKey = (d: Date) =>
-      `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
     for (let i = 29; i >= 0; i--) {
       const d = new Date();
       d.setHours(0, 0, 0, 0);
       d.setDate(d.getDate() - i);
-      const key = toKey(d);
+      const key = dateKey(d);
       const total = all
-        .filter((s) => String(s.sale_date || s.created_at).slice(0, 10) === key)
+        .filter((s) => toDateKey(s.sale_date || s.created_at) === key)
         .reduce((a, s) => a + Number(s.total_amount), 0);
       days.push({
         dia: `${d.getDate().toString().padStart(2, "0")}/${(d.getMonth() + 1).toString().padStart(2, "0")}`,
