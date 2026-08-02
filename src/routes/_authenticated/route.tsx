@@ -30,7 +30,7 @@ function AuthLayout() {
       try {
         const { data, error } = await supabase.auth.getSession();
         if (error) throw error;
-        
+
         if (!mounted) return;
 
         if (!data.session) {
@@ -105,7 +105,9 @@ function AuthLayout() {
               <span className="hidden sm:inline-flex items-center gap-1.5 rounded-full border border-border/60 bg-card/60 px-2.5 py-1 text-[11px] font-medium tabular-nums text-muted-foreground backdrop-blur">
                 <Clock className="w-3 h-3 text-emerald-500" />
                 <span className="tracking-wide">{nowBR}</span>
-                <span className="text-[9px] uppercase tracking-[0.16em] text-muted-foreground/70">BRT</span>
+                <span className="text-[9px] uppercase tracking-[0.16em] text-muted-foreground/70">
+                  BRT
+                </span>
               </span>
             </div>
           </header>
