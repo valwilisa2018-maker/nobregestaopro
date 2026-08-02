@@ -412,6 +412,7 @@ function FolderDetail() {
     if (!list.length || !folder.data) return;
     setBusy("__zip");
     try {
+      const { default: JSZip } = await import("jszip");
       const zip = new JSZip();
       const used = new Map<string, number>();
       for (const it of list) {
