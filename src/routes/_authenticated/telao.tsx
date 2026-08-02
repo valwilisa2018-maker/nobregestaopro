@@ -301,7 +301,6 @@ async function playSound(id: SoundId, vol = 1, customUrl?: string) {
 
 // Confetti dourado, mais intenso
 function fireConfetti() {
-  preloadConfetti();
   const end = Date.now() + 2200;
   const gold = ["#f0d78c", "#c9a84c", "#a07d2a", "#ffffff", "#fff7d6"];
   (function frame() {
@@ -426,6 +425,8 @@ function Telao() {
 
   useEffect(() => {
     const onFs = () => setKiosk(!!document.fullscreenElement);
+    // Aquece o chunk do confete para que a 1ª celebração seja instantânea.
+    preloadConfetti();
     document.addEventListener("fullscreenchange", onFs);
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") setKiosk(false);
