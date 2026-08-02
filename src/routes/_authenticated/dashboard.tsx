@@ -410,23 +410,20 @@ function Dashboard() {
   );
   const sinalScope = scopeSalesList.reduce((a, s) => a + Number(s.paid_amount ?? 0), 0);
   const scopeSaleIdSet = useMemo(() => new Set(scopeSalesList.map((s) => s.id)), [scopeSalesList]);
-  const saleById = useMemo(() => new Map(all.map((s: any) => [s.id, s])), [all]);
-  const receiptsScope = (receipts.data ?? []).filter((r: any) => {
+  const saleById = useMemo(() => new Map(all.map((s) => [s.id, s])), [all]);
+  const receiptsScope = (receipts.data ?? []).filter((r) => {
     const receiptKey = toDateKey(r.paid_at || r.created_at);
     if (!receiptKey || receiptKey < scopeSince || receiptKey > scopeUntil) return false;
     // Não conta o sinal (recebimento de venda do próprio escopo já entra em Sinal via paid_amount)
     if (scopeSaleIdSet.has(r.sale_id)) return false;
     // Respeita filtros de vendedor/serviço via venda pai
-    const sale: any = saleById.get(r.sale_id);
+    const sale = saleById.get(r.sale_id);
     if (!sale) return false;
     if (sellerFilter !== "all" && sale.seller_id !== sellerFilter) return false;
     if (serviceFilter !== "all" && sale.service_type_id !== serviceFilter) return false;
     return true;
   });
-  const recebPendentesScope = receiptsScope.reduce(
-    (a: number, r: any) => a + Number(r.amount ?? 0),
-    0,
-  );
+  const recebPendentesScope = receiptsScope.reduce((a, r) => a + Number(r.amount ?? 0), 0);
   const totalRecebidoScope = sinalScope + recebPendentesScope;
   const scopePeriodLabel =
     scope === "day"
@@ -457,7 +454,7 @@ function Dashboard() {
   // "A fazer"     = coluna marcada como is_default (primeira coluna do fluxo)
   // "Em produção" = colunas intermediárias (is_done=false e is_default=false), ex.: "Produção", "Alteração a Fazer"
   // "Entregue"    = colunas com is_done=true (Pronto / Entregue / Alteração Pronta)
-  const ordersList = (orders.data ?? []) as any[];
+  const ordersList = orders.data ?? [];
   const ordersTodo = ordersList.filter((o) => o.kanban_columns?.is_default === true).length;
   const ordersInProd = ordersList.filter(
     (o) =>
@@ -481,7 +478,7 @@ function Dashboard() {
 
     // Contar quantos desses serviços (service_orders) já foram entregues
     const saleIds = new Set(influencers.map((s) => s.id));
-    const influencerOrders = ordersList.filter((o) => saleIds.has(o.sale_id));
+    const influencerOrders = ordersList.filter((o) => o.sale_id != null && saleIds.has(o.sale_id));
     const delivered = influencerOrders.filter(
       (o) => !!o.delivered_at || o.kanban_columns?.is_done,
     ).length;
@@ -490,7 +487,7 @@ function Dashboard() {
   }, [all, serviceTypes.data, ordersList]);
 
   // Invoices: emitidas vs aguardando
-  const invList = (invoices.data ?? []) as any[];
+  const invList = invoices.data ?? [];
   const invIssued = invList.filter((i) => i.status === "emitida" || !!i.issued_at).length;
   const invPending = invList.length - invIssued;
 
@@ -524,16 +521,16 @@ function Dashboard() {
   // "Em produção" = card está hoje em uma coluna não concluída.
   // Minutagem é extraída do próprio nome do card (ex.: "2:30", "1min30s").
   const producerRanking = (producers.data ?? [])
-    .map((p: any) => {
+    .map((p) => {
       const ofProducer = ordersList.filter((o) => o.producer_id === p.id);
       // Valor total produzido no MÊS corrente (zera na virada do mês)
       const monthISOStart = startOf("month").slice(0, 10);
-      const saleById = new Map(all.map((s: any) => [s.id, s]));
+      const saleById = new Map(all.map((s) => [s.id, s]));
       const valorTotal = ofProducer.reduce((acc, o) => {
         if (!(o.delivered_at || o.kanban_columns?.is_done)) return acc;
         const d = (o.delivered_at ?? "").slice(0, 10);
         if (!d || d < monthISOStart) return acc;
-        const sale: any = saleById.get(o.sale_id);
+        const sale = o.sale_id != null ? saleById.get(o.sale_id) : undefined;
         if (!sale) return acc;
         const qty = Math.max(Number(sale.service_quantity || 1), 1);
         return acc + Number(sale.total_amount || 0) / qty;
@@ -570,8 +567,8 @@ function Dashboard() {
       const segundosProntos = prontoList.reduce(
         (acc, o) =>
           acc +
-          (Number((o as any).video_duration_seconds) ||
-            Number((o as any).sales?.video_duration_seconds) ||
+          (Number(o.video_duration_seconds) ||
+            Number((o as { sales?: { video_duration_seconds?: number | null } }).sales?.video_duration_seconds) ||
             parseDuracaoSegundos(o.title ?? "")),
         0,
       );
@@ -599,7 +596,7 @@ function Dashboard() {
 
   // Ranking de "Em Produção" por produtor — reflete o Kanban real (estado atual)
   const inProductionRanking = (producers.data ?? [])
-    .map((p: any) => {
+    .map((p) => {
       const emProducao = ordersList.filter(
         (o) =>
           o.producer_id === p.id &&
@@ -638,7 +635,7 @@ function Dashboard() {
         dayNum: i,
         entregues,
         // Para dias futuros, deixa o total cumulativo como null para não desenhar a linha à frente
-        total: i <= today ? acc : (null as any),
+        total: i <= today ? acc : (null as unknown as number),
       });
     }
     return series;
@@ -649,7 +646,7 @@ function Dashboard() {
   // que já têm delivered_at, agrupando por hoje e pelo mês corrente.
   const minutagemStats = useMemo(() => {
     const durBySale = new Map<string, number>();
-    for (const s of (sales.data ?? []) as any[]) {
+    for (const s of sales.data ?? []) {
       const dur = Number(s.video_duration_seconds ?? 0);
       if (dur > 0) durBySale.set(s.id, dur);
     }
@@ -662,7 +659,7 @@ function Dashboard() {
     for (const o of ordersList) {
       if (!o.delivered_at) continue;
       // Prefere a minutagem específica do card; cai para a da venda.
-      const dur = Number(o.video_duration_seconds ?? 0) || (durBySale.get(o.sale_id) ?? 0);
+      const dur = Number(o.video_duration_seconds ?? 0) || (o.sale_id != null ? (durBySale.get(o.sale_id) ?? 0) : 0);
       if (dur <= 0) continue;
       const d = o.delivered_at.slice(0, 10);
       if (d >= monthKey) {
@@ -680,8 +677,8 @@ function Dashboard() {
   // Produtos / serviços mais vendidos (no escopo) — combina service_types + packages
   const productRanking = useMemo(() => {
     const map = new Map<string, { name: string; total: number; qtd: number }>();
-    const stById = new Map((serviceTypes.data ?? []).map((s: any) => [s.id, s.name]));
-    const pkById = new Map((packages.data ?? []).map((p: any) => [p.id, p.name]));
+    const stById = new Map((serviceTypes.data ?? []).map((s) => [s.id, s.name]));
+    const pkById = new Map((packages.data ?? []).map((p) => [p.id, p.name]));
     for (const s of all) {
       if (!inScope(s.sale_date || s.created_at)) continue;
       const name = s.package_id
@@ -904,9 +901,9 @@ function Dashboard() {
         scopeLabel={current.label}
         customers={customers.data ?? []}
         sellers={sellers.data ?? []}
-        producers={(producers.data ?? []) as any}
-        serviceTypes={(serviceTypes.data ?? []) as any}
-        packages={(packages.data ?? []) as any}
+        producers={producers.data ?? []}
+        serviceTypes={serviceTypes.data ?? []}
+        packages={packages.data ?? []}
       />
     </div>
   );
