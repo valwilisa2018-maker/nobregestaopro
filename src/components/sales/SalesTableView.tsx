@@ -1,3 +1,4 @@
+import { useRef } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -11,6 +12,7 @@ import {
 } from "@/components/ui/table";
 import { Loader2, Pencil, Trash2, Check, ExternalLink, Link2 } from "lucide-react";
 import { formatCurrency, fmtDate } from "@/lib/format";
+import { VirtualTableRows } from "@/components/virtual-list";
 import { SaleReceiptDialog } from "./SaleReceiptDialog";
 import type { SaleRecord } from "./types";
 
@@ -37,11 +39,13 @@ export function SalesTableView({
   onDelete,
   onQuickConfirm,
 }: SalesTableViewProps) {
+  const scrollRef = useRef<HTMLDivElement>(null);
   return (
     <Card className="border-border/50" style={{ boxShadow: "var(--shadow-card)" }}>
       <CardContent className="p-0">
-        <Table>
-          <TableHeader>
+        <div ref={scrollRef} className="max-h-[70vh] overflow-auto">
+          <Table>
+          <TableHeader className="sticky top-0 z-10 bg-card">
             <TableRow>
               <TableHead>Data</TableHead>
               <TableHead>Cliente</TableHead>
@@ -75,10 +79,15 @@ export function SalesTableView({
                 </TableCell>
               </TableRow>
             )}
-            {!loadingSales &&
-              !salesError &&
-              filteredSales.map((s) => (
-                <TableRow key={s.id}>
+            {!loadingSales && !salesError && (
+              <VirtualTableRows
+                items={filteredSales}
+                scrollRef={scrollRef}
+                colSpan={8}
+                estimateSize={68}
+                keyFor={(s) => s.id}
+                renderRow={(s) => (
+                  <TableRow>
                   <TableCell className="whitespace-nowrap">{fmtDate(s.sale_date)}</TableCell>
                   <TableCell>
                     <div className="font-semibold text-base">{s.customers?.company || "—"}</div>
@@ -155,8 +164,10 @@ export function SalesTableView({
                       <SaleReceiptDialog sale={s} statusVariant={statusVariant} />
                     </div>
                   </TableCell>
-                </TableRow>
-              ))}
+                  </TableRow>
+                )}
+              />
+            )}
             {!loadingSales && !salesError && filteredSales.length === 0 && (
               <TableRow>
                 <TableCell colSpan={8} className="text-center text-muted-foreground py-8">
@@ -165,7 +176,8 @@ export function SalesTableView({
               </TableRow>
             )}
           </TableBody>
-        </Table>
+          </Table>
+        </div>
       </CardContent>
     </Card>
   );
