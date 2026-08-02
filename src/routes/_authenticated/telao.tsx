@@ -301,6 +301,7 @@ async function playSound(id: SoundId, vol = 1, customUrl?: string) {
 
 // Confetti dourado, mais intenso
 function fireConfetti() {
+  preloadConfetti();
   const end = Date.now() + 2200;
   const gold = ["#f0d78c", "#c9a84c", "#a07d2a", "#ffffff", "#fff7d6"];
   (function frame() {
