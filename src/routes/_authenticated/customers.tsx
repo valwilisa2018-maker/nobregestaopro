@@ -477,8 +477,9 @@ function CustomersPage() {
       {viewMode === "table" ? (
         <Card className="border-border/50">
           <CardContent className="p-0">
+            <div ref={tableScrollRef} className="max-h-[70vh] overflow-auto">
             <Table>
-              <TableHeader>
+              <TableHeader className="sticky top-0 z-10 bg-card">
                 <TableRow>
                   <TableHead>Cliente</TableHead>
                   <TableHead>Empresa</TableHead>
@@ -491,14 +492,19 @@ function CustomersPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {rows.map((c: any) => {
+                <VirtualTableRows
+                  items={rows as any[]}
+                  scrollRef={tableScrollRef}
+                  colSpan={8}
+                  estimateSize={72}
+                  keyFor={(c: any) => c.id}
+                  renderRow={(c: any) => {
                   const isPaid = c._paid >= c._total && c._total > 0;
                   const isPartial = c._paid > 0 && c._paid < c._total;
                   const isPending = c._paid === 0 && c._total > 0;
 
                   return (
                     <TableRow
-                      key={c.id}
                       className="cursor-pointer hover:bg-muted/40"
                       onClick={() => setSelected(c)}
                     >
@@ -555,7 +561,8 @@ function CustomersPage() {
                       </TableCell>
                     </TableRow>
                   );
-                })}
+                  }}
+                />
                 {rows.length === 0 && (
                   <TableRow>
                     <TableCell colSpan={8} className="text-center text-muted-foreground py-8">
@@ -565,6 +572,7 @@ function CustomersPage() {
                 )}
               </TableBody>
             </Table>
+            </div>
           </CardContent>
         </Card>
       ) : (
