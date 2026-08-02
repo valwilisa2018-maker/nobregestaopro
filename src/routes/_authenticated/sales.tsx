@@ -957,7 +957,7 @@ function SalesPage() {
         const { error: cuError } = await supabase
           .from("customers")
           .update({
-            name: editing.customer_name || editing.customers?.name,
+            name: editing.customer_name || editing.customers?.name || undefined,
             company: editing.company || editing.customers?.company,
             document: editing.document || editing.customers?.document,
             phone: editing.phone || editing.customers?.phone,
