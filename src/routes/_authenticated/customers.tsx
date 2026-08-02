@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useMemo, useState, useEffect } from "react";
+import { useMemo, useState, useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import {
   sellersMinQuery,
@@ -50,6 +50,7 @@ import { fmtDate } from "@/lib/format";
 import { toast } from "sonner";
 import { z } from "zod";
 import { waHref, formatPhoneBR } from "@/lib/phone";
+import { VirtualTableRows } from "@/components/virtual-list";
 
 const customerSearchSchema = z.object({
   search: z.string().optional(),
@@ -78,6 +79,7 @@ const MONTHS = [
 const waLink = (phone?: string | null) => waHref(phone);
 
 function CustomersPage() {
+  const tableScrollRef = useRef<HTMLDivElement>(null);
   const { search: searchParam } = Route.useSearch();
   const queryClient = useQueryClient();
   const [year, setYear] = useState<string>("all");
