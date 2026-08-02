@@ -137,9 +137,20 @@ function RootComponent() {
   const router = useRouter();
 
   useEffect(() => {
+    let lastUserId: string | null | undefined;
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange(() => {
+    } = supabase.auth.onAuthStateChange((event, session) => {
+      const userId = session?.user?.id ?? null;
+      // Ignora eventos que não mudam de identidade (INITIAL_SESSION,
+      // TOKEN_REFRESHED a cada ~1h, USER_UPDATED): invalidar tudo neles
+      // dispara um refetch global desnecessário em todas as telas.
+      if (event !== "SIGNED_IN" && event !== "SIGNED_OUT") {
+        lastUserId = userId;
+        return;
+      }
+      if (lastUserId !== undefined && lastUserId === userId) return;
+      lastUserId = userId;
       router.invalidate();
       queryClient.invalidateQueries();
     });
