@@ -26,7 +26,14 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog";
-import { formatCurrency, formatDuracao, dateKey, monthKey, toDateKey, toMonthKey } from "@/lib/format";
+import {
+  formatCurrency,
+  formatDuracao,
+  dateKey,
+  monthKey,
+  toDateKey,
+  toMonthKey,
+} from "@/lib/format";
 import { toast } from "sonner";
 import {
   DollarSign,
@@ -745,7 +752,8 @@ function Dashboard() {
     const year = d.getFullYear();
     // Comparação por texto "YYYY-MM" evita deslocamento de fuso horário
     const key = monthKey(d);
-    const total = all.filter((s) => toMonthKey(s.sale_date || s.created_at) === key)
+    const total = all
+      .filter((s) => toMonthKey(s.sale_date || s.created_at) === key)
       .reduce((a, s) => a + Number(s.total_amount), 0);
     return {
       mes: ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"][

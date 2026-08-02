@@ -121,5 +121,3 @@ function AuthLayout() {
     </SidebarProvider>
   );
 }
-
-
