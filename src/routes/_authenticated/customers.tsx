@@ -39,7 +39,7 @@ import {
   Users,
 } from "lucide-react";
 import { PageHero } from "@/components/page-hero";
-import { formatCurrency } from "@/lib/auth";
+import { formatCurrency, dateKey, toDateKey } from "@/lib/format";
 import { fmtDate } from "@/lib/format";
 import { toast } from "sonner";
 import { z } from "zod";
@@ -193,14 +193,13 @@ function CustomersPage() {
   const rows = useMemo(() => {
     const term = search.trim().toLowerCase();
     // Datas comparadas como texto "YYYY-MM-DD" para evitar deslocamento de fuso
-    const toKey = (d: Date) =>
-      `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
     const now = new Date();
-    const today = toKey(now);
-    const weekRef = new Date(now.getFullYear(), now.getMonth(), now.getDate() - now.getDay());
-    const startOfWeek = toKey(weekRef);
-    const startOfMonth = toKey(new Date(now.getFullYear(), now.getMonth(), 1));
-    const startOfYear = toKey(new Date(now.getFullYear(), 0, 1));
+    const today = dateKey(now);
+    const startOfWeek = dateKey(
+      new Date(now.getFullYear(), now.getMonth(), now.getDate() - now.getDay()),
+    );
+    const startOfMonth = dateKey(new Date(now.getFullYear(), now.getMonth(), 1));
+    const startOfYear = dateKey(new Date(now.getFullYear(), 0, 1));
 
     return (q.data ?? [])
       .map((c: any) => {
@@ -208,7 +207,7 @@ function CustomersPage() {
           // Date/Period Filter
           if (period !== "all") {
             if (!s.sale_date) return false;
-            const saleKey = String(s.sale_date).slice(0, 10);
+            const saleKey = toDateKey(s.sale_date);
             if (period === "today" && saleKey !== today) return false;
             if (period === "week" && saleKey < startOfWeek) return false;
             if (period === "month" && saleKey < startOfMonth) return false;

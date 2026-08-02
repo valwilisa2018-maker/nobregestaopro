@@ -54,7 +54,6 @@ export const hasRole = (roles: AppRole[], role: AppRole) => roles.includes(role)
 export const isAdmin = (roles: AppRole[]) => roles.includes("admin");
 export const isSuperAdmin = (roles: AppRole[]) => roles.includes("super_admin");
 
-export const formatCurrency = (v: number | string | null | undefined) => {
-  const n = typeof v === "string" ? parseFloat(v) : v ?? 0;
-  return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(n);
-};
+// Formatação vive em @/lib/format. Reexportado aqui apenas por compatibilidade
+// com os imports existentes — prefira importar de "@/lib/format".
+export { formatCurrency } from "@/lib/format";

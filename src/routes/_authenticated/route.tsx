@@ -6,6 +6,7 @@ import { AppSidebar } from "@/components/app-sidebar";
 import { Loader2, Clock } from "lucide-react";
 import { useTelaoSettingsSync } from "@/hooks/use-telao-settings-sync";
 import { ReleaseNoteCard } from "@/components/release-note-card";
+import { formatBrasiliaTime } from "@/lib/format";
 
 export const Route = createFileRoute("/_authenticated")({
   component: AuthLayout,
@@ -16,9 +17,9 @@ function AuthLayout() {
   const [ready, setReady] = useState(false);
   const [authed, setAuthed] = useState(false);
   useTelaoSettingsSync();
-  const [nowBR, setNowBR] = useState(() => formatBrasilia(new Date()));
+  const [nowBR, setNowBR] = useState(() => formatBrasiliaTime());
   useEffect(() => {
-    const id = setInterval(() => setNowBR(formatBrasilia(new Date())), 1000);
+    const id = setInterval(() => setNowBR(formatBrasiliaTime()), 1000);
     return () => clearInterval(id);
   }, []);
 
@@ -119,14 +120,4 @@ function AuthLayout() {
       </div>
     </SidebarProvider>
   );
-}
-
-function formatBrasilia(d: Date) {
-  return new Intl.DateTimeFormat("pt-BR", {
-    timeZone: "America/Sao_Paulo",
-    hour: "2-digit",
-    minute: "2-digit",
-    second: "2-digit",
-    hour12: false,
-  }).format(d);
 }
