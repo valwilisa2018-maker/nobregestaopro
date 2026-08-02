@@ -494,6 +494,8 @@ function CustomersPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
+                {q.isLoading && <TableSkeletonRows rows={8} columns={8} />}
+                {!q.isLoading && (
                 <VirtualTableRows
                   items={rows as any[]}
                   scrollRef={tableScrollRef}
@@ -565,12 +567,14 @@ function CustomersPage() {
                   );
                   }}
                 />
-                {rows.length === 0 && (
-                  <TableRow>
-                    <TableCell colSpan={8} className="text-center text-muted-foreground py-8">
-                      Nenhum cliente encontrado
-                    </TableCell>
-                  </TableRow>
+                )}
+                {!q.isLoading && rows.length === 0 && (
+                  <TableEmptyRow
+                    colSpan={8}
+                    icon={<User className="h-5 w-5" />}
+                    title="Nenhum cliente encontrado"
+                    description="Tente limpar a busca ou os filtros de período para ver todos os clientes."
+                  />
                 )}
               </TableBody>
             </Table>
