@@ -1,4 +1,4 @@
-import { createFileRoute, Outlet, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Outlet, useNavigate, useRouterState } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { SidebarProvider, SidebarTrigger, SidebarInset } from "@/components/ui/sidebar";
@@ -17,6 +17,7 @@ function AuthLayout() {
   const [ready, setReady] = useState(false);
   const [authed, setAuthed] = useState(false);
   useTelaoSettingsSync();
+  const pathname = useRouterState({ select: (s) => s.location.pathname });
   const [nowBR, setNowBR] = useState(() => formatBrasiliaTime());
   useEffect(() => {
     const id = setInterval(() => setNowBR(formatBrasiliaTime()), 1000);
@@ -112,9 +113,11 @@ function AuthLayout() {
               </span>
             </div>
           </header>
-          <main className="flex-1 min-w-0 p-4 md:p-6 overflow-x-hidden">
-            <Outlet />
-            <ReleaseNoteCard />
+          <main className="flex-1 min-w-0 overflow-x-hidden p-4 md:p-6 lg:p-8">
+            <div key={pathname} className="animate-fade-up space-y-6">
+              <Outlet />
+              <ReleaseNoteCard />
+            </div>
           </main>
         </SidebarInset>
       </div>

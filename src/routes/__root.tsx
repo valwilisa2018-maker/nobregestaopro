@@ -151,7 +151,7 @@ function RootComponent() {
       <div translate="no" className="notranslate">
         <WhiteLabelProvider />
         <Outlet />
-        <Toaster richColors theme="dark" position="top-right" />
+        <Toaster richColors closeButton theme="dark" position="top-right" />
         <UpdateBanner />
       </div>
     </QueryClientProvider>
