@@ -47,15 +47,12 @@ function AuthLayout() {
         if (retryCount < 2 && mounted) {
           // Exponential backoff retry for network issues
           setTimeout(() => checkSession(retryCount + 1), 1000 * (retryCount + 1));
+          return;
         } else if (mounted) {
           navigate({ to: "/login" });
         }
       } finally {
-        if (mounted && retryCount >= 2) setReady(true);
-        else if (mounted && !ready && setReady) {
-          // If we got a result (even negative) or error out after retries
-          setReady(true);
-        }
+        if (mounted) setReady(true);
       }
     };
 
@@ -75,7 +72,7 @@ function AuthLayout() {
       mounted = false;
       if (authSubscription) authSubscription.unsubscribe();
     };
-  }, [navigate, ready]);
+  }, [navigate]);
 
   if (!ready || !authed) {
     return (
