@@ -5,11 +5,14 @@ import { Edit2, Plus } from "lucide-react";
 import { KanbanCard, KanbanCardBadgesRow } from "./kanban-card";
 import { KanbanGroupCard } from "./kanban-group-card";
 import { VirtualList } from "@/components/virtual-list";
+import { KanbanCardsSkeleton, EmptyState } from "@/components/list-states";
+import { Inbox } from "lucide-react";
 import type { KanbanCardData, KanbanColumnData, ProducerOption } from "./types";
 
 export interface KanbanColumnProps {
   col: KanbanColumnData;
   cards: KanbanCardData[];
+  loading?: boolean;
   producers: ProducerOption[];
   search: string;
   producerFilter: string;
@@ -40,6 +43,7 @@ type Item = { kind: "solo"; card: KanbanCardData } | { kind: "group"; saleId: st
 export function KanbanColumn({
   col,
   cards,
+  loading = false,
   producers,
   search,
   producerFilter,
