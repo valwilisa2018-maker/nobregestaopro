@@ -1,3 +1,4 @@
+import { useMemo } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Edit2, Plus } from "lucide-react";
@@ -63,6 +64,7 @@ export function KanbanColumn({
   onEditColumn,
 }: KanbanColumnProps) {
   const q = search.trim().toLowerCase();
+  const { colCards, items } = useMemo(() => {
   const colCards = cards.filter((c: any) => {
     if (c.column_id !== col.id) return false;
     if (producerFilter !== "all" && !q) {
@@ -130,6 +132,8 @@ export function KanbanColumn({
     else items.push({ kind: "solo", card: arr[0] });
   }
   for (const c of soloCards) items.push({ kind: "solo", card: c });
+  return { colCards, items };
+  }, [cards, col.id, col.is_default, producerFilter, q]);
 
   const movingIds = () => (draggingGroup && draggingGroup.length ? draggingGroup : dragging ? [dragging] : []);
 
