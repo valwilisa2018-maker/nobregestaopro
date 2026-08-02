@@ -1,6 +1,11 @@
+import type { Database } from "@/integrations/supabase/types";
+
 // Shared types for the Sales route and its extracted presentational components.
 // These intentionally mirror the loosely-typed Supabase query shapes used by
 // src/routes/_authenticated/sales.tsx so behavior/data flow stays identical.
+
+export type PaymentStatus = Database["public"]["Enums"]["payment_status"];
+export type PaymentMethod = Database["public"]["Enums"]["payment_method"];
 
 export interface LookupOption {
   id: string;
@@ -37,8 +42,8 @@ export interface SaleRecord {
   sale_date: string;
   total_amount: number;
   paid_amount: number;
-  payment_status: string;
-  payment_method: string;
+  payment_status: PaymentStatus;
+  payment_method: PaymentMethod | null;
   seller_id?: string | null;
   producer_id?: string | null;
   service_type_id?: string | null;
