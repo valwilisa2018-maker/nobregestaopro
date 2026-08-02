@@ -163,11 +163,12 @@ export function SalesTableView({
               />
             )}
             {!loadingSales && !salesError && filteredSales.length === 0 && (
-              <TableRow>
-                <TableCell colSpan={8} className="text-center text-muted-foreground py-8">
-                  Nenhuma venda cadastrada ainda
-                </TableCell>
-              </TableRow>
+              <TableEmptyRow
+                colSpan={8}
+                icon={<Receipt className="h-5 w-5" />}
+                title="Nenhuma venda encontrada"
+                description="Ajuste os filtros de período/status ou cadastre uma nova venda para vê-la aqui."
+              />
             )}
           </TableBody>
           </Table>
