@@ -10,7 +10,6 @@ import { toast } from "sonner";
 import { type CategoryId, detectCategory, uploadToFolder, getSignedUrl } from "@/lib/project-folders";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
-import JSZip from "jszip";
 import DOMPurify from "dompurify";
 
 function sanitizeHtml(html: string): string {
@@ -413,6 +412,7 @@ function FolderDetail() {
     if (!list.length || !folder.data) return;
     setBusy("__zip");
     try {
+      const { default: JSZip } = await import("jszip");
       const zip = new JSZip();
       const used = new Map<string, number>();
       for (const it of list) {

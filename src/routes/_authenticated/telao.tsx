@@ -5,7 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { formatCurrency } from "@/lib/auth";
 import { fmtDate, fmtTime } from "@/lib/format";
 import { Maximize2, Minimize2, Volume2, VolumeX, ArrowUpRight, Megaphone, Bell, Coins, Pencil, X, Music } from "lucide-react";
-import confetti from "canvas-confetti";
+import { confetti, preloadConfetti } from "@/lib/confetti";
 import { useCelebrationSettings, SoundId as SoundType } from "@/hooks/use-celebration-settings";
 import { useBigSellerOverlaySeconds } from "@/hooks/use-telao-settings";
 import caixaRegistradoraAsset from "@/assets/caixa-registradora.m4a.asset.json";
@@ -425,6 +425,8 @@ function Telao() {
 
   useEffect(() => {
     const onFs = () => setKiosk(!!document.fullscreenElement);
+    // Aquece o chunk do confete para que a 1ª celebração seja instantânea.
+    preloadConfetti();
     document.addEventListener("fullscreenchange", onFs);
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") setKiosk(false);
