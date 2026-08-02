@@ -10,7 +10,6 @@ import { toast } from "sonner";
 import { type CategoryId, detectCategory, uploadToFolder, getSignedUrl } from "@/lib/project-folders";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
-import JSZip from "jszip";
 import DOMPurify from "dompurify";
 
 function sanitizeHtml(html: string): string {
