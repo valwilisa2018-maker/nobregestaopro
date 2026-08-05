@@ -48,7 +48,11 @@ export function VirtualList<T>({
 
   if (!virtualize) {
     return (
-      <div className={className} style={style}>
+      <div
+        ref={parentRef}
+        className={cn("overflow-y-auto overflow-x-hidden", className)}
+        style={style}
+      >
         {items.map((item, i) => (
           <div key={keyFor(item, i)} style={i > 0 ? { marginTop: gap } : undefined}>
             {renderItem(item, i)}
