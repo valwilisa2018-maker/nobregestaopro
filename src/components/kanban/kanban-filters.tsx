@@ -1,7 +1,7 @@
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Search } from "lucide-react";
-import { PrivateImage } from "@/components/private-image";
+import { KanbanPersonAvatar } from "./person-avatar";
 import type { ProducerOption } from "./types";
 
 export interface KanbanFiltersProps {
@@ -46,18 +46,12 @@ export function KanbanFilters({
             onClick={() => onProducerFilterChange(p.id)}
             className="whitespace-nowrap gap-2"
           >
-            <span className="w-5 h-5 rounded-full bg-muted overflow-hidden border flex items-center justify-center text-[10px] font-bold">
-              {p.avatar_url ? (
-                <PrivateImage
-                  bucket="producer-avatars"
-                  value={p.avatar_url}
-                  alt={p.name}
-                  className="w-full h-full object-cover"
-                />
-              ) : (
-                (p.name?.charAt(0)?.toUpperCase() ?? "?")
-              )}
-            </span>
+            <KanbanPersonAvatar
+              bucket="producer-avatars"
+              name={p.name}
+              value={p.avatar_url}
+              className="h-5 w-5"
+            />
             {p.name}
           </Button>
         ))}
