@@ -143,7 +143,7 @@ function KanbanPage() {
       const { data, error } = await supabase
         .from("service_orders")
         .select(
-          "*, producer:producers!service_orders_producer_id_fkey(name), sales(total_amount, paid_amount, payment_status, trello_link, google_drive_link, platform_link, producer_id, expected_delivery_date, video_duration_seconds, customers(name,company,phone), sellers(name), producers(name))",
+          "*, producer:producers!service_orders_producer_id_fkey(name,avatar_url), sales(total_amount, paid_amount, payment_status, trello_link, google_drive_link, platform_link, producer_id, expected_delivery_date, video_duration_seconds, customers(name,company,phone), sellers(name,avatar_url), producers(name,avatar_url))",
         )
         .order("created_at", { ascending: true })
         .order("service_index", { ascending: true });
@@ -751,7 +751,12 @@ function KanbanPage() {
             openNew={openNew}
             openEdit={openEdit}
             onEditColumn={(c) =>
-              setEditingColumn({ id: c.id, name: c.name, color: c.color, producer_id: c.producer_id })
+              setEditingColumn({
+                id: c.id,
+                name: c.name,
+                color: c.color,
+                producer_id: c.producer_id,
+              })
             }
           />
         ))}
