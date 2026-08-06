@@ -633,8 +633,14 @@ function SalesPage() {
       if (linkedCustomerId) {
         existing = list.find((c: any) => c.id === linkedCustomerId) || null;
       } else if (form.document.trim()) {
-        const doc = form.document.trim();
-        existing = list.find((c: any) => (c.document ?? "").trim() === doc) || null;
+        // Só reaproveita o cliente quando o documento é um CPF/CNPJ real
+        // (11 ou 14 dígitos). Textos livres como "vai passar" não identificam
+        // ninguém e faziam vendas de clientes diferentes cair no mesmo cadastro.
+        const digits = form.document.replace(/\D/g, "");
+        if (digits.length === 11 || digits.length === 14) {
+          existing =
+            list.find((c: any) => (c.document ?? "").replace(/\D/g, "") === digits) || null;
+        }
       }
       let cust: any;
       if (existing) {
