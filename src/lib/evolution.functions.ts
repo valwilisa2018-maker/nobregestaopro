@@ -147,6 +147,17 @@ export const testConnection = createServerFn({ method: "POST" })
     if (!c) return { ok: false, status: "offline" as const, state: "missing", missing: true, raw: null };
     const apiKey = await loadEvolutionCommandKey(context.supabase, c.api_key);
     const r = await evoFetch(`${baseUrl(c.url_api)}/instance/connectionState/${c.instance_name}`, apiKey);
+    const preservedStatus =
+      c.status === "online" || c.status === "connecting" ? c.status : "offline";
+    if (!r.ok) {
+      return {
+        ok: false,
+        status: preservedStatus as "online" | "connecting" | "offline",
+        state: "unreachable",
+        raw: r.json,
+        message: parseEvoError(r.json, r.status),
+      };
+    }
     const state = r.json?.instance?.state ?? r.json?.state ?? (r.ok ? "unknown" : "error");
     const status = state === "open" ? "online" : state === "connecting" ? "connecting" : "offline";
     await context.supabase.from("connections").update({ status, last_sync: new Date().toISOString() }).eq("id", c.id).eq("user_id", context.userId);
@@ -448,6 +459,16 @@ function messageDto(row: any, metadata?: Record<string, unknown>) {
   };
 }
 
+async function insertMessageRow(supabase: any, payload: Record<string, unknown>) {
+  const { data, error } = await supabase.from("messages").insert(payload).select(
+    "id,direction,type,content,media_url,created_at,metadata",
+  ).single();
+  if (error || !data) {
+    throw new Error(error?.message ?? "Falha ao salvar mensagem");
+  }
+  return data;
+}
+
 async function getOrCreateConversationForJid(
   supabase: any, userId: string, connectionId: string, remoteJid: string,
 ) {
@@ -513,6 +534,17 @@ export const sendChatText = createServerFn({ method: "POST" })
     const remoteJid = `${number}@s.whatsapp.net`;
     const convoId = await getOrCreateConversationForJid(context.supabase, context.userId, conn.id, remoteJid);
     const quoted = await buildQuoted(context.supabase, context.userId, data.quotedMessageId);
+    const saved = await insertMessageRow(context.supabase, {
+      user_id: context.userId,
+      conversation_id: convoId,
+      direction: "outbound",
+      type: "text",
+      content: data.text,
+      metadata: { remoteJid, manual: true, pending: true, ...(quoted.meta ?? {}) } as never,
+    });
+    await context.supabase.from("conversations").update({
+      last_message_at: new Date().toISOString(),
+    }).eq("id", convoId).eq("user_id", context.userId);
     let r = await evoFetch(`${baseUrl(conn.url_api)}/message/sendText/${conn.instance_name}`, apiKey, {
       method: "POST",
       body: JSON.stringify({ number, text: data.text }),
@@ -525,19 +557,14 @@ export const sendChatText = createServerFn({ method: "POST" })
     }
     if (!r.ok) {
       const error = parseEvoError(r.json, r.status);
-      return { ok: false as const, error, conversationId: convoId, message: null };
+      const failedMeta = { ...metadataObject(saved.metadata), pending: false, failed: true, error };
+      await context.supabase.from("messages").update({ metadata: failedMeta as never }).eq("id", saved.id).eq("user_id", context.userId);
+      return { ok: false as const, error, conversationId: convoId, message: messageDto(saved, failedMeta) };
     }
     const evoId = findEvoId(r.json);
     const status = normalizeEvoStatus(r.json?.status ?? r.json?.ack ?? r.json?.messageStatus) ?? "sent";
-    const nextMeta = { remoteJid, manual: true, pending: false, sent: true, status, ...(quoted.meta ?? {}), ...(evoId ? { evoId } : {}) };
-    const { data: saved } = await context.supabase.from("messages").insert({
-      user_id: context.userId, conversation_id: convoId,
-      direction: "outbound", type: "text", content: data.text,
-      metadata: nextMeta as never,
-    }).select("id,direction,type,content,media_url,created_at,metadata").single();
-    await context.supabase.from("conversations").update({
-      last_message_at: new Date().toISOString(),
-    }).eq("id", convoId).eq("user_id", context.userId);
+    const nextMeta = { ...metadataObject(saved.metadata), pending: false, sent: true, status, ...(evoId ? { evoId } : {}) };
+    await context.supabase.from("messages").update({ metadata: nextMeta as never }).eq("id", saved.id).eq("user_id", context.userId);
     return { ok: true, conversationId: convoId, message: messageDto(saved, nextMeta) };
   });
 
@@ -624,14 +651,14 @@ export const sendChatMedia = createServerFn({ method: "POST" })
     const convoId = await getOrCreateConversationForJid(context.supabase, context.userId, conn.id, remoteJid);
     const stored = await saveMediaToStorage(context.supabase, context.userId, convoId, b64, data.mime, data.fileName);
     const quoted = await buildQuoted(context.supabase, context.userId, data.quotedMessageId);
-    const { data: saved } = await context.supabase.from("messages").insert({
+    const saved = await insertMessageRow(context.supabase, {
       user_id: context.userId, conversation_id: convoId,
       direction: "outbound",
       type: mediatype,
       content: data.caption ?? data.fileName,
       media_url: stored.url,
       metadata: { remoteJid, manual: true, fileName: data.fileName, mime: data.mime, storagePath: stored.path, pending: true, ...(quoted.meta ?? {}) } as never,
-    }).select("id,direction,type,content,media_url,created_at,metadata").single();
+    });
     await context.supabase.from("conversations").update({
       last_message_at: new Date().toISOString(),
     }).eq("id", convoId).eq("user_id", context.userId);
@@ -767,12 +794,12 @@ export const sendChatAudio = createServerFn({ method: "POST" })
     const convoId = await getOrCreateConversationForJid(context.supabase, context.userId, conn.id, remoteJid);
     const stored = await saveMediaToStorage(context.supabase, context.userId, convoId, audio, "audio/webm", "audio.webm");
     const quoted = await buildQuoted(context.supabase, context.userId, data.quotedMessageId);
-    const { data: saved } = await context.supabase.from("messages").insert({
+    const saved = await insertMessageRow(context.supabase, {
       user_id: context.userId, conversation_id: convoId,
       direction: "outbound", type: "audio", content: "[áudio]",
       media_url: stored.url,
       metadata: { remoteJid, manual: true, audio: true, mime: "audio/webm", storagePath: stored.path, pending: true, ...(quoted.meta ?? {}) } as never,
-    }).select("id,direction,type,content,media_url,created_at,metadata").single();
+    });
     await context.supabase.from("conversations").update({
       last_message_at: new Date().toISOString(),
     }).eq("id", convoId).eq("user_id", context.userId);

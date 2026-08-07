@@ -475,8 +475,14 @@ function MessagesPage() {
           toast.error(res.error || "Falha ao enviar — toque em ! para tentar novamente");
           return;
         }
+        if (!serverMsg) {
+          retryRegistry.current.set(tmpId, { contactId, body });
+          setMsgs((prev) => prev.map((m) => m.id === tmpId ? { ...m, metadata: { ...(m.metadata ?? {}), pending: false, failed: true } } : m));
+          toast.error("A mensagem foi enviada, mas não foi confirmada no histórico. Tente novamente.");
+          return;
+        }
         retryRegistry.current.delete(tmpId);
-        if (serverMsg) mergeMessageIntoThread(serverMsg, tmpId, contactId);
+        mergeMessageIntoThread(serverMsg, tmpId, contactId);
       })
       .catch((e) => {
         retryRegistry.current.set(tmpId, { contactId, body });
