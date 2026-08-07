@@ -1,6 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { buildEvolutionTextPayload } from "@/lib/evolution-text-payload";
 import { getStageAutomation, renderTemplate } from "./pipeline-automations";
 
 const Input = z.object({
@@ -22,7 +23,7 @@ async function evoSendText(url: string, apiKey: string, instance: string, number
     const r = await fetch(`${baseUrl(url)}/message/sendText/${instance}`, {
       method: "POST",
       headers: { "Content-Type": "application/json", apikey: apiKey },
-      body: JSON.stringify({ number, text, delay: 500 }),
+      body: JSON.stringify(buildEvolutionTextPayload(number, text, { delay: 500 })),
       signal: controller.signal,
     });
     const body = await r.text().catch(() => "");

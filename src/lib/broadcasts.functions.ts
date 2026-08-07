@@ -1,6 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { buildEvolutionTextPayload } from "@/lib/evolution-text-payload";
 
 async function loadEvolutionCommandKey(supabase: any, fallback: string) {
   const { data: setting } = await supabase
@@ -316,7 +317,7 @@ export const runBroadcastBatch = createServerFn({ method: "POST" })
           const res = await fetch(url, {
             method: "POST",
             headers: { "Content-Type": "application/json", apikey: commandKey },
-            body: JSON.stringify({ number, text }),
+            body: JSON.stringify(buildEvolutionTextPayload(number, text)),
           });
           if (!res.ok) throw new Error(`HTTP ${res.status}`);
         }
@@ -455,7 +456,7 @@ export const runSequentialBatch = createServerFn({ method: "POST" })
         const res = await fetch(url, {
           method: "POST",
           headers: { "Content-Type": "application/json", apikey: commandKey },
-          body: JSON.stringify({ number, text }),
+          body: JSON.stringify(buildEvolutionTextPayload(number, text)),
         });
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         tl.push({ step: idx, at: new Date().toISOString(), status: "sent", message: text });

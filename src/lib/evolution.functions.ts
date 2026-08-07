@@ -2,6 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { getRequestHost } from "@tanstack/react-start/server";
 import { z } from "zod";
+import { buildEvolutionTextPayload } from "@/lib/evolution-text-payload";
 
 const MEDIA_BUCKET = "agent-media";
 
@@ -215,7 +216,7 @@ export const sendTestMessage = createServerFn({ method: "POST" })
     const apiKey = await loadEvolutionCommandKey(context.supabase, c.api_key);
     const r = await evoFetch(`${baseUrl(c.url_api)}/message/sendText/${c.instance_name}`, apiKey, {
       method: "POST",
-      body: JSON.stringify({ number: raw, text, delay: 500 }),
+      body: JSON.stringify(buildEvolutionTextPayload(raw, text, { delay: 500 })),
     });
     if (!r.ok) {
       const pick = (v: any): string => {
@@ -508,6 +509,17 @@ function parseEvoError(json: any, status: number) {
   }`;
 }
 
+function buildEvolutionFailureMeta(metadata: unknown, response: { json: any; status: number }, error?: string) {
+  return {
+    ...metadataObject(metadata),
+    pending: false,
+    failed: true,
+    error: error ?? parseEvoError(response.json, response.status),
+    evoStatus: response.status,
+    evoResponse: serializable(response.json),
+  };
+}
+
 function shouldRetryWithoutQuoted(json: any, status: number) {
   if (status < 400 || status >= 500) return false;
   const hay = JSON.stringify(json ?? {}).toLowerCase();
@@ -547,17 +559,17 @@ export const sendChatText = createServerFn({ method: "POST" })
     }).eq("id", convoId).eq("user_id", context.userId);
     let r = await evoFetch(`${baseUrl(conn.url_api)}/message/sendText/${conn.instance_name}`, apiKey, {
       method: "POST",
-      body: JSON.stringify({ number, text: data.text }),
+      body: JSON.stringify(buildEvolutionTextPayload(number, data.text)),
     });
     if (!r.ok && quoted.evo && shouldRetryWithoutQuoted(r.json, r.status)) {
       r = await evoFetch(`${baseUrl(conn.url_api)}/message/sendText/${conn.instance_name}`, apiKey, {
         method: "POST",
-        body: JSON.stringify({ number, text: data.text }),
+        body: JSON.stringify(buildEvolutionTextPayload(number, data.text)),
       });
     }
     if (!r.ok) {
       const error = parseEvoError(r.json, r.status);
-      const failedMeta = { ...metadataObject(saved.metadata), pending: false, failed: true, error };
+      const failedMeta = buildEvolutionFailureMeta(saved.metadata, r, error);
       await context.supabase.from("messages").update({ metadata: failedMeta as never }).eq("id", saved.id).eq("user_id", context.userId);
       return { ok: false as const, error, conversationId: convoId, message: messageDto(saved, failedMeta) };
     }
@@ -680,8 +692,9 @@ export const sendChatMedia = createServerFn({ method: "POST" })
     }
     if (!r.ok) {
       const error = parseEvoError(r.json, r.status);
-      if (saved?.id) await context.supabase.from("messages").update({ metadata: { ...metadataObject(saved.metadata), pending: false, failed: true, error } as never }).eq("id", saved.id).eq("user_id", context.userId);
-      return { ok: false as const, error, conversationId: convoId, message: messageDto(saved, { ...metadataObject(saved?.metadata), pending: false, failed: true, error }) };
+      const failedMeta = buildEvolutionFailureMeta(saved?.metadata, r, error);
+      if (saved?.id) await context.supabase.from("messages").update({ metadata: failedMeta as never }).eq("id", saved.id).eq("user_id", context.userId);
+      return { ok: false as const, error, conversationId: convoId, message: messageDto(saved, failedMeta) };
     }
     const evoId = findEvoId(r.json);
     const status = normalizeEvoStatus(r.json?.status ?? r.json?.ack ?? r.json?.messageStatus) ?? "sent";
@@ -815,8 +828,9 @@ export const sendChatAudio = createServerFn({ method: "POST" })
     }
     if (!r.ok) {
       const error = parseEvoError(r.json, r.status);
-      if (saved?.id) await context.supabase.from("messages").update({ metadata: { ...metadataObject(saved.metadata), pending: false, failed: true, error } as never }).eq("id", saved.id).eq("user_id", context.userId);
-      return { ok: false as const, error, conversationId: convoId, message: messageDto(saved, { ...metadataObject(saved?.metadata), pending: false, failed: true, error }) };
+      const failedMeta = buildEvolutionFailureMeta(saved?.metadata, r, error);
+      if (saved?.id) await context.supabase.from("messages").update({ metadata: failedMeta as never }).eq("id", saved.id).eq("user_id", context.userId);
+      return { ok: false as const, error, conversationId: convoId, message: messageDto(saved, failedMeta) };
     }
     const evoId = findEvoId(r.json);
     const status = normalizeEvoStatus(r.json?.status ?? r.json?.ack ?? r.json?.messageStatus) ?? "sent";
@@ -1151,11 +1165,12 @@ export const sendQuickSend = createServerFn({ method: "POST" })
         metadata: { remoteJid, manual: true, quickSendId: qs.id, pending: true } as never,
       }).select("id,metadata").single();
       const r = await evoFetch(`${baseUrl(conn.url_api)}/message/sendText/${conn.instance_name}`, apiKey, {
-        method: "POST", body: JSON.stringify({ number, text: bodyText }),
+        method: "POST", body: JSON.stringify(buildEvolutionTextPayload(number, bodyText)),
       });
       if (!r.ok) {
         const error = parseEvoError(r.json, r.status);
-        if (saved?.id) await context.supabase.from("messages").update({ metadata: { ...metadataObject(saved.metadata), pending: false, failed: true, error } as never }).eq("id", saved.id).eq("user_id", context.userId);
+        const failedMeta = buildEvolutionFailureMeta(saved?.metadata, r, error);
+        if (saved?.id) await context.supabase.from("messages").update({ metadata: failedMeta as never }).eq("id", saved.id).eq("user_id", context.userId);
         results.push({ kind: "text", ok: false, error });
       } else {
         const evoId = findEvoId(r.json);
@@ -1191,7 +1206,8 @@ export const sendQuickSend = createServerFn({ method: "POST" })
           });
           if (!r.ok) {
             const error = parseEvoError(r.json, r.status);
-            if (saved?.id) await context.supabase.from("messages").update({ metadata: { ...metadataObject(saved.metadata), pending: false, failed: true, error } as never }).eq("id", saved.id).eq("user_id", context.userId);
+            const failedMeta = buildEvolutionFailureMeta(saved?.metadata, r, error);
+            if (saved?.id) await context.supabase.from("messages").update({ metadata: failedMeta as never }).eq("id", saved.id).eq("user_id", context.userId);
             results.push({ kind: "audio", ok: false, error });
           } else {
             const evoId = findEvoId(r.json);
@@ -1214,7 +1230,8 @@ export const sendQuickSend = createServerFn({ method: "POST" })
           });
           if (!r.ok) {
             const error = parseEvoError(r.json, r.status);
-            if (saved?.id) await context.supabase.from("messages").update({ metadata: { ...metadataObject(saved.metadata), pending: false, failed: true, error } as never }).eq("id", saved.id).eq("user_id", context.userId);
+            const failedMeta = buildEvolutionFailureMeta(saved?.metadata, r, error);
+            if (saved?.id) await context.supabase.from("messages").update({ metadata: failedMeta as never }).eq("id", saved.id).eq("user_id", context.userId);
             results.push({ kind: mediatype, ok: false, error });
           } else {
             const evoId = findEvoId(r.json);
@@ -1261,11 +1278,12 @@ export const forwardChatMessage = createServerFn({ method: "POST" })
       }).select("id,metadata").single();
       await context.supabase.from("conversations").update({ last_message_at: new Date().toISOString() }).eq("id", convoId).eq("user_id", context.userId);
       const r = await evoFetch(`${baseUrl(conn.url_api)}/message/sendText/${conn.instance_name}`, apiKey, {
-        method: "POST", body: JSON.stringify({ number, text: body }),
+        method: "POST", body: JSON.stringify(buildEvolutionTextPayload(number, body)),
       });
       if (!r.ok) {
         const error = parseEvoError(r.json, r.status);
-        if (saved?.id) await context.supabase.from("messages").update({ metadata: { ...metadataObject(saved.metadata), pending: false, failed: true, error } as never }).eq("id", saved.id).eq("user_id", context.userId);
+        const failedMeta = buildEvolutionFailureMeta(saved?.metadata, r, error);
+        if (saved?.id) await context.supabase.from("messages").update({ metadata: failedMeta as never }).eq("id", saved.id).eq("user_id", context.userId);
         return { ok: false as const, error };
       }
       const evoId = findEvoId(r.json);
@@ -1304,7 +1322,8 @@ export const forwardChatMessage = createServerFn({ method: "POST" })
     }
     if (!r.ok) {
       const error = parseEvoError(r.json, r.status);
-      if (saved?.id) await context.supabase.from("messages").update({ metadata: { ...metadataObject(saved.metadata), pending: false, failed: true, error } as never }).eq("id", saved.id).eq("user_id", context.userId);
+      const failedMeta = buildEvolutionFailureMeta(saved?.metadata, r, error);
+      if (saved?.id) await context.supabase.from("messages").update({ metadata: failedMeta as never }).eq("id", saved.id).eq("user_id", context.userId);
       return { ok: false as const, error };
     }
     const evoId = findEvoId(r.json);

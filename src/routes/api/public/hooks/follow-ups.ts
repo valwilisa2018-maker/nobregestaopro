@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { buildEvolutionTextPayload } from "@/lib/evolution-text-payload";
 
 type Ext = {
   followup?: {
@@ -117,7 +118,7 @@ async function runFollowups(request: Request | undefined) {
           const send = await fetch(`${/^https?:\/\//i.test((conn.url_api??"").trim())?(conn.url_api??"").trim().replace(/\/+$/,""):"https://"+(conn.url_api??"").trim().replace(/\/+$/,"")}/message/sendText/${conn.instance_name}`, {
             method: "POST",
             headers: { "Content-Type": "application/json", apikey: commandKey },
-            body: JSON.stringify({ number: remoteJid, text }),
+            body: JSON.stringify(buildEvolutionTextPayload(remoteJid, text)),
           });
           if (!send.ok) {
             await supabaseAdmin.from("logs").insert({
@@ -266,7 +267,7 @@ async function runCampaignFollowups(db: { from: (t: string) => any }) {
         const r = await fetch(`${base}/message/sendText/${conn.instance_name}`, {
           method: "POST",
           headers: { "Content-Type": "application/json", apikey: apiKey },
-          body: JSON.stringify({ number: remoteJid, text }),
+          body: JSON.stringify(buildEvolutionTextPayload(remoteJid, text)),
         });
         if (!r.ok) {
           await db.from("logs").insert({ user_id: c.user_id, level: "error", source: "followup_campaign", message: `sendText failed ${r.status}`, metadata: { followupId: c.id, convId: conv.id } });

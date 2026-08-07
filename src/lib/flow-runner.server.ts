@@ -1,6 +1,7 @@
 // Server-only flow execution engine. Runs a visual flow (nodes+edges from the
 // React Flow builder) against a WhatsApp conversation. Called from the
 // Evolution webhook handler.
+import { buildEvolutionTextPayload } from "@/lib/evolution-text-payload";
 
 type NodeKind =
   | "START" | "MESSAGE" | "CONDITION" | "YESNO" | "IMAGE" | "VIDEO" | "AUDIO"
@@ -100,7 +101,7 @@ async function ev(conn: RunnerConn, path: string, body: unknown, timeoutMs = 12_
 }
 
 async function sendText(conn: RunnerConn, number: string, text: string) {
-  return ev(conn, "/message/sendText", { number, text });
+  return ev(conn, "/message/sendText", buildEvolutionTextPayload(number, text));
 }
 async function sendMedia(conn: RunnerConn, number: string, url: string, kind: "image" | "video" | "audio" | "document", caption?: string) {
   return ev(conn, "/message/sendMedia", { number, mediatype: kind, media: url, caption });

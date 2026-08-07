@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { buildEvolutionTextPayload } from "@/lib/evolution-text-payload";
 
 const NEURAL_CORE = `# NEURAL CORE AI™ — CÉREBRO UNIVERSAL PREMIUM
 Você é o núcleo de inteligência que controla o comportamento deste agente. Pense antes de falar. Toda resposta passa por um processo interno de análise.
@@ -1630,7 +1631,7 @@ async function sendText(conn: { url_api: string | null; api_key: string | null; 
   return fetch(`${normalizeBaseUrl(conn.url_api ?? "")}/message/sendText/${conn.instance_name}`, {
     method: "POST",
     headers: { "Content-Type": "application/json", apikey: conn.api_key ?? "" },
-    body: JSON.stringify({ number, text }),
+    body: JSON.stringify(buildEvolutionTextPayload(number, text)),
   });
 }
 

@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { buildEvolutionTextPayload } from "@/lib/evolution-text-payload";
 
 export const Route = createFileRoute("/api/public/hooks/broadcasts")({
   server: {
@@ -90,7 +91,7 @@ async function runBroadcasts(request: Request | undefined) {
           const res = await fetch(url, {
             method: "POST",
             headers: { "Content-Type": "application/json", apikey: commandKey },
-            body: JSON.stringify({ number, text }),
+            body: JSON.stringify(buildEvolutionTextPayload(number, text)),
           });
           if (!res.ok) throw new Error(`HTTP ${res.status}`);
           tl.push({ step: idx, at: new Date().toISOString(), status: "sent" });
@@ -147,7 +148,7 @@ async function runBroadcasts(request: Request | undefined) {
           const res = await fetch(url, {
             method: "POST",
             headers: { "Content-Type": "application/json", apikey: commandKey },
-            body: JSON.stringify({ number, text }),
+            body: JSON.stringify(buildEvolutionTextPayload(number, text)),
           });
           if (!res.ok) throw new Error(`HTTP ${res.status}`);
           await supabaseAdmin.from("broadcast_recipients").update({
