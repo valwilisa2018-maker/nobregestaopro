@@ -38,8 +38,23 @@ import { PageHero } from "@/components/page-hero";
 import { PrivateImage } from "@/components/private-image";
 import { toast } from "sonner";
 import type { Database } from "@/integrations/supabase/types";
+import { uploadProducerAvatar } from "@/lib/producer-avatar.functions";
 
 type Producer = Database["public"]["Tables"]["producers"]["Row"];
+
+function fileToBase64(file: File) {
+  return new Promise<string>((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onerror = () => reject(new Error("Não foi possível ler a imagem."));
+    reader.onload = () => {
+      const result = String(reader.result ?? "");
+      const base64 = result.includes(",") ? result.slice(result.indexOf(",") + 1) : "";
+      if (base64) resolve(base64);
+      else reject(new Error("Imagem inválida."));
+    };
+    reader.readAsDataURL(file);
+  });
+}
 
 export const Route = createFileRoute("/_authenticated/producers")({
   component: ProducersPage,
@@ -111,14 +126,13 @@ function ProducersPage() {
     }
     setUploading(true);
     try {
-      const ext = (file.name.split(".").pop() ?? "png").toLowerCase().replace(/[^a-z0-9]/g, "");
-      const path = `${editing.id}/${Date.now()}.${ext}`;
-      const { error: upErr } = await supabase.storage
-        .from("producer-avatars")
-        .upload(path, file, { upsert: true });
-      if (upErr) throw upErr;
+      const base64 = await fileToBase64(file);
+      const { path } = await uploadProducerAvatar({
+        data: { producerId: editing.id, contentType: file.type, base64 },
+      });
       setEditing((current) => (current ? { ...current, avatar_url: path } : current));
-      toast.success("Foto enviada. Clique em Salvar para concluir.");
+      qc.invalidateQueries({ queryKey: ["producers-page"] });
+      toast.success("Foto atualizada com sucesso.");
     } catch (error: unknown) {
       toast.error(error instanceof Error ? error.message : "Erro ao enviar foto");
     } finally {
