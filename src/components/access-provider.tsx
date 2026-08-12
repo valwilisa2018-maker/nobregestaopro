@@ -2,7 +2,7 @@
 import { createContext, useContext, useMemo, type ReactNode } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { getMyAccess } from "@/lib/access.functions";
-import { moduleForPath, type PermissionAction } from "@/lib/access-control";
+import { firstAllowedModulePath, moduleForPath, type PermissionAction } from "@/lib/access-control";
 
 type AccessContextValue = {
   loading: boolean;
@@ -12,6 +12,7 @@ type AccessContextValue = {
   isAdmin: boolean;
   can: (module: string, action?: PermissionAction) => boolean;
   canVisit: (pathname: string) => boolean;
+  firstAllowedPath: string | null;
 };
 
 const AccessContext = createContext<AccessContextValue | null>(null);
@@ -43,6 +44,7 @@ export function AccessProvider({ children }: { children: ReactNode }) {
       roles,
       isAdmin,
       can,
+      firstAllowedPath: firstAllowedModulePath((moduleKey) => can(moduleKey, "view")),
       canVisit: (pathname: string) => {
         const module = moduleForPath(pathname);
         return !module || can(module.key, "view");
