@@ -26,6 +26,15 @@ export async function getSignedUrl(
 ): Promise<string | null> {
   const path = storagePathFromValue(bucket, value);
   if (!path) return null;
+
+  // producer-avatars é um bucket público. A política de listagem/leitura via
+  // API foi removida por segurança, mas os objetos continuam disponíveis pelo
+  // CDN público; tentar assinar a URL faria as fotos desaparecerem da interface.
+  if (bucket === "producer-avatars") {
+    const { data } = supabase.storage.from(bucket).getPublicUrl(path);
+    return data.publicUrl;
+  }
+
   const { data, error } = await supabase.storage.from(bucket).createSignedUrl(path, expiresIn);
   if (error) return null;
   return data?.signedUrl ?? null;

@@ -37,6 +37,9 @@ import {
 import { PageHero } from "@/components/page-hero";
 import { PrivateImage } from "@/components/private-image";
 import { toast } from "sonner";
+import type { Database } from "@/integrations/supabase/types";
+
+type Producer = Database["public"]["Tables"]["producers"]["Row"];
 
 export const Route = createFileRoute("/_authenticated/producers")({
   component: ProducersPage,
@@ -46,8 +49,8 @@ function ProducersPage() {
   const qc = useQueryClient();
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState({ name: "", specialty: "", phone: "", email: "" });
-  const [editing, setEditing] = useState<any | null>(null);
-  const [configProducer, setConfigProducer] = useState<any | null>(null);
+  const [editing, setEditing] = useState<Producer | null>(null);
+  const [configProducer, setConfigProducer] = useState<Producer | null>(null);
   const [customCols, setCustomCols] = useState<string[]>([]);
   const [uploading, setUploading] = useState(false);
   const [viewMode, setViewMode] = useState<"table" | "card">("table");
@@ -98,18 +101,26 @@ function ProducersPage() {
   };
   const uploadAvatar = async (file: File) => {
     if (!editing) return;
+    if (!file.type.startsWith("image/")) {
+      toast.error("Selecione um arquivo de imagem válido.");
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error("A foto deve ter no máximo 5 MB.");
+      return;
+    }
     setUploading(true);
     try {
-      const ext = file.name.split(".").pop() ?? "png";
+      const ext = (file.name.split(".").pop() ?? "png").toLowerCase().replace(/[^a-z0-9]/g, "");
       const path = `${editing.id}/${Date.now()}.${ext}`;
       const { error: upErr } = await supabase.storage
         .from("producer-avatars")
         .upload(path, file, { upsert: true });
       if (upErr) throw upErr;
-      setEditing({ ...editing, avatar_url: path });
-      toast.success("Foto enviada");
-    } catch (e: any) {
-      toast.error(e.message ?? "Erro ao enviar foto");
+      setEditing((current) => (current ? { ...current, avatar_url: path } : current));
+      toast.success("Foto enviada. Clique em Salvar para concluir.");
+    } catch (error: unknown) {
+      toast.error(error instanceof Error ? error.message : "Erro ao enviar foto");
     } finally {
       setUploading(false);
     }
@@ -146,16 +157,21 @@ function ProducersPage() {
       qc.invalidateQueries();
     }
   };
-  const openConfig = (p: any) => {
+  const openConfig = (p: Producer) => {
     setConfigProducer(p);
+    const savedColumns = Array.isArray(p.custom_kanban_columns)
+      ? p.custom_kanban_columns.filter((column): column is string => typeof column === "string")
+      : [];
     setCustomCols(
-      p.custom_kanban_columns || [
-        "video ao gravar",
-        "gravação pamela",
-        "gravação ester",
-        "alteração de gravação",
-        "distribuição edição",
-      ],
+      savedColumns.length > 0
+        ? savedColumns
+        : [
+            "video ao gravar",
+            "gravação pamela",
+            "gravação ester",
+            "alteração de gravação",
+            "distribuição edição",
+          ],
     );
   };
   const saveConfig = async () => {
@@ -285,6 +301,9 @@ function ProducersPage() {
                         if (f) uploadAvatar(f);
                       }}
                     />
+                    {uploading && (
+                      <span className="self-center text-xs text-muted-foreground">Enviando...</span>
+                    )}
                     {editing.avatar_url && (
                       <Button
                         variant="outline"
@@ -381,7 +400,7 @@ function ProducersPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {(q.data ?? []).map((p: any) => (
+                {(q.data ?? []).map((p: Producer) => (
                   <TableRow key={p.id}>
                     <TableCell>
                       <div className="w-10 h-10 rounded-full bg-muted overflow-hidden border flex items-center justify-center text-sm font-bold text-muted-foreground">
@@ -451,7 +470,7 @@ function ProducersPage() {
         </Card>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {(q.data ?? []).map((p: any) => (
+          {(q.data ?? []).map((p: Producer) => (
             <Card key={p.id} className="border-border/50 hover:shadow-md transition-shadow">
               <CardContent className="p-4 space-y-4">
                 <div className="flex items-start justify-between">
