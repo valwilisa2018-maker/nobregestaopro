@@ -8,6 +8,9 @@ import { useTelaoSettingsSync } from "@/hooks/use-telao-settings-sync";
 import { ReleaseNoteCard } from "@/components/release-note-card";
 import { TopWeather } from "@/components/top-weather";
 import { formatBrasiliaTime } from "@/lib/format";
+import { AccessProvider, useAccess } from "@/components/access-provider";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 
 export const Route = createFileRoute("/_authenticated")({
   component: AuthLayout,
@@ -84,6 +87,63 @@ function AuthLayout() {
           <Loader2 className="w-6 h-6 animate-spin text-primary" />
           <p className="text-xs text-muted-foreground animate-pulse">Autenticando...</p>
         </div>
+      </div>
+    );
+  }
+
+  return (
+    <AccessProvider>
+      <ProtectedWorkspace pathname={pathname} nowBR={nowBR} />
+    </AccessProvider>
+  );
+}
+
+function ProtectedWorkspace({ pathname, nowBR }: { pathname: string; nowBR: string }) {
+  const navigate = useNavigate();
+  const access = useAccess();
+
+  if (access.loading) {
+    return (
+      <div className="min-h-screen grid place-items-center">
+        <Loader2 className="h-6 w-6 animate-spin text-primary" />
+      </div>
+    );
+  }
+  if (access.error) {
+    return (
+      <div className="min-h-screen grid place-items-center p-4">
+        <Card className="w-full max-w-md">
+          <CardHeader>
+            <CardTitle>Acesso indisponível</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <p className="text-sm text-muted-foreground">
+              Sua conta está inativa ou não foi possível validar suas permissões.
+            </p>
+            <Button className="w-full" onClick={() => supabase.auth.signOut()}>
+              Sair
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+  if (!access.canVisit(pathname)) {
+    return (
+      <div className="min-h-screen grid place-items-center p-4">
+        <Card className="w-full max-w-md">
+          <CardHeader>
+            <CardTitle>Acesso negado</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <p className="text-sm text-muted-foreground">
+              Você não possui permissão para visualizar este módulo.
+            </p>
+            <Button className="w-full" onClick={() => navigate({ to: "/dashboard" })}>
+              Voltar ao Dashboard
+            </Button>
+          </CardContent>
+        </Card>
       </div>
     );
   }

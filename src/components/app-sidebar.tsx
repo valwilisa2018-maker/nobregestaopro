@@ -1,18 +1,49 @@
 import { Link, useRouterState, useNavigate } from "@tanstack/react-router";
 import {
-  LayoutDashboard, ShoppingCart, KanbanSquare, Users, UserCheck, Briefcase,
-  FileText, Settings, LogOut, ListTodo, Database, Sun, Moon, Link2, Wallet, DollarSign, Tv, AlertCircle,
-  CreditCard, Sparkles, Clapperboard, FolderOpen, MessagesSquare, Smartphone,
+  LayoutDashboard,
+  ShoppingCart,
+  KanbanSquare,
+  Users,
+  UserCheck,
+  Briefcase,
+  FileText,
+  Settings,
+  LogOut,
+  ListTodo,
+  Database,
+  Sun,
+  Moon,
+  Link2,
+  Wallet,
+  DollarSign,
+  Tv,
+  AlertCircle,
+  CreditCard,
+  Sparkles,
+  Clapperboard,
+  FolderOpen,
+  MessagesSquare,
+  Smartphone,
   ShieldCheck,
 } from "lucide-react";
 import logoUrl from "@/assets/logo.png";
 import {
-  Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent, SidebarGroupLabel,
-  SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarHeader, SidebarFooter, useSidebar,
+  Sidebar,
+  SidebarContent,
+  SidebarGroup,
+  SidebarGroupContent,
+  SidebarGroupLabel,
+  SidebarMenu,
+  SidebarMenuButton,
+  SidebarMenuItem,
+  SidebarHeader,
+  SidebarFooter,
+  useSidebar,
 } from "@/components/ui/sidebar";
 import { supabase } from "@/integrations/supabase/client";
 import { useTheme } from "@/hooks/use-theme";
-import { useAuth } from "@/lib/auth";
+import { useAccess } from "@/components/access-provider";
+import { moduleForPath } from "@/lib/access-control";
 
 const groups = [
   {
@@ -56,6 +87,7 @@ const groups = [
       { title: "Auditoria", url: "/auditoria", icon: ShieldCheck },
       { title: "Personalização", url: "/white-label", icon: Sparkles },
       { title: "Configurações", url: "/admin", icon: Settings },
+      { title: "Usuários e Permissões", url: "/usuarios", icon: ShieldCheck },
     ],
   },
 ];
@@ -66,8 +98,16 @@ export function AppSidebar() {
   const navigate = useNavigate();
   const current = useRouterState({ select: (s) => s.location.pathname });
   const { theme, toggle } = useTheme();
-  useAuth();
-  const displayedGroups = groups;
+  const access = useAccess();
+  const displayedGroups = groups
+    .map((group) => ({
+      ...group,
+      items: group.items.filter((item) => {
+        const module = moduleForPath(item.url);
+        return !module || access.can(module.key, "view");
+      }),
+    }))
+    .filter((group) => group.items.length > 0);
 
   const logout = async () => {
     await supabase.auth.signOut();
@@ -122,11 +162,17 @@ export function AppSidebar() {
                         tooltip={it.title}
                         className="group/item relative rounded-lg transition-all duration-200 data-[active=true]:bg-sidebar-accent/80 data-[active=true]:shadow-sm data-[active=true]:font-semibold hover:bg-sidebar-accent/50"
                       >
-                        <Link to={it.url} className="flex items-center gap-3" data-tour={`menu-${it.url.replace(/\//g, "")}`}>
+                        <Link
+                          to={it.url}
+                          className="flex items-center gap-3"
+                          data-tour={`menu-${it.url.replace(/\//g, "")}`}
+                        >
                           {active && (
                             <span className="absolute left-0 top-1/2 -translate-y-1/2 h-5 w-0.5 rounded-r-full bg-primary" />
                           )}
-                          <it.icon className={`w-4 h-4 shrink-0 transition-colors ${active ? "text-primary" : "text-muted-foreground group-hover/item:text-foreground"}`} />
+                          <it.icon
+                            className={`w-4 h-4 shrink-0 transition-colors ${active ? "text-primary" : "text-muted-foreground group-hover/item:text-foreground"}`}
+                          />
                           <span className="truncate">{it.title}</span>
                         </Link>
                       </SidebarMenuButton>
