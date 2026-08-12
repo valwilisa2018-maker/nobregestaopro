@@ -193,6 +193,54 @@ export type Database = {
           },
         ]
       }
+      invitations: {
+        Row: {
+          accepted_at: string | null
+          accepted_by: string | null
+          created_at: string
+          created_by: string
+          email: string
+          expires_at: string
+          id: string
+          job_title: string | null
+          name: string
+          permissions: Json
+          revoked_at: string | null
+          status: Database["public"]["Enums"]["invitation_status"]
+          token_hash: string
+        }
+        Insert: {
+          accepted_at?: string | null
+          accepted_by?: string | null
+          created_at?: string
+          created_by: string
+          email: string
+          expires_at?: string
+          id?: string
+          job_title?: string | null
+          name: string
+          permissions?: Json
+          revoked_at?: string | null
+          status?: Database["public"]["Enums"]["invitation_status"]
+          token_hash: string
+        }
+        Update: {
+          accepted_at?: string | null
+          accepted_by?: string | null
+          created_at?: string
+          created_by?: string
+          email?: string
+          expires_at?: string
+          id?: string
+          job_title?: string | null
+          name?: string
+          permissions?: Json
+          revoked_at?: string | null
+          status?: Database["public"]["Enums"]["invitation_status"]
+          token_hash?: string
+        }
+        Relationships: []
+      }
       invoices: {
         Row: {
           amount: number
@@ -803,7 +851,10 @@ export type Database = {
           email: string | null
           full_name: string | null
           id: string
+          job_title: string | null
+          managed_access: boolean
           phone: string | null
+          status: string
           updated_at: string
         }
         Insert: {
@@ -812,7 +863,10 @@ export type Database = {
           email?: string | null
           full_name?: string | null
           id: string
+          job_title?: string | null
+          managed_access?: boolean
           phone?: string | null
+          status?: string
           updated_at?: string
         }
         Update: {
@@ -821,7 +875,10 @@ export type Database = {
           email?: string | null
           full_name?: string | null
           id?: string
+          job_title?: string | null
+          managed_access?: boolean
           phone?: string | null
+          status?: string
           updated_at?: string
         }
         Relationships: []
@@ -1549,6 +1606,39 @@ export type Database = {
         }
         Relationships: []
       }
+      user_permissions: {
+        Row: {
+          can_create: boolean
+          can_delete: boolean
+          can_edit: boolean
+          can_view: boolean
+          module: string
+          updated_at: string
+          updated_by: string | null
+          user_id: string
+        }
+        Insert: {
+          can_create?: boolean
+          can_delete?: boolean
+          can_edit?: boolean
+          can_view?: boolean
+          module: string
+          updated_at?: string
+          updated_by?: string | null
+          user_id: string
+        }
+        Update: {
+          can_create?: boolean
+          can_delete?: boolean
+          can_edit?: boolean
+          can_view?: boolean
+          module?: string
+          updated_at?: string
+          updated_by?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           created_at: string
@@ -1630,6 +1720,10 @@ export type Database = {
           vendas_count: number
         }[]
       }
+      has_permission: {
+        Args: { _action: string; _module: string; _user_id: string }
+        Returns: boolean
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -1637,6 +1731,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      is_active_user: { Args: { _user_id: string }; Returns: boolean }
       master_change_password: {
         Args: { _admin_id: string; _new_password: string }
         Returns: undefined
@@ -1686,6 +1781,7 @@ export type Database = {
         | "producao"
         | "outras"
       expense_status: "pago" | "pendente" | "atrasado"
+      invitation_status: "pending" | "accepted" | "expired" | "revoked"
       invoice_status:
         | "emitida"
         | "pendente"
@@ -1843,6 +1939,7 @@ export const Constants = {
         "outras",
       ],
       expense_status: ["pago", "pendente", "atrasado"],
+      invitation_status: ["pending", "accepted", "expired", "revoked"],
       invoice_status: [
         "emitida",
         "pendente",
