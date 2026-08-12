@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { MENU_MODULES, moduleForPath, normalizePermissions } from "../access-control";
+import {
+  firstAllowedModulePath,
+  MENU_MODULES,
+  moduleForPath,
+  normalizePermissions,
+} from "../access-control";
 
 describe("access-control", () => {
   it("normaliza permissões desconhecidas e preenche todos os módulos", () => {
@@ -13,5 +18,10 @@ describe("access-control", () => {
     expect(moduleForPath("/pastas-arquivos/abc")?.key).toBe("files");
     expect(moduleForPath("/operacao-meta/relatorios")?.key).toBe("goals");
     expect(moduleForPath("/rota-publica")).toBeUndefined();
+  });
+
+  it("encontra o primeiro módulo permitido para o redirecionamento pós-login", () => {
+    expect(firstAllowedModulePath((key) => key === "customers")).toBe("/customers");
+    expect(firstAllowedModulePath(() => false)).toBeNull();
   });
 });

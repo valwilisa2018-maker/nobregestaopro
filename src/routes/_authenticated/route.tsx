@@ -99,8 +99,14 @@ function AuthLayout() {
 }
 
 function ProtectedWorkspace({ pathname, nowBR }: { pathname: string; nowBR: string }) {
-  const navigate = useNavigate();
   const access = useAccess();
+  const denied = !access.loading && !access.error && !access.canVisit(pathname);
+
+  useEffect(() => {
+    if (denied && access.firstAllowedPath) {
+      window.location.replace(access.firstAllowedPath);
+    }
+  }, [access.firstAllowedPath, denied]);
 
   if (access.loading) {
     return (
@@ -128,7 +134,17 @@ function ProtectedWorkspace({ pathname, nowBR }: { pathname: string; nowBR: stri
       </div>
     );
   }
-  if (!access.canVisit(pathname)) {
+  if (denied && access.firstAllowedPath) {
+    return (
+      <div className="min-h-screen grid place-items-center">
+        <div className="flex flex-col items-center gap-2">
+          <Loader2 className="h-6 w-6 animate-spin text-primary" />
+          <p className="text-sm text-muted-foreground">Abrindo um módulo permitido...</p>
+        </div>
+      </div>
+    );
+  }
+  if (denied) {
     return (
       <div className="min-h-screen grid place-items-center p-4">
         <Card className="w-full max-w-md">
@@ -139,8 +155,8 @@ function ProtectedWorkspace({ pathname, nowBR }: { pathname: string; nowBR: stri
             <p className="text-sm text-muted-foreground">
               Você não possui permissão para visualizar este módulo.
             </p>
-            <Button className="w-full" onClick={() => navigate({ to: "/dashboard" })}>
-              Voltar ao Dashboard
+            <Button className="w-full" onClick={() => supabase.auth.signOut()}>
+              Sair
             </Button>
           </CardContent>
         </Card>

@@ -201,3 +201,7 @@ export function moduleForPath(pathname: string) {
     .sort((a, b) => b.url.length - a.url.length)
     .find((module) => pathname === module.url || pathname.startsWith(`${module.url}/`));
 }
+
+export function firstAllowedModulePath(canView: (moduleKey: string) => boolean) {
+  return MENU_MODULES.find((module) => canView(module.key))?.url ?? null;
+}
