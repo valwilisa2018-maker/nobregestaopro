@@ -17,6 +17,7 @@ export interface ProducerRankingItem {
   entregues: number;
   entreguesHoje: number;
   entreguesMes: number;
+  entreguesTotal: number;
   emProducao: number;
   segundosProntos: number;
   valorTotal: number;
