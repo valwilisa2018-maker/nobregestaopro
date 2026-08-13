@@ -1909,6 +1909,7 @@ export function ProdutoresView({
           videos,
           totalEntregue,
           segundosTotal,
+          entreguesHoje,
           alteracoes,
           segundos,
           emProducao,
