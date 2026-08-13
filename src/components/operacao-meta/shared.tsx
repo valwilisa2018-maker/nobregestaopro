@@ -1878,6 +1878,7 @@ export function ProdutoresView({
   const ms = monthStart(0);
   const me = monthEnd(0);
   const workDaysElapsed = workingDaysElapsed(workdays, holidays, 0);
+  const today = new Date().toLocaleDateString("sv-SE"); // YYYY-MM-DD (local)
 
   const list = useMemo(() => {
     return producers
