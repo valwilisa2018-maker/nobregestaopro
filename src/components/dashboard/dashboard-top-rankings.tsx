@@ -17,6 +17,7 @@ export interface ProducerRankingItem {
   entregues: number;
   entreguesHoje: number;
   entreguesMes: number;
+  entreguesTotal: number;
   emProducao: number;
   segundosProntos: number;
   valorTotal: number;
@@ -117,6 +118,10 @@ export function TopRankingsSection({
                     {p.entreguesMes} vídeo{p.entreguesMes === 1 ? "" : "s"} no mês
                     {p.segundosProntos > 0 ? ` • ${formatDuracao(p.segundosProntos)} prontos` : ""}
                   </div>
+                  <div className="text-[11px] text-muted-foreground">
+                    {p.entreguesTotal} vídeo{p.entreguesTotal === 1 ? "" : "s"} entregues no total
+                    {p.emProducao > 0 ? ` • ${p.emProducao} em produção` : ""}
+                  </div>
                   <div className="text-[11px] font-semibold text-emerald-500">
                     Total produzido: {formatCurrency(p.valorTotal)}
                   </div>
@@ -124,14 +129,13 @@ export function TopRankingsSection({
               </div>
               <div className="flex flex-col items-end leading-tight">
                 <span className="font-semibold">
-                  {p.entreguesHoje} vídeo{p.entreguesHoje === 1 ? "" : "s"}
+                  {p.entreguesHoje} vídeo{p.entreguesHoje === 1 ? "" : "s"} hoje
                 </span>
                 <span className="text-[11px] font-semibold text-amber-500">
                   {Math.floor((p.segundosProntos || 0) / 30)} pts
                 </span>
                 <span className="text-[10px] text-muted-foreground">
-                  é equivalente a {Math.floor((p.segundosProntos || 0) / 30)}{" "}
-                  {Math.floor((p.segundosProntos || 0) / 30) === 1 ? "vídeo" : "vídeos"}
+                  cada 30s = 1 pt
                 </span>
               </div>
             </button>
