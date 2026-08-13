@@ -1878,6 +1878,7 @@ export function ProdutoresView({
   const ms = monthStart(0);
   const me = monthEnd(0);
   const workDaysElapsed = workingDaysElapsed(workdays, holidays, 0);
+  const today = new Date().toLocaleDateString("sv-SE"); // YYYY-MM-DD (local)
 
   const list = useMemo(() => {
     return producers
@@ -1887,6 +1888,7 @@ export function ProdutoresView({
           const d = String(o.delivered_at).slice(0, 10);
           return d >= ms && d <= me;
         });
+        const entreguesHoje = all.filter((o: any) => String(o.delivered_at).slice(0, 10) === today).length;
         const pontos = monthOrders.reduce((a: number, o: any) => a + computePts(o), 0);
         const videos = monthOrders.length;
         const alteracoes = monthOrders.reduce(
@@ -1907,6 +1909,7 @@ export function ProdutoresView({
           videos,
           totalEntregue,
           segundosTotal,
+          entreguesHoje,
           alteracoes,
           segundos,
           emProducao,
@@ -1996,11 +1999,13 @@ export function ProdutoresView({
                   </span>
                 )}
               </div>
-              <div className="grid grid-cols-2 gap-2 mt-3">
-                <ProdCell label="🎬 Vídeos prontos" value={p.videos} accent="text-emerald-500" />
+              <div className="grid grid-cols-3 gap-2 mt-3">
+                <ProdCell label="📅 Entregue hoje" value={p.entreguesHoje} accent="text-emerald-500" />
+                <ProdCell label="🎬 Vídeos (mês)" value={p.videos} accent="text-emerald-500" />
                 <ProdCell label="🟡 Em produção" value={p.emProducao} />
                 <ProdCell label="⏱ Minutagem (mês)" value={formatDuracao(p.segundos)} />
                 <ProdCell label="🔁 Alterações" value={p.alteracoes} />
+                <ProdCell label="📦 Total entregue" value={p.totalEntregue} />
               </div>
               <div className="mt-3">
                 <div className="flex items-center justify-between text-[10px] mb-1">
