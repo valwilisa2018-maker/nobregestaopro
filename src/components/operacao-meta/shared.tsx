@@ -1888,6 +1888,7 @@ export function ProdutoresView({
           const d = String(o.delivered_at).slice(0, 10);
           return d >= ms && d <= me;
         });
+        const entreguesHoje = all.filter((o: any) => String(o.delivered_at).slice(0, 10) === today).length;
         const pontos = monthOrders.reduce((a: number, o: any) => a + computePts(o), 0);
         const videos = monthOrders.length;
         const alteracoes = monthOrders.reduce(
