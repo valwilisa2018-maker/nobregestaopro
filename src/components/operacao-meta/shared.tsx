@@ -1986,6 +1986,9 @@ export function ProdutoresView({
                   <div className="text-[10px] text-muted-foreground">
                     Meta diária: {p.dailyGoal} pts
                   </div>
+                  <div className="text-[10px] text-muted-foreground">
+                    Total entregue: {p.totalEntregue} • {formatDuracao(p.segundosTotal)}
+                  </div>
                 </div>
                 {p.bateu && (
                   <span className="px-2 py-0.5 rounded-full bg-amber-400 text-amber-950 text-[10px] font-extrabold whitespace-nowrap">
@@ -1996,12 +1999,14 @@ export function ProdutoresView({
               <div className="grid grid-cols-2 gap-2 mt-3">
                 <ProdCell label="🎬 Vídeos prontos" value={p.videos} accent="text-emerald-500" />
                 <ProdCell label="🟡 Em produção" value={p.emProducao} />
-                <ProdCell label="⏱ Minutagem" value={formatDuracao(p.segundos)} />
+                <ProdCell label="⏱ Minutagem (mês)" value={formatDuracao(p.segundos)} />
                 <ProdCell label="🔁 Alterações" value={p.alteracoes} />
               </div>
               <div className="mt-3">
                 <div className="flex items-center justify-between text-[10px] mb-1">
-                  <span className="text-muted-foreground">Meta do mês ({p.monthGoal} pts)</span>
+                  <span className="text-muted-foreground">
+                    Meta do mês ({p.monthGoal} pts • 30s = 1 pt)
+                  </span>
                   <span className="font-bold">
                     {p.pontos} pts • {p.pctMeta}%
                   </span>
