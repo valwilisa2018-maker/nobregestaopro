@@ -1999,11 +1999,13 @@ export function ProdutoresView({
                   </span>
                 )}
               </div>
-              <div className="grid grid-cols-2 gap-2 mt-3">
-                <ProdCell label="🎬 Vídeos prontos" value={p.videos} accent="text-emerald-500" />
+              <div className="grid grid-cols-3 gap-2 mt-3">
+                <ProdCell label="📅 Entregue hoje" value={p.entreguesHoje} accent="text-emerald-500" />
+                <ProdCell label="🎬 Vídeos (mês)" value={p.videos} accent="text-emerald-500" />
                 <ProdCell label="🟡 Em produção" value={p.emProducao} />
                 <ProdCell label="⏱ Minutagem (mês)" value={formatDuracao(p.segundos)} />
                 <ProdCell label="🔁 Alterações" value={p.alteracoes} />
+                <ProdCell label="📦 Total entregue" value={p.totalEntregue} />
               </div>
               <div className="mt-3">
                 <div className="flex items-center justify-between text-[10px] mb-1">
