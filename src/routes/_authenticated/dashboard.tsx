@@ -555,6 +555,8 @@ function Dashboard() {
         const d = (o.delivered_at ?? "").slice(0, 10);
         return d >= monthISO;
       }).length;
+      // Entregues no HISTÓRICO (todos os cards em colunas concluídas) — bate com o Kanban
+      const entreguesTotal = ofProducer.filter((o) => o.kanban_columns?.is_done === true).length;
       // Em produção = colunas intermediárias do Kanban (exclui "Serviços a fazer" e colunas concluídas)
       const emProducaoList = ofProducer.filter(
         (o) =>
@@ -578,6 +580,7 @@ function Dashboard() {
         entregues,
         entreguesHoje,
         entreguesMes,
+        entreguesTotal,
         emProducao,
         segundosProntos,
         valorTotal,
