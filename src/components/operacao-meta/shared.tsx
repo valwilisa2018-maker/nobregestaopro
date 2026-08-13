@@ -1894,6 +1894,8 @@ export function ProdutoresView({
           0,
         );
         const segundos = sumDuracao(monthOrders);
+        const totalEntregue = all.length;
+        const segundosTotal = sumDuracao(all);
         const emProducao = inProductionNow.filter((o: any) => o.producer_id === p.id).length;
         const dailyGoal = Number(p.daily_points_goal ?? baseGoal);
         const monthGoal = dailyGoal * workDaysElapsed;
@@ -1903,6 +1905,8 @@ export function ProdutoresView({
           ...p,
           pontos: Math.round(pontos),
           videos,
+          totalEntregue,
+          segundosTotal,
           alteracoes,
           segundos,
           emProducao,
