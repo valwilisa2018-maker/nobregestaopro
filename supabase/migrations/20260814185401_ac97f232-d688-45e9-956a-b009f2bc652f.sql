@@ -1,0 +1,2 @@
+UPDATE public.producers SET user_id = 'e74a962b-8245-40b5-80b9-802aa97b1251', email = COALESCE(email,'juliamktnobre@gmail.com'), updated_at = now()
+WHERE id = 'b381e1e9-f556-4ae7-94c0-906ffb59c486' AND user_id IS NULL;
