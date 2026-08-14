@@ -90,10 +90,20 @@ function PreviewTile({
     let alive = true;
     fetch(url)
       .then((r) => r.text())
-      .then((t) => { if (alive) setTextPreview(t.slice(0, 2000)); })
+      .then((raw) => {
+        if (!alive) return;
+        const looksHtml = /<\s*(html|body|div|p|br|font|meta)\b/i.test(raw);
+        const clean = looksHtml ? htmlToPlainText(raw) : raw;
+        setTextPreview(clean.replace(/\n{3,}/g, "\n\n").trim().slice(0, 1200));
+      })
       .catch(() => {});
     return () => { alive = false; };
   }, [url, isText]);
+
+  const isRoteiro =
+    /roteiro/i.test(item.file_name ?? "") || item.file_category === "roteiro";
+  const docLabel = isRoteiro ? "Roteiro" : "Texto";
+  const docLines = (textPreview ?? "").split("\n").filter((l) => l.trim()).slice(0, 8);
 
   return (
     <div className="group relative rounded-lg border bg-card overflow-hidden hover:shadow-md hover:border-primary/40 transition">
@@ -144,9 +154,38 @@ function PreviewTile({
           <iframe src={url} className="w-full h-full pointer-events-none" title={item.file_name} />
         )}
         {url && isText && (
-          <pre className="w-full h-full overflow-hidden text-[9px] leading-tight p-2 text-left whitespace-pre-wrap bg-background text-foreground">
-            {textPreview ?? "carregando…"}
-          </pre>
+          <div className="relative w-full h-full overflow-hidden bg-gradient-to-br from-primary/12 via-background to-muted/50 p-2.5">
+            <div className="relative flex h-full w-full flex-col overflow-hidden rounded-md border border-border/70 bg-background shadow-sm">
+              <div className="flex items-center gap-1.5 border-b bg-primary/10 px-2 py-1">
+                <FileText className="h-3 w-3 text-primary" />
+                <span className="text-[9px] font-semibold uppercase tracking-widest text-primary">
+                  {docLabel}
+                </span>
+              </div>
+              <div className="flex-1 overflow-hidden px-2.5 py-2 text-left">
+                {textPreview === null ? (
+                  <div className="text-[10px] text-muted-foreground">carregando…</div>
+                ) : docLines.length ? (
+                  <div className="space-y-[3px]">
+                    <p className="line-clamp-2 text-[10px] font-semibold leading-tight text-foreground">
+                      {docLines[0]}
+                    </p>
+                    {docLines.slice(1).map((l, i) => (
+                      <p
+                        key={i}
+                        className="truncate text-[8.5px] leading-snug text-muted-foreground"
+                      >
+                        {l}
+                      </p>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-[10px] italic text-muted-foreground">Documento vazio</div>
+                )}
+              </div>
+              <div className="pointer-events-none absolute inset-x-0 bottom-0 h-8 bg-gradient-to-t from-background to-transparent" />
+            </div>
+          </div>
         )}
         {url && !isImage && !isVideo && !isAudio && !isPdf && !isText && (
           <Icon className="w-12 h-12 text-muted-foreground" />
