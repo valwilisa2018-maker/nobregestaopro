@@ -31,6 +31,7 @@ import { toast } from "sonner";
 import { useTheme } from "@/hooks/use-theme";
 import { useMidnightRefresh } from "@/hooks/use-midnight-refresh";
 import { fmtDateTime } from "@/lib/format";
+import { calculateVideoPoints } from "@/lib/video-production";
 import {
   BarChart,
   Bar,
@@ -165,7 +166,7 @@ export function parseDuracaoSegundos(name: string): number {
     if (c != null) return a * 3600 + b * 60 + c;
     return a * 60 + b;
   }
-  const mUnits = s.match(/(\d+)\s*(?:min|m)\b(?:\s*(\d+)\s*s\b)?/);
+  const mUnits = s.match(/(\d+)\s*(?:min|m)(?:\s*(\d+)\s*s\b)?/);
   if (mUnits) return Number(mUnits[1]) * 60 + Number(mUnits[2] || 0);
   const mSec = s.match(/(\d+)\s*s\b/);
   if (mSec) return Number(mSec[1]);
@@ -244,7 +245,7 @@ export function useOmData() {
     const dur = Number(o.video_duration_seconds ?? sale.video_duration_seconds ?? 0);
     // Vídeo: cada 30s = 1 ponto (30s=1, 60s=2, 90s=3, 120s=4...).
     // Sem duração (serviço que não é vídeo): usa a pontuação base do serviço.
-    if (dur > 0) return Math.ceil(dur / 30);
+    if (dur > 0) return calculateVideoPoints(dur);
     return base;
   };
   const catName = (o: any) => {
@@ -1141,7 +1142,7 @@ export function DinamicaView({
                         {p.points} <span className="text-[10px] text-muted-foreground">pts</span>
                       </div>
                       <div className="text-[10px] text-muted-foreground">
-                        é equivalente a {p.points} {p.points === 1 ? "vídeo" : "vídeos"}
+                        cada 30s entregues valem 1 ponto
                       </div>
                     </div>
                   </div>
@@ -2229,7 +2230,7 @@ export function ConquistasView({ delivered, producers, catName, prodOf }: any) {
         avatar: prodOf(pid)?.avatar_url,
         count: v.count,
         sec: v.sec,
-        pts: Math.floor(v.sec / 30),
+        pts: calculateVideoPoints(v.sec),
       }))
       .sort((a, b) => b.count - a.count || b.pts - a.pts || b.sec - a.sec);
   }, [delivered, producers]);

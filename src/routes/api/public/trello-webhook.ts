@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { calculateVideoPoints } from "@/lib/video-production";
 
 /**
  * Trello webhook receiver.
@@ -109,9 +110,7 @@ export const Route = createFileRoute("/api/public/trello-webhook")({
               .eq("evento", "pronto")
               .maybeSingle();
             const multiplicador = Number((scoring as any)?.multiplicador ?? 1);
-            // 1 ponto a cada 30s — contagem completa (arredonda pra cima).
-            const blocos = Math.ceil(duracaoSegundos / 30);
-            pontos = Math.round(blocos * multiplicador);
+            pontos = Math.round(calculateVideoPoints(duracaoSegundos) * multiplicador);
           }
         } else if (evento === "distribuicao_edicao") {
           const { data: scoring } = await supabaseAdmin
@@ -177,7 +176,7 @@ function parseDuracaoSegundos(name: string): number {
   }
 
   // "2min30s" / "2m 30s" / "2 min"
-  const mUnits = s.match(/(\d+)\s*(?:min|m)\b(?:\s*(\d+)\s*s\b)?/);
+  const mUnits = s.match(/(\d+)\s*(?:min|m)(?:\s*(\d+)\s*s\b)?/);
   if (mUnits) {
     return Number(mUnits[1]) * 60 + Number(mUnits[2] || 0);
   }

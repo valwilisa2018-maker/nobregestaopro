@@ -20,6 +20,7 @@ export interface ProducerRankingItem {
   entreguesTotal: number;
   emProducao: number;
   segundosProntos: number;
+  pontosProntos: number;
   valorTotal: number;
   qtd: number;
 }
@@ -131,9 +132,7 @@ export function TopRankingsSection({
                 <span className="font-semibold">
                   {p.entreguesHoje} vídeo{p.entreguesHoje === 1 ? "" : "s"} hoje
                 </span>
-                <span className="text-[11px] font-semibold text-amber-500">
-                  {Math.floor((p.segundosProntos || 0) / 30)} pts
-                </span>
+                <span className="text-[11px] font-semibold text-amber-500">{p.pontosProntos} pts</span>
                 <span className="text-[10px] text-muted-foreground">
                   cada 30s = 1 pt
                 </span>

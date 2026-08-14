@@ -6,6 +6,7 @@ import { GoalCelebration } from "@/components/goal-celebration";
 import { useAuth } from "@/lib/auth";
 import { useMidnightRefresh } from "@/hooks/use-midnight-refresh";
 import { formatCurrency, dateKey, monthKey, toDateKey, toMonthKey } from "@/lib/format";
+import { calculateVideoPoints } from "@/lib/video-production";
 import { toast } from "sonner";
 import { DollarSign, TrendingUp, Calendar } from "lucide-react";
 import { DashboardHero } from "@/components/dashboard/dashboard-hero";
@@ -60,7 +61,7 @@ function parseDuracaoSegundos(name: string): number {
     if (c != null) return a * 3600 + b * 60 + c;
     return a * 60 + b;
   }
-  const mUnits = s.match(/(\d+)\s*(?:min|m)\b(?:\s*(\d+)\s*s\b)?/);
+  const mUnits = s.match(/(\d+)\s*(?:min|m)(?:\s*(\d+)\s*s\b)?/);
   if (mUnits) return Number(mUnits[1]) * 60 + Number(mUnits[2] || 0);
   const mSec = s.match(/(\d+)\s*s\b/);
   if (mSec) return Number(mSec[1]);
@@ -583,6 +584,7 @@ function Dashboard() {
         entreguesTotal,
         emProducao,
         segundosProntos,
+        pontosProntos: calculateVideoPoints(segundosProntos),
         valorTotal,
         qtd: entregues + emProducao,
       };
