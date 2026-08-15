@@ -151,10 +151,27 @@ function PreviewTile({
             <audio src={url} controls preload="metadata" className="w-full" />
           </div>
         )}
-        {url && isPdf && (
+        {isRoteiro && (isPdf || isText) && (
+          <div className="relative w-full h-full">
+            <img
+              src={capaRoteiro.url}
+              alt={`Capa do roteiro ${item.file_name}`}
+              className="w-full h-full object-cover"
+              loading="lazy"
+            />
+            {docLines.length > 0 && (
+              <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/85 to-transparent px-3 pb-2 pt-6 text-left">
+                <p className="line-clamp-2 text-[10px] font-medium leading-tight text-white/90">
+                  {docLines[0]}
+                </p>
+              </div>
+            )}
+          </div>
+        )}
+        {url && isPdf && !isRoteiro && (
           <iframe src={url} className="w-full h-full pointer-events-none" title={item.file_name} />
         )}
-        {url && isText && (
+        {url && isText && !isRoteiro && (
           <div className="relative w-full h-full overflow-hidden bg-gradient-to-br from-primary/12 via-background to-muted/50 p-2.5">
             <div className="relative flex h-full w-full flex-col overflow-hidden rounded-md border border-border/70 bg-background shadow-sm">
               <div className="flex items-center gap-1.5 border-b bg-primary/10 px-2 py-1">
