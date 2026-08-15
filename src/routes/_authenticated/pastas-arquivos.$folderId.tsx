@@ -11,6 +11,7 @@ import { type CategoryId, detectCategory, uploadToFolder, getSignedUrl } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import DOMPurify from "dompurify";
+import capaRoteiro from "@/assets/capa-roteiro.png.asset.json";
 
 function sanitizeHtml(html: string): string {
   return DOMPurify.sanitize(html, {
