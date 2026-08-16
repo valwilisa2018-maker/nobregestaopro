@@ -82,9 +82,13 @@ function PreviewTile({
   const isImage = mime.startsWith("image/");
   const isVideo = mime.startsWith("video/");
   const isAudio = mime.startsWith("audio/") || /\.(webm|mp3|wav|m4a|ogg|oga)$/i.test(item.file_url ?? "");
-  const isPdf = mime === "application/pdf";
-  const isText = mime.startsWith("text/") || /\.(txt|md|csv|log|json|html?)$/i.test(item.file_name ?? "");
-  const Icon = iconFor(item.file_type);
+    const isPdf = mime === "application/pdf";
+    const isText = mime.startsWith("text/") || /\.(txt|md|csv|log|json|html?)$/i.test(item.file_name ?? "");
+    const isDoc =
+      mime.includes("officedocument.wordprocessingml") ||
+      mime === "application/msword" ||
+      /\.(docx?|odt)$/i.test(item.file_name ?? "");
+    const Icon = iconFor(item.file_type);
 
   useEffect(() => {
     if (!url || !isText) return;
