@@ -169,7 +169,25 @@ function PreviewTile({
           </div>
         )}
         {url && isPdf && !isRoteiro && (
-          <iframe src={url} className="w-full h-full pointer-events-none" title={item.file_name} />
+          <div className="relative w-full h-full overflow-hidden bg-gradient-to-br from-rose-600/15 via-background to-muted/50 p-2.5">
+            <div className="relative flex h-full w-full flex-col items-center justify-center overflow-hidden rounded-md border border-border/70 bg-background shadow-sm">
+              <div className="flex items-center gap-1.5 border-b bg-rose-600/10 px-2 py-1 w-full">
+                <FileText className="h-3 w-3 text-rose-600" />
+                <span className="text-[9px] font-semibold uppercase tracking-widest text-rose-600">
+                  Documento
+                </span>
+              </div>
+              <div className="flex-1 flex flex-col items-center justify-center gap-2 px-2 py-3">
+                <div className="flex items-center justify-center rounded-lg bg-rose-600 px-3 py-1.5 shadow-md shadow-rose-600/30">
+                  <span className="text-base font-black tracking-[0.15em] text-white drop-shadow">PDF</span>
+                </div>
+                <p className="line-clamp-2 text-center text-[10px] font-medium leading-tight text-foreground/80 px-1">
+                  {item.file_name}
+                </p>
+              </div>
+              <div className="pointer-events-none absolute inset-x-0 bottom-0 h-8 bg-gradient-to-t from-background to-transparent" />
+            </div>
+          </div>
         )}
         {url && isText && !isRoteiro && (
           <div className="relative w-full h-full overflow-hidden bg-gradient-to-br from-primary/12 via-background to-muted/50 p-2.5">
