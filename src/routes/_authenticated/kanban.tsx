@@ -7,6 +7,7 @@ import { logger } from "@/lib/logger";
 import { formatCurrency, formatVideoDuration } from "@/lib/format";
 import { useAuth, isAdmin as isAdminRole } from "@/lib/auth";
 import { autoLinkFolderFromUrl } from "@/lib/project-folders";
+import { isMissingVideoDurationBreakdownColumnError } from "@/lib/supabase-schema";
 import { resolveOrderVideoDurationSeconds } from "@/lib/video-production";
 import { KanbanHeader } from "@/components/kanban/kanban-header";
 import { KanbanFilters } from "@/components/kanban/kanban-filters";
@@ -24,6 +25,10 @@ import {
 } from "@/components/kanban/types";
 
 const fmtVideoDuration = formatVideoDuration;
+const KANBAN_CARDS_SELECT =
+  "*, producer:producers!service_orders_producer_id_fkey(name,avatar_url), sales(total_amount, paid_amount, payment_status, trello_link, google_drive_link, platform_link, producer_id, expected_delivery_date, service_quantity, video_duration_seconds, video_duration_breakdown_seconds, customers(name,company,phone), sellers(name,avatar_url), producers(name,avatar_url))";
+const KANBAN_CARDS_SELECT_LEGACY =
+  "*, producer:producers!service_orders_producer_id_fkey(name,avatar_url), sales(total_amount, paid_amount, payment_status, trello_link, google_drive_link, platform_link, producer_id, expected_delivery_date, service_quantity, video_duration_seconds, customers(name,company,phone), sellers(name,avatar_url), producers(name,avatar_url))";
 
 // Lembrete de baixa de pagamento — ao mover card(s) para a coluna "Serviços Entregues",
 // busca a venda relacionada e, se ainda houver saldo em aberto, mostra um toast com link
@@ -141,18 +146,39 @@ function KanbanPage() {
   const cards = useQuery({
     queryKey: ["kanban-cards"],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const primaryResult = await supabase
         .from("service_orders")
-        .select(
-          "*, producer:producers!service_orders_producer_id_fkey(name,avatar_url), sales(total_amount, paid_amount, payment_status, trello_link, google_drive_link, platform_link, producer_id, expected_delivery_date, service_quantity, video_duration_seconds, video_duration_breakdown_seconds, customers(name,company,phone), sellers(name,avatar_url), producers(name,avatar_url))",
-        )
+        .select(KANBAN_CARDS_SELECT)
         .order("created_at", { ascending: true })
         .order("service_index", { ascending: true });
-      if (error) {
-        toast.error("Erro ao carregar cards: " + error.message);
-        throw error;
+
+      if (
+        primaryResult.error &&
+        isMissingVideoDurationBreakdownColumnError(primaryResult.error)
+      ) {
+        console.warn(
+          "[kanban] Falling back to legacy cards query because video_duration_breakdown_seconds is missing in remote schema.",
+        );
+        const legacyResult = await supabase
+          .from("service_orders")
+          .select(KANBAN_CARDS_SELECT_LEGACY)
+          .order("created_at", { ascending: true })
+          .order("service_index", { ascending: true });
+
+        if (legacyResult.error) {
+          toast.error("Erro ao carregar cards: " + legacyResult.error.message);
+          throw legacyResult.error;
+        }
+
+        return (legacyResult.data ?? []) as any[];
       }
-      return data ?? [];
+
+      if (primaryResult.error) {
+        toast.error("Erro ao carregar cards: " + primaryResult.error.message);
+        throw primaryResult.error;
+      }
+
+      return (primaryResult.data ?? []) as any[];
     },
   });
 

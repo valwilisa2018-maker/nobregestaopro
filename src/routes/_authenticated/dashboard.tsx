@@ -6,6 +6,7 @@ import { GoalCelebration } from "@/components/goal-celebration";
 import { useAuth } from "@/lib/auth";
 import { useMidnightRefresh } from "@/hooks/use-midnight-refresh";
 import { formatCurrency, dateKey, monthKey, toDateKey, toMonthKey } from "@/lib/format";
+import { isMissingVideoDurationBreakdownColumnError } from "@/lib/supabase-schema";
 import {
   calculateVideoPoints,
   normalizeProductionDeliveredAt,
@@ -36,6 +37,11 @@ import { DrillDialog, type DrillState } from "@/components/dashboard/drill-dialo
 export const Route = createFileRoute("/_authenticated/dashboard")({
   component: Dashboard,
 });
+
+const DASHBOARD_SALES_SELECT =
+  "id,total_amount,paid_amount,payment_status,created_at,sale_date,seller_id,producer_id,customer_id,service_type_id,package_id,service_quantity,is_payment_link,video_duration_seconds,video_duration_breakdown_seconds";
+const DASHBOARD_SALES_SELECT_LEGACY =
+  "id,total_amount,paid_amount,payment_status,created_at,sale_date,seller_id,producer_id,customer_id,service_type_id,package_id,service_quantity,is_payment_link,video_duration_seconds";
 
 function startOf(period: "day" | "week" | "month" | "year") {
   const d = new Date();
@@ -139,13 +145,22 @@ function Dashboard() {
   const sales = useQuery({
     queryKey: ["dash-sales"],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("sales")
-        .select(
-          "id,total_amount,paid_amount,payment_status,created_at,sale_date,seller_id,producer_id,customer_id,service_type_id,package_id,service_quantity,is_payment_link,video_duration_seconds,video_duration_breakdown_seconds",
+      const primaryResult = await supabase.from("sales").select(DASHBOARD_SALES_SELECT);
+
+      if (
+        primaryResult.error &&
+        isMissingVideoDurationBreakdownColumnError(primaryResult.error)
+      ) {
+        console.warn(
+          "[dashboard] Falling back to legacy sales query because video_duration_breakdown_seconds is missing in remote schema.",
         );
-      if (error) throw error;
-      return data ?? [];
+        const legacyResult = await supabase.from("sales").select(DASHBOARD_SALES_SELECT_LEGACY);
+        if (legacyResult.error) throw legacyResult.error;
+        return (legacyResult.data ?? []) as any[];
+      }
+
+      if (primaryResult.error) throw primaryResult.error;
+      return (primaryResult.data ?? []) as any[];
     },
     staleTime: 60_000,
     refetchOnWindowFocus: false,

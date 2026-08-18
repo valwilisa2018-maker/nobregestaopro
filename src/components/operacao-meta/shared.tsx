@@ -31,6 +31,7 @@ import { toast } from "sonner";
 import { useTheme } from "@/hooks/use-theme";
 import { useMidnightRefresh } from "@/hooks/use-midnight-refresh";
 import { fmtDateTime, toDateKey } from "@/lib/format";
+import { isMissingVideoDurationBreakdownColumnError } from "@/lib/supabase-schema";
 import {
   calculateVideoPoints,
   resolveProductionDeliveredAt,
@@ -167,6 +168,11 @@ export function workingDaysElapsed(
 export { formatDuracao } from "@/lib/format";
 import { formatDuracao } from "@/lib/format";
 
+const OM_ORDERS_SELECT =
+  "id,title,producer_id,sale_id,service_index,column_id,delivered_at,updated_at,redo_count,last_redo_at,video_duration_seconds,kanban_columns(name,is_done,is_default),sales(producer_id,service_type_id,package_id,service_quantity,video_duration_seconds,video_duration_breakdown_seconds,service_types(name,points,points_value),packages(name,points_value))";
+const OM_ORDERS_SELECT_LEGACY =
+  "id,title,producer_id,sale_id,service_index,column_id,delivered_at,updated_at,redo_count,last_redo_at,video_duration_seconds,kanban_columns(name,is_done,is_default),sales(producer_id,service_type_id,package_id,service_quantity,video_duration_seconds,service_types(name,points,points_value),packages(name,points_value))";
+
 export function useOmData() {
   const qc = useQueryClient();
   // Auto-refresh à meia-noite — zera KPIs do "Hoje" sem reload
@@ -192,14 +198,39 @@ export function useOmData() {
   });
   const orders = useQuery({
     queryKey: ["om-orders"],
-    queryFn: async () =>
-      (
-        await supabase
-          .from("service_orders")
-          .select(
-            "id,title,producer_id,sale_id,service_index,column_id,delivered_at,updated_at,redo_count,last_redo_at,video_duration_seconds,kanban_columns(name,is_done,is_default),sales(producer_id,service_type_id,package_id,service_quantity,video_duration_seconds,video_duration_breakdown_seconds,service_types(name,points,points_value),packages(name,points_value))",
-          )
-      ).data?.map((o: any) => {
+    queryFn: async () => {
+      const primaryResult = await supabase.from("service_orders").select(OM_ORDERS_SELECT);
+
+      if (
+        primaryResult.error &&
+        isMissingVideoDurationBreakdownColumnError(primaryResult.error)
+      ) {
+        console.warn(
+          "[operacao-meta] Falling back to legacy orders query because video_duration_breakdown_seconds is missing in remote schema.",
+        );
+        const legacyResult = await supabase.from("service_orders").select(OM_ORDERS_SELECT_LEGACY);
+        if (legacyResult.error) throw legacyResult.error;
+        return (legacyResult.data ?? []).map((o: any) => {
+          const producerId = o.producer_id ?? o.sales?.producer_id ?? null;
+          const deliveredAt = resolveProductionDeliveredAt(
+            producerId,
+            o.title,
+            o.delivered_at,
+            o.updated_at,
+            o.kanban_columns?.is_done,
+          );
+          return {
+            ...o,
+            // Fallback: se a ordem nÃ£o tem producer_id atribuÃ­do, usa o da venda.
+            producer_id: producerId,
+            delivered_at: deliveredAt,
+          };
+        });
+      }
+
+      if (primaryResult.error) throw primaryResult.error;
+
+      return (primaryResult.data ?? []).map((o: any) => {
         const producerId = o.producer_id ?? o.sales?.producer_id ?? null;
         const deliveredAt = resolveProductionDeliveredAt(
           producerId,
@@ -214,7 +245,8 @@ export function useOmData() {
           producer_id: producerId,
           delivered_at: deliveredAt,
         };
-      }) ?? [],
+      });
+    },
     refetchOnWindowFocus: true,
     staleTime: 30_000,
   });
