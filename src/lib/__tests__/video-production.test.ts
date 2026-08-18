@@ -1,10 +1,21 @@
 import { describe, expect, it } from "vitest";
-import { calculateVideoPoints, parseDuracaoSegundos } from "../video-production";
+import {
+  calculateVideoPoints,
+  parseDuracaoSegundos,
+  resolveVideoDurationSeconds,
+} from "../video-production";
 
 const totalSegundos = (durations: number[]) => durations.reduce((acc, duration) => acc + duration, 0);
 const totalPontos = (durations: number[]) => calculateVideoPoints(totalSegundos(durations));
 
 describe("video-production", () => {
+  it("usa exatamente a mesma prioridade de minutagem do Kanban", () => {
+    expect(resolveVideoDurationSeconds(90, 120)).toBe(90);
+    expect(resolveVideoDurationSeconds(null, 120)).toBe(120);
+    expect(resolveVideoDurationSeconds(0, 120)).toBe(0);
+    expect(resolveVideoDurationSeconds(null, null)).toBe(0);
+  });
+
   it("extrai duracoes comuns do titulo do card", () => {
     expect(parseDuracaoSegundos("Video 01 - 30s")).toBe(30);
     expect(parseDuracaoSegundos("Video 02 - 1min30s")).toBe(90);

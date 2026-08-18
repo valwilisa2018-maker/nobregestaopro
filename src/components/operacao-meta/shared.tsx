@@ -31,7 +31,11 @@ import { toast } from "sonner";
 import { useTheme } from "@/hooks/use-theme";
 import { useMidnightRefresh } from "@/hooks/use-midnight-refresh";
 import { fmtDateTime, toDateKey } from "@/lib/format";
-import { calculateVideoPoints, normalizeProductionDeliveredAt } from "@/lib/video-production";
+import {
+  calculateVideoPoints,
+  normalizeProductionDeliveredAt,
+  resolveVideoDurationSeconds,
+} from "@/lib/video-production";
 import { useSignedUrl } from "@/lib/storage-signed";
 import {
   BarChart,
@@ -160,25 +164,6 @@ export function workingDaysElapsed(
   return Math.max(1, count);
 }
 
-// Extrai duração (em segundos) do título do card. Aceita "2:30", "1:02:30", "150s", "2min", "2min30s".
-export function parseDuracaoSegundos(name: string): number {
-  if (!name) return 0;
-  const s = String(name).toLowerCase();
-  const mColon = s.match(/(?<![\d:])(\d{1,2})(?::(\d{1,2}))(?::(\d{1,2}))?(?![\d:])/);
-  if (mColon) {
-    const a = Number(mColon[1] || 0);
-    const b = Number(mColon[2] || 0);
-    const c = mColon[3] != null ? Number(mColon[3]) : null;
-    if (c != null) return a * 3600 + b * 60 + c;
-    return a * 60 + b;
-  }
-  const mUnits = s.match(/(\d+)\s*(?:min|m)(?:\s*(\d+)\s*s\b)?/);
-  if (mUnits) return Number(mUnits[1]) * 60 + Number(mUnits[2] || 0);
-  const mSec = s.match(/(\d+)\s*s\b/);
-  if (mSec) return Number(mSec[1]);
-  return 0;
-}
-
 export { formatDuracao } from "@/lib/format";
 import { formatDuracao } from "@/lib/format";
 
@@ -253,7 +238,10 @@ export function useOmData() {
         1,
     );
     // Prefere a minutagem específica do card; cai pra venda quando não houver.
-    const dur = Number(o.video_duration_seconds ?? sale.video_duration_seconds ?? 0);
+    const dur = resolveVideoDurationSeconds(
+      o.video_duration_seconds,
+      sale.video_duration_seconds,
+    );
     // Vídeo: cada 30s = 1 ponto (30s=1, 60s=2, 90s=3, 120s=4...).
     // Sem duração (serviço que não é vídeo): usa a pontuação base do serviço.
     if (dur > 0) return calculateVideoPoints(dur);
@@ -285,14 +273,11 @@ export function useOmData() {
   const doneNow = allOrders.filter((o: any) => o.kanban_columns?.is_done === true);
 
   const sumPts = (arr: any[]) => arr.reduce((a, o) => a + computePts(o), 0);
-  // Prioridade: minutagem do card → minutagem da venda → parse do título (legado).
+  // Mesma fonte exibida no Kanban: minutagem do card → minutagem da venda.
   const sumDuracao = (arr: any[]) =>
     arr.reduce(
       (a, o) =>
-        a +
-        (Number(o.video_duration_seconds) ||
-          Number(o.sales?.video_duration_seconds) ||
-          parseDuracaoSegundos(o.title ?? "")),
+        a + resolveVideoDurationSeconds(o.video_duration_seconds, o.sales?.video_duration_seconds),
       0,
     );
   const prodOf = (id: string) => (producers.data ?? []).find((p: any) => p.id === id) as any;
@@ -1484,10 +1469,10 @@ export function VisaoGeralView({
       const cur = m.get(o.producer_id) ?? { pts: 0, videos: 0, sec: 0 };
       cur.pts += computePts(o);
       cur.videos += 1;
-      cur.sec +=
-        Number((o as any).video_duration_seconds) ||
-        Number((o as any).sales?.video_duration_seconds) ||
-        parseDuracaoSegundos(o.title ?? "");
+      cur.sec += resolveVideoDurationSeconds(
+        (o as any).video_duration_seconds,
+        (o as any).sales?.video_duration_seconds,
+      );
       m.set(o.producer_id, cur);
     }
     return Array.from(m.entries())
@@ -2228,10 +2213,10 @@ export function ConquistasView({ delivered, producers, catName, prodOf }: any) {
       if (!o.producer_id) continue;
       const cur = m.get(o.producer_id) ?? { count: 0, sec: 0 };
       cur.count += 1;
-      cur.sec +=
-        Number((o as any).video_duration_seconds) ||
-        Number((o as any).sales?.video_duration_seconds) ||
-        0;
+      cur.sec += resolveVideoDurationSeconds(
+        (o as any).video_duration_seconds,
+        (o as any).sales?.video_duration_seconds,
+      );
       m.set(o.producer_id, cur);
     }
     return Array.from(m.entries())
