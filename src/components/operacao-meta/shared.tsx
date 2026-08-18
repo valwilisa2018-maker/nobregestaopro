@@ -33,7 +33,7 @@ import { useMidnightRefresh } from "@/hooks/use-midnight-refresh";
 import { fmtDateTime, toDateKey } from "@/lib/format";
 import {
   calculateVideoPoints,
-  normalizeProductionDeliveredAt,
+  resolveProductionDeliveredAt,
   resolveVideoDurationSeconds,
 } from "@/lib/video-production";
 import { useSignedUrl } from "@/lib/storage-signed";
@@ -201,7 +201,13 @@ export function useOmData() {
           )
       ).data?.map((o: any) => {
         const producerId = o.producer_id ?? o.sales?.producer_id ?? null;
-        const deliveredAt = normalizeProductionDeliveredAt(producerId, o.title, o.delivered_at);
+        const deliveredAt = resolveProductionDeliveredAt(
+          producerId,
+          o.title,
+          o.delivered_at,
+          o.updated_at,
+          o.kanban_columns?.is_done,
+        );
         return {
           ...o,
           // Fallback: se a ordem não tem producer_id atribuído, usa o da venda.
