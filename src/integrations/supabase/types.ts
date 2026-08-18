@@ -803,6 +803,7 @@ export type Database = {
           id: string
           name: string
           phone: string | null
+          production_started_at: string | null
           quality_score: number | null
           specialty: string | null
           updated_at: string
@@ -820,6 +821,7 @@ export type Database = {
           id?: string
           name: string
           phone?: string | null
+          production_started_at?: string | null
           quality_score?: number | null
           specialty?: string | null
           updated_at?: string
@@ -837,6 +839,7 @@ export type Database = {
           id?: string
           name?: string
           phone?: string | null
+          production_started_at?: string | null
           quality_score?: number | null
           specialty?: string | null
           updated_at?: string

@@ -183,7 +183,7 @@ export function useOmData() {
   const producers = useQuery({
     queryKey: ["om-producers"],
     queryFn: async () =>
-      (await supabase.from("producers").select("id,name,daily_points_goal,active,avatar_url"))
+      (await supabase.from("producers").select("id,name,daily_points_goal,active,avatar_url,production_started_at"))
         .data ?? [],
     refetchOnWindowFocus: true,
     staleTime: 60_000,
@@ -255,10 +255,21 @@ export function useOmData() {
   const activeProducerIds = new Set(
     (producers.data ?? []).filter((p: any) => p.active !== false).map((p: any) => p.id),
   );
+  const producerStartDates = new Map(
+    (producers.data ?? [])
+      .filter((p: any) => p.production_started_at)
+      .map((p: any) => [p.id, p.production_started_at]),
+  );
   const delivered = (orders.data ?? [])
     .filter((o: any) => !!o.delivered_at)
     // só conta entregas de produtores ativos (desativados somem automaticamente)
-    .filter((o: any) => !o.producer_id || activeProducerIds.has(o.producer_id));
+    .filter((o: any) => !o.producer_id || activeProducerIds.has(o.producer_id))
+    // Não atribui ao produtor entregas anteriores ao início da produção dele.
+    .filter((o: any) => {
+      if (!o.producer_id) return true;
+      const startedAt = producerStartDates.get(o.producer_id);
+      return !startedAt || String(o.delivered_at).slice(0, 10) >= startedAt;
+    });
 
   // Estado atual no Kanban (independente de período): tudo que está hoje em colunas concluídas / em produção.
   const allOrders = (orders.data ?? []).filter(
