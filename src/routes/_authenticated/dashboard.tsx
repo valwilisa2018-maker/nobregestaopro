@@ -1,12 +1,16 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { GoalCelebration } from "@/components/goal-celebration";
 import { useAuth } from "@/lib/auth";
 import { useMidnightRefresh } from "@/hooks/use-midnight-refresh";
 import { formatCurrency, dateKey, monthKey, toDateKey, toMonthKey } from "@/lib/format";
-import { calculateVideoPoints, normalizeProductionDeliveredAt } from "@/lib/video-production";
+import {
+  calculateVideoPoints,
+  normalizeProductionDeliveredAt,
+  resolveOrderVideoDurationSeconds,
+} from "@/lib/video-production";
 import { toast } from "sonner";
 import { DollarSign, TrendingUp, Calendar } from "lucide-react";
 import { DashboardHero } from "@/components/dashboard/dashboard-hero";
@@ -50,7 +54,7 @@ function startOf(period: "day" | "week" | "month" | "year") {
 
 // Extrai a duração (em segundos) a partir do nome do card.
 // Aceita "2:30", "1:02:30", "150s", "2min", "2min30s" etc. Retorna 0 se nada confiável.
-function parseDuracaoSegundos(name: string): number {
+export function parseDuracaoSegundos(name: string): number {
   if (!name) return 0;
   const s = name.toLowerCase();
   const mColon = s.match(/(?<![\d:])(\d{1,2})(?::(\d{1,2}))(?::(\d{1,2}))?(?![\d:])/);
@@ -138,7 +142,7 @@ function Dashboard() {
       const { data, error } = await supabase
         .from("sales")
         .select(
-          "id,total_amount,paid_amount,payment_status,created_at,sale_date,seller_id,producer_id,customer_id,service_type_id,package_id,service_quantity,is_payment_link,video_duration_seconds",
+          "id,total_amount,paid_amount,payment_status,created_at,sale_date,seller_id,producer_id,customer_id,service_type_id,package_id,service_quantity,is_payment_link,video_duration_seconds,video_duration_breakdown_seconds",
         );
       if (error) throw error;
       return data ?? [];
@@ -163,7 +167,7 @@ function Dashboard() {
       const { data, error } = await supabase
         .from("service_orders")
         .select(
-          "id,title,column_id,delivered_at,sale_id,producer_id,created_at,video_duration_seconds,kanban_columns(name,is_done,is_default,sort_order)",
+          "id,title,column_id,delivered_at,sale_id,service_index,producer_id,created_at,video_duration_seconds,kanban_columns(name,is_done,is_default,sort_order)",
         );
       if (error) {
         toast.error("Erro ao carregar pedidos");
@@ -455,20 +459,35 @@ function Dashboard() {
   // "A fazer"     = coluna marcada como is_default (primeira coluna do fluxo)
   // "Em produção" = colunas intermediárias (is_done=false e is_default=false), ex.: "Produção", "Alteração a Fazer"
   // "Entregue"    = colunas com is_done=true (Pronto / Entregue / Alteração Pronta)
-  const saleByIdForProduction = new Map((sales.data ?? []).map((sale) => [sale.id, sale]));
-  const ordersList = (orders.data ?? []).map((order) => {
-    const sale = order.sale_id ? saleByIdForProduction.get(order.sale_id) : undefined;
-    const producerId = order.producer_id ?? sale?.producer_id ?? null;
-    return {
-      ...order,
-      producer_id: producerId,
-      delivered_at: normalizeProductionDeliveredAt(
-        producerId,
-        order.title,
-        order.delivered_at,
-      ),
-    };
-  });
+  const salesById = useMemo(
+    () => new Map((sales.data ?? []).map((sale) => [sale.id, sale])),
+    [sales.data],
+  );
+  const ordersList = useMemo(
+    () =>
+      (orders.data ?? []).map((order) => {
+        const sale = order.sale_id ? salesById.get(order.sale_id) : undefined;
+        const producerId = order.producer_id ?? sale?.producer_id ?? null;
+        return {
+          ...order,
+          producer_id: producerId,
+          delivered_at: normalizeProductionDeliveredAt(
+            producerId,
+            order.title,
+            order.delivered_at,
+          ),
+        };
+      }),
+    [orders.data, salesById],
+  );
+  const resolveDashboardOrderDuration = useCallback(
+    (order: any) =>
+      resolveOrderVideoDurationSeconds({
+        ...order,
+        sales: order.sale_id != null ? salesById.get(order.sale_id) ?? null : null,
+      }),
+    [salesById],
+  );
   const ordersTodo = ordersList.filter((o) => o.kanban_columns?.is_default === true).length;
   const ordersInProd = ordersList.filter(
     (o) =>
@@ -581,11 +600,7 @@ function Dashboard() {
       const entregues = prontoList.length;
       const emProducao = emProducaoList.length;
       const segundosProntos = prontoList.reduce(
-        (acc, o) =>
-          acc +
-          (Number(o.video_duration_seconds) ||
-            Number((o as { sales?: { video_duration_seconds?: number | null } }).sales?.video_duration_seconds) ||
-            parseDuracaoSegundos(o.title ?? "")),
+        (acc, o) => acc + resolveDashboardOrderDuration(o),
         0,
       );
       return {
@@ -663,11 +678,6 @@ function Dashboard() {
   // Minutagem entregue: soma a duração (sales.video_duration_seconds) dos service_orders
   // que já têm delivered_at, agrupando por hoje e pelo mês corrente.
   const minutagemStats = useMemo(() => {
-    const durBySale = new Map<string, number>();
-    for (const s of sales.data ?? []) {
-      const dur = Number(s.video_duration_seconds ?? 0);
-      if (dur > 0) durBySale.set(s.id, dur);
-    }
     const todayKey = startOf("day").slice(0, 10);
     const monthKey = startOf("month").slice(0, 10);
     let hojeSegs = 0;
@@ -677,7 +687,7 @@ function Dashboard() {
     for (const o of ordersList) {
       if (!o.delivered_at) continue;
       // Prefere a minutagem específica do card; cai para a da venda.
-      const dur = Number(o.video_duration_seconds ?? 0) || (o.sale_id != null ? (durBySale.get(o.sale_id) ?? 0) : 0);
+      const dur = resolveDashboardOrderDuration(o);
       if (dur <= 0) continue;
       const d = toDateKey(o.delivered_at);
       if (d >= monthKey) {
@@ -690,7 +700,7 @@ function Dashboard() {
       }
     }
     return { hojeSegs, hojeQtd, mesSegs, mesQtd };
-  }, [sales.data, ordersList]);
+  }, [ordersList, resolveDashboardOrderDuration]);
 
   // Produtos / serviços mais vendidos (no escopo) — combina service_types + packages
   const productRanking = useMemo(() => {

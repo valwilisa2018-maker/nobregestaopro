@@ -34,7 +34,7 @@ import { fmtDateTime, toDateKey } from "@/lib/format";
 import {
   calculateVideoPoints,
   resolveProductionDeliveredAt,
-  resolveVideoDurationSeconds,
+  resolveOrderVideoDurationSeconds,
 } from "@/lib/video-production";
 import { useSignedUrl } from "@/lib/storage-signed";
 import {
@@ -197,7 +197,7 @@ export function useOmData() {
         await supabase
           .from("service_orders")
           .select(
-            "id,title,producer_id,sale_id,column_id,delivered_at,updated_at,redo_count,last_redo_at,video_duration_seconds,kanban_columns(name,is_done,is_default),sales(producer_id,service_type_id,package_id,video_duration_seconds,service_types(name,points,points_value),packages(name,points_value))",
+            "id,title,producer_id,sale_id,service_index,column_id,delivered_at,updated_at,redo_count,last_redo_at,video_duration_seconds,kanban_columns(name,is_done,is_default),sales(producer_id,service_type_id,package_id,service_quantity,video_duration_seconds,video_duration_breakdown_seconds,service_types(name,points,points_value),packages(name,points_value))",
           )
       ).data?.map((o: any) => {
         const producerId = o.producer_id ?? o.sales?.producer_id ?? null;
@@ -244,10 +244,8 @@ export function useOmData() {
         1,
     );
     // Pontuação usa somente a minutagem específica deste card.
-    const dur = resolveVideoDurationSeconds(
-      o.video_duration_seconds,
-      sale.video_duration_seconds,
-    );
+    // Prefere a minutagem específica do card; cai pra venda quando não houver.
+    const dur = resolveOrderVideoDurationSeconds(o);
     // Vídeo: cada 30s = 1 ponto (30s=1, 60s=2, 90s=3, 120s=4...).
     // Sem duração (serviço que não é vídeo): usa a pontuação base do serviço.
     if (dur > 0) return calculateVideoPoints(dur);
@@ -282,8 +280,7 @@ export function useOmData() {
   // Soma estritamente a minutagem individual de cada card concluído no Kanban.
   const sumDuracao = (arr: any[]) =>
     arr.reduce(
-      (a, o) =>
-        a + resolveVideoDurationSeconds(o.video_duration_seconds, o.sales?.video_duration_seconds),
+      (a, o) => a + resolveOrderVideoDurationSeconds(o),
       0,
     );
   const prodOf = (id: string) => (producers.data ?? []).find((p: any) => p.id === id) as any;
@@ -1475,10 +1472,7 @@ export function VisaoGeralView({
       const cur = m.get(o.producer_id) ?? { pts: 0, videos: 0, sec: 0 };
       cur.pts += computePts(o);
       cur.videos += 1;
-      cur.sec += resolveVideoDurationSeconds(
-        (o as any).video_duration_seconds,
-        (o as any).sales?.video_duration_seconds,
-      );
+      cur.sec += resolveOrderVideoDurationSeconds(o);
       m.set(o.producer_id, cur);
     }
     return Array.from(m.entries())
@@ -2173,7 +2167,7 @@ function ProducerAchievements({ producer, delivered, onClose }: any) {
                           {formatDuracao(
                             items.reduce(
                               (total: number, item: any) =>
-                                total + resolveVideoDurationSeconds(item.video_duration_seconds),
+                                total + resolveOrderVideoDurationSeconds(item),
                               0,
                             ),
                           )}
@@ -2202,8 +2196,8 @@ function ProducerAchievements({ producer, delivered, onClose }: any) {
                               </div>
                               <div className="shrink-0 flex flex-col items-end gap-1">
                                 <div className="px-2.5 py-1 rounded-md bg-blue-500/15 border border-blue-500/40 text-blue-600 dark:text-blue-400 text-[11px] font-extrabold uppercase tracking-wide whitespace-nowrap">
-                                  {resolveVideoDurationSeconds(o.video_duration_seconds) > 0
-                                    ? `🎬 ${formatDuracao(resolveVideoDurationSeconds(o.video_duration_seconds))}`
+                                  {resolveOrderVideoDurationSeconds(o) > 0
+                                    ? `🎬 ${formatDuracao(resolveOrderVideoDurationSeconds(o))}`
                                     : "Sem minutagem"}
                                 </div>
                                 <div className="px-2.5 py-1 rounded-md bg-emerald-500/15 border border-emerald-500/40 text-emerald-600 dark:text-emerald-400 text-[11px] font-extrabold uppercase tracking-wide whitespace-nowrap">
@@ -2233,10 +2227,7 @@ export function ConquistasView({ delivered, producers, catName, prodOf }: any) {
       if (!o.producer_id) continue;
       const cur = m.get(o.producer_id) ?? { count: 0, sec: 0 };
       cur.count += 1;
-      cur.sec += resolveVideoDurationSeconds(
-        (o as any).video_duration_seconds,
-        (o as any).sales?.video_duration_seconds,
-      );
+      cur.sec += resolveOrderVideoDurationSeconds(o);
       m.set(o.producer_id, cur);
     }
     return Array.from(m.entries())

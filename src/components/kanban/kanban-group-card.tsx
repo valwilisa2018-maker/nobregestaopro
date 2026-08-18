@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { ChevronDown, ChevronRight, Layers, UserPlus } from "lucide-react";
 import { formatCurrency, formatVideoDuration } from "@/lib/format";
+import { resolveOrderVideoDurationSeconds, sumVideoDurations } from "@/lib/video-production";
 import { CardLinkButtons } from "./card-link-buttons";
 import { KanbanPersonAvatar } from "./person-avatar";
 import { paymentStyle, type KanbanCardData, type ProducerOption } from "./types";
@@ -41,7 +42,7 @@ export function KanbanGroupCard({
   const first = cards[0];
   const customerName = first.sales?.customers?.name ?? "Cliente";
   const company = first.sales?.customers?.company;
-  const duration = first.video_duration_seconds;
+  const duration = sumVideoDurations(cards.map((card) => resolveOrderVideoDurationSeconds(card)));
   const seller = first.sales?.sellers;
   const producer = first.producer ?? first.sales?.producers;
 

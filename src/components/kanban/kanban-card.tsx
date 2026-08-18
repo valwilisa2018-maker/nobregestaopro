@@ -9,6 +9,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { AlertCircle, Calendar, CheckCircle2, Clock, UserPlus } from "lucide-react";
 import { fmtDate, fmtDateTime, formatCurrency, formatVideoDuration } from "@/lib/format";
+import { resolveOrderVideoDurationSeconds } from "@/lib/video-production";
 import { cn } from "@/lib/utils";
 import { CardLinkButtons } from "./card-link-buttons";
 import { KanbanPersonAvatar } from "./person-avatar";
@@ -221,7 +222,7 @@ export interface KanbanCardBadgesRowProps {
 }
 
 export function KanbanCardBadgesRow({ card: c }: KanbanCardBadgesRowProps) {
-  const duration = c.video_duration_seconds;
+  const duration = resolveOrderVideoDurationSeconds(c);
   if (!(c.sales?.payment_status === "pago_parcial" || duration)) return null;
 
   return (

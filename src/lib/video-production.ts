@@ -69,6 +69,27 @@ export function resolveProductionDeliveredAt(
   return isDone === true ? (updatedAt ?? null) : null;
 }
 
+type MaybeDuration = number | null | undefined;
+
+export interface VideoSaleSnapshot {
+  service_quantity?: number | null;
+  video_duration_seconds?: number | null;
+  video_duration_breakdown_seconds?: Array<number | null> | null;
+}
+
+export interface VideoOrderSnapshot {
+  service_index?: number | null;
+  title?: string | null;
+  video_duration_seconds?: number | null;
+  sales?: VideoSaleSnapshot | null;
+}
+
+function asValidDuration(value: MaybeDuration): number | null {
+  const seconds = Number(value ?? 0);
+  if (!Number.isFinite(seconds) || seconds <= 0) return null;
+  return seconds;
+}
+
 export function parseDuracaoSegundos(name: string): number {
   if (!name) return 0;
 
@@ -95,4 +116,45 @@ export function calculateVideoPoints(totalSegundos: number | null | undefined): 
   const segundos = Number(totalSegundos ?? 0);
   if (!Number.isFinite(segundos) || segundos <= 0) return 0;
   return segundos / VIDEO_POINT_SECONDS;
+}
+
+export function isValidVideoDuration(totalSegundos: unknown): totalSegundos is number {
+  const segundos = Number(totalSegundos ?? 0);
+  return Number.isFinite(segundos) && segundos >= VIDEO_POINT_SECONDS && segundos % VIDEO_POINT_SECONDS === 0;
+}
+
+export function sumVideoDurations(durations: Array<MaybeDuration>): number {
+  return durations.reduce<number>(
+    (acc, duration) => acc + Number(asValidDuration(duration) ?? 0),
+    0,
+  );
+}
+
+export function getBreakdownDurationAtIndex(
+  breakdown: Array<number | null> | null | undefined,
+  serviceIndex: number | null | undefined,
+): number | null {
+  const index = Number(serviceIndex ?? 0);
+  if (!Array.isArray(breakdown) || index < 1) return null;
+  return asValidDuration(breakdown[index - 1]);
+}
+
+export function resolveOrderVideoDurationSeconds(order: VideoOrderSnapshot): number {
+  const directDuration = asValidDuration(order.video_duration_seconds);
+  if (directDuration) return directDuration;
+
+  const breakdownDuration = getBreakdownDurationAtIndex(
+    order.sales?.video_duration_breakdown_seconds,
+    order.service_index,
+  );
+  if (breakdownDuration) return breakdownDuration;
+
+  const saleQuantity = Number(order.sales?.service_quantity ?? 1);
+  if (saleQuantity <= 1) {
+    const saleDuration = asValidDuration(order.sales?.video_duration_seconds);
+    if (saleDuration) return saleDuration;
+  }
+
+  const parsedFromTitle = parseDuracaoSegundos(String(order.title ?? ""));
+  return parsedFromTitle > 0 ? parsedFromTitle : 0;
 }

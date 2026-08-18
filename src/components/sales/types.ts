@@ -58,6 +58,7 @@ export interface SaleRecord {
   delivery_deadline?: string | null;
   expected_delivery_date?: string | null;
   video_duration_seconds?: number | null;
+  video_duration_breakdown_seconds?: number[] | null;
   installments?: string | number | null;
   pagarme_id?: string | null;
   customer_id?: string | null;
@@ -68,13 +69,15 @@ export interface SaleRecord {
   sale_receipts?: SaleReceipt[] | null;
 }
 
-export interface EditingSale extends SaleRecord {
+export interface EditingSale extends Omit<SaleRecord, "video_duration_breakdown_seconds"> {
   customer_name?: string;
   company?: string;
   document?: string;
   phone?: string;
   email?: string;
   with_invoice?: string;
+  video_duration_breakdown_seconds?: string[];
+  video_duration_apply_all?: string;
 }
 
 export interface SaleFormState {
@@ -103,4 +106,6 @@ export interface SaleFormState {
   delivery_deadline: string;
   expected_delivery_date: string;
   video_duration_seconds: string;
+  video_duration_breakdown_seconds: string[];
+  video_duration_apply_all: string;
 }

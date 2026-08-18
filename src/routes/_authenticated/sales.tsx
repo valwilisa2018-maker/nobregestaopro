@@ -11,6 +11,7 @@ import {
 import { toast } from "sonner";
 import { logger } from "@/lib/logger";
 import { formatVideoDuration, dateKey, toDateKey } from "@/lib/format";
+import { isValidVideoDuration, sumVideoDurations } from "@/lib/video-production";
 import { createPaymentLink } from "@/lib/pagarme.functions";
 import { autoLinkFolderFromUrl } from "@/lib/project-folders";
 import { SalesHeroSection } from "@/components/sales/SalesHeroSection";
@@ -160,6 +161,54 @@ function toCents(value: unknown): number {
   const n = Number(value || 0);
   if (!Number.isFinite(n)) return NaN;
   return Math.round(n * 100);
+}
+
+const DEFAULT_VIDEO_DURATION = "30";
+
+function clampServiceQuantity(value: unknown): number {
+  const quantity = Number(value ?? 1);
+  if (!Number.isFinite(quantity) || quantity < 1) return 1;
+  return Math.max(1, Math.trunc(quantity));
+}
+
+function normalizeDurationValue(value: unknown): string {
+  const seconds = Number(value ?? 0);
+  return isValidVideoDuration(seconds) ? String(seconds) : "";
+}
+
+function resizeDurationArray(
+  values: Array<unknown> | null | undefined,
+  quantity: number,
+  fillValue = "",
+): string[] {
+  const normalizedFill = normalizeDurationValue(fillValue);
+  const next = Array.isArray(values)
+    ? values.slice(0, quantity).map((value) => normalizeDurationValue(value))
+    : [];
+
+  while (next.length < quantity) next.push(normalizedFill);
+  return next.slice(0, quantity);
+}
+
+function hydrateDurationArray(
+  values: Array<unknown> | null | undefined,
+  quantity: number,
+  fillValue = "",
+): string[] {
+  const normalizedFill = normalizeDurationValue(fillValue);
+  return resizeDurationArray(values, quantity, fillValue).map((value) => value || normalizedFill);
+}
+
+function totalDurationFromValues(values: Array<unknown> | null | undefined): number {
+  return sumVideoDurations((values ?? []).map((value) => Number(value || 0)));
+}
+
+function hasAnyDurationValue(values: Array<unknown> | null | undefined): boolean {
+  return (values ?? []).some((value) => !!normalizeDurationValue(value));
+}
+
+function hasCompleteDurationArray(quantity: number, values: Array<unknown> | null | undefined): boolean {
+  return Array.from({ length: quantity }, (_, index) => normalizeDurationValue(values?.[index])).every(Boolean);
 }
 
 export { formatVideoDuration } from "@/lib/format";
@@ -357,6 +406,8 @@ function SalesPage() {
     delivery_deadline: "",
     expected_delivery_date: new Date().toISOString().slice(0, 10),
     video_duration_seconds: "",
+    video_duration_breakdown_seconds: [DEFAULT_VIDEO_DURATION],
+    video_duration_apply_all: DEFAULT_VIDEO_DURATION,
   });
 
   const set = useCallback(
@@ -418,16 +469,33 @@ function SalesPage() {
         // Evita bloqueio silencioso na geração da venda: para serviços de vídeo/pacote,
         // já deixa a minutagem mínima selecionada. O vendedor ainda pode alterar para
         // 1min, 2min etc. antes de salvar.
-        if (k === "service_type_id" || k === "package_id") {
-          const serviceType = serviceTypes.data?.find(
-            (st: any) => st.id === updatedForm.service_type_id,
+        const serviceType = serviceTypes.data?.find(
+          (st: any) => st.id === updatedForm.service_type_id,
+        );
+        const isVideoFlow = isVideoService(serviceType?.name, !!updatedForm.package_id);
+        const quantity = clampServiceQuantity(updatedForm.service_quantity);
+        updatedForm.service_quantity = String(quantity);
+
+        if (isVideoFlow) {
+          const fallbackDuration =
+            normalizeDurationValue(updatedForm.video_duration_apply_all) ||
+            normalizeDurationValue(updatedForm.video_duration_breakdown_seconds?.find(Boolean)) ||
+            normalizeDurationValue(updatedForm.video_duration_seconds) ||
+            DEFAULT_VIDEO_DURATION;
+
+          updatedForm.video_duration_breakdown_seconds = hydrateDurationArray(
+            updatedForm.video_duration_breakdown_seconds,
+            quantity,
+            fallbackDuration,
           );
-          if (
-            isVideoService(serviceType?.name, !!updatedForm.package_id) &&
-            !updatedForm.video_duration_seconds
-          ) {
-            updatedForm.video_duration_seconds = "30";
-          }
+          updatedForm.video_duration_apply_all =
+            normalizeDurationValue(updatedForm.video_duration_apply_all) || fallbackDuration;
+          const totalDuration = totalDurationFromValues(updatedForm.video_duration_breakdown_seconds);
+          updatedForm.video_duration_seconds = totalDuration > 0 ? String(totalDuration) : "";
+        } else {
+          updatedForm.video_duration_breakdown_seconds = [];
+          updatedForm.video_duration_apply_all = DEFAULT_VIDEO_DURATION;
+          updatedForm.video_duration_seconds = "";
         }
 
         return updatedForm;
@@ -435,6 +503,75 @@ function SalesPage() {
     },
     [serviceTypes.data, sellers.data, producers.data],
   );
+
+  const updateFormVideoBreakdown = useCallback((updater: (prev: SaleFormState) => SaleFormState) => {
+    setForm((prev) => {
+      const next = updater(prev);
+      const quantity = clampServiceQuantity(next.service_quantity);
+      const breakdown = hydrateDurationArray(
+        next.video_duration_breakdown_seconds,
+        quantity,
+        normalizeDurationValue(next.video_duration_apply_all) ||
+          normalizeDurationValue(next.video_duration_breakdown_seconds?.find(Boolean)) ||
+          DEFAULT_VIDEO_DURATION,
+      );
+      const totalDuration = totalDurationFromValues(breakdown);
+      return {
+        ...next,
+        service_quantity: String(quantity),
+        video_duration_breakdown_seconds: breakdown,
+        video_duration_apply_all:
+          normalizeDurationValue(next.video_duration_apply_all) ||
+          normalizeDurationValue(breakdown[0]) ||
+          DEFAULT_VIDEO_DURATION,
+        video_duration_seconds: totalDuration > 0 ? String(totalDuration) : "",
+      };
+    });
+  }, []);
+
+  const handleFormVideoDurationChange = useCallback((index: number, value: string) => {
+    updateFormVideoBreakdown((prev) => {
+      const quantity = clampServiceQuantity(prev.service_quantity);
+      const breakdown = hydrateDurationArray(
+        prev.video_duration_breakdown_seconds,
+        quantity,
+        normalizeDurationValue(prev.video_duration_apply_all) ||
+          normalizeDurationValue(prev.video_duration_breakdown_seconds?.find(Boolean)) ||
+          DEFAULT_VIDEO_DURATION,
+      );
+      breakdown[index] = normalizeDurationValue(value);
+      return {
+        ...prev,
+        video_duration_breakdown_seconds: breakdown,
+        video_duration_apply_all:
+          normalizeDurationValue(prev.video_duration_apply_all) ||
+          normalizeDurationValue(value) ||
+          DEFAULT_VIDEO_DURATION,
+      };
+    });
+  }, [updateFormVideoBreakdown]);
+
+  const handleFormVideoDurationApplyAllChange = useCallback((value: string) => {
+    setForm((prev) => ({
+      ...prev,
+      video_duration_apply_all: normalizeDurationValue(value) || DEFAULT_VIDEO_DURATION,
+    }));
+  }, []);
+
+  const applyFormDurationToAllVideos = useCallback(() => {
+    updateFormVideoBreakdown((prev) => {
+      const fillValue =
+        normalizeDurationValue(prev.video_duration_apply_all) ||
+        normalizeDurationValue(prev.video_duration_breakdown_seconds?.find(Boolean)) ||
+        DEFAULT_VIDEO_DURATION;
+      const quantity = clampServiceQuantity(prev.service_quantity);
+      return {
+        ...prev,
+        video_duration_apply_all: fillValue,
+        video_duration_breakdown_seconds: Array.from({ length: quantity }, () => fillValue),
+      };
+    });
+  }, [updateFormVideoBreakdown]);
 
   // ID do cliente existente que o usuário escolheu reutilizar (quando há homônimos).
   // Quando nulo, a venda sempre cria/usa um cliente novo conforme os dados digitados.
@@ -572,13 +709,33 @@ function SalesPage() {
       return failVal("platform_link", "Link da Plataforma inválido.");
     }
     // Minutagem obrigatória para vídeos / pacotes
-    if (formNeedsVideoDuration) {
+    const normalizedQty = clampServiceQuantity(form.service_quantity || 1);
+    const formVideoBreakdown = resizeDurationArray(
+      form.video_duration_breakdown_seconds,
+      normalizedQty,
+      "",
+    );
+    if (formNeedsVideoDuration && !hasCompleteDurationArray(normalizedQty, formVideoBreakdown)) {
+      return failVal(
+        "video_duration_seconds",
+        normalizedQty > 1
+          ? "Defina a duracao de todos os videos do pacote."
+          : "Selecione a minutagem do video (minimo 30s).",
+      );
+    }
+    if (false) {
       const dur = Number(form.video_duration_seconds);
       if (!dur || dur < 30 || dur % 30 !== 0) {
         return failVal("video_duration_seconds", "Selecione a minutagem do vídeo (mínimo 30s).");
       }
     }
     // Consistência de valores
+    const videoDurationBreakdownPayload = formNeedsVideoDuration
+      ? formVideoBreakdown.map((value) => Number(value))
+      : null;
+    const videoDurationTotalPayload = formNeedsVideoDuration
+      ? totalDurationFromValues(formVideoBreakdown)
+      : null;
     const total = Number(form.total_amount);
     const paid = Number(form.paid_amount || 0);
     const qty = Number(form.service_quantity || 0);
@@ -678,7 +835,7 @@ function SalesPage() {
           service_type_id: form.service_type_id || null,
           package_id: form.package_id || null,
           package_name: form.package_name || null,
-          service_quantity: Number(form.service_quantity || 1),
+          service_quantity: normalizedQty,
           notes: form.notes || null,
           trello_link: null,
           google_drive_link: form.google_drive_link || null,
@@ -688,9 +845,8 @@ function SalesPage() {
           sale_date: form.sale_date || new Date().toISOString().slice(0, 10),
           delivery_deadline: form.delivery_deadline,
           expected_delivery_date: form.expected_delivery_date,
-          video_duration_seconds: form.video_duration_seconds
-            ? Number(form.video_duration_seconds)
-            : null,
+          video_duration_seconds: videoDurationTotalPayload,
+          video_duration_breakdown_seconds: videoDurationBreakdownPayload,
           created_by: user?.id,
         })
         .select("id")
@@ -780,6 +936,8 @@ function SalesPage() {
         delivery_deadline: "",
         expected_delivery_date: new Date().toISOString().slice(0, 10),
         video_duration_seconds: "",
+        video_duration_breakdown_seconds: [DEFAULT_VIDEO_DURATION],
+        video_duration_apply_all: DEFAULT_VIDEO_DURATION,
       });
       setReceiptFile(null);
       setLinkedCustomerId(null);
@@ -894,6 +1052,43 @@ function SalesPage() {
           checkInfluencer();
         }
 
+        const serviceType = serviceTypes.data?.find(
+          (st: any) => st.id === updatedEditing.service_type_id,
+        );
+        const isVideoFlow = isVideoService(serviceType?.name, !!updatedEditing.package_id);
+        const quantity = clampServiceQuantity(updatedEditing.service_quantity);
+        updatedEditing.service_quantity = quantity;
+
+        if (isVideoFlow) {
+          const fallbackDuration =
+            normalizeDurationValue(updatedEditing.video_duration_apply_all) ||
+            normalizeDurationValue(updatedEditing.video_duration_breakdown_seconds?.find(Boolean)) ||
+            (quantity === 1 ? normalizeDurationValue(updatedEditing.video_duration_seconds) : "");
+
+          const breakdown = resizeDurationArray(
+            updatedEditing.video_duration_breakdown_seconds,
+            quantity,
+            fallbackDuration,
+          );
+          updatedEditing.video_duration_breakdown_seconds = breakdown;
+          updatedEditing.video_duration_apply_all =
+            normalizeDurationValue(updatedEditing.video_duration_apply_all) ||
+            fallbackDuration ||
+            DEFAULT_VIDEO_DURATION;
+
+          const complete = hasCompleteDurationArray(quantity, breakdown);
+          if (complete) {
+            const totalDuration = totalDurationFromValues(breakdown);
+            updatedEditing.video_duration_seconds = totalDuration > 0 ? totalDuration : null;
+          } else if (quantity === 1) {
+            updatedEditing.video_duration_seconds = Number(breakdown[0] || 0) || null;
+          }
+        } else {
+          updatedEditing.video_duration_breakdown_seconds = [];
+          updatedEditing.video_duration_apply_all = DEFAULT_VIDEO_DURATION;
+          updatedEditing.video_duration_seconds = null;
+        }
+
         return updatedEditing;
       });
     },
@@ -901,7 +1096,109 @@ function SalesPage() {
   );
 
   const editFieldChange = useCallback((patch: Partial<EditingSale>) => {
-    setEditing((prev) => (prev ? { ...prev, ...patch } : prev));
+    setEditing((prev) => {
+      if (!prev) return prev;
+      const next: EditingSale = { ...prev, ...patch };
+      if (patch.package_id !== undefined) {
+        const selectedPackage = (packages.data ?? []).find(
+          (pkg: any) => pkg.id === patch.package_id,
+        ) as { name?: string | null; quantity?: number | null } | undefined;
+        if (selectedPackage?.name && !patch.package_name) {
+          next.package_name = selectedPackage.name;
+        }
+        if (selectedPackage?.quantity) {
+          next.service_quantity = clampServiceQuantity(selectedPackage.quantity);
+        }
+      }
+      const serviceType = serviceTypes.data?.find((st: any) => st.id === next.service_type_id);
+      const isVideoFlow = isVideoService(serviceType?.name, !!next.package_id);
+      const quantity = clampServiceQuantity(next.service_quantity);
+      next.service_quantity = quantity;
+
+      if (isVideoFlow) {
+        const fallbackDuration =
+          normalizeDurationValue(next.video_duration_apply_all) ||
+          normalizeDurationValue(next.video_duration_breakdown_seconds?.find(Boolean)) ||
+          (quantity === 1 ? normalizeDurationValue(next.video_duration_seconds) : "");
+        const breakdown = resizeDurationArray(
+          next.video_duration_breakdown_seconds,
+          quantity,
+          fallbackDuration,
+        );
+        next.video_duration_breakdown_seconds = breakdown;
+        next.video_duration_apply_all =
+          normalizeDurationValue(next.video_duration_apply_all) ||
+          fallbackDuration ||
+          DEFAULT_VIDEO_DURATION;
+        if (hasCompleteDurationArray(quantity, breakdown)) {
+          next.video_duration_seconds = totalDurationFromValues(breakdown);
+        }
+      } else {
+        next.video_duration_breakdown_seconds = [];
+        next.video_duration_apply_all = DEFAULT_VIDEO_DURATION;
+        next.video_duration_seconds = null;
+      }
+
+      return next;
+    });
+  }, [serviceTypes.data, packages.data]);
+
+  const handleEditingVideoDurationChange = useCallback((index: number, value: string) => {
+    setEditing((prev) => {
+      if (!prev) return prev;
+      const quantity = clampServiceQuantity(prev.service_quantity);
+      const breakdown = resizeDurationArray(
+        prev.video_duration_breakdown_seconds,
+        quantity,
+        normalizeDurationValue(prev.video_duration_apply_all) ||
+          normalizeDurationValue(prev.video_duration_breakdown_seconds?.find(Boolean)) ||
+          (quantity === 1 ? normalizeDurationValue(prev.video_duration_seconds) : ""),
+      );
+      breakdown[index] = normalizeDurationValue(value);
+      const complete = hasCompleteDurationArray(quantity, breakdown);
+      return {
+        ...prev,
+        video_duration_breakdown_seconds: breakdown,
+        video_duration_apply_all:
+          normalizeDurationValue(prev.video_duration_apply_all) ||
+          normalizeDurationValue(value) ||
+          DEFAULT_VIDEO_DURATION,
+        video_duration_seconds: complete
+          ? totalDurationFromValues(breakdown)
+          : quantity === 1
+            ? Number(breakdown[0] || 0) || null
+            : prev.video_duration_seconds,
+      };
+    });
+  }, []);
+
+  const handleEditingVideoDurationApplyAllChange = useCallback((value: string) => {
+    setEditing((prev) =>
+      prev
+        ? {
+            ...prev,
+            video_duration_apply_all: normalizeDurationValue(value) || DEFAULT_VIDEO_DURATION,
+          }
+        : prev,
+    );
+  }, []);
+
+  const applyEditingDurationToAllVideos = useCallback(() => {
+    setEditing((prev) => {
+      if (!prev) return prev;
+      const quantity = clampServiceQuantity(prev.service_quantity);
+      const fillValue =
+        normalizeDurationValue(prev.video_duration_apply_all) ||
+        normalizeDurationValue(prev.video_duration_breakdown_seconds?.find(Boolean)) ||
+        DEFAULT_VIDEO_DURATION;
+      const breakdown = Array.from({ length: quantity }, () => fillValue);
+      return {
+        ...prev,
+        video_duration_apply_all: fillValue,
+        video_duration_breakdown_seconds: breakdown,
+        video_duration_seconds: totalDurationFromValues(breakdown),
+      };
+    });
   }, []);
 
   const submitEdit = async () => {
@@ -936,14 +1233,52 @@ function SalesPage() {
     }
     {
       const stName = serviceTypes.data?.find((st: any) => st.id === editing.service_type_id)?.name;
-      if (isVideoService(stName, !!editing.package_id)) {
-        const dur = Number(editing.video_duration_seconds);
+      const editingQty = clampServiceQuantity(editing.service_quantity || 1);
+      const editingVideoBreakdown = resizeDurationArray(
+        editing.video_duration_breakdown_seconds,
+        editingQty,
+        "",
+      );
+      const legacyWithoutBreakdown =
+        editingQty > 1 &&
+        !hasAnyDurationValue(editingVideoBreakdown) &&
+        !!normalizeDurationValue(editing.video_duration_seconds);
+      if (
+        isVideoService(stName, !!editing.package_id) &&
+        !legacyWithoutBreakdown &&
+        !hasCompleteDurationArray(editingQty, editingVideoBreakdown)
+      ) {
+        toast.error(
+          editingQty > 1
+            ? "Defina a duracao de todos os videos do pacote."
+            : "Selecione a minutagem do video (minimo 30s).",
+        );
+        return;
+      }
+      if (false) {
+        const dur = Number(editing?.video_duration_seconds);
         if (!dur || dur < 30 || dur % 30 !== 0) {
           toast.error("Selecione a minutagem do vídeo (mínimo 30s).");
           return;
         }
       }
     }
+
+    const editQty = clampServiceQuantity(editing.service_quantity || 1);
+    const editBreakdownRaw = resizeDurationArray(
+      editing.video_duration_breakdown_seconds,
+      editQty,
+      "",
+    );
+    const editHasCompleteBreakdown = hasCompleteDurationArray(editQty, editBreakdownRaw);
+    const editVideoBreakdownPayload = editHasCompleteBreakdown
+      ? editBreakdownRaw.map((value) => Number(value))
+      : null;
+    const editVideoDurationTotalPayload = editVideoBreakdownPayload
+      ? totalDurationFromValues(editBreakdownRaw)
+      : normalizeDurationValue(editing.video_duration_seconds)
+        ? Number(editing.video_duration_seconds)
+        : null;
 
     setEditSaving(true);
     try {
@@ -985,7 +1320,7 @@ function SalesPage() {
           service_type_id: editing.service_type_id || null,
           package_id: editing.package_id || null,
           package_name: editing.package_name || null,
-          service_quantity: Number(editing.service_quantity || 1),
+          service_quantity: editQty,
           notes: editing.notes || null,
           trello_link: null,
           google_drive_link: editing.google_drive_link || null,
@@ -993,9 +1328,8 @@ function SalesPage() {
           lead_source: editing.lead_source || null,
           delivery_deadline: editing.delivery_deadline || null,
           expected_delivery_date: editing.expected_delivery_date || null,
-          video_duration_seconds: editing.video_duration_seconds
-            ? Number(editing.video_duration_seconds)
-            : null,
+          video_duration_seconds: editVideoDurationTotalPayload,
+          video_duration_breakdown_seconds: editVideoBreakdownPayload,
         })
         .eq("id", editing.id);
       if (error) throw error;
@@ -1079,6 +1413,7 @@ function SalesPage() {
               producer_id: editing.producer_id || null,
               expected_delivery_date: editing.expected_delivery_date || null,
               trello_link: null,
+              video_duration_seconds: editVideoBreakdownPayload?.[i - 1] ?? null,
             });
           }
           if (newOrders.length && colId) {
@@ -1125,9 +1460,82 @@ function SalesPage() {
     }
   };
 
-  const openEdit = (sale: SaleRecord) => {
+  const handleFormPackageChange = useCallback((packageId: string) => {
+    const selectedPackage = (packages.data ?? []).find((pkg: any) => pkg.id === packageId) as
+      | { id: string; name?: string | null; quantity?: number | null }
+      | undefined;
+
+    setForm((prev) => {
+      const nextQuantity = selectedPackage?.quantity
+        ? clampServiceQuantity(selectedPackage.quantity)
+        : clampServiceQuantity(prev.service_quantity);
+      const fallbackDuration =
+        normalizeDurationValue(prev.video_duration_apply_all) ||
+        normalizeDurationValue(prev.video_duration_breakdown_seconds?.find(Boolean)) ||
+        DEFAULT_VIDEO_DURATION;
+      const breakdown = hydrateDurationArray(
+        prev.video_duration_breakdown_seconds,
+        nextQuantity,
+        fallbackDuration,
+      );
+      return {
+        ...prev,
+        package_id: packageId,
+        package_name: selectedPackage?.name ?? prev.package_name,
+        service_quantity: String(nextQuantity),
+        video_duration_breakdown_seconds: breakdown,
+        video_duration_apply_all: fallbackDuration,
+        video_duration_seconds: String(totalDurationFromValues(breakdown)),
+      };
+    });
+  }, [packages.data]);
+
+  const openEdit = async (sale: SaleRecord) => {
+    const quantity = clampServiceQuantity(sale.service_quantity || 1);
+    let breakdown = resizeDurationArray(
+      sale.video_duration_breakdown_seconds,
+      quantity,
+      quantity === 1 ? normalizeDurationValue(sale.video_duration_seconds) : "",
+    );
+
+    try {
+      const { data: orderDurations, error } = await supabase
+        .from("service_orders")
+        .select("service_index,video_duration_seconds")
+        .eq("sale_id", sale.id)
+        .order("service_index", { ascending: true });
+      if (error) throw error;
+
+      if ((orderDurations ?? []).length > 0) {
+        const fromOrders = Array.from({ length: quantity }, () => "");
+        for (const order of orderDurations ?? []) {
+          const index = Number(order.service_index ?? 0);
+          if (index >= 1 && index <= quantity) {
+            fromOrders[index - 1] = normalizeDurationValue(order.video_duration_seconds);
+          }
+        }
+        if (hasAnyDurationValue(fromOrders)) {
+          breakdown = resizeDurationArray(fromOrders, quantity, "");
+        }
+      }
+    } catch (error: any) {
+      await logger.warn(`Erro ao carregar minutagem da venda ${sale.id}: ${error?.message ?? error}`, {
+        context: "sales/openEdit/video-durations",
+        details: { sale_id: sale.id, error },
+        silent: true,
+      });
+    }
+
+    const completeBreakdown = hasCompleteDurationArray(quantity, breakdown);
     setEditing({
       ...sale,
+      service_quantity: quantity,
+      video_duration_breakdown_seconds: breakdown,
+      video_duration_apply_all:
+        normalizeDurationValue(breakdown.find(Boolean)) || DEFAULT_VIDEO_DURATION,
+      video_duration_seconds: completeBreakdown
+        ? totalDurationFromValues(breakdown)
+        : sale.video_duration_seconds ?? null,
       with_invoice: sale.customers?.document ? "sim" : "nao",
       customer_name: sale.customers?.name ?? undefined,
       company: sale.customers?.company ?? undefined,
@@ -1149,11 +1557,7 @@ function SalesPage() {
           onOpenChange: setOpen,
           form,
           set,
-          onPackageChange: (v: string) => {
-            const p = (packages.data ?? []).find((x: any) => x.id === v);
-            set("package_id", v);
-            setForm((f) => ({ ...f, package_name: p?.name ?? f.package_name }));
-          },
+          onPackageChange: handleFormPackageChange,
           customersAll: customersAll.data ?? [],
           customerSuggestions,
           linkedCustomerId,
@@ -1170,6 +1574,9 @@ function SalesPage() {
           receiptFile,
           onReceiptFileChange: setReceiptFile,
           saving,
+          onVideoDurationChange: handleFormVideoDurationChange,
+          onVideoDurationApplyAllChange: handleFormVideoDurationApplyAllChange,
+          onApplyDurationToAllVideos: applyFormDurationToAllVideos,
           onSubmit: submit,
         }}
       />
@@ -1238,6 +1645,9 @@ function SalesPage() {
         serviceTypes={serviceTypes.data ?? []}
         packages={packages.data ?? []}
         editSaving={editSaving}
+        onVideoDurationChange={handleEditingVideoDurationChange}
+        onVideoDurationApplyAllChange={handleEditingVideoDurationApplyAllChange}
+        onApplyDurationToAllVideos={applyEditingDurationToAllVideos}
         onCancel={() => setEditing(null)}
         onSubmit={submitEdit}
       />

@@ -19,6 +19,7 @@ import {
 import { Loader2 } from "lucide-react";
 import { PhoneInputBR } from "@/components/phone-input-br";
 import type { CustomerRecord, EditingSale, LookupOption } from "./types";
+import { VideoDurationBreakdownField } from "./video-duration-breakdown-field";
 
 const VIDEO_DURATION_OPTIONS: { value: number; label: string }[] = Array.from(
   { length: 20 },
@@ -79,6 +80,9 @@ export interface EditSaleDialogProps {
   serviceTypes: LookupOption[];
   packages: LookupOption[];
   editSaving: boolean;
+  onVideoDurationChange: (index: number, value: string) => void;
+  onVideoDurationApplyAllChange: (value: string) => void;
+  onApplyDurationToAllVideos: () => void;
   onCancel: () => void;
   onSubmit: () => void;
 }
@@ -94,6 +98,9 @@ export function EditSaleDialog({
   serviceTypes,
   packages,
   editSaving,
+  onVideoDurationChange,
+  onVideoDurationApplyAllChange,
+  onApplyDurationToAllVideos,
   onCancel,
   onSubmit,
 }: EditSaleDialogProps) {
@@ -370,10 +377,22 @@ export function EditSaleDialog({
               serviceTypes.find((st) => st.id === editing.service_type_id)?.name ?? undefined,
               !!editing.package_id,
             ) && (
+              <div className="col-span-2">
+                <VideoDurationBreakdownField
+                  quantity={Number(editing.service_quantity ?? 1)}
+                  durations={editing.video_duration_breakdown_seconds ?? []}
+                  applyAllValue={editing.video_duration_apply_all ?? ""}
+                  onDurationChange={onVideoDurationChange}
+                  onApplyAllValueChange={onVideoDurationApplyAllChange}
+                  onApplyAll={onApplyDurationToAllVideos}
+                />
+              </div>
+            )}
+            {false && editing && (
               <div>
                 <Label>Minutagem do vídeo *</Label>
                 <Select
-                  value={String(editing.video_duration_seconds ?? "")}
+                  value={String(editing?.video_duration_seconds ?? "")}
                   onValueChange={(v) => editSet("video_duration_seconds", v)}
                 >
                   <SelectTrigger>

@@ -7,6 +7,7 @@ import { logger } from "@/lib/logger";
 import { formatCurrency, formatVideoDuration } from "@/lib/format";
 import { useAuth, isAdmin as isAdminRole } from "@/lib/auth";
 import { autoLinkFolderFromUrl } from "@/lib/project-folders";
+import { resolveOrderVideoDurationSeconds } from "@/lib/video-production";
 import { KanbanHeader } from "@/components/kanban/kanban-header";
 import { KanbanFilters } from "@/components/kanban/kanban-filters";
 import { KanbanColumn } from "@/components/kanban/kanban-column";
@@ -143,7 +144,7 @@ function KanbanPage() {
       const { data, error } = await supabase
         .from("service_orders")
         .select(
-          "*, producer:producers!service_orders_producer_id_fkey(name,avatar_url), sales(total_amount, paid_amount, payment_status, trello_link, google_drive_link, platform_link, producer_id, expected_delivery_date, video_duration_seconds, customers(name,company,phone), sellers(name,avatar_url), producers(name,avatar_url))",
+          "*, producer:producers!service_orders_producer_id_fkey(name,avatar_url), sales(total_amount, paid_amount, payment_status, trello_link, google_drive_link, platform_link, producer_id, expected_delivery_date, service_quantity, video_duration_seconds, video_duration_breakdown_seconds, customers(name,company,phone), sellers(name,avatar_url), producers(name,avatar_url))",
         )
         .order("created_at", { ascending: true })
         .order("service_index", { ascending: true });
@@ -176,11 +177,8 @@ function KanbanPage() {
       producer_id: found.producer_id ?? null,
       expected_delivery_date:
         found.expected_delivery_date ?? found.sales?.expected_delivery_date ?? null,
-      video_duration_seconds:
-        (found as any).video_duration_seconds ?? found.sales?.video_duration_seconds ?? null,
-      video_duration_input: fmtVideoDuration(
-        (found as any).video_duration_seconds ?? found.sales?.video_duration_seconds ?? null,
-      ),
+      video_duration_seconds: resolveOrderVideoDurationSeconds(found as any) || null,
+      video_duration_input: fmtVideoDuration(resolveOrderVideoDurationSeconds(found as any) || null),
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [cardParam, cards.data]);
@@ -472,11 +470,8 @@ function KanbanPage() {
       customer_name: c.sales?.customers?.name ?? null,
       producer_id: c.producer_id ?? null,
       expected_delivery_date: c.expected_delivery_date ?? c.sales?.expected_delivery_date ?? null,
-      video_duration_seconds:
-        (c as any).video_duration_seconds ?? c.sales?.video_duration_seconds ?? null,
-      video_duration_input: fmtVideoDuration(
-        (c as any).video_duration_seconds ?? c.sales?.video_duration_seconds ?? null,
-      ),
+      video_duration_seconds: resolveOrderVideoDurationSeconds(c as any) || null,
+      video_duration_input: fmtVideoDuration(resolveOrderVideoDurationSeconds(c as any) || null),
     });
     setNewLabel("");
   };

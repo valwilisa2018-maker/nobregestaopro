@@ -2,11 +2,13 @@ export interface KanbanSale {
   total_amount: number | null;
   paid_amount: number | null;
   payment_status: string | null;
+  service_quantity?: number | null;
   trello_link?: string | null;
   google_drive_link: string | null;
   platform_link: string | null;
   producer_id: string | null;
   expected_delivery_date: string | null;
+  video_duration_breakdown_seconds?: number[] | null;
   video_duration_seconds: number | null;
   customers: { name: string | null; company: string | null; phone: string | null } | null;
   sellers: { name: string | null; avatar_url?: string | null } | null;
@@ -25,6 +27,7 @@ export interface KanbanCardData {
   google_drive_link: string | null;
   platform_link: string | null;
   sale_id: string | null;
+  service_index: number | null;
   producer_id: string | null;
   expected_delivery_date: string | null;
   video_duration_seconds: number | null;

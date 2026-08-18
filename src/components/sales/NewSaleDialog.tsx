@@ -28,6 +28,7 @@ import {
 import { PhoneInputBR } from "@/components/phone-input-br";
 import { SafeSelect } from "@/components/safe-select";
 import type { CustomerRecord, LookupOption, SaleFormState } from "./types";
+import { VideoDurationBreakdownField } from "./video-duration-breakdown-field";
 
 const VIDEO_DURATION_OPTIONS: { value: number; label: string }[] = Array.from(
   { length: 20 },
@@ -72,6 +73,9 @@ export interface NewSaleDialogProps {
   receiptFile: File | null;
   onReceiptFileChange: (file: File | null) => void;
   saving: boolean;
+  onVideoDurationChange: (index: number, value: string) => void;
+  onVideoDurationApplyAllChange: (value: string) => void;
+  onApplyDurationToAllVideos: () => void;
   onSubmit: () => void;
 }
 
@@ -97,6 +101,9 @@ export function NewSaleDialog({
   receiptFile,
   onReceiptFileChange,
   saving,
+  onVideoDurationChange,
+  onVideoDurationApplyAllChange,
+  onApplyDurationToAllVideos,
   onSubmit,
 }: NewSaleDialogProps) {
   return (
@@ -426,6 +433,18 @@ export function NewSaleDialog({
             </div>
           </div>
           {formNeedsVideoDuration && (
+            <div data-sale-field="video_duration_seconds" className="sm:col-span-2">
+              <VideoDurationBreakdownField
+                quantity={Number(form.service_quantity || 1)}
+                durations={form.video_duration_breakdown_seconds}
+                applyAllValue={form.video_duration_apply_all}
+                onDurationChange={onVideoDurationChange}
+                onApplyAllValueChange={onVideoDurationApplyAllChange}
+                onApplyAll={onApplyDurationToAllVideos}
+              />
+            </div>
+          )}
+          {false && formNeedsVideoDuration && (
             <div
               data-sale-field="video_duration_seconds"
               className="rounded-xl border border-amber-300/70 bg-amber-50/70 p-3 dark:bg-amber-950/20"
