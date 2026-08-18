@@ -225,6 +225,9 @@ function KanbanPage() {
 
   const move = async (cardId: string, columnId: string) => {
     const col = cols.data?.find((c: any) => c.id === columnId);
+    const currentCard = qc.getQueryData<any[]>(["kanban-cards"])?.find((c: any) => c.id === cardId);
+    const currentCol = cols.data?.find((c: any) => c.id === currentCard?.column_id);
+    const isNewDelivery = col?.is_done === true && currentCol?.is_done === false;
     // Ao mover para uma coluna, novos cards vão para o topo (sort_order menor).
     // Em colunas concluídas isso garante "mais recente em cima".
     // Usa segundos (não ms) para caber em INTEGER (int32). Negativo = mais recente em cima.
@@ -239,22 +242,19 @@ function KanbanPage() {
               ...c,
               column_id: columnId,
               sort_order: newSort,
-              delivered_at: col?.is_done && !c.delivered_at ? nowIso : c.delivered_at,
+              delivered_at: isNewDelivery ? nowIso : c.delivered_at,
             }
           : c,
       ),
     );
     const { error } = await supabase
       .from("service_orders")
-      .update({ column_id: columnId, sort_order: newSort })
+      .update({
+        column_id: columnId,
+        sort_order: newSort,
+        ...(isNewDelivery ? { delivered_at: nowIso } : {}),
+      })
       .eq("id", cardId);
-    if (!error && col?.is_done) {
-      await supabase
-        .from("service_orders")
-        .update({ delivered_at: nowIso })
-        .eq("id", cardId)
-        .is("delivered_at", null);
-    }
     if (error) {
       // Reverte cache em caso de falha
       if (prev) qc.setQueryData(["kanban-cards"], prev);
@@ -277,6 +277,15 @@ function KanbanPage() {
     const orderMap = new Map(cardIds.map((id, i) => [id, baseSort + i]));
     // Atualização otimista do cache
     const prev = qc.getQueryData<any[]>(["kanban-cards"]);
+    const newlyDeliveredIds = new Set(
+      (prev ?? [])
+        .filter((c: any) => idSet.has(c.id))
+        .filter((c: any) => {
+          const currentCol = cols.data?.find((column: any) => column.id === c.column_id);
+          return col?.is_done === true && currentCol?.is_done === false;
+        })
+        .map((c: any) => c.id),
+    );
     qc.setQueryData<any[]>(["kanban-cards"], (old) =>
       (old ?? []).map((c: any) =>
         idSet.has(c.id)
@@ -284,7 +293,7 @@ function KanbanPage() {
               ...c,
               column_id: columnId,
               sort_order: orderMap.get(c.id) ?? c.sort_order,
-              delivered_at: col?.is_done && !c.delivered_at ? nowIso : c.delivered_at,
+              delivered_at: newlyDeliveredIds.has(c.id) ? nowIso : c.delivered_at,
             }
           : c,
       ),
@@ -294,18 +303,15 @@ function KanbanPage() {
       cardIds.map((id, i) =>
         supabase
           .from("service_orders")
-          .update({ column_id: columnId, sort_order: baseSort + i })
+          .update({
+            column_id: columnId,
+            sort_order: baseSort + i,
+            ...(newlyDeliveredIds.has(id) ? { delivered_at: nowIso } : {}),
+          })
           .eq("id", id),
       ),
     );
     const error = results.find((r) => r.error)?.error;
-    if (!error && col?.is_done) {
-      await supabase
-        .from("service_orders")
-        .update({ delivered_at: nowIso })
-        .in("id", cardIds)
-        .is("delivered_at", null);
-    }
     if (error) {
       if (prev) qc.setQueryData(["kanban-cards"], prev);
       await logger.error(`Erro ao mover vários cards: ${error.message}`, {
