@@ -19,6 +19,21 @@ export function normalizeProductionDeliveredAt(
   if (!deliveredAt || producerId !== JULIA_PRODUCER_ID) return deliveredAt ?? null;
   const confirmed = JULIA_CONFIRMED_DELIVERY_DATES[title ?? ""];
   if (confirmed) return confirmed;
+  // Os registros antigos exibidos em 20/21 de junho foram confirmados como
+  // entregues em 12/08/2026. A identificação pela data evita depender do
+  // rótulo visual "cliente • serviço", que pode não ser o título salvo.
+  if (deliveredAt.startsWith("2026-06-20") || deliveredAt.startsWith("2026-06-21")) {
+    const parts = new Intl.DateTimeFormat("en-US", {
+      timeZone: "America/Sao_Paulo",
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit",
+      hourCycle: "h23",
+    }).formatToParts(new Date(deliveredAt));
+    const timePart = (type: Intl.DateTimeFormatPartTypes) =>
+      parts.find((part) => part.type === type)?.value ?? "00";
+    return `2026-08-12T${timePart("hour")}:${timePart("minute")}:${timePart("second")}-03:00`;
+  }
   return deliveredAt.startsWith("2026-07-")
     ? deliveredAt.replace("2026-07-", "2026-08-")
     : deliveredAt;
