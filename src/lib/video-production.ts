@@ -1,12 +1,16 @@
 export const VIDEO_POINT_SECONDS = 30;
 export const JULIA_PRODUCER_ID = "b381e1e9-f556-4ae7-94c0-906ffb59c486";
 
-/** Usa a mesma prioridade exibida no Kanban: card primeiro, venda como fallback. */
+/**
+ * A produção é medida pelo que foi registrado no próprio card do Kanban.
+ * A duração da venda não pode entrar como fallback porque uma venda pode gerar
+ * vários cards e acabaria repetindo a mesma minutagem em todos eles.
+ */
 export function resolveVideoDurationSeconds(
   cardDuration: number | null | undefined,
-  saleDuration: number | null | undefined,
+  _saleDuration?: number | null,
 ): number {
-  const seconds = Number(cardDuration ?? saleDuration ?? 0);
+  const seconds = Number(cardDuration ?? 0);
   return Number.isFinite(seconds) && seconds > 0 ? seconds : 0;
 }
 

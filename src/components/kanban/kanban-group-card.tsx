@@ -41,7 +41,7 @@ export function KanbanGroupCard({
   const first = cards[0];
   const customerName = first.sales?.customers?.name ?? "Cliente";
   const company = first.sales?.customers?.company;
-  const duration = first.video_duration_seconds ?? first.sales?.video_duration_seconds;
+  const duration = first.video_duration_seconds;
   const seller = first.sales?.sellers;
   const producer = first.producer ?? first.sales?.producers;
 

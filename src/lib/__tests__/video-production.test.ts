@@ -10,9 +10,9 @@ const totalSegundos = (durations: number[]) => durations.reduce((acc, duration) 
 const totalPontos = (durations: number[]) => calculateVideoPoints(totalSegundos(durations));
 
 describe("video-production", () => {
-  it("usa exatamente a mesma prioridade de minutagem do Kanban", () => {
+  it("soma somente a minutagem individual registrada no card", () => {
     expect(resolveVideoDurationSeconds(90, 120)).toBe(90);
-    expect(resolveVideoDurationSeconds(null, 120)).toBe(120);
+    expect(resolveVideoDurationSeconds(null, 120)).toBe(0);
     expect(resolveVideoDurationSeconds(0, 120)).toBe(0);
     expect(resolveVideoDurationSeconds(null, null)).toBe(0);
   });
