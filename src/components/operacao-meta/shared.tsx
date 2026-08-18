@@ -243,7 +243,7 @@ export function useOmData() {
         sale.packages?.points_value ??
         1,
     );
-    // Prefere a minutagem específica do card; cai pra venda quando não houver.
+    // Pontuação usa somente a minutagem específica deste card.
     const dur = resolveVideoDurationSeconds(
       o.video_duration_seconds,
       sale.video_duration_seconds,
@@ -279,7 +279,7 @@ export function useOmData() {
   const doneNow = allOrders.filter((o: any) => o.kanban_columns?.is_done === true);
 
   const sumPts = (arr: any[]) => arr.reduce((a, o) => a + computePts(o), 0);
-  // Mesma fonte exibida no Kanban: minutagem do card → minutagem da venda.
+  // Soma estritamente a minutagem individual de cada card concluído no Kanban.
   const sumDuracao = (arr: any[]) =>
     arr.reduce(
       (a, o) =>
@@ -2169,7 +2169,14 @@ function ProducerAchievements({ producer, delivered, onClose }: any) {
                       <div className="sticky top-0 z-10 bg-amber-400/20 border border-amber-400/50 text-amber-900 dark:text-amber-200 px-3 py-1.5 rounded-md text-xs font-extrabold uppercase tracking-wide mb-2 flex items-center justify-between">
                         <span>📅 {dayLabel}</span>
                         <span className="text-amber-950 dark:text-amber-100">
-                          {items.length} vídeo(s)
+                          {items.length} vídeo(s) •{" "}
+                          {formatDuracao(
+                            items.reduce(
+                              (total: number, item: any) =>
+                                total + resolveVideoDurationSeconds(item.video_duration_seconds),
+                              0,
+                            ),
+                          )}
                         </span>
                       </div>
                       <div className="space-y-1.5">
@@ -2193,8 +2200,15 @@ function ProducerAchievements({ producer, delivered, onClose }: any) {
                                   </div>
                                 )}
                               </div>
-                              <div className="shrink-0 flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-emerald-500/15 border border-emerald-500/40 text-emerald-600 dark:text-emerald-400 text-[11px] font-extrabold uppercase tracking-wide whitespace-nowrap">
-                                ✓ {fmtDateTime(o.delivered_at)}
+                              <div className="shrink-0 flex flex-col items-end gap-1">
+                                <div className="px-2.5 py-1 rounded-md bg-blue-500/15 border border-blue-500/40 text-blue-600 dark:text-blue-400 text-[11px] font-extrabold uppercase tracking-wide whitespace-nowrap">
+                                  {resolveVideoDurationSeconds(o.video_duration_seconds) > 0
+                                    ? `🎬 ${formatDuracao(resolveVideoDurationSeconds(o.video_duration_seconds))}`
+                                    : "Sem minutagem"}
+                                </div>
+                                <div className="px-2.5 py-1 rounded-md bg-emerald-500/15 border border-emerald-500/40 text-emerald-600 dark:text-emerald-400 text-[11px] font-extrabold uppercase tracking-wide whitespace-nowrap">
+                                  ✓ {fmtDateTime(o.delivered_at)}
+                                </div>
                               </div>
                             </div>
                           ))}

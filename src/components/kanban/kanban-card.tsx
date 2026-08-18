@@ -221,7 +221,7 @@ export interface KanbanCardBadgesRowProps {
 }
 
 export function KanbanCardBadgesRow({ card: c }: KanbanCardBadgesRowProps) {
-  const duration = c.video_duration_seconds ?? c.sales?.video_duration_seconds;
+  const duration = c.video_duration_seconds;
   if (!(c.sales?.payment_status === "pago_parcial" || duration)) return null;
 
   return (
