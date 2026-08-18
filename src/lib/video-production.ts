@@ -1,6 +1,15 @@
 export const VIDEO_POINT_SECONDS = 30;
 export const JULIA_PRODUCER_ID = "b381e1e9-f556-4ae7-94c0-906ffb59c486";
 
+/** Usa a mesma prioridade exibida no Kanban: card primeiro, venda como fallback. */
+export function resolveVideoDurationSeconds(
+  cardDuration: number | null | undefined,
+  saleDuration: number | null | undefined,
+): number {
+  const seconds = Number(cardDuration ?? saleDuration ?? 0);
+  return Number.isFinite(seconds) && seconds > 0 ? seconds : 0;
+}
+
 const JULIA_CONFIRMED_DELIVERY_DATES: Record<string, string> = {
   "Denis • Video mascote 01": "2026-08-12T22:07:00-03:00",
   "Valdemir • Video mascote 01": "2026-08-12T21:18:00-03:00",
