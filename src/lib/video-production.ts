@@ -48,6 +48,23 @@ export function normalizeProductionDeliveredAt(
     : deliveredAt;
 }
 
+/**
+ * O Kanban define produção pela coluna concluída. Para cards legados que já
+ * estão concluídos mas não têm delivered_at, usa updated_at como a melhor data
+ * disponível para que a Operação de Meta conte o mesmo conjunto do Kanban.
+ */
+export function resolveProductionDeliveredAt(
+  producerId: string | null | undefined,
+  title: string | null | undefined,
+  deliveredAt: string | null | undefined,
+  updatedAt: string | null | undefined,
+  isDone: boolean | null | undefined,
+): string | null {
+  const normalized = normalizeProductionDeliveredAt(producerId, title, deliveredAt);
+  if (normalized) return normalized;
+  return isDone === true ? (updatedAt ?? null) : null;
+}
+
 export function parseDuracaoSegundos(name: string): number {
   if (!name) return 0;
 

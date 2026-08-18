@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   calculateVideoPoints,
   parseDuracaoSegundos,
+  resolveProductionDeliveredAt,
   resolveVideoDurationSeconds,
 } from "../video-production";
 
@@ -14,6 +15,27 @@ describe("video-production", () => {
     expect(resolveVideoDurationSeconds(null, 120)).toBe(120);
     expect(resolveVideoDurationSeconds(0, 120)).toBe(0);
     expect(resolveVideoDurationSeconds(null, null)).toBe(0);
+  });
+
+  it("conta como produzido o card legado que já está concluído no Kanban", () => {
+    expect(
+      resolveProductionDeliveredAt(
+        "outro-produtor",
+        "Vídeo 46",
+        null,
+        "2026-08-18T15:30:00-03:00",
+        true,
+      ),
+    ).toBe("2026-08-18T15:30:00-03:00");
+    expect(
+      resolveProductionDeliveredAt(
+        "outro-produtor",
+        "Vídeo em produção",
+        null,
+        "2026-08-18T15:30:00-03:00",
+        false,
+      ),
+    ).toBeNull();
   });
 
   it("extrai duracoes comuns do titulo do card", () => {
