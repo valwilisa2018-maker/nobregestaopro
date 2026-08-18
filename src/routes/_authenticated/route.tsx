@@ -166,9 +166,9 @@ function ProtectedWorkspace({ pathname, nowBR }: { pathname: string; nowBR: stri
 
   return (
     <SidebarProvider>
-      <div className="min-h-screen flex w-full bg-background">
+      <div className="flex h-svh min-h-0 w-full overflow-hidden bg-background">
         <AppSidebar />
-        <SidebarInset className="flex-1 min-w-0">
+        <SidebarInset className="h-svh min-h-0 flex-1 min-w-0 overflow-hidden">
           <header className="sticky top-0 z-20 flex min-h-16 flex-wrap items-center gap-3 border-b border-border/40 bg-background/70 px-4 py-3 backdrop-blur-xl supports-[backdrop-filter]:bg-background/60 md:px-6">
             <SidebarTrigger className="rounded-lg hover:bg-accent/60 transition-colors duration-200" />
             <div className="h-6 w-px bg-border/60" />
@@ -191,7 +191,7 @@ function ProtectedWorkspace({ pathname, nowBR }: { pathname: string; nowBR: stri
               </span>
             </div>
           </header>
-          <main className="flex-1 min-w-0 overflow-x-hidden p-4 md:p-6 lg:p-8">
+          <main className="flex-1 min-h-0 min-w-0 overflow-x-hidden overflow-y-auto overscroll-contain p-4 md:p-6 lg:p-8">
             <div key={pathname} className="animate-fade-up space-y-6">
               <Outlet />
               <ReleaseNoteCard />
