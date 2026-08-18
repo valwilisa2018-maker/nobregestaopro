@@ -183,7 +183,7 @@ export function useOmData() {
   const producers = useQuery({
     queryKey: ["om-producers"],
     queryFn: async () =>
-      (await supabase.from("producers").select("id,name,daily_points_goal,active,avatar_url,production_started_at"))
+      (await supabase.from("producers").select("id,name,daily_points_goal,active,avatar_url"))
         .data ?? [],
     refetchOnWindowFocus: true,
     staleTime: 60_000,
@@ -255,11 +255,11 @@ export function useOmData() {
   const activeProducerIds = new Set(
     (producers.data ?? []).filter((p: any) => p.active !== false).map((p: any) => p.id),
   );
-  const producerStartDates = new Map(
-    (producers.data ?? [])
-      .filter((p: any) => p.production_started_at)
-      .map((p: any) => [p.id, p.production_started_at]),
-  );
+  // Júlia iniciou a produção em agosto/2026. Mantido localmente para que a
+  // tela não dependa da aplicação prévia de uma migration no banco.
+  const producerStartDates = new Map<string, string>([
+    ["b381e1e9-f556-4ae7-94c0-906ffb59c486", "2026-08-01"],
+  ]);
   const delivered = (orders.data ?? [])
     .filter((o: any) => !!o.delivered_at)
     // só conta entregas de produtores ativos (desativados somem automaticamente)
