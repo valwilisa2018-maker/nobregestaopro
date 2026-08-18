@@ -212,6 +212,14 @@ export function useOmData() {
         ...o,
         // Fallback: se a ordem não tem producer_id atribuído, usa o da venda.
         producer_id: o.producer_id ?? o.sales?.producer_id ?? null,
+        // Os 46 vídeos da Júlia são de agosto/2026, embora parte do legado
+        // ainda esteja gravada um mês antes. Corrige a leitura em todos os
+        // indicadores (quantidade, minutagem, pontos e detalhes).
+        delivered_at:
+          (o.producer_id ?? o.sales?.producer_id) === "b381e1e9-f556-4ae7-94c0-906ffb59c486" &&
+          String(o.delivered_at ?? "").startsWith("2026-07-")
+            ? String(o.delivered_at).replace("2026-07-", "2026-08-")
+            : o.delivered_at,
       })) ?? [],
     refetchOnWindowFocus: true,
     staleTime: 30_000,
@@ -255,21 +263,10 @@ export function useOmData() {
   const activeProducerIds = new Set(
     (producers.data ?? []).filter((p: any) => p.active !== false).map((p: any) => p.id),
   );
-  // Júlia iniciou a produção em agosto/2026. Mantido localmente para que a
-  // tela não dependa da aplicação prévia de uma migration no banco.
-  const producerStartDates = new Map<string, string>([
-    ["b381e1e9-f556-4ae7-94c0-906ffb59c486", "2026-08-01"],
-  ]);
   const delivered = (orders.data ?? [])
     .filter((o: any) => !!o.delivered_at)
     // só conta entregas de produtores ativos (desativados somem automaticamente)
-    .filter((o: any) => !o.producer_id || activeProducerIds.has(o.producer_id))
-    // Não atribui ao produtor entregas anteriores ao início da produção dele.
-    .filter((o: any) => {
-      if (!o.producer_id) return true;
-      const startedAt = producerStartDates.get(o.producer_id);
-      return !startedAt || String(o.delivered_at).slice(0, 10) >= startedAt;
-    });
+    .filter((o: any) => !o.producer_id || activeProducerIds.has(o.producer_id));
 
   // Estado atual no Kanban (independente de período): tudo que está hoje em colunas concluídas / em produção.
   const allOrders = (orders.data ?? []).filter(
