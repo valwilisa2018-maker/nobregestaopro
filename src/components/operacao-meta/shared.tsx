@@ -208,19 +208,30 @@ export function useOmData() {
           .select(
             "id,title,producer_id,sale_id,column_id,delivered_at,updated_at,redo_count,last_redo_at,video_duration_seconds,kanban_columns(name,is_done,is_default),sales(producer_id,service_type_id,package_id,video_duration_seconds,service_types(name,points,points_value),packages(name,points_value))",
           )
-      ).data?.map((o: any) => ({
-        ...o,
-        // Fallback: se a ordem não tem producer_id atribuído, usa o da venda.
-        producer_id: o.producer_id ?? o.sales?.producer_id ?? null,
-        // Os 46 vídeos da Júlia são de agosto/2026, embora parte do legado
-        // ainda esteja gravada um mês antes. Corrige a leitura em todos os
-        // indicadores (quantidade, minutagem, pontos e detalhes).
-        delivered_at:
-          (o.producer_id ?? o.sales?.producer_id) === "b381e1e9-f556-4ae7-94c0-906ffb59c486" &&
-          String(o.delivered_at ?? "").startsWith("2026-07-")
-            ? String(o.delivered_at).replace("2026-07-", "2026-08-")
-            : o.delivered_at,
-      })) ?? [],
+      ).data?.map((o: any) => {
+        const producerId = o.producer_id ?? o.sales?.producer_id ?? null;
+        let deliveredAt = o.delivered_at;
+        if (producerId === "b381e1e9-f556-4ae7-94c0-906ffb59c486") {
+          if (String(deliveredAt ?? "").startsWith("2026-07-")) {
+            deliveredAt = String(deliveredAt).replace("2026-07-", "2026-08-");
+          }
+          const correctedJuliaVideos: Record<string, string> = {
+            "Denis • Video mascote 01": "2026-08-12T22:07:00-03:00",
+            "Valdemir • Video mascote 01": "2026-08-12T21:18:00-03:00",
+            "Marcia • Video mascote 01": "2026-08-12T21:09:00-03:00",
+            "Deivi • Video mascote 01": "2026-08-12T20:56:00-03:00",
+            "Deivi • Video mascote 02": "2026-08-12T20:56:00-03:00",
+            "Deivi • Video mascote 03": "2026-08-12T20:56:00-03:00",
+          };
+          deliveredAt = correctedJuliaVideos[o.title] ?? deliveredAt;
+        }
+        return {
+          ...o,
+          // Fallback: se a ordem não tem producer_id atribuído, usa o da venda.
+          producer_id: producerId,
+          delivered_at: deliveredAt,
+        };
+      }) ?? [],
     refetchOnWindowFocus: true,
     staleTime: 30_000,
   });
