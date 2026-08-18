@@ -4,6 +4,18 @@
 
 export const TZ = "America/Sao_Paulo";
 
+function saoPauloDateKey(d: Date): string {
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone: TZ,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(d);
+  const value = (type: Intl.DateTimeFormatPartTypes) =>
+    parts.find((part) => part.type === type)?.value ?? "";
+  return `${value("year")}-${value("month")}-${value("day")}`;
+}
+
 // Parse "YYYY-MM-DD" or ISO datetime into a Date without TZ shifting for date-only.
 function parse(d?: string | Date | null): Date | null {
   if (!d) return null;
@@ -63,24 +75,25 @@ export const formatCurrency = (v: number | string | null | undefined) => {
 
 /** Data local como "YYYY-MM-DD". */
 export function dateKey(d: Date = new Date()): string {
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(
-    d.getDate(),
-  ).padStart(2, "0")}`;
+  return saoPauloDateKey(d);
 }
 
 /** Mês local como "YYYY-MM". */
 export function monthKey(d: Date = new Date()): string {
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+  return saoPauloDateKey(d).slice(0, 7);
 }
 
 /** Normaliza qualquer data do banco ("YYYY-MM-DD" ou ISO) para "YYYY-MM-DD". */
 export function toDateKey(value?: string | null): string {
-  return value ? String(value).slice(0, 10) : "";
+  if (!value) return "";
+  if (/^\d{4}-\d{2}-\d{2}$/.test(value)) return value;
+  const d = new Date(value);
+  return Number.isNaN(d.getTime()) ? "" : saoPauloDateKey(d);
 }
 
 /** Normaliza qualquer data do banco para "YYYY-MM". */
 export function toMonthKey(value?: string | null): string {
-  return value ? String(value).slice(0, 7) : "";
+  return toDateKey(value).slice(0, 7);
 }
 
 /* ------------------------------------------------------------------ *

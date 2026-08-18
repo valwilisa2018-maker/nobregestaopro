@@ -6,7 +6,7 @@ import { GoalCelebration } from "@/components/goal-celebration";
 import { useAuth } from "@/lib/auth";
 import { useMidnightRefresh } from "@/hooks/use-midnight-refresh";
 import { formatCurrency, dateKey, monthKey, toDateKey, toMonthKey } from "@/lib/format";
-import { calculateVideoPoints } from "@/lib/video-production";
+import { calculateVideoPoints, normalizeProductionDeliveredAt } from "@/lib/video-production";
 import { toast } from "sonner";
 import { DollarSign, TrendingUp, Calendar } from "lucide-react";
 import { DashboardHero } from "@/components/dashboard/dashboard-hero";
@@ -72,11 +72,11 @@ function Dashboard() {
   const navigate = useNavigate();
   // Filtros principais
   const [scope, setScope] = useState<DashboardScope>("day");
-  const todayStr = new Date().toISOString().slice(0, 10);
+  const todayStr = dateKey();
   const yesterdayStr = (() => {
     const d = new Date();
     d.setDate(d.getDate() - 1);
-    return d.toISOString().slice(0, 10);
+    return dateKey(d);
   })();
   const [customFrom, setCustomFrom] = useState<string>(todayStr);
   const [customTo, setCustomTo] = useState<string>(todayStr);
@@ -455,7 +455,20 @@ function Dashboard() {
   // "A fazer"     = coluna marcada como is_default (primeira coluna do fluxo)
   // "Em produção" = colunas intermediárias (is_done=false e is_default=false), ex.: "Produção", "Alteração a Fazer"
   // "Entregue"    = colunas com is_done=true (Pronto / Entregue / Alteração Pronta)
-  const ordersList = orders.data ?? [];
+  const saleByIdForProduction = new Map((sales.data ?? []).map((sale) => [sale.id, sale]));
+  const ordersList = (orders.data ?? []).map((order) => {
+    const sale = order.sale_id ? saleByIdForProduction.get(order.sale_id) : undefined;
+    const producerId = order.producer_id ?? sale?.producer_id ?? null;
+    return {
+      ...order,
+      producer_id: producerId,
+      delivered_at: normalizeProductionDeliveredAt(
+        producerId,
+        order.title,
+        order.delivered_at,
+      ),
+    };
+  });
   const ordersTodo = ordersList.filter((o) => o.kanban_columns?.is_default === true).length;
   const ordersInProd = ordersList.filter(
     (o) =>
@@ -529,7 +542,7 @@ function Dashboard() {
       const saleById = new Map(all.map((s) => [s.id, s]));
       const valorTotal = ofProducer.reduce((acc, o) => {
         if (!(o.delivered_at || o.kanban_columns?.is_done)) return acc;
-        const d = (o.delivered_at ?? "").slice(0, 10);
+        const d = toDateKey(o.delivered_at);
         if (!d || d < monthISOStart) return acc;
         const sale = o.sale_id != null ? saleById.get(o.sale_id) : undefined;
         if (!sale) return acc;
@@ -539,21 +552,21 @@ function Dashboard() {
       // "Pronto/entregue" no período selecionado: filtra por delivered_at dentro do escopo
       const prontoList = ofProducer.filter((o) => {
         if (o.kanban_columns?.is_done !== true) return false;
-        const d = (o.delivered_at ?? "").slice(0, 10);
+        const d = toDateKey(o.delivered_at);
         return d && d >= scopeSince && d <= scopeUntil;
       });
       // Entregues no DIA (hoje) — usado SEMPRE para o ranking, independente do filtro de escopo
       const todayISO = startOf("day").slice(0, 10);
       const entreguesHoje = ofProducer.filter((o) => {
         if (o.kanban_columns?.is_done !== true) return false;
-        const d = (o.delivered_at ?? "").slice(0, 10);
+        const d = toDateKey(o.delivered_at);
         return d === todayISO;
       }).length;
       // Entregues no MÊS corrente — mostrado como destaque/subtítulo
       const monthISO = startOf("month").slice(0, 10);
       const entreguesMes = ofProducer.filter((o) => {
         if (o.kanban_columns?.is_done !== true) return false;
-        const d = (o.delivered_at ?? "").slice(0, 10);
+        const d = toDateKey(o.delivered_at);
         return d >= monthISO;
       }).length;
       // Entregues no HISTÓRICO (todos os cards em colunas concluídas) — bate com o Kanban
@@ -625,9 +638,9 @@ function Dashboard() {
     const byDay = new Map<number, number>();
     for (const o of ordersList) {
       if (!o.delivered_at) continue;
-      const d = new Date(o.delivered_at);
-      if (d.getFullYear() !== year || d.getMonth() !== month) continue;
-      const day = d.getDate();
+      const deliveryKey = toDateKey(o.delivered_at);
+      const [deliveryYear, deliveryMonth, day] = deliveryKey.split("-").map(Number);
+      if (deliveryYear !== year || deliveryMonth - 1 !== month) continue;
       byDay.set(day, (byDay.get(day) ?? 0) + 1);
     }
     let acc = 0;
@@ -666,7 +679,7 @@ function Dashboard() {
       // Prefere a minutagem específica do card; cai para a da venda.
       const dur = Number(o.video_duration_seconds ?? 0) || (o.sale_id != null ? (durBySale.get(o.sale_id) ?? 0) : 0);
       if (dur <= 0) continue;
-      const d = o.delivered_at.slice(0, 10);
+      const d = toDateKey(o.delivered_at);
       if (d >= monthKey) {
         mesSegs += dur;
         mesQtd += 1;

@@ -30,8 +30,8 @@ import {
 import { toast } from "sonner";
 import { useTheme } from "@/hooks/use-theme";
 import { useMidnightRefresh } from "@/hooks/use-midnight-refresh";
-import { fmtDateTime } from "@/lib/format";
-import { calculateVideoPoints } from "@/lib/video-production";
+import { fmtDateTime, toDateKey } from "@/lib/format";
+import { calculateVideoPoints, normalizeProductionDeliveredAt } from "@/lib/video-production";
 import {
   BarChart,
   Bar,
@@ -210,21 +210,7 @@ export function useOmData() {
           )
       ).data?.map((o: any) => {
         const producerId = o.producer_id ?? o.sales?.producer_id ?? null;
-        let deliveredAt = o.delivered_at;
-        if (producerId === "b381e1e9-f556-4ae7-94c0-906ffb59c486") {
-          if (String(deliveredAt ?? "").startsWith("2026-07-")) {
-            deliveredAt = String(deliveredAt).replace("2026-07-", "2026-08-");
-          }
-          const correctedJuliaVideos: Record<string, string> = {
-            "Denis • Video mascote 01": "2026-08-12T22:07:00-03:00",
-            "Valdemir • Video mascote 01": "2026-08-12T21:18:00-03:00",
-            "Marcia • Video mascote 01": "2026-08-12T21:09:00-03:00",
-            "Deivi • Video mascote 01": "2026-08-12T20:56:00-03:00",
-            "Deivi • Video mascote 02": "2026-08-12T20:56:00-03:00",
-            "Deivi • Video mascote 03": "2026-08-12T20:56:00-03:00",
-          };
-          deliveredAt = correctedJuliaVideos[o.title] ?? deliveredAt;
-        }
+        const deliveredAt = normalizeProductionDeliveredAt(producerId, o.title, o.delivered_at);
         return {
           ...o,
           // Fallback: se a ordem não tem producer_id atribuído, usa o da venda.
@@ -348,10 +334,10 @@ export function DiariaView({
     y = yesterday(),
     ms = monthStart();
   const onDate = (iso: string) =>
-    delivered.filter((o: any) => String(o.delivered_at).slice(0, 10) === iso);
+    delivered.filter((o: any) => toDateKey(o.delivered_at) === iso);
   const todayOrders = onDate(t);
   const yOrders = onDate(y);
-  const monthOrders = delivered.filter((o: any) => String(o.delivered_at).slice(0, 10) >= ms);
+  const monthOrders = delivered.filter((o: any) => toDateKey(o.delivered_at) >= ms);
 
   const todayPts = sumPts(todayOrders);
   const yPts = sumPts(yOrders);
@@ -612,7 +598,7 @@ export function MensalView({ delivered, producers, computePts, catName, sumPts, 
 
   const inRange = (a: string, b: string) =>
     delivered.filter((o: any) => {
-      const d = String(o.delivered_at).slice(0, 10);
+      const d = toDateKey(o.delivered_at);
       return d >= a && d <= b;
     });
 
@@ -695,13 +681,13 @@ export function MensalView({ delivered, producers, computePts, catName, sumPts, 
   const reBest = altPerProducer[0];
   const finalizador = useMemo(() => {
     const lastDay = cur.reduce((acc: string, o: any) => {
-      const d = String(o.delivered_at).slice(0, 10);
+      const d = toDateKey(o.delivered_at);
       return d > acc ? d : acc;
     }, "");
     if (!lastDay) return null;
     const m = new Map<string, number>();
     for (const o of cur) {
-      if (String(o.delivered_at).slice(0, 10) === lastDay && o.producer_id) {
+      if (toDateKey(o.delivered_at) === lastDay && o.producer_id) {
         m.set(o.producer_id, (m.get(o.producer_id) ?? 0) + 1);
       }
     }
@@ -944,7 +930,7 @@ export function DinamicaView({
   const ms = monthStart(0),
     me = monthEnd(0);
   const monthOrders = delivered.filter((o: any) => {
-    const d = String(o.delivered_at).slice(0, 10);
+    const d = toDateKey(o.delivered_at);
     return d >= ms && d <= me;
   });
   const monthPts = sumPts(monthOrders);
@@ -975,7 +961,7 @@ export function DinamicaView({
       .slice(0, 3);
   }, [weekOrders, producers]);
 
-  const todayOrders = delivered.filter((o: any) => String(o.delivered_at).slice(0, 10) === today());
+  const todayOrders = delivered.filter((o: any) => toDateKey(o.delivered_at) === today());
   const topToday = useMemo(() => {
     const m = new Map<string, number>();
     for (const o of todayOrders) {
@@ -1223,7 +1209,7 @@ export function TendenciasView({
     days.push({ iso: ymd(d), label: fmtBR(ymd(d)) });
   }
   const byDay = (iso: string) =>
-    delivered.filter((o: any) => String(o.delivered_at).slice(0, 10) === iso);
+    delivered.filter((o: any) => toDateKey(o.delivered_at) === iso);
 
   const ptsSeries = days.map((d) => ({ name: d.label, value: Math.round(sumPts(byDay(d.iso))) }));
   const projAltSeries = days.map((d) => {
@@ -1262,7 +1248,7 @@ export function TendenciasView({
   const workDaysTotal = workdaysInMonth(workdays, holidays, 0);
   const workDaysSoFar = workingDaysElapsed(workdays, holidays, 0);
   const ms = monthStart(0);
-  const monthPts = sumPts(delivered.filter((o: any) => String(o.delivered_at).slice(0, 10) >= ms));
+  const monthPts = sumPts(delivered.filter((o: any) => toDateKey(o.delivered_at) >= ms));
   const projection = workDaysSoFar > 0 ? Math.round((monthPts / workDaysSoFar) * workDaysTotal) : 0;
   const workDaysRemaining = Math.max(0, workDaysTotal - workDaysSoFar);
 
@@ -1441,11 +1427,11 @@ export function VisaoGeralView({
   const ms = monthStart(0),
     me = monthEnd(0);
   const onDate = (iso: string) =>
-    delivered.filter((o: any) => String(o.delivered_at).slice(0, 10) === iso);
+    delivered.filter((o: any) => toDateKey(o.delivered_at) === iso);
   const todayOrders = onDate(t);
   const yOrders = onDate(y);
   const monthOrders = delivered.filter((o: any) => {
-    const d = String(o.delivered_at).slice(0, 10);
+    const d = toDateKey(o.delivered_at);
     return d >= ms && d <= me;
   });
 
@@ -1905,10 +1891,10 @@ export function ProdutoresView({
       .map((p: any) => {
         const all = delivered.filter((o: any) => o.producer_id === p.id);
         const monthOrders = all.filter((o: any) => {
-          const d = String(o.delivered_at).slice(0, 10);
+          const d = toDateKey(o.delivered_at);
           return d >= ms && d <= me;
         });
-        const entreguesHoje = all.filter((o: any) => String(o.delivered_at).slice(0, 10) === today).length;
+        const entreguesHoje = all.filter((o: any) => toDateKey(o.delivered_at) === today).length;
         const pontos = monthOrders.reduce((a: number, o: any) => a + computePts(o), 0);
         const videos = monthOrders.length;
         const alteracoes = monthOrders.reduce(
@@ -2073,7 +2059,7 @@ function ProducerAchievements({ producer, delivered, onClose }: any) {
   const orders = delivered.filter((o: any) => o.producer_id === producer.id);
   const byDay = new Map<string, any[]>();
   for (const o of orders) {
-    const d = String(o.delivered_at).slice(0, 10);
+    const d = toDateKey(o.delivered_at);
     const arr = byDay.get(d) ?? [];
     arr.push(o);
     byDay.set(d, arr);
@@ -2261,7 +2247,7 @@ export function ConquistasView({ delivered, producers, catName, prodOf }: any) {
     const orders = delivered.filter((o: any) => o.producer_id === pid);
     const byDay = new Map<string, any[]>();
     for (const o of orders) {
-      const d = String(o.delivered_at).slice(0, 10);
+      const d = toDateKey(o.delivered_at);
       const arr = byDay.get(d) ?? [];
       arr.push(o);
       byDay.set(d, arr);
@@ -2420,7 +2406,7 @@ export function RelatoriosView({ delivered, producers, computePts, sumPts }: any
   }, [period]);
 
   const orders = delivered.filter((o: any) => {
-    const d = String(o.delivered_at).slice(0, 10);
+    const d = toDateKey(o.delivered_at);
     return d >= range.start && d <= range.end;
   });
   const pts = sumPts(orders);

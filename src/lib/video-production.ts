@@ -1,4 +1,28 @@
 export const VIDEO_POINT_SECONDS = 30;
+export const JULIA_PRODUCER_ID = "b381e1e9-f556-4ae7-94c0-906ffb59c486";
+
+const JULIA_CONFIRMED_DELIVERY_DATES: Record<string, string> = {
+  "Denis • Video mascote 01": "2026-08-12T22:07:00-03:00",
+  "Valdemir • Video mascote 01": "2026-08-12T21:18:00-03:00",
+  "Marcia • Video mascote 01": "2026-08-12T21:09:00-03:00",
+  "Deivi • Video mascote 01": "2026-08-12T20:56:00-03:00",
+  "Deivi • Video mascote 02": "2026-08-12T20:56:00-03:00",
+  "Deivi • Video mascote 03": "2026-08-12T20:56:00-03:00",
+};
+
+/** Correções confirmadas de dados legados, compartilhadas por todas as telas. */
+export function normalizeProductionDeliveredAt(
+  producerId: string | null | undefined,
+  title: string | null | undefined,
+  deliveredAt: string | null | undefined,
+): string | null {
+  if (!deliveredAt || producerId !== JULIA_PRODUCER_ID) return deliveredAt ?? null;
+  const confirmed = JULIA_CONFIRMED_DELIVERY_DATES[title ?? ""];
+  if (confirmed) return confirmed;
+  return deliveredAt.startsWith("2026-07-")
+    ? deliveredAt.replace("2026-07-", "2026-08-")
+    : deliveredAt;
+}
 
 export function parseDuracaoSegundos(name: string): number {
   if (!name) return 0;
