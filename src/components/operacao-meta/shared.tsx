@@ -32,6 +32,7 @@ import { useTheme } from "@/hooks/use-theme";
 import { useMidnightRefresh } from "@/hooks/use-midnight-refresh";
 import { fmtDateTime, toDateKey } from "@/lib/format";
 import { calculateVideoPoints, normalizeProductionDeliveredAt } from "@/lib/video-production";
+import { useSignedUrl } from "@/lib/storage-signed";
 import {
   BarChart,
   Bar,
@@ -106,6 +107,11 @@ export const initials = (n?: string) =>
     .slice(0, 2)
     .join("")
     .toUpperCase();
+
+function ProducerAvatarImage({ value }: { value?: string | null }) {
+  const signedUrl = useSignedUrl("producer-avatars", value);
+  return <AvatarImage src={signedUrl ?? undefined} />;
+}
 
 export function workdaysInMonth(
   workdays: number[] = [1, 2, 3, 4, 5],
@@ -1102,7 +1108,7 @@ export function DinamicaView({
                     <div className="flex items-center gap-2">
                       <span className="text-xs font-bold text-muted-foreground">#{i + 1}</span>
                       <Avatar className="w-11 h-11 ring-2 ring-primary/30">
-                        <AvatarImage src={p.avatar_url} />
+                        <ProducerAvatarImage value={p.avatar_url} />
                         <AvatarFallback className="text-xs">{initials(p.name)}</AvatarFallback>
                       </Avatar>
                       <span className="font-bold text-sm">{p.name}</span>
@@ -1137,7 +1143,7 @@ export function DinamicaView({
                     <div className="flex items-center gap-2">
                       <span className="text-lg">{i === 0 ? "🥇" : "🥈"}</span>
                       <Avatar className="w-11 h-11 ring-2 ring-primary/30">
-                        <AvatarImage src={p.avatar_url} />
+                        <ProducerAvatarImage value={p.avatar_url} />
                         <AvatarFallback className="text-xs">{initials(p.name)}</AvatarFallback>
                       </Avatar>
                       <span className="font-bold text-sm">{p.name}</span>
@@ -1177,7 +1183,7 @@ export function DinamicaView({
                 >
                   <div className="flex items-center gap-2">
                     <Avatar className="w-11 h-11 ring-2 ring-primary/30">
-                      <AvatarImage src={p.avatar_url} />
+                      <ProducerAvatarImage value={p.avatar_url} />
                       <AvatarFallback className="text-xs">{initials(p.name)}</AvatarFallback>
                     </Avatar>
                     <span className="font-bold text-sm">{p.name}</span>
@@ -1737,7 +1743,7 @@ export function VisaoGeralView({
                 >
                   <div className="flex items-center gap-2">
                     <Avatar className="w-10 h-10 ring-2 ring-emerald-500/40">
-                      <AvatarImage src={p.avatar_url} />
+                      <ProducerAvatarImage value={p.avatar_url} />
                       <AvatarFallback className="text-xs">{initials(p.name)}</AvatarFallback>
                     </Avatar>
                     <span className="font-bold text-sm">{p.name}</span>
@@ -1987,7 +1993,7 @@ export function ProdutoresView({
             <CardContent className="p-4">
               <div className="flex items-center gap-2">
                 <Avatar className="w-14 h-14 ring-2 ring-primary/30">
-                  <AvatarImage src={p.avatar_url} />
+                  <ProducerAvatarImage value={p.avatar_url} />
                   <AvatarFallback>{initials(p.name)}</AvatarFallback>
                 </Avatar>
                 <div className="min-w-0 flex-1">
@@ -2114,7 +2120,7 @@ function ProducerAchievements({ producer, delivered, onClose }: any) {
       <CardContent className="p-5">
         <div className="flex items-center gap-3 mb-4">
           <Avatar className="w-16 h-16 ring-2 ring-amber-400/50">
-            <AvatarImage src={producer.avatar_url} />
+            <ProducerAvatarImage value={producer.avatar_url} />
             <AvatarFallback>{initials(producer.name)}</AvatarFallback>
           </Avatar>
           <div className="flex-1">
@@ -2327,7 +2333,7 @@ export function ConquistasView({ delivered, producers, catName, prodOf }: any) {
                 >
                   <span className="text-xs font-bold text-muted-foreground w-4">{i + 1}</span>
                   <Avatar className="w-9 h-9 ring-2 ring-primary/30">
-                    <AvatarImage src={p.avatar} />
+                    <ProducerAvatarImage value={p.avatar} />
                     <AvatarFallback className="text-[9px]">{initials(p.name)}</AvatarFallback>
                   </Avatar>
                   <span className="text-xs font-bold uppercase flex-1 truncate">{p.name}</span>
@@ -2353,7 +2359,7 @@ export function ConquistasView({ delivered, producers, catName, prodOf }: any) {
             <>
               <div className="flex items-center gap-3 mb-4">
                 <Avatar className="w-20 h-20 ring-2 ring-primary/40">
-                  <AvatarImage src={selected.avatar} />
+                  <ProducerAvatarImage value={selected.avatar} />
                   <AvatarFallback>{initials(selected.name)}</AvatarFallback>
                 </Avatar>
                 <div>
@@ -2578,7 +2584,7 @@ function HighlightCard({ title, icon: Icon, producer, valueLabel }: any) {
       {producer ? (
         <>
           <Avatar className="w-16 h-16 mx-auto mb-2 ring-2 ring-primary/30">
-            <AvatarImage src={producer.avatar_url} />
+            <ProducerAvatarImage value={producer.avatar_url} />
             <AvatarFallback>{initials(producer.name)}</AvatarFallback>
           </Avatar>
           <div className="font-bold text-sm uppercase truncate">{producer.name}</div>
