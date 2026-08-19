@@ -118,3 +118,51 @@ export async function autoLinkFolderFromUrl(
   await supabase.from("project_folders" as any).update(patch).eq("id", folderId);
   return { ...(folder as any), ...patch };
 }
+
+/**
+ * Reprocessa os links já salvos em vendas e cards para recuperar vínculos de
+ * pastas antigas. Não sobrescreve vínculos existentes.
+ */
+export async function synchronizeProjectFolderLinks() {
+  const [{ data: sales, error: salesError }, { data: cards, error: cardsError }] =
+    await Promise.all([
+      supabase
+        .from("sales")
+        .select("id,platform_link,google_drive_link,trello_link"),
+      supabase
+        .from("service_orders")
+        .select("id,sale_id,platform_link,google_drive_link,trello_link"),
+    ]);
+
+  if (salesError) throw salesError;
+  if (cardsError) throw cardsError;
+
+  const matches = new Map<string, { saleId?: string | null; kanbanCardId?: string | null }>();
+
+  for (const sale of sales ?? []) {
+    for (const link of [sale.platform_link, sale.google_drive_link, sale.trello_link]) {
+      const folderId = extractFolderIdFromLink(link);
+      if (folderId) matches.set(folderId, { saleId: sale.id });
+    }
+  }
+
+  for (const card of cards ?? []) {
+    for (const link of [card.platform_link, card.google_drive_link, card.trello_link]) {
+      const folderId = extractFolderIdFromLink(link);
+      if (!folderId) continue;
+      const current = matches.get(folderId);
+      matches.set(folderId, {
+        saleId: card.sale_id ?? current?.saleId,
+        kanbanCardId: card.id,
+      });
+    }
+  }
+
+  const results = await Promise.all(
+    Array.from(matches.entries()).map(([folderId, link]) =>
+      autoLinkFolderFromUrl(`/pastas-arquivos/${folderId}`, link),
+    ),
+  );
+
+  return results.filter(Boolean).length;
+}

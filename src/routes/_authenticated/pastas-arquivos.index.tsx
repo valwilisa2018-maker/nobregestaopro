@@ -14,6 +14,7 @@ import { FolderOpen, Search, Link as LinkIcon, Copy, FileText, Plus, RefreshCw, 
 import { Checkbox } from "@/components/ui/checkbox";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { toast } from "sonner";
+import { synchronizeProjectFolderLinks } from "@/lib/project-folders";
 
 export const Route = createFileRoute("/_authenticated/pastas-arquivos/")({
   component: PastasArquivosPage,
@@ -234,8 +235,17 @@ function PastasArquivosPage() {
         <Button
           variant="outline"
           onClick={async () => {
-            await Promise.all([folders.refetch(), counts.refetch()]);
-            toast.success("Lista sincronizada");
+            try {
+              const linked = await synchronizeProjectFolderLinks();
+              await Promise.all([folders.refetch(), counts.refetch()]);
+              toast.success(
+                linked > 0
+                  ? `${linked} pasta(s) conferida(s) pelos links das vendas e do Kanban`
+                  : "Lista sincronizada",
+              );
+            } catch (error: any) {
+              toast.error(error?.message ?? "Não foi possível sincronizar as pastas");
+            }
           }}
           disabled={folders.isFetching}
         >
