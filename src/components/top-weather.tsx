@@ -67,6 +67,31 @@ async function resolveApproximateCoords(): Promise<Coords> {
   }
 }
 
+async function resolveCityName(latitude: number, longitude: number): Promise<string> {
+  const controller = new AbortController();
+  const timeoutId = window.setTimeout(() => controller.abort(), 5000);
+  try {
+    const params = new URLSearchParams({
+      latitude: String(latitude),
+      longitude: String(longitude),
+      localityLanguage: "pt",
+    });
+    const response = await fetch(
+      `https://api.bigdatacloud.net/data/reverse-geocode-client?${params.toString()}`,
+      { signal: controller.signal },
+    );
+    if (!response.ok) throw new Error("City lookup unavailable");
+    const payload = await response.json();
+    const city = payload?.city || payload?.locality || payload?.principalSubdivision;
+    const state = payload?.principalSubdivisionCode?.split("-")?.pop();
+    return [city, state].filter(Boolean).join(" - ") || "Sua regiao";
+  } catch {
+    return "Sua regiao";
+  } finally {
+    window.clearTimeout(timeoutId);
+  }
+}
+
 function getWeatherMeta(code: number, isDay: boolean) {
   if (code === 0) {
     return {
@@ -175,12 +200,13 @@ function resolveCoords(): Promise<Coords> {
 
   return new Promise((resolve) => {
     navigator.geolocation.getCurrentPosition(
-      (position) =>
-        resolve({
-          label: "Sua regiao",
-          latitude: position.coords.latitude,
-          longitude: position.coords.longitude,
-        }),
+      (position) => {
+        const latitude = position.coords.latitude;
+        const longitude = position.coords.longitude;
+        void resolveCityName(latitude, longitude).then((label) =>
+          resolve({ label, latitude, longitude }),
+        );
+      },
       () => void resolveApproximateCoords().then(resolve),
       {
         enableHighAccuracy: true,
@@ -270,7 +296,7 @@ export function TopWeather() {
       <span className="hidden xl:inline text-muted-foreground/80">
         Max {weather.maxTemp}C Min {weather.minTemp}C
       </span>
-      <span className="hidden 2xl:inline text-[9px] uppercase tracking-[0.16em] text-muted-foreground/70">
+      <span className="hidden sm:inline max-w-40 truncate border-l border-border/60 pl-1.5 text-[9px] uppercase tracking-[0.12em] text-muted-foreground/80">
         {weather.label}
       </span>
     </span>
