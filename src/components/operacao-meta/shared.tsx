@@ -165,6 +165,25 @@ export function workingDaysElapsed(
   return Math.max(1, count);
 }
 
+export function countWorkingDaysInRange(
+  start: string,
+  end: string,
+  workdays: number[] = [1, 2, 3, 4, 5],
+  holidays: string[] = [],
+): number {
+  if (!start || !end) return 0;
+  const startDate = new Date(`${start}T12:00:00`);
+  const endDate = new Date(`${end}T12:00:00`);
+  if (startDate > endDate) return 0;
+
+  let count = 0;
+  for (const cursor = new Date(startDate); cursor <= endDate; cursor.setDate(cursor.getDate() + 1)) {
+    const iso = ymd(cursor);
+    if (isWorkingDay(iso, workdays, holidays)) count++;
+  }
+  return count;
+}
+
 export { formatDuracao } from "@/lib/format";
 import { formatDuracao } from "@/lib/format";
 
@@ -1903,51 +1922,112 @@ export function ProdutoresView({
   const [search, setSearch] = useState("");
   const [sortBy, setSortBy] = useState<"pontos" | "videos" | "minutagem" | "nome">("videos");
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const defaultFrom = monthStart(0);
+  const todayIso = today();
+  const [rangeFrom, setRangeFrom] = useState(defaultFrom);
+  const [rangeTo, setRangeTo] = useState(todayIso);
 
-  const ms = monthStart(0);
-  const me = monthEnd(0);
-  const workDaysElapsed = workingDaysElapsed(workdays, holidays, 0);
-  const today = new Date().toLocaleDateString("sv-SE"); // YYYY-MM-DD (local)
+  const normalizedRange = useMemo(() => {
+    const start = rangeFrom || defaultFrom;
+    const end = rangeTo || todayIso;
+    return start <= end ? { from: start, to: end } : { from: end, to: start };
+  }, [defaultFrom, rangeFrom, rangeTo, todayIso]);
+
+  const periodWorkDays = useMemo(
+    () =>
+      countWorkingDaysInRange(
+        normalizedRange.from,
+        normalizedRange.to,
+        workdays,
+        holidays,
+      ),
+    [holidays, normalizedRange.from, normalizedRange.to, workdays],
+  );
+
+  const periodDays = useMemo(() => {
+    const startDate = new Date(`${normalizedRange.from}T12:00:00`);
+    const endDate = new Date(`${normalizedRange.to}T12:00:00`);
+    return Math.floor((endDate.getTime() - startDate.getTime()) / 86_400_000) + 1;
+  }, [normalizedRange.from, normalizedRange.to]);
+
+  const periodLabel =
+    normalizedRange.from === normalizedRange.to
+      ? fmtBR(normalizedRange.from)
+      : `${fmtBR(normalizedRange.from)} até ${fmtBR(normalizedRange.to)}`;
+
+  const applyRangePreset = (preset: "today" | "7d" | "month") => {
+    if (preset === "today") {
+      setRangeFrom(todayIso);
+      setRangeTo(todayIso);
+      return;
+    }
+
+    if (preset === "7d") {
+      const startDate = new Date(`${todayIso}T12:00:00`);
+      startDate.setDate(startDate.getDate() - 6);
+      setRangeFrom(ymd(startDate));
+      setRangeTo(todayIso);
+      return;
+    }
+
+    setRangeFrom(defaultFrom);
+    setRangeTo(todayIso);
+  };
+
+  const producerMetrics = useMemo(() => {
+    return producers.map((p: any) => {
+      const all = delivered.filter((o: any) => o.producer_id === p.id);
+      const periodOrders = all.filter((o: any) => {
+        const d = toDateKey(o.delivered_at);
+        return d >= normalizedRange.from && d <= normalizedRange.to;
+      });
+      const entreguesHoje = all.filter((o: any) => toDateKey(o.delivered_at) === todayIso).length;
+      const pontos = periodOrders.reduce((a: number, o: any) => a + computePts(o), 0);
+      const videos = periodOrders.length;
+      const alteracoes = periodOrders.reduce(
+        (a: number, o: any) => a + Number(o.redo_count ?? 0),
+        0,
+      );
+      const segundos = sumDuracao(periodOrders);
+      const totalEntregue = all.length;
+      const segundosTotal = sumDuracao(all);
+      const emProducao = inProductionNow.filter((o: any) => o.producer_id === p.id).length;
+      const dailyGoal = Number(p.daily_points_goal ?? baseGoal);
+      const periodGoal = dailyGoal * periodWorkDays;
+      const pctMeta = periodGoal > 0 ? Math.min(999, Math.round((pontos / periodGoal) * 100)) : 0;
+      const bateu = pctMeta >= 100;
+      return {
+        ...p,
+        pontos: Math.round(pontos),
+        videos,
+        totalEntregue,
+        segundosTotal,
+        entreguesHoje,
+        alteracoes,
+        segundos,
+        emProducao,
+        monthGoal: periodGoal,
+        periodGoal,
+        pctMeta,
+        bateu,
+        dailyGoal,
+      };
+    });
+  }, [
+    producers,
+    delivered,
+    inProductionNow,
+    normalizedRange.from,
+    normalizedRange.to,
+    todayIso,
+    periodWorkDays,
+    baseGoal,
+    sumDuracao,
+    computePts,
+  ]);
 
   const list = useMemo(() => {
-    return producers
-      .map((p: any) => {
-        const all = delivered.filter((o: any) => o.producer_id === p.id);
-        const monthOrders = all.filter((o: any) => {
-          const d = toDateKey(o.delivered_at);
-          return d >= ms && d <= me;
-        });
-        const entreguesHoje = all.filter((o: any) => toDateKey(o.delivered_at) === today).length;
-        const pontos = monthOrders.reduce((a: number, o: any) => a + computePts(o), 0);
-        const videos = monthOrders.length;
-        const alteracoes = monthOrders.reduce(
-          (a: number, o: any) => a + Number(o.redo_count ?? 0),
-          0,
-        );
-        const segundos = sumDuracao(monthOrders);
-        const totalEntregue = all.length;
-        const segundosTotal = sumDuracao(all);
-        const emProducao = inProductionNow.filter((o: any) => o.producer_id === p.id).length;
-        const dailyGoal = Number(p.daily_points_goal ?? baseGoal);
-        const monthGoal = dailyGoal * workDaysElapsed;
-        const pctMeta = monthGoal > 0 ? Math.min(999, Math.round((pontos / monthGoal) * 100)) : 0;
-        const bateu = pctMeta >= 100;
-        return {
-          ...p,
-          pontos: Math.round(pontos),
-          videos,
-          totalEntregue,
-          segundosTotal,
-          entreguesHoje,
-          alteracoes,
-          segundos,
-          emProducao,
-          monthGoal,
-          pctMeta,
-          bateu,
-          dailyGoal,
-        };
-      })
+    return producerMetrics
       .filter((p: any) => p.name?.toLowerCase().includes(search.toLowerCase()))
       .sort((a: any, b: any) => {
         if (sortBy === "nome") return String(a.name).localeCompare(String(b.name));
@@ -1955,21 +2035,35 @@ export function ProdutoresView({
         if (sortBy === "minutagem") return b.segundos - a.segundos;
         return b.pontos - a.pontos;
       });
-  }, [
-    producers,
-    delivered,
-    inProductionNow,
-    search,
-    sortBy,
-    ms,
-    me,
-    workDaysElapsed,
-    baseGoal,
-    sumDuracao,
-    computePts,
-  ]);
+  }, [producerMetrics, search, sortBy]);
+
+  const periodSummary = useMemo(
+    () => ({
+      producersWithDeliveries: list.filter((p: any) => p.videos > 0).length,
+      totalPoints: list.reduce((acc: number, p: any) => acc + p.pontos, 0),
+      totalVideos: list.reduce((acc: number, p: any) => acc + p.videos, 0),
+      totalSeconds: list.reduce((acc: number, p: any) => acc + p.segundos, 0),
+      totalChanges: list.reduce((acc: number, p: any) => acc + p.alteracoes, 0),
+      totalGoal: list.reduce((acc: number, p: any) => acc + p.periodGoal, 0),
+    }),
+    [list],
+  );
+
+  useEffect(() => {
+    if (selectedId && !list.some((p: any) => p.id === selectedId)) {
+      setSelectedId(null);
+    }
+  }, [list, selectedId]);
 
   const selected = list.find((p: any) => p.id === selectedId);
+  const selectedPeriodOrders = useMemo(() => {
+    if (!selected) return [];
+    return delivered.filter((o: any) => {
+      if (o.producer_id !== selected.id) return false;
+      const d = toDateKey(o.delivered_at);
+      return d >= normalizedRange.from && d <= normalizedRange.to;
+    });
+  }, [delivered, normalizedRange.from, normalizedRange.to, selected]);
 
   return (
     <div className="space-y-4">
@@ -1980,6 +2074,31 @@ export function ProdutoresView({
           onChange={(e) => setSearch(e.target.value)}
           className="max-w-md"
         />
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="text-xs text-muted-foreground whitespace-nowrap">Período:</span>
+          <Input
+            type="date"
+            value={rangeFrom}
+            onChange={(e) => setRangeFrom(e.target.value)}
+            className="w-[152px]"
+          />
+          <span className="text-xs text-muted-foreground">até</span>
+          <Input
+            type="date"
+            value={rangeTo}
+            onChange={(e) => setRangeTo(e.target.value)}
+            className="w-[152px]"
+          />
+          <Button type="button" variant="outline" size="sm" onClick={() => applyRangePreset("today")}>
+            Hoje
+          </Button>
+          <Button type="button" variant="outline" size="sm" onClick={() => applyRangePreset("7d")}>
+            7 dias
+          </Button>
+          <Button type="button" variant="outline" size="sm" onClick={() => applyRangePreset("month")}>
+            Mês atual
+          </Button>
+        </div>
         <div className="flex items-center gap-2 ml-auto">
           <span className="text-xs text-muted-foreground">Ordenar por:</span>
           <select
@@ -1994,6 +2113,36 @@ export function ProdutoresView({
           </select>
         </div>
       </div>
+
+      <Card className="border-border/50" style={{ boxShadow: "var(--shadow-card)" }}>
+        <CardContent className="p-4">
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <SectionLabel icon={Calendar} iconClass="text-emerald-500">
+                Resumo do período
+              </SectionLabel>
+              <div className="text-sm font-semibold mt-2">{periodLabel}</div>
+              <div className="text-xs text-muted-foreground mt-1">
+                {periodDays} dia(s) no intervalo • {periodWorkDays} dia(s) útil(eis)
+              </div>
+            </div>
+            <div className="text-xs text-muted-foreground">
+              Meta total do período: {periodSummary.totalGoal} pts
+            </div>
+          </div>
+          <div className="grid grid-cols-2 lg:grid-cols-5 gap-2 mt-4">
+            <ProdCell
+              label="Produtores com entrega"
+              value={periodSummary.producersWithDeliveries}
+              accent="text-emerald-500"
+            />
+            <ProdCell label="Pontos" value={periodSummary.totalPoints} accent="text-amber-500" />
+            <ProdCell label="Vídeos" value={periodSummary.totalVideos} accent="text-emerald-500" />
+            <ProdCell label="Minutagem" value={formatDuracao(periodSummary.totalSeconds)} />
+            <ProdCell label="Alterações" value={periodSummary.totalChanges} />
+          </div>
+        </CardContent>
+      </Card>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
         {list.map((p: any) => (
@@ -2071,6 +2220,10 @@ export function ProdutoresView({
         <ProducerAchievements
           producer={selected}
           delivered={delivered}
+          computePts={computePts}
+          periodOrders={selectedPeriodOrders}
+          periodLabel={periodLabel}
+          periodWorkDays={periodWorkDays}
           onClose={() => setSelectedId(null)}
         />
       )}
@@ -2078,7 +2231,15 @@ export function ProdutoresView({
   );
 }
 
-function ProducerAchievements({ producer, delivered, onClose }: any) {
+function ProducerAchievements({
+  producer,
+  delivered,
+  computePts,
+  periodOrders,
+  periodLabel,
+  periodWorkDays,
+  onClose,
+}: any) {
   const orders = delivered.filter((o: any) => o.producer_id === producer.id);
   const byDay = new Map<string, any[]>();
   for (const o of orders) {
@@ -2092,6 +2253,13 @@ function ProducerAchievements({ producer, delivered, onClose }: any) {
   const perfectDays = Array.from(byDay.values()).filter(
     (a) => a.length >= 10 && a.every((o: any) => Number(o.redo_count ?? 0) === 0),
   ).length;
+  const periodByDay = periodOrders.reduce((map: Map<string, any[]>, order: any) => {
+    const day = toDateKey(order.delivered_at);
+    const items = map.get(day) ?? [];
+    items.push(order);
+    map.set(day, items);
+    return map;
+  }, new Map<string, any[]>());
 
   const badges = [
     {
@@ -2142,6 +2310,9 @@ function ProducerAchievements({ producer, delivered, onClose }: any) {
           </Avatar>
           <div className="flex-1">
             <div className="text-lg font-extrabold uppercase">{producer.name}</div>
+            <div className="text-[11px] text-muted-foreground mt-1">
+              Período selecionado: {periodLabel} • {periodWorkDays} dia(s) útil(eis)
+            </div>
             <div className="text-xs text-muted-foreground">
               {producer.videos} vídeos no mês • {formatDuracao(producer.segundos)} •{" "}
               {producer.pontos}/{producer.monthGoal} pts
@@ -2150,6 +2321,12 @@ function ProducerAchievements({ producer, delivered, onClose }: any) {
           <Button variant="ghost" size="sm" onClick={onClose}>
             Fechar
           </Button>
+        </div>
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 mb-6">
+          <ProdCell label="Vídeos no período" value={producer.videos} accent="text-emerald-500" />
+          <ProdCell label="Pontos no período" value={producer.pontos} accent="text-amber-500" />
+          <ProdCell label="Minutagem no período" value={formatDuracao(producer.segundos)} />
+          <ProdCell label="Alterações no período" value={producer.alteracoes} />
         </div>
         <SectionLabel icon={Award} iconClass="text-amber-500">
           Conquistas
@@ -2168,6 +2345,69 @@ function ProducerAchievements({ producer, delivered, onClose }: any) {
               <div className="text-[11px] text-muted-foreground">{a.desc}</div>
             </div>
           ))}
+        </div>
+
+        <div className="mt-6">
+          <SectionLabel icon={Calendar} iconClass="text-emerald-500">
+            Período selecionado ({periodOrders.length} vídeo(s))
+          </SectionLabel>
+          {periodOrders.length === 0 ? (
+            <div className="mt-3 text-sm text-muted-foreground italic">
+              Nenhum vídeo entregue nesse intervalo.
+            </div>
+          ) : (
+            <div className="mt-3 space-y-4">
+              {(Array.from(periodByDay.entries()) as Array<[string, any[]]>)
+                .sort((a, b) => b[0].localeCompare(a[0]))
+                .map(([day, items]) => (
+                  <div key={day} className="rounded-xl border border-border/50 p-3">
+                    <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border/50 pb-2">
+                      <div className="text-sm font-semibold">{fmtBR(day)}</div>
+                      <div className="text-xs text-muted-foreground">
+                        {items.length} vídeo(s) •{" "}
+                        {formatDuracao(
+                          items.reduce(
+                            (total: number, item: any) =>
+                              total + resolveOrderVideoDurationSeconds(item),
+                            0,
+                          ),
+                        )}
+                      </div>
+                    </div>
+                    <div className="space-y-2 pt-3">
+                      {items
+                        .slice()
+                        .sort((a: any, b: any) =>
+                          String(b.delivered_at).localeCompare(String(a.delivered_at)),
+                        )
+                        .map((o: any) => (
+                          <div
+                            key={o.id}
+                            className="flex items-center justify-between gap-3 rounded-lg border border-border/40 bg-card px-3 py-2"
+                          >
+                            <div className="min-w-0 flex-1">
+                              <div className="truncate text-sm font-medium">{o.title || "Vídeo"}</div>
+                              <div className="text-[11px] text-muted-foreground">
+                                {fmtDateTime(o.delivered_at)}
+                              </div>
+                            </div>
+                            <div className="shrink-0 text-right">
+                              <div className="text-xs font-semibold text-amber-500">
+                                {computePts(o)} pts
+                              </div>
+                              <div className="text-[11px] text-muted-foreground">
+                                {resolveOrderVideoDurationSeconds(o) > 0
+                                  ? formatDuracao(resolveOrderVideoDurationSeconds(o))
+                                  : "Sem minutagem"}
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                    </div>
+                  </div>
+                ))}
+            </div>
+          )}
         </div>
 
         <div className="mt-6">
