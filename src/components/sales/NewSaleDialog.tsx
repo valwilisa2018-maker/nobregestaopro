@@ -27,7 +27,7 @@ import {
 } from "lucide-react";
 import { PhoneInputBR } from "@/components/phone-input-br";
 import { SafeSelect } from "@/components/safe-select";
-import type { CustomerRecord, LookupOption, SaleFormState } from "./types";
+import type { AlterationCardOption, CustomerRecord, LookupOption, SaleFormState } from "./types";
 import { VideoDurationBreakdownField } from "./video-duration-breakdown-field";
 
 const VIDEO_DURATION_OPTIONS: { value: number; label: string }[] = Array.from(
@@ -69,6 +69,9 @@ export interface NewSaleDialogProps {
   packages: LookupOption[];
   producerLockedByInfluencer: boolean;
   formNeedsVideoDuration: boolean;
+  isAlterationSale: boolean;
+  alterationCards: AlterationCardOption[];
+  onAlterationCardChange: (cardId: string) => void;
   formReceiptRecommended: boolean;
   receiptFile: File | null;
   onReceiptFileChange: (file: File | null) => void;
@@ -97,6 +100,9 @@ export function NewSaleDialog({
   packages,
   producerLockedByInfluencer,
   formNeedsVideoDuration,
+  isAlterationSale,
+  alterationCards,
+  onAlterationCardChange,
   formReceiptRecommended,
   receiptFile,
   onReceiptFileChange,
@@ -406,7 +412,27 @@ export function NewSaleDialog({
               </p>
             )}
           </div>
-          <div>
+          {isAlterationSale && (
+            <div className="sm:col-span-2" data-sale-field="alteration_service_order_id">
+              <Label>Card que receberá a alteração *</Label>
+              <div className="mt-1.5">
+                <SafeSelect
+                  ariaLabel="Card da alteração"
+                  placeholder="Selecione o card existente"
+                  value={form.alteration_service_order_id || ""}
+                  onValueChange={onAlterationCardChange}
+                  options={(alterationCards ?? []).map((card) => ({
+                    value: card.id,
+                    label: `${card.title}${card.column_name ? ` — ${card.column_name}` : ""}`,
+                  }))}
+                />
+              </div>
+              <p className="mt-1.5 text-[11px] text-amber-700 dark:text-amber-300">
+                A venda será vinculada a este card e não criará vídeo, minutagem ou pontos novos.
+              </p>
+            </div>
+          )}
+          {!isAlterationSale && <div>
             <Label>Pacote (opcional)</Label>
             <div className="mt-1.5">
               <SafeSelect
@@ -419,8 +445,8 @@ export function NewSaleDialog({
                   .map((p) => ({ value: String(p.id), label: optionText(p.name) }))}
               />
             </div>
-          </div>
-          <div>
+          </div>}
+          {!isAlterationSale && <div>
             <Label>Qtd. serviços *</Label>
             <div className="relative mt-1.5">
               <Layers className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-neutral-400" />
@@ -431,8 +457,8 @@ export function NewSaleDialog({
                 onChange={(e) => set("service_quantity", e.target.value)}
               />
             </div>
-          </div>
-          {formNeedsVideoDuration && (
+          </div>}
+          {!isAlterationSale && formNeedsVideoDuration && (
             <div data-sale-field="video_duration_seconds" className="sm:col-span-2">
               <VideoDurationBreakdownField
                 quantity={Number(form.service_quantity || 1)}
