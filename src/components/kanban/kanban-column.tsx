@@ -7,6 +7,7 @@ import { KanbanGroupCard } from "./kanban-group-card";
 import { VirtualList } from "@/components/virtual-list";
 import { KanbanCardsSkeleton, EmptyState } from "@/components/list-states";
 import { Inbox } from "lucide-react";
+import { cn } from "@/lib/utils";
 import type { KanbanCardData, KanbanColumnData, ProducerOption } from "./types";
 
 export interface KanbanColumnProps {
@@ -36,6 +37,7 @@ export interface KanbanColumnProps {
   openNew: (columnId: string) => void;
   openEdit: (c: KanbanCardData) => void;
   onEditColumn: (col: KanbanColumnData) => void;
+  highlightedCardId?: string | null;
 }
 
 type Item = { kind: "solo"; card: KanbanCardData } | { kind: "group"; saleId: string; cards: KanbanCardData[] };
@@ -67,6 +69,7 @@ export function KanbanColumn({
   openNew,
   openEdit,
   onEditColumn,
+  highlightedCardId,
 }: KanbanColumnProps) {
   const q = search.trim().toLowerCase();
   const { colCards, items } = useMemo(() => {
@@ -278,7 +281,11 @@ export function KanbanColumn({
                       colIsDone={col.is_done}
                       producers={producers}
                       showCompany={false}
-                      className="ml-4"
+                      className={cn(
+                        "ml-4 rounded-xl transition-all duration-500",
+                        highlightedCardId === c.id &&
+                          "ring-4 ring-red-500/70 ring-offset-2 ring-offset-background shadow-[0_0_28px_rgba(239,68,68,0.5)]",
+                      )}
                       onTransfer={(producerId) => transferCard(c.id, producerId)}
                       onClick={() => {
                         if (!dragMoved) openEdit(c);
@@ -331,6 +338,11 @@ export function KanbanColumn({
                 colIsDefault={col.is_default}
                 colIsDone={col.is_done}
                 producers={producers}
+                className={cn(
+                  "rounded-xl transition-all duration-500",
+                  highlightedCardId === c.id &&
+                    "ring-4 ring-red-500/70 ring-offset-2 ring-offset-background shadow-[0_0_28px_rgba(239,68,68,0.5)]",
+                )}
                 onTransfer={(producerId) => transferCard(c.id, producerId)}
                 onClick={() => {
                   if (!dragMoved) openEdit(c);

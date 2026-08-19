@@ -55,7 +55,7 @@ export function KanbanCard({
   const producer = c.producer ?? c.sales?.producers;
 
   return (
-    <div className={cn("relative", className)}>
+    <div data-kanban-card-id={c.id} className={cn("relative", className)}>
       <CardWhatsAppButtons phone={phone} customerName={c.sales?.customers?.name} />
       <Card
         draggable

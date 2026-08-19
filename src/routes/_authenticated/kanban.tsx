@@ -8,6 +8,7 @@ import { formatCurrency, formatVideoDuration } from "@/lib/format";
 import { useAuth, isAdmin as isAdminRole } from "@/lib/auth";
 import { autoLinkFolderFromUrl } from "@/lib/project-folders";
 import { KanbanHeader } from "@/components/kanban/kanban-header";
+import { OverdueAttentionBoard } from "@/components/kanban/overdue-attention-board";
 import { KanbanFilters } from "@/components/kanban/kanban-filters";
 import { KanbanColumn } from "@/components/kanban/kanban-column";
 import { CardEditDialog } from "@/components/kanban/card-edit-dialog";
@@ -87,6 +88,7 @@ function KanbanPage() {
   const [search, setSearch] = useState<string>("");
   const [editingColumn, setEditingColumn] = useState<EditingColumnState | null>(null);
   const [savingColumn, setSavingColumn] = useState(false);
+  const [highlightedCardId, setHighlightedCardId] = useState<string | null>(null);
   const { roles } = useAuth();
   const canTransferProducer = isAdminRole(roles);
 
@@ -154,6 +156,44 @@ function KanbanPage() {
       return data ?? [];
     },
   });
+
+  // O telão precisa enxergar também colunas específicas de produtores, mesmo
+  // quando o quadro está momentaneamente no filtro "Todos".
+  const attentionCols = useQuery({
+    queryKey: ["kanban-cols-attention"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("kanban_columns")
+        .select("id,name,color,is_default,is_done,producer_id,sort_order")
+        .order("sort_order");
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+
+  useEffect(() => {
+    const channel = supabase
+      .channel("kanban-live-updates")
+      .on("postgres_changes", { event: "*", schema: "public", table: "service_orders" }, () =>
+        qc.invalidateQueries({ queryKey: ["kanban-cards"] }),
+      )
+      .on("postgres_changes", { event: "*", schema: "public", table: "sales" }, () =>
+        qc.invalidateQueries({ queryKey: ["kanban-cards"] }),
+      )
+      .on("postgres_changes", { event: "*", schema: "public", table: "kanban_columns" }, () =>
+        Promise.all([
+          qc.invalidateQueries({ queryKey: ["kanban-cols"] }),
+          qc.invalidateQueries({ queryKey: ["kanban-cols-attention"] }),
+        ]),
+      )
+      .on("postgres_changes", { event: "*", schema: "public", table: "producers" }, () =>
+        qc.invalidateQueries({ queryKey: ["producers-select"] }),
+      )
+      .subscribe();
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [qc]);
 
   useEffect(() => {
     if (!cardParam || !cards.data) return;
@@ -652,9 +692,45 @@ function KanbanPage() {
   const colsData: KanbanColumnData[] = cols.data ?? [];
   const cardsData: KanbanCardData[] = (cards.data ?? []) as unknown as KanbanCardData[];
 
+  const locateCard = (card: KanbanCardData) => {
+    const producerId = card.producer_id ?? card.sales?.producer_id ?? "all";
+    setProducerFilter(producerId);
+    setSearch(card.title);
+    if (card.sale_id) {
+      setExpandedGroups((current) => ({
+        ...current,
+        [`${card.column_id}:${card.sale_id}`]: true,
+      }));
+    }
+    setHighlightedCardId(card.id);
+
+    let attempts = 0;
+    const scrollToCard = () => {
+      const element = document.querySelector<HTMLElement>(`[data-kanban-card-id="${card.id}"]`);
+      if (element) {
+        element.scrollIntoView({ behavior: "smooth", block: "center", inline: "center" });
+        window.setTimeout(() => setHighlightedCardId(null), 3200);
+        return;
+      }
+      attempts += 1;
+      if (attempts < 12) window.setTimeout(scrollToCard, 120);
+    };
+    window.setTimeout(scrollToCard, 100);
+  };
+
   return (
     <div className="space-y-6">
-      <KanbanHeader onNewColumn={() => setEditingColumn({ name: "", color: "#64748b" })} />
+      <KanbanHeader
+        onNewColumn={() => setEditingColumn({ name: "", color: "#64748b" })}
+        attentionPanel={
+          <OverdueAttentionBoard
+            cards={cardsData}
+            columns={(attentionCols.data ?? []) as KanbanColumnData[]}
+            loading={cards.isLoading || attentionCols.isLoading}
+            onLocate={locateCard}
+          />
+        }
+      />
 
       <KanbanFilters
         search={search}
@@ -764,6 +840,7 @@ function KanbanPage() {
                 producer_id: c.producer_id,
               })
             }
+            highlightedCardId={highlightedCardId}
           />
         ))}
       </div>
