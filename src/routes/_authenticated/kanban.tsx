@@ -27,9 +27,9 @@ import {
 
 const fmtVideoDuration = formatVideoDuration;
 const KANBAN_CARDS_SELECT =
-  "*, producer:producers!service_orders_producer_id_fkey(name,avatar_url), sales(total_amount, paid_amount, payment_status, trello_link, google_drive_link, platform_link, producer_id, expected_delivery_date, service_quantity, video_duration_seconds, video_duration_breakdown_seconds, customers(name,company,phone), sellers(name,avatar_url), producers(name,avatar_url))";
+  "*, producer:producers!service_orders_producer_id_fkey(name,avatar_url), sales:sales!service_orders_sale_id_fkey(total_amount, paid_amount, payment_status, trello_link, google_drive_link, platform_link, producer_id, expected_delivery_date, service_quantity, video_duration_seconds, video_duration_breakdown_seconds, customers(name,company,phone), sellers(name,avatar_url), producers(name,avatar_url))";
 const KANBAN_CARDS_SELECT_LEGACY =
-  "*, producer:producers!service_orders_producer_id_fkey(name,avatar_url), sales(total_amount, paid_amount, payment_status, trello_link, google_drive_link, platform_link, producer_id, expected_delivery_date, service_quantity, video_duration_seconds, customers(name,company,phone), sellers(name,avatar_url), producers(name,avatar_url))";
+  "*, producer:producers!service_orders_producer_id_fkey(name,avatar_url), sales:sales!service_orders_sale_id_fkey(total_amount, paid_amount, payment_status, trello_link, google_drive_link, platform_link, producer_id, expected_delivery_date, service_quantity, video_duration_seconds, customers(name,company,phone), sellers(name,avatar_url), producers(name,avatar_url))";
 
 // Lembrete de baixa de pagamento — ao mover card(s) para a coluna "Serviços Entregues",
 // busca a venda relacionada e, se ainda houver saldo em aberto, mostra um toast com link
@@ -40,7 +40,7 @@ async function checkDeliveryPaymentReminder(cardIds: string[], columnName?: stri
   const { data: orders } = await supabase
     .from("service_orders")
     .select(
-      "id,sale_id,sales(id,customer_id,total_amount,paid_amount,payment_status,customers(name))",
+      "id,sale_id,sales:sales!service_orders_sale_id_fkey(id,customer_id,total_amount,paid_amount,payment_status,customers(name))",
     )
     .in("id", cardIds);
   const seen = new Set<string>();

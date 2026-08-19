@@ -618,7 +618,7 @@ function SalesPage() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("service_orders")
-        .select("id,title,producer_id,kanban_columns(name),sales(customer_id,customers(id,name,company,document,phone,email))")
+        .select("id,title,producer_id,kanban_columns(name),sales:sales!service_orders_sale_id_fkey(customer_id,customers(id,name,company,document,phone,email))")
         .order("updated_at", { ascending: false })
         .limit(500);
       if (error) throw error;
