@@ -306,8 +306,8 @@ function SalesPage() {
           s.customers?.name,
           s.customers?.company,
           s.service_types?.name,
-          s.sellers?.name,
-          s.producers?.name,
+          s.sellers?.name ?? s.seller_name_snapshot,
+          s.producers?.name ?? s.producer_name_snapshot,
         ]
           .filter(Boolean)
           .join(" ")

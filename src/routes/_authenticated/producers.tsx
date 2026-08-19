@@ -149,25 +149,10 @@ function ProducersPage() {
   };
   const remove = async (id: string, name: string) => {
     if (!window.confirm(`Excluir o produtor "${name}"? Esta ação não pode ser desfeita.`)) return;
-    const { count: salesCount } = await supabase
-      .from("sales")
-      .select("id", { count: "exact", head: true })
-      .eq("producer_id", id);
-    const { count: ordersCount } = await supabase
-      .from("service_orders")
-      .select("id", { count: "exact", head: true })
-      .eq("producer_id", id);
-    const linked = (salesCount ?? 0) + (ordersCount ?? 0);
-    if (linked > 0) {
-      toast.error(
-        `Não é possível excluir: ${linked} registro(s) vinculados. Desative-o em vez disso.`,
-      );
-      return;
-    }
-    const { error } = await supabase.from("producers").delete().eq("id", id);
+    const { error } = await (supabase.rpc as any)("delete_producer_preserving_history", { p_producer_id: id });
     if (error) toast.error(error.message);
     else {
-      toast.success("Produtor excluído");
+      toast.success("Produtor excluído; nome preservado no histórico");
       qc.invalidateQueries();
     }
   };

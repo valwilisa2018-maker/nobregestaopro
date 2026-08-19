@@ -318,14 +318,9 @@ function AdminPage() {
   };
   const deleteSeller = async (id: string, name: string) => {
     if (!window.confirm(`Excluir o vendedor "${name}"? Esta ação não pode ser desfeita.`)) return;
-    const { count } = await supabase.from("sales").select("id", { count: "exact", head: true }).eq("seller_id", id);
-    if ((count ?? 0) > 0) {
-      toast.error(`Não é possível excluir: ${count} venda(s) vinculadas. Desative-o em vez disso.`);
-      return;
-    }
-    const { error } = await supabase.from("sellers").delete().eq("id", id);
+    const { error } = await (supabase.rpc as any)("delete_seller_preserving_history", { p_seller_id: id });
     if (error) toast.error(error.message);
-    else { toast.success("Vendedor excluído"); qc.invalidateQueries({ queryKey: ["admin-sellers"] }); qc.invalidateQueries({ queryKey: ["sellers-page"] }); }
+    else { toast.success("Vendedor excluído; nome preservado no histórico"); qc.invalidateQueries({ queryKey: ["admin-sellers"] }); qc.invalidateQueries({ queryKey: ["sellers-page"] }); }
   };
 
   if (adminCheck.isLoading) {

@@ -113,15 +113,9 @@ function SellersPage() {
   };
   const remove = async (id: string, name: string) => {
     if (!window.confirm(`Excluir o vendedor "${name}"? Esta ação não pode ser desfeita.`)) return;
-    const { count: salesCount } = await supabase.from("sales").select("id", { count: "exact", head: true }).eq("seller_id", id);
-    const linked = salesCount ?? 0;
-    if (linked > 0) {
-      toast.error(`Não é possível excluir: ${linked} venda(s) vinculada(s). Desative-o em vez disso.`);
-      return;
-    }
-    const { error } = await supabase.from("sellers").delete().eq("id", id);
+    const { error } = await (supabase.rpc as any)("delete_seller_preserving_history", { p_seller_id: id });
     if (error) toast.error(error.message);
-    else { toast.success("Vendedor excluído"); qc.invalidateQueries(); }
+    else { toast.success("Vendedor excluído; nome preservado no histórico"); qc.invalidateQueries(); }
   };
   return (
     <div className="space-y-6">

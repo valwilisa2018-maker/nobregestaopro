@@ -92,9 +92,9 @@ export function KanbanColumn({
         c.description,
         c.sales?.customers?.name,
         c.sales?.customers?.company,
-        c.sales?.sellers?.name,
+        c.sales?.sellers?.name ?? c.sales?.seller_name_snapshot,
         c.producer?.name,
-        c.sales?.producers?.name,
+        c.sales?.producers?.name ?? c.sales?.producer_name_snapshot,
         ...(c.labels ?? []),
       ]
         .filter(Boolean)
