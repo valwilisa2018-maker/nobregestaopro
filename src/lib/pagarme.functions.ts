@@ -54,6 +54,68 @@ export function getPagarmeUrl(apiKey: string) {
   return apiKey.startsWith("sk_test") ? PAGARME_TEST_URL : PAGARME_PRODUCTION_URL;
 }
 
+export const getPagarmeOrders = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input) =>
+    z.object({
+      from: z.string().datetime(),
+      to: z.string().datetime(),
+    }).parse(input),
+  )
+  .handler(async ({ data }) => {
+    const supabaseAdmin = createClient<Database>(
+      process.env.SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!,
+    );
+    const { data: row } = await supabaseAdmin
+      .from("pagarme_settings")
+      .select("api_key")
+      .eq("id", true)
+      .maybeSingle();
+    const apiKey = (row?.api_key as string | undefined) || process.env.PAGARME_API_KEY;
+    if (!apiKey) return { ok: false as const, error: "Credencial Pagar.me não configurada." };
+
+    const base = apiKey.startsWith("sk_test_")
+      ? "https://sdx-api.pagar.me/core/v5/orders"
+      : "https://api.pagar.me/core/v5/orders";
+    const auth = "Basic " + Buffer.from(`${apiKey}:`).toString("base64");
+    const orders: any[] = [];
+
+    for (let page = 1; page <= 10; page += 1) {
+      const url = new URL(base);
+      url.searchParams.set("created_since", data.from);
+      url.searchParams.set("created_until", data.to);
+      url.searchParams.set("page", String(page));
+      url.searchParams.set("size", "30");
+      const response = await fetch(url, {
+        headers: { Authorization: auth, Accept: "application/json" },
+      });
+      const body = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        return { ok: false as const, error: body?.message || `Erro Pagar.me (${response.status})` };
+      }
+      const batch = Array.isArray(body?.data) ? body.data : [];
+      orders.push(...batch);
+      if (batch.length < 30) break;
+    }
+
+    return {
+      ok: true as const,
+      orders: orders.map((order) => {
+        const charge = order.charges?.[0] ?? null;
+        const transaction = charge?.last_transaction ?? null;
+        return {
+          id: order.id,
+          status: order.status,
+          amount: Number(order.amount ?? charge?.amount ?? 0),
+          created_at: order.created_at,
+          payment_method: charge?.payment_method ?? transaction?.transaction_type ?? null,
+          payment_link_id: order.payment_link_id ?? order.payment_link?.id ?? order.checkout?.id ?? null,
+        };
+      }),
+    };
+  });
+
 export const createPaymentLink = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input) =>

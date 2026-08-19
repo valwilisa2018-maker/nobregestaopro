@@ -6,7 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, CreditCard, CheckCircle2, XCircle, Clock, Search, Filter, Calendar as CalendarIcon, User, DollarSign, ArrowUpRight } from "lucide-react";
+import { Loader2, CreditCard, CheckCircle2, XCircle, Clock, Search, Filter, Calendar as CalendarIcon, User, ArrowUpRight, RefreshCw } from "lucide-react";
 import { formatCurrency } from "@/lib/auth";
 import { fmtDate } from "@/lib/format";
 import { Input } from "@/components/ui/input";
@@ -17,6 +17,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { addDays, format, isWithinInterval, startOfDay, endOfDay } from "date-fns";
 import { DateRange } from "react-day-picker";
 import { cn } from "@/lib/utils";
+import { getPagarmeOrders } from "@/lib/pagarme.functions";
 
 export const Route = createFileRoute("/_authenticated/pagarme-history")({
   component: PagarmeHistoryPage,
@@ -62,8 +63,8 @@ function PagarmeHistoryPage() {
     },
   });
 
-  const { data: webhooks, isLoading } = useQuery({
-    queryKey: ["pagarme-webhooks-history"],
+  const { data: webhooks, isLoading, isFetching, refetch } = useQuery({
+    queryKey: ["pagarme-webhooks-history", date?.from?.toISOString(), date?.to?.toISOString()],
     queryFn: async () => {
       // Buscamos os webhooks e tentamos relacionar com as vendas
       // Como não há FK direta, pegamos os dados e relacionaremos no useMemo para maior flexibilidade
@@ -90,7 +91,7 @@ function PagarmeHistoryPage() {
         }
       });
 
-      return (webhooksData ?? []).map(webhook => {
+      const localEvents = (webhooksData ?? []).map(webhook => {
         const payload = (webhook.payload as any) || {};
         const data = payload.data || {};
         
@@ -102,6 +103,45 @@ function PagarmeHistoryPage() {
           sale_info: sale || null
         };
       });
+
+      const from = startOfDay(date?.from ?? addDays(new Date(), -30)).toISOString();
+      const to = endOfDay(date?.to ?? new Date()).toISOString();
+      const remote = await getPagarmeOrders({ data: { from, to } });
+      if (!remote.ok) throw new Error(remote.error);
+
+      const localOrderIds = new Set(localEvents.map((event: any) => event.pagarme_id).filter(Boolean));
+      const remoteEvents = remote.orders
+        .filter((order) => !localOrderIds.has(order.id))
+        .map((order) => {
+          const eventType = order.status === "paid"
+            ? "order.paid"
+            : order.status === "canceled"
+              ? "order.canceled"
+              : order.status === "failed"
+                ? "order.payment_failed"
+                : "order.created";
+          const sale = salesMap.get(order.payment_link_id) || salesMap.get(order.id) || null;
+          return {
+            id: `api:${order.id}`,
+            pagarme_id: order.id,
+            event_type: eventType,
+            created_at: order.created_at,
+            payload: {
+              data: {
+                id: order.id,
+                amount: order.amount,
+                payment_link_id: order.payment_link_id,
+                charges: [{ payment_method: order.payment_method }],
+              },
+            },
+            sale_info: sale,
+            source: "api",
+          };
+        });
+
+      return [...localEvents, ...remoteEvents].sort(
+        (a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
+      );
     },
   });
 
@@ -175,11 +215,15 @@ function PagarmeHistoryPage() {
         eyebrow="Pagamentos"
         title="Histórico Pagar.me"
         description="Acompanhe confirmações de pagamento via cartão/PIX"
-        actions={
+        actions={<div className="flex items-center gap-2">
+          <Button variant="outline" onClick={() => refetch()} disabled={isFetching}>
+            <RefreshCw className={cn("w-4 h-4 mr-2", isFetching && "animate-spin")} />
+            Sincronizar Pagar.me
+          </Button>
           <div className="bg-emerald-500/15 border border-emerald-500/30 p-2 rounded-lg w-fit">
             <CreditCard className="w-6 h-6 text-emerald-500" />
           </div>
-        }
+        </div>}
       />
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
