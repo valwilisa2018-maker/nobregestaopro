@@ -1,4 +1,5 @@
 import { Button } from "@/components/ui/button";
+import { useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -9,7 +10,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { Plus, Loader2, Check, ShoppingCart } from "lucide-react";
+import { Plus, Loader2, Check, ShoppingCart, ChevronsUpDown } from "lucide-react";
 import {
   User,
   Building2,
@@ -27,6 +28,14 @@ import {
 } from "lucide-react";
 import { PhoneInputBR } from "@/components/phone-input-br";
 import { SafeSelect } from "@/components/safe-select";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import {
+  Command,
+  CommandEmpty,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
 import type { AlterationCardOption, CustomerRecord, LookupOption, SaleFormState } from "./types";
 import { VideoDurationBreakdownField } from "./video-duration-breakdown-field";
 
@@ -49,6 +58,68 @@ function optionText(value: unknown, fallback = "—") {
 function optionValue(value: unknown) {
   const text = String(value ?? "").trim();
   return text || null;
+}
+
+function AlterationCardSelect({
+  value,
+  cards,
+  onChange,
+}: {
+  value: string;
+  cards: AlterationCardOption[];
+  onChange: (cardId: string) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const selected = cards.find((card) => card.id === value);
+
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <Button
+          type="button"
+          variant="outline"
+          role="combobox"
+          aria-expanded={open}
+          className="h-10 w-full justify-between rounded-lg border-[#ECECEC] bg-white px-3 font-normal dark:border-white/10 dark:bg-white/[0.03]"
+        >
+          <span className="truncate">
+            {selected
+              ? `${selected.title}${selected.column_name ? ` — ${selected.column_name}` : ""}`
+              : "Digite ou selecione o card existente"}
+          </span>
+          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0" align="start">
+        <Command>
+          <CommandInput placeholder="Pesquisar pelo nome do card ou cliente..." />
+          <CommandList className="max-h-72">
+            <CommandEmpty>Nenhum card encontrado.</CommandEmpty>
+            {cards.map((card) => (
+              <CommandItem
+                key={card.id}
+                value={`${card.title} ${card.customer?.name ?? ""} ${card.customer?.company ?? ""} ${card.column_name ?? ""} ${card.id}`}
+                onSelect={() => {
+                  onChange(card.id);
+                  setOpen(false);
+                }}
+              >
+                <Check className={`mr-2 h-4 w-4 ${value === card.id ? "opacity-100" : "opacity-0"}`} />
+                <span className="min-w-0">
+                  <span className="block truncate font-medium">{card.title}</span>
+                  <span className="block truncate text-xs text-muted-foreground">
+                    {[card.customer?.name, card.customer?.company, card.column_name]
+                      .filter(Boolean)
+                      .join(" • ")}
+                  </span>
+                </span>
+              </CommandItem>
+            ))}
+          </CommandList>
+        </Command>
+      </PopoverContent>
+    </Popover>
+  );
 }
 
 export interface NewSaleDialogProps {
@@ -416,15 +487,10 @@ export function NewSaleDialog({
             <div className="sm:col-span-2" data-sale-field="alteration_service_order_id">
               <Label>Card que receberá a alteração *</Label>
               <div className="mt-1.5">
-                <SafeSelect
-                  ariaLabel="Card da alteração"
-                  placeholder="Selecione o card existente"
+                <AlterationCardSelect
                   value={form.alteration_service_order_id || ""}
-                  onValueChange={onAlterationCardChange}
-                  options={(alterationCards ?? []).map((card) => ({
-                    value: card.id,
-                    label: `${card.title}${card.column_name ? ` — ${card.column_name}` : ""}`,
-                  }))}
+                  cards={alterationCards ?? []}
+                  onChange={onAlterationCardChange}
                 />
               </div>
               <p className="mt-1.5 text-[11px] text-amber-700 dark:text-amber-300">
