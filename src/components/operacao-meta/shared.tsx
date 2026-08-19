@@ -188,9 +188,9 @@ export { formatDuracao } from "@/lib/format";
 import { formatDuracao } from "@/lib/format";
 
 const OM_ORDERS_SELECT =
-  "id,title,producer_id,sale_id,service_index,column_id,delivered_at,updated_at,redo_count,last_redo_at,video_duration_seconds,kanban_columns(name,is_done,is_default),sales(producer_id,service_type_id,package_id,service_quantity,video_duration_seconds,video_duration_breakdown_seconds,service_types(name,points,points_value),packages(name,points_value))";
+  "id,title,producer_id,sale_id,service_index,column_id,delivered_at,updated_at,redo_count,last_redo_at,video_duration_seconds,kanban_columns(name,is_done,is_default),sales:sales!service_orders_sale_id_fkey(producer_id,service_type_id,package_id,service_quantity,video_duration_seconds,video_duration_breakdown_seconds,service_types(name,points,points_value),packages(name,points_value))";
 const OM_ORDERS_SELECT_LEGACY =
-  "id,title,producer_id,sale_id,service_index,column_id,delivered_at,updated_at,redo_count,last_redo_at,video_duration_seconds,kanban_columns(name,is_done,is_default),sales(producer_id,service_type_id,package_id,service_quantity,video_duration_seconds,service_types(name,points,points_value),packages(name,points_value))";
+  "id,title,producer_id,sale_id,service_index,column_id,delivered_at,updated_at,redo_count,last_redo_at,video_duration_seconds,kanban_columns(name,is_done,is_default),sales:sales!service_orders_sale_id_fkey(producer_id,service_type_id,package_id,service_quantity,video_duration_seconds,service_types(name,points,points_value),packages(name,points_value))";
 
 export function useOmData() {
   const qc = useQueryClient();

@@ -19,7 +19,7 @@ export const Route = createFileRoute("/_authenticated/services-todo")({
       queryFn: async () => {
         const { data, error } = await supabase
           .from("service_orders")
-          .select("*, kanban_columns(name,is_done,color), sales(customers(name,company), producers(name), service_types(name))")
+          .select("*, kanban_columns(name,is_done,color), sales:sales!service_orders_sale_id_fkey(customers(name,company), producers(name), service_types(name))")
           .order("due_date", { ascending: true });
         
         if (error) {
