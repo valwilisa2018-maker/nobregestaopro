@@ -18,6 +18,7 @@ import {
   saveWhiteLabelSettings,
   type WhiteLabelSettings,
 } from "@/lib/white-label";
+import { useTheme } from "@/hooks/use-theme";
 
 export const Route = createFileRoute("/_authenticated/white-label")({
   head: () => ({
@@ -45,6 +46,7 @@ function applyToRoot(s: Settings) {
 }
 
 function WhiteLabelPage() {
+  const { setTheme } = useTheme();
   const [settings, setSettings] = useState<Settings>(DEFAULTS);
   const [saving, setSaving] = useState(false);
   const [dragOver, setDragOver] = useState(false);
@@ -84,6 +86,7 @@ function WhiteLabelPage() {
 
   const applyPreset = (name: keyof typeof PRESETS) => {
     setSettings((s) => ({ ...s, ...PRESETS[name] }));
+    setTheme(name === "Escuro" ? "dark" : "light");
     toast.success(`Tema "${name}" aplicado`);
   };
 

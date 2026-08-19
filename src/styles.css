@@ -69,8 +69,8 @@
   --radius: 0.75rem;
 
   /* Gestão Nobre MKT - Premium Dark / Red / White */
-  --background: oklch(0.12 0.005 270);
-  --foreground: oklch(0.98 0.005 270);
+  --background: var(--wl-dark-background, oklch(0.12 0.005 270));
+  --foreground: var(--wl-dark-foreground, oklch(0.98 0.005 270));
 
   --card: oklch(0.16 0.008 270);
   --card-foreground: oklch(0.98 0.005 270);
@@ -82,7 +82,7 @@
   --primary-foreground: oklch(0.99 0 0);
   --primary-glow: oklch(0.68 0.24 25);
 
-  --secondary: oklch(0.22 0.01 270);
+  --secondary: var(--wl-dark-secondary, oklch(0.22 0.01 270));
   --secondary-foreground: oklch(0.98 0.005 270);
 
   --muted: oklch(0.20 0.008 270);
@@ -130,8 +130,8 @@
 
 /* Light mode override — applied when <html> has the .light class */
 .light {
-  --background: oklch(0.99 0.003 270);
-  --foreground: oklch(0.18 0.01 270);
+  --background: var(--wl-light-background, oklch(0.99 0.003 270));
+  --foreground: var(--wl-light-foreground, oklch(0.18 0.01 270));
 
   --card: oklch(1 0 0);
   --card-foreground: oklch(0.18 0.01 270);
@@ -143,7 +143,7 @@
   --primary-foreground: oklch(0.99 0 0);
   --primary-glow: oklch(0.68 0.24 25);
 
-  --secondary: oklch(0.96 0.005 270);
+  --secondary: var(--wl-light-secondary, oklch(0.96 0.005 270));
   --secondary-foreground: oklch(0.18 0.01 270);
 
   --muted: oklch(0.96 0.005 270);
@@ -187,9 +187,13 @@
   body {
     background-color: var(--color-background);
     color: var(--color-foreground);
+    color-scheme: dark;
     -webkit-font-smoothing: antialiased;
     text-rendering: optimizeLegibility;
+    transition: background-color 180ms ease, color 180ms ease;
   }
+
+  .light body { color-scheme: light; }
 
   html {
     scroll-behavior: smooth;
