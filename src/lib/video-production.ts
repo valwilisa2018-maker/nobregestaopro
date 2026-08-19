@@ -140,14 +140,14 @@ export function getBreakdownDurationAtIndex(
 }
 
 export function resolveOrderVideoDurationSeconds(order: VideoOrderSnapshot): number {
-  const directDuration = asValidDuration(order.video_duration_seconds);
-  if (directDuration) return directDuration;
-
   const breakdownDuration = getBreakdownDurationAtIndex(
     order.sales?.video_duration_breakdown_seconds,
     order.service_index,
   );
   if (breakdownDuration) return breakdownDuration;
+
+  const directDuration = asValidDuration(order.video_duration_seconds);
+  if (directDuration) return directDuration;
 
   const saleQuantity = Number(order.sales?.service_quantity ?? 1);
   if (saleQuantity <= 1) {

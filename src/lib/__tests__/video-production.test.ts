@@ -86,6 +86,20 @@ describe("video-production", () => {
     expect(calculateVideoPoints(sumVideoDurations(sale.video_duration_breakdown_seconds))).toBe(7);
   });
 
+  it("prioriza o breakdown quando um card foi contaminado pelo total do pacote", () => {
+    expect(
+      resolveOrderVideoDurationSeconds({
+        service_index: 2,
+        video_duration_seconds: 900,
+        sales: {
+          service_quantity: 30,
+          video_duration_seconds: 900,
+          video_duration_breakdown_seconds: Array(30).fill(30),
+        },
+      }),
+    ).toBe(30);
+  });
+
   it("nao cai para a duracao total da venda quando o pacote antigo nao tem breakdown", () => {
     expect(
       resolveOrderVideoDurationSeconds({
