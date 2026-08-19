@@ -24,10 +24,18 @@ export function applyWhiteLabelSettings(settings: WhiteLabelSettings) {
   style.setProperty("--primary", settings.primary);
   style.setProperty("--ring", settings.primary);
   style.setProperty("--sidebar-primary", settings.primary);
-  style.setProperty("--secondary", settings.secondary);
-  style.setProperty("--background", settings.background);
-  style.setProperty("--foreground", settings.foreground);
   style.setProperty("--gradient-primary", `linear-gradient(135deg, ${settings.primary}, ${settings.primary}cc)`);
+
+  // Claro e escuro usam sempre a paleta estrutural padrão. A personalização
+  // controla a identidade (logo e cor principal), mas nunca mais sobrescreve
+  // fundo, cards ou texto e, portanto, não pode criar um tema híbrido.
+  [
+    "--wl-light-background", "--wl-light-foreground", "--wl-light-secondary",
+    "--wl-dark-background", "--wl-dark-foreground", "--wl-dark-secondary",
+  ].forEach((property) => style.removeProperty(property));
+  style.removeProperty("--background");
+  style.removeProperty("--foreground");
+  style.removeProperty("--secondary");
 }
 
 export function cacheWhiteLabelSettings(settings: WhiteLabelSettings) {

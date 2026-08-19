@@ -187,9 +187,13 @@
   body {
     background-color: var(--color-background);
     color: var(--color-foreground);
+    color-scheme: dark;
     -webkit-font-smoothing: antialiased;
     text-rendering: optimizeLegibility;
+    transition: background-color 180ms ease, color 180ms ease;
   }
+
+  .light body { color-scheme: light; }
 
   html {
     scroll-behavior: smooth;

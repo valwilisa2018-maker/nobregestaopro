@@ -18,6 +18,7 @@ import {
   saveWhiteLabelSettings,
   type WhiteLabelSettings,
 } from "@/lib/white-label";
+import { useTheme } from "@/hooks/use-theme";
 
 export const Route = createFileRoute("/_authenticated/white-label")({
   head: () => ({
@@ -45,6 +46,7 @@ function applyToRoot(s: Settings) {
 }
 
 function WhiteLabelPage() {
+  const { setTheme } = useTheme();
   const [settings, setSettings] = useState<Settings>(DEFAULTS);
   const [saving, setSaving] = useState(false);
   const [dragOver, setDragOver] = useState(false);
@@ -84,6 +86,7 @@ function WhiteLabelPage() {
 
   const applyPreset = (name: keyof typeof PRESETS) => {
     setSettings((s) => ({ ...s, ...PRESETS[name] }));
+    setTheme(name === "Escuro" ? "dark" : "light");
     toast.success(`Tema "${name}" aplicado`);
   };
 
@@ -101,6 +104,7 @@ function WhiteLabelPage() {
 
   const restore = async () => {
     setSettings(DEFAULTS);
+    setTheme("light");
     setSaving(true);
     try {
       await saveWhiteLabelSettings(DEFAULTS);
@@ -170,16 +174,15 @@ function WhiteLabelPage() {
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2"><Palette className="w-4 h-4" /> Paleta de Cores</CardTitle>
-              <CardDescription>Escolha as cores da sua marca.</CardDescription>
+              <CardDescription>
+                Escolha a cor da marca. Fundo, cards e textos seguem automaticamente o modo claro ou escuro para manter a leitura correta.
+              </CardDescription>
             </CardHeader>
-            <CardContent className="grid gap-4 sm:grid-cols-2">
+            <CardContent className="grid gap-4">
               {([
                 ["primary", "Cor Primária"],
-                ["secondary", "Cor Secundária"],
-                ["background", "Cor de Fundo"],
-                ["foreground", "Cor do Texto"],
               ] as const).map(([key, label]) => (
-                <div key={key} className="space-y-2">
+                <div key={key} className="space-y-2 max-w-md">
                   <Label htmlFor={key}>{label}</Label>
                   <div className="flex items-center gap-2">
                     <input
