@@ -88,8 +88,8 @@ export function SalesTableView({
                     <div className="text-xs text-muted-foreground">{s.customers?.name}</div>
                   </TableCell>
                   <TableCell>{s.service_types?.name ?? "—"}</TableCell>
-                  <TableCell>{s.sellers?.name ?? "—"}</TableCell>
-                  <TableCell>{s.producers?.name ?? "—"}</TableCell>
+                  <TableCell>{s.sellers?.name ?? s.seller_name_snapshot ?? "—"}</TableCell>
+                  <TableCell>{s.producers?.name ?? s.producer_name_snapshot ?? "—"}</TableCell>
                   <TableCell className="text-right font-semibold">
                     {formatCurrency(s.total_amount)}
                   </TableCell>

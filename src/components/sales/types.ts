@@ -46,6 +46,8 @@ export interface SaleRecord {
   payment_method: PaymentMethod | null;
   seller_id?: string | null;
   producer_id?: string | null;
+  seller_name_snapshot?: string | null;
+  producer_name_snapshot?: string | null;
   service_type_id?: string | null;
   package_id?: string | null;
   package_name?: string | null;

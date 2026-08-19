@@ -72,11 +72,11 @@ export function SalesCardView({
                   </div>
                   <div>
                     <p className="text-xs text-muted-foreground">Vendedor</p>
-                    <p className="font-medium truncate">{s.sellers?.name ?? "—"}</p>
+                    <p className="font-medium truncate">{s.sellers?.name ?? s.seller_name_snapshot ?? "—"}</p>
                   </div>
                   <div>
                     <p className="text-xs text-muted-foreground">Produtor</p>
-                    <p className="font-medium truncate">{s.producers?.name ?? "—"}</p>
+                    <p className="font-medium truncate">{s.producers?.name ?? s.producer_name_snapshot ?? "—"}</p>
                   </div>
                 </div>
                 <div className="pt-2 border-t flex justify-between items-center">
