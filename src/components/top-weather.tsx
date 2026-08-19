@@ -34,14 +34,38 @@ type Coords = {
 };
 
 const WEATHER_REFRESH_MS = 30 * 60 * 1000;
-const GEOLOCATION_TIMEOUT_MS = 5000;
+const GEOLOCATION_TIMEOUT_MS = 12000;
 const GEOLOCATION_MAX_AGE_MS = 30 * 60 * 1000;
 
 const FALLBACK_COORDS: Coords = {
-  label: "Brasilia",
-  latitude: -15.793889,
-  longitude: -47.882778,
+  label: "Localizacao indisponivel",
+  latitude: 0,
+  longitude: 0,
 };
+
+async function resolveApproximateCoords(): Promise<Coords> {
+  const controller = new AbortController();
+  const timeoutId = window.setTimeout(() => controller.abort(), 5000);
+  try {
+    const response = await fetch("https://ipapi.co/json/", { signal: controller.signal });
+    if (!response.ok) throw new Error("Approximate location unavailable");
+    const payload = await response.json();
+    const latitude = Number(payload?.latitude);
+    const longitude = Number(payload?.longitude);
+    if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) {
+      throw new Error("Invalid approximate location");
+    }
+    return {
+      label: [payload?.city, payload?.region_code].filter(Boolean).join(" - ") || "Sua regiao",
+      latitude,
+      longitude,
+    };
+  } catch {
+    throw new Error("Nao foi possivel identificar a localizacao atual");
+  } finally {
+    window.clearTimeout(timeoutId);
+  }
+}
 
 function getWeatherMeta(code: number, isDay: boolean) {
   if (code === 0) {
@@ -146,7 +170,7 @@ async function fetchWeather(coords: Coords, signal?: AbortSignal): Promise<Weath
 
 function resolveCoords(): Promise<Coords> {
   if (typeof navigator === "undefined" || !("geolocation" in navigator)) {
-    return Promise.resolve(FALLBACK_COORDS);
+    return resolveApproximateCoords();
   }
 
   return new Promise((resolve) => {
@@ -157,9 +181,9 @@ function resolveCoords(): Promise<Coords> {
           latitude: position.coords.latitude,
           longitude: position.coords.longitude,
         }),
-      () => resolve(FALLBACK_COORDS),
+      () => void resolveApproximateCoords().then(resolve),
       {
-        enableHighAccuracy: false,
+        enableHighAccuracy: true,
         maximumAge: GEOLOCATION_MAX_AGE_MS,
         timeout: GEOLOCATION_TIMEOUT_MS,
       },
@@ -191,16 +215,20 @@ export function TopWeather() {
     };
 
     const init = async () => {
-      const coords = await resolveCoords();
-      if (!active) return;
+      try {
+        const coords = await resolveCoords();
+        if (!active) return;
 
-      coordsRef.current = coords;
-      await updateWeather(coords);
+        coordsRef.current = coords;
+        await updateWeather(coords);
 
-      if (!active) return;
-      intervalId = window.setInterval(() => {
-        void updateWeather(coordsRef.current);
-      }, WEATHER_REFRESH_MS);
+        if (!active) return;
+        intervalId = window.setInterval(() => {
+          void updateWeather(coordsRef.current);
+        }, WEATHER_REFRESH_MS);
+      } catch {
+        if (active) setState({ status: "error", data: null });
+      }
     };
 
     void init();
