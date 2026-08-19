@@ -1,11 +1,13 @@
 import { Button } from "@/components/ui/button";
 import { Layers, Plus } from "lucide-react";
+import type { ReactNode } from "react";
 
 export interface KanbanHeaderProps {
   onNewColumn: () => void;
+  attentionPanel?: ReactNode;
 }
 
-export function KanbanHeader({ onNewColumn }: KanbanHeaderProps) {
+export function KanbanHeader({ onNewColumn, attentionPanel }: KanbanHeaderProps) {
   return (
     <div
       className="relative overflow-hidden rounded-2xl border border-border/50 bg-gradient-to-br from-primary/10 via-card to-card p-6 sm:p-8"
@@ -34,6 +36,7 @@ export function KanbanHeader({ onNewColumn }: KanbanHeaderProps) {
           </Button>
         </div>
       </div>
+      <div className="relative">{attentionPanel}</div>
     </div>
   );
 }
