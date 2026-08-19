@@ -90,6 +90,17 @@ function CommissionsPage() {
     },
   });
 
+  const completedAlterations = useQuery({
+    queryKey: ["commissions-completed-alterations", range?.from, range?.to],
+    queryFn: async () => {
+      let q = (supabase.from("service_order_alterations") as any)
+        .select("id,producer_id,completed_at,sales(total_amount,paid_amount,payment_status,is_payment_link)")
+        .eq("status", "completed");
+      if (range) q = q.gte("completed_at", range.from).lte("completed_at", range.to + "T23:59:59");
+      return (await q).data ?? [];
+    },
+  });
+
   const saleOrdersCount = useQuery({
     queryKey: ["commissions-sale-orders-count", (deliveredOrders.data ?? []).map((o: any) => o.sale_id).sort().join(",")],
     enabled: (deliveredOrders.data ?? []).length > 0,
@@ -156,6 +167,15 @@ function CommissionsPage() {
         totalDelivered += unit;
         totalDeliveredPaid += Math.min(unit, unitPaid);
       });
+      const pAlterations = (completedAlterations.data ?? []).filter(
+        (alteration: any) => alteration.producer_id === p.id && !alteration.sales?.is_payment_link,
+      );
+      pAlterations.forEach((alteration: any) => {
+        const totalAmount = Number(alteration.sales?.total_amount ?? 0);
+        const paidAmount = Number(alteration.sales?.paid_amount ?? 0);
+        totalDelivered += totalAmount;
+        totalDeliveredPaid += Math.min(totalAmount, paidAmount);
+      });
       const totalSold = totalDelivered;
       const totalPaid = totalDeliveredPaid;
       const pending = totalSold - totalPaid;
@@ -168,7 +188,7 @@ function CommissionsPage() {
         name: p.name,
         email: p.email,
         rate,
-        salesCount: pOrders.length,
+        salesCount: pOrders.length + pAlterations.length,
         totalSold,
         totalPaid,
         pending,
@@ -178,7 +198,7 @@ function CommissionsPage() {
       };
     });
     return list.sort((a, b) => b.commissionPaid - a.commissionPaid);
-  }, [producers.data, sales.data, deliveredOrders.data, deliveredSales.data, saleOrdersCount.data]);
+  }, [producers.data, sales.data, deliveredOrders.data, deliveredSales.data, saleOrdersCount.data, completedAlterations.data]);
 
   const producerTotals = useMemo(() => {
     return producerRows.reduce(

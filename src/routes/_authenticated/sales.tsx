@@ -381,6 +381,7 @@ function SalesPage() {
   });
 
   const [form, setForm] = useState<SaleFormState>({
+    alteration_service_order_id: "",
     customer_name: "",
     company: "",
     document: "",
@@ -608,7 +609,48 @@ function SalesPage() {
     () => serviceTypes.data?.find((st: any) => st.id === form.service_type_id)?.name,
     [serviceTypes.data, form.service_type_id],
   );
-  const formNeedsVideoDuration = isVideoService(selectedServiceName, !!form.package_id);
+  const isAlterationSale = /altera[cç][aã]o/i.test(selectedServiceName ?? "");
+  const formNeedsVideoDuration = !isAlterationSale && isVideoService(selectedServiceName, !!form.package_id);
+
+  const alterationCards = useQuery({
+    queryKey: ["sales-alteration-cards"],
+    enabled: isAlterationSale,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("service_orders")
+        .select("id,title,producer_id,kanban_columns(name),sales(customer_id,customers(id,name,company,document,phone,email))")
+        .order("updated_at", { ascending: false })
+        .limit(500);
+      if (error) throw error;
+      return (data ?? []).map((card: any) => ({
+        id: card.id,
+        title: card.title,
+        producer_id: card.producer_id,
+        column_name: card.kanban_columns?.name,
+        customer: card.sales?.customers ?? null,
+      }));
+    },
+  });
+
+  const handleAlterationCardChange = useCallback((cardId: string) => {
+    const card = (alterationCards.data ?? []).find((item: any) => item.id === cardId);
+    setForm((current) => ({
+      ...current,
+      alteration_service_order_id: cardId,
+      producer_id: card?.producer_id || current.producer_id,
+      customer_name: card?.customer?.name || current.customer_name,
+      company: card?.customer?.company || current.company,
+      document: card?.customer?.document || current.document,
+      phone: card?.customer?.phone || current.phone,
+      email: card?.customer?.email || current.email,
+      package_id: "",
+      package_name: "",
+      service_quantity: "1",
+      video_duration_seconds: "",
+      video_duration_breakdown_seconds: [],
+    }));
+    if (card?.customer?.id) setLinkedCustomerId(card.customer.id);
+  }, [alterationCards.data]);
   const formReceiptRecommended =
     form.payment_status !== "pendente" || Number(form.paid_amount || 0) > 0;
 
@@ -681,6 +723,7 @@ function SalesPage() {
       ["delivery_deadline", "Prazo de entrega"],
       ["expected_delivery_date", "Data de entrega"],
     ];
+    if (isAlterationSale) required.push(["alteration_service_order_id", "Card da alteração"]);
 
     if (form.with_invoice === "sim") {
       if (!form.company.trim()) {
@@ -847,6 +890,8 @@ function SalesPage() {
           expected_delivery_date: form.expected_delivery_date,
           video_duration_seconds: videoDurationTotalPayload,
           video_duration_breakdown_seconds: videoDurationBreakdownPayload,
+          sale_kind: isAlterationSale ? "alteration" : "standard",
+          alteration_service_order_id: isAlterationSale ? form.alteration_service_order_id : null,
           created_by: user?.id,
         })
         .select("id")
@@ -908,9 +953,12 @@ function SalesPage() {
         }
       }
 
-      toast.success("Venda criada — cards de produção gerados automaticamente");
+      toast.success(isAlterationSale
+        ? "Alteração vendida — card movido para Alteração a Fazer"
+        : "Venda criada — cards de produção gerados automaticamente");
       setOpen(false);
       setForm({
+        alteration_service_order_id: "",
         customer_name: "",
         company: "",
         document: "",
@@ -1570,6 +1618,9 @@ function SalesPage() {
           packages: packages.data ?? [],
           producerLockedByInfluencer,
           formNeedsVideoDuration,
+          isAlterationSale,
+          alterationCards: alterationCards.data ?? [],
+          onAlterationCardChange: handleAlterationCardChange,
           formReceiptRecommended,
           receiptFile,
           onReceiptFileChange: setReceiptFile,

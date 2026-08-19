@@ -81,6 +81,7 @@ export interface EditingSale extends Omit<SaleRecord, "video_duration_breakdown_
 }
 
 export interface SaleFormState {
+  alteration_service_order_id: string;
   customer_name: string;
   company: string;
   document: string;
@@ -108,4 +109,12 @@ export interface SaleFormState {
   video_duration_seconds: string;
   video_duration_breakdown_seconds: string[];
   video_duration_apply_all: string;
+}
+
+export interface AlterationCardOption {
+  id: string;
+  title: string;
+  producer_id?: string | null;
+  column_name?: string | null;
+  customer?: CustomerRecord | null;
 }
