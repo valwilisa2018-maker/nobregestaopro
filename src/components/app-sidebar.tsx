@@ -27,6 +27,8 @@ import {
   ShieldCheck,
 } from "lucide-react";
 import logoUrl from "@/assets/logo.png";
+import { useEffect, useState } from "react";
+import { getCachedWhiteLabelSettings, WHITE_LABEL_EVENT } from "@/lib/white-label";
 import {
   Sidebar,
   SidebarContent,
@@ -93,6 +95,12 @@ const groups = [
 ];
 
 export function AppSidebar() {
+  const [customLogo, setCustomLogo] = useState(() => getCachedWhiteLabelSettings().logo);
+  useEffect(() => {
+    const updateLogo = () => setCustomLogo(getCachedWhiteLabelSettings().logo);
+    window.addEventListener(WHITE_LABEL_EVENT, updateLogo);
+    return () => window.removeEventListener(WHITE_LABEL_EVENT, updateLogo);
+  }, []);
   const { state } = useSidebar();
   const collapsed = state === "collapsed";
   const navigate = useNavigate();
@@ -120,7 +128,7 @@ export function AppSidebar() {
         <div className="flex items-center gap-3 px-2 py-3 group">
           <div className="relative shrink-0">
             <div className="relative w-10 h-10 rounded-xl bg-black flex items-center justify-center overflow-hidden ring-1 ring-white/10 shadow-md transition-all duration-300 group-hover:scale-105 group-hover:shadow-lg">
-              <img src={logoUrl} alt="Nobre MKT" className="w-8 h-8 object-contain" />
+              <img src={customLogo || logoUrl} alt="Nobre MKT" className="w-8 h-8 object-contain" />
             </div>
           </div>
           {!collapsed && (
