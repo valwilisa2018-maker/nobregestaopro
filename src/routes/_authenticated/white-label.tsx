@@ -10,6 +10,14 @@ import {
   Settings, Upload, Palette, Save, RotateCcw, Loader2,
   Sun, Moon, Minus, Briefcase, ImageIcon,
 } from "lucide-react";
+import {
+  applyWhiteLabelSettings,
+  cacheWhiteLabelSettings,
+  DEFAULT_WHITE_LABEL_SETTINGS,
+  loadWhiteLabelSettings,
+  saveWhiteLabelSettings,
+  type WhiteLabelSettings,
+} from "@/lib/white-label";
 
 export const Route = createFileRoute("/_authenticated/white-label")({
   head: () => ({
@@ -22,21 +30,8 @@ export const Route = createFileRoute("/_authenticated/white-label")({
   component: WhiteLabelPage,
 });
 
-type Settings = {
-  logo: string | null;
-  primary: string;
-  secondary: string;
-  background: string;
-  foreground: string;
-};
-
-const DEFAULTS: Settings = {
-  logo: null,
-  primary: "#8b5cf6",
-  secondary: "#f1f5f9",
-  background: "#ffffff",
-  foreground: "#0f172a",
-};
+type Settings = WhiteLabelSettings;
+const DEFAULTS = DEFAULT_WHITE_LABEL_SETTINGS;
 
 const PRESETS: Record<string, Omit<Settings, "logo">> = {
   Claro:        { primary: "#8b5cf6", secondary: "#f1f5f9", background: "#ffffff", foreground: "#0f172a" },
@@ -45,22 +40,8 @@ const PRESETS: Record<string, Omit<Settings, "logo">> = {
   Profissional: { primary: "#1d4ed8", secondary: "#e2e8f0", background: "#f8fafc", foreground: "#0f172a" },
 };
 
-const STORAGE_KEY = "wl:settings:v1";
-
 function applyToRoot(s: Settings) {
-  const r = document.documentElement.style;
-  r.setProperty("--color-primary", s.primary);
-  r.setProperty("--color-secondary", s.secondary);
-  r.setProperty("--color-background", s.background);
-  r.setProperty("--color-foreground", s.foreground);
-  if (s.logo) r.setProperty("--wl-logo", `url(${s.logo})`);
-}
-
-function clearFromRoot() {
-  const r = document.documentElement.style;
-  ["--color-primary", "--color-secondary", "--color-background", "--color-foreground", "--wl-logo"].forEach(
-    (k) => r.removeProperty(k),
-  );
+  applyWhiteLabelSettings(s);
 }
 
 function WhiteLabelPage() {
@@ -70,14 +51,9 @@ function WhiteLabelPage() {
   const fileRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    try {
-      const raw = localStorage.getItem(STORAGE_KEY);
-      if (raw) {
-        const parsed = { ...DEFAULTS, ...JSON.parse(raw) } as Settings;
-        setSettings(parsed);
-        applyToRoot(parsed);
-      }
-    } catch {}
+    void loadWhiteLabelSettings()
+      .then((loaded) => { setSettings(loaded); cacheWhiteLabelSettings(loaded); })
+      .catch((error) => toast.error(error?.message ?? "Erro ao carregar a personalização"));
   }, []);
 
   // Live preview
@@ -113,17 +89,27 @@ function WhiteLabelPage() {
 
   const save = async () => {
     setSaving(true);
-    await new Promise((r) => setTimeout(r, 500));
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(settings));
-    setSaving(false);
-    toast.success("Configurações salvas com sucesso");
+    try {
+      await saveWhiteLabelSettings(settings);
+      toast.success("Configurações salvas para todos os usuários");
+    } catch (error: any) {
+      toast.error(error?.message ?? "Erro ao salvar as configurações");
+    } finally {
+      setSaving(false);
+    }
   };
 
-  const restore = () => {
+  const restore = async () => {
     setSettings(DEFAULTS);
-    localStorage.removeItem(STORAGE_KEY);
-    clearFromRoot();
-    toast.success("Padrão restaurado");
+    setSaving(true);
+    try {
+      await saveWhiteLabelSettings(DEFAULTS);
+      toast.success("Padrão restaurado para todos os usuários");
+    } catch (error: any) {
+      toast.error(error?.message ?? "Erro ao restaurar o padrão");
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
