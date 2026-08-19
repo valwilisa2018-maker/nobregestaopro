@@ -18,7 +18,9 @@ export function useTheme() {
     }
     try {
       localStorage.setItem("theme", theme);
-    } catch {}
+    } catch {
+      // Ignore storage access failures in restricted browser contexts.
+    }
   }, [theme]);
 
   useEffect(() => {

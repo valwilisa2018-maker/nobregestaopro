@@ -16,11 +16,21 @@ function Page() {
       singular="Documento"
       icon={<FileText className="h-6 w-6" />}
       fields={[
-    {name:"file_name", label:"Arquivo", type:"text", required:true},
-    {name:"kind", label:"Tipo", type:"select", options:[{value:"file",label:"Arquivo"},{value:"receipt",label:"Comprovante"},{value:"invoice",label:"Fatura"},{value:"contract",label:"Contrato"}]},
-    {name:"file_url", label:"URL", type:"url"},
-    {name:"mime_type", label:"MIME", type:"text"},
-    {name:"extracted_text", label:"Texto extraído", type:"textarea"}
+        { name: "file_name", label: "Arquivo", type: "text", required: true },
+        {
+          name: "kind",
+          label: "Tipo",
+          type: "select",
+          options: [
+            { value: "file", label: "Arquivo" },
+            { value: "receipt", label: "Comprovante" },
+            { value: "invoice", label: "Fatura" },
+            { value: "contract", label: "Contrato" },
+          ],
+        },
+        { name: "file_url", label: "URL", type: "url" },
+        { name: "mime_type", label: "MIME", type: "text" },
+        { name: "extracted_text", label: "Texto extraído", type: "textarea" },
       ]}
     />
   );

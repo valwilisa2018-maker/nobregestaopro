@@ -30,6 +30,12 @@ function missingConnectionResult() {
   };
 }
 
+type EvolutionSettings = {
+  url_api?: string;
+  api_key?: string;
+  webhook_base_url?: string;
+};
+
 function baseUrl(url: string) {
   let u = url.trim().replace(/\/+$/, "");
   if (!/^https?:\/\//i.test(u)) u = `https://${u}`;
@@ -37,9 +43,13 @@ function baseUrl(url: string) {
 }
 
 function mediaMessageType(mime: string) {
-  return mime.startsWith("image/") ? "image"
-    : mime.startsWith("video/") ? "video"
-    : mime.startsWith("audio/") ? "audio" : "document";
+  return mime.startsWith("image/")
+    ? "image"
+    : mime.startsWith("video/")
+      ? "video"
+      : mime.startsWith("audio/")
+        ? "audio"
+        : "document";
 }
 
 function normalizeEvoStatus(value: unknown): "sent" | "delivered" | "read" | null {
@@ -90,7 +100,9 @@ function phoneVariants(value: string) {
 }
 
 function jidVariants(remoteJid: string) {
-  const suffix = remoteJid.includes("@") ? remoteJid.slice(remoteJid.indexOf("@")) : "@s.whatsapp.net";
+  const suffix = remoteJid.includes("@")
+    ? remoteJid.slice(remoteJid.indexOf("@"))
+    : "@s.whatsapp.net";
   return phoneVariants(remoteJid.split("@")[0] ?? remoteJid).map((phone) => `${phone}${suffix}`);
 }
 
@@ -103,7 +115,9 @@ async function saveMediaToStorage(
   fileName: string,
 ) {
   const clean = base64.replace(/^data:[^;]+;base64,/, "").replace(/\s/g, "");
-  const rawExt = fileName.includes(".") ? fileName.split(".").pop() : mime.split("/")[1]?.split(";")[0];
+  const rawExt = fileName.includes(".")
+    ? fileName.split(".").pop()
+    : mime.split("/")[1]?.split(";")[0];
   const ext = rawExt?.replace(/[^a-zA-Z0-9]+/g, "").slice(0, 12);
   const path = `${userId}/${conversationId}/${Date.now()}-${crypto.randomUUID()}${ext ? `.${ext}` : ""}`;
   const bytes = Uint8Array.from(atob(clean), (char) => char.charCodeAt(0));
@@ -112,7 +126,9 @@ async function saveMediaToStorage(
     upsert: false,
   });
   if (error) throw new Error(error.message);
-  const { data } = await supabase.storage.from(MEDIA_BUCKET).createSignedUrl(path, 60 * 60 * 24 * 30);
+  const { data } = await supabase.storage
+    .from(MEDIA_BUCKET)
+    .createSignedUrl(path, 60 * 60 * 24 * 30);
   return { path, url: data?.signedUrl ?? null };
 }
 
@@ -123,13 +139,20 @@ async function evoFetch(url: string, apiKey: string, init?: RequestInit) {
   });
   const text = await res.text();
   let json: any = null;
-  try { json = text ? JSON.parse(text) : null; } catch { json = { raw: text }; }
+  try {
+    json = text ? JSON.parse(text) : null;
+  } catch {
+    json = { raw: text };
+  }
   return { ok: res.ok, status: res.status, json };
 }
 
 async function loadEvolutionCommandKey(supabase: any, fallback: string) {
   const { data: setting } = await supabase
-    .from("settings").select("value").eq("key", "evolution_api").maybeSingle();
+    .from("settings")
+    .select("value")
+    .eq("key", "evolution_api")
+    .maybeSingle();
   try {
     const cfg = typeof setting?.value === "string" ? JSON.parse(setting.value) : setting?.value;
     return cfg?.api_key || fallback;
@@ -138,16 +161,111 @@ async function loadEvolutionCommandKey(supabase: any, fallback: string) {
   }
 }
 
+async function loadEvolutionSettings(supabase: any): Promise<EvolutionSettings> {
+  const { data: setting } = await supabase
+    .from("settings")
+    .select("value")
+    .eq("key", "evolution_api")
+    .maybeSingle();
+  try {
+    return typeof setting?.value === "string"
+      ? (JSON.parse(setting.value) as EvolutionSettings)
+      : ((setting?.value ?? {}) as EvolutionSettings);
+  } catch {
+    return {};
+  }
+}
+
+function buildConnectionWebhookUrl(instanceName: string, webhookBaseUrl?: string) {
+  const base = (webhookBaseUrl || "").trim().replace(/\/+$/, "");
+  if (!base) return null;
+  const webhookSecret = process.env.FOLLOWUP_TRIGGER_SECRET ?? "";
+  return `${base}/api/public/evolution/${instanceName}${webhookSecret ? `?token=${encodeURIComponent(webhookSecret)}` : ""}`;
+}
+
+function normalizeWebhookTarget(url: string) {
+  try {
+    const parsed = new URL(url);
+    return `${parsed.origin}${parsed.pathname}`.replace(/\/+$/, "");
+  } catch {
+    return url.split("?")[0]?.replace(/\/+$/, "") ?? url;
+  }
+}
+
+async function ensureConnectionWebhookConfig(
+  supabase: any,
+  conn: any,
+  opts?: { commandApiKey?: string; settings?: EvolutionSettings },
+) {
+  const apiKey = opts?.commandApiKey ?? (await loadEvolutionCommandKey(supabase, conn.api_key));
+  const settings = opts?.settings ?? (await loadEvolutionSettings(supabase));
+  const found = await evoFetch(
+    `${baseUrl(conn.url_api)}/webhook/find/${conn.instance_name}`,
+    apiKey,
+  );
+  const cur = found.json?.webhook ?? found.json ?? {};
+  const events: string[] = Array.isArray(cur.events) ? cur.events : [];
+  const required = [
+    "MESSAGES_UPSERT",
+    "MESSAGES_UPDATE",
+    "CONNECTION_UPDATE",
+    "PRESENCE_UPDATE",
+    "QRCODE_UPDATED",
+  ];
+  const currentUrl = cur.url || cur.webhookUrl || "";
+  const desiredUrl = buildConnectionWebhookUrl(conn.instance_name, settings.webhook_base_url);
+  const currentTarget = currentUrl ? normalizeWebhookTarget(currentUrl) : "";
+  const desiredTarget = desiredUrl ? normalizeWebhookTarget(desiredUrl) : "";
+  const urlChanged = !!desiredTarget && currentTarget !== desiredTarget;
+  const base64Enabled = cur.webhookBase64 ?? cur.webhook_base64 ?? cur.base64;
+  const hasRequiredEvents = required.every((event) => events.includes(event));
+  const nextUrl = urlChanged && desiredUrl ? desiredUrl : currentUrl || desiredUrl || null;
+
+  if (hasRequiredEvents && base64Enabled === false && !urlChanged) {
+    return { repaired: false as const, url: currentUrl || desiredUrl || null };
+  }
+  if (!nextUrl) {
+    throw new Error(
+      "Webhook nao configurado para esta conexao. Defina a URL base do webhook em Configuracoes -> Evolution API.",
+    );
+  }
+  const byEvents = cur.webhookByEvents ?? cur.webhook_by_events ?? cur.byEvents ?? false;
+  const webhook = {
+    enabled: true,
+    url: nextUrl,
+    webhookByEvents: byEvents,
+    webhook_by_events: byEvents,
+    byEvents,
+    webhookBase64: false,
+    webhook_base64: false,
+    base64: false,
+    events: [...new Set([...events, ...required])],
+  };
+  const set = await evoFetch(`${baseUrl(conn.url_api)}/webhook/set/${conn.instance_name}`, apiKey, {
+    method: "POST",
+    body: JSON.stringify({ ...webhook, webhook }),
+  });
+  if (!set.ok) throw new Error(parseEvoError(set.json, set.status));
+  return { repaired: true as const, url: nextUrl };
+}
+
 export const testConnection = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((i: unknown) => IdInput.parse(i))
   .handler(async ({ data, context }) => {
     const { data: c } = await context.supabase
-      .from("connections").select("*")
-      .eq("id", data.connectionId).eq("user_id", context.userId).maybeSingle();
-    if (!c) return { ok: false, status: "offline" as const, state: "missing", missing: true, raw: null };
+      .from("connections")
+      .select("*")
+      .eq("id", data.connectionId)
+      .eq("user_id", context.userId)
+      .maybeSingle();
+    if (!c)
+      return { ok: false, status: "offline" as const, state: "missing", missing: true, raw: null };
     const apiKey = await loadEvolutionCommandKey(context.supabase, c.api_key);
-    const r = await evoFetch(`${baseUrl(c.url_api)}/instance/connectionState/${c.instance_name}`, apiKey);
+    const r = await evoFetch(
+      `${baseUrl(c.url_api)}/instance/connectionState/${c.instance_name}`,
+      apiKey,
+    );
     const preservedStatus =
       c.status === "online" || c.status === "connecting" ? c.status : "offline";
     if (!r.ok) {
@@ -161,7 +279,11 @@ export const testConnection = createServerFn({ method: "POST" })
     }
     const state = r.json?.instance?.state ?? r.json?.state ?? (r.ok ? "unknown" : "error");
     const status = state === "open" ? "online" : state === "connecting" ? "connecting" : "offline";
-    await context.supabase.from("connections").update({ status, last_sync: new Date().toISOString() }).eq("id", c.id).eq("user_id", context.userId);
+    await context.supabase
+      .from("connections")
+      .update({ status, last_sync: new Date().toISOString() })
+      .eq("id", c.id)
+      .eq("user_id", context.userId);
     return { ok: r.ok, status, state, raw: r.json };
   });
 
@@ -172,18 +294,34 @@ export const connectInstance = createServerFn({ method: "POST" })
     const c = await loadConnection(context.supabase, context.userId, data.connectionId);
     if (!c) return { ...missingConnectionResult(), qr: null, pairingCode: null };
     const apiKey = await loadEvolutionCommandKey(context.supabase, c.api_key);
+    const webhookRepair = await ensureConnectionWebhookConfig(context.supabase, c, {
+      commandApiKey: apiKey,
+    })
+      .then((result) => ({ ok: true as const, ...result }))
+      .catch((e) => ({
+        ok: false as const,
+        warning: e instanceof Error ? e.message : "Falha ao validar webhook da conexao.",
+      }));
     const r = await evoFetch(`${baseUrl(c.url_api)}/instance/connect/${c.instance_name}`, apiKey);
+    if (!r.ok) {
+      throw new Error(parseEvoError(r.json, r.status));
+    }
     const j = r.json ?? {};
     const qr =
-      j.base64 ||
-      j.qrcode?.base64 ||
-      j.qrcode?.code ||
-      j.qr?.base64 ||
-      j.qr ||
-      j.code ||
-      null;
-    await context.supabase.from("connections").update({ status: "connecting", last_sync: new Date().toISOString() }).eq("id", c.id).eq("user_id", context.userId);
-    return { ok: r.ok, qr, pairingCode: j.pairingCode ?? null, raw: r.json };
+      j.base64 || j.qrcode?.base64 || j.qrcode?.code || j.qr?.base64 || j.qr || j.code || null;
+    await context.supabase
+      .from("connections")
+      .update({ status: "connecting", last_sync: new Date().toISOString() })
+      .eq("id", c.id)
+      .eq("user_id", context.userId);
+    return {
+      ok: r.ok,
+      qr,
+      pairingCode: j.pairingCode ?? null,
+      raw: r.json,
+      webhookRepaired: webhookRepair.ok ? webhookRepair.repaired : false,
+      webhookWarning: webhookRepair.ok ? null : webhookRepair.warning,
+    };
   });
 
 export const disconnectInstance = createServerFn({ method: "POST" })
@@ -193,8 +331,14 @@ export const disconnectInstance = createServerFn({ method: "POST" })
     const c = await loadConnection(context.supabase, context.userId, data.connectionId);
     if (!c) return missingConnectionResult();
     const apiKey = await loadEvolutionCommandKey(context.supabase, c.api_key);
-    const r = await evoFetch(`${baseUrl(c.url_api)}/instance/logout/${c.instance_name}`, apiKey, { method: "DELETE" });
-    await context.supabase.from("connections").update({ status: "offline", last_sync: new Date().toISOString() }).eq("id", c.id).eq("user_id", context.userId);
+    const r = await evoFetch(`${baseUrl(c.url_api)}/instance/logout/${c.instance_name}`, apiKey, {
+      method: "DELETE",
+    });
+    await context.supabase
+      .from("connections")
+      .update({ status: "offline", last_sync: new Date().toISOString() })
+      .eq("id", c.id)
+      .eq("user_id", context.userId);
     return { ok: r.ok, raw: r.json };
   });
 
@@ -210,8 +354,13 @@ export const sendTestMessage = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const c = await loadConnection(context.supabase, context.userId, data.connectionId);
     if (!c) return missingConnectionResult();
+    assertOnlineConnection(
+      c,
+      "Conexao WhatsApp offline. Reconecte o WhatsApp antes de enviar o teste.",
+    );
     const raw = (data.number ?? c.phone_number ?? "").toString().replace(/\D+/g, "");
-    if (!raw) throw new Error("Informe um número de destino (a instância ainda não tem número conectado).");
+    if (!raw)
+      throw new Error("Informe um número de destino (a instância ainda não tem número conectado).");
     const text = data.text ?? "oi";
     const apiKey = await loadEvolutionCommandKey(context.supabase, c.api_key);
     const r = await evoFetch(`${baseUrl(c.url_api)}/message/sendText/${c.instance_name}`, apiKey, {
@@ -244,9 +393,25 @@ export const deleteInstance = createServerFn({ method: "POST" })
     if (!c) return { ok: true, missing: true };
     // Best-effort: logout then delete on Evolution before dropping the local row
     const apiKey = await loadEvolutionCommandKey(context.supabase, c.api_key);
-    try { await evoFetch(`${baseUrl(c.url_api)}/instance/logout/${c.instance_name}`, apiKey, { method: "DELETE" }); } catch { /* ignore */ }
-    try { await evoFetch(`${baseUrl(c.url_api)}/instance/delete/${c.instance_name}`, apiKey, { method: "DELETE" }); } catch { /* ignore */ }
-    const { error } = await context.supabase.from("connections").delete().eq("id", c.id).eq("user_id", context.userId);
+    try {
+      await evoFetch(`${baseUrl(c.url_api)}/instance/logout/${c.instance_name}`, apiKey, {
+        method: "DELETE",
+      });
+    } catch {
+      /* ignore */
+    }
+    try {
+      await evoFetch(`${baseUrl(c.url_api)}/instance/delete/${c.instance_name}`, apiKey, {
+        method: "DELETE",
+      });
+    } catch {
+      /* ignore */
+    }
+    const { error } = await context.supabase
+      .from("connections")
+      .delete()
+      .eq("id", c.id)
+      .eq("user_id", context.userId);
     if (error) throw new Error(error.message);
     return { ok: true };
   });
@@ -257,28 +422,34 @@ export const testWebhook = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const c = await loadConnection(context.supabase, context.userId, data.connectionId);
     if (!c) return { ...missingConnectionResult(), url: null, response: null };
-    // Build the same public webhook URL used at instance creation
-    const { data: setting } = await context.supabase
-      .from("settings").select("value").eq("key", "evolution_api").maybeSingle();
-    let cfg: { webhook_base_url?: string } = {};
-    try { cfg = typeof setting?.value === "string" ? JSON.parse(setting.value) : (setting?.value ?? {}); } catch { /* ignore */ }
-    const base = (cfg.webhook_base_url || "").replace(/\/+$/, "");
-    if (!base) throw new Error("Configure a URL base do webhook em Configurações → Evolution API.");
-    const url = `${base}/api/public/evolution/${c.instance_name}`;
-    const payload = { event: "test.webhook", data: { at: new Date().toISOString(), by: context.userId } };
+    const settings = await loadEvolutionSettings(context.supabase);
+    const url = buildConnectionWebhookUrl(c.instance_name, settings.webhook_base_url);
+    if (!url) throw new Error("Configure a URL base do webhook em Configuracoes -> Evolution API.");
+    const payload = {
+      event: "test.webhook",
+      data: { at: new Date().toISOString(), by: context.userId },
+    };
     const res = await fetch(url, {
       method: "POST",
       headers: { "Content-Type": "application/json", apikey: c.api_key },
       body: JSON.stringify(payload),
     });
     const text = await res.text();
-    let json: any = null; try { json = text ? JSON.parse(text) : null; } catch { json = { raw: text }; }
+    let json: any = null;
+    try {
+      json = text ? JSON.parse(text) : null;
+    } catch {
+      json = { raw: text };
+    }
     return { ok: res.ok, status: res.status, url, response: json };
   });
 
 const CreateInput = z.object({
   name: z.string().min(1),
-  instanceName: z.string().min(1).regex(/^[a-zA-Z0-9_-]+$/, "Use apenas letras, números, _ e -"),
+  instanceName: z
+    .string()
+    .min(1)
+    .regex(/^[a-zA-Z0-9_-]+$/, "Use apenas letras, números, _ e -"),
   webhookBaseUrl: z.string().url().optional(),
 });
 
@@ -288,12 +459,12 @@ export const createAndConnectInstance = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     // Load global Evolution config from settings (admin-owned; read with service role so clients can use it)
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { data: setting } = await supabaseAdmin
-      .from("settings").select("value").eq("key", "evolution_api").maybeSingle();
-    if (!setting?.value) throw new Error("A plataforma ainda não está pronta para gerar instâncias. Tente novamente em instantes.");
-    let cfg: { url_api?: string; api_key?: string; webhook_base_url?: string } = {};
-    try { cfg = typeof setting.value === "string" ? JSON.parse(setting.value as any) : (setting.value as any); } catch { throw new Error("Configuração interna inválida. Contate o suporte."); }
-    if (!cfg.url_api || !cfg.api_key) throw new Error("A plataforma ainda não está pronta para gerar instâncias. Tente novamente em instantes.");
+    const cfg = await loadEvolutionSettings(supabaseAdmin);
+    if (!cfg.url_api || !cfg.api_key) {
+      throw new Error(
+        "A plataforma ainda nao esta pronta para gerar instancias. Tente novamente em instantes.",
+      );
+    }
 
     const platformInstanceName = `${context.userId.slice(0, 8)}_${data.instanceName}`;
     const { data: existingConnection } = await context.supabase
@@ -302,66 +473,89 @@ export const createAndConnectInstance = createServerFn({ method: "POST" })
       .eq("user_id", context.userId)
       .eq("instance_name", platformInstanceName)
       .maybeSingle();
-    if (existingConnection) throw new Error("Já existe uma conexão com este nome nesta conta.");
+    if (existingConnection) throw new Error("Ja existe uma conexao com este nome nesta conta.");
 
     let webhookBase = cfg.webhook_base_url || data.webhookBaseUrl;
     if (!webhookBase) {
       try {
         const host = getRequestHost({ xForwardedHost: true });
         if (host) webhookBase = `https://${host}`;
-      } catch { /* ignore */ }
+      } catch {
+        /* ignore */
+      }
     }
-    const webhookSecret = process.env.FOLLOWUP_TRIGGER_SECRET ?? "";
-    const webhookUrl = webhookBase ? `${webhookBase.replace(/\/+$/, "")}/api/public/evolution/${platformInstanceName}${webhookSecret ? `?token=${encodeURIComponent(webhookSecret)}` : ""}` : undefined;
+    const webhookUrl =
+      buildConnectionWebhookUrl(platformInstanceName, webhookBase || undefined) ?? undefined;
 
-    // Insert local connection row
-    const { data: conn, error: insErr } = await context.supabase.from("connections").insert({
-      user_id: context.userId,
-      name: data.name,
-      instance_name: platformInstanceName,
-      provider: "evolution",
-      url_api: cfg.url_api,
-      api_key: cfg.api_key,
-      status: "connecting",
-    }).select("*").single();
-    if (insErr || !conn) throw new Error(insErr?.message ?? "Falha ao salvar conexão");
+    const { data: conn, error: insErr } = await context.supabase
+      .from("connections")
+      .insert({
+        user_id: context.userId,
+        name: data.name,
+        instance_name: platformInstanceName,
+        provider: "evolution",
+        url_api: cfg.url_api,
+        api_key: cfg.api_key,
+        status: "connecting",
+      })
+      .select("*")
+      .single();
+    if (insErr || !conn) throw new Error(insErr?.message ?? "Falha ao salvar conexao");
 
-    // Create on Evolution
     const createRes = await evoFetch(`${baseUrl(cfg.url_api)}/instance/create`, cfg.api_key, {
       method: "POST",
       body: JSON.stringify({
         instanceName: platformInstanceName,
         qrcode: true,
         integration: "WHATSAPP-BAILEYS",
-        ...(webhookUrl ? {
-          webhook: {
-            url: webhookUrl,
-            byEvents: false,
-            webhookByEvents: false,
-            webhook_by_events: false,
-            base64: false,
-            webhookBase64: false,
-            webhook_base64: false,
-            events: ["MESSAGES_UPSERT", "MESSAGES_UPDATE", "CONNECTION_UPDATE", "QRCODE_UPDATED", "PRESENCE_UPDATE"],
-          },
-        } : {}),
+        ...(webhookUrl
+          ? {
+              webhook: {
+                url: webhookUrl,
+                byEvents: false,
+                webhookByEvents: false,
+                webhook_by_events: false,
+                base64: false,
+                webhookBase64: false,
+                webhook_base64: false,
+                events: [
+                  "MESSAGES_UPSERT",
+                  "MESSAGES_UPDATE",
+                  "CONNECTION_UPDATE",
+                  "QRCODE_UPDATED",
+                  "PRESENCE_UPDATE",
+                ],
+              },
+            }
+          : {}),
       }),
     });
 
     if (!createRes.ok) {
-      // rollback
-      await context.supabase.from("connections").delete().eq("id", conn.id).eq("user_id", context.userId);
-      throw new Error(createRes.json?.response?.message?.[0] ?? createRes.json?.message ?? "Falha ao criar instância na Evolution API");
+      await context.supabase
+        .from("connections")
+        .delete()
+        .eq("id", conn.id)
+        .eq("user_id", context.userId);
+      throw new Error(
+        createRes.json?.response?.message?.[0] ??
+          createRes.json?.message ??
+          "Falha ao criar instancia na Evolution API",
+      );
     }
 
     const cj = createRes.json ?? {};
-    // Evolution returns a per-instance token in `hash.apikey` (or `hash`).
-    // That is the key it sends in the `apikey` header of every webhook —
-    // store it so our webhook signature check accepts inbound events.
     const instanceApiKey: string =
-      cj.hash?.apikey || cj.hash?.apiKey || (typeof cj.hash === "string" ? cj.hash : "") || cfg.api_key;
+      cj.hash?.apikey ||
+      cj.hash?.apiKey ||
+      (typeof cj.hash === "string" ? cj.hash : "") ||
+      cfg.api_key;
     if (instanceApiKey && instanceApiKey !== cfg.api_key) {
-      await context.supabase.from("connections").update({ api_key: instanceApiKey }).eq("id", conn.id).eq("user_id", context.userId);
+      await context.supabase
+        .from("connections")
+        .update({ api_key: instanceApiKey })
+        .eq("id", conn.id)
+        .eq("user_id", context.userId);
     }
     const qr =
       cj.qrcode?.base64 ||
@@ -372,11 +566,10 @@ export const createAndConnectInstance = createServerFn({ method: "POST" })
       cj.code ||
       null;
 
-    // Register local webhook record for tracking
     if (webhookUrl) {
       await context.supabase.from("webhooks").insert({
         user_id: context.userId,
-        name: `WhatsApp · ${data.name}`,
+        name: `WhatsApp - ${data.name}`,
         url: webhookUrl,
         events: ["MESSAGES_UPSERT", "MESSAGES_UPDATE", "CONNECTION_UPDATE", "PRESENCE_UPDATE"],
         is_active: true,
@@ -402,6 +595,30 @@ async function pickActiveConnection(supabase: any, userId: string) {
   return conns.find((c: any) => c.status === "online") ?? conns[0];
 }
 
+async function loadConnectionById(supabase: any, userId: string, connectionId: string) {
+  const { data: conn } = await supabase
+    .from("connections")
+    .select("*")
+    .eq("id", connectionId)
+    .eq("user_id", userId)
+    .maybeSingle();
+  return conn ?? null;
+}
+
+async function findStoredConnectionForRemoteJid(supabase: any, userId: string, remoteJid: string) {
+  const variants = new Set(jidVariants(remoteJid));
+  const { data: convs } = await supabase
+    .from("conversations")
+    .select("connection_id,metadata,last_message_at")
+    .eq("user_id", userId)
+    .not("connection_id", "is", null)
+    .order("last_message_at", { ascending: false, nullsFirst: false })
+    .limit(500);
+  const match = (convs ?? []).find((c: any) => variants.has(c?.metadata?.remoteJid ?? ""));
+  if (!match?.connection_id) return null;
+  return loadConnectionById(supabase, userId, match.connection_id as string);
+}
+
 async function pickConnectionForContact(supabase: any, userId: string, phone: string) {
   const digits = String(phone).replace(/\D+/g, "");
   const variants = new Set([
@@ -417,31 +634,71 @@ async function pickConnectionForContact(supabase: any, userId: string, phone: st
     .limit(500);
   const match = (convs ?? []).find((c: any) => variants.has(c?.metadata?.remoteJid ?? ""));
   if (match?.connection_id) {
-    const { data: conn } = await supabase
-      .from("connections")
-      .select("*")
-      .eq("id", match.connection_id)
-      .eq("user_id", userId)
-      .maybeSingle();
-    if (conn?.status === "online") return conn;
+    const conn = await loadConnectionById(supabase, userId, match.connection_id as string);
+    if (conn) return conn;
   }
   return pickActiveConnection(supabase, userId);
 }
 
-function assertOnlineConnection(conn: any) {
+async function resolveConnectionForMessage(
+  supabase: any,
+  userId: string,
+  message: { conversation_id?: string | null; metadata?: unknown },
+) {
+  if (message.conversation_id) {
+    const { data: convo } = await supabase
+      .from("conversations")
+      .select("connection_id")
+      .eq("id", message.conversation_id)
+      .eq("user_id", userId)
+      .maybeSingle();
+    if (convo?.connection_id) {
+      const conn = await loadConnectionById(supabase, userId, convo.connection_id as string);
+      if (conn) return conn;
+    }
+  }
+  const remoteJid = metadataObject(message.metadata).remoteJid;
+  if (typeof remoteJid === "string" && remoteJid) {
+    return findStoredConnectionForRemoteJid(supabase, userId, remoteJid);
+  }
+  return null;
+}
+
+function assertOnlineConnection(
+  conn: any,
+  message = "Conexão WhatsApp offline. Reconecte o WhatsApp antes de enviar mensagens.",
+) {
+  if (conn?.status === "connecting") {
+    throw new Error(
+      "A conexão WhatsApp ainda está conectando. Aguarde finalizar a conexão ou escaneie o QR antes de enviar mensagens.",
+    );
+  }
   if (conn?.status !== "online") {
-    throw new Error("Conexão WhatsApp offline. Reconecte o WhatsApp antes de enviar mensagens.");
+    throw new Error(message);
   }
 }
 
-type SerializableJson = string | number | boolean | null | SerializableJson[] | { [key: string]: SerializableJson };
+type SerializableJson =
+  | string
+  | number
+  | boolean
+  | null
+  | SerializableJson[]
+  | { [key: string]: SerializableJson };
 
 function serializable(value: unknown): SerializableJson {
-  if (value === null || typeof value === "string" || typeof value === "number" || typeof value === "boolean") return value;
+  if (
+    value === null ||
+    typeof value === "string" ||
+    typeof value === "number" ||
+    typeof value === "boolean"
+  )
+    return value;
   if (Array.isArray(value)) return value.map(serializable);
   if (value && typeof value === "object") {
     const out: { [key: string]: SerializableJson } = {};
-    for (const [key, val] of Object.entries(value as Record<string, unknown>)) out[key] = serializable(val);
+    for (const [key, val] of Object.entries(value as Record<string, unknown>))
+      out[key] = serializable(val);
     return out;
   }
   return null;
@@ -461,9 +718,11 @@ function messageDto(row: any, metadata?: Record<string, unknown>) {
 }
 
 async function insertMessageRow(supabase: any, payload: Record<string, unknown>) {
-  const { data, error } = await supabase.from("messages").insert(payload).select(
-    "id,direction,type,content,media_url,created_at,metadata",
-  ).single();
+  const { data, error } = await supabase
+    .from("messages")
+    .insert(payload)
+    .select("id,direction,type,content,media_url,created_at,metadata")
+    .single();
   if (error || !data) {
     throw new Error(error?.message ?? "Falha ao salvar mensagem");
   }
@@ -471,19 +730,33 @@ async function insertMessageRow(supabase: any, payload: Record<string, unknown>)
 }
 
 async function getOrCreateConversationForJid(
-  supabase: any, userId: string, connectionId: string, remoteJid: string,
+  supabase: any,
+  userId: string,
+  connectionId: string,
+  remoteJid: string,
 ) {
   const variants = jidVariants(remoteJid);
-  const { data: existingRows } = await supabase.from("conversations")
+  const { data: existingRows } = await supabase
+    .from("conversations")
     .select("id,metadata")
-    .eq("user_id", userId).eq("connection_id", connectionId);
-  const existing = (existingRows ?? []).find((row: any) => variants.includes(row?.metadata?.remoteJid));
+    .eq("user_id", userId)
+    .eq("connection_id", connectionId);
+  const existing = (existingRows ?? []).find((row: any) =>
+    variants.includes(row?.metadata?.remoteJid),
+  );
   if (existing) return existing.id as string;
-  const { data: created, error } = await supabase.from("conversations").insert({
-    user_id: userId, connection_id: connectionId, status: "open",
-    unread_count: 0, last_message_at: new Date().toISOString(),
-    metadata: { remoteJid } as never,
-  }).select("id").single();
+  const { data: created, error } = await supabase
+    .from("conversations")
+    .insert({
+      user_id: userId,
+      connection_id: connectionId,
+      status: "open",
+      unread_count: 0,
+      last_message_at: new Date().toISOString(),
+      metadata: { remoteJid } as never,
+    })
+    .select("id")
+    .single();
   if (error || !created) throw new Error(error?.message ?? "Falha ao criar conversa");
   return created.id as string;
 }
@@ -499,17 +772,25 @@ function parseEvoError(json: any, status: number) {
   // Número não registrado no WhatsApp
   const notExists =
     json?.exists === false ||
-    (Array.isArray(json?.response?.message) && json.response.message.some((m: any) => m?.exists === false));
+    (Array.isArray(json?.response?.message) &&
+      json.response.message.some((m: any) => m?.exists === false));
   if (notExists) {
     const num = json?.number || json?.response?.message?.[0]?.number || "";
     return `Este número${num ? ` (${num})` : ""} não está registrado no WhatsApp.`;
   }
   return `Evolution ${status}: ${
-    pick(json?.response?.message) || pick(json?.message) || pick(json?.error) || JSON.stringify(json ?? {}).slice(0, 400)
+    pick(json?.response?.message) ||
+    pick(json?.message) ||
+    pick(json?.error) ||
+    JSON.stringify(json ?? {}).slice(0, 400)
   }`;
 }
 
-function buildEvolutionFailureMeta(metadata: unknown, response: { json: any; status: number }, error?: string) {
+function buildEvolutionFailureMeta(
+  metadata: unknown,
+  response: { json: any; status: number },
+  error?: string,
+) {
   return {
     ...metadataObject(metadata),
     pending: false,
@@ -523,7 +804,12 @@ function buildEvolutionFailureMeta(metadata: unknown, response: { json: any; sta
 function shouldRetryWithoutQuoted(json: any, status: number) {
   if (status < 400 || status >= 500) return false;
   const hay = JSON.stringify(json ?? {}).toLowerCase();
-  return hay.includes("reading 'id'") || hay.includes('reading "id"') || hay.includes("quoted") || hay.includes("contextinfo");
+  return (
+    hay.includes("reading 'id'") ||
+    hay.includes('reading "id"') ||
+    hay.includes("quoted") ||
+    hay.includes("contextinfo")
+  );
 }
 
 const SendChatTextInput = z.object({
@@ -536,15 +822,24 @@ export const sendChatText = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((i: unknown) => SendChatTextInput.parse(i))
   .handler(async ({ data, context }) => {
-    const { data: contact } = await context.supabase.from("contacts")
-      .select("*").eq("id", data.contactId).eq("user_id", context.userId).single();
+    const { data: contact } = await context.supabase
+      .from("contacts")
+      .select("*")
+      .eq("id", data.contactId)
+      .eq("user_id", context.userId)
+      .single();
     if (!contact) throw new Error("Contato não encontrado");
     const number = String(contact.phone).replace(/\D+/g, "");
     const conn = await pickConnectionForContact(context.supabase, context.userId, number);
     assertOnlineConnection(conn);
     const apiKey = await loadEvolutionCommandKey(context.supabase, conn.api_key);
     const remoteJid = `${number}@s.whatsapp.net`;
-    const convoId = await getOrCreateConversationForJid(context.supabase, context.userId, conn.id, remoteJid);
+    const convoId = await getOrCreateConversationForJid(
+      context.supabase,
+      context.userId,
+      conn.id,
+      remoteJid,
+    );
     const quoted = await buildQuoted(context.supabase, context.userId, data.quotedMessageId);
     const saved = await insertMessageRow(context.supabase, {
       user_id: context.userId,
@@ -554,29 +849,62 @@ export const sendChatText = createServerFn({ method: "POST" })
       content: data.text,
       metadata: { remoteJid, manual: true, pending: true, ...(quoted.meta ?? {}) } as never,
     });
-    await context.supabase.from("conversations").update({
-      last_message_at: new Date().toISOString(),
-    }).eq("id", convoId).eq("user_id", context.userId);
-    let r = await evoFetch(`${baseUrl(conn.url_api)}/message/sendText/${conn.instance_name}`, apiKey, {
-      method: "POST",
-      body: JSON.stringify(buildEvolutionTextPayload(number, data.text)),
-    });
-    if (!r.ok && quoted.evo && shouldRetryWithoutQuoted(r.json, r.status)) {
-      r = await evoFetch(`${baseUrl(conn.url_api)}/message/sendText/${conn.instance_name}`, apiKey, {
+    await context.supabase
+      .from("conversations")
+      .update({
+        last_message_at: new Date().toISOString(),
+      })
+      .eq("id", convoId)
+      .eq("user_id", context.userId);
+    const quotedPayload = quoted.evo ? { quoted: quoted.evo } : {};
+    let r = await evoFetch(
+      `${baseUrl(conn.url_api)}/message/sendText/${conn.instance_name}`,
+      apiKey,
+      {
         method: "POST",
-        body: JSON.stringify(buildEvolutionTextPayload(number, data.text)),
-      });
+        body: JSON.stringify(buildEvolutionTextPayload(number, data.text, quotedPayload)),
+      },
+    );
+    if (!r.ok && quoted.evo && shouldRetryWithoutQuoted(r.json, r.status)) {
+      r = await evoFetch(
+        `${baseUrl(conn.url_api)}/message/sendText/${conn.instance_name}`,
+        apiKey,
+        {
+          method: "POST",
+          body: JSON.stringify(buildEvolutionTextPayload(number, data.text)),
+        },
+      );
     }
     if (!r.ok) {
       const error = parseEvoError(r.json, r.status);
       const failedMeta = buildEvolutionFailureMeta(saved.metadata, r, error);
-      await context.supabase.from("messages").update({ metadata: failedMeta as never }).eq("id", saved.id).eq("user_id", context.userId);
-      return { ok: false as const, error, conversationId: convoId, message: messageDto(saved, failedMeta) };
+      await context.supabase
+        .from("messages")
+        .update({ metadata: failedMeta as never })
+        .eq("id", saved.id)
+        .eq("user_id", context.userId);
+      return {
+        ok: false as const,
+        error,
+        conversationId: convoId,
+        message: messageDto(saved, failedMeta),
+      };
     }
     const evoId = findEvoId(r.json);
-    const status = normalizeEvoStatus(r.json?.status ?? r.json?.ack ?? r.json?.messageStatus) ?? "sent";
-    const nextMeta = { ...metadataObject(saved.metadata), pending: false, sent: true, status, ...(evoId ? { evoId } : {}) };
-    await context.supabase.from("messages").update({ metadata: nextMeta as never }).eq("id", saved.id).eq("user_id", context.userId);
+    const status =
+      normalizeEvoStatus(r.json?.status ?? r.json?.ack ?? r.json?.messageStatus) ?? "sent";
+    const nextMeta = {
+      ...metadataObject(saved.metadata),
+      pending: false,
+      sent: true,
+      status,
+      ...(evoId ? { evoId } : {}),
+    };
+    await context.supabase
+      .from("messages")
+      .update({ metadata: nextMeta as never })
+      .eq("id", saved.id)
+      .eq("user_id", context.userId);
     return { ok: true, conversationId: convoId, message: messageDto(saved, nextMeta) };
   });
 
@@ -591,31 +919,64 @@ export const startFlowForContact = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((i: unknown) => StartFlowInput.parse(i))
   .handler(async ({ data, context }) => {
-    const { data: contact } = await context.supabase.from("contacts")
-      .select("id,phone").eq("id", data.contactId).eq("user_id", context.userId).single();
+    const { data: contact } = await context.supabase
+      .from("contacts")
+      .select("id,phone")
+      .eq("id", data.contactId)
+      .eq("user_id", context.userId)
+      .single();
     if (!contact) throw new Error("Contato não encontrado");
 
-    const { data: flow } = await context.supabase.from("flows")
-      .select("id,definition").eq("id", data.flowId).eq("user_id", context.userId).single();
+    const { data: flow } = await context.supabase
+      .from("flows")
+      .select("id,definition")
+      .eq("id", data.flowId)
+      .eq("user_id", context.userId)
+      .single();
     if (!flow) throw new Error("Fluxo não encontrado");
     const def = (flow as { definition: { nodes?: unknown[]; edges?: unknown[] } }).definition;
-    if (!Array.isArray(def?.nodes) || !Array.isArray(def?.edges)) throw new Error("Definição de fluxo inválida");
+    if (!Array.isArray(def?.nodes) || !Array.isArray(def?.edges))
+      throw new Error("Definição de fluxo inválida");
 
-    const outputKinds = new Set(["MESSAGE", "IMAGE", "VIDEO", "AUDIO", "QUESTION", "YESNO", "CAPTURE_NAME"]);
-    const hasOutput = (def.nodes as Array<{ data?: { kind?: string } }>).some((n) => outputKinds.has(String(n?.data?.kind ?? "")));
-    if (!hasOutput) throw new Error("Este fluxo não tem blocos de Mensagem/Pergunta/Mídia — adicione ao menos um antes de iniciar.");
+    const outputKinds = new Set([
+      "MESSAGE",
+      "IMAGE",
+      "VIDEO",
+      "AUDIO",
+      "QUESTION",
+      "YESNO",
+      "CAPTURE_NAME",
+    ]);
+    const hasOutput = (def.nodes as Array<{ data?: { kind?: string } }>).some((n) =>
+      outputKinds.has(String(n?.data?.kind ?? "")),
+    );
+    if (!hasOutput)
+      throw new Error(
+        "Este fluxo não tem blocos de Mensagem/Pergunta/Mídia — adicione ao menos um antes de iniciar.",
+      );
 
     const number = String(contact.phone).replace(/\D+/g, "");
     const conn = await pickConnectionForContact(context.supabase, context.userId, number);
     assertOnlineConnection(conn);
     const apiKey = await loadEvolutionCommandKey(context.supabase, conn.api_key);
     const remoteJid = `${number}@s.whatsapp.net`;
-    const convoId = await getOrCreateConversationForJid(context.supabase, context.userId, conn.id, remoteJid);
+    const convoId = await getOrCreateConversationForJid(
+      context.supabase,
+      context.userId,
+      conn.id,
+      remoteJid,
+    );
 
     const { runFlowTracked } = await import("@/lib/flow-tracking.server");
     const result = await runFlowTracked({
       db: context.supabase,
-      conn: { id: conn.id, user_id: context.userId, url_api: conn.url_api, api_key: apiKey, instance_name: conn.instance_name },
+      conn: {
+        id: conn.id,
+        user_id: context.userId,
+        url_api: conn.url_api,
+        api_key: apiKey,
+        instance_name: conn.instance_name,
+      },
       recipient: remoteJid,
       userText: "",
       def: def as { nodes: never[]; edges: never[] },
@@ -627,12 +988,21 @@ export const startFlowForContact = createServerFn({ method: "POST" })
       source: "chat",
     });
 
-    await context.supabase.from("conversations").update({
-      flow_state: { ...result.state, updated_at: new Date().toISOString() } as never,
-      last_message_at: new Date().toISOString(),
-    } as never).eq("id", convoId).eq("user_id", context.userId);
+    await context.supabase
+      .from("conversations")
+      .update({
+        flow_state: { ...result.state, updated_at: new Date().toISOString() } as never,
+        last_message_at: new Date().toISOString(),
+      } as never)
+      .eq("id", convoId)
+      .eq("user_id", context.userId);
 
-    return { ok: true, conversationId: convoId, finished: !!result.finished, waiting: !!result.waitingForUser };
+    return {
+      ok: true,
+      conversationId: convoId,
+      finished: !!result.finished,
+      waiting: !!result.waitingForUser,
+    };
   });
 
 // ===================== Send media (image/video/audio/document) =====================
@@ -650,8 +1020,12 @@ export const sendChatMedia = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((i: unknown) => SendChatMediaInput.parse(i))
   .handler(async ({ data, context }) => {
-    const { data: contact } = await context.supabase.from("contacts")
-      .select("*").eq("id", data.contactId).eq("user_id", context.userId).single();
+    const { data: contact } = await context.supabase
+      .from("contacts")
+      .select("*")
+      .eq("id", data.contactId)
+      .eq("user_id", context.userId)
+      .single();
     if (!contact) throw new Error("Contato não encontrado");
     const number = String(contact.phone).replace(/\D+/g, "");
     const conn = await pickConnectionForContact(context.supabase, context.userId, number);
@@ -660,46 +1034,111 @@ export const sendChatMedia = createServerFn({ method: "POST" })
     const remoteJid = `${number}@s.whatsapp.net`;
     const b64 = data.base64.replace(/^data:[^;]+;base64,/, "");
     const mediatype = mediaMessageType(data.mime);
-    const convoId = await getOrCreateConversationForJid(context.supabase, context.userId, conn.id, remoteJid);
-    const stored = await saveMediaToStorage(context.supabase, context.userId, convoId, b64, data.mime, data.fileName);
+    const convoId = await getOrCreateConversationForJid(
+      context.supabase,
+      context.userId,
+      conn.id,
+      remoteJid,
+    );
+    const stored = await saveMediaToStorage(
+      context.supabase,
+      context.userId,
+      convoId,
+      b64,
+      data.mime,
+      data.fileName,
+    );
     const quoted = await buildQuoted(context.supabase, context.userId, data.quotedMessageId);
     const saved = await insertMessageRow(context.supabase, {
-      user_id: context.userId, conversation_id: convoId,
+      user_id: context.userId,
+      conversation_id: convoId,
       direction: "outbound",
       type: mediatype,
       content: data.caption ?? data.fileName,
       media_url: stored.url,
-      metadata: { remoteJid, manual: true, fileName: data.fileName, mime: data.mime, storagePath: stored.path, pending: true, ...(quoted.meta ?? {}) } as never,
+      metadata: {
+        remoteJid,
+        manual: true,
+        fileName: data.fileName,
+        mime: data.mime,
+        storagePath: stored.path,
+        pending: true,
+        ...(quoted.meta ?? {}),
+      } as never,
     });
-    await context.supabase.from("conversations").update({
-      last_message_at: new Date().toISOString(),
-    }).eq("id", convoId).eq("user_id", context.userId);
-    let r = await evoFetch(`${baseUrl(conn.url_api)}/message/sendMedia/${conn.instance_name}`, apiKey, {
-      method: "POST",
-      body: JSON.stringify({
-        number, mediatype, media: b64, mimetype: data.mime,
-        fileName: data.fileName, caption: data.caption ?? "",
-      }),
-    });
-    if (!r.ok && quoted.evo && shouldRetryWithoutQuoted(r.json, r.status)) {
-      r = await evoFetch(`${baseUrl(conn.url_api)}/message/sendMedia/${conn.instance_name}`, apiKey, {
+    await context.supabase
+      .from("conversations")
+      .update({
+        last_message_at: new Date().toISOString(),
+      })
+      .eq("id", convoId)
+      .eq("user_id", context.userId);
+    const quotedPayload = quoted.evo ? { quoted: quoted.evo } : {};
+    let r = await evoFetch(
+      `${baseUrl(conn.url_api)}/message/sendMedia/${conn.instance_name}`,
+      apiKey,
+      {
         method: "POST",
         body: JSON.stringify({
-          number, mediatype, media: b64, mimetype: data.mime,
-          fileName: data.fileName, caption: data.caption ?? "",
+          number,
+          mediatype,
+          media: b64,
+          mimetype: data.mime,
+          fileName: data.fileName,
+          caption: data.caption ?? "",
+          ...quotedPayload,
         }),
-      });
+      },
+    );
+    if (!r.ok && quoted.evo && shouldRetryWithoutQuoted(r.json, r.status)) {
+      r = await evoFetch(
+        `${baseUrl(conn.url_api)}/message/sendMedia/${conn.instance_name}`,
+        apiKey,
+        {
+          method: "POST",
+          body: JSON.stringify({
+            number,
+            mediatype,
+            media: b64,
+            mimetype: data.mime,
+            fileName: data.fileName,
+            caption: data.caption ?? "",
+          }),
+        },
+      );
     }
     if (!r.ok) {
       const error = parseEvoError(r.json, r.status);
       const failedMeta = buildEvolutionFailureMeta(saved?.metadata, r, error);
-      if (saved?.id) await context.supabase.from("messages").update({ metadata: failedMeta as never }).eq("id", saved.id).eq("user_id", context.userId);
-      return { ok: false as const, error, conversationId: convoId, message: messageDto(saved, failedMeta) };
+      if (saved?.id)
+        await context.supabase
+          .from("messages")
+          .update({ metadata: failedMeta as never })
+          .eq("id", saved.id)
+          .eq("user_id", context.userId);
+      return {
+        ok: false as const,
+        error,
+        conversationId: convoId,
+        message: messageDto(saved, failedMeta),
+      };
     }
     const evoId = findEvoId(r.json);
-    const status = normalizeEvoStatus(r.json?.status ?? r.json?.ack ?? r.json?.messageStatus) ?? "sent";
-    const nextMeta = { ...metadataObject(saved?.metadata), pending: false, sent: true, status, ...(evoId ? { evoId } : {}) };
-    if (saved?.id) await context.supabase.from("messages").update({ metadata: nextMeta as never }).eq("id", saved.id).eq("user_id", context.userId);
+    const status =
+      normalizeEvoStatus(r.json?.status ?? r.json?.ack ?? r.json?.messageStatus) ?? "sent";
+    const nextMeta = {
+      ...metadataObject(saved?.metadata),
+      pending: false,
+      sent: true,
+      status,
+      ...(evoId ? { evoId } : {}),
+    };
+    if (saved?.id)
+      await context.supabase
+        .from("messages")
+        .update({ metadata: nextMeta as never })
+        .eq("id", saved.id)
+        .eq("user_id", context.userId);
     return { ok: true as const, conversationId: convoId, message: messageDto(saved, nextMeta) };
   });
 
@@ -720,10 +1159,14 @@ export const getProfilePicture = createServerFn({ method: "POST" })
     }
     if (!conn) return { url: null };
     const apiKey = await loadEvolutionCommandKey(context.supabase, conn.api_key);
-    const r = await evoFetch(`${baseUrl(conn.url_api)}/chat/fetchProfilePictureUrl/${conn.instance_name}`, apiKey, {
-      method: "POST",
-      body: JSON.stringify({ number }),
-    });
+    const r = await evoFetch(
+      `${baseUrl(conn.url_api)}/chat/fetchProfilePictureUrl/${conn.instance_name}`,
+      apiKey,
+      {
+        method: "POST",
+        body: JSON.stringify({ number }),
+      },
+    );
     const url = r.json?.profilePictureUrl ?? r.json?.profilePicUrl ?? null;
     return { url: typeof url === "string" ? url : null };
   });
@@ -752,19 +1195,28 @@ export const syncContactNames = createServerFn({ method: "POST" })
     for (const c of conns) {
       try {
         const apiKey = await loadEvolutionCommandKey(context.supabase, c.api_key);
-        const r = await evoFetch(`${baseUrl(c.url_api)}/chat/findContacts/${c.instance_name}`, apiKey, {
-          method: "POST",
-          body: JSON.stringify({ where: {} }),
-        });
+        const r = await evoFetch(
+          `${baseUrl(c.url_api)}/chat/findContacts/${c.instance_name}`,
+          apiKey,
+          {
+            method: "POST",
+            body: JSON.stringify({ where: {} }),
+          },
+        );
         const list = Array.isArray(r.json) ? r.json : (r.json?.contacts ?? r.json?.data ?? []);
         for (const item of list as any[]) {
           const jid = String(item?.id ?? item?.remoteJid ?? item?.jid ?? "");
-          if (!jid || jid.includes("@g.us") || jid.includes("@broadcast") || jid.includes("@lid")) continue;
+          if (!jid || jid.includes("@g.us") || jid.includes("@broadcast") || jid.includes("@lid"))
+            continue;
           const digits = jid.split("@")[0].replace(/\D+/g, "");
-          const name = String(item?.pushName ?? item?.name ?? item?.verifiedName ?? item?.notify ?? "").trim();
+          const name = String(
+            item?.pushName ?? item?.name ?? item?.verifiedName ?? item?.notify ?? "",
+          ).trim();
           if (digits && name && !nameByDigits[digits]) nameByDigits[digits] = name;
         }
-      } catch { /* skip failing instance */ }
+      } catch {
+        /* skip failing instance */
+      }
     }
 
     let updated = 0;
@@ -772,7 +1224,10 @@ export const syncContactNames = createServerFn({ method: "POST" })
       const variants = phoneVariants(String(ct.phone));
       let name: string | undefined;
       for (const v of variants) {
-        if (nameByDigits[v]) { name = nameByDigits[v]; break; }
+        if (nameByDigits[v]) {
+          name = nameByDigits[v];
+          break;
+        }
       }
       if (!name) continue;
       const { error } = await context.supabase
@@ -795,8 +1250,12 @@ export const sendChatAudio = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((i: unknown) => SendChatAudioInput.parse(i))
   .handler(async ({ data, context }) => {
-    const { data: contact } = await context.supabase.from("contacts")
-      .select("*").eq("id", data.contactId).eq("user_id", context.userId).single();
+    const { data: contact } = await context.supabase
+      .from("contacts")
+      .select("*")
+      .eq("id", data.contactId)
+      .eq("user_id", context.userId)
+      .single();
     if (!contact) throw new Error("Contato não encontrado");
     const number = String(contact.phone).replace(/\D+/g, "");
     const conn = await pickConnectionForContact(context.supabase, context.userId, number);
@@ -804,43 +1263,103 @@ export const sendChatAudio = createServerFn({ method: "POST" })
     const apiKey = await loadEvolutionCommandKey(context.supabase, conn.api_key);
     const remoteJid = `${number}@s.whatsapp.net`;
     const audio = data.audioBase64.replace(/^data:[^;]+;base64,/, "");
-    const convoId = await getOrCreateConversationForJid(context.supabase, context.userId, conn.id, remoteJid);
-    const stored = await saveMediaToStorage(context.supabase, context.userId, convoId, audio, "audio/webm", "audio.webm");
+    const convoId = await getOrCreateConversationForJid(
+      context.supabase,
+      context.userId,
+      conn.id,
+      remoteJid,
+    );
+    const stored = await saveMediaToStorage(
+      context.supabase,
+      context.userId,
+      convoId,
+      audio,
+      "audio/webm",
+      "audio.webm",
+    );
     const quoted = await buildQuoted(context.supabase, context.userId, data.quotedMessageId);
     const saved = await insertMessageRow(context.supabase, {
-      user_id: context.userId, conversation_id: convoId,
-      direction: "outbound", type: "audio", content: "[áudio]",
+      user_id: context.userId,
+      conversation_id: convoId,
+      direction: "outbound",
+      type: "audio",
+      content: "[áudio]",
       media_url: stored.url,
-      metadata: { remoteJid, manual: true, audio: true, mime: "audio/webm", storagePath: stored.path, pending: true, ...(quoted.meta ?? {}) } as never,
+      metadata: {
+        remoteJid,
+        manual: true,
+        audio: true,
+        mime: "audio/webm",
+        storagePath: stored.path,
+        pending: true,
+        ...(quoted.meta ?? {}),
+      } as never,
     });
-    await context.supabase.from("conversations").update({
-      last_message_at: new Date().toISOString(),
-    }).eq("id", convoId).eq("user_id", context.userId);
-    let r = await evoFetch(`${baseUrl(conn.url_api)}/message/sendWhatsAppAudio/${conn.instance_name}`, apiKey, {
-      method: "POST",
-      body: JSON.stringify({ number, audio, encoding: true }),
-    });
-    if (!r.ok && quoted.evo && shouldRetryWithoutQuoted(r.json, r.status)) {
-      r = await evoFetch(`${baseUrl(conn.url_api)}/message/sendWhatsAppAudio/${conn.instance_name}`, apiKey, {
+    await context.supabase
+      .from("conversations")
+      .update({
+        last_message_at: new Date().toISOString(),
+      })
+      .eq("id", convoId)
+      .eq("user_id", context.userId);
+    const quotedPayload = quoted.evo ? { quoted: quoted.evo } : {};
+    let r = await evoFetch(
+      `${baseUrl(conn.url_api)}/message/sendWhatsAppAudio/${conn.instance_name}`,
+      apiKey,
+      {
         method: "POST",
-        body: JSON.stringify({ number, audio, encoding: true }),
-      });
+        body: JSON.stringify({ number, audio, encoding: true, ...quotedPayload }),
+      },
+    );
+    if (!r.ok && quoted.evo && shouldRetryWithoutQuoted(r.json, r.status)) {
+      r = await evoFetch(
+        `${baseUrl(conn.url_api)}/message/sendWhatsAppAudio/${conn.instance_name}`,
+        apiKey,
+        {
+          method: "POST",
+          body: JSON.stringify({ number, audio, encoding: true }),
+        },
+      );
     }
     if (!r.ok) {
       const error = parseEvoError(r.json, r.status);
       const failedMeta = buildEvolutionFailureMeta(saved?.metadata, r, error);
-      if (saved?.id) await context.supabase.from("messages").update({ metadata: failedMeta as never }).eq("id", saved.id).eq("user_id", context.userId);
-      return { ok: false as const, error, conversationId: convoId, message: messageDto(saved, failedMeta) };
+      if (saved?.id)
+        await context.supabase
+          .from("messages")
+          .update({ metadata: failedMeta as never })
+          .eq("id", saved.id)
+          .eq("user_id", context.userId);
+      return {
+        ok: false as const,
+        error,
+        conversationId: convoId,
+        message: messageDto(saved, failedMeta),
+      };
     }
     const evoId = findEvoId(r.json);
-    const status = normalizeEvoStatus(r.json?.status ?? r.json?.ack ?? r.json?.messageStatus) ?? "sent";
-    const nextMeta = { ...metadataObject(saved?.metadata), pending: false, sent: true, status, ...(evoId ? { evoId } : {}) };
-    if (saved?.id) await context.supabase.from("messages").update({ metadata: nextMeta as never }).eq("id", saved.id).eq("user_id", context.userId);
+    const status =
+      normalizeEvoStatus(r.json?.status ?? r.json?.ack ?? r.json?.messageStatus) ?? "sent";
+    const nextMeta = {
+      ...metadataObject(saved?.metadata),
+      pending: false,
+      sent: true,
+      status,
+      ...(evoId ? { evoId } : {}),
+    };
+    if (saved?.id)
+      await context.supabase
+        .from("messages")
+        .update({ metadata: nextMeta as never })
+        .eq("id", saved.id)
+        .eq("user_id", context.userId);
     return { ok: true, conversationId: convoId, message: messageDto(saved, nextMeta) };
   });
 
 function metadataObject(value: unknown): Record<string, unknown> {
-  return value && typeof value === "object" && !Array.isArray(value) ? value as Record<string, unknown> : {};
+  return value && typeof value === "object" && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : {};
 }
 
 // ===================== Quoted / reply helper =====================
@@ -850,15 +1369,23 @@ async function buildQuoted(
   quotedMessageId: string | undefined,
 ): Promise<{ evo?: unknown; meta?: Record<string, unknown> }> {
   if (!quotedMessageId) return {};
-  const { data: q } = await supabase.from("messages")
+  const { data: q } = await supabase
+    .from("messages")
     .select("id,type,content,direction,metadata")
-    .eq("id", quotedMessageId).eq("user_id", userId).maybeSingle();
+    .eq("id", quotedMessageId)
+    .eq("user_id", userId)
+    .maybeSingle();
   if (!q) return {};
   const qm = metadataObject(q.metadata);
   const evoId = qm.evoId as string | undefined;
   const remoteJid = qm.remoteJid as string | undefined;
   const preview = String(q.content ?? "").slice(0, 200);
-  const meta = { quotedId: q.id, quotedText: preview, quotedType: q.type, quotedDirection: q.direction } as Record<string, unknown>;
+  const meta = {
+    quotedId: q.id,
+    quotedText: preview,
+    quotedType: q.type,
+    quotedDirection: q.direction,
+  } as Record<string, unknown>;
   if (!evoId || !remoteJid) return { meta };
   return {
     evo: {
@@ -879,22 +1406,40 @@ export const deleteChatMessage = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((i: unknown) => DeleteChatMessageInput.parse(i))
   .handler(async ({ data, context }) => {
-    const { data: m } = await context.supabase.from("messages")
-      .select("id,direction,metadata")
-      .eq("id", data.messageId).eq("user_id", context.userId).maybeSingle();
+    const { data: m } = await context.supabase
+      .from("messages")
+      .select("id,direction,conversation_id,metadata")
+      .eq("id", data.messageId)
+      .eq("user_id", context.userId)
+      .maybeSingle();
     if (!m) return { ok: true as const };
     const meta = metadataObject(m.metadata);
     if (data.forEveryone && m.direction === "outbound" && meta.evoId && meta.remoteJid) {
       try {
-        const conn = await pickActiveConnection(context.supabase, context.userId);
+        const conn = await resolveConnectionForMessage(context.supabase, context.userId, m);
+        if (!conn) throw new Error("Conexão desta conversa não encontrada.");
+        assertOnlineConnection(
+          conn,
+          "A conexão WhatsApp desta conversa está offline. Reconecte a instância correta antes de excluir para todos.",
+        );
         const apiKey = await loadEvolutionCommandKey(context.supabase, conn.api_key);
-        await evoFetch(`${baseUrl(conn.url_api)}/chat/deleteMessageForEveryone/${conn.instance_name}`, apiKey, {
-          method: "DELETE",
-          body: JSON.stringify({ id: meta.evoId, remoteJid: meta.remoteJid, fromMe: true }),
-        });
-      } catch { /* still delete locally */ }
+        await evoFetch(
+          `${baseUrl(conn.url_api)}/chat/deleteMessageForEveryone/${conn.instance_name}`,
+          apiKey,
+          {
+            method: "DELETE",
+            body: JSON.stringify({ id: meta.evoId, remoteJid: meta.remoteJid, fromMe: true }),
+          },
+        );
+      } catch {
+        /* still delete locally */
+      }
     }
-    await context.supabase.from("messages").delete().eq("id", data.messageId).eq("user_id", context.userId);
+    await context.supabase
+      .from("messages")
+      .delete()
+      .eq("id", data.messageId)
+      .eq("user_id", context.userId);
     return { ok: true as const };
   });
 
@@ -914,40 +1459,60 @@ export const editChatMessage = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((i: unknown) => EditChatMessageInput.parse(i))
   .handler(async ({ data, context }) => {
-    const { data: m } = await context.supabase.from("messages")
-      .select("id,direction,type,metadata,content")
-      .eq("id", data.messageId).eq("user_id", context.userId).maybeSingle();
+    const { data: m } = await context.supabase
+      .from("messages")
+      .select("id,direction,type,conversation_id,metadata,content")
+      .eq("id", data.messageId)
+      .eq("user_id", context.userId)
+      .maybeSingle();
     if (!m) throw new Error("Mensagem não encontrada");
-    if (m.direction !== "outbound") throw new Error("Só é possível editar mensagens enviadas por você");
+    if (m.direction !== "outbound")
+      throw new Error("Só é possível editar mensagens enviadas por você");
     if (m.type !== "text") throw new Error("Só é possível editar mensagens de texto");
     const meta = metadataObject(m.metadata);
     const evoId = meta.evoId as string | undefined;
     const remoteJid = meta.remoteJid as string | undefined;
     if (evoId && remoteJid) {
       try {
-        const conn = await pickActiveConnection(context.supabase, context.userId);
+        const conn = await resolveConnectionForMessage(context.supabase, context.userId, m);
+        if (!conn) return { ok: false as const, error: "Conexão desta conversa não encontrada." };
+        assertOnlineConnection(
+          conn,
+          "A conexão WhatsApp desta conversa está offline. Reconecte a instância correta antes de editar.",
+        );
         const apiKey = await loadEvolutionCommandKey(context.supabase, conn.api_key);
         const number = String(remoteJid).replace(/@.*/, "");
-        const r = await evoFetch(`${baseUrl(conn.url_api)}/chat/updateMessage/${conn.instance_name}`, apiKey, {
-          method: "POST",
-          body: JSON.stringify({
-            number,
-            key: { id: evoId, remoteJid, fromMe: true },
-            text: data.text,
-          }),
-        });
+        const r = await evoFetch(
+          `${baseUrl(conn.url_api)}/chat/updateMessage/${conn.instance_name}`,
+          apiKey,
+          {
+            method: "POST",
+            body: JSON.stringify({
+              number,
+              key: { id: evoId, remoteJid, fromMe: true },
+              text: data.text,
+            }),
+          },
+        );
         if (!r.ok) {
           const error = parseEvoError(r.json, r.status);
           return { ok: false as const, error };
         }
       } catch (e) {
-        return { ok: false as const, error: e instanceof Error ? e.message : "Falha ao editar no WhatsApp" };
+        return {
+          ok: false as const,
+          error: e instanceof Error ? e.message : "Falha ao editar no WhatsApp",
+        };
       }
     }
-    await context.supabase.from("messages").update({
-      content: data.text,
-      metadata: { ...meta, edited: true, editedAt: new Date().toISOString() } as never,
-    }).eq("id", data.messageId).eq("user_id", context.userId);
+    await context.supabase
+      .from("messages")
+      .update({
+        content: data.text,
+        metadata: { ...meta, edited: true, editedAt: new Date().toISOString() } as never,
+      })
+      .eq("id", data.messageId)
+      .eq("user_id", context.userId);
     return { ok: true as const };
   });
 
@@ -961,24 +1526,36 @@ export const reactChatMessage = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((i: unknown) => ReactChatMessageInput.parse(i))
   .handler(async ({ data, context }) => {
-    const { data: m } = await context.supabase.from("messages")
-      .select("id,direction,metadata")
-      .eq("id", data.messageId).eq("user_id", context.userId).maybeSingle();
+    const { data: m } = await context.supabase
+      .from("messages")
+      .select("id,direction,conversation_id,metadata")
+      .eq("id", data.messageId)
+      .eq("user_id", context.userId)
+      .maybeSingle();
     if (!m) throw new Error("Mensagem não encontrada");
     const meta = metadataObject(m.metadata);
     const evoId = meta.evoId as string | undefined;
     const remoteJid = meta.remoteJid as string | undefined;
     if (evoId && remoteJid) {
       try {
-        const conn = await pickActiveConnection(context.supabase, context.userId);
+        const conn = await resolveConnectionForMessage(context.supabase, context.userId, m);
+        if (!conn) return { ok: false as const, error: "Conexão desta conversa não encontrada." };
+        assertOnlineConnection(
+          conn,
+          "A conexão WhatsApp desta conversa está offline. Reconecte a instância correta antes de reagir.",
+        );
         const apiKey = await loadEvolutionCommandKey(context.supabase, conn.api_key);
-        const r = await evoFetch(`${baseUrl(conn.url_api)}/message/sendReaction/${conn.instance_name}`, apiKey, {
-          method: "POST",
-          body: JSON.stringify({
-            key: { id: evoId, remoteJid, fromMe: m.direction === "outbound" },
-            reaction: data.reaction,
-          }),
-        });
+        const r = await evoFetch(
+          `${baseUrl(conn.url_api)}/message/sendReaction/${conn.instance_name}`,
+          apiKey,
+          {
+            method: "POST",
+            body: JSON.stringify({
+              key: { id: evoId, remoteJid, fromMe: m.direction === "outbound" },
+              reaction: data.reaction,
+            }),
+          },
+        );
         if (!r.ok) {
           const error = parseEvoError(r.json, r.status);
           return { ok: false as const, error };
@@ -989,7 +1566,11 @@ export const reactChatMessage = createServerFn({ method: "POST" })
     }
     const next = { ...meta, reaction: data.reaction || undefined } as Record<string, unknown>;
     if (!data.reaction) delete next.reaction;
-    await context.supabase.from("messages").update({ metadata: next as never }).eq("id", data.messageId).eq("user_id", context.userId);
+    await context.supabase
+      .from("messages")
+      .update({ metadata: next as never })
+      .eq("id", data.messageId)
+      .eq("user_id", context.userId);
     return { ok: true as const };
   });
 
@@ -1012,7 +1593,9 @@ async function saveQuickSendMedia(
   fileName: string,
 ) {
   const clean = base64.replace(/^data:[^;]+;base64,/, "").replace(/\s/g, "");
-  const rawExt = fileName.includes(".") ? fileName.split(".").pop() : mime.split("/")[1]?.split(";")[0];
+  const rawExt = fileName.includes(".")
+    ? fileName.split(".").pop()
+    : mime.split("/")[1]?.split(";")[0];
   const ext = rawExt?.replace(/[^a-zA-Z0-9]+/g, "").slice(0, 12);
   const path = `${userId}/quick-sends/${Date.now()}-${crypto.randomUUID()}${ext ? `.${ext}` : ""}`;
   const bytes = Uint8Array.from(atob(clean), (c) => c.charCodeAt(0));
@@ -1021,31 +1604,40 @@ async function saveQuickSendMedia(
     upsert: false,
   });
   if (error) throw new Error(error.message);
-  const { data } = await supabase.storage.from(MEDIA_BUCKET).createSignedUrl(path, 60 * 60 * 24 * 365);
+  const { data } = await supabase.storage
+    .from(MEDIA_BUCKET)
+    .createSignedUrl(path, 60 * 60 * 24 * 365);
   return { path, url: data?.signedUrl ?? null, size: bytes.length };
 }
 
 async function refreshQuickSendUrl(supabase: any, storagePath: string): Promise<string | null> {
-  const { data } = await supabase.storage.from(MEDIA_BUCKET).createSignedUrl(storagePath, 60 * 60 * 24 * 30);
+  const { data } = await supabase.storage
+    .from(MEDIA_BUCKET)
+    .createSignedUrl(storagePath, 60 * 60 * 24 * 30);
   return data?.signedUrl ?? null;
 }
 
 export const listQuickSends = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    const { data, error } = await context.supabase.from("quick_sends")
-      .select("id,title,text,media_type,media_mime,media_name,media_size,media_url,storage_path,is_ptt,created_at,updated_at")
+    const { data, error } = await context.supabase
+      .from("quick_sends")
+      .select(
+        "id,title,text,media_type,media_mime,media_name,media_size,media_url,storage_path,is_ptt,created_at,updated_at",
+      )
       .eq("user_id", context.userId)
       .order("created_at", { ascending: false });
     if (error) throw new Error(error.message);
     // Refresh signed URLs (they expire); best-effort.
-    const items = await Promise.all((data ?? []).map(async (row) => {
-      if (row.storage_path) {
-        const url = await refreshQuickSendUrl(context.supabase, row.storage_path);
-        return { ...row, media_url: url ?? row.media_url };
-      }
-      return row;
-    }));
+    const items = await Promise.all(
+      (data ?? []).map(async (row) => {
+        if (row.storage_path) {
+          const url = await refreshQuickSendUrl(context.supabase, row.storage_path);
+          return { ...row, media_url: url ?? row.media_url };
+        }
+        return row;
+      }),
+    );
     return { items };
   });
 
@@ -1054,11 +1646,13 @@ const UpsertQuickSendInput = z.object({
   title: z.string().trim().min(1).max(80),
   text: z.string().max(4000).optional(),
   isPtt: z.boolean().optional(),
-  media: z.object({
-    base64: z.string().min(10),
-    mime: z.string().min(1),
-    fileName: z.string().min(1),
-  }).optional(),
+  media: z
+    .object({
+      base64: z.string().min(10),
+      mime: z.string().min(1),
+      fileName: z.string().min(1),
+    })
+    .optional(),
   removeMedia: z.boolean().optional(),
 });
 
@@ -1073,9 +1667,17 @@ export const upsertQuickSend = createServerFn({ method: "POST" })
       const clean = data.media.base64.replace(/^data:[^;]+;base64,/, "").replace(/\s/g, "");
       const approxSize = Math.floor(clean.length * 0.75);
       if (kind === "video" && approxSize > MAX_QUICK_VIDEO_BYTES) {
-        throw new Error(`Vídeo excede o limite de ${Math.floor(MAX_QUICK_VIDEO_BYTES / 1024 / 1024)}MB`);
+        throw new Error(
+          `Vídeo excede o limite de ${Math.floor(MAX_QUICK_VIDEO_BYTES / 1024 / 1024)}MB`,
+        );
       }
-      const stored = await saveQuickSendMedia(context.supabase, context.userId, data.media.base64, data.media.mime, data.media.fileName);
+      const stored = await saveQuickSendMedia(
+        context.supabase,
+        context.userId,
+        data.media.base64,
+        data.media.mime,
+        data.media.fileName,
+      );
       mediaFields = {
         media_type: kind,
         media_mime: data.media.mime,
@@ -1086,32 +1688,53 @@ export const upsertQuickSend = createServerFn({ method: "POST" })
       };
     } else if (data.removeMedia) {
       mediaFields = {
-        media_type: null, media_mime: null, media_name: null, media_size: null, media_url: null, storage_path: null,
+        media_type: null,
+        media_mime: null,
+        media_name: null,
+        media_size: null,
+        media_url: null,
+        storage_path: null,
       };
     }
     if (data.id) {
-      const { data: existing } = await context.supabase.from("quick_sends")
-        .select("storage_path").eq("id", data.id).eq("user_id", context.userId).maybeSingle();
+      const { data: existing } = await context.supabase
+        .from("quick_sends")
+        .select("storage_path")
+        .eq("id", data.id)
+        .eq("user_id", context.userId)
+        .maybeSingle();
       if (!existing) throw new Error("Template não encontrado");
       if ((data.media || data.removeMedia) && existing.storage_path) {
-        await context.supabase.storage.from(MEDIA_BUCKET).remove([existing.storage_path]).catch(() => {});
+        await context.supabase.storage
+          .from(MEDIA_BUCKET)
+          .remove([existing.storage_path])
+          .catch(() => {});
       }
-      const { data: row, error } = await context.supabase.from("quick_sends").update({
+      const { data: row, error } = await context.supabase
+        .from("quick_sends")
+        .update({
+          title: data.title,
+          text: data.text ?? null,
+          is_ptt: !!data.isPtt,
+          ...mediaFields,
+        } as never)
+        .eq("id", data.id)
+        .select("*")
+        .single();
+      if (error) throw new Error(error.message);
+      return { ok: true as const, item: row };
+    }
+    const { data: row, error } = await context.supabase
+      .from("quick_sends")
+      .insert({
+        user_id: context.userId,
         title: data.title,
         text: data.text ?? null,
         is_ptt: !!data.isPtt,
         ...mediaFields,
-      } as never).eq("id", data.id).select("*").single();
-      if (error) throw new Error(error.message);
-      return { ok: true as const, item: row };
-    }
-    const { data: row, error } = await context.supabase.from("quick_sends").insert({
-      user_id: context.userId,
-      title: data.title,
-      text: data.text ?? null,
-      is_ptt: !!data.isPtt,
-      ...mediaFields,
-    } as never).select("*").single();
+      } as never)
+      .select("*")
+      .single();
     if (error) throw new Error(error.message);
     return { ok: true as const, item: row };
   });
@@ -1122,13 +1745,24 @@ export const deleteQuickSend = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((i: unknown) => DeleteQuickSendInput.parse(i))
   .handler(async ({ data, context }) => {
-    const { data: existing } = await context.supabase.from("quick_sends")
-      .select("storage_path").eq("id", data.id).eq("user_id", context.userId).maybeSingle();
+    const { data: existing } = await context.supabase
+      .from("quick_sends")
+      .select("storage_path")
+      .eq("id", data.id)
+      .eq("user_id", context.userId)
+      .maybeSingle();
     if (!existing) return { ok: true as const };
     if (existing.storage_path) {
-      await context.supabase.storage.from(MEDIA_BUCKET).remove([existing.storage_path]).catch(() => {});
+      await context.supabase.storage
+        .from(MEDIA_BUCKET)
+        .remove([existing.storage_path])
+        .catch(() => {});
     }
-    await context.supabase.from("quick_sends").delete().eq("id", data.id).eq("user_id", context.userId);
+    await context.supabase
+      .from("quick_sends")
+      .delete()
+      .eq("id", data.id)
+      .eq("user_id", context.userId);
     return { ok: true as const };
   });
 
@@ -1141,41 +1775,89 @@ export const sendQuickSend = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((i: unknown) => SendQuickSendInput.parse(i))
   .handler(async ({ data, context }) => {
-    const { data: qs } = await context.supabase.from("quick_sends")
-      .select("*").eq("id", data.id).eq("user_id", context.userId).maybeSingle();
+    const { data: qs } = await context.supabase
+      .from("quick_sends")
+      .select("*")
+      .eq("id", data.id)
+      .eq("user_id", context.userId)
+      .maybeSingle();
     if (!qs) throw new Error("Envio rápido não encontrado");
-    const { data: contact } = await context.supabase.from("contacts")
-      .select("*").eq("id", data.contactId).eq("user_id", context.userId).single();
+    const { data: contact } = await context.supabase
+      .from("contacts")
+      .select("*")
+      .eq("id", data.contactId)
+      .eq("user_id", context.userId)
+      .single();
     if (!contact) throw new Error("Contato não encontrado");
     const number = String(contact.phone).replace(/\D+/g, "");
     const conn = await pickConnectionForContact(context.supabase, context.userId, number);
     const apiKey = await loadEvolutionCommandKey(context.supabase, conn.api_key);
     const remoteJid = `${number}@s.whatsapp.net`;
-    const convoId = await getOrCreateConversationForJid(context.supabase, context.userId, conn.id, remoteJid);
-    await context.supabase.from("conversations").update({ last_message_at: new Date().toISOString() }).eq("id", convoId).eq("user_id", context.userId);
+    const convoId = await getOrCreateConversationForJid(
+      context.supabase,
+      context.userId,
+      conn.id,
+      remoteJid,
+    );
+    await context.supabase
+      .from("conversations")
+      .update({ last_message_at: new Date().toISOString() })
+      .eq("id", convoId)
+      .eq("user_id", context.userId);
 
     const results: Array<{ kind: string; ok: boolean; error?: string }> = [];
 
     // 1) Send text if present
     const bodyText = String(qs.text ?? "").trim();
     if (bodyText) {
-      const { data: saved } = await context.supabase.from("messages").insert({
-        user_id: context.userId, conversation_id: convoId,
-        direction: "outbound", type: "text", content: bodyText,
-        metadata: { remoteJid, manual: true, quickSendId: qs.id, pending: true } as never,
-      }).select("id,metadata").single();
-      const r = await evoFetch(`${baseUrl(conn.url_api)}/message/sendText/${conn.instance_name}`, apiKey, {
-        method: "POST", body: JSON.stringify(buildEvolutionTextPayload(number, bodyText)),
-      });
+      const { data: saved } = await context.supabase
+        .from("messages")
+        .insert({
+          user_id: context.userId,
+          conversation_id: convoId,
+          direction: "outbound",
+          type: "text",
+          content: bodyText,
+          metadata: { remoteJid, manual: true, quickSendId: qs.id, pending: true } as never,
+        })
+        .select("id,metadata")
+        .single();
+      const r = await evoFetch(
+        `${baseUrl(conn.url_api)}/message/sendText/${conn.instance_name}`,
+        apiKey,
+        {
+          method: "POST",
+          body: JSON.stringify(buildEvolutionTextPayload(number, bodyText)),
+        },
+      );
       if (!r.ok) {
         const error = parseEvoError(r.json, r.status);
         const failedMeta = buildEvolutionFailureMeta(saved?.metadata, r, error);
-        if (saved?.id) await context.supabase.from("messages").update({ metadata: failedMeta as never }).eq("id", saved.id).eq("user_id", context.userId);
+        if (saved?.id)
+          await context.supabase
+            .from("messages")
+            .update({ metadata: failedMeta as never })
+            .eq("id", saved.id)
+            .eq("user_id", context.userId);
         results.push({ kind: "text", ok: false, error });
       } else {
         const evoId = findEvoId(r.json);
-        const status = normalizeEvoStatus(r.json?.status ?? r.json?.ack ?? r.json?.messageStatus) ?? "sent";
-        if (saved?.id) await context.supabase.from("messages").update({ metadata: { ...metadataObject(saved.metadata), pending: false, sent: true, status, evoId } as never }).eq("id", saved.id).eq("user_id", context.userId);
+        const status =
+          normalizeEvoStatus(r.json?.status ?? r.json?.ack ?? r.json?.messageStatus) ?? "sent";
+        if (saved?.id)
+          await context.supabase
+            .from("messages")
+            .update({
+              metadata: {
+                ...metadataObject(saved.metadata),
+                pending: false,
+                sent: true,
+                status,
+                evoId,
+              } as never,
+            })
+            .eq("id", saved.id)
+            .eq("user_id", context.userId);
         results.push({ kind: "text", ok: true });
       }
     }
@@ -1184,59 +1866,163 @@ export const sendQuickSend = createServerFn({ method: "POST" })
     if (qs.storage_path && qs.media_mime) {
       const dl = await context.supabase.storage.from(MEDIA_BUCKET).download(qs.storage_path);
       if (dl.error || !dl.data) {
-        results.push({ kind: "media", ok: false, error: "Não foi possível ler o arquivo do template" });
+        results.push({
+          kind: "media",
+          ok: false,
+          error: "Não foi possível ler o arquivo do template",
+        });
       } else {
         const buf = new Uint8Array(await dl.data.arrayBuffer());
-        let bin = ""; const CHUNK = 0x8000;
-        for (let i = 0; i < buf.length; i += CHUNK) bin += String.fromCharCode(...buf.subarray(i, i + CHUNK));
+        let bin = "";
+        const CHUNK = 0x8000;
+        for (let i = 0; i < buf.length; i += CHUNK)
+          bin += String.fromCharCode(...buf.subarray(i, i + CHUNK));
         const b64 = btoa(bin);
         const mime = qs.media_mime as string;
         const fileName = (qs.media_name as string) || `quick.${mime.split("/")[1] ?? "bin"}`;
         const asPtt = qs.is_ptt && mime.startsWith("audio/");
         if (asPtt) {
-          const stored = await saveMediaToStorage(context.supabase, context.userId, convoId, b64, mime, fileName);
-          const { data: saved } = await context.supabase.from("messages").insert({
-            user_id: context.userId, conversation_id: convoId,
-            direction: "outbound", type: "audio", content: "[áudio]",
-            media_url: stored.url,
-            metadata: { remoteJid, manual: true, audio: true, mime, storagePath: stored.path, quickSendId: qs.id, pending: true } as never,
-          }).select("id,metadata").single();
-          const r = await evoFetch(`${baseUrl(conn.url_api)}/message/sendWhatsAppAudio/${conn.instance_name}`, apiKey, {
-            method: "POST", body: JSON.stringify({ number, audio: b64, encoding: true }),
-          });
+          const stored = await saveMediaToStorage(
+            context.supabase,
+            context.userId,
+            convoId,
+            b64,
+            mime,
+            fileName,
+          );
+          const { data: saved } = await context.supabase
+            .from("messages")
+            .insert({
+              user_id: context.userId,
+              conversation_id: convoId,
+              direction: "outbound",
+              type: "audio",
+              content: "[áudio]",
+              media_url: stored.url,
+              metadata: {
+                remoteJid,
+                manual: true,
+                audio: true,
+                mime,
+                storagePath: stored.path,
+                quickSendId: qs.id,
+                pending: true,
+              } as never,
+            })
+            .select("id,metadata")
+            .single();
+          const r = await evoFetch(
+            `${baseUrl(conn.url_api)}/message/sendWhatsAppAudio/${conn.instance_name}`,
+            apiKey,
+            {
+              method: "POST",
+              body: JSON.stringify({ number, audio: b64, encoding: true }),
+            },
+          );
           if (!r.ok) {
             const error = parseEvoError(r.json, r.status);
             const failedMeta = buildEvolutionFailureMeta(saved?.metadata, r, error);
-            if (saved?.id) await context.supabase.from("messages").update({ metadata: failedMeta as never }).eq("id", saved.id).eq("user_id", context.userId);
+            if (saved?.id)
+              await context.supabase
+                .from("messages")
+                .update({ metadata: failedMeta as never })
+                .eq("id", saved.id)
+                .eq("user_id", context.userId);
             results.push({ kind: "audio", ok: false, error });
           } else {
             const evoId = findEvoId(r.json);
-            const status = normalizeEvoStatus(r.json?.status ?? r.json?.ack ?? r.json?.messageStatus) ?? "sent";
-            if (saved?.id) await context.supabase.from("messages").update({ metadata: { ...metadataObject(saved.metadata), pending: false, sent: true, status, evoId } as never }).eq("id", saved.id).eq("user_id", context.userId);
+            const status =
+              normalizeEvoStatus(r.json?.status ?? r.json?.ack ?? r.json?.messageStatus) ?? "sent";
+            if (saved?.id)
+              await context.supabase
+                .from("messages")
+                .update({
+                  metadata: {
+                    ...metadataObject(saved.metadata),
+                    pending: false,
+                    sent: true,
+                    status,
+                    evoId,
+                  } as never,
+                })
+                .eq("id", saved.id)
+                .eq("user_id", context.userId);
             results.push({ kind: "audio", ok: true });
           }
         } else {
           const mediatype = mediaMessageType(mime);
-          const stored = await saveMediaToStorage(context.supabase, context.userId, convoId, b64, mime, fileName);
-          const { data: saved } = await context.supabase.from("messages").insert({
-            user_id: context.userId, conversation_id: convoId,
-            direction: "outbound", type: mediatype, content: fileName,
-            media_url: stored.url,
-            metadata: { remoteJid, manual: true, fileName, mime, storagePath: stored.path, quickSendId: qs.id, pending: true } as never,
-          }).select("id,metadata").single();
-          const r = await evoFetch(`${baseUrl(conn.url_api)}/message/sendMedia/${conn.instance_name}`, apiKey, {
-            method: "POST",
-            body: JSON.stringify({ number, mediatype, media: b64, mimetype: mime, fileName, caption: "" }),
-          });
+          const stored = await saveMediaToStorage(
+            context.supabase,
+            context.userId,
+            convoId,
+            b64,
+            mime,
+            fileName,
+          );
+          const { data: saved } = await context.supabase
+            .from("messages")
+            .insert({
+              user_id: context.userId,
+              conversation_id: convoId,
+              direction: "outbound",
+              type: mediatype,
+              content: fileName,
+              media_url: stored.url,
+              metadata: {
+                remoteJid,
+                manual: true,
+                fileName,
+                mime,
+                storagePath: stored.path,
+                quickSendId: qs.id,
+                pending: true,
+              } as never,
+            })
+            .select("id,metadata")
+            .single();
+          const r = await evoFetch(
+            `${baseUrl(conn.url_api)}/message/sendMedia/${conn.instance_name}`,
+            apiKey,
+            {
+              method: "POST",
+              body: JSON.stringify({
+                number,
+                mediatype,
+                media: b64,
+                mimetype: mime,
+                fileName,
+                caption: "",
+              }),
+            },
+          );
           if (!r.ok) {
             const error = parseEvoError(r.json, r.status);
             const failedMeta = buildEvolutionFailureMeta(saved?.metadata, r, error);
-            if (saved?.id) await context.supabase.from("messages").update({ metadata: failedMeta as never }).eq("id", saved.id).eq("user_id", context.userId);
+            if (saved?.id)
+              await context.supabase
+                .from("messages")
+                .update({ metadata: failedMeta as never })
+                .eq("id", saved.id)
+                .eq("user_id", context.userId);
             results.push({ kind: mediatype, ok: false, error });
           } else {
             const evoId = findEvoId(r.json);
-            const status = normalizeEvoStatus(r.json?.status ?? r.json?.ack ?? r.json?.messageStatus) ?? "sent";
-            if (saved?.id) await context.supabase.from("messages").update({ metadata: { ...metadataObject(saved.metadata), pending: false, sent: true, status, evoId } as never }).eq("id", saved.id).eq("user_id", context.userId);
+            const status =
+              normalizeEvoStatus(r.json?.status ?? r.json?.ack ?? r.json?.messageStatus) ?? "sent";
+            if (saved?.id)
+              await context.supabase
+                .from("messages")
+                .update({
+                  metadata: {
+                    ...metadataObject(saved.metadata),
+                    pending: false,
+                    sent: true,
+                    status,
+                    evoId,
+                  } as never,
+                })
+                .eq("id", saved.id)
+                .eq("user_id", context.userId);
             results.push({ kind: mediatype, ok: true });
           }
         }
@@ -1251,84 +2037,202 @@ export const forwardChatMessage = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((i: unknown) => ForwardChatMessageInput.parse(i))
   .handler(async ({ data, context }) => {
-    const { data: m } = await context.supabase.from("messages")
+    const { data: m } = await context.supabase
+      .from("messages")
       .select("id,type,content,media_url,metadata")
-      .eq("id", data.messageId).eq("user_id", context.userId).single();
+      .eq("id", data.messageId)
+      .eq("user_id", context.userId)
+      .single();
     if (!m) throw new Error("Mensagem não encontrada");
-    const { data: contact } = await context.supabase.from("contacts")
-      .select("*").eq("id", data.targetContactId).eq("user_id", context.userId).single();
+    const { data: contact } = await context.supabase
+      .from("contacts")
+      .select("*")
+      .eq("id", data.targetContactId)
+      .eq("user_id", context.userId)
+      .single();
     if (!contact) throw new Error("Contato não encontrado");
-    const conn = await pickActiveConnection(context.supabase, context.userId);
+    const conn = await pickConnectionForContact(context.supabase, context.userId, contact.phone);
+    assertOnlineConnection(
+      conn,
+      "A conexão WhatsApp usada para este contato está offline. Reconecte a instância correta antes de encaminhar.",
+    );
     const apiKey = await loadEvolutionCommandKey(context.supabase, conn.api_key);
     const number = String(contact.phone).replace(/\D+/g, "");
     const remoteJid = `${number}@s.whatsapp.net`;
-    const convoId = await getOrCreateConversationForJid(context.supabase, context.userId, conn.id, remoteJid);
+    const convoId = await getOrCreateConversationForJid(
+      context.supabase,
+      context.userId,
+      conn.id,
+      remoteJid,
+    );
     const meta = metadataObject(m.metadata);
     const storagePath = meta.storagePath as string | undefined;
     const mime = (meta.mime as string | undefined) ?? undefined;
-    const isMedia = (m.type === "image" || m.type === "video" || m.type === "audio" || m.type === "document") && !!storagePath;
+    const isMedia =
+      (m.type === "image" || m.type === "video" || m.type === "audio" || m.type === "document") &&
+      !!storagePath;
 
     if (!isMedia) {
       const body = String(m.content ?? "");
       if (!body.trim()) throw new Error("Nada a encaminhar");
-      const { data: saved } = await context.supabase.from("messages").insert({
-        user_id: context.userId, conversation_id: convoId,
-        direction: "outbound", type: "text", content: body,
-        metadata: { remoteJid, manual: true, forwardedFrom: m.id, pending: true } as never,
-      }).select("id,metadata").single();
-      await context.supabase.from("conversations").update({ last_message_at: new Date().toISOString() }).eq("id", convoId).eq("user_id", context.userId);
-      const r = await evoFetch(`${baseUrl(conn.url_api)}/message/sendText/${conn.instance_name}`, apiKey, {
-        method: "POST", body: JSON.stringify(buildEvolutionTextPayload(number, body)),
-      });
+      const { data: saved } = await context.supabase
+        .from("messages")
+        .insert({
+          user_id: context.userId,
+          conversation_id: convoId,
+          direction: "outbound",
+          type: "text",
+          content: body,
+          metadata: { remoteJid, manual: true, forwardedFrom: m.id, pending: true } as never,
+        })
+        .select("id,metadata")
+        .single();
+      await context.supabase
+        .from("conversations")
+        .update({ last_message_at: new Date().toISOString() })
+        .eq("id", convoId)
+        .eq("user_id", context.userId);
+      const r = await evoFetch(
+        `${baseUrl(conn.url_api)}/message/sendText/${conn.instance_name}`,
+        apiKey,
+        {
+          method: "POST",
+          body: JSON.stringify(buildEvolutionTextPayload(number, body)),
+        },
+      );
       if (!r.ok) {
         const error = parseEvoError(r.json, r.status);
         const failedMeta = buildEvolutionFailureMeta(saved?.metadata, r, error);
-        if (saved?.id) await context.supabase.from("messages").update({ metadata: failedMeta as never }).eq("id", saved.id).eq("user_id", context.userId);
+        if (saved?.id)
+          await context.supabase
+            .from("messages")
+            .update({ metadata: failedMeta as never })
+            .eq("id", saved.id)
+            .eq("user_id", context.userId);
         return { ok: false as const, error };
       }
       const evoId = findEvoId(r.json);
-      const status = normalizeEvoStatus(r.json?.status ?? r.json?.ack ?? r.json?.messageStatus) ?? "sent";
-      if (saved?.id) await context.supabase.from("messages").update({ metadata: { ...metadataObject(saved.metadata), pending: false, sent: true, status, evoId } as never }).eq("id", saved.id).eq("user_id", context.userId);
+      const status =
+        normalizeEvoStatus(r.json?.status ?? r.json?.ack ?? r.json?.messageStatus) ?? "sent";
+      if (saved?.id)
+        await context.supabase
+          .from("messages")
+          .update({
+            metadata: {
+              ...metadataObject(saved.metadata),
+              pending: false,
+              sent: true,
+              status,
+              evoId,
+            } as never,
+          })
+          .eq("id", saved.id)
+          .eq("user_id", context.userId);
       return { ok: true as const };
     }
 
     const dl = await context.supabase.storage.from(MEDIA_BUCKET).download(storagePath!);
     if (dl.error || !dl.data) throw new Error("Não foi possível ler o arquivo original");
     const buf = new Uint8Array(await dl.data.arrayBuffer());
-    let bin = ""; const CHUNK = 0x8000;
-    for (let i = 0; i < buf.length; i += CHUNK) bin += String.fromCharCode(...buf.subarray(i, i + CHUNK));
+    let bin = "";
+    const CHUNK = 0x8000;
+    for (let i = 0; i < buf.length; i += CHUNK)
+      bin += String.fromCharCode(...buf.subarray(i, i + CHUNK));
     const b64 = btoa(bin);
     const mm = mime ?? "application/octet-stream";
-    const fileName = (meta.fileName as string | undefined) ?? `forward.${(mm.split("/")[1] ?? "bin")}`;
-    const stored = await saveMediaToStorage(context.supabase, context.userId, convoId, b64, mm, fileName);
+    const fileName =
+      (meta.fileName as string | undefined) ?? `forward.${mm.split("/")[1] ?? "bin"}`;
+    const stored = await saveMediaToStorage(
+      context.supabase,
+      context.userId,
+      convoId,
+      b64,
+      mm,
+      fileName,
+    );
     const type = m.type;
-    const { data: saved } = await context.supabase.from("messages").insert({
-      user_id: context.userId, conversation_id: convoId,
-      direction: "outbound", type,
-      content: m.content ?? fileName, media_url: stored.url,
-      metadata: { remoteJid, manual: true, forwardedFrom: m.id, storagePath: stored.path, mime: mm, fileName, pending: true, ...(type === "audio" ? { audio: true } : {}) } as never,
-    }).select("id,metadata").single();
-    await context.supabase.from("conversations").update({ last_message_at: new Date().toISOString() }).eq("id", convoId).eq("user_id", context.userId);
+    const { data: saved } = await context.supabase
+      .from("messages")
+      .insert({
+        user_id: context.userId,
+        conversation_id: convoId,
+        direction: "outbound",
+        type,
+        content: m.content ?? fileName,
+        media_url: stored.url,
+        metadata: {
+          remoteJid,
+          manual: true,
+          forwardedFrom: m.id,
+          storagePath: stored.path,
+          mime: mm,
+          fileName,
+          pending: true,
+          ...(type === "audio" ? { audio: true } : {}),
+        } as never,
+      })
+      .select("id,metadata")
+      .single();
+    await context.supabase
+      .from("conversations")
+      .update({ last_message_at: new Date().toISOString() })
+      .eq("id", convoId)
+      .eq("user_id", context.userId);
     let r;
     if (type === "audio") {
-      r = await evoFetch(`${baseUrl(conn.url_api)}/message/sendWhatsAppAudio/${conn.instance_name}`, apiKey, {
-        method: "POST", body: JSON.stringify({ number, audio: b64, encoding: true }),
-      });
+      r = await evoFetch(
+        `${baseUrl(conn.url_api)}/message/sendWhatsAppAudio/${conn.instance_name}`,
+        apiKey,
+        {
+          method: "POST",
+          body: JSON.stringify({ number, audio: b64, encoding: true }),
+        },
+      );
     } else {
-      r = await evoFetch(`${baseUrl(conn.url_api)}/message/sendMedia/${conn.instance_name}`, apiKey, {
-        method: "POST",
-        body: JSON.stringify({ number, mediatype: mediaMessageType(mm), media: b64, mimetype: mm, fileName, caption: "" }),
-      });
+      r = await evoFetch(
+        `${baseUrl(conn.url_api)}/message/sendMedia/${conn.instance_name}`,
+        apiKey,
+        {
+          method: "POST",
+          body: JSON.stringify({
+            number,
+            mediatype: mediaMessageType(mm),
+            media: b64,
+            mimetype: mm,
+            fileName,
+            caption: "",
+          }),
+        },
+      );
     }
     if (!r.ok) {
       const error = parseEvoError(r.json, r.status);
       const failedMeta = buildEvolutionFailureMeta(saved?.metadata, r, error);
-      if (saved?.id) await context.supabase.from("messages").update({ metadata: failedMeta as never }).eq("id", saved.id).eq("user_id", context.userId);
+      if (saved?.id)
+        await context.supabase
+          .from("messages")
+          .update({ metadata: failedMeta as never })
+          .eq("id", saved.id)
+          .eq("user_id", context.userId);
       return { ok: false as const, error };
     }
     const evoId = findEvoId(r.json);
-    const status = normalizeEvoStatus(r.json?.status ?? r.json?.ack ?? r.json?.messageStatus) ?? "sent";
-    if (saved?.id) await context.supabase.from("messages").update({ metadata: { ...metadataObject(saved.metadata), pending: false, sent: true, status, evoId } as never }).eq("id", saved.id).eq("user_id", context.userId);
+    const status =
+      normalizeEvoStatus(r.json?.status ?? r.json?.ack ?? r.json?.messageStatus) ?? "sent";
+    if (saved?.id)
+      await context.supabase
+        .from("messages")
+        .update({
+          metadata: {
+            ...metadataObject(saved.metadata),
+            pending: false,
+            sent: true,
+            status,
+            evoId,
+          } as never,
+        })
+        .eq("id", saved.id)
+        .eq("user_id", context.userId);
     return { ok: true as const };
   });
 
@@ -1343,8 +2247,12 @@ export const sendPresence = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((i: unknown) => SendPresenceInput.parse(i))
   .handler(async ({ data, context }) => {
-    const { data: contact } = await context.supabase.from("contacts")
-      .select("phone").eq("id", data.contactId).eq("user_id", context.userId).single();
+    const { data: contact } = await context.supabase
+      .from("contacts")
+      .select("phone")
+      .eq("id", data.contactId)
+      .eq("user_id", context.userId)
+      .single();
     if (!contact) return { ok: false as const, error: "Contato não encontrado" };
     try {
       const conn = await pickConnectionForContact(context.supabase, context.userId, contact.phone);
@@ -1373,8 +2281,12 @@ export const subscribeContactPresence = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((i: unknown) => SubscribePresenceInput.parse(i))
   .handler(async ({ data, context }) => {
-    const { data: contact } = await context.supabase.from("contacts")
-      .select("phone").eq("id", data.contactId).eq("user_id", context.userId).single();
+    const { data: contact } = await context.supabase
+      .from("contacts")
+      .select("phone")
+      .eq("id", data.contactId)
+      .eq("user_id", context.userId)
+      .single();
     if (!contact) return { ok: false as const, error: "Contato não encontrado" };
     try {
       const conn = await pickConnectionForContact(context.supabase, context.userId, contact.phone);
@@ -1391,7 +2303,9 @@ export const subscribeContactPresence = createServerFn({ method: "POST" })
             method: "POST",
             body: JSON.stringify({ number }),
           });
-        } catch { /* try next */ }
+        } catch {
+          /* try next */
+        }
       }
       return { ok: true as const };
     } catch (e) {
@@ -1408,24 +2322,36 @@ export const ensurePresenceWebhook = createServerFn({ method: "POST" })
       .eq("user_id", context.userId)
       .order("last_sync", { ascending: false, nullsFirst: false })
       .limit(50);
-    if (!conns?.length) return { ok: false as const, error: "Nenhuma conexão WhatsApp encontrada." };
+    if (!conns?.length)
+      return { ok: false as const, error: "Nenhuma conexão WhatsApp encontrada." };
     let configured = 0;
     let lastError = "Falha";
     try {
       for (const conn of conns) {
         try {
           const apiKey = await loadEvolutionCommandKey(context.supabase, conn.api_key);
-          const found = await evoFetch(`${baseUrl(conn.url_api)}/webhook/find/${conn.instance_name}`, apiKey);
+          const found = await evoFetch(
+            `${baseUrl(conn.url_api)}/webhook/find/${conn.instance_name}`,
+            apiKey,
+          );
           const cur = found.json?.webhook ?? found.json ?? {};
           const events: string[] = Array.isArray(cur.events) ? cur.events : [];
-          const required = ["MESSAGES_UPSERT", "MESSAGES_UPDATE", "CONNECTION_UPDATE", "PRESENCE_UPDATE"];
+          const required = [
+            "MESSAGES_UPSERT",
+            "MESSAGES_UPDATE",
+            "CONNECTION_UPDATE",
+            "PRESENCE_UPDATE",
+          ];
           const base64Enabled = cur.webhookBase64 ?? cur.webhook_base64 ?? cur.base64;
           if (required.every((event) => events.includes(event)) && base64Enabled === false) {
             configured += 1;
             continue;
           }
           const url = cur.url || cur.webhookUrl;
-          if (!url) { lastError = "Webhook não configurado"; continue; }
+          if (!url) {
+            lastError = "Webhook não configurado";
+            continue;
+          }
           const byEvents = cur.webhookByEvents ?? cur.webhook_by_events ?? cur.byEvents ?? false;
           const webhook = {
             enabled: true,

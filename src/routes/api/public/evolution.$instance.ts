@@ -1,5 +1,9 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { buildEvolutionTextPayload } from "@/lib/evolution-text-payload";
+import {
+  transcribeAudioBase64,
+  type AudioTranscriptionResult,
+} from "@/lib/audio-transcription.server";
 
 const NEURAL_CORE = `# NEURAL CORE AI™ — CÉREBRO UNIVERSAL PREMIUM
 Você é o núcleo de inteligência que controla o comportamento deste agente. Pense antes de falar. Toda resposta passa por um processo interno de análise.
@@ -46,41 +50,66 @@ Faça a pessoa sentir que conversa com um especialista humano, atencioso e exper
 type Ext = {
   keywords?: { enabled?: boolean; mode?: string; list?: string[] };
   hours?: {
-    enabled?: boolean; start?: string; end?: string;
-    lunch?: boolean; lunchStart?: string; lunchEnd?: string;
-    days?: string[]; blockedDates?: string[];
+    enabled?: boolean;
+    start?: string;
+    end?: string;
+    lunch?: boolean;
+    lunchStart?: string;
+    lunchEnd?: string;
+    days?: string[];
+    blockedDates?: string[];
   };
   timing?: {
-    delayChar?: number; delayMax?: number; wait?: number;
-    humanIntervention?: boolean; reactivation?: number; unknownMsg?: string;
+    delayChar?: number;
+    delayMax?: number;
+    wait?: number;
+    humanIntervention?: boolean;
+    reactivation?: number;
+    unknownMsg?: string;
   };
   conversation?: {
-    keepUnread?: boolean; singleMessage?: boolean;
-    cancelOnNew?: boolean; stopAfterManual?: boolean;
+    keepUnread?: boolean;
+    singleMessage?: boolean;
+    cancelOnNew?: boolean;
+    stopAfterManual?: boolean;
   };
   alerts?: {
-    whatsapp?: boolean; stopAfterHandoff?: boolean;
-    stopAfterHours?: number; includeSummary?: boolean;
+    whatsapp?: boolean;
+    stopAfterHandoff?: boolean;
+    stopAfterHours?: number;
+    includeSummary?: boolean;
   };
   audio?: {
-    enabled?: boolean; replaceText?: boolean; autoReply?: boolean;
-    mirrorFormat?: boolean; smartAudio?: boolean; smartAudioChars?: number;
+    enabled?: boolean;
+    replaceText?: boolean;
+    autoReply?: boolean;
+    mirrorFormat?: boolean;
+    smartAudio?: boolean;
+    smartAudioChars?: number;
     voice?: string;
   };
   media?: {
     enabled?: boolean;
-    items?: Array<{ id: string; name: string; mode?: string; keywords?: string; description?: string; storage_path?: string; mime?: string }>;
+    items?: Array<{
+      id: string;
+      name: string;
+      mode?: string;
+      keywords?: string;
+      description?: string;
+      storage_path?: string;
+      mime?: string;
+    }>;
   };
   flow_timeout_hours?: number;
 };
 type ConvMeta = {
   remoteJid?: string;
-  pending_until?: string;      // ISO
+  pending_until?: string; // ISO
   pending_texts?: string[];
   agent_paused_until?: string; // ISO
-  last_manual_at?: string;     // ISO
+  last_manual_at?: string; // ISO
   handoff?: boolean;
-  agent_disabled?: boolean;    // desligado manualmente pelo operador (persistente)
+  agent_disabled?: boolean; // desligado manualmente pelo operador (persistente)
   agent_user_override?: boolean; // operador escolheu explicitamente ativar/desativar; não sofrer auto-pause
 };
 
@@ -94,7 +123,6 @@ const MAX_INLINE_MEDIA_BYTES = 25 * 1024 * 1024;
 const MAX_QUEUED_VIDEO_BYTES = 150 * 1024 * 1024;
 const STORAGE_FILE_SIZE_LIMIT = 200 * 1024 * 1024;
 let bucketLimitEnsured = false;
-
 
 class PayloadTooLargeError extends Error {
   bytes: number;
@@ -143,7 +171,13 @@ function findEvoId(value: unknown, depth = 0): string | null {
   // WhatsApp/Evolution id in `keyId`; the latter is what we store as evoId.
   const direct = key?.id ?? record.keyId ?? record.id ?? record.messageId;
   if (typeof direct === "string" && /^[A-Z0-9._-]{8,}$/i.test(direct)) return direct;
-  for (const nested of [record.update, record.data, record.message, record.response, record.result]) {
+  for (const nested of [
+    record.update,
+    record.data,
+    record.message,
+    record.response,
+    record.result,
+  ]) {
     const found = findEvoId(nested, depth + 1);
     if (found) return found;
   }
@@ -156,12 +190,17 @@ function findEvoId(value: unknown, depth = 0): string | null {
 function extractEditedText(value: unknown, depth = 0): string | null {
   if (!value || depth > 8 || typeof value !== "object") return null;
   const v = value as Record<string, unknown>;
-  const proto = (v.protocolMessage ?? (v.message as Record<string, unknown> | undefined)?.protocolMessage) as Record<string, unknown> | undefined;
+  const proto = (v.protocolMessage ??
+    (v.message as Record<string, unknown> | undefined)?.protocolMessage) as
+    | Record<string, unknown>
+    | undefined;
   if (proto && (proto.type === 14 || proto.type === "MESSAGE_EDIT" || proto.editedMessage)) {
     const em = (proto.editedMessage ?? {}) as Record<string, unknown>;
     const conv = em.conversation as string | undefined;
     if (typeof conv === "string") return conv;
-    const ext = (em.extendedTextMessage as Record<string, unknown> | undefined)?.text as string | undefined;
+    const ext = (em.extendedTextMessage as Record<string, unknown> | undefined)?.text as
+      | string
+      | undefined;
     if (typeof ext === "string") return ext;
   }
   for (const val of Object.values(v)) {
@@ -176,7 +215,10 @@ function extractEditedText(value: unknown, depth = 0): string | null {
 function extractEditedTargetId(value: unknown, depth = 0): string | null {
   if (!value || depth > 8 || typeof value !== "object") return null;
   const v = value as Record<string, unknown>;
-  const proto = (v.protocolMessage ?? (v.message as Record<string, unknown> | undefined)?.protocolMessage) as Record<string, unknown> | undefined;
+  const proto = (v.protocolMessage ??
+    (v.message as Record<string, unknown> | undefined)?.protocolMessage) as
+    | Record<string, unknown>
+    | undefined;
   if (proto && (proto.type === 14 || proto.type === "MESSAGE_EDIT" || proto.editedMessage)) {
     const key = proto.key as Record<string, unknown> | undefined;
     const id = key?.id as string | undefined;
@@ -221,28 +263,46 @@ export const Route = createFileRoute("/api/public/evolution/$instance")({
             await (supabaseAdmin.storage as any).updateBucket(MEDIA_BUCKET, {
               fileSizeLimit: STORAGE_FILE_SIZE_LIMIT,
             });
-          } catch { /* best-effort */ }
+          } catch {
+            /* best-effort */
+          }
         }
 
         // Find connection by instance_name
         const { data: conn } = await supabaseAdmin
-          .from("connections").select("id,user_id,url_api,api_key,instance_name,metadata").eq("instance_name", instance).maybeSingle();
+          .from("connections")
+          .select("id,user_id,url_api,api_key,instance_name,metadata")
+          .eq("instance_name", instance)
+          .maybeSingle();
 
-        if (!conn) return Response.json({ ok: false, reason: "instance not found" }, { status: 404 });
+        if (!conn)
+          return Response.json({ ok: false, reason: "instance not found" }, { status: 404 });
 
         // Verify caller: Evolution forwards its instance apikey in the `apikey` header.
         // Evolution v2 may send either the per-instance token (hash.apikey) or the
         // global AUTHENTICATION_API_KEY configured on the server — accept either.
         const url = new URL(request.url);
-        const providedKey = request.headers.get("apikey") ?? request.headers.get("x-evolution-apikey") ?? url.searchParams.get("apikey") ?? url.searchParams.get("token") ?? "";
+        const providedKey =
+          request.headers.get("apikey") ??
+          request.headers.get("x-evolution-apikey") ??
+          url.searchParams.get("apikey") ??
+          url.searchParams.get("token") ??
+          "";
         const instanceKey = conn.api_key ?? "";
         let globalKey = "";
         try {
           const { data: setting } = await supabaseAdmin
-            .from("settings").select("value").eq("key", "evolution_api").maybeSingle();
-          const cfg = (typeof setting?.value === "string" ? JSON.parse(setting.value) : setting?.value) as { api_key?: string } | null;
+            .from("settings")
+            .select("value")
+            .eq("key", "evolution_api")
+            .maybeSingle();
+          const cfg = (
+            typeof setting?.value === "string" ? JSON.parse(setting.value) : setting?.value
+          ) as { api_key?: string } | null;
           if (cfg?.api_key) globalKey = cfg.api_key;
-        } catch { /* ignore */ }
+        } catch {
+          /* ignore */
+        }
         const safeEq = (a: string, b: string) => {
           if (!a || !b || a.length !== b.length) return false;
           let diff = 0;
@@ -253,8 +313,13 @@ export const Route = createFileRoute("/api/public/evolution/$instance")({
         const matchedInstance = !!instanceKey && safeEq(providedKey, instanceKey);
         const matchedGlobal = !!globalKey && safeEq(providedKey, globalKey);
         const matchedSecret = !!webhookSecret && safeEq(providedKey, webhookSecret);
-        const matched: "instance" | "global" | "secret" | "none" =
-          matchedInstance ? "instance" : matchedGlobal ? "global" : matchedSecret ? "secret" : "none";
+        const matched: "instance" | "global" | "secret" | "none" = matchedInstance
+          ? "instance"
+          : matchedGlobal
+            ? "global"
+            : matchedSecret
+              ? "secret"
+              : "none";
         if (matched === "none") {
           const diag = {
             instance,
@@ -274,11 +339,10 @@ export const Route = createFileRoute("/api/public/evolution/$instance")({
               message: "invalid signature: apikey did not match instance or global",
               metadata: { ...diag, headers: Object.fromEntries(request.headers) },
             });
-          } catch { /* ignore */ }
-          return Response.json(
-            { ok: false, reason: "invalid signature", diag },
-            { status: 401 },
-          );
+          } catch {
+            /* ignore */
+          }
+          return Response.json({ ok: false, reason: "invalid signature", diag }, { status: 401 });
         }
         const commandConn = { ...conn, api_key: globalKey || conn.api_key };
         const contentLength = Number(request.headers.get("content-length") ?? 0);
@@ -291,23 +355,35 @@ export const Route = createFileRoute("/api/public/evolution/$instance")({
             message: "webhook payload too large; disabled base64 media mode",
             metadata: { bytes: contentLength, limit: MAX_WEBHOOK_BODY_BYTES } as never,
           } as never);
-          return Response.json({ ok: true, skipped: "payload-too-large", action: "disabled-webhook-base64" });
+          return Response.json({
+            ok: true,
+            skipped: "payload-too-large",
+            action: "disabled-webhook-base64",
+          });
         }
 
         let payload: any = null;
-        const rawBody = await readRequestTextLimited(request, MAX_WEBHOOK_BODY_BYTES).catch(async (e) => {
-          if (e instanceof PayloadTooLargeError) {
-            await disableWebhookBase64(commandConn).catch(() => undefined);
-            await supabaseAdmin.from("logs").insert({
-              user_id: conn.user_id, level: "warn", source: `evolution:${instance}`,
-              message: "webhook stream too large; disabled base64 media mode",
-              metadata: { bytes: e.bytes, limit: MAX_WEBHOOK_BODY_BYTES } as never,
-            } as never);
-          }
-          return "";
-        });
+        const rawBody = await readRequestTextLimited(request, MAX_WEBHOOK_BODY_BYTES).catch(
+          async (e) => {
+            if (e instanceof PayloadTooLargeError) {
+              await disableWebhookBase64(commandConn).catch(() => undefined);
+              await supabaseAdmin.from("logs").insert({
+                user_id: conn.user_id,
+                level: "warn",
+                source: `evolution:${instance}`,
+                message: "webhook stream too large; disabled base64 media mode",
+                metadata: { bytes: e.bytes, limit: MAX_WEBHOOK_BODY_BYTES } as never,
+              } as never);
+            }
+            return "";
+          },
+        );
         if (!rawBody) return Response.json({ ok: true, skipped: "empty-or-too-large" });
-        try { payload = JSON.parse(rawBody); } catch { payload = null; }
+        try {
+          payload = JSON.parse(rawBody);
+        } catch {
+          payload = null;
+        }
         const event = payload?.event;
         // Successful match — record which key type authenticated the call.
         try {
@@ -318,7 +394,9 @@ export const Route = createFileRoute("/api/public/evolution/$instance")({
             message: `apikey matched: ${matched}`,
             metadata: { instance, matched, providedKeyPrefix: providedKey.slice(0, 6) },
           });
-        } catch { /* ignore */ }
+        } catch {
+          /* ignore */
+        }
 
         // Log the raw event
         await supabaseAdmin.from("logs").insert({
@@ -332,12 +410,16 @@ export const Route = createFileRoute("/api/public/evolution/$instance")({
         // Handle connection state updates
         if (event === "connection.update" || event === "CONNECTION_UPDATE") {
           const state = payload?.data?.state;
-          const status = state === "open" ? "online" : state === "connecting" ? "connecting" : "offline";
-          await supabaseAdmin.from("connections").update({
-            status,
-            last_sync: new Date().toISOString(),
-            phone_number: payload?.data?.wuid?.split?.("@")?.[0] ?? undefined,
-          }).eq("id", conn.id);
+          const status =
+            state === "open" ? "online" : state === "connecting" ? "connecting" : "offline";
+          await supabaseAdmin
+            .from("connections")
+            .update({
+              status,
+              last_sync: new Date().toISOString(),
+              phone_number: payload?.data?.wuid?.split?.("@")?.[0] ?? undefined,
+            })
+            .eq("id", conn.id);
         }
 
         // Presence updates (typing/recording) — upsert into public.presence
@@ -364,12 +446,19 @@ export const Route = createFileRoute("/api/public/evolution/$instance")({
                   .limit(500);
                 for (const lid of lidOnly) {
                   const match = (contacts ?? []).find((c) => {
-                    const meta = (c.metadata && typeof c.metadata === "object") ? c.metadata as { lidJids?: unknown } : {};
+                    const meta =
+                      c.metadata && typeof c.metadata === "object"
+                        ? (c.metadata as { lidJids?: unknown })
+                        : {};
                     return Array.isArray(meta.lidJids) && (meta.lidJids as unknown[]).includes(lid);
                   });
                   if (match?.phone) {
                     const digits = String(match.phone).replace(/\D+/g, "");
-                    if (digits) extraJids.push({ jid: `${digits}@s.whatsapp.net`, presence: String(presences[lid]?.lastKnownPresence ?? p) });
+                    if (digits)
+                      extraJids.push({
+                        jid: `${digits}@s.whatsapp.net`,
+                        presence: String(presences[lid]?.lastKnownPresence ?? p),
+                      });
                   }
                 }
               }
@@ -380,11 +469,20 @@ export const Route = createFileRoute("/api/public/evolution/$instance")({
                   presence: String(presences[presenceJid]?.lastKnownPresence ?? p),
                   updated_at: now,
                 })),
-                ...extraJids.map((r) => ({ user_id: conn.user_id, jid: r.jid, presence: r.presence, updated_at: now })),
+                ...extraJids.map((r) => ({
+                  user_id: conn.user_id,
+                  jid: r.jid,
+                  presence: r.presence,
+                  updated_at: now,
+                })),
               ];
-              await supabaseAdmin.from("presence").upsert(rows as never, { onConflict: "user_id,jid" });
+              await supabaseAdmin
+                .from("presence")
+                .upsert(rows as never, { onConflict: "user_id,jid" });
             }
-          } catch { /* ignore */ }
+          } catch {
+            /* ignore */
+          }
           return Response.json({ ok: true });
         }
 
@@ -398,18 +496,29 @@ export const Route = createFileRoute("/api/public/evolution/$instance")({
               if (editedText !== null) {
                 const originalEvoId = extractEditedTargetId(u) ?? findEvoId(u);
                 if (originalEvoId) {
-                  const { data: erows } = await supabaseAdmin.from("messages")
+                  const { data: erows } = await supabaseAdmin
+                    .from("messages")
                     .select("id,metadata,content")
                     .eq("user_id", conn.user_id)
                     .eq("metadata->>evoId", originalEvoId)
                     .limit(1);
                   const erow = erows?.[0];
                   if (erow) {
-                    const emeta = (erow.metadata && typeof erow.metadata === "object") ? erow.metadata as Record<string, unknown> : {};
-                    await supabaseAdmin.from("messages").update({
-                      content: editedText,
-                      metadata: { ...emeta, edited: true, editedAt: new Date().toISOString() } as never,
-                    }).eq("id", erow.id);
+                    const emeta =
+                      erow.metadata && typeof erow.metadata === "object"
+                        ? (erow.metadata as Record<string, unknown>)
+                        : {};
+                    await supabaseAdmin
+                      .from("messages")
+                      .update({
+                        content: editedText,
+                        metadata: {
+                          ...emeta,
+                          edited: true,
+                          editedAt: new Date().toISOString(),
+                        } as never,
+                      })
+                      .eq("id", erow.id);
                   }
                 }
                 continue;
@@ -423,14 +532,16 @@ export const Route = createFileRoute("/api/public/evolution/$instance")({
               // or a numeric ack: 1=PENDING, 2=SERVER_ACK, 3=DELIVERY_ACK, 4=READ, 5=PLAYED.
               const status = normalizeEvoStatus(rawStatus);
               if (!status) continue;
-              let { data: rows } = await supabaseAdmin.from("messages")
+              let { data: rows } = await supabaseAdmin
+                .from("messages")
                 .select("id,metadata")
                 .eq("user_id", conn.user_id)
                 .eq("metadata->>evoId", evoId)
                 .limit(1);
               if ((!rows || rows.length === 0) && remoteJid) {
                 const dayAgo = new Date(Date.now() - 24 * 60 * 60_000).toISOString();
-                const fallback = await supabaseAdmin.from("messages")
+                const fallback = await supabaseAdmin
+                  .from("messages")
                   .select("id,metadata")
                   .eq("user_id", conn.user_id)
                   .eq("direction", "outbound")
@@ -442,21 +553,32 @@ export const Route = createFileRoute("/api/public/evolution/$instance")({
               }
               const row = rows?.[0];
               if (!row) continue;
-              const meta = (row.metadata && typeof row.metadata === "object") ? row.metadata as Record<string, unknown> : {};
+              const meta =
+                row.metadata && typeof row.metadata === "object"
+                  ? (row.metadata as Record<string, unknown>)
+                  : {};
               const prev = String(meta.status ?? "");
-              const rank = (v: string) => v === "read" ? 3 : v === "delivered" ? 2 : v === "sent" ? 1 : 0;
+              const rank = (v: string) =>
+                v === "read" ? 3 : v === "delivered" ? 2 : v === "sent" ? 1 : 0;
               if (rank(status) <= rank(prev)) continue;
               const now = new Date().toISOString();
-              await supabaseAdmin.from("messages").update({
-                metadata: {
-                  ...meta,
-                  status,
-                  ...(status === "delivered" && !meta.delivered_at ? { delivered_at: now } : {}),
-                  ...(status === "read" ? { delivered_at: meta.delivered_at ?? now, read_at: now } : {}),
-                } as never,
-              }).eq("id", row.id);
+              await supabaseAdmin
+                .from("messages")
+                .update({
+                  metadata: {
+                    ...meta,
+                    status,
+                    ...(status === "delivered" && !meta.delivered_at ? { delivered_at: now } : {}),
+                    ...(status === "read"
+                      ? { delivered_at: meta.delivered_at ?? now, read_at: now }
+                      : {}),
+                  } as never,
+                })
+                .eq("id", row.id);
             }
-          } catch { /* ignore */ }
+          } catch {
+            /* ignore */
+          }
           return Response.json({ ok: true });
         }
 
@@ -469,18 +591,29 @@ export const Route = createFileRoute("/api/public/evolution/$instance")({
             if (upsertEditedText !== null) {
               const originalEvoId = extractEditedTargetId(msg);
               if (originalEvoId) {
-                const { data: erows } = await supabaseAdmin.from("messages")
+                const { data: erows } = await supabaseAdmin
+                  .from("messages")
                   .select("id,metadata")
                   .eq("user_id", conn.user_id)
                   .eq("metadata->>evoId", originalEvoId)
                   .limit(1);
                 const erow = erows?.[0];
                 if (erow) {
-                  const emeta = (erow.metadata && typeof erow.metadata === "object") ? erow.metadata as Record<string, unknown> : {};
-                  await supabaseAdmin.from("messages").update({
-                    content: upsertEditedText,
-                    metadata: { ...emeta, edited: true, editedAt: new Date().toISOString() } as never,
-                  }).eq("id", erow.id);
+                  const emeta =
+                    erow.metadata && typeof erow.metadata === "object"
+                      ? (erow.metadata as Record<string, unknown>)
+                      : {};
+                  await supabaseAdmin
+                    .from("messages")
+                    .update({
+                      content: upsertEditedText,
+                      metadata: {
+                        ...emeta,
+                        edited: true,
+                        editedAt: new Date().toISOString(),
+                      } as never,
+                    })
+                    .eq("id", erow.id);
                 }
               }
               return Response.json({ ok: true, edited: true });
@@ -526,7 +659,8 @@ export const Route = createFileRoute("/api/public/evolution/$instance")({
                 : ((msg?.pushName ?? msg?.notifyName) as string | undefined);
               if (isValidPhone) {
                 const variants = phoneVariants(phone);
-                const { data: existingContact } = await supabaseAdmin.from("contacts")
+                const { data: existingContact } = await supabaseAdmin
+                  .from("contacts")
                   .select("id,name,metadata")
                   .eq("user_id", conn.user_id)
                   .in("phone", variants)
@@ -556,18 +690,24 @@ export const Route = createFileRoute("/api/public/evolution/$instance")({
                     patch.name = pushName;
                   }
                   if (lidCandidates.size > 0) {
-                    const prevMeta = (existingContact.metadata && typeof existingContact.metadata === "object")
-                      ? existingContact.metadata as Record<string, unknown>
-                      : {};
+                    const prevMeta =
+                      existingContact.metadata && typeof existingContact.metadata === "object"
+                        ? (existingContact.metadata as Record<string, unknown>)
+                        : {};
                     const prevLids = Array.isArray((prevMeta as { lidJids?: unknown }).lidJids)
-                      ? ((prevMeta as { lidJids: unknown[] }).lidJids.filter((v) => typeof v === "string") as string[])
+                      ? ((prevMeta as { lidJids: unknown[] }).lidJids.filter(
+                          (v) => typeof v === "string",
+                        ) as string[])
                       : [];
                     const merged = Array.from(new Set([...prevLids, ...lidCandidates]));
                     if (merged.length !== prevLids.length) {
                       patch.metadata = { ...prevMeta, lidJids: merged };
                     }
                   }
-                  await supabaseAdmin.from("contacts").update(patch as never).eq("id", existingContact.id);
+                  await supabaseAdmin
+                    .from("contacts")
+                    .update(patch as never)
+                    .eq("id", existingContact.id);
                 } else {
                   await supabaseAdmin.from("contacts").insert({
                     user_id: conn.user_id,
@@ -575,26 +715,39 @@ export const Route = createFileRoute("/api/public/evolution/$instance")({
                     name: fromMe ? null : (pushName ?? null),
                     source: "whatsapp",
                     status: "active",
-                    metadata: lidCandidates.size > 0 ? { lidJids: Array.from(lidCandidates) } : null,
+                    metadata:
+                      lidCandidates.size > 0 ? { lidJids: Array.from(lidCandidates) } : null,
                   } as never);
                 }
               }
-            } catch { /* non-blocking */ }
+            } catch {
+              /* non-blocking */
+            }
 
             const { data: agent } = await supabaseAdmin
               .from("agents")
-              .select("id,system_prompt,temperature,max_tokens,is_active,tools,timezone,memory,knowledge")
-              .eq("connection_id", conn.id).eq("is_active", true)
+              .select(
+                "id,system_prompt,temperature,max_tokens,is_active,tools,timezone,memory,knowledge",
+              )
+              .eq("connection_id", conn.id)
+              .eq("is_active", true)
               .maybeSingle();
-            const ext = ((agent?.tools ?? {}) as Ext);
+            const ext = (agent?.tools ?? {}) as Ext;
 
             // Speech-to-text on inbound audio (always attempt so the agent can understand voice notes)
             if (!fromMe && !text && audioMsg) {
               try {
                 await supabaseAdmin.from("logs").insert({
-                  user_id: conn.user_id, level: "info", source: `evolution:${instance}`,
+                  user_id: conn.user_id,
+                  level: "info",
+                  source: `evolution:${instance}`,
                   message: "stt: fetching audio base64",
-                  metadata: { remoteJid, mime: audioMsg?.mimetype ?? null, ptt: audioMsg?.ptt ?? null, seconds: audioMsg?.seconds ?? null } as never,
+                  metadata: {
+                    remoteJid,
+                    mime: audioMsg?.mimetype ?? null,
+                    ptt: audioMsg?.ptt ?? null,
+                    seconds: audioMsg?.seconds ?? null,
+                  } as never,
                 } as never);
                 // Não pedir conversão para MP3 aqui: algumas versões da Evolution
                 // retornam bytes OGG/Opus com nome/MIME de MP3, e o STT rejeita
@@ -602,17 +755,26 @@ export const Route = createFileRoute("/api/public/evolution/$instance")({
                 const b64 = await evolutionGetBase64(commandConn, msg, false);
                 if (!b64) {
                   await supabaseAdmin.from("logs").insert({
-                    user_id: conn.user_id, level: "warn", source: `evolution:${instance}`,
+                    user_id: conn.user_id,
+                    level: "warn",
+                    source: `evolution:${instance}`,
                     message: "stt: no audio base64 (evolution getBase64 returned null)",
                     metadata: { remoteJid, mime: audioMsg?.mimetype ?? null } as never,
                   } as never);
                 } else {
                   transcribedAudioBase64 = b64;
-                  const stt = await sttViaLovable(b64, audioMsg?.mimetype);
+                  const stt = await transcribeInboundAudio(
+                    supabaseAdmin,
+                    conn.user_id,
+                    b64,
+                    audioMsg?.mimetype,
+                  );
                   const transcript = stt.text;
                   if (!transcript) {
                     await supabaseAdmin.from("logs").insert({
-                      user_id: conn.user_id, level: "warn", source: `evolution:${instance}`,
+                      user_id: conn.user_id,
+                      level: "warn",
+                      source: `evolution:${instance}`,
                       message: "stt: Lovable AI returned no transcript",
                       metadata: {
                         remoteJid,
@@ -629,53 +791,93 @@ export const Route = createFileRoute("/api/public/evolution/$instance")({
                     text = transcript;
                     inputWasAudio = true;
                     await supabaseAdmin.from("logs").insert({
-                      user_id: conn.user_id, level: "info", source: `evolution:${instance}`,
+                      user_id: conn.user_id,
+                      level: "info",
+                      source: `evolution:${instance}`,
                       message: "stt: transcription ok",
-                      metadata: { remoteJid, chars: transcript.length, mime: audioMsg?.mimetype ?? null } as never,
+                      metadata: {
+                        remoteJid,
+                        chars: transcript.length,
+                        mime: audioMsg?.mimetype ?? null,
+                      } as never,
                     } as never);
                   }
                 }
               } catch (e) {
                 await supabaseAdmin.from("logs").insert({
-                  user_id: conn.user_id, level: "warn", source: `evolution:${instance}`,
-                  message: "stt failed", metadata: { err: e instanceof Error ? e.message : String(e) } as never,
+                  user_id: conn.user_id,
+                  level: "warn",
+                  source: `evolution:${instance}`,
+                  message: "stt failed",
+                  metadata: { err: e instanceof Error ? e.message : String(e) } as never,
                 } as never);
               }
             }
             // Always persist inbound so the operator can chat manually,
             // even when there is no agent bound to this connection.
-            const convo = await getOrCreateConversation(supabaseAdmin, conn, agent?.id ?? null, remoteJid);
+            const convo = await getOrCreateConversation(
+              supabaseAdmin,
+              conn,
+              agent?.id ?? null,
+              remoteJid,
+            );
             const cmeta: ConvMeta = (convo?.metadata ?? {}) as ConvMeta;
             const imageMsg = bodyMsg?.imageMessage;
             const videoMsg = bodyMsg?.videoMessage;
-            const docMsg = bodyMsg?.documentMessage ?? bodyMsg?.documentWithCaptionMessage?.message?.documentMessage;
+            const docMsg =
+              bodyMsg?.documentMessage ??
+              bodyMsg?.documentWithCaptionMessage?.message?.documentMessage;
 
             // Outbound-from-operator (fromMe): mark manual takeover & pause agent
             if (fromMe) {
               // Se o operador ativou a IA manualmente nesta conversa, respeita
               // essa decisão e NÃO pausa automaticamente por envio manual.
-              const userForcedActive = cmeta.agent_user_override === true && cmeta.agent_disabled !== true;
-              if (agent && convo && !userForcedActive && (ext.conversation?.stopAfterManual || ext.timing?.humanIntervention)) {
+              const userForcedActive =
+                cmeta.agent_user_override === true && cmeta.agent_disabled !== true;
+              if (
+                agent &&
+                convo &&
+                !userForcedActive &&
+                (ext.conversation?.stopAfterManual || ext.timing?.humanIntervention)
+              ) {
                 const reactHrs = Math.max(0, Number(ext.timing?.reactivation ?? 0));
-                const until = reactHrs > 0
-                  ? new Date(Date.now() + reactHrs * 3600_000).toISOString()
-                  : new Date(Date.now() + 24 * 3600_000).toISOString();
-                await supabaseAdmin.from("conversations").update({
-                  metadata: { ...cmeta, last_manual_at: new Date().toISOString(), agent_paused_until: until },
-                  follow_up_paused: true,
-                } as never).eq("id", convo.id);
+                const until =
+                  reactHrs > 0
+                    ? new Date(Date.now() + reactHrs * 3600_000).toISOString()
+                    : new Date(Date.now() + 24 * 3600_000).toISOString();
+                await supabaseAdmin
+                  .from("conversations")
+                  .update({
+                    metadata: {
+                      ...cmeta,
+                      last_manual_at: new Date().toISOString(),
+                      agent_paused_until: until,
+                    },
+                    follow_up_paused: true,
+                  } as never)
+                  .eq("id", convo.id);
               }
               let mediaKind: "image" | "video" | "audio" | "document" | "sticker" | null = null;
               let mediaCaption: string | null = null;
-              if (imageMsg) { mediaKind = "image"; mediaCaption = imageMsg.caption ?? null; }
-              else if (videoMsg) { mediaKind = "video"; mediaCaption = videoMsg.caption ?? null; }
-              else if (audioMsg) { mediaKind = "audio"; }
-              else if (docMsg) { mediaKind = "document"; mediaCaption = docMsg.caption ?? docMsg.fileName ?? null; }
-              else if (stickerMsg) { mediaKind = "sticker"; }
+              if (imageMsg) {
+                mediaKind = "image";
+                mediaCaption = imageMsg.caption ?? null;
+              } else if (videoMsg) {
+                mediaKind = "video";
+                mediaCaption = videoMsg.caption ?? null;
+              } else if (audioMsg) {
+                mediaKind = "audio";
+              } else if (docMsg) {
+                mediaKind = "document";
+                mediaCaption = docMsg.caption ?? docMsg.fileName ?? null;
+              } else if (stickerMsg) {
+                mediaKind = "sticker";
+              }
               const evoId = msg?.key?.id ?? null;
               let alreadySaved = false;
               if (evoId) {
-                const { data: existing } = await supabaseAdmin.from("messages")
+                const { data: existing } = await supabaseAdmin
+                  .from("messages")
                   .select("id")
                   .eq("user_id", conn.user_id)
                   .eq("metadata->>evoId", evoId)
@@ -687,24 +889,56 @@ export const Route = createFileRoute("/api/public/evolution/$instance")({
                 let mediaPath: string | null = null;
                 let mediaMime: string | null = null;
                 try {
-                  mediaMime = imageMsg?.mimetype ?? videoMsg?.mimetype ?? audioMsg?.mimetype ?? docMsg?.mimetype ?? stickerMsg?.mimetype ?? (mediaKind === "sticker" ? "image/webp" : mediaKind === "audio" ? "audio/mpeg" : "application/octet-stream");
+                  mediaMime =
+                    imageMsg?.mimetype ??
+                    videoMsg?.mimetype ??
+                    audioMsg?.mimetype ??
+                    docMsg?.mimetype ??
+                    stickerMsg?.mimetype ??
+                    (mediaKind === "sticker"
+                      ? "image/webp"
+                      : mediaKind === "audio"
+                        ? "audio/mpeg"
+                        : "application/octet-stream");
                   const mediaObject = imageMsg ?? videoMsg ?? audioMsg ?? docMsg ?? stickerMsg;
                   const fileName = docMsg?.fileName ?? `${mediaKind}-${evoId ?? Date.now()}`;
                   const externalUrl = findPlayableMediaUrl(msg) ?? findPlayableMediaUrl(payload);
                   const declaredBytes = mediaFileLength(mediaObject);
                   if (externalUrl) {
                     mediaUrl = externalUrl;
-                  } else if (mediaKind === "video" || (declaredBytes ?? 0) > MAX_INLINE_MEDIA_BYTES) {
-                    const streamed = await downloadEvolutionMediaToStorage(supabaseAdmin, commandConn, conn.user_id, convo.id, msg, mediaMime, fileName, declaredBytes);
+                  } else if (
+                    mediaKind === "video" ||
+                    (declaredBytes ?? 0) > MAX_INLINE_MEDIA_BYTES
+                  ) {
+                    const streamed = await downloadEvolutionMediaToStorage(
+                      supabaseAdmin,
+                      commandConn,
+                      conn.user_id,
+                      convo.id,
+                      msg,
+                      mediaMime,
+                      fileName,
+                      declaredBytes,
+                    );
                     if (streamed) {
                       mediaUrl = streamed.url;
                       mediaPath = streamed.path;
                       mediaMime = streamed.mime;
                     }
                   } else {
-                    const b64 = findBase64(msg) ?? await evolutionGetBase64(commandConn, msg, false) ?? (mediaKind === "audio" ? transcribedAudioBase64 : null);
+                    const b64 =
+                      findBase64(msg) ??
+                      (await evolutionGetBase64(commandConn, msg, false)) ??
+                      (mediaKind === "audio" ? transcribedAudioBase64 : null);
                     if (b64) {
-                      const saved = await saveMediaToStorage(supabaseAdmin, conn.user_id, convo.id, b64, mediaMime ?? "application/octet-stream", fileName);
+                      const saved = await saveMediaToStorage(
+                        supabaseAdmin,
+                        conn.user_id,
+                        convo.id,
+                        b64,
+                        mediaMime ?? "application/octet-stream",
+                        fileName,
+                      );
                       mediaUrl = saved.url;
                       mediaPath = saved.path;
                     }
@@ -716,26 +950,62 @@ export const Route = createFileRoute("/api/public/evolution/$instance")({
                       level: "warn",
                       source: "evolution:outbound-media",
                       message: e.message,
-                      metadata: { remoteJid, kind: mediaKind, bytes: e.bytes, limit: MAX_INBOUND_MEDIA_BYTES } as never,
+                      metadata: {
+                        remoteJid,
+                        kind: mediaKind,
+                        bytes: e.bytes,
+                        limit: MAX_INBOUND_MEDIA_BYTES,
+                      } as never,
                     } as never);
                     mediaCaption = `⚠️ ${mediaLabel(mediaKind)} excede o limite de 30 MB e não foi salvo.`;
                   }
                 }
                 await supabaseAdmin.from("messages").insert({
-                  user_id: conn.user_id, conversation_id: convo.id,
-                  direction: "outbound", type: mediaKind,
+                  user_id: conn.user_id,
+                  conversation_id: convo.id,
+                  direction: "outbound",
+                  type: mediaKind,
                   content: mediaCaption ?? mediaLabel(mediaKind),
                   media_url: mediaUrl,
-                  metadata: { remoteJid, instance: conn.instance_name, storagePath: mediaPath, mime: mediaMime, evoId, fromMe: true, manual: true, pending: false, sent: true, status: "sent" } as never,
+                  metadata: {
+                    remoteJid,
+                    instance: conn.instance_name,
+                    storagePath: mediaPath,
+                    mime: mediaMime,
+                    evoId,
+                    fromMe: true,
+                    manual: true,
+                    pending: false,
+                    sent: true,
+                    status: "sent",
+                  } as never,
                 } as never);
-                await supabaseAdmin.from("conversations").update({ last_message_at: new Date().toISOString() } as never).eq("id", convo.id);
+                await supabaseAdmin
+                  .from("conversations")
+                  .update({ last_message_at: new Date().toISOString() } as never)
+                  .eq("id", convo.id);
               } else if (convo && !alreadySaved && text) {
                 await supabaseAdmin.from("messages").insert({
-                  user_id: conn.user_id, conversation_id: convo.id,
-                  direction: "outbound", type: "text", content: text,
-                  metadata: { remoteJid, agent_id: agent?.id ?? null, manual: true, evoId, fromMe: true, pending: false, sent: true, status: "sent" },
+                  user_id: conn.user_id,
+                  conversation_id: convo.id,
+                  direction: "outbound",
+                  type: "text",
+                  content: text,
+                  metadata: {
+                    remoteJid,
+                    agent_id: agent?.id ?? null,
+                    manual: true,
+                    evoId,
+                    fromMe: true,
+                    pending: false,
+                    sent: true,
+                    status: "sent",
+                  },
                 } as never);
-                await supabaseAdmin.from("conversations").update({ last_message_at: new Date().toISOString() } as never).eq("id", convo.id);
+                await supabaseAdmin
+                  .from("conversations")
+                  .update({ last_message_at: new Date().toISOString() } as never)
+                  .eq("id", convo.id);
               }
               return Response.json({ ok: true, manualOutbound: true });
             }
@@ -747,15 +1017,25 @@ export const Route = createFileRoute("/api/public/evolution/$instance")({
             let mediaMime: string | null = null;
             let mediaB64: string | null = null;
             let mediaName: string | null = null;
-            if (imageMsg) { mediaKind = "image"; mediaCaption = imageMsg.caption ?? null; }
-            else if (videoMsg) { mediaKind = "video"; mediaCaption = videoMsg.caption ?? null; }
-            else if (audioMsg) { mediaKind = "audio"; }
-            else if (docMsg) { mediaKind = "document"; mediaCaption = docMsg.fileName ?? null; }
-            else if (stickerMsg) { mediaKind = "sticker"; }
+            if (imageMsg) {
+              mediaKind = "image";
+              mediaCaption = imageMsg.caption ?? null;
+            } else if (videoMsg) {
+              mediaKind = "video";
+              mediaCaption = videoMsg.caption ?? null;
+            } else if (audioMsg) {
+              mediaKind = "audio";
+            } else if (docMsg) {
+              mediaKind = "document";
+              mediaCaption = docMsg.fileName ?? null;
+            } else if (stickerMsg) {
+              mediaKind = "sticker";
+            }
             const inboundEvoId = msg?.key?.id ?? null;
             let alreadySavedInbound = false;
             if (inboundEvoId) {
-              const { data: existingInbound } = await supabaseAdmin.from("messages")
+              const { data: existingInbound } = await supabaseAdmin
+                .from("messages")
                 .select("id")
                 .eq("user_id", conn.user_id)
                 .eq("metadata->>evoId", inboundEvoId)
@@ -765,20 +1045,40 @@ export const Route = createFileRoute("/api/public/evolution/$instance")({
             if (mediaKind && convo && !alreadySavedInbound) {
               // Vídeos/mídias grandes: enfileira para processamento assíncrono
               // (worker Cloudflare não aguenta baixar+descriptografar 100MB inline).
-              const declaredBytesEarly = mediaFileLength(imageMsg ?? videoMsg ?? audioMsg ?? docMsg ?? stickerMsg);
-              const shouldQueue = (mediaKind === "video") && (declaredBytesEarly ?? 0) > MAX_INLINE_MEDIA_BYTES;
-              const jobParams = shouldQueue ? (extractWhatsAppMediaJob(msg) ?? extractWhatsAppMediaJob(payload)) : null;
+              const declaredBytesEarly = mediaFileLength(
+                imageMsg ?? videoMsg ?? audioMsg ?? docMsg ?? stickerMsg,
+              );
+              const shouldQueue =
+                mediaKind === "video" && (declaredBytesEarly ?? 0) > MAX_INLINE_MEDIA_BYTES;
+              const jobParams = shouldQueue
+                ? (extractWhatsAppMediaJob(msg) ?? extractWhatsAppMediaJob(payload))
+                : null;
               if (jobParams) {
                 mediaMime = jobParams.mime ?? "video/mp4";
                 mediaName = jobParams.fileName ?? `video-${inboundEvoId ?? Date.now()}.mp4`;
                 mediaCaption = mediaCaption ?? "⏳ Baixando vídeo...";
-                const { data: inserted, error: msgErr } = await supabaseAdmin.from("messages").insert({
-                  user_id: conn.user_id, conversation_id: convo.id,
-                  direction: "inbound", type: mediaKind,
-                  content: mediaCaption,
-                  media_url: null,
-                  metadata: { remoteJid, instance: conn.instance_name, storagePath: null, mime: mediaMime, evoId: inboundEvoId, fromMe: false, transcribed: false, pending: true } as never,
-                } as never).select("id").single();
+                const { data: inserted, error: msgErr } = await supabaseAdmin
+                  .from("messages")
+                  .insert({
+                    user_id: conn.user_id,
+                    conversation_id: convo.id,
+                    direction: "inbound",
+                    type: mediaKind,
+                    content: mediaCaption,
+                    media_url: null,
+                    metadata: {
+                      remoteJid,
+                      instance: conn.instance_name,
+                      storagePath: null,
+                      mime: mediaMime,
+                      evoId: inboundEvoId,
+                      fromMe: false,
+                      transcribed: false,
+                      pending: true,
+                    } as never,
+                  } as never)
+                  .select("id")
+                  .single();
                 if (msgErr) throw new Error(`message queue insert failed: ${msgErr.message}`);
                 const { error: jobErr } = await supabaseAdmin.from("video_jobs").insert({
                   user_id: conn.user_id,
@@ -794,10 +1094,13 @@ export const Route = createFileRoute("/api/public/evolution/$instance")({
                   status: "pending",
                 } as never);
                 if (jobErr) throw new Error(`video job insert failed: ${jobErr.message}`);
-                await supabaseAdmin.from("conversations").update({
-                  last_message_at: new Date().toISOString(),
-                  unread_count: (convo.unread_count ?? 0) + 1,
-                } as never).eq("id", convo.id);
+                await supabaseAdmin
+                  .from("conversations")
+                  .update({
+                    last_message_at: new Date().toISOString(),
+                    unread_count: (convo.unread_count ?? 0) + 1,
+                  } as never)
+                  .eq("id", convo.id);
                 return Response.json({ ok: true, queued: true });
               }
               if (shouldQueue) {
@@ -806,36 +1109,102 @@ export const Route = createFileRoute("/api/public/evolution/$instance")({
                   level: "error",
                   source: "evolution:inbound-media",
                   message: "video queue metadata missing",
-                  metadata: { remoteJid, evoId: inboundEvoId, declaredBytes: declaredBytesEarly } as never,
+                  metadata: {
+                    remoteJid,
+                    evoId: inboundEvoId,
+                    declaredBytes: declaredBytesEarly,
+                  } as never,
                 } as never);
                 await supabaseAdmin.from("messages").insert({
-                  user_id: conn.user_id, conversation_id: convo.id,
-                  direction: "inbound", type: mediaKind,
+                  user_id: conn.user_id,
+                  conversation_id: convo.id,
+                  direction: "inbound",
+                  type: mediaKind,
                   content: "⚠️ Vídeo recebido, mas faltaram dados para baixar automaticamente.",
                   media_url: null,
-                  metadata: { remoteJid, instance: conn.instance_name, storagePath: null, mime: mediaMime, evoId: inboundEvoId, fromMe: false, pending: false, error: "missing-video-download-metadata" } as never,
+                  metadata: {
+                    remoteJid,
+                    instance: conn.instance_name,
+                    storagePath: null,
+                    mime: mediaMime,
+                    evoId: inboundEvoId,
+                    fromMe: false,
+                    pending: false,
+                    error: "missing-video-download-metadata",
+                  } as never,
                 } as never);
-                return Response.json({ ok: true, queued: false, reason: "missing-video-download-metadata" });
+                return Response.json({
+                  ok: true,
+                  queued: false,
+                  reason: "missing-video-download-metadata",
+                });
               }
               try {
-                mediaMime = imageMsg?.mimetype ?? videoMsg?.mimetype ?? audioMsg?.mimetype ?? docMsg?.mimetype ?? stickerMsg?.mimetype ?? (mediaKind === "sticker" ? "image/webp" : mediaKind === "audio" ? "audio/mpeg" : "application/octet-stream");
+                mediaMime =
+                  imageMsg?.mimetype ??
+                  videoMsg?.mimetype ??
+                  audioMsg?.mimetype ??
+                  docMsg?.mimetype ??
+                  stickerMsg?.mimetype ??
+                  (mediaKind === "sticker"
+                    ? "image/webp"
+                    : mediaKind === "audio"
+                      ? "audio/mpeg"
+                      : "application/octet-stream");
                 mediaName = docMsg?.fileName ?? `${mediaKind}-${msg?.key?.id ?? Date.now()}`;
                 const mediaObject = imageMsg ?? videoMsg ?? audioMsg ?? docMsg ?? stickerMsg;
                 const externalUrl = findPlayableMediaUrl(msg) ?? findPlayableMediaUrl(payload);
                 const declaredBytes = mediaFileLength(mediaObject);
                 if (externalUrl) {
                   mediaUrl = externalUrl;
-                } else if (mediaKind === "video" && (declaredBytes ?? 0) <= MAX_INLINE_MEDIA_BYTES) {
-                  const b64 = findBase64(msg) ?? await evolutionGetBase64(commandConn, msg, false, supabaseAdmin, conn.user_id, remoteJid, mediaKind, declaredBytes, inboundEvoId);
+                } else if (
+                  mediaKind === "video" &&
+                  (declaredBytes ?? 0) <= MAX_INLINE_MEDIA_BYTES
+                ) {
+                  const b64 =
+                    findBase64(msg) ??
+                    (await evolutionGetBase64(
+                      commandConn,
+                      msg,
+                      false,
+                      supabaseAdmin,
+                      conn.user_id,
+                      remoteJid,
+                      mediaKind,
+                      declaredBytes,
+                      inboundEvoId,
+                    ));
                   if (b64) {
                     mediaB64 = b64;
-                    const saved = await saveMediaToStorage(supabaseAdmin, conn.user_id, convo.id, b64, mediaMime ?? "application/octet-stream", mediaName ?? `${mediaKind}-${msg?.key?.id ?? Date.now()}`);
+                    const saved = await saveMediaToStorage(
+                      supabaseAdmin,
+                      conn.user_id,
+                      convo.id,
+                      b64,
+                      mediaMime ?? "application/octet-stream",
+                      mediaName ?? `${mediaKind}-${msg?.key?.id ?? Date.now()}`,
+                    );
                     mediaUrl = saved.url;
                     mediaPath = saved.path;
                   } else {
-                    const streamed = await downloadEvolutionMediaToStorage(supabaseAdmin, commandConn, conn.user_id, convo.id, msg, mediaMime, mediaName ?? `${mediaKind}-${msg?.key?.id ?? Date.now()}`, declaredBytes).catch(async (err) => {
+                    const streamed = await downloadEvolutionMediaToStorage(
+                      supabaseAdmin,
+                      commandConn,
+                      conn.user_id,
+                      convo.id,
+                      msg,
+                      mediaMime,
+                      mediaName ?? `${mediaKind}-${msg?.key?.id ?? Date.now()}`,
+                      declaredBytes,
+                    ).catch(async (err) => {
                       if (err instanceof MediaTooLargeError) throw err;
-                      await supabaseAdmin.from("logs").insert({ user_id: conn.user_id, level: "error", source: "evolution:inbound-media", message: `video inline fallback stream failed: ${err?.message ?? String(err)}`, metadata: { remoteJid, kind: mediaKind, declaredBytes } as never } as never);
+                      await supabaseAdmin.from("logs").insert({
+                        user_id: conn.user_id,
+                        level: "error",
+                        source: "evolution:inbound-media",
+                        message: `video inline fallback stream failed: ${err?.message ?? String(err)}`,
+                        metadata: { remoteJid, kind: mediaKind, declaredBytes } as never,
+                      } as never);
                       return null;
                     });
                     if (streamed) {
@@ -843,13 +1212,39 @@ export const Route = createFileRoute("/api/public/evolution/$instance")({
                       mediaPath = streamed.path;
                       mediaMime = streamed.mime;
                     } else {
-                      await supabaseAdmin.from("logs").insert({ user_id: conn.user_id, level: "error", source: "evolution:inbound-media", message: "video: no base64 and stream returned empty", metadata: { remoteJid, declaredBytes, mime: mediaMime, evoId: inboundEvoId } as never } as never);
+                      await supabaseAdmin.from("logs").insert({
+                        user_id: conn.user_id,
+                        level: "error",
+                        source: "evolution:inbound-media",
+                        message: "video: no base64 and stream returned empty",
+                        metadata: {
+                          remoteJid,
+                          declaredBytes,
+                          mime: mediaMime,
+                          evoId: inboundEvoId,
+                        } as never,
+                      } as never);
                     }
                   }
                 } else if (mediaKind === "video" || (declaredBytes ?? 0) > MAX_INLINE_MEDIA_BYTES) {
-                  const streamed = await downloadEvolutionMediaToStorage(supabaseAdmin, commandConn, conn.user_id, convo.id, msg, mediaMime, mediaName ?? `${mediaKind}-${msg?.key?.id ?? Date.now()}`, declaredBytes).catch(async (err) => {
+                  const streamed = await downloadEvolutionMediaToStorage(
+                    supabaseAdmin,
+                    commandConn,
+                    conn.user_id,
+                    convo.id,
+                    msg,
+                    mediaMime,
+                    mediaName ?? `${mediaKind}-${msg?.key?.id ?? Date.now()}`,
+                    declaredBytes,
+                  ).catch(async (err) => {
                     if (err instanceof MediaTooLargeError) throw err;
-                    await supabaseAdmin.from("logs").insert({ user_id: conn.user_id, level: "error", source: "evolution:inbound-media", message: `stream download failed: ${err?.message ?? String(err)}`, metadata: { remoteJid, kind: mediaKind, declaredBytes } as never } as never);
+                    await supabaseAdmin.from("logs").insert({
+                      user_id: conn.user_id,
+                      level: "error",
+                      source: "evolution:inbound-media",
+                      message: `stream download failed: ${err?.message ?? String(err)}`,
+                      metadata: { remoteJid, kind: mediaKind, declaredBytes } as never,
+                    } as never);
                     return null;
                   });
                   if (streamed) {
@@ -858,21 +1253,66 @@ export const Route = createFileRoute("/api/public/evolution/$instance")({
                     mediaMime = streamed.mime;
                   } else {
                     // Fallback to base64 endpoint (handles cases where stream endpoint returns json/empty)
-                    const b64 = findBase64(msg) ?? await evolutionGetBase64(commandConn, msg, false, supabaseAdmin, conn.user_id, remoteJid, mediaKind, declaredBytes, inboundEvoId);
+                    const b64 =
+                      findBase64(msg) ??
+                      (await evolutionGetBase64(
+                        commandConn,
+                        msg,
+                        false,
+                        supabaseAdmin,
+                        conn.user_id,
+                        remoteJid,
+                        mediaKind,
+                        declaredBytes,
+                        inboundEvoId,
+                      ));
                     if (b64) {
                       mediaB64 = b64;
-                      const saved = await saveMediaToStorage(supabaseAdmin, conn.user_id, convo.id, b64, mediaMime ?? "application/octet-stream", mediaName ?? `${mediaKind}-${msg?.key?.id ?? Date.now()}`);
+                      const saved = await saveMediaToStorage(
+                        supabaseAdmin,
+                        conn.user_id,
+                        convo.id,
+                        b64,
+                        mediaMime ?? "application/octet-stream",
+                        mediaName ?? `${mediaKind}-${msg?.key?.id ?? Date.now()}`,
+                      );
                       mediaUrl = saved.url;
                       mediaPath = saved.path;
                     } else {
-                      await supabaseAdmin.from("logs").insert({ user_id: conn.user_id, level: "error", source: "evolution:inbound-media", message: "video: no url from stream and no base64 fallback", metadata: { remoteJid, declaredBytes, mime: mediaMime } as never } as never);
+                      await supabaseAdmin.from("logs").insert({
+                        user_id: conn.user_id,
+                        level: "error",
+                        source: "evolution:inbound-media",
+                        message: "video: no url from stream and no base64 fallback",
+                        metadata: { remoteJid, declaredBytes, mime: mediaMime } as never,
+                      } as never);
                     }
                   }
                 } else {
-                  const b64 = findBase64(msg) ?? await evolutionGetBase64(commandConn, msg, false, supabaseAdmin, conn.user_id, remoteJid, mediaKind, declaredBytes, inboundEvoId) ?? (mediaKind === "audio" ? transcribedAudioBase64 : null);
+                  const b64 =
+                    findBase64(msg) ??
+                    (await evolutionGetBase64(
+                      commandConn,
+                      msg,
+                      false,
+                      supabaseAdmin,
+                      conn.user_id,
+                      remoteJid,
+                      mediaKind,
+                      declaredBytes,
+                      inboundEvoId,
+                    )) ??
+                    (mediaKind === "audio" ? transcribedAudioBase64 : null);
                   if (b64) {
                     mediaB64 = b64;
-                    const saved = await saveMediaToStorage(supabaseAdmin, conn.user_id, convo.id, b64, mediaMime ?? "application/octet-stream", mediaName ?? `${mediaKind}-${msg?.key?.id ?? Date.now()}`);
+                    const saved = await saveMediaToStorage(
+                      supabaseAdmin,
+                      conn.user_id,
+                      convo.id,
+                      b64,
+                      mediaMime ?? "application/octet-stream",
+                      mediaName ?? `${mediaKind}-${msg?.key?.id ?? Date.now()}`,
+                    );
                     mediaUrl = saved.url;
                     mediaPath = saved.path;
                   }
@@ -884,22 +1324,40 @@ export const Route = createFileRoute("/api/public/evolution/$instance")({
                     level: "warn",
                     source: "evolution:inbound-media",
                     message: e.message,
-                    metadata: { remoteJid, kind: mediaKind, bytes: e.bytes, limit: MAX_INBOUND_MEDIA_BYTES } as never,
+                    metadata: {
+                      remoteJid,
+                      kind: mediaKind,
+                      bytes: e.bytes,
+                      limit: MAX_INBOUND_MEDIA_BYTES,
+                    } as never,
                   } as never);
                   mediaCaption = `⚠️ ${mediaLabel(mediaKind)} recebido excede o limite de 30 MB e não foi salvo.`;
                 }
               }
               await supabaseAdmin.from("messages").insert({
-                user_id: conn.user_id, conversation_id: convo.id,
-                direction: "inbound", type: mediaKind,
+                user_id: conn.user_id,
+                conversation_id: convo.id,
+                direction: "inbound",
+                type: mediaKind,
                 content: inputWasAudio && text ? text : (mediaCaption ?? mediaLabel(mediaKind)),
                 media_url: mediaUrl,
-                metadata: { remoteJid, instance: conn.instance_name, storagePath: mediaPath, mime: mediaMime, evoId: inboundEvoId, fromMe: false, transcribed: inputWasAudio } as never,
+                metadata: {
+                  remoteJid,
+                  instance: conn.instance_name,
+                  storagePath: mediaPath,
+                  mime: mediaMime,
+                  evoId: inboundEvoId,
+                  fromMe: false,
+                  transcribed: inputWasAudio,
+                } as never,
               } as never);
-              await supabaseAdmin.from("conversations").update({
-                last_message_at: new Date().toISOString(),
-                unread_count: (convo.unread_count ?? 0) + 1,
-              } as never).eq("id", convo.id);
+              await supabaseAdmin
+                .from("conversations")
+                .update({
+                  last_message_at: new Date().toISOString(),
+                  unread_count: (convo.unread_count ?? 0) + 1,
+                } as never)
+                .eq("id", convo.id);
             }
             if (alreadySavedInbound) return Response.json({ ok: true, duplicate: true });
             // Allow AI to process pure media (image/pdf) without caption
@@ -914,25 +1372,44 @@ export const Route = createFileRoute("/api/public/evolution/$instance")({
                 direction: "inbound",
                 type: inputWasAudio ? "audio" : "text",
                 content: text,
-                metadata: { remoteJid, instance: conn.instance_name, transcribed: inputWasAudio, evoId: inboundEvoId, fromMe: false },
+                metadata: {
+                  remoteJid,
+                  instance: conn.instance_name,
+                  transcribed: inputWasAudio,
+                  evoId: inboundEvoId,
+                  fromMe: false,
+                },
               } as never);
             }
             if (convo) {
-              await supabaseAdmin.from("conversations").update({
-                last_message_at: new Date().toISOString(),
-                unread_count: (convo.unread_count ?? 0) + 1,
-                follow_up_step: 0, next_follow_up_at: null, follow_up_paused: false,
-              } as never).eq("id", convo.id);
+              await supabaseAdmin
+                .from("conversations")
+                .update({
+                  last_message_at: new Date().toISOString(),
+                  unread_count: (convo.unread_count ?? 0) + 1,
+                  follow_up_step: 0,
+                  next_follow_up_at: null,
+                  follow_up_paused: false,
+                } as never)
+                .eq("id", convo.id);
             }
             // ------- FLOW ENGINE -------
             // Sequences: try keyword enrollment on inbound text (best-effort)
             try {
-              const phoneOnly = String(remoteJid ?? "").split("@")[0].replace(/\D/g, "");
+              const phoneOnly = String(remoteJid ?? "")
+                .split("@")[0]
+                .replace(/\D/g, "");
               if (phoneOnly && text) {
                 const { tryKeywordEnroll } = await import("@/lib/sequences-runner.server");
-                await tryKeywordEnroll(supabaseAdmin, { userId: conn.user_id, phone: phoneOnly, text });
+                await tryKeywordEnroll(supabaseAdmin, {
+                  userId: conn.user_id,
+                  phone: phoneOnly,
+                  text,
+                });
               }
-            } catch { /* best-effort */ }
+            } catch {
+              /* best-effort */
+            }
             // Runs independently of the AI agent so that visual flows keep
             // advancing even when the connection has no active agent bound
             // (e.g. agent disabled after the flow started via broadcast).
@@ -945,21 +1422,42 @@ export const Route = createFileRoute("/api/public/evolution/$instance")({
                 .select("id,definition,is_active,trigger,trigger_keywords,connection_id")
                 .eq("user_id", conn.user_id)
                 .eq("is_active", true);
-              const candidates = (flows ?? []) as Array<{ id: string; definition: any; trigger: string | null; trigger_keywords: string[] | null; connection_id: string | null }>;
+              const candidates = (flows ?? []) as Array<{
+                id: string;
+                definition: any;
+                trigger: string | null;
+                trigger_keywords: string[] | null;
+                connection_id: string | null;
+              }>;
               // Prefer flow already in progress; else match by connection + keyword; else first for this connection.
-              const st = ((convo?.flow_state ?? {}) as import("@/lib/flow-runner.server").FlowState);
+              const st = (convo?.flow_state ?? {}) as import("@/lib/flow-runner.server").FlowState;
               // Abandonment: if user stopped replying mid-flow, hand back to AI
               // after N hours (default 24h). Configurable via connection ext.flow_timeout_hours.
-              const connMeta = (conn as { metadata?: { flow_timeout_hours?: number } | null }).metadata ?? {};
-              const timeoutHours = Math.max(1, Number(connMeta.flow_timeout_hours ?? ext.flow_timeout_hours ?? 24));
-              const stAge = st.updated_at ? (Date.now() - new Date(st.updated_at).getTime()) / 3600000 : 0;
+              const connMeta =
+                (conn as { metadata?: { flow_timeout_hours?: number } | null }).metadata ?? {};
+              const timeoutHours = Math.max(
+                1,
+                Number(connMeta.flow_timeout_hours ?? ext.flow_timeout_hours ?? 24),
+              );
+              const stAge = st.updated_at
+                ? (Date.now() - new Date(st.updated_at).getTime()) / 3600000
+                : 0;
               if (st.flow_id && !st.finished && st.updated_at && stAge >= timeoutHours) {
-                if (convo) await supabaseAdmin.from("conversations").update({
-                  flow_state: { finished: true, abandoned_at: new Date().toISOString() } as never,
-                } as never).eq("id", convo.id);
-                st.flow_id = undefined; st.finished = true;
+                if (convo)
+                  await supabaseAdmin
+                    .from("conversations")
+                    .update({
+                      flow_state: {
+                        finished: true,
+                        abandoned_at: new Date().toISOString(),
+                      } as never,
+                    } as never)
+                    .eq("id", convo.id);
+                st.flow_id = undefined;
+                st.finished = true;
               }
-              let active = st.flow_id && !st.finished ? candidates.find((f) => f.id === st.flow_id) : null;
+              let active =
+                st.flow_id && !st.finished ? candidates.find((f) => f.id === st.flow_id) : null;
               // If the in-progress flow was deactivated after it started (or belongs
               // to another connection), still resume it so the user's reply advances
               // the awaiting node instead of being dropped.
@@ -970,24 +1468,32 @@ export const Route = createFileRoute("/api/public/evolution/$instance")({
                   .eq("id", st.flow_id)
                   .eq("user_id", conn.user_id)
                   .maybeSingle();
-                if (inProgress) active = inProgress as typeof candidates[number];
+                if (inProgress) active = inProgress as (typeof candidates)[number];
               }
               if (!active) {
-                const forConn = candidates.filter((f) => !f.connection_id || f.connection_id === conn.id);
-                const kwList = (f: typeof forConn[number]) => [
+                const forConn = candidates.filter(
+                  (f) => !f.connection_id || f.connection_id === conn.id,
+                );
+                const kwList = (f: (typeof forConn)[number]) => [
                   ...(f.trigger_keywords ?? []),
-                  ...(f.trigger ?? "").split(",").map((s) => s.trim()).filter(Boolean),
+                  ...(f.trigger ?? "")
+                    .split(",")
+                    .map((s) => s.trim())
+                    .filter(Boolean),
                 ];
-                active = forConn.find((f) => kwList(f).some((k) => k && text!.toLowerCase().includes(k.toLowerCase())))
-                  ?? null;
+                active =
+                  forConn.find((f) =>
+                    kwList(f).some((k) => k && text!.toLowerCase().includes(k.toLowerCase())),
+                  ) ?? null;
                 // Correlation diagnostics: registra motivo claro no painel de logs
                 // para o usuário entender por que a mensagem não disparou fluxo.
                 if (!active) {
-                  const reason = candidates.length === 0
-                    ? "no_active_flows_for_user"
-                    : forConn.length === 0
-                      ? "no_flow_bound_to_this_connection"
-                      : "no_keyword_match";
+                  const reason =
+                    candidates.length === 0
+                      ? "no_active_flows_for_user"
+                      : forConn.length === 0
+                        ? "no_flow_bound_to_this_connection"
+                        : "no_keyword_match";
                   await supabaseAdmin.from("logs").insert({
                     user_id: conn.user_id,
                     level: "warn",
@@ -1014,7 +1520,11 @@ export const Route = createFileRoute("/api/public/evolution/$instance")({
                 try {
                   const def = active.definition as { nodes?: any[]; edges?: any[] };
                   const validDef = Array.isArray(def?.nodes) && Array.isArray(def?.edges);
-                  const hasStart = validDef && (def!.nodes as Array<{ data?: { kind?: string } }>).some((n) => n?.data?.kind === "START");
+                  const hasStart =
+                    validDef &&
+                    (def!.nodes as Array<{ data?: { kind?: string } }>).some(
+                      (n) => n?.data?.kind === "START",
+                    );
                   if (!validDef || !hasStart) {
                     await supabaseAdmin.from("logs").insert({
                       user_id: conn.user_id,
@@ -1047,29 +1557,45 @@ export const Route = createFileRoute("/api/public/evolution/$instance")({
                       .maybeSingle();
                     let execId = (existingExec as { id?: string } | null)?.id ?? null;
                     if (!execId) {
-                      const { data: newExec } = await supabaseAdmin.from("flow_executions").insert({
-                        user_id: conn.user_id, flow_id: active.id,
-                        conversation_id: convo.id, connection_id: conn.id,
-                        status: "processing", is_simulation: false,
-                        current_block_id: st.current_node ?? st.awaiting?.node_id ?? null,
-                        awaiting_variable: st.awaiting?.variable ?? null,
-                        variables: (st.variables ?? {}) as never,
-                      } as never).select("id").single();
+                      const { data: newExec } = await supabaseAdmin
+                        .from("flow_executions")
+                        .insert({
+                          user_id: conn.user_id,
+                          flow_id: active.id,
+                          conversation_id: convo.id,
+                          connection_id: conn.id,
+                          status: "processing",
+                          is_simulation: false,
+                          current_block_id: st.current_node ?? st.awaiting?.node_id ?? null,
+                          awaiting_variable: st.awaiting?.variable ?? null,
+                          variables: (st.variables ?? {}) as never,
+                        } as never)
+                        .select("id")
+                        .single();
                       execId = (newExec as { id?: string } | null)?.id ?? null;
                     }
                     if (execId) {
                       await supabaseAdmin.from("flow_execution_logs").insert({
-                        execution_id: execId, user_id: conn.user_id,
-                        level: "info", event: "user_input",
+                        execution_id: execId,
+                        user_id: conn.user_id,
+                        level: "info",
+                        event: "user_input",
                         block_id: st.awaiting?.node_id ?? null,
-                        message: text.slice(0, 500), data: null as never,
+                        message: text.slice(0, 500),
+                        data: null as never,
                       } as never);
                     }
                     const runStart = Date.now();
                     const { runFlow } = await import("@/lib/flow-runner.server");
                     const result = await runFlow({
                       db: supabaseAdmin,
-                      conn: { id: conn.id, user_id: conn.user_id, url_api: conn.url_api, api_key: commandConn.api_key, instance_name: conn.instance_name },
+                      conn: {
+                        id: conn.id,
+                        user_id: conn.user_id,
+                        url_api: conn.url_api,
+                        api_key: commandConn.api_key,
+                        instance_name: conn.instance_name,
+                      },
                       recipient,
                       userText: text,
                       def: { nodes: def!.nodes as never, edges: def!.edges as never },
@@ -1078,81 +1604,147 @@ export const Route = createFileRoute("/api/public/evolution/$instance")({
                       conversationId: convo.id,
                       userId: conn.user_id,
                     });
-                    await supabaseAdmin.from("conversations").update({
-                      flow_state: { ...result.state, updated_at: new Date().toISOString() } as never,
-                      last_message_at: new Date().toISOString(),
-                    } as never).eq("id", convo.id);
+                    await supabaseAdmin
+                      .from("conversations")
+                      .update({
+                        flow_state: {
+                          ...result.state,
+                          updated_at: new Date().toISOString(),
+                        } as never,
+                        last_message_at: new Date().toISOString(),
+                      } as never)
+                      .eq("id", convo.id);
                     // Sequence auto-enrollment: if flow finished and conversation has a pending_flow_trigger, start that flow
                     if (result.finished) {
                       try {
-                        const { data: convoNow } = await supabaseAdmin.from("conversations")
-                          .select("id,metadata").eq("id", convo.id).maybeSingle();
+                        const { data: convoNow } = await supabaseAdmin
+                          .from("conversations")
+                          .select("id,metadata")
+                          .eq("id", convo.id)
+                          .maybeSingle();
                         const meta = (convoNow?.metadata ?? {}) as Record<string, unknown>;
-                        const pending = typeof meta.pending_flow_trigger === "string" ? meta.pending_flow_trigger : null;
+                        const pending =
+                          typeof meta.pending_flow_trigger === "string"
+                            ? meta.pending_flow_trigger
+                            : null;
                         if (pending) {
-                          const { data: nextFlow } = await supabaseAdmin.from("flows")
+                          const { data: nextFlow } = await supabaseAdmin
+                            .from("flows")
                             .select("id,trigger_keywords,definition")
-                            .eq("user_id", conn.user_id).eq("is_active", true)
+                            .eq("user_id", conn.user_id)
+                            .eq("is_active", true)
                             .contains("trigger_keywords", [pending] as never)
                             .maybeSingle();
                           const rest = { ...meta };
                           delete (rest as Record<string, unknown>).pending_flow_trigger;
-                          await supabaseAdmin.from("conversations").update({
-                            metadata: rest as never,
-                            flow_state: nextFlow
-                              ? ({ flow_id: nextFlow.id, current_node: null, variables: {}, updated_at: new Date().toISOString() } as never)
-                              : (null as never),
-                          } as never).eq("id", convo.id);
+                          await supabaseAdmin
+                            .from("conversations")
+                            .update({
+                              metadata: rest as never,
+                              flow_state: nextFlow
+                                ? ({
+                                    flow_id: nextFlow.id,
+                                    current_node: null,
+                                    variables: {},
+                                    updated_at: new Date().toISOString(),
+                                  } as never)
+                                : (null as never),
+                            } as never)
+                            .eq("id", convo.id);
                         }
-                      } catch { /* non-fatal */ }
+                      } catch {
+                        /* non-fatal */
+                      }
                     }
                     if (execId) {
-                      const finalStatus = result.handedOff ? "completed"
-                        : result.finished ? "completed"
-                        : result.waitingForUser ? "waiting_user_input"
-                        : "processing";
-                      await supabaseAdmin.from("flow_executions").update({
-                        status: finalStatus,
-                        current_block_id: result.state.current_node ?? result.state.awaiting?.node_id ?? null,
-                        awaiting_variable: result.state.awaiting?.variable ?? null,
-                        variables: (result.state.variables ?? {}) as never,
-                        completed_at: (finalStatus === "completed") ? new Date().toISOString() : null,
-                        last_error: null,
-                      } as never).eq("id", execId);
+                      const finalStatus = result.handedOff
+                        ? "completed"
+                        : result.finished
+                          ? "completed"
+                          : result.waitingForUser
+                            ? "waiting_user_input"
+                            : "processing";
+                      await supabaseAdmin
+                        .from("flow_executions")
+                        .update({
+                          status: finalStatus,
+                          current_block_id:
+                            result.state.current_node ?? result.state.awaiting?.node_id ?? null,
+                          awaiting_variable: result.state.awaiting?.variable ?? null,
+                          variables: (result.state.variables ?? {}) as never,
+                          completed_at:
+                            finalStatus === "completed" ? new Date().toISOString() : null,
+                          last_error: null,
+                        } as never)
+                        .eq("id", execId);
                       await supabaseAdmin.from("flow_execution_logs").insert({
-                        execution_id: execId, user_id: conn.user_id,
+                        execution_id: execId,
+                        user_id: conn.user_id,
                         level: "info",
-                        event: result.handedOff ? "handoff" : result.finished ? "complete" : result.waitingForUser ? "wait" : "step",
-                        block_id: result.state.awaiting?.node_id ?? result.state.current_node ?? null,
-                        message: result.handedOff ? "Transferido para atendente"
-                          : result.finished ? "Fluxo finalizado"
-                          : result.waitingForUser ? `Aguardando resposta: ${result.state.awaiting?.variable ?? "usuário"}`
-                          : "Etapa executada",
+                        event: result.handedOff
+                          ? "handoff"
+                          : result.finished
+                            ? "complete"
+                            : result.waitingForUser
+                              ? "wait"
+                              : "step",
+                        block_id:
+                          result.state.awaiting?.node_id ?? result.state.current_node ?? null,
+                        message: result.handedOff
+                          ? "Transferido para atendente"
+                          : result.finished
+                            ? "Fluxo finalizado"
+                            : result.waitingForUser
+                              ? `Aguardando resposta: ${result.state.awaiting?.variable ?? "usuário"}`
+                              : "Etapa executada",
                         duration_ms: Date.now() - runStart,
                         data: null as never,
                       } as never);
                     }
-                    return Response.json({ ok: true, flow: active.id, waiting: !!result.waitingForUser, finished: !!result.finished, handedOff: !!result.handedOff });
+                    return Response.json({
+                      ok: true,
+                      flow: active.id,
+                      waiting: !!result.waitingForUser,
+                      finished: !!result.finished,
+                      handedOff: !!result.handedOff,
+                    });
                   }
                 } catch (e) {
                   await supabaseAdmin.from("logs").insert({
-                    user_id: conn.user_id, level: "error", source: `flow:${active.id}`,
-                    message: e instanceof Error ? e.message : "flow runtime error", metadata: {} as never,
+                    user_id: conn.user_id,
+                    level: "error",
+                    source: `flow:${active.id}`,
+                    message: e instanceof Error ? e.message : "flow runtime error",
+                    metadata: {} as never,
                   } as never);
                   // Also surface in Debug de Fluxo
                   if (convo) {
-                    const { data: exId } = await supabaseAdmin.from("flow_executions")
-                      .select("id").eq("user_id", conn.user_id).eq("flow_id", active.id)
-                      .eq("conversation_id", convo.id).eq("is_simulation", false)
-                      .order("started_at", { ascending: false }).limit(1).maybeSingle();
+                    const { data: exId } = await supabaseAdmin
+                      .from("flow_executions")
+                      .select("id")
+                      .eq("user_id", conn.user_id)
+                      .eq("flow_id", active.id)
+                      .eq("conversation_id", convo.id)
+                      .eq("is_simulation", false)
+                      .order("started_at", { ascending: false })
+                      .limit(1)
+                      .maybeSingle();
                     const errMsg = e instanceof Error ? e.message : "flow runtime error";
                     if ((exId as { id?: string } | null)?.id) {
-                      await supabaseAdmin.from("flow_executions").update({
-                        status: "failed", last_error: errMsg,
-                      } as never).eq("id", (exId as { id: string }).id);
+                      await supabaseAdmin
+                        .from("flow_executions")
+                        .update({
+                          status: "failed",
+                          last_error: errMsg,
+                        } as never)
+                        .eq("id", (exId as { id: string }).id);
                       await supabaseAdmin.from("flow_execution_logs").insert({
-                        execution_id: (exId as { id: string }).id, user_id: conn.user_id,
-                        level: "error", event: "error", message: errMsg, data: null as never,
+                        execution_id: (exId as { id: string }).id,
+                        user_id: conn.user_id,
+                        level: "error",
+                        event: "error",
+                        message: errMsg,
+                        data: null as never,
                       } as never);
                     }
                   }
@@ -1169,22 +1761,43 @@ export const Route = createFileRoute("/api/public/evolution/$instance")({
               return Response.json({ ok: true, paused: true, reason: "agent_disabled" });
             }
             // Pausa temporária por intervenção humana (janela com tempo de reativação).
-            if (cmeta.agent_paused_until && new Date(cmeta.agent_paused_until).getTime() > Date.now()) {
+            if (
+              cmeta.agent_paused_until &&
+              new Date(cmeta.agent_paused_until).getTime() > Date.now()
+            ) {
               return Response.json({ ok: true, paused: true });
             }
 
             // Keyword activation gate (allow/block/regex)
-            if (ext.keywords?.enabled && Array.isArray(ext.keywords.list) && ext.keywords.list.length) {
+            if (
+              ext.keywords?.enabled &&
+              Array.isArray(ext.keywords.list) &&
+              ext.keywords.list.length
+            ) {
               const mode = (ext.keywords.mode ?? "allow").toLowerCase();
               const matched = ext.keywords.list.some((k) => {
                 if (!k) return false;
-                if (mode === "regex") { try { return new RegExp(k, "i").test(text); } catch { return false; } }
+                if (mode === "regex") {
+                  try {
+                    return new RegExp(k, "i").test(text);
+                  } catch {
+                    return false;
+                  }
+                }
                 return text.toLowerCase().includes(k.toLowerCase());
               });
-              if ((mode === "allow" && !matched) || (mode === "activate" && !matched) || (mode === "block" && matched) || (mode === "ignore" && matched)) {
+              if (
+                (mode === "allow" && !matched) ||
+                (mode === "activate" && !matched) ||
+                (mode === "block" && matched) ||
+                (mode === "ignore" && matched)
+              ) {
                 await supabaseAdmin.from("logs").insert({
-                  user_id: conn.user_id, level: "info", source: `evolution:${instance}`,
-                  message: "blocked by keyword rule", metadata: { remoteJid, mode } as never,
+                  user_id: conn.user_id,
+                  level: "info",
+                  source: `evolution:${instance}`,
+                  message: "blocked by keyword rule",
+                  metadata: { remoteJid, mode } as never,
                 } as never);
                 return Response.json({ ok: true, skippedByKeyword: true });
               }
@@ -1193,20 +1806,41 @@ export const Route = createFileRoute("/api/public/evolution/$instance")({
             // Working hours gate (weekday + window + optional lunch + blockedDates)
             if (ext.hours?.enabled && ext.hours.start && ext.hours.end) {
               const tz = agent.timezone || "America/Sao_Paulo";
-              const fmt = new Intl.DateTimeFormat("en-GB", { timeZone: tz, hour: "2-digit", minute: "2-digit", weekday: "short", year: "numeric", month: "2-digit", day: "2-digit", hour12: false });
+              const fmt = new Intl.DateTimeFormat("en-GB", {
+                timeZone: tz,
+                hour: "2-digit",
+                minute: "2-digit",
+                weekday: "short",
+                year: "numeric",
+                month: "2-digit",
+                day: "2-digit",
+                hour12: false,
+              });
               const parts = fmt.formatToParts(new Date());
               const get = (t: string) => parts.find((p) => p.type === t)?.value ?? "";
               const nowMin = Number(get("hour")) * 60 + Number(get("minute"));
               const wd = get("weekday").toLowerCase();
               const iso = `${get("year")}-${get("month")}-${get("day")}`;
-              const toMin = (s: string) => { const [h, m] = s.split(":").map(Number); return h * 60 + (m || 0); };
+              const toMin = (s: string) => {
+                const [h, m] = s.split(":").map(Number);
+                return h * 60 + (m || 0);
+              };
               const inHours = nowMin >= toMin(ext.hours.start) && nowMin <= toMin(ext.hours.end);
-              const daysOk = !ext.hours.days?.length || ext.hours.days.map((d) => d.toLowerCase().slice(0, 3)).includes(wd);
-              const inLunch = !!(ext.hours.lunch && ext.hours.lunchStart && ext.hours.lunchEnd &&
-                nowMin >= toMin(ext.hours.lunchStart) && nowMin <= toMin(ext.hours.lunchEnd));
+              const daysOk =
+                !ext.hours.days?.length ||
+                ext.hours.days.map((d) => d.toLowerCase().slice(0, 3)).includes(wd);
+              const inLunch = !!(
+                ext.hours.lunch &&
+                ext.hours.lunchStart &&
+                ext.hours.lunchEnd &&
+                nowMin >= toMin(ext.hours.lunchStart) &&
+                nowMin <= toMin(ext.hours.lunchEnd)
+              );
               const blocked = (ext.hours.blockedDates ?? []).includes(iso);
               if (!inHours || !daysOk || inLunch || blocked) {
-                const away = ext.timing?.unknownMsg || "Estamos fora do horário de atendimento. Retornaremos em breve.";
+                const away =
+                  ext.timing?.unknownMsg ||
+                  "Estamos fora do horário de atendimento. Retornaremos em breve.";
                 await sendText(commandConn, recipient, away);
                 return Response.json({ ok: true, offHours: true });
               }
@@ -1217,39 +1851,68 @@ export const Route = createFileRoute("/api/public/evolution/$instance")({
             const singleMessage = !!ext.conversation?.singleMessage;
             if (convo && (waitSec > 0 || singleMessage)) {
               const pendingUntil = new Date(Date.now() + Math.max(waitSec, 3) * 1000).toISOString();
-              const pending = Array.isArray(cmeta.pending_texts) ? cmeta.pending_texts.slice(-10) : [];
+              const pending = Array.isArray(cmeta.pending_texts)
+                ? cmeta.pending_texts.slice(-10)
+                : [];
               pending.push(text);
-              await supabaseAdmin.from("conversations").update({
-                metadata: { ...cmeta, pending_until: pendingUntil, pending_texts: pending },
-              } as never).eq("id", convo.id);
+              await supabaseAdmin
+                .from("conversations")
+                .update({
+                  metadata: { ...cmeta, pending_until: pendingUntil, pending_texts: pending },
+                } as never)
+                .eq("id", convo.id);
 
               const sleepSec = Math.min(Math.max(waitSec, 3), 8);
               if (waitSec > sleepSec) {
                 await supabaseAdmin.from("logs").insert({
-                  user_id: conn.user_id, level: "info", source: `evolution:${instance}`,
-                  message: "debounce capped for webhook runtime", metadata: { remoteJid, configuredWaitSec: waitSec, appliedWaitSec: sleepSec } as never,
+                  user_id: conn.user_id,
+                  level: "info",
+                  source: `evolution:${instance}`,
+                  message: "debounce capped for webhook runtime",
+                  metadata: {
+                    remoteJid,
+                    configuredWaitSec: waitSec,
+                    appliedWaitSec: sleepSec,
+                  } as never,
                 } as never);
               }
               await sleep(sleepSec * 1000);
 
-              const { data: fresh } = await supabaseAdmin.from("conversations")
-                .select("id,metadata").eq("id", convo.id).maybeSingle();
+              const { data: fresh } = await supabaseAdmin
+                .from("conversations")
+                .select("id,metadata")
+                .eq("id", convo.id)
+                .maybeSingle();
               const fm = (fresh?.metadata ?? {}) as ConvMeta;
               // If another message came in after us (pending_until moved forward), let that one respond
-              if (fm.pending_until && new Date(fm.pending_until).getTime() > new Date(pendingUntil).getTime() + 500) {
+              if (
+                fm.pending_until &&
+                new Date(fm.pending_until).getTime() > new Date(pendingUntil).getTime() + 500
+              ) {
                 await supabaseAdmin.from("logs").insert({
-                  user_id: conn.user_id, level: "info", source: `evolution:${instance}`,
+                  user_id: conn.user_id,
+                  level: "info",
+                  source: `evolution:${instance}`,
                   message: "debounced (newer msg took over)",
                   metadata: { remoteJid, mine: pendingUntil, fresh: fm.pending_until } as never,
                 } as never);
                 return Response.json({ ok: true, debounced: true });
               }
               // cancelOnNew: if newer inbound arrived while we waited, abort
-              if (ext.conversation?.cancelOnNew && (fm.pending_texts?.length ?? 0) > pending.length) {
+              if (
+                ext.conversation?.cancelOnNew &&
+                (fm.pending_texts?.length ?? 0) > pending.length
+              ) {
                 await supabaseAdmin.from("logs").insert({
-                  user_id: conn.user_id, level: "info", source: `evolution:${instance}`,
+                  user_id: conn.user_id,
+                  level: "info",
+                  source: `evolution:${instance}`,
                   message: "cancelledByNewer",
-                  metadata: { remoteJid, was: pending.length, now: fm.pending_texts?.length } as never,
+                  metadata: {
+                    remoteJid,
+                    was: pending.length,
+                    now: fm.pending_texts?.length,
+                  } as never,
                 } as never);
                 return Response.json({ ok: true, cancelledByNewer: true });
               }
@@ -1257,15 +1920,21 @@ export const Route = createFileRoute("/api/public/evolution/$instance")({
 
             // Compose full inbound text (single-message merge)
             const { data: convFull } = convo
-              ? await supabaseAdmin.from("conversations").select("metadata").eq("id", convo.id).maybeSingle()
+              ? await supabaseAdmin
+                  .from("conversations")
+                  .select("metadata")
+                  .eq("id", convo.id)
+                  .maybeSingle()
               : { data: null };
             const meta2 = (convFull?.metadata ?? {}) as ConvMeta;
-            const mergedInbound = singleMessage && meta2.pending_texts?.length
-              ? meta2.pending_texts.join("\n")
-              : text;
+            const mergedInbound =
+              singleMessage && meta2.pending_texts?.length ? meta2.pending_texts.join("\n") : text;
 
             // Memory: last N messages of this conversation
-            const memN = Math.max(0, Math.min(100, Number((agent.memory as { messages?: number } | null)?.messages ?? 20)));
+            const memN = Math.max(
+              0,
+              Math.min(100, Number((agent.memory as { messages?: number } | null)?.messages ?? 20)),
+            );
             let history: Array<{ role: "user" | "assistant"; content: string }> = [];
             if (convo && memN > 0) {
               const { data: prev } = await supabaseAdmin
@@ -1277,7 +1946,10 @@ export const Route = createFileRoute("/api/public/evolution/$instance")({
               history = ((prev ?? []) as Array<{ direction: string; content: string }>)
                 .reverse()
                 .filter((r) => r.content)
-                .map((r) => ({ role: r.direction === "outbound" ? "assistant" : "user", content: r.content }));
+                .map((r) => ({
+                  role: r.direction === "outbound" ? "assistant" : "user",
+                  content: r.content,
+                }));
               // Evita duplicar a mensagem atual: ela já foi persistida antes desta
               // consulta e a mensagem "user" real é montada logo abaixo (com mídia).
               // Também remove qualquer sequência de "user" no final (pending merge).
@@ -1288,21 +1960,36 @@ export const Route = createFileRoute("/api/public/evolution/$instance")({
 
             // Build endpoint + key from Configurações Globais (ai_providers ativo do dono da conexão).
             const { resolveAIConfig } = await import("@/lib/ai-resolver.server");
-            const { checkAiBalance, consumeAiTokens, InsufficientCreditsError } = await import("@/lib/ai-credits.server");
-            const { endpoint, apiKey, model: modelId } = await resolveAIConfig(supabaseAdmin, conn.user_id);
+            const { checkAiBalance, consumeAiTokens, InsufficientCreditsError } =
+              await import("@/lib/ai-credits.server");
+            const {
+              endpoint,
+              apiKey,
+              model: modelId,
+            } = await resolveAIConfig(supabaseAdmin, conn.user_id);
 
             // Pre-check AI credit wallet — block gracefully if empty.
             const bal = await checkAiBalance(supabaseAdmin, conn.user_id);
             if (!bal.ok) {
               await supabaseAdmin.from("logs").insert({
-                user_id: conn.user_id, level: "warn", source: `evolution:${instance}`,
-                message: "AI credits exhausted", metadata: { remaining: bal.remaining } as never,
+                user_id: conn.user_id,
+                level: "warn",
+                source: `evolution:${instance}`,
+                message: "AI credits exhausted",
+                metadata: { remaining: bal.remaining } as never,
               } as never);
-              await maybeAlert(supabaseAdmin, commandConn, agent, ext, "Créditos de IA esgotados. Compre créditos para o agente voltar a responder.");
+              await maybeAlert(
+                supabaseAdmin,
+                commandConn,
+                agent,
+                ext,
+                "Créditos de IA esgotados. Compre créditos para o agente voltar a responder.",
+              );
               return Response.json({ ok: true, creditsBlocked: true });
             }
 
-            const { callChatCompletions, extractAssistantText, chatErrorMessage } = await import("@/lib/ai-chat-request.server");
+            const { callChatCompletions, extractAssistantText, chatErrorMessage } =
+              await import("@/lib/ai-chat-request.server");
             // Base de Conhecimento externa (tabela knowledge_documents), escopo user + agent (ou global do user).
             const kbDocs = await (async () => {
               try {
@@ -1314,24 +2001,42 @@ export const Route = createFileRoute("/api/public/evolution/$instance")({
                   .order("updated_at", { ascending: false })
                   .limit(30);
                 return (data ?? []).filter((d) => (d.content ?? "").trim());
-              } catch { return []; }
+              } catch {
+                return [];
+              }
             })();
             const neuralCore = await (async () => {
               try {
                 const { data } = await supabaseAdmin
-                  .from("internal_config").select("value").eq("key", "neural_core").maybeSingle();
+                  .from("internal_config")
+                  .select("value")
+                  .eq("key", "neural_core")
+                  .maybeSingle();
                 const v = (data?.value ?? "").trim();
                 return v || NEURAL_CORE;
-              } catch { return NEURAL_CORE; }
+              } catch {
+                return NEURAL_CORE;
+              }
             })();
             const aiMessages = [
               ...(() => {
-                const kbEnabled = ((agent.memory as { knowledgeEnabled?: boolean } | null)?.knowledgeEnabled ?? true);
-                const items = (agent.knowledge as Array<{ title?: string; content?: string; enabled?: boolean }> | null) ?? [];
-                const kb = kbEnabled ? items.filter((k) => (k.enabled ?? true) && (k.content ?? "").trim()) : [];
+                const kbEnabled =
+                  (agent.memory as { knowledgeEnabled?: boolean } | null)?.knowledgeEnabled ?? true;
+                const items =
+                  (agent.knowledge as Array<{
+                    title?: string;
+                    content?: string;
+                    enabled?: boolean;
+                  }> | null) ?? [];
+                const kb = kbEnabled
+                  ? items.filter((k) => (k.enabled ?? true) && (k.content ?? "").trim())
+                  : [];
                 const kbInline = kb.map((k) => `### ${k.title ?? "Item"}\n${k.content}`);
                 const kbExternal = kbEnabled
-                  ? kbDocs.map((d) => `### ${d.title}${d.source_url ? ` (${d.source_url})` : ""}\n${d.content}`)
+                  ? kbDocs.map(
+                      (d) =>
+                        `### ${d.title}${d.source_url ? ` (${d.source_url})` : ""}\n${d.content}`,
+                    )
                   : [];
                 const kbAll = [...kbInline, ...kbExternal];
                 const kbRules =
@@ -1363,33 +2068,61 @@ export const Route = createFileRoute("/api/public/evolution/$instance")({
                   "Regra: no máximo 1 pergunta por mensagem. Se o assunto for grande, mande só a primeira parte curta e pergunte de forma natural se pode continuar.",
                   "Se a mensagem veio de áudio, já foi transcrita pelo sistema — responda ao conteúdo como uma mensagem normal e nunca diga que não consegue ouvir/transcrever áudio.",
                 ].join("\n");
-                const files = ((agent.tools as { files?: { enabled?: boolean; image?: boolean; pdf?: boolean; document?: boolean; audio?: boolean; video?: boolean; receipts?: "analyze" | "ignore" | "confirm"; receiptReply?: string } } | null)?.files) ?? {};
-                const filesRules = mediaKind ? (() => {
-                  const allowed: Record<string, boolean | undefined> = {
-                    image: files.image ?? true, video: files.video ?? false, audio: files.audio ?? true,
-                    document: (files.pdf ?? true) || (files.document ?? true),
-                  };
-                  const isAllowed = files.enabled === false ? false : (allowed[mediaKind] ?? true);
-                  const receipts = files.receipts ?? "confirm";
-                  const rr = (files.receiptReply ?? "Recebi seu comprovante, obrigado! Vou verificar e já te retorno.").replace(/"/g, '\\"');
-                  return (
-                    "\n\n## Regras para arquivos recebidos (imagem/vídeo/PDF)\n" +
-                    `Tipo do arquivo atual: ${mediaKind}. Interpretação permitida: ${isAllowed ? "sim" : "não"}.\n` +
-                    "NUNCA descreva o que aparece no arquivo (nada de 'vejo uma imagem com...', 'o cartaz diz...', 'no vídeo aparece...', 'o PDF contém...'). Não decifre textos, legendas, cartazes, placas ou frases visíveis. Não liste itens, cores, pessoas ou cenários.\n" +
-                    "Em vez disso, reaja de forma HUMANA e CURTA ao CONTEXTO/SENTIMENTO da mensagem, como uma pessoa reagiria no WhatsApp: se for religioso responda algo como 'Amém 🙏' ou 'Que benção!'; se for boas notícias 'Que legal!' ou 'Que máximo!'; se for triste 'Sinto muito 💙'; se for engraçado 'kkkk muito bom'; se for bom dia/tarde/noite retribua no mesmo tom. Uma frase só, natural, sem explicar o conteúdo.\n" +
-                    "Fluxo: 1) Se o cliente fez uma PERGUNTA direta no texto/caption sobre o arquivo, responda à pergunta de forma curta sem descrever o conteúdo todo. 2) Senão, se parecer COMPROVANTE (pagamento, PIX, boleto, transferência, recibo): " +
-                    (receipts === "analyze" ? "analise normalmente." :
-                     receipts === "ignore" ? "NÃO responda nada (produza mensagem vazia)." :
-                     `NÃO analise — responda EXATAMENTE: "${rr}".`) +
-                    "\n3) Nos demais casos, apenas reaja com naturalidade ao contexto, sem descrever."
-                  );
-                })() : "";
-                const sys = neuralCore + "\n\n" + (agent.system_prompt ?? "") + kbText + filesRules + brevity;
+                const files =
+                  (
+                    agent.tools as {
+                      files?: {
+                        enabled?: boolean;
+                        image?: boolean;
+                        pdf?: boolean;
+                        document?: boolean;
+                        audio?: boolean;
+                        video?: boolean;
+                        receipts?: "analyze" | "ignore" | "confirm";
+                        receiptReply?: string;
+                      };
+                    } | null
+                  )?.files ?? {};
+                const filesRules = mediaKind
+                  ? (() => {
+                      const allowed: Record<string, boolean | undefined> = {
+                        image: files.image ?? true,
+                        video: files.video ?? false,
+                        audio: files.audio ?? true,
+                        document: (files.pdf ?? true) || (files.document ?? true),
+                      };
+                      const isAllowed =
+                        files.enabled === false ? false : (allowed[mediaKind] ?? true);
+                      const receipts = files.receipts ?? "confirm";
+                      const rr = (
+                        files.receiptReply ??
+                        "Recebi seu comprovante, obrigado! Vou verificar e já te retorno."
+                      ).replace(/"/g, '\\"');
+                      return (
+                        "\n\n## Regras para arquivos recebidos (imagem/vídeo/PDF)\n" +
+                        `Tipo do arquivo atual: ${mediaKind}. Interpretação permitida: ${isAllowed ? "sim" : "não"}.\n` +
+                        "NUNCA descreva o que aparece no arquivo (nada de 'vejo uma imagem com...', 'o cartaz diz...', 'no vídeo aparece...', 'o PDF contém...'). Não decifre textos, legendas, cartazes, placas ou frases visíveis. Não liste itens, cores, pessoas ou cenários.\n" +
+                        "Em vez disso, reaja de forma HUMANA e CURTA ao CONTEXTO/SENTIMENTO da mensagem, como uma pessoa reagiria no WhatsApp: se for religioso responda algo como 'Amém 🙏' ou 'Que benção!'; se for boas notícias 'Que legal!' ou 'Que máximo!'; se for triste 'Sinto muito 💙'; se for engraçado 'kkkk muito bom'; se for bom dia/tarde/noite retribua no mesmo tom. Uma frase só, natural, sem explicar o conteúdo.\n" +
+                        "Fluxo: 1) Se o cliente fez uma PERGUNTA direta no texto/caption sobre o arquivo, responda à pergunta de forma curta sem descrever o conteúdo todo. 2) Senão, se parecer COMPROVANTE (pagamento, PIX, boleto, transferência, recibo): " +
+                        (receipts === "analyze"
+                          ? "analise normalmente."
+                          : receipts === "ignore"
+                            ? "NÃO responda nada (produza mensagem vazia)."
+                            : `NÃO analise — responda EXATAMENTE: "${rr}".`) +
+                        "\n3) Nos demais casos, apenas reaja com naturalidade ao contexto, sem descrever."
+                      );
+                    })()
+                  : "";
+                const sys =
+                  neuralCore + "\n\n" + (agent.system_prompt ?? "") + kbText + filesRules + brevity;
                 return sys.trim() ? [{ role: "system" as const, content: sys }] : [];
               })(),
               ...history,
               (() => {
-                if (mediaB64 && (mediaKind === "image" || mediaKind === "document" || mediaKind === "video")) {
+                if (
+                  mediaB64 &&
+                  (mediaKind === "image" || mediaKind === "document" || mediaKind === "video")
+                ) {
                   const dataUri = `data:${mediaMime ?? "application/octet-stream"};base64,${mediaB64}`;
                   const parts: Array<Record<string, unknown>> = [];
                   const caption = (mergedInbound ?? "").trim();
@@ -1400,12 +2133,18 @@ export const Route = createFileRoute("/api/public/evolution/$instance")({
                   if (mediaKind === "image") {
                     parts.push({ type: "image_url", image_url: { url: dataUri } });
                   } else {
-                    parts.push({ type: "file", file: { filename: mediaName ?? "arquivo", file_data: dataUri } });
+                    parts.push({
+                      type: "file",
+                      file: { filename: mediaName ?? "arquivo", file_data: dataUri },
+                    });
                   }
                   return { role: "user" as const, content: parts };
                 }
                 if (inputWasAudio) {
-                  return { role: "user" as const, content: `Áudio do usuário transcrito automaticamente: ${mergedInbound}\n\nResponda ao conteúdo dessa fala como uma mensagem normal do cliente.` };
+                  return {
+                    role: "user" as const,
+                    content: `Áudio do usuário transcrito automaticamente: ${mergedInbound}\n\nResponda ao conteúdo dessa fala como uma mensagem normal do cliente.`,
+                  };
                 }
                 return { role: "user" as const, content: mergedInbound };
               })(),
@@ -1415,8 +2154,16 @@ export const Route = createFileRoute("/api/public/evolution/$instance")({
               // Mostra "digitando..." no WhatsApp enquanto a IA processa
               await sendPresence(commandConn, recipient, "composing", 15_000);
               await supabaseAdmin.from("logs").insert({
-                user_id: conn.user_id, level: "info", source: `evolution:${instance}`,
-                message: "AI request started", metadata: { remoteJid, model: modelId, historyCount: history.length, hasMedia: !!mediaB64 } as never,
+                user_id: conn.user_id,
+                level: "info",
+                source: `evolution:${instance}`,
+                message: "AI request started",
+                metadata: {
+                  remoteJid,
+                  model: modelId,
+                  historyCount: history.length,
+                  hasMedia: !!mediaB64,
+                } as never,
               } as never);
               const { res: aiRes, json } = await callChatCompletions({
                 endpoint,
@@ -1432,14 +2179,31 @@ export const Route = createFileRoute("/api/public/evolution/$instance")({
               const finishReason = aiJson?.choices?.[0]?.finish_reason ?? null;
               const contentLength = String(aiJson?.choices?.[0]?.message?.content ?? "").length;
               await supabaseAdmin.from("logs").insert({
-                user_id: conn.user_id, level: aiRes.ok ? "info" : "error", source: `evolution:${instance}`,
+                user_id: conn.user_id,
+                level: aiRes.ok ? "info" : "error",
+                source: `evolution:${instance}`,
                 message: aiRes.ok ? "AI response received" : chatErrorMessage(aiRes.status, aiJson),
-                metadata: { remoteJid, model: modelId, status: aiRes.status, finishReason, contentLength, usage: aiJson?.usage ?? null, err: aiJson?.error ?? null } as never,
+                metadata: {
+                  remoteJid,
+                  model: modelId,
+                  status: aiRes.status,
+                  finishReason,
+                  contentLength,
+                  usage: aiJson?.usage ?? null,
+                  err: aiJson?.error ?? null,
+                } as never,
               } as never);
             } catch (e) {
               await supabaseAdmin.from("logs").insert({
-                user_id: conn.user_id, level: "error", source: `evolution:${instance}`,
-                message: "AI call failed", metadata: { remoteJid, model: modelId, err: e instanceof Error ? e.message : String(e) } as never,
+                user_id: conn.user_id,
+                level: "error",
+                source: `evolution:${instance}`,
+                message: "AI call failed",
+                metadata: {
+                  remoteJid,
+                  model: modelId,
+                  err: e instanceof Error ? e.message : String(e),
+                } as never,
               } as never);
             }
             let reply = extractAssistantText(aiJson) ?? "";
@@ -1448,15 +2212,24 @@ export const Route = createFileRoute("/api/public/evolution/$instance")({
             const finish = aiJson?.choices?.[0]?.finish_reason ?? null;
             if (!reply && finish === "length") {
               try {
-                const { callChatCompletions: retryCall } = await import("@/lib/ai-chat-request.server");
+                const { callChatCompletions: retryCall } =
+                  await import("@/lib/ai-chat-request.server");
                 const retryMessages = [
                   ...aiMessages,
-                  { role: "system" as const, content: "Responda AGORA em UMA única frase curta (máx. 180 caracteres), sem listas nem títulos. Se o assunto for longo, mande só a primeira parte e pergunte se pode continuar." },
+                  {
+                    role: "system" as const,
+                    content:
+                      "Responda AGORA em UMA única frase curta (máx. 180 caracteres), sem listas nem títulos. Se o assunto for longo, mande só a primeira parte e pergunte se pode continuar.",
+                  },
                 ];
                 const { json: retryJson } = await retryCall({
-                  endpoint, apiKey, model: modelId,
+                  endpoint,
+                  apiKey,
+                  model: modelId,
                   temperature: Number(agent.temperature ?? 0.7),
-                  maxTokens: 600, timeoutMs: 45_000, maxAttempts: 1,
+                  maxTokens: 600,
+                  timeoutMs: 45_000,
+                  maxAttempts: 1,
                   messages: retryMessages,
                 });
                 aiJson = retryJson;
@@ -1464,9 +2237,20 @@ export const Route = createFileRoute("/api/public/evolution/$instance")({
                 try {
                   const it = Number(retryJson?.usage?.prompt_tokens ?? 0);
                   const ot = Number(retryJson?.usage?.completion_tokens ?? 0);
-                  if (it || ot) await consumeAiTokens(supabaseAdmin, { userId: conn.user_id, agentId: agent.id, model: modelId, inputTokens: it, outputTokens: ot });
-                } catch { /* ignore debit errors on retry */ }
-              } catch { /* fall through to fallback below */ }
+                  if (it || ot)
+                    await consumeAiTokens(supabaseAdmin, {
+                      userId: conn.user_id,
+                      agentId: agent.id,
+                      model: modelId,
+                      inputTokens: it,
+                      outputTokens: ot,
+                    });
+                } catch {
+                  /* ignore debit errors on retry */
+                }
+              } catch {
+                /* fall through to fallback below */
+              }
             }
             // Debit tokens consumed from the wallet. Block on 402/insufficient.
             try {
@@ -1484,32 +2268,63 @@ export const Route = createFileRoute("/api/public/evolution/$instance")({
             } catch (e) {
               if (e instanceof InsufficientCreditsError) {
                 await supabaseAdmin.from("logs").insert({
-                  user_id: conn.user_id, level: "warn", source: `evolution:${instance}`,
-                  message: "AI credits insufficient on debit", metadata: { remaining: e.remaining } as never,
+                  user_id: conn.user_id,
+                  level: "warn",
+                  source: `evolution:${instance}`,
+                  message: "AI credits insufficient on debit",
+                  metadata: { remaining: e.remaining } as never,
                 } as never);
-                await maybeAlert(supabaseAdmin, commandConn, agent, ext, "Créditos de IA esgotados. Compre créditos para o agente voltar a responder.");
+                await maybeAlert(
+                  supabaseAdmin,
+                  commandConn,
+                  agent,
+                  ext,
+                  "Créditos de IA esgotados. Compre créditos para o agente voltar a responder.",
+                );
                 return Response.json({ ok: true, creditsBlocked: true });
               }
               throw e;
             }
             if (!reply) {
-              reply = (ext.timing?.unknownMsg ?? "").trim() || "Desculpe, não consegui gerar uma resposta agora. Pode repetir?";
+              reply =
+                (ext.timing?.unknownMsg ?? "").trim() ||
+                "Desculpe, não consegui gerar uma resposta agora. Pode repetir?";
               await supabaseAdmin.from("logs").insert({
-                user_id: conn.user_id, level: "warn", source: `evolution:${instance}`,
-                message: "AI empty response; fallback reply selected", metadata: { remoteJid, model: modelId, replyLength: reply.length } as never,
+                user_id: conn.user_id,
+                level: "warn",
+                source: `evolution:${instance}`,
+                message: "AI empty response; fallback reply selected",
+                metadata: { remoteJid, model: modelId, replyLength: reply.length } as never,
               } as never);
             }
             reply = reply.trim();
 
             // Enforce plan send quota (daily/monthly) before dispatch
-            const { data: quota } = await supabaseAdmin.rpc("consume_send_quota" as never, { _user_id: conn.user_id } as never);
-            const q = (quota ?? {}) as { allowed?: boolean; reason?: string; limit?: number; used?: number };
+            const { data: quota } = await supabaseAdmin.rpc(
+              "consume_send_quota" as never,
+              { _user_id: conn.user_id } as never,
+            );
+            const q = (quota ?? {}) as {
+              allowed?: boolean;
+              reason?: string;
+              limit?: number;
+              used?: number;
+            };
             if (q && q.allowed === false) {
               await supabaseAdmin.from("logs").insert({
-                user_id: conn.user_id, level: "warn", source: `evolution:${instance}`,
-                message: `quota exceeded: ${q.reason}`, metadata: q as never,
+                user_id: conn.user_id,
+                level: "warn",
+                source: `evolution:${instance}`,
+                message: `quota exceeded: ${q.reason}`,
+                metadata: q as never,
               } as never);
-              await maybeAlert(supabaseAdmin, commandConn, agent, ext, `Cota atingida: ${q.reason}`);
+              await maybeAlert(
+                supabaseAdmin,
+                commandConn,
+                agent,
+                ext,
+                `Cota atingida: ${q.reason}`,
+              );
               return Response.json({ ok: true, quotaBlocked: true, reason: q.reason });
             }
 
@@ -1533,8 +2348,17 @@ export const Route = createFileRoute("/api/public/evolution/$instance")({
                 if (!it.storage_path) continue;
                 const shouldSend =
                   it.mode === "all" ||
-                  (it.mode === "keyword" && (it.keywords ?? "").split(",").map((k) => k.trim().toLowerCase()).filter(Boolean).some((k) => text!.toLowerCase().includes(k))) ||
-                  (it.mode === "ai" && (it.description ?? "") && reply.toLowerCase().includes((it.description ?? "").toLowerCase().slice(0, 20)));
+                  (it.mode === "keyword" &&
+                    (it.keywords ?? "")
+                      .split(",")
+                      .map((k) => k.trim().toLowerCase())
+                      .filter(Boolean)
+                      .some((k) => text!.toLowerCase().includes(k))) ||
+                  (it.mode === "ai" &&
+                    (it.description ?? "") &&
+                    reply
+                      .toLowerCase()
+                      .includes((it.description ?? "").toLowerCase().slice(0, 20)));
                 if (!shouldSend) continue;
                 const url = await signedMediaUrl(supabaseAdmin, it.storage_path);
                 if (!url) continue;
@@ -1544,10 +2368,11 @@ export const Route = createFileRoute("/api/public/evolution/$instance")({
             }
 
             // Decide audio vs text reply
-            const wantsAudio = !!ext.audio?.enabled && (
-              (ext.audio.mirrorFormat && inputWasAudio) ||
-              (ext.audio.smartAudio && reply.length >= Math.max(30, Number(ext.audio.smartAudioChars ?? 120)))
-            );
+            const wantsAudio =
+              !!ext.audio?.enabled &&
+              ((ext.audio.mirrorFormat && inputWasAudio) ||
+                (ext.audio.smartAudio &&
+                  reply.length >= Math.max(30, Number(ext.audio.smartAudioChars ?? 120))));
             let sendRes: Response | null = null;
             if (wantsAudio) {
               try {
@@ -1557,8 +2382,11 @@ export const Route = createFileRoute("/api/public/evolution/$instance")({
                 }
               } catch (e) {
                 await supabaseAdmin.from("logs").insert({
-                  user_id: conn.user_id, level: "warn", source: `evolution:${instance}`,
-                  message: "tts failed", metadata: { err: e instanceof Error ? e.message : String(e) } as never,
+                  user_id: conn.user_id,
+                  level: "warn",
+                  source: `evolution:${instance}`,
+                  message: "tts failed",
+                  metadata: { err: e instanceof Error ? e.message : String(e) } as never,
                 } as never);
               }
             }
@@ -1569,20 +2397,35 @@ export const Route = createFileRoute("/api/public/evolution/$instance")({
             let sendBody = "";
             if (sendRes) {
               sendBody = await sendRes.text().catch(() => "");
-              try { sendJson = sendBody ? JSON.parse(sendBody) : null; } catch { sendJson = null; }
+              try {
+                sendJson = sendBody ? JSON.parse(sendBody) : null;
+              } catch {
+                sendJson = null;
+              }
             }
             if (sendRes && !sendRes.ok) {
               await supabaseAdmin.from("logs").insert({
-                user_id: conn.user_id, level: "error", source: `evolution:${instance}`,
-                message: `send failed ${sendRes.status}`, metadata: { recipient, body: sendBody.slice(0, 500) },
+                user_id: conn.user_id,
+                level: "error",
+                source: `evolution:${instance}`,
+                message: `send failed ${sendRes.status}`,
+                metadata: { recipient, body: sendBody.slice(0, 500) },
               } as never);
-              await maybeAlert(supabaseAdmin, commandConn, agent, ext, `Falha ao enviar (${sendRes.status})`);
+              await maybeAlert(
+                supabaseAdmin,
+                commandConn,
+                agent,
+                ext,
+                `Falha ao enviar (${sendRes.status})`,
+              );
             }
             void mediaSent;
 
             if (convo) {
               const evoId = findEvoId(sendJson);
-              const status = normalizeEvoStatus(sendJson?.status ?? sendJson?.ack ?? sendJson?.messageStatus) ?? (sendRes?.ok ? "sent" : null);
+              const status =
+                normalizeEvoStatus(sendJson?.status ?? sendJson?.ack ?? sendJson?.messageStatus) ??
+                (sendRes?.ok ? "sent" : null);
               await supabaseAdmin.from("messages").insert({
                 user_id: conn.user_id,
                 conversation_id: convo.id,
@@ -1605,14 +2448,23 @@ export const Route = createFileRoute("/api/public/evolution/$instance")({
             // Clear debounce buffer and (optionally) unread badge
             if (convo) {
               const clearMeta: ConvMeta = { ...meta2, pending_texts: [], pending_until: undefined };
-              const patch: Record<string, unknown> = { metadata: clearMeta, last_message_at: new Date().toISOString() };
+              const patch: Record<string, unknown> = {
+                metadata: clearMeta,
+                last_message_at: new Date().toISOString(),
+              };
               if (!ext.conversation?.keepUnread) patch.unread_count = 0;
-              await supabaseAdmin.from("conversations").update(patch as never).eq("id", convo.id);
+              await supabaseAdmin
+                .from("conversations")
+                .update(patch as never)
+                .eq("id", convo.id);
             }
           } catch (e) {
             await supabaseAdmin.from("logs").insert({
-              user_id: conn.user_id, level: "error", source: `evolution:${instance}`,
-              message: e instanceof Error ? e.message : "agent runtime error", metadata: {},
+              user_id: conn.user_id,
+              level: "error",
+              source: `evolution:${instance}`,
+              message: e instanceof Error ? e.message : "agent runtime error",
+              metadata: {},
             } as never);
           }
         }
@@ -1625,9 +2477,15 @@ export const Route = createFileRoute("/api/public/evolution/$instance")({
   },
 });
 
-function sleep(ms: number) { return new Promise((r) => setTimeout(r, ms)); }
+function sleep(ms: number) {
+  return new Promise((r) => setTimeout(r, ms));
+}
 
-async function sendText(conn: { url_api: string | null; api_key: string | null; instance_name: string | null }, number: string, text: string) {
+async function sendText(
+  conn: { url_api: string | null; api_key: string | null; instance_name: string | null },
+  number: string,
+  text: string,
+) {
   return fetch(`${normalizeBaseUrl(conn.url_api ?? "")}/message/sendText/${conn.instance_name}`, {
     method: "POST",
     headers: { "Content-Type": "application/json", apikey: conn.api_key ?? "" },
@@ -1647,22 +2505,40 @@ async function sendPresence(
       headers: { "Content-Type": "application/json", apikey: conn.api_key ?? "" },
       body: JSON.stringify({ number, delay: Math.max(1000, Math.min(delayMs, 20_000)), presence }),
     });
-  } catch { /* best-effort — presença é opcional */ }
+  } catch {
+    /* best-effort — presença é opcional */
+  }
 }
 
-async function sendAudio(conn: { url_api: string | null; api_key: string | null; instance_name: string | null }, number: string, audioBase64: string) {
-  return fetch(`${normalizeBaseUrl(conn.url_api ?? "")}/message/sendWhatsAppAudio/${conn.instance_name}`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json", apikey: conn.api_key ?? "" },
-    body: JSON.stringify({ number, audio: audioBase64 }),
-  });
+async function sendAudio(
+  conn: { url_api: string | null; api_key: string | null; instance_name: string | null },
+  number: string,
+  audioBase64: string,
+) {
+  return fetch(
+    `${normalizeBaseUrl(conn.url_api ?? "")}/message/sendWhatsAppAudio/${conn.instance_name}`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json", apikey: conn.api_key ?? "" },
+      body: JSON.stringify({ number, audio: audioBase64 }),
+    },
+  );
 }
 
 async function sendMedia(
   conn: { url_api: string | null; api_key: string | null; instance_name: string | null },
-  number: string, url: string, mime: string, fileName: string,
+  number: string,
+  url: string,
+  mime: string,
+  fileName: string,
 ) {
-  const mediatype = mime.startsWith("image/") ? "image" : mime.startsWith("video/") ? "video" : mime.startsWith("audio/") ? "audio" : "document";
+  const mediatype = mime.startsWith("image/")
+    ? "image"
+    : mime.startsWith("video/")
+      ? "video"
+      : mime.startsWith("audio/")
+        ? "audio"
+        : "document";
   return fetch(`${normalizeBaseUrl(conn.url_api ?? "")}/message/sendMedia/${conn.instance_name}`, {
     method: "POST",
     headers: { "Content-Type": "application/json", apikey: conn.api_key ?? "" },
@@ -1670,11 +2546,19 @@ async function sendMedia(
   });
 }
 
-async function signedMediaUrl(db: { storage: { from: (b: string) => { createSignedUrl: (p: string, s: number) => Promise<{ data: { signedUrl: string } | null }> } } }, path: string) {
+async function signedMediaUrl(
+  db: {
+    storage: {
+      from: (b: string) => {
+        createSignedUrl: (p: string, s: number) => Promise<{ data: { signedUrl: string } | null }>;
+      };
+    };
+  },
+  path: string,
+) {
   const { data } = await db.storage.from("agent-media").createSignedUrl(path, 60 * 10);
   return data?.signedUrl ?? null;
 }
-
 
 async function readRequestTextLimited(request: Request, maxBytes: number) {
   if (!request.body) return "";
@@ -1687,7 +2571,11 @@ async function readRequestTextLimited(request: Request, maxBytes: number) {
     if (!value) continue;
     total += value.byteLength;
     if (total > maxBytes) {
-      try { await reader.cancel(); } catch { /* ignore */ }
+      try {
+        await reader.cancel();
+      } catch {
+        /* ignore */
+      }
       throw new PayloadTooLargeError(total);
     }
     chunks.push(value);
@@ -1705,16 +2593,26 @@ function concatUint8(chunks: Uint8Array[], total: number) {
   return out;
 }
 
-async function disableWebhookBase64(conn: { url_api: string | null; api_key: string | null; instance_name: string | null }) {
+async function disableWebhookBase64(conn: {
+  url_api: string | null;
+  api_key: string | null;
+  instance_name: string | null;
+}) {
   const base = normalizeBaseUrl(conn.url_api ?? "");
   const found = await fetch(`${base}/webhook/find/${conn.instance_name}`, {
     headers: { apikey: conn.api_key ?? "" },
   });
-  const raw = await found.json().catch(() => ({} as any));
+  const raw = await found.json().catch(() => ({}) as any);
   const cur = raw?.webhook ?? raw;
   const url = cur?.url ?? cur?.webhookUrl;
   if (!url) return;
-  const events = cur?.events ?? ["MESSAGES_UPSERT", "MESSAGES_UPDATE", "CONNECTION_UPDATE", "QRCODE_UPDATED", "PRESENCE_UPDATE"];
+  const events = cur?.events ?? [
+    "MESSAGES_UPSERT",
+    "MESSAGES_UPDATE",
+    "CONNECTION_UPDATE",
+    "QRCODE_UPDATED",
+    "PRESENCE_UPDATE",
+  ];
   const byEvents = cur?.webhookByEvents ?? cur?.webhook_by_events ?? cur?.byEvents ?? false;
   const webhook = {
     enabled: true,
@@ -1738,14 +2636,18 @@ function sanitizeWebhookPayload(value: unknown, depth = 0): unknown {
   if (depth > 8) return "[truncated]";
   if (typeof value === "string") {
     const clean = stripDataUri(value.trim());
-    if (clean.length > 100 && /^[A-Za-z0-9+/=\r\n]+$/.test(clean)) return `[base64:${clean.length}chars]`;
+    if (clean.length > 100 && /^[A-Za-z0-9+/=\r\n]+$/.test(clean))
+      return `[base64:${clean.length}chars]`;
     return value.length > 2000 ? `${value.slice(0, 2000)}…` : value;
   }
-  if (Array.isArray(value)) return value.slice(0, 50).map((item) => sanitizeWebhookPayload(item, depth + 1));
+  if (Array.isArray(value))
+    return value.slice(0, 50).map((item) => sanitizeWebhookPayload(item, depth + 1));
   if (!value || typeof value !== "object") return value;
   const out: Record<string, unknown> = {};
   for (const [key, val] of Object.entries(value as Record<string, unknown>)) {
-    out[key] = key.toLowerCase().includes("base64") ? "[base64]" : sanitizeWebhookPayload(val, depth + 1);
+    out[key] = key.toLowerCase().includes("base64")
+      ? "[base64]"
+      : sanitizeWebhookPayload(val, depth + 1);
   }
   return out;
 }
@@ -1778,7 +2680,8 @@ function findPlayableMediaUrl(value: unknown, depth = 0): string | null {
   const record = value as Record<string, unknown>;
   for (const key of ["mediaUrl", "media_url", "downloadUrl", "fileUrl", "publicUrl", "signedUrl"]) {
     const url = record[key];
-    if (typeof url === "string" && /^https?:\/\//i.test(url) && !url.includes("mmg.whatsapp.net")) return url;
+    if (typeof url === "string" && /^https?:\/\//i.test(url) && !url.includes("mmg.whatsapp.net"))
+      return url;
   }
   for (const nested of Object.values(record)) {
     const found = findPlayableMediaUrl(nested, depth + 1);
@@ -1797,13 +2700,16 @@ async function downloadEvolutionMediaToStorage(
   fileName: string,
   declaredBytes: number | null,
 ): Promise<{ path: string; url: string | null; mime: string } | null> {
-  if (declaredBytes && declaredBytes > MAX_INBOUND_MEDIA_BYTES) throw new MediaTooLargeError(declaredBytes);
+  if (declaredBytes && declaredBytes > MAX_INBOUND_MEDIA_BYTES)
+    throw new MediaTooLargeError(declaredBytes);
   const contentType = mime || "application/octet-stream";
   const safeName = fileName.replace(/[^a-zA-Z0-9._-]+/g, "-").slice(0, 80) || "media";
-  const ext = safeName.includes(".") ? "" : `.${(contentType.split("/")[1] || "bin").split(";")[0]}`;
+  const ext = safeName.includes(".")
+    ? ""
+    : `.${(contentType.split("/")[1] || "bin").split(";")[0]}`;
   const path = `${userId}/${conversationId}/${Date.now()}-${crypto.randomUUID()}-${safeName}${ext}`;
   const endpoint = `${normalizeBaseUrl(conn.url_api ?? "")}/chat/downloadMediaMessage/${conn.instance_name}`;
-  const record = message && typeof message === "object" ? message as Record<string, unknown> : {};
+  const record = message && typeof message === "object" ? (message as Record<string, unknown>) : {};
   const bodies = [
     { message: { key: record.key }, convertToMp4: false },
     { message: { key: record.key, message: record.message }, convertToMp4: false },
@@ -1824,12 +2730,19 @@ async function downloadEvolutionMediaToStorage(
 
     const responseType = r.headers.get("content-type") ?? contentType;
     if (responseType.includes("application/json")) {
-      const json = await r.json().catch(() => null) as unknown;
+      const json = (await r.json().catch(() => null)) as unknown;
       const directUrl = findPlayableMediaUrl(json);
       if (directUrl) return { path: "", url: directUrl, mime: contentType };
       const b64 = findBase64(json);
       if (b64) {
-        const saved = await saveMediaToStorage(db, userId, conversationId, b64, contentType, fileName);
+        const saved = await saveMediaToStorage(
+          db,
+          userId,
+          conversationId,
+          b64,
+          contentType,
+          fileName,
+        );
         return { path: saved.path, url: saved.url, mime: contentType };
       }
       continue;
@@ -1838,10 +2751,18 @@ async function downloadEvolutionMediaToStorage(
     if (responseType.startsWith("text/")) {
       const text = await r.text().catch(() => "");
       const directUrl = /^https?:\/\//i.test(text.trim()) ? text.trim() : null;
-      if (directUrl && !directUrl.includes("mmg.whatsapp.net")) return { path: "", url: directUrl, mime: contentType };
+      if (directUrl && !directUrl.includes("mmg.whatsapp.net"))
+        return { path: "", url: directUrl, mime: contentType };
       const b64 = findBase64(text);
       if (b64) {
-        const saved = await saveMediaToStorage(db, userId, conversationId, b64, contentType, fileName);
+        const saved = await saveMediaToStorage(
+          db,
+          userId,
+          conversationId,
+          b64,
+          contentType,
+          fileName,
+        );
         return { path: saved.path, url: saved.url, mime: contentType };
       }
       continue;
@@ -1857,7 +2778,15 @@ async function downloadEvolutionMediaToStorage(
     return { path, url: data?.signedUrl ?? null, mime: responseType || contentType };
   }
 
-  return downloadWhatsAppEncryptedMediaToStorage(db, userId, conversationId, message, contentType, fileName, declaredBytes);
+  return downloadWhatsAppEncryptedMediaToStorage(
+    db,
+    userId,
+    conversationId,
+    message,
+    contentType,
+    fileName,
+    declaredBytes,
+  );
 }
 
 async function downloadWhatsAppEncryptedMediaToStorage(
@@ -1869,24 +2798,28 @@ async function downloadWhatsAppEncryptedMediaToStorage(
   fileName: string,
   declaredBytes: number | null,
 ): Promise<{ path: string; url: string | null; mime: string } | null> {
-  if (declaredBytes && declaredBytes > MAX_INBOUND_MEDIA_BYTES) throw new MediaTooLargeError(declaredBytes);
+  if (declaredBytes && declaredBytes > MAX_INBOUND_MEDIA_BYTES)
+    throw new MediaTooLargeError(declaredBytes);
   const found = findWhatsAppMedia(message);
   if (!found?.media) return null;
   const media = found.media as Record<string, unknown>;
   const mediaKey = bytesFromBinaryLike(media.mediaKey);
-  const sourceUrl = typeof media.url === "string" && /^https?:\/\//i.test(media.url)
-    ? media.url
-    : typeof media.directPath === "string"
-      ? `https://mmg.whatsapp.net${media.directPath}`
-      : null;
+  const sourceUrl =
+    typeof media.url === "string" && /^https?:\/\//i.test(media.url)
+      ? media.url
+      : typeof media.directPath === "string"
+        ? `https://mmg.whatsapp.net${media.directPath}`
+        : null;
   if (!mediaKey || !sourceUrl) return null;
 
   const res = await fetch(sourceUrl);
   if (!res.ok) return null;
   const encrypted = new Uint8Array(await res.arrayBuffer());
-  if (encrypted.byteLength > MAX_INBOUND_MEDIA_BYTES + 1024 * 1024) throw new MediaTooLargeError(encrypted.byteLength);
+  if (encrypted.byteLength > MAX_INBOUND_MEDIA_BYTES + 1024 * 1024)
+    throw new MediaTooLargeError(encrypted.byteLength);
   const decrypted = await decryptWhatsAppMedia(encrypted, mediaKey, found.kind);
-  if (decrypted.byteLength > MAX_INBOUND_MEDIA_BYTES) throw new MediaTooLargeError(decrypted.byteLength);
+  if (decrypted.byteLength > MAX_INBOUND_MEDIA_BYTES)
+    throw new MediaTooLargeError(decrypted.byteLength);
 
   const safeName = fileName.replace(/[^a-zA-Z0-9._-]+/g, "-").slice(0, 80) || "media";
   const ext = safeName.includes(".") ? "" : `.${(mime.split("/")[1] || "bin").split(";")[0]}`;
@@ -1900,7 +2833,10 @@ async function downloadWhatsAppEncryptedMediaToStorage(
   return { path, url: data?.signedUrl ?? null, mime };
 }
 
-function findWhatsAppMedia(value: unknown, depth = 0): { kind: "image" | "video" | "audio" | "document" | "sticker"; media: unknown } | null {
+function findWhatsAppMedia(
+  value: unknown,
+  depth = 0,
+): { kind: "image" | "video" | "audio" | "document" | "sticker"; media: unknown } | null {
   if (!value || depth > 8) return null;
   if (Array.isArray(value)) {
     for (const item of value) {
@@ -1912,8 +2848,12 @@ function findWhatsAppMedia(value: unknown, depth = 0): { kind: "image" | "video"
   if (typeof value !== "object") return null;
   const record = value as Record<string, unknown>;
   const keys: Array<[string, "image" | "video" | "audio" | "document" | "sticker"]> = [
-    ["imageMessage", "image"], ["videoMessage", "video"], ["ptvMessage", "video"],
-    ["audioMessage", "audio"], ["documentMessage", "document"], ["stickerMessage", "sticker"],
+    ["imageMessage", "image"],
+    ["videoMessage", "video"],
+    ["ptvMessage", "video"],
+    ["audioMessage", "audio"],
+    ["documentMessage", "document"],
+    ["stickerMessage", "sticker"],
   ];
   for (const [key, kind] of keys) {
     if (record[key]) return { kind, media: record[key] };
@@ -1928,9 +2868,14 @@ function findWhatsAppMedia(value: unknown, depth = 0): { kind: "image" | "video"
 function bytesFromBinaryLike(value: unknown): Uint8Array | null {
   if (!value) return null;
   if (value instanceof Uint8Array) return value;
-  if (Array.isArray(value) && value.every((n) => typeof n === "number")) return Uint8Array.from(value);
+  if (Array.isArray(value) && value.every((n) => typeof n === "number"))
+    return Uint8Array.from(value);
   if (typeof value === "string") {
-    try { return Uint8Array.from(Buffer.from(value, "base64")); } catch { return null; }
+    try {
+      return Uint8Array.from(Buffer.from(value, "base64"));
+    } catch {
+      return null;
+    }
   }
   if (typeof value === "object") {
     const record = value as Record<string, unknown>;
@@ -1943,42 +2888,80 @@ function bytesFromBinaryLike(value: unknown): Uint8Array | null {
   return null;
 }
 
-function extractWhatsAppMediaJob(msg: unknown): { directPath: string; mediaKeyB64: string; kind: "video" | "image" | "audio" | "document" | "sticker"; mime: string | null; fileName: string | null; declaredBytes: number | null } | null {
+function extractWhatsAppMediaJob(msg: unknown): {
+  directPath: string;
+  mediaKeyB64: string;
+  kind: "video" | "image" | "audio" | "document" | "sticker";
+  mime: string | null;
+  fileName: string | null;
+  declaredBytes: number | null;
+} | null {
   const found = findWhatsAppMedia(msg);
   if (!found) return null;
   const media = found.media as Record<string, unknown>;
-  const directPath = typeof media.directPath === "string"
-    ? media.directPath
-    : typeof media.url === "string" && /^https?:\/\//i.test(media.url)
-      ? media.url
-      : null;
+  const directPath =
+    typeof media.directPath === "string"
+      ? media.directPath
+      : typeof media.url === "string" && /^https?:\/\//i.test(media.url)
+        ? media.url
+        : null;
   const mediaKeyBytes = bytesFromBinaryLike(media.mediaKey);
   if (!directPath || !mediaKeyBytes) return null;
   const declaredBytes = mediaFileLength(media);
-  if (found.kind === "video" && declaredBytes && declaredBytes > MAX_QUEUED_VIDEO_BYTES) return null;
+  if (found.kind === "video" && declaredBytes && declaredBytes > MAX_QUEUED_VIDEO_BYTES)
+    return null;
   const mediaKeyB64 = Buffer.from(mediaKeyBytes).toString("base64");
   const mime = typeof media.mimetype === "string" ? media.mimetype : null;
   const fileName = typeof media.fileName === "string" ? media.fileName : null;
   return { directPath, mediaKeyB64, kind: found.kind, mime, fileName, declaredBytes };
 }
 
-async function decryptWhatsAppMedia(encryptedWithMac: Uint8Array, mediaKey: Uint8Array, kind: "image" | "video" | "audio" | "document" | "sticker") {
-  const info = kind === "video" ? "WhatsApp Video Keys"
-    : kind === "audio" ? "WhatsApp Audio Keys"
-      : kind === "document" ? "WhatsApp Document Keys"
-        : "WhatsApp Image Keys";
+async function decryptWhatsAppMedia(
+  encryptedWithMac: Uint8Array,
+  mediaKey: Uint8Array,
+  kind: "image" | "video" | "audio" | "document" | "sticker",
+) {
+  const info =
+    kind === "video"
+      ? "WhatsApp Video Keys"
+      : kind === "audio"
+        ? "WhatsApp Audio Keys"
+        : kind === "document"
+          ? "WhatsApp Document Keys"
+          : "WhatsApp Image Keys";
   const material = await hkdf(mediaKey, info, 112);
   const iv = material.slice(0, 16);
   const cipherKey = material.slice(16, 48);
   const encrypted = encryptedWithMac.slice(0, Math.max(0, encryptedWithMac.byteLength - 10));
-  const key = await crypto.subtle.importKey("raw", arrayBufferFrom(cipherKey), { name: "AES-CBC" }, false, ["decrypt"]);
-  const out = await crypto.subtle.decrypt({ name: "AES-CBC", iv: arrayBufferFrom(iv) }, key, arrayBufferFrom(encrypted));
+  const key = await crypto.subtle.importKey(
+    "raw",
+    arrayBufferFrom(cipherKey),
+    { name: "AES-CBC" },
+    false,
+    ["decrypt"],
+  );
+  const out = await crypto.subtle.decrypt(
+    { name: "AES-CBC", iv: arrayBufferFrom(iv) },
+    key,
+    arrayBufferFrom(encrypted),
+  );
   return new Uint8Array(out);
 }
 
 async function hkdf(keyMaterial: Uint8Array, infoText: string, length: number) {
-  const key = await crypto.subtle.importKey("raw", arrayBufferFrom(keyMaterial), "HKDF", false, ["deriveBits"]);
-  const bits = await crypto.subtle.deriveBits({ name: "HKDF", hash: "SHA-256", salt: arrayBufferFrom(new Uint8Array(32)), info: arrayBufferFrom(new TextEncoder().encode(infoText)) }, key, length * 8);
+  const key = await crypto.subtle.importKey("raw", arrayBufferFrom(keyMaterial), "HKDF", false, [
+    "deriveBits",
+  ]);
+  const bits = await crypto.subtle.deriveBits(
+    {
+      name: "HKDF",
+      hash: "SHA-256",
+      salt: arrayBufferFrom(new Uint8Array(32)),
+      info: arrayBufferFrom(new TextEncoder().encode(infoText)),
+    },
+    key,
+    length * 8,
+  );
   return new Uint8Array(bits);
 }
 
@@ -2000,7 +2983,7 @@ async function evolutionGetBase64(
   evoId?: string | null,
 ): Promise<string | null> {
   const endpoint = `${normalizeBaseUrl(conn.url_api ?? "")}/chat/getBase64FromMediaMessage/${conn.instance_name}`;
-  const record = message && typeof message === "object" ? message as Record<string, unknown> : {};
+  const record = message && typeof message === "object" ? (message as Record<string, unknown>) : {};
   const bodies = [
     { message: { key: record.key }, convertToMp4: false, convertToMp3 },
     { message: { key: record.key, message: record.message }, convertToMp4: false, convertToMp3 },
@@ -2015,7 +2998,11 @@ async function evolutionGetBase64(
     });
     const text = await r.text().catch(() => "");
     let json: unknown = null;
-    try { json = text ? JSON.parse(text) : null; } catch { json = null; }
+    try {
+      json = text ? JSON.parse(text) : null;
+    } catch {
+      json = null;
+    }
     const b64 = findBase64(json) ?? findBase64(text);
     if (r.ok && b64) return b64;
     if (db && userId) {
@@ -2024,7 +3011,13 @@ async function evolutionGetBase64(
         level: r.ok ? "warn" : "error",
         source: "evolution:get-base64",
         message: r.ok ? "base64 not found in response" : `getBase64 failed: HTTP ${r.status}`,
-        metadata: { remoteJid, kind, declaredBytes, evoId, responsePreview: text.slice(0, 500) } as never,
+        metadata: {
+          remoteJid,
+          kind,
+          declaredBytes,
+          evoId,
+          responsePreview: text.slice(0, 500),
+        } as never,
       } as never);
     }
   }
@@ -2032,10 +3025,14 @@ async function evolutionGetBase64(
 }
 
 function mediaLabel(kind: "image" | "video" | "audio" | "document" | "sticker") {
-  return kind === "audio" ? "[áudio]"
-    : kind === "video" ? "[vídeo]"
-      : kind === "image" ? "[imagem]"
-        : kind === "sticker" ? "[figurinha]"
+  return kind === "audio"
+    ? "[áudio]"
+    : kind === "video"
+      ? "[vídeo]"
+      : kind === "image"
+        ? "[imagem]"
+        : kind === "sticker"
+          ? "[figurinha]"
           : "[arquivo]";
 }
 
@@ -2058,7 +3055,9 @@ function phoneVariants(value: string) {
 }
 
 function jidVariants(remoteJid: string) {
-  const suffix = remoteJid.includes("@") ? remoteJid.slice(remoteJid.indexOf("@")) : "@s.whatsapp.net";
+  const suffix = remoteJid.includes("@")
+    ? remoteJid.slice(remoteJid.indexOf("@"))
+    : "@s.whatsapp.net";
   return phoneVariants(remoteJid.split("@")[0] ?? remoteJid).map((phone) => `${phone}${suffix}`);
 }
 
@@ -2133,25 +3132,73 @@ function findBase64(value: unknown, depth = 0): string | null {
   return null;
 }
 
-type SttResult = { text: string | null; mime: string; ext: string; bytes: number; status?: number; error?: string };
+type SttResult = {
+  text: string | null;
+  mime: string;
+  ext: string;
+  bytes: number;
+  status?: number;
+  error?: string;
+};
+
+async function transcribeInboundAudio(
+  supabase: Parameters<typeof transcribeAudioBase64>[0]["supabase"],
+  userId: string,
+  audioBase64: string,
+  mime?: string | null,
+): Promise<AudioTranscriptionResult> {
+  return transcribeAudioBase64({ supabase, userId, audioBase64, mime });
+}
 
 async function sttViaLovable(audioBase64: string, mime?: string | null): Promise<SttResult> {
   const key = process.env.LOVABLE_API_KEY ?? "";
   const bin = Buffer.from(stripDataUri(audioBase64).replace(/\s/g, ""), "base64");
   const detected = detectAudioContainer(bin, mime);
-  const magic = Array.from(bin.slice(0, 12)).map((b) => b.toString(16).padStart(2, "0")).join(" ");
-  if (!key) return { text: null, mime: detected.mime, ext: detected.ext, bytes: bin.byteLength, error: "LOVABLE_API_KEY ausente" };
+  const magic = Array.from(bin.slice(0, 12))
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join(" ");
+  if (!key)
+    return {
+      text: null,
+      mime: detected.mime,
+      ext: detected.ext,
+      bytes: bin.byteLength,
+      error: "LOVABLE_API_KEY ausente",
+    };
   // Validações de payload antes de enviar para o STT
   if (bin.byteLength < 200) {
-    console.warn("[stt] audio too small", { bytes: bin.byteLength, magic, declared: mime, detected: detected.mime });
-    return { text: null, mime: detected.mime, ext: detected.ext, bytes: bin.byteLength, error: `audio too small (${bin.byteLength}B); magic=${magic}` };
+    console.warn("[stt] audio too small", {
+      bytes: bin.byteLength,
+      magic,
+      declared: mime,
+      detected: detected.mime,
+    });
+    return {
+      text: null,
+      mime: detected.mime,
+      ext: detected.ext,
+      bytes: bin.byteLength,
+      error: `audio too small (${bin.byteLength}B); magic=${magic}`,
+    };
   }
   const MAX = 24 * 1024 * 1024; // Whisper aceita até 25MB
   if (bin.byteLength > MAX) {
     console.warn("[stt] audio too large", { bytes: bin.byteLength });
-    return { text: null, mime: detected.mime, ext: detected.ext, bytes: bin.byteLength, error: `audio too large (${bin.byteLength}B > 25MB)` };
+    return {
+      text: null,
+      mime: detected.mime,
+      ext: detected.ext,
+      bytes: bin.byteLength,
+      error: `audio too large (${bin.byteLength}B > 25MB)`,
+    };
   }
-  console.info("[stt] preparing upload", { bytes: bin.byteLength, declared: mime, detected: detected.mime, ext: detected.ext, magic });
+  console.info("[stt] preparing upload", {
+    bytes: bin.byteLength,
+    declared: mime,
+    detected: detected.mime,
+    ext: detected.ext,
+    magic,
+  });
 
   const attempt = async (m: string, ext: string) => {
     const blob = new Blob([new Uint8Array(bin)], { type: m });
@@ -2159,19 +3206,28 @@ async function sttViaLovable(audioBase64: string, mime?: string | null): Promise
     fd.append("file", blob, `audio.${ext}`);
     fd.append("model", "openai/gpt-4o-mini-transcribe");
     const r = await fetch("https://ai.gateway.lovable.dev/v1/audio/transcriptions", {
-      method: "POST", headers: { Authorization: `Bearer ${key}` }, body: fd,
+      method: "POST",
+      headers: { Authorization: `Bearer ${key}` },
+      body: fd,
     });
     const bodyText = r.ok ? "" : await r.text().catch(() => "");
     if (!r.ok) {
-      console.warn("[stt] Lovable AI transcription failed", { status: r.status, mime: m, ext, bytes: bin.byteLength, body: bodyText.slice(0, 300) });
+      console.warn("[stt] Lovable AI transcription failed", {
+        status: r.status,
+        mime: m,
+        ext,
+        bytes: bin.byteLength,
+        body: bodyText.slice(0, 300),
+      });
       return { ok: false as const, status: r.status, error: bodyText.slice(0, 500) };
     }
-    const j = await r.json().catch(() => null) as { text?: string } | null;
+    const j = (await r.json().catch(() => null)) as { text?: string } | null;
     return { ok: true as const, text: j?.text ?? null };
   };
 
   let res = await attempt(detected.mime, detected.ext);
-  if (res.ok) return { text: res.text, mime: detected.mime, ext: detected.ext, bytes: bin.byteLength };
+  if (res.ok)
+    return { text: res.text, mime: detected.mime, ext: detected.ext, bytes: bin.byteLength };
   // Fallback: se o gateway rejeitou o container detectado, tenta variantes comuns do WhatsApp
   const fallbacks: Array<{ mime: string; ext: string }> = [];
   if (detected.ext !== "ogg") fallbacks.push({ mime: "audio/ogg", ext: "ogg" });
@@ -2183,17 +3239,29 @@ async function sttViaLovable(audioBase64: string, mime?: string | null): Promise
     if (r2.ok) return { text: r2.text, mime: fb.mime, ext: fb.ext, bytes: bin.byteLength };
     res = r2;
   }
-  return { text: null, mime: detected.mime, ext: detected.ext, bytes: bin.byteLength, status: res.status, error: res.error };
+  return {
+    text: null,
+    mime: detected.mime,
+    ext: detected.ext,
+    bytes: bin.byteLength,
+    status: res.status,
+    error: res.error,
+  };
 }
 
 function detectAudioContainer(bytes: Uint8Array, declaredMime?: string | null) {
   const lower = (declaredMime ?? "").toLowerCase();
-  if (bytes[0] === 0x4f && bytes[1] === 0x67 && bytes[2] === 0x67 && bytes[3] === 0x53) return { mime: "audio/ogg", ext: "ogg" };
-  if (bytes[0] === 0x49 && bytes[1] === 0x44 && bytes[2] === 0x33) return { mime: "audio/mpeg", ext: "mp3" };
+  if (bytes[0] === 0x4f && bytes[1] === 0x67 && bytes[2] === 0x67 && bytes[3] === 0x53)
+    return { mime: "audio/ogg", ext: "ogg" };
+  if (bytes[0] === 0x49 && bytes[1] === 0x44 && bytes[2] === 0x33)
+    return { mime: "audio/mpeg", ext: "mp3" };
   if (bytes[0] === 0xff && (bytes[1] & 0xe0) === 0xe0) return { mime: "audio/mpeg", ext: "mp3" };
-  if (bytes[0] === 0x52 && bytes[1] === 0x49 && bytes[2] === 0x46 && bytes[3] === 0x46) return { mime: "audio/wav", ext: "wav" };
-  if (bytes[4] === 0x66 && bytes[5] === 0x74 && bytes[6] === 0x79 && bytes[7] === 0x70) return { mime: "audio/mp4", ext: "mp4" };
-  if (bytes[0] === 0x1a && bytes[1] === 0x45 && bytes[2] === 0xdf && bytes[3] === 0xa3) return { mime: "audio/webm", ext: "webm" };
+  if (bytes[0] === 0x52 && bytes[1] === 0x49 && bytes[2] === 0x46 && bytes[3] === 0x46)
+    return { mime: "audio/wav", ext: "wav" };
+  if (bytes[4] === 0x66 && bytes[5] === 0x74 && bytes[6] === 0x79 && bytes[7] === 0x70)
+    return { mime: "audio/mp4", ext: "mp4" };
+  if (bytes[0] === 0x1a && bytes[1] === 0x45 && bytes[2] === 0xdf && bytes[3] === 0xa3)
+    return { mime: "audio/webm", ext: "webm" };
   if (lower.includes("mp3") || lower.includes("mpeg")) return { mime: "audio/mpeg", ext: "mp3" };
   if (lower.includes("wav")) return { mime: "audio/wav", ext: "wav" };
   if (lower.includes("mp4") || lower.includes("m4a")) return { mime: "audio/mp4", ext: "mp4" };
@@ -2207,7 +3275,12 @@ async function ttsViaLovable(text: string, voice?: string): Promise<string | nul
   const r = await fetch("https://ai.gateway.lovable.dev/v1/audio/speech", {
     method: "POST",
     headers: { "Content-Type": "application/json", Authorization: `Bearer ${key}` },
-    body: JSON.stringify({ model: "openai/gpt-4o-mini-tts", input: text.slice(0, 3000), voice: voice || "alloy", response_format: "mp3" }),
+    body: JSON.stringify({
+      model: "openai/gpt-4o-mini-tts",
+      input: text.slice(0, 3000),
+      voice: voice || "alloy",
+      response_format: "mp3",
+    }),
   });
   if (!r.ok) return null;
   const buf = await r.arrayBuffer();
@@ -2221,40 +3294,69 @@ async function getOrCreateConversation(
   remoteJid: string,
 ) {
   const variants = jidVariants(remoteJid);
-  const { data: rows } = await db.from("conversations")
-    .select("id,agent_id,unread_count,metadata,follow_up_step,next_follow_up_at,follow_up_paused,flow_state")
-    .eq("user_id", conn.user_id).eq("connection_id", conn.id);
-  const existing = (rows ?? []).find((row: { metadata?: { remoteJid?: string } }) => variants.includes(row?.metadata?.remoteJid ?? ""));
+  const { data: rows } = await db
+    .from("conversations")
+    .select(
+      "id,agent_id,unread_count,metadata,follow_up_step,next_follow_up_at,follow_up_paused,flow_state",
+    )
+    .eq("user_id", conn.user_id)
+    .eq("connection_id", conn.id);
+  const existing = (rows ?? []).find((row: { metadata?: { remoteJid?: string } }) =>
+    variants.includes(row?.metadata?.remoteJid ?? ""),
+  );
   if (existing) {
     // Backfill agent_id when a conversation predates the agent binding
     if (agentId && !(existing as { agent_id?: string | null }).agent_id) {
-      await db.from("conversations").update({ agent_id: agentId } as never).eq("id", existing.id);
+      await db
+        .from("conversations")
+        .update({ agent_id: agentId } as never)
+        .eq("id", existing.id);
     }
     return existing;
   }
-  const { data: created } = await db.from("conversations").insert({
-    user_id: conn.user_id, connection_id: conn.id, agent_id: agentId, status: "open",
-    unread_count: 0, last_message_at: new Date().toISOString(),
-    metadata: { remoteJid } as never,
-  }).select("id,unread_count,metadata,follow_up_step,next_follow_up_at,follow_up_paused,flow_state").maybeSingle();
+  const { data: created } = await db
+    .from("conversations")
+    .insert({
+      user_id: conn.user_id,
+      connection_id: conn.id,
+      agent_id: agentId,
+      status: "open",
+      unread_count: 0,
+      last_message_at: new Date().toISOString(),
+      metadata: { remoteJid } as never,
+    })
+    .select("id,unread_count,metadata,follow_up_step,next_follow_up_at,follow_up_paused,flow_state")
+    .maybeSingle();
   return created;
 }
 
 async function maybeAlert(
   db: { from: (t: string) => any },
-  conn: { user_id: string; url_api: string | null; api_key: string | null; instance_name: string | null },
+  conn: {
+    user_id: string;
+    url_api: string | null;
+    api_key: string | null;
+    instance_name: string | null;
+  },
   agent: { id: string } | null,
   ext: Ext,
   message: string,
 ) {
   if (!ext.alerts?.whatsapp || !agent) return;
-  const { data: prof } = await db.from("profiles").select("alert_phone").eq("id", conn.user_id).maybeSingle();
+  const { data: prof } = await db
+    .from("profiles")
+    .select("alert_phone")
+    .eq("id", conn.user_id)
+    .maybeSingle();
   const to = prof?.alert_phone;
   if (!to) return;
   const number = to.includes("@") ? to : `${to.replace(/\D/g, "")}@s.whatsapp.net`;
   await sendText(conn, number, `⚠️ ${message}`);
   await db.from("logs").insert({
-    user_id: conn.user_id, level: "warn", source: "alerts",
-    message, metadata: { agent_id: agent.id } as never,
+    user_id: conn.user_id,
+    level: "warn",
+    source: "alerts",
+    message,
+    metadata: { agent_id: agent.id } as never,
   });
 }

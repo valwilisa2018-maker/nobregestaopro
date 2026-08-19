@@ -1,17 +1,37 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import {
-  Zap, Plus, Trash2, Pencil, Loader2, Image as ImageIcon, Video as VideoIcon,
-  Music, FileText, X, Send, AlertCircle, Mic,
+  Zap,
+  Plus,
+  Trash2,
+  Pencil,
+  Loader2,
+  Image as ImageIcon,
+  Video as VideoIcon,
+  Music,
+  FileText,
+  X,
+  Send,
+  AlertCircle,
+  Mic,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import {
-  listQuickSends, upsertQuickSend, deleteQuickSend, sendQuickSend,
+  listQuickSends,
+  upsertQuickSend,
+  deleteQuickSend,
+  sendQuickSend,
 } from "@/lib/evolution.functions";
 
 type QuickSend = {
@@ -95,7 +115,10 @@ export function QuickSendPopover({
   }, [open, items.length, loading, load]);
 
   async function handleSend(qs: QuickSend) {
-    if (!contactId) { toast.error("Selecione um contato"); return; }
+    if (!contactId) {
+      toast.error("Selecione um contato");
+      return;
+    }
     setSendingId(qs.id);
     onSending?.();
     setOpen(false);
@@ -134,7 +157,8 @@ export function QuickSendPopover({
           </button>
         </PopoverTrigger>
         <PopoverContent
-          side="top" align="start"
+          side="top"
+          align="start"
           className="w-[min(360px,calc(100vw-24px))] p-0 max-h-[70vh] overflow-hidden flex flex-col"
         >
           <div className="px-3 py-2 border-b flex items-center justify-between shrink-0">
@@ -143,9 +167,14 @@ export function QuickSendPopover({
               <div className="text-sm font-semibold truncate">Envios rápidos</div>
             </div>
             <Button
-              size="sm" variant="ghost"
+              size="sm"
+              variant="ghost"
               className="h-7 gap-1 text-amber-600 hover:text-amber-700"
-              onClick={() => { setEditing(null); setEditorOpen(true); setOpen(false); }}
+              onClick={() => {
+                setEditing(null);
+                setEditorOpen(true);
+                setOpen(false);
+              }}
             >
               <Plus className="h-4 w-4" /> Novo
             </Button>
@@ -166,59 +195,75 @@ export function QuickSendPopover({
                   Crie mensagens prontas com texto e mídia para disparar em um clique.
                 </div>
                 <Button
-                  size="sm" className="mt-4"
-                  onClick={() => { setEditing(null); setEditorOpen(true); setOpen(false); }}
+                  size="sm"
+                  className="mt-4"
+                  onClick={() => {
+                    setEditing(null);
+                    setEditorOpen(true);
+                    setOpen(false);
+                  }}
                 >
                   <Plus className="h-4 w-4 mr-1" /> Criar primeiro
                 </Button>
               </div>
             )}
-            {!loading && items.map((qs) => (
-              <div
-                key={qs.id}
-                className="group px-3 py-2 border-b last:border-b-0 hover:bg-accent transition flex items-start gap-2"
-              >
-                <button
-                  onClick={() => handleSend(qs)}
-                  disabled={!contactId || !!sendingId}
-                  className="flex-1 min-w-0 text-left disabled:opacity-50"
+            {!loading &&
+              items.map((qs) => (
+                <div
+                  key={qs.id}
+                  className="group px-3 py-2 border-b last:border-b-0 hover:bg-accent transition flex items-start gap-2"
                 >
-                  <div className="flex items-center gap-1.5 min-w-0">
-                    {qs.media_type && <KindIcon type={qs.media_type} className="h-3.5 w-3.5 shrink-0" />}
-                    {qs.is_ptt && <Mic className="h-3.5 w-3.5 text-emerald-600 shrink-0" />}
-                    <div className="text-sm font-medium truncate">{qs.title}</div>
-                  </div>
-                  {qs.text && (
-                    <div className="text-xs text-muted-foreground truncate mt-0.5">{qs.text}</div>
-                  )}
-                </button>
-                <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition shrink-0">
                   <button
-                    onClick={() => { setEditing(qs); setEditorOpen(true); setOpen(false); }}
-                    className="p-1.5 rounded hover:bg-muted text-muted-foreground hover:text-foreground"
-                    aria-label="Editar"
+                    onClick={() => handleSend(qs)}
+                    disabled={!contactId || !!sendingId}
+                    className="flex-1 min-w-0 text-left disabled:opacity-50"
                   >
-                    <Pencil className="h-3.5 w-3.5" />
+                    <div className="flex items-center gap-1.5 min-w-0">
+                      {qs.media_type && (
+                        <KindIcon type={qs.media_type} className="h-3.5 w-3.5 shrink-0" />
+                      )}
+                      {qs.is_ptt && <Mic className="h-3.5 w-3.5 text-emerald-600 shrink-0" />}
+                      <div className="text-sm font-medium truncate">{qs.title}</div>
+                    </div>
+                    {qs.text && (
+                      <div className="text-xs text-muted-foreground truncate mt-0.5">{qs.text}</div>
+                    )}
                   </button>
+                  <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition shrink-0">
+                    <button
+                      onClick={() => {
+                        setEditing(qs);
+                        setEditorOpen(true);
+                        setOpen(false);
+                      }}
+                      className="p-1.5 rounded hover:bg-muted text-muted-foreground hover:text-foreground"
+                      aria-label="Editar"
+                    >
+                      <Pencil className="h-3.5 w-3.5" />
+                    </button>
+                    <button
+                      onClick={() => handleDelete(qs)}
+                      className="p-1.5 rounded hover:bg-red-100 text-muted-foreground hover:text-red-600"
+                      aria-label="Excluir"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
                   <button
-                    onClick={() => handleDelete(qs)}
-                    className="p-1.5 rounded hover:bg-red-100 text-muted-foreground hover:text-red-600"
-                    aria-label="Excluir"
+                    onClick={() => handleSend(qs)}
+                    disabled={!contactId || !!sendingId}
+                    className="p-1.5 rounded-full bg-emerald-500 text-foreground hover:bg-emerald-600 disabled:opacity-50 shrink-0"
+                    aria-label="Enviar"
+                    title="Enviar agora"
                   >
-                    <Trash2 className="h-3.5 w-3.5" />
+                    {sendingId === qs.id ? (
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    ) : (
+                      <Send className="h-3.5 w-3.5" />
+                    )}
                   </button>
                 </div>
-                <button
-                  onClick={() => handleSend(qs)}
-                  disabled={!contactId || !!sendingId}
-                  className="p-1.5 rounded-full bg-emerald-500 text-foreground hover:bg-emerald-600 disabled:opacity-50 shrink-0"
-                  aria-label="Enviar"
-                  title="Enviar agora"
-                >
-                  {sendingId === qs.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Send className="h-3.5 w-3.5" />}
-                </button>
-              </div>
-            ))}
+              ))}
           </div>
         </PopoverContent>
       </Popover>
@@ -230,7 +275,7 @@ export function QuickSendPopover({
         onSaved={(item) => {
           setItems((prev) => {
             const exists = prev.find((x) => x.id === item.id);
-            return exists ? prev.map((x) => x.id === item.id ? item : x) : [item, ...prev];
+            return exists ? prev.map((x) => (x.id === item.id ? item : x)) : [item, ...prev];
           });
         }}
         upsertFn={upsertFn}
@@ -240,7 +285,11 @@ export function QuickSendPopover({
 }
 
 function QuickSendEditor({
-  open, onOpenChange, initial, onSaved, upsertFn,
+  open,
+  onOpenChange,
+  initial,
+  onSaved,
+  upsertFn,
 }: {
   open: boolean;
   onOpenChange: (v: boolean) => void;
@@ -251,7 +300,12 @@ function QuickSendEditor({
   const [title, setTitle] = useState("");
   const [text, setText] = useState("");
   const [file, setFile] = useState<File | null>(null);
-  const [existingMedia, setExistingMedia] = useState<{ name: string; type: string; size: number | null; isPtt: boolean } | null>(null);
+  const [existingMedia, setExistingMedia] = useState<{
+    name: string;
+    type: string;
+    size: number | null;
+    isPtt: boolean;
+  } | null>(null);
   const [removeExisting, setRemoveExisting] = useState(false);
   const [isPtt, setIsPtt] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -266,17 +320,24 @@ function QuickSendEditor({
     setRemoveExisting(false);
     setIsPtt(!!initial?.is_ptt);
     setError(null);
-    setExistingMedia(initial?.media_type ? {
-      name: initial.media_name ?? "arquivo",
-      type: initial.media_type,
-      size: initial.media_size,
-      isPtt: initial.is_ptt,
-    } : null);
+    setExistingMedia(
+      initial?.media_type
+        ? {
+            name: initial.media_name ?? "arquivo",
+            type: initial.media_type,
+            size: initial.media_size,
+            isPtt: initial.is_ptt,
+          }
+        : null,
+    );
   }, [open, initial]);
 
   function handleFile(f: File | null, kind?: "audio") {
     setError(null);
-    if (!f) { setFile(null); return; }
+    if (!f) {
+      setFile(null);
+      return;
+    }
     if (f.type.startsWith("video/") && f.size > MAX_VIDEO_MB * 1024 * 1024) {
       setError(`Vídeo excede o limite de ${MAX_VIDEO_MB}MB (${fmtSize(f.size)})`);
       setFile(null);
@@ -288,16 +349,25 @@ function QuickSendEditor({
   }
 
   const currentKind = file
-    ? (file.type.startsWith("image/") ? "image"
-      : file.type.startsWith("video/") ? "video"
-      : file.type.startsWith("audio/") ? "audio" : "file")
-    : (existingMedia && !removeExisting ? existingMedia.type : null);
+    ? file.type.startsWith("image/")
+      ? "image"
+      : file.type.startsWith("video/")
+        ? "video"
+        : file.type.startsWith("audio/")
+          ? "audio"
+          : "file"
+    : existingMedia && !removeExisting
+      ? existingMedia.type
+      : null;
 
   const showPttToggle = currentKind === "audio";
 
   async function handleSave() {
     const trimmed = title.trim();
-    if (!trimmed) { setError("Informe um título"); return; }
+    if (!trimmed) {
+      setError("Informe um título");
+      return;
+    }
     if (!text.trim() && !file && (!existingMedia || removeExisting)) {
       setError("Adicione texto ou mídia");
       return;
@@ -305,11 +375,13 @@ function QuickSendEditor({
     setSaving(true);
     setError(null);
     try {
-      const media = file ? {
-        base64: await fileToBase64(file),
-        mime: file.type || "application/octet-stream",
-        fileName: file.name,
-      } : undefined;
+      const media = file
+        ? {
+            base64: await fileToBase64(file),
+            mime: file.type || "application/octet-stream",
+            fileName: file.name,
+          }
+        : undefined;
       const res = await upsertFn({
         data: {
           id: initial?.id,
@@ -369,9 +441,14 @@ function QuickSendEditor({
                 <KindIcon type={currentKind} className="h-5 w-5 shrink-0" />
                 <div className="flex-1 min-w-0 overflow-hidden">
                   <div className="text-sm truncate max-w-full">{file.name}</div>
-                  <div className="text-[11px] text-muted-foreground truncate max-w-full">{fmtSize(file.size)}</div>
+                  <div className="text-[11px] text-muted-foreground truncate max-w-full">
+                    {fmtSize(file.size)}
+                  </div>
                 </div>
-                <button onClick={() => setFile(null)} className="shrink-0 p-1 rounded hover:bg-muted text-muted-foreground">
+                <button
+                  onClick={() => setFile(null)}
+                  className="shrink-0 p-1 rounded hover:bg-muted text-muted-foreground"
+                >
                   <X className="h-4 w-4" />
                 </button>
               </div>
@@ -380,9 +457,15 @@ function QuickSendEditor({
                 <KindIcon type={existingMedia.type} className="h-5 w-5 shrink-0" />
                 <div className="flex-1 min-w-0 overflow-hidden">
                   <div className="text-sm truncate max-w-full">{existingMedia.name}</div>
-                  <div className="text-[11px] text-muted-foreground truncate max-w-full">{fmtSize(existingMedia.size)} · salvo</div>
+                  <div className="text-[11px] text-muted-foreground truncate max-w-full">
+                    {fmtSize(existingMedia.size)} · salvo
+                  </div>
                 </div>
-                <button onClick={() => setRemoveExisting(true)} className="shrink-0 p-1 rounded hover:bg-muted text-muted-foreground" aria-label="Remover mídia">
+                <button
+                  onClick={() => setRemoveExisting(true)}
+                  className="shrink-0 p-1 rounded hover:bg-muted text-muted-foreground"
+                  aria-label="Remover mídia"
+                >
                   <X className="h-4 w-4" />
                 </button>
               </div>
@@ -412,12 +495,16 @@ function QuickSendEditor({
                   ref={fileRef}
                   type="file"
                   className="hidden"
-                  onChange={(e) => { handleFile(e.target.files?.[0] ?? null); e.target.value = ""; }}
+                  onChange={(e) => {
+                    handleFile(e.target.files?.[0] ?? null);
+                    e.target.value = "";
+                  }}
                 />
               </div>
             )}
             <div className="text-[11px] text-muted-foreground">
-              Envio até {MAX_VIDEO_MB} MB por mídia (padrão WhatsApp). Áudio é enviado como mensagem de voz (PTT).
+              Envio até {MAX_VIDEO_MB} MB por mídia (padrão WhatsApp). Áudio é enviado como mensagem
+              de voz (PTT).
             </div>
           </div>
 
@@ -446,8 +533,16 @@ function QuickSendEditor({
           <Button variant="ghost" onClick={() => onOpenChange(false)} disabled={saving}>
             Cancelar
           </Button>
-          <Button onClick={handleSave} disabled={saving} className="bg-amber-500 hover:bg-amber-600 text-foreground">
-            {saving ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <Zap className="h-4 w-4 mr-1" />}
+          <Button
+            onClick={handleSave}
+            disabled={saving}
+            className="bg-amber-500 hover:bg-amber-600 text-foreground"
+          >
+            {saving ? (
+              <Loader2 className="h-4 w-4 animate-spin mr-1" />
+            ) : (
+              <Zap className="h-4 w-4 mr-1" />
+            )}
             {initial ? "Salvar" : "Criar"}
           </Button>
         </DialogFooter>

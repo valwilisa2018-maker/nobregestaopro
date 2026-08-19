@@ -16,10 +16,10 @@ function Page() {
       singular="Cliente"
       icon={<Users className="h-6 w-6" />}
       fields={[
-    {name:"name", label:"Nome", type:"text"},
-    {name:"phone", label:"Telefone", type:"text", required:true},
-    {name:"email", label:"E-mail", type:"email"},
-    {name:"notes", label:"Notas", type:"textarea"}
+        { name: "name", label: "Nome", type: "text" },
+        { name: "phone", label: "Telefone", type: "text", required: true },
+        { name: "email", label: "E-mail", type: "email" },
+        { name: "notes", label: "Notas", type: "textarea" },
       ]}
     />
   );

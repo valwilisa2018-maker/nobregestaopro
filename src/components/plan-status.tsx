@@ -24,7 +24,9 @@ export function usePlanStatus() {
   useEffect(() => {
     let cancelled = false;
     (async () => {
-      const { data: { user } } = await supabase.auth.getUser();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
       if (!user) return;
       const { data } = await supabase
         .from("profiles")
@@ -36,13 +38,13 @@ export function usePlanStatus() {
       const expiresAt = data.plan_expires_at ? new Date(data.plan_expires_at) : null;
       const planName = (data.plans as { name: string } | null)?.name ?? null;
       const now = Date.now();
-      const totalDays = startedAt && expiresAt
-        ? Math.max(1, Math.round((expiresAt.getTime() - startedAt.getTime()) / 86400000))
-        : 30;
-      const daysLeft = expiresAt
-        ? Math.ceil((expiresAt.getTime() - now) / 86400000)
-        : null;
-      const usedDays = daysLeft == null ? 0 : Math.min(totalDays, Math.max(0, totalDays - daysLeft));
+      const totalDays =
+        startedAt && expiresAt
+          ? Math.max(1, Math.round((expiresAt.getTime() - startedAt.getTime()) / 86400000))
+          : 30;
+      const daysLeft = expiresAt ? Math.ceil((expiresAt.getTime() - now) / 86400000) : null;
+      const usedDays =
+        daysLeft == null ? 0 : Math.min(totalDays, Math.max(0, totalDays - daysLeft));
       setStatus({
         planName,
         startedAt,
@@ -54,7 +56,9 @@ export function usePlanStatus() {
         expired: daysLeft != null && daysLeft < 0,
       });
     })();
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   return status;
@@ -79,7 +83,9 @@ export function PlanStatusCard() {
           </div>
           {hasPlan && s.daysLeft != null && (
             <Badge variant={warn ? "destructive" : "secondary"}>
-              {s.expired ? "Vencido" : `${s.daysLeft} dia${s.daysLeft === 1 ? "" : "s"} restante${s.daysLeft === 1 ? "" : "s"}`}
+              {s.expired
+                ? "Vencido"
+                : `${s.daysLeft} dia${s.daysLeft === 1 ? "" : "s"} restante${s.daysLeft === 1 ? "" : "s"}`}
             </Badge>
           )}
           {!hasPlan && <Badge variant="outline">Escolha um plano abaixo</Badge>}
@@ -87,17 +93,23 @@ export function PlanStatusCard() {
         <div>
           <Progress value={pct} className={warn ? "[&>div]:bg-destructive" : ""} />
           <div className="flex justify-between text-[10px] text-muted-foreground mt-1">
-            <span>Dia {s.usedDays} de {s.totalDays}</span>
-            {hasPlan && s.expiresAt
-              ? <span>Vence em {s.expiresAt.toLocaleDateString("pt-BR")}</span>
-              : <span>Ciclo de 30 dias</span>}
+            <span>
+              Dia {s.usedDays} de {s.totalDays}
+            </span>
+            {hasPlan && s.expiresAt ? (
+              <span>Vence em {s.expiresAt.toLocaleDateString("pt-BR")}</span>
+            ) : (
+              <span>Ciclo de 30 dias</span>
+            )}
           </div>
         </div>
         {warn && (
           <Alert variant="destructive" className="py-2">
             <AlertTriangle className="h-4 w-4" />
             <AlertDescription>
-              {s.expired ? "Seu plano venceu. Renove para continuar usando." : "Seu plano está prestes a vencer. Renove para não perder o acesso."}
+              {s.expired
+                ? "Seu plano venceu. Renove para continuar usando."
+                : "Seu plano está prestes a vencer. Renove para não perder o acesso."}
             </AlertDescription>
           </Alert>
         )}

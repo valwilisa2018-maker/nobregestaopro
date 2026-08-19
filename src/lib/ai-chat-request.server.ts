@@ -30,7 +30,9 @@ export function normalizedMaxTokens(modelId: string, value?: number | null) {
   return isReasoningModel(modelId) ? Math.max(safe, 2048) : safe;
 }
 
-export function buildChatCompletionsBody(params: Pick<ChatCallParams, "model" | "temperature" | "maxTokens" | "messages">) {
+export function buildChatCompletionsBody(
+  params: Pick<ChatCallParams, "model" | "temperature" | "maxTokens" | "messages">,
+) {
   const max = normalizedMaxTokens(params.model, params.maxTokens);
   return {
     model: params.model,

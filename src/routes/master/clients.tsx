@@ -7,15 +7,29 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Users, Loader2, Search, Ban, CheckCircle2, Coins, Download } from "lucide-react";
-import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { toast } from "sonner";
 import { toCSV, downloadCSV } from "@/lib/csv";
 
 // RPCs criadas na migração recente; tipos serão regenerados após approval
 const sbRpc = supabase.rpc.bind(supabase) as unknown as (
-  fn: string, args?: Record<string, unknown>
+  fn: string,
+  args?: Record<string, unknown>,
 ) => Promise<{ data: unknown; error: { message: string } | null }>;
 
 export const Route = createFileRoute("/master/clients")({
@@ -37,7 +51,10 @@ type Client = {
 type Plan = { id: string; name: string };
 
 function statusBadge(s: string) {
-  if (s === "active") return <Badge className="bg-emerald-500/15 text-emerald-500 border-emerald-500/30">Ativo</Badge>;
+  if (s === "active")
+    return (
+      <Badge className="bg-emerald-500/15 text-emerald-500 border-emerald-500/30">Ativo</Badge>
+    );
   if (s === "suspended") return <Badge variant="destructive">Suspenso</Badge>;
   return <Badge variant="outline">Pendente</Badge>;
 }
@@ -47,7 +64,9 @@ function Page() {
   const [plans, setPlans] = useState<Plan[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState<"all" | "active" | "suspended" | "pending">("all");
+  const [statusFilter, setStatusFilter] = useState<"all" | "active" | "suspended" | "pending">(
+    "all",
+  );
   const [selected, setSelected] = useState<Client | null>(null);
   const [action, setAction] = useState<"activate" | "suspend" | "credits" | null>(null);
 
@@ -62,14 +81,19 @@ function Page() {
     setItems((c.data as Client[]) ?? []);
     setPlans((p.data as Plan[]) ?? []);
   }, []);
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => {
+    load();
+  }, [load]);
 
   const filtered = items.filter((c) => {
     if (statusFilter !== "all" && c.status !== statusFilter) return false;
     if (!search) return true;
     const q = search.toLowerCase();
-    return (c.full_name ?? "").toLowerCase().includes(q)
-      || (c.phone ?? "").includes(search) || c.id.includes(search);
+    return (
+      (c.full_name ?? "").toLowerCase().includes(q) ||
+      (c.phone ?? "").includes(search) ||
+      c.id.includes(search)
+    );
   });
 
   const exportCSV = () => {
@@ -94,8 +118,13 @@ function Page() {
       status="ativo"
       actions={
         <div className="flex items-center gap-2">
-          <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v as typeof statusFilter)}>
-            <SelectTrigger className="w-36"><SelectValue /></SelectTrigger>
+          <Select
+            value={statusFilter}
+            onValueChange={(v) => setStatusFilter(v as typeof statusFilter)}
+          >
+            <SelectTrigger className="w-36">
+              <SelectValue />
+            </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">Todos</SelectItem>
               <SelectItem value="active">Ativos</SelectItem>
@@ -105,7 +134,12 @@ function Page() {
           </Select>
           <div className="relative">
             <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-            <Input placeholder="Buscar cliente..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-8 w-64" />
+            <Input
+              placeholder="Buscar cliente..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="pl-8 w-64"
+            />
           </div>
           <Button variant="outline" size="sm" onClick={exportCSV} disabled={!filtered.length}>
             <Download className="h-4 w-4" /> CSV
@@ -114,7 +148,9 @@ function Page() {
       }
     >
       {loading ? (
-        <div className="p-12 flex justify-center"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>
+        <div className="p-12 flex justify-center">
+          <Loader2 className="h-6 w-6 animate-spin text-primary" />
+        </div>
       ) : (
         <Card>
           <CardContent className="p-0 overflow-x-auto">
@@ -133,20 +169,54 @@ function Page() {
                   <tr key={c.id} className="border-t hover:bg-muted/20">
                     <td className="p-3">
                       <div className="font-medium">{c.full_name || "Sem nome"}</div>
-                      <div className="text-xs text-muted-foreground">{c.phone || c.id.slice(0, 8)}</div>
+                      <div className="text-xs text-muted-foreground">
+                        {c.phone || c.id.slice(0, 8)}
+                      </div>
                     </td>
                     <td className="p-3">{statusBadge(c.status)}</td>
-                    <td className="p-3">{plans.find((p) => p.id === c.plan_id)?.name ?? <span className="text-muted-foreground">—</span>}</td>
-                    <td className="p-3">{c.plan_expires_at ? new Date(c.plan_expires_at).toLocaleDateString("pt-BR") : <span className="text-muted-foreground">—</span>}</td>
+                    <td className="p-3">
+                      {plans.find((p) => p.id === c.plan_id)?.name ?? (
+                        <span className="text-muted-foreground">—</span>
+                      )}
+                    </td>
+                    <td className="p-3">
+                      {c.plan_expires_at ? (
+                        new Date(c.plan_expires_at).toLocaleDateString("pt-BR")
+                      ) : (
+                        <span className="text-muted-foreground">—</span>
+                      )}
+                    </td>
                     <td className="p-3">
                       <div className="flex justify-end gap-1">
-                        <Button size="sm" variant="outline" onClick={() => { setSelected(c); setAction("activate"); }}>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => {
+                            setSelected(c);
+                            setAction("activate");
+                          }}
+                        >
                           <CheckCircle2 className="h-3.5 w-3.5" /> Ativar
                         </Button>
-                        <Button size="sm" variant="outline" onClick={() => { setSelected(c); setAction("credits"); }}>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => {
+                            setSelected(c);
+                            setAction("credits");
+                          }}
+                        >
                           <Coins className="h-3.5 w-3.5" /> Créditos
                         </Button>
-                        <Button size="sm" variant="ghost" className="text-destructive" onClick={() => { setSelected(c); setAction("suspend"); }}>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="text-destructive"
+                          onClick={() => {
+                            setSelected(c);
+                            setAction("suspend");
+                          }}
+                        >
                           <Ban className="h-3.5 w-3.5" />
                         </Button>
                       </div>
@@ -154,7 +224,11 @@ function Page() {
                   </tr>
                 ))}
                 {filtered.length === 0 && (
-                  <tr><td colSpan={5} className="p-8 text-center text-muted-foreground">Nenhum cliente encontrado.</td></tr>
+                  <tr>
+                    <td colSpan={5} className="p-8 text-center text-muted-foreground">
+                      Nenhum cliente encontrado.
+                    </td>
+                  </tr>
                 )}
               </tbody>
             </table>
@@ -167,17 +241,33 @@ function Page() {
           client={selected}
           plans={plans}
           action={action}
-          onClose={() => { setSelected(null); setAction(null); }}
-          onDone={() => { setSelected(null); setAction(null); load(); }}
+          onClose={() => {
+            setSelected(null);
+            setAction(null);
+          }}
+          onDone={() => {
+            setSelected(null);
+            setAction(null);
+            load();
+          }}
         />
       )}
     </PageShell>
   );
 }
 
-function ActionDialog({ client, plans, action, onClose, onDone }: {
-  client: Client; plans: Plan[]; action: "activate" | "suspend" | "credits";
-  onClose: () => void; onDone: () => void;
+function ActionDialog({
+  client,
+  plans,
+  action,
+  onClose,
+  onDone,
+}: {
+  client: Client;
+  plans: Plan[];
+  action: "activate" | "suspend" | "credits";
+  onClose: () => void;
+  onDone: () => void;
 }) {
   const [planId, setPlanId] = useState<string>(client.plan_id ?? "");
   const [expiresDays, setExpiresDays] = useState("30");
@@ -191,17 +281,24 @@ function ActionDialog({ client, plans, action, onClose, onDone }: {
       if (action === "activate") {
         const expires = new Date(Date.now() + Number(expiresDays) * 86400000).toISOString();
         const { error } = await sbRpc("master_activate_account", {
-          _user_id: client.id, _plan_id: planId || null, _expires_at: expires,
+          _user_id: client.id,
+          _plan_id: planId || null,
+          _expires_at: expires,
         });
         if (error) throw error;
         toast.success("Conta ativada");
       } else if (action === "suspend") {
-        const { error } = await sbRpc("master_suspend_account", { _user_id: client.id, _reason: reason });
+        const { error } = await sbRpc("master_suspend_account", {
+          _user_id: client.id,
+          _reason: reason,
+        });
         if (error) throw error;
         toast.success("Conta suspensa");
       } else if (action === "credits") {
         const { error } = await sbRpc("master_grant_credits", {
-          _user_id: client.id, _tokens: Number(tokens), _reason: reason || "manual grant",
+          _user_id: client.id,
+          _tokens: Number(tokens),
+          _reason: reason || "manual grant",
         });
         if (error) throw error;
         toast.success("Créditos adicionados");
@@ -209,10 +306,16 @@ function ActionDialog({ client, plans, action, onClose, onDone }: {
       onDone();
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Erro");
-    } finally { setBusy(false); }
+    } finally {
+      setBusy(false);
+    }
   };
 
-  const titles = { activate: "Ativar conta", suspend: "Suspender conta", credits: "Adicionar créditos" };
+  const titles = {
+    activate: "Ativar conta",
+    suspend: "Suspender conta",
+    credits: "Adicionar créditos",
+  };
   return (
     <Dialog open onOpenChange={(v) => !v && onClose()}>
       <DialogContent>
@@ -221,29 +324,67 @@ function ActionDialog({ client, plans, action, onClose, onDone }: {
           <DialogDescription>{client.full_name || client.id.slice(0, 8)}</DialogDescription>
         </DialogHeader>
         <div className="space-y-4 py-2">
-          {action === "activate" && (<>
-            <div className="space-y-2"><Label>Plano</Label>
-              <Select value={planId} onValueChange={setPlanId}>
-                <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
-                <SelectContent>{plans.map((p) => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}</SelectContent>
-              </Select></div>
-            <div className="space-y-2"><Label>Válido por (dias)</Label>
-              <Input type="number" value={expiresDays} onChange={(e) => setExpiresDays(e.target.value)} /></div>
-          </>)}
-          {action === "suspend" && (
-            <div className="space-y-2"><Label>Motivo</Label>
-              <Input value={reason} onChange={(e) => setReason(e.target.value)} placeholder="Ex: pagamento em atraso" /></div>
+          {action === "activate" && (
+            <>
+              <div className="space-y-2">
+                <Label>Plano</Label>
+                <Select value={planId} onValueChange={setPlanId}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {plans.map((p) => (
+                      <SelectItem key={p.id} value={p.id}>
+                        {p.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>Válido por (dias)</Label>
+                <Input
+                  type="number"
+                  value={expiresDays}
+                  onChange={(e) => setExpiresDays(e.target.value)}
+                />
+              </div>
+            </>
           )}
-          {action === "credits" && (<>
-            <div className="space-y-2"><Label>Tokens</Label>
-              <Input type="number" value={tokens} onChange={(e) => setTokens(e.target.value)} /></div>
-            <div className="space-y-2"><Label>Observação</Label>
-              <Input value={reason} onChange={(e) => setReason(e.target.value)} placeholder="Motivo do crédito" /></div>
-          </>)}
+          {action === "suspend" && (
+            <div className="space-y-2">
+              <Label>Motivo</Label>
+              <Input
+                value={reason}
+                onChange={(e) => setReason(e.target.value)}
+                placeholder="Ex: pagamento em atraso"
+              />
+            </div>
+          )}
+          {action === "credits" && (
+            <>
+              <div className="space-y-2">
+                <Label>Tokens</Label>
+                <Input type="number" value={tokens} onChange={(e) => setTokens(e.target.value)} />
+              </div>
+              <div className="space-y-2">
+                <Label>Observação</Label>
+                <Input
+                  value={reason}
+                  onChange={(e) => setReason(e.target.value)}
+                  placeholder="Motivo do crédito"
+                />
+              </div>
+            </>
+          )}
         </div>
         <DialogFooter>
-          <Button variant="outline" onClick={onClose}>Cancelar</Button>
-          <Button onClick={run} disabled={busy}>{busy && <Loader2 className="h-4 w-4 animate-spin" />} Confirmar</Button>
+          <Button variant="outline" onClick={onClose}>
+            Cancelar
+          </Button>
+          <Button onClick={run} disabled={busy}>
+            {busy && <Loader2 className="h-4 w-4 animate-spin" />} Confirmar
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

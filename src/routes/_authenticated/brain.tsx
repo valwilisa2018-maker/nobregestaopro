@@ -11,7 +11,11 @@ import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/brain")({
   head: () => ({ meta: [{ title: "Cérebro Universal — Admin" }] }),
-  component: () => <MasterGuard><Page /></MasterGuard>,
+  component: () => (
+    <MasterGuard>
+      <Page />
+    </MasterGuard>
+  ),
 });
 
 const DEFAULT_NEURAL_CORE = `# NEURAL CORE AI™ — CÉREBRO UNIVERSAL PREMIUM
@@ -41,21 +45,29 @@ function Page() {
   const load = async () => {
     setLoading(true);
     const { data, error } = await supabase
-      .from("internal_config").select("value, updated_at").eq("key", "neural_core").maybeSingle();
+      .from("internal_config")
+      .select("value, updated_at")
+      .eq("key", "neural_core")
+      .maybeSingle();
     setLoading(false);
     if (error) return toast.error(error.message);
     setValue(data?.value ?? DEFAULT_NEURAL_CORE);
     setUpdatedAt((data as { updated_at?: string } | null)?.updated_at ?? null);
   };
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => {
+    load();
+  }, []);
 
   const save = async () => {
     if (!value.trim()) return toast.error("Prompt vazio");
     setSaving(true);
     const { error } = await supabase
       .from("internal_config")
-      .upsert({ key: "neural_core", value, updated_at: new Date().toISOString() }, { onConflict: "key" });
+      .upsert(
+        { key: "neural_core", value, updated_at: new Date().toISOString() },
+        { onConflict: "key" },
+      );
     setSaving(false);
     if (error) return toast.error(error.message);
     toast.success("Cérebro atualizado — aplicado a todos os agentes");
@@ -88,17 +100,25 @@ function Page() {
       <Card>
         <CardContent className="p-4 space-y-3">
           {loading ? (
-            <div className="p-12 flex justify-center"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>
+            <div className="p-12 flex justify-center">
+              <Loader2 className="h-6 w-6 animate-spin text-primary" />
+            </div>
           ) : (
             <>
               <div className="flex justify-between text-xs text-muted-foreground">
                 <span>
                   Última atualização:{" "}
                   {updatedAt
-                    ? new Date(updatedAt).toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "medium" })
+                    ? new Date(updatedAt).toLocaleString("pt-BR", {
+                        dateStyle: "short",
+                        timeStyle: "medium",
+                      })
                     : "— (usando padrão)"}
                 </span>
-                <span>{value.length.toLocaleString("pt-BR")} chars · ~{Math.ceil(value.length / 4).toLocaleString("pt-BR")} tokens</span>
+                <span>
+                  {value.length.toLocaleString("pt-BR")} chars · ~
+                  {Math.ceil(value.length / 4).toLocaleString("pt-BR")} tokens
+                </span>
               </div>
               <Textarea
                 value={value}

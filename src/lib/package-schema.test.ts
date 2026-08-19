@@ -99,12 +99,18 @@ describe("savePkg behavior", () => {
 
   async function savePkg(p: Record<string, unknown> & { id: string }) {
     const parsed = validatePackage({
-      name: p.name, tokens: p.tokens, price_cents: p.price_cents,
+      name: p.name,
+      tokens: p.tokens,
+      price_cents: p.price_cents,
       currency: p.currency ?? "BRL",
       badge: p.badge && String(p.badge).length ? p.badge : null,
-      sort_order: p.sort_order, is_active: p.is_active,
+      sort_order: p.sort_order,
+      is_active: p.is_active,
     });
-    if (!parsed.ok) { toast.error(parsed.error); return; }
+    if (!parsed.ok) {
+      toast.error(parsed.error);
+      return;
+    }
     const { currency: _c, ...payload } = parsed.data;
     const res = p.id.startsWith("new-")
       ? await from("credit_packages").insert(payload)
@@ -156,6 +162,11 @@ describe("savePkg behavior", () => {
     await savePkg({ ...base, id: "new-1" });
     const payload = insert.mock.calls[0][0] as Record<string, unknown>;
     expect(payload).not.toHaveProperty("currency");
-    expect(payload).toMatchObject({ name: "Starter", tokens: 100_000, price_cents: 1990, is_active: true });
+    expect(payload).toMatchObject({
+      name: "Starter",
+      tokens: 100_000,
+      price_cents: 1990,
+      is_active: true,
+    });
   });
 });

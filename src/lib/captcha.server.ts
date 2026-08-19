@@ -7,7 +7,7 @@ import { sendPasswordReset, sendSignupWelcome } from "./email-brevo.server";
 const TTL_MS = 5 * 60 * 1000;
 
 function secret() {
-  const s = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_PUBLISHABLE_KEY;
+  const s = process.env.CAPTCHA_SECRET || process.env.SUPABASE_SERVICE_ROLE_KEY;
   if (!s) throw new Error("captcha secret unavailable");
   return s;
 }
@@ -70,10 +70,13 @@ export async function signUpWithPassword(
   });
   if (error) return { data, error };
   try {
-    await sendSignupWelcome(email, typeof metadata?.full_name === "string" ? metadata.full_name : undefined, data.properties?.action_link);
+    await sendSignupWelcome(
+      email,
+      typeof metadata?.full_name === "string" ? metadata.full_name : undefined,
+      data.properties?.action_link,
+    );
   } catch (sendError) {
     console.error("Brevo signup email failed", sendError);
-    return { data, error: { message: sendError instanceof Error ? sendError.message : "Falha ao enviar e-mail de confirmação." } };
   }
   return { data, error: null };
 }
@@ -90,6 +93,10 @@ export async function sendPasswordResetWithBrevo(email: string, redirectTo: stri
     return { ok: true as const };
   } catch (sendError) {
     console.error("Brevo reset email failed", sendError);
-    return { ok: false as const, error: sendError instanceof Error ? sendError.message : "Falha ao enviar e-mail de recuperação." };
+    return {
+      ok: false as const,
+      error:
+        sendError instanceof Error ? sendError.message : "Falha ao enviar e-mail de recuperaÃ§Ã£o.",
+    };
   }
 }

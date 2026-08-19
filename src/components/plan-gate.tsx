@@ -2,8 +2,19 @@ import { useEffect, useState } from "react";
 import { useRouterState, useNavigate } from "@tanstack/react-router";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  Sparkles, Rocket, Zap, ShieldCheck, Headphones, Brain, X,
-  Hourglass, AlertTriangle, CreditCard, CalendarDays, PartyPopper, Loader2,
+  Sparkles,
+  Rocket,
+  Zap,
+  ShieldCheck,
+  Headphones,
+  Brain,
+  X,
+  Hourglass,
+  AlertTriangle,
+  CreditCard,
+  CalendarDays,
+  PartyPopper,
+  Loader2,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -27,7 +38,9 @@ function usePlanInfo(): PlanInfo | null {
   useEffect(() => {
     let cancel = false;
     const load = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
       if (!user) return;
       const { data } = await supabase
         .from("profiles")
@@ -37,9 +50,7 @@ function usePlanInfo(): PlanInfo | null {
       if (cancel) return;
       const planName = (data?.plans as { name: string } | null)?.name ?? null;
       const expiresAt = data?.plan_expires_at ? new Date(data.plan_expires_at) : null;
-      const daysLeft = expiresAt
-        ? Math.ceil((expiresAt.getTime() - Date.now()) / 86400000)
-        : null;
+      const daysLeft = expiresAt ? Math.ceil((expiresAt.getTime() - Date.now()) / 86400000) : null;
       const expired = !!(expiresAt && expiresAt.getTime() <= Date.now());
       const hasActivePlan = !!(data?.plan_id && data.status === "active" && !expired);
       setInfo({
@@ -53,7 +64,8 @@ function usePlanInfo(): PlanInfo | null {
       });
     };
     load();
-    const ch = supabase.channel("plan-gate")
+    const ch = supabase
+      .channel("plan-gate")
       .on("postgres_changes", { event: "*", schema: "public", table: "profiles" }, load)
       .subscribe();
     // Fallback: profiles table is not in the realtime publication, so poll
@@ -61,7 +73,9 @@ function usePlanInfo(): PlanInfo | null {
     // without requiring a manual reload.
     const interval = window.setInterval(load, 5000);
     const onFocus = () => load();
-    const onVisibility = () => { if (document.visibilityState === "visible") load(); };
+    const onVisibility = () => {
+      if (document.visibilityState === "visible") load();
+    };
     window.addEventListener("focus", onFocus);
     document.addEventListener("visibilitychange", onVisibility);
     return () => {
@@ -84,7 +98,9 @@ export function PlanGate({ children }: { children: React.ReactNode }) {
   const [openingPlans, setOpeningPlans] = useState(false);
 
   // Reset dismiss on each fresh mount (i.e., new entry into platform)
-  useEffect(() => { setDismissedExpiring(false); }, []);
+  useEffect(() => {
+    setDismissedExpiring(false);
+  }, []);
   useEffect(() => {
     if (isPlansRoute(path)) setOpeningPlans(false);
   }, [path]);
@@ -108,17 +124,41 @@ export function PlanGate({ children }: { children: React.ReactNode }) {
         <div className="min-h-[70vh] grid place-items-center p-6 opacity-40 pointer-events-none select-none">
           {children}
         </div>
-      ) : children}
+      ) : (
+        children
+      )}
 
       <AnimatePresence>
         {showWelcome && (
-          <PlanModal key="welcome" variant="welcome" dismissible={false} onNavigateToPlans={() => setOpeningPlans(true)} />
+          <PlanModal
+            key="welcome"
+            variant="welcome"
+            dismissible={false}
+            onNavigateToPlans={() => setOpeningPlans(true)}
+          />
         )}
         {showExpired && (
-          <PlanModal key="expired" variant="expired" dismissible={false} onNavigateToPlans={() => setOpeningPlans(true)} daysLeft={info.daysLeft} planName={info.planName} expiresAt={info.expiresAt} />
+          <PlanModal
+            key="expired"
+            variant="expired"
+            dismissible={false}
+            onNavigateToPlans={() => setOpeningPlans(true)}
+            daysLeft={info.daysLeft}
+            planName={info.planName}
+            expiresAt={info.expiresAt}
+          />
         )}
         {!showWelcome && !showExpired && showExpiring && (
-          <PlanModal key="expiring" variant="expiring" dismissible onClose={() => setDismissedExpiring(true)} onNavigateToPlans={() => setOpeningPlans(true)} daysLeft={info.daysLeft} planName={info.planName} expiresAt={info.expiresAt} />
+          <PlanModal
+            key="expiring"
+            variant="expiring"
+            dismissible
+            onClose={() => setDismissedExpiring(true)}
+            onNavigateToPlans={() => setOpeningPlans(true)}
+            daysLeft={info.daysLeft}
+            planName={info.planName}
+            expiresAt={info.expiresAt}
+          />
         )}
       </AnimatePresence>
     </>
@@ -135,26 +175,46 @@ type ModalProps = {
   expiresAt?: Date | null;
 };
 
-function PlanModal({ variant, dismissible, onClose, onNavigateToPlans, daysLeft, planName, expiresAt }: ModalProps) {
+function PlanModal({
+  variant,
+  dismissible,
+  onClose,
+  onNavigateToPlans,
+  daysLeft,
+  planName,
+  expiresAt,
+}: ModalProps) {
   const navigate = useNavigate();
   const orange = variant !== "welcome";
 
   const heading =
-    variant === "welcome" ? { pre: "Seja muito", strong: "Bem-vindo!", emoji: "👋" }
-    : variant === "expired" ? { pre: "Seu plano", strong: "está vencido!", emoji: "" }
-    : { pre: "Seu plano está", strong: "quase vencendo!", emoji: "" };
+    variant === "welcome"
+      ? { pre: "Seja muito", strong: "Bem-vindo!", emoji: "👋" }
+      : variant === "expired"
+        ? { pre: "Seu plano", strong: "está vencido!", emoji: "" }
+        : { pre: "Seu plano está", strong: "quase vencendo!", emoji: "" };
 
   const subtitle =
-    variant === "welcome"
-      ? <>Estamos felizes por ter você aqui. Sua jornada com <span className="text-sky-300 font-semibold">inteligência artificial</span> começa agora!</>
-      : variant === "expired"
-      ? <>Seu acesso está bloqueado. Renove agora para reativar todos os recursos da plataforma.</>
-      : <>Para continuar aproveitando todos os recursos da plataforma sem interrupções, renove seu plano.</>;
+    variant === "welcome" ? (
+      <>
+        Estamos felizes por ter você aqui. Sua jornada com{" "}
+        <span className="text-sky-300 font-semibold">inteligência artificial</span> começa agora!
+      </>
+    ) : variant === "expired" ? (
+      <>Seu acesso está bloqueado. Renove agora para reativar todos os recursos da plataforma.</>
+    ) : (
+      <>
+        Para continuar aproveitando todos os recursos da plataforma sem interrupções, renove seu
+        plano.
+      </>
+    );
 
   const cta =
-    variant === "welcome" ? "Ver Planos e Começar Agora"
-    : variant === "expired" ? "Renovar Meu Plano Agora"
-    : "Renovar Meu Plano Agora";
+    variant === "welcome"
+      ? "Ver Planos e Começar Agora"
+      : variant === "expired"
+        ? "Renovar Meu Plano Agora"
+        : "Renovar Meu Plano Agora";
 
   const [navigating, setNavigating] = useState(false);
   const goPlan = async () => {
@@ -178,7 +238,6 @@ function PlanModal({ variant, dismissible, onClose, onNavigateToPlans, daysLeft,
         transition={{ type: "spring", stiffness: 220, damping: 22 }}
         className="relative w-full max-w-md overflow-hidden rounded-3xl border border-border bg-card text-foreground shadow-[0_40px_120px_-20px_rgba(0,0,0,0.8)]"
       >
-
         {dismissible && (
           <button
             aria-label="Fechar"
@@ -192,27 +251,51 @@ function PlanModal({ variant, dismissible, onClose, onNavigateToPlans, daysLeft,
         <div className="relative px-6 pt-8 pb-6 text-center">
           {/* Logo header */}
           <div className="flex items-center justify-center gap-2">
-            <img src={logoAsset.url} alt="Agent IA" className="h-9 w-9 rounded-lg object-cover ring-1 ring-border" />
+            <img
+              src={logoAsset.url}
+              alt="Agent IA"
+              className="h-9 w-9 rounded-lg object-cover ring-1 ring-border"
+            />
             <div className="text-left leading-none">
-              <div className="text-lg font-black tracking-tight bg-gradient-to-r from-sky-300 via-white to-sky-300 bg-clip-text text-transparent">AGENTIA</div>
-              <div className="text-[8px] uppercase tracking-[0.25em] text-foreground/50">Plataforma Inteligente</div>
+              <div className="text-lg font-black tracking-tight bg-gradient-to-r from-sky-300 via-white to-sky-300 bg-clip-text text-transparent">
+                AGENTIA
+              </div>
+              <div className="text-[8px] uppercase tracking-[0.25em] text-foreground/50">
+                Plataforma Inteligente
+              </div>
             </div>
           </div>
 
           {/* Hero icon */}
           <div className="relative mt-6 mx-auto grid h-40 w-40 place-items-center">
-            <div className={`absolute inset-0 rounded-full blur-3xl ${orange ? "bg-orange-500/40" : "bg-sky-500/40"}`} />
+            <div
+              className={`absolute inset-0 rounded-full blur-3xl ${orange ? "bg-orange-500/40" : "bg-sky-500/40"}`}
+            />
             <img
-              src={variant === "welcome" ? robotWelcome : variant === "expired" ? robotExpired : robotExpiring}
+              src={
+                variant === "welcome"
+                  ? robotWelcome
+                  : variant === "expired"
+                    ? robotExpired
+                    : robotExpiring
+              }
               alt="Mascote AGENTIA"
               className="relative h-40 w-40 object-contain drop-shadow-[0_10px_30px_rgba(0,0,0,0.5)]"
             />
-            <div className={`absolute -bottom-1 -right-1 grid h-9 w-9 place-items-center rounded-full ring-2 ring-slate-950 shadow-lg ${
-              orange ? "bg-gradient-to-br from-orange-500 to-amber-600" : "bg-gradient-to-br from-sky-500 to-indigo-600"
-            }`}>
-              {variant === "welcome" ? <PartyPopper className="h-4 w-4 text-foreground" />
-                : variant === "expired" ? <AlertTriangle className="h-4 w-4 text-foreground" />
-                : <Hourglass className="h-4 w-4 text-foreground" />}
+            <div
+              className={`absolute -bottom-1 -right-1 grid h-9 w-9 place-items-center rounded-full ring-2 ring-slate-950 shadow-lg ${
+                orange
+                  ? "bg-gradient-to-br from-orange-500 to-amber-600"
+                  : "bg-gradient-to-br from-sky-500 to-indigo-600"
+              }`}
+            >
+              {variant === "welcome" ? (
+                <PartyPopper className="h-4 w-4 text-foreground" />
+              ) : variant === "expired" ? (
+                <AlertTriangle className="h-4 w-4 text-foreground" />
+              ) : (
+                <Hourglass className="h-4 w-4 text-foreground" />
+              )}
             </div>
           </div>
 
@@ -238,11 +321,14 @@ function PlanModal({ variant, dismissible, onClose, onNavigateToPlans, daysLeft,
               </div>
               <div className="rounded-xl bg-muted/40 p-3">
                 <div className="flex items-center gap-1.5 text-[10px] uppercase tracking-wider text-foreground/50">
-                  <CalendarDays className="h-3 w-3" /> {variant === "expired" ? "Venceu em" : "Vencimento em"}
+                  <CalendarDays className="h-3 w-3" />{" "}
+                  {variant === "expired" ? "Venceu em" : "Vencimento em"}
                 </div>
                 <div className="mt-1 font-bold text-orange-300">
                   {variant === "expired"
-                    ? (expiresAt ? expiresAt.toLocaleDateString("pt-BR") : "—")
+                    ? expiresAt
+                      ? expiresAt.toLocaleDateString("pt-BR")
+                      : "—"
                     : `${daysLeft ?? 0} dia${daysLeft === 1 ? "" : "s"}`}
                 </div>
                 <div className="mt-1 text-[10px] text-foreground/50">
@@ -255,21 +341,54 @@ function PlanModal({ variant, dismissible, onClose, onNavigateToPlans, daysLeft,
           {/* Feature strip */}
           {variant === "welcome" ? (
             <div className="mt-5 rounded-2xl border border-border bg-white/[0.03] p-4">
-              <div className="text-xs font-semibold text-foreground/80 mb-3">O que você vai encontrar aqui:</div>
+              <div className="text-xs font-semibold text-foreground/80 mb-3">
+                O que você vai encontrar aqui:
+              </div>
               <div className="grid grid-cols-2 gap-3 text-left">
-                <Feature icon={Brain} title="Automação Inteligente" desc="Crie agentes e fluxos poderosos" tint="sky" />
-                <Feature icon={Zap} title="Alta Performance" desc="Plataforma rápida e estável" tint="fuchsia" />
-                <Feature icon={ShieldCheck} title="Total Controle" desc="Gerencie tudo em um só lugar" tint="emerald" />
-                <Feature icon={Headphones} title="Suporte Premium" desc="Estamos sempre com você" tint="orange" />
+                <Feature
+                  icon={Brain}
+                  title="Automação Inteligente"
+                  desc="Crie agentes e fluxos poderosos"
+                  tint="sky"
+                />
+                <Feature
+                  icon={Zap}
+                  title="Alta Performance"
+                  desc="Plataforma rápida e estável"
+                  tint="fuchsia"
+                />
+                <Feature
+                  icon={ShieldCheck}
+                  title="Total Controle"
+                  desc="Gerencie tudo em um só lugar"
+                  tint="emerald"
+                />
+                <Feature
+                  icon={Headphones}
+                  title="Suporte Premium"
+                  desc="Estamos sempre com você"
+                  tint="orange"
+                />
               </div>
             </div>
           ) : (
             <div className="mt-5 rounded-2xl border border-orange-400/20 bg-orange-500/[0.04] p-4">
-              <div className="text-xs font-semibold text-orange-300 mb-3">O que você pode perder?</div>
+              <div className="text-xs font-semibold text-orange-300 mb-3">
+                O que você pode perder?
+              </div>
               <ul className="space-y-2 text-left text-xs text-foreground/80">
-                <li className="flex items-center gap-2"><Zap className="h-3.5 w-3.5 text-orange-400 shrink-0" /> Seus agentes podem ser pausados</li>
-                <li className="flex items-center gap-2"><Rocket className="h-3.5 w-3.5 text-orange-400 shrink-0" /> Suas integrações podem ser limitadas</li>
-                <li className="flex items-center gap-2"><Sparkles className="h-3.5 w-3.5 text-orange-400 shrink-0" /> Seus fluxos podem parar de funcionar</li>
+                <li className="flex items-center gap-2">
+                  <Zap className="h-3.5 w-3.5 text-orange-400 shrink-0" /> Seus agentes podem ser
+                  pausados
+                </li>
+                <li className="flex items-center gap-2">
+                  <Rocket className="h-3.5 w-3.5 text-orange-400 shrink-0" /> Suas integrações podem
+                  ser limitadas
+                </li>
+                <li className="flex items-center gap-2">
+                  <Sparkles className="h-3.5 w-3.5 text-orange-400 shrink-0" /> Seus fluxos podem
+                  parar de funcionar
+                </li>
               </ul>
             </div>
           )}
@@ -279,15 +398,25 @@ function PlanModal({ variant, dismissible, onClose, onNavigateToPlans, daysLeft,
             {variant === "welcome" ? (
               <div className="rounded-2xl border border-border bg-muted/40 p-4">
                 <div className="text-sm font-bold text-foreground">Pronto para começar?</div>
-                <div className="mt-1 text-xs text-foreground/70">Escolha o plano ideal para desbloquear todo o potencial da AgentIA.</div>
+                <div className="mt-1 text-xs text-foreground/70">
+                  Escolha o plano ideal para desbloquear todo o potencial da AgentIA.
+                </div>
                 <Button
                   onClick={goPlan}
                   disabled={navigating}
                   className="mt-3 w-full h-11 rounded-xl bg-gradient-to-r from-sky-500 via-indigo-500 to-fuchsia-500 hover:opacity-95 shadow-lg shadow-indigo-500/30 font-semibold"
                 >
-                  {navigating ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Abrindo…</> : cta}
+                  {navigating ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" /> Abrindo…
+                    </>
+                  ) : (
+                    cta
+                  )}
                 </Button>
-                <div className="mt-2 text-[10px] text-foreground/50">🔒 Pagamento seguro • Cancelamento fácil</div>
+                <div className="mt-2 text-[10px] text-foreground/50">
+                  🔒 Pagamento seguro • Cancelamento fácil
+                </div>
               </div>
             ) : (
               <Button
@@ -295,7 +424,15 @@ function PlanModal({ variant, dismissible, onClose, onNavigateToPlans, daysLeft,
                 disabled={navigating}
                 className="w-full h-12 rounded-xl bg-gradient-to-r from-orange-500 to-amber-600 hover:opacity-95 shadow-lg shadow-orange-500/30 font-semibold text-base"
               >
-                {navigating ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Abrindo…</> : <><Rocket className="h-4 w-4 mr-2" /> {cta}</>}
+                {navigating ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" /> Abrindo…
+                  </>
+                ) : (
+                  <>
+                    <Rocket className="h-4 w-4 mr-2" /> {cta}
+                  </>
+                )}
               </Button>
             )}
           </div>
@@ -310,7 +447,17 @@ function PlanModal({ variant, dismissible, onClose, onNavigateToPlans, daysLeft,
   );
 }
 
-function Feature({ icon: Icon, title, desc, tint }: { icon: React.ComponentType<{ className?: string }>; title: string; desc: string; tint: "sky" | "fuchsia" | "emerald" | "orange" }) {
+function Feature({
+  icon: Icon,
+  title,
+  desc,
+  tint,
+}: {
+  icon: React.ComponentType<{ className?: string }>;
+  title: string;
+  desc: string;
+  tint: "sky" | "fuchsia" | "emerald" | "orange";
+}) {
   const tints: Record<string, string> = {
     sky: "bg-sky-500/15 text-sky-300 ring-sky-400/30",
     fuchsia: "bg-fuchsia-500/15 text-fuchsia-300 ring-fuchsia-400/30",

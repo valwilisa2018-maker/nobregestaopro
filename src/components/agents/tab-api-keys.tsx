@@ -24,14 +24,24 @@ export function TabApiKeys() {
 
   async function load() {
     setLoading(true);
-    if (!user) { setLoading(false); return; }
-    const { data } = await supabase.from("ai_providers").select("provider,api_key").eq("user_id", user.id);
+    if (!user) {
+      setLoading(false);
+      return;
+    }
+    const { data } = await supabase
+      .from("ai_providers")
+      .select("provider,api_key")
+      .eq("user_id", user.id);
     const map: Record<string, string> = {};
-    (data ?? []).forEach((r: { provider: string; api_key: string | null }) => { if (r.api_key) map[r.provider] = r.api_key; });
+    (data ?? []).forEach((r: { provider: string; api_key: string | null }) => {
+      if (r.api_key) map[r.provider] = r.api_key;
+    });
     setValues(map);
     setLoading(false);
   }
-  useEffect(() => { load(); /* eslint-disable-next-line */ }, [user]);
+  useEffect(() => {
+    load(); /* eslint-disable-next-line */
+  }, [user]);
 
   async function save() {
     if (!user) return;
@@ -48,36 +58,56 @@ export function TabApiKeys() {
           .limit(1)
           .maybeSingle();
         if (existing?.id) {
-          await supabase.from("ai_providers").update({ api_key: v, is_active: true }).eq("id", existing.id).eq("user_id", user.id);
+          await supabase
+            .from("ai_providers")
+            .update({ api_key: v, is_active: true })
+            .eq("id", existing.id)
+            .eq("user_id", user.id);
         } else {
-          await supabase.from("ai_providers").insert({ user_id: user.id, name: row.label, provider: row.provider, api_key: v, is_active: true });
+          await supabase.from("ai_providers").insert({
+            user_id: user.id,
+            name: row.label,
+            provider: row.provider,
+            api_key: v,
+            is_active: true,
+          });
         }
       }
       toast.success("Chaves salvas");
       await load();
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Erro ao salvar");
-    } finally { setSaving(false); }
+    } finally {
+      setSaving(false);
+    }
   }
 
   return (
     <div className="space-y-5">
       <div>
         <h2 className="text-xl font-bold">Chaves de API</h2>
-        <p className="text-sm text-muted-foreground">Insira as chaves de API dos provedores que deseja utilizar.</p>
+        <p className="text-sm text-muted-foreground">
+          Insira as chaves de API dos provedores que deseja utilizar.
+        </p>
       </div>
 
       <div className="rounded-xl border border-primary/30 bg-primary/5 p-3 text-xs flex items-start gap-2 text-muted-foreground">
         <Info className="h-4 w-4 text-primary shrink-0 mt-0.5" />
-        Somente o provedor selecionado em cada agente será utilizado. Configure as chaves aqui e escolha o provedor na configuração de cada agente.
+        Somente o provedor selecionado em cada agente será utilizado. Configure as chaves aqui e
+        escolha o provedor na configuração de cada agente.
       </div>
 
       {loading ? (
-        <div className="grid place-items-center py-16"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>
+        <div className="grid place-items-center py-16">
+          <Loader2 className="h-6 w-6 animate-spin text-primary" />
+        </div>
       ) : (
         <div className="space-y-3">
           {ROWS.map((r) => (
-            <div key={r.provider} className="rounded-2xl border border-border/60 bg-card/40 p-4 space-y-2">
+            <div
+              key={r.provider}
+              className="rounded-2xl border border-border/60 bg-card/40 p-4 space-y-2"
+            >
               <div className="flex items-center gap-2">
                 <span className={`h-2.5 w-2.5 rounded-full ${r.dot}`} />
                 <h3 className="font-semibold text-sm">{r.label}</h3>
@@ -90,8 +120,13 @@ export function TabApiKeys() {
                   onChange={(e) => setValues({ ...values, [r.provider]: e.target.value })}
                   className="font-mono text-sm bg-background/60"
                 />
-                <Button variant="outline" size="sm" onClick={() => setShow({ ...show, [r.provider]: !show[r.provider] })}>
-                  {show[r.provider] ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />} Mostrar
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setShow({ ...show, [r.provider]: !show[r.provider] })}
+                >
+                  {show[r.provider] ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}{" "}
+                  Mostrar
                 </Button>
               </div>
             </div>
@@ -99,8 +134,14 @@ export function TabApiKeys() {
         </div>
       )}
 
-      <Button onClick={save} disabled={saving} className="rounded-xl" style={{ background: "var(--gradient-primary)", boxShadow: "var(--shadow-elegant)" }}>
-        {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />} Salvar Chaves
+      <Button
+        onClick={save}
+        disabled={saving}
+        className="rounded-xl"
+        style={{ background: "var(--gradient-primary)", boxShadow: "var(--shadow-elegant)" }}
+      >
+        {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}{" "}
+        Salvar Chaves
       </Button>
     </div>
   );

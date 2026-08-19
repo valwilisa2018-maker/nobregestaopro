@@ -34,7 +34,14 @@ function ResetPasswordPage() {
     return s;
   })();
   const strengthLabel = ["Muito fraca", "Fraca", "Média", "Boa", "Forte", "Excelente"][strength];
-  const strengthColor = ["bg-destructive", "bg-destructive", "bg-amber-500", "bg-amber-400", "bg-emerald-500", "bg-emerald-400"][strength];
+  const strengthColor = [
+    "bg-destructive",
+    "bg-destructive",
+    "bg-amber-500",
+    "bg-amber-400",
+    "bg-emerald-500",
+    "bg-emerald-400",
+  ][strength];
 
   useEffect(() => {
     let cancelled = false;
@@ -49,7 +56,8 @@ function ResetPasswordPage() {
         const code = url.searchParams.get("code");
         const access_token = hash.get("access_token");
         const refresh_token = hash.get("refresh_token");
-        const hashError = hash.get("error_description") || url.searchParams.get("error_description");
+        const hashError =
+          hash.get("error_description") || url.searchParams.get("error_description");
 
         if (hashError) {
           if (!cancelled) setErrorMsg(decodeURIComponent(hashError));
@@ -74,13 +82,17 @@ function ResetPasswordPage() {
 
         const { data } = await supabase.auth.getSession();
         if (data.session && !cancelled) setReady(true);
-        else if (!cancelled) setErrorMsg("Link inválido ou expirado. Solicite um novo e-mail de recuperação.");
+        else if (!cancelled)
+          setErrorMsg("Link inválido ou expirado. Solicite um novo e-mail de recuperação.");
       } catch (err: any) {
         if (!cancelled) setErrorMsg(err?.message ?? "Não foi possível validar o link.");
       }
     })();
 
-    return () => { cancelled = true; sub.subscription.unsubscribe(); };
+    return () => {
+      cancelled = true;
+      sub.subscription.unsubscribe();
+    };
   }, []);
 
   async function onSubmit(e: React.FormEvent) {
@@ -109,7 +121,11 @@ function ResetPasswordPage() {
         <div className="mb-6 flex flex-col items-center gap-3">
           <div className="relative">
             <div className="absolute inset-0 -m-2 rounded-2xl bg-gradient-to-br from-blue-500/40 to-indigo-500/40 blur-xl" />
-            <img src={logoAsset.url} alt="Agent IA" className="relative h-16 w-16 rounded-2xl object-contain" />
+            <img
+              src={logoAsset.url}
+              alt="Agent IA"
+              className="relative h-16 w-16 rounded-2xl object-contain"
+            />
           </div>
           <div className="text-center">
             <h1 className="text-2xl font-bold tracking-tight text-foreground">Agent IA</h1>
@@ -124,13 +140,19 @@ function ResetPasswordPage() {
             </div>
             <CardTitle className="text-center text-xl text-foreground">Redefinir senha</CardTitle>
             <CardDescription className="text-center text-foreground/60">
-              {errorMsg ? errorMsg : ready ? "Crie uma nova senha para acessar sua conta." : "Validando link de recuperação..."}
+              {errorMsg
+                ? errorMsg
+                : ready
+                  ? "Crie uma nova senha para acessar sua conta."
+                  : "Validando link de recuperação..."}
             </CardDescription>
           </CardHeader>
           <CardContent>
             <form className="space-y-4" onSubmit={onSubmit}>
               <div className="space-y-2">
-                <Label htmlFor="password" className="text-foreground/80">Nova senha</Label>
+                <Label htmlFor="password" className="text-foreground/80">
+                  Nova senha
+                </Label>
                 <div className="relative">
                   <Lock className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-foreground/40" />
                   <Input
@@ -155,8 +177,11 @@ function ResetPasswordPage() {
                 {password && (
                   <div className="space-y-1">
                     <div className="flex h-1.5 gap-1">
-                      {[0,1,2,3,4].map((i) => (
-                        <div key={i} className={`h-full flex-1 rounded-full ${i < strength ? strengthColor : "bg-muted/60"}`} />
+                      {[0, 1, 2, 3, 4].map((i) => (
+                        <div
+                          key={i}
+                          className={`h-full flex-1 rounded-full ${i < strength ? strengthColor : "bg-muted/60"}`}
+                        />
                       ))}
                     </div>
                     <p className="text-xs text-foreground/50">Força: {strengthLabel}</p>
@@ -165,7 +190,9 @@ function ResetPasswordPage() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="confirm" className="text-foreground/80">Confirmar senha</Label>
+                <Label htmlFor="confirm" className="text-foreground/80">
+                  Confirmar senha
+                </Label>
                 <div className="relative">
                   <ShieldCheck className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-foreground/40" />
                   <Input

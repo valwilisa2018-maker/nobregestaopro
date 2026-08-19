@@ -7,8 +7,18 @@ import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
-export function DealCard({ deal, onClick, stageColor }: { deal: Deal; onClick: () => void; stageColor?: string }) {
-  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: deal.id });
+export function DealCard({
+  deal,
+  onClick,
+  stageColor,
+}: {
+  deal: Deal;
+  onClick: () => void;
+  stageColor?: string;
+}) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+    id: deal.id,
+  });
   const color = stageColor || "var(--primary)";
   const style = {
     transform: CSS.Translate.toString(transform),
@@ -38,24 +48,34 @@ export function DealCard({ deal, onClick, stageColor }: { deal: Deal; onClick: (
         <div className="min-w-0 flex-1 space-y-1.5">
           <div className="flex items-start justify-between gap-2">
             <p className="font-semibold text-sm truncate">{deal.title}</p>
-            <Badge variant="outline" className={`text-[10px] px-1.5 py-0 shrink-0 ${PRIORITY_COLOR[deal.priority]}`}>
+            <Badge
+              variant="outline"
+              className={`text-[10px] px-1.5 py-0 shrink-0 ${PRIORITY_COLOR[deal.priority]}`}
+            >
               {PRIORITY_LABEL[deal.priority]}
             </Badge>
           </div>
           {deal.company && (
             <div className="flex items-center gap-1 text-xs text-muted-foreground truncate">
-              <Building2 className="h-3 w-3 shrink-0" /> <span className="truncate">{deal.company}</span>
+              <Building2 className="h-3 w-3 shrink-0" />{" "}
+              <span className="truncate">{deal.company}</span>
             </div>
           )}
           {(deal.phone || deal.whatsapp) && (
             <div className="flex items-center gap-1 text-xs text-muted-foreground truncate">
-              <Phone className="h-3 w-3 shrink-0" /> <span className="truncate">{deal.whatsapp || deal.phone}</span>
+              <Phone className="h-3 w-3 shrink-0" />{" "}
+              <span className="truncate">{deal.whatsapp || deal.phone}</span>
             </div>
           )}
           {deal.tags?.length > 0 && (
             <div className="flex flex-wrap gap-1">
               {deal.tags.slice(0, 3).map((t) => (
-                <span key={t} className="text-[10px] rounded-full bg-primary/10 text-primary px-2 py-0.5">{t}</span>
+                <span
+                  key={t}
+                  className="text-[10px] rounded-full bg-primary/10 text-primary px-2 py-0.5"
+                >
+                  {t}
+                </span>
               ))}
             </div>
           )}

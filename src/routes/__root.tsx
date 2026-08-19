@@ -80,14 +80,26 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
       { title: "Agent IA — Plataforma de IA para WhatsApp" },
-      { name: "description", content: "Agent IA é a plataforma completa para criar, treinar e operar agentes de inteligência artificial no WhatsApp: atendimento 24/7, follow-up automático, áudio e mídia com IA." },
+      {
+        name: "description",
+        content:
+          "Agent IA é a plataforma completa para criar, treinar e operar agentes de inteligência artificial no WhatsApp: atendimento 24/7, follow-up automático, áudio e mídia com IA.",
+      },
       { property: "og:site_name", content: "Agent IA" },
       { property: "og:title", content: "Agent IA — Plataforma de IA para WhatsApp" },
-      { property: "og:description", content: "Crie, treine e opere agentes de IA no WhatsApp com follow-up, áudio e mídia inteligentes." },
+      {
+        property: "og:description",
+        content:
+          "Crie, treine e opere agentes de IA no WhatsApp com follow-up, áudio e mídia inteligentes.",
+      },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
       { name: "twitter:title", content: "Agent IA — Plataforma de IA para WhatsApp" },
-      { name: "twitter:description", content: "Crie, treine e opere agentes de IA no WhatsApp com follow-up, áudio e mídia inteligentes." },
+      {
+        name: "twitter:description",
+        content:
+          "Crie, treine e opere agentes de IA no WhatsApp com follow-up, áudio e mídia inteligentes.",
+      },
     ],
     links: [
       {

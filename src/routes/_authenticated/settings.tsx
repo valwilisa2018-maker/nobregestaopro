@@ -26,12 +26,17 @@ function Page() {
   useEffect(() => {
     if (!user) return;
     (async () => {
-      const { data } = await supabase.from("profiles").select("full_name, phone, alert_phone").eq("id", user.id).maybeSingle();
-      if (data) setProfile({
-        full_name: data.full_name ?? "",
-        phone: data.phone ?? "",
-        alert_phone: data.alert_phone ?? "",
-      });
+      const { data } = await supabase
+        .from("profiles")
+        .select("full_name, phone, alert_phone")
+        .eq("id", user.id)
+        .maybeSingle();
+      if (data)
+        setProfile({
+          full_name: data.full_name ?? "",
+          phone: data.phone ?? "",
+          alert_phone: data.alert_phone ?? "",
+        });
       setLoading(false);
     })();
   }, [user]);
@@ -39,11 +44,14 @@ function Page() {
   const saveProfile = async () => {
     if (!user) return;
     setSavingProfile(true);
-    const { error } = await supabase.from("profiles").update({
-      full_name: profile.full_name.trim() || null,
-      phone: profile.phone.trim() || null,
-      alert_phone: profile.alert_phone.trim() || null,
-    }).eq("id", user.id);
+    const { error } = await supabase
+      .from("profiles")
+      .update({
+        full_name: profile.full_name.trim() || null,
+        phone: profile.phone.trim() || null,
+        alert_phone: profile.alert_phone.trim() || null,
+      })
+      .eq("id", user.id);
     setSavingProfile(false);
     if (error) return toast.error(error.message);
     toast.success("Perfil atualizado");
@@ -82,7 +90,9 @@ function Page() {
           </CardHeader>
           <CardContent className="space-y-4">
             {loading ? (
-              <div className="py-8 flex justify-center"><Loader2 className="h-5 w-5 animate-spin text-primary" /></div>
+              <div className="py-8 flex justify-center">
+                <Loader2 className="h-5 w-5 animate-spin text-primary" />
+              </div>
             ) : (
               <>
                 <div className="space-y-1.5">
@@ -91,19 +101,38 @@ function Page() {
                 </div>
                 <div className="space-y-1.5">
                   <Label>Nome completo</Label>
-                  <Input value={profile.full_name} onChange={(e) => setProfile({ ...profile, full_name: e.target.value })} placeholder="Seu nome" />
+                  <Input
+                    value={profile.full_name}
+                    onChange={(e) => setProfile({ ...profile, full_name: e.target.value })}
+                    placeholder="Seu nome"
+                  />
                 </div>
                 <div className="space-y-1.5">
                   <Label>Telefone</Label>
-                  <Input value={profile.phone} onChange={(e) => setProfile({ ...profile, phone: e.target.value })} placeholder="+55 11 99999-9999" />
+                  <Input
+                    value={profile.phone}
+                    onChange={(e) => setProfile({ ...profile, phone: e.target.value })}
+                    placeholder="+55 11 99999-9999"
+                  />
                 </div>
                 <div className="space-y-1.5">
-                  <Label className="flex items-center gap-1.5"><Phone className="h-3.5 w-3.5" />Telefone para alertas</Label>
-                  <Input value={profile.alert_phone} onChange={(e) => setProfile({ ...profile, alert_phone: e.target.value })} placeholder="Receberá notificações do sistema" />
+                  <Label className="flex items-center gap-1.5">
+                    <Phone className="h-3.5 w-3.5" />
+                    Telefone para alertas
+                  </Label>
+                  <Input
+                    value={profile.alert_phone}
+                    onChange={(e) => setProfile({ ...profile, alert_phone: e.target.value })}
+                    placeholder="Receberá notificações do sistema"
+                  />
                 </div>
                 <div className="flex justify-end pt-2">
                   <Button onClick={saveProfile} disabled={savingProfile}>
-                    {savingProfile ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+                    {savingProfile ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Save className="h-4 w-4" />
+                    )}
                     Salvar perfil
                   </Button>
                 </div>
@@ -127,15 +156,29 @@ function Page() {
           <CardContent className="space-y-4">
             <div className="space-y-1.5">
               <Label>Nova senha</Label>
-              <Input type="password" value={pw.next} onChange={(e) => setPw({ ...pw, next: e.target.value })} placeholder="Mínimo 6 caracteres" />
+              <Input
+                type="password"
+                value={pw.next}
+                onChange={(e) => setPw({ ...pw, next: e.target.value })}
+                placeholder="Mínimo 6 caracteres"
+              />
             </div>
             <div className="space-y-1.5">
               <Label>Confirmar nova senha</Label>
-              <Input type="password" value={pw.confirm} onChange={(e) => setPw({ ...pw, confirm: e.target.value })} placeholder="Repita a nova senha" />
+              <Input
+                type="password"
+                value={pw.confirm}
+                onChange={(e) => setPw({ ...pw, confirm: e.target.value })}
+                placeholder="Repita a nova senha"
+              />
             </div>
             <div className="flex justify-end pt-2">
               <Button onClick={savePw} disabled={savingPw || !pw.next}>
-                {savingPw ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+                {savingPw ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Save className="h-4 w-4" />
+                )}
                 Alterar senha
               </Button>
             </div>

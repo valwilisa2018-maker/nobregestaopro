@@ -49,24 +49,50 @@ async function extractWithAi(pdfBytes: Uint8Array) {
     body: JSON.stringify({
       model: "google/gemini-3-flash-preview",
       messages: [
-        { role: "system", content: "Voce extrai dados de comprovantes bancarios. Responda APENAS com JSON valido, sem markdown." },
-        { role: "user", content: [
-          { type: "text", text: "Extraia deste comprovante: bank, payer, payee, amount, date, transactionId. Devolva JSON puro." },
-          { type: "file", file: { filename: "comprovante.pdf", file_data: `data:application/pdf;base64,${b64}` } },
-        ] },
+        {
+          role: "system",
+          content:
+            "Voce extrai dados de comprovantes bancarios. Responda APENAS com JSON valido, sem markdown.",
+        },
+        {
+          role: "user",
+          content: [
+            {
+              type: "text",
+              text: "Extraia deste comprovante: bank, payer, payee, amount, date, transactionId. Devolva JSON puro.",
+            },
+            {
+              type: "file",
+              file: {
+                filename: "comprovante.pdf",
+                file_data: `data:application/pdf;base64,${b64}`,
+              },
+            },
+          ],
+        },
       ],
     }),
   });
-  const json = await res.json() as { choices?: Array<{ message?: { content?: string } }>; error?: unknown };
+  const json = (await res.json()) as {
+    choices?: Array<{ message?: { content?: string } }>;
+    error?: unknown;
+  };
   if (!res.ok) throw new Error(`Gateway ${res.status}: ${JSON.stringify(json)}`);
   const raw = json.choices?.[0]?.message?.content ?? "";
-  const cleaned = raw.replace(/^```json\s*/i, "").replace(/^```\s*/i, "").replace(/```\s*$/i, "").trim();
-  const start = cleaned.indexOf("{"); const end = cleaned.lastIndexOf("}");
+  const cleaned = raw
+    .replace(/^```json\s*/i, "")
+    .replace(/^```\s*/i, "")
+    .replace(/```\s*$/i, "")
+    .trim();
+  const start = cleaned.indexOf("{");
+  const end = cleaned.lastIndexOf("}");
   if (start < 0 || end < 0) throw new Error(`Resposta sem JSON: ${raw}`);
   return JSON.parse(cleaned.slice(start, end + 1)) as Record<string, string>;
 }
 
-function norm(s: string) { return (s ?? "").toLowerCase().replace(/[^a-z0-9]/g, ""); }
+function norm(s: string) {
+  return (s ?? "").toLowerCase().replace(/[^a-z0-9]/g, "");
+}
 
 async function main() {
   console.log("→ Gerando PDF de comprovante...");
@@ -81,17 +107,33 @@ async function main() {
     ["payer", norm(extracted.payer ?? "").includes(norm(FIXTURE.payer)), FIXTURE.payer],
     ["payee", norm(extracted.payee ?? "").includes(norm("Fornecedor XYZ")), FIXTURE.payee],
     ["amount", /1[.,]?234[.,]56/.test(extracted.amount ?? ""), FIXTURE.amount],
-    ["date", (extracted.date ?? "").includes("04") && (extracted.date ?? "").includes("2026"), FIXTURE.date],
-    ["transactionId", norm(extracted.transactionId ?? "") === norm(FIXTURE.transactionId), FIXTURE.transactionId],
+    [
+      "date",
+      (extracted.date ?? "").includes("04") && (extracted.date ?? "").includes("2026"),
+      FIXTURE.date,
+    ],
+    [
+      "transactionId",
+      norm(extracted.transactionId ?? "") === norm(FIXTURE.transactionId),
+      FIXTURE.transactionId,
+    ],
   ];
 
   let ok = true;
   for (const [field, pass, expected] of checks) {
-    console.log(`  ${pass ? "✅" : "❌"} ${field} (esperado ~ ${expected}, recebido: ${extracted[field] ?? "∅"})`);
+    console.log(
+      `  ${pass ? "✅" : "❌"} ${field} (esperado ~ ${expected}, recebido: ${extracted[field] ?? "∅"})`,
+    );
     if (!pass) ok = false;
   }
-  if (!ok) { console.error("\n❌ Teste FALHOU"); process.exit(1); }
+  if (!ok) {
+    console.error("\n❌ Teste FALHOU");
+    process.exit(1);
+  }
   console.log("\n✅ Teste PASSOU — IA extraiu os dados principais do comprovante.");
 }
 
-main().catch((e) => { console.error(e); process.exit(1); });
+main().catch((e) => {
+  console.error(e);
+  process.exit(1);
+});

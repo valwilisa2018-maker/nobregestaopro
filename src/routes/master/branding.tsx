@@ -24,9 +24,19 @@ function Page() {
   const fileRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    supabase.from("internal_config").select("value").eq("key", "branding").maybeSingle()
+    supabase
+      .from("internal_config")
+      .select("value")
+      .eq("key", "branding")
+      .maybeSingle()
       .then(({ data }) => {
-        if (data?.value) { try { setBranding(JSON.parse(data.value) as Branding); } catch { /* ignore */ } }
+        if (data?.value) {
+          try {
+            setBranding(JSON.parse(data.value) as Branding);
+          } catch {
+            /* ignore */
+          }
+        }
         setLoading(false);
       });
   }, []);
@@ -34,19 +44,30 @@ function Page() {
   const save = async () => {
     setSaving(true);
     const value = JSON.stringify(branding);
-    const { data: existing } = await supabase.from("internal_config").select("key").eq("key", "branding").maybeSingle();
+    const { data: existing } = await supabase
+      .from("internal_config")
+      .select("key")
+      .eq("key", "branding")
+      .maybeSingle();
     const { error } = existing
       ? await supabase.from("internal_config").update({ value }).eq("key", "branding")
       : await supabase.from("internal_config").insert({ key: "branding", value });
     setSaving(false);
-    if (error) toast.error(error.message); else toast.success("Personalização salva");
+    if (error) toast.error(error.message);
+    else toast.success("Personalização salva");
   };
 
   const reset = () => setBranding({ maintenance_logo_url: "" });
 
   const onPickFile = async (file: File) => {
-    if (!file.type.startsWith("image/")) { toast.error("Selecione uma imagem (PNG, JPG ou SVG)."); return; }
-    if (file.size > 2 * 1024 * 1024) { toast.error("Imagem muito grande. Máximo 2MB."); return; }
+    if (!file.type.startsWith("image/")) {
+      toast.error("Selecione uma imagem (PNG, JPG ou SVG).");
+      return;
+    }
+    if (file.size > 2 * 1024 * 1024) {
+      toast.error("Imagem muito grande. Máximo 2MB.");
+      return;
+    }
     setUploading(true);
     try {
       const dataUrl: string = await new Promise((resolve, reject) => {
@@ -75,7 +96,9 @@ function Page() {
       status="ativo"
     >
       {loading ? (
-        <div className="p-12 flex justify-center"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>
+        <div className="p-12 flex justify-center">
+          <Loader2 className="h-6 w-6 animate-spin text-primary" />
+        </div>
       ) : (
         <Card className="border-primary/20 bg-gradient-to-br from-primary/5 to-transparent">
           <CardContent className="p-6 space-y-6">
@@ -89,15 +112,32 @@ function Page() {
                   type="file"
                   accept="image/png,image/jpeg,image/svg+xml,image/webp"
                   className="hidden"
-                  onChange={(e) => { const f = e.target.files?.[0]; if (f) void onPickFile(f); }}
+                  onChange={(e) => {
+                    const f = e.target.files?.[0];
+                    if (f) void onPickFile(f);
+                  }}
                 />
                 <div className="flex flex-wrap gap-2">
-                  <Button type="button" onClick={() => fileRef.current?.click()} disabled={uploading} className="gap-2">
-                    {uploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
+                  <Button
+                    type="button"
+                    onClick={() => fileRef.current?.click()}
+                    disabled={uploading}
+                    className="gap-2"
+                  >
+                    {uploading ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Upload className="h-4 w-4" />
+                    )}
                     {branding.maintenance_logo_url ? "Trocar imagem" : "Enviar imagem"}
                   </Button>
                   {branding.maintenance_logo_url && (
-                    <Button type="button" variant="outline" onClick={() => setBranding((b) => ({ ...b, maintenance_logo_url: "" }))} className="gap-2">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => setBranding((b) => ({ ...b, maintenance_logo_url: "" }))}
+                      className="gap-2"
+                    >
                       <Trash2 className="h-4 w-4" /> Remover
                     </Button>
                   )}
@@ -107,12 +147,16 @@ function Page() {
                 </p>
               </div>
               <div className="rounded-xl border border-primary/20 bg-background/50 p-4 flex flex-col items-center gap-2">
-                <span className="text-[10px] uppercase tracking-widest text-muted-foreground">Pré-visualização</span>
+                <span className="text-[10px] uppercase tracking-widest text-muted-foreground">
+                  Pré-visualização
+                </span>
                 <img
                   src={preview}
                   alt="Pré-visualização do logo"
                   className="h-24 w-24 rounded-2xl object-cover ring-1 ring-primary/30"
-                  onError={(e) => { (e.currentTarget as HTMLImageElement).src = logoAsset.url; }}
+                  onError={(e) => {
+                    (e.currentTarget as HTMLImageElement).src = logoAsset.url;
+                  }}
                 />
               </div>
             </div>
@@ -121,7 +165,12 @@ function Page() {
                 <RotateCcw className="h-4 w-4" /> Restaurar padrão
               </Button>
               <Button onClick={save} disabled={saving} size="lg" className="gap-2">
-                {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />} Salvar
+                {saving ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Save className="h-4 w-4" />
+                )}{" "}
+                Salvar
               </Button>
             </div>
           </CardContent>

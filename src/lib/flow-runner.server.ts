@@ -4,9 +4,25 @@
 import { buildEvolutionTextPayload } from "@/lib/evolution-text-payload";
 
 type NodeKind =
-  | "START" | "MESSAGE" | "CONDITION" | "YESNO" | "IMAGE" | "VIDEO" | "AUDIO"
-  | "QUESTION" | "WAIT" | "WEBHOOK" | "HANDOFF" | "END"
-  | "TYPING" | "RECORDING" | "TAGS" | "CAPTURE_NAME" | "SCHEDULE" | "BROADCAST" | "SEQUENCE";
+  | "START"
+  | "MESSAGE"
+  | "CONDITION"
+  | "YESNO"
+  | "IMAGE"
+  | "VIDEO"
+  | "AUDIO"
+  | "QUESTION"
+  | "WAIT"
+  | "WEBHOOK"
+  | "HANDOFF"
+  | "END"
+  | "TYPING"
+  | "RECORDING"
+  | "TAGS"
+  | "CAPTURE_NAME"
+  | "SCHEDULE"
+  | "BROADCAST"
+  | "SEQUENCE";
 
 type FlowNode = {
   id: string;
@@ -54,7 +70,8 @@ function arrayBufferToBase64(buffer: ArrayBuffer) {
   const bytes = new Uint8Array(buffer);
   let binary = "";
   const chunk = 0x8000;
-  for (let i = 0; i < bytes.length; i += chunk) binary += String.fromCharCode(...bytes.subarray(i, i + chunk));
+  for (let i = 0; i < bytes.length; i += chunk)
+    binary += String.fromCharCode(...bytes.subarray(i, i + chunk));
   return btoa(binary);
 }
 
@@ -70,9 +87,15 @@ function nextNode(def: FlowDef, from: string, handle?: string): string | null {
   if (exact) return exact.target;
   // Fallback: match by edge id containing sim/não/nao (fluxos gerados por IA
   // frequentemente omitem sourceHandle mas colocam a intenção no id da aresta)
-  const norm = (s: string) => s.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+  const norm = (s: string) =>
+    s
+      .toLowerCase()
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "");
   const target = norm(handle) === "sim" ? "sim" : "nao";
-  const byId = outgoing.find((e) => norm(e.id ?? "").includes(`-${target}-`) || norm(e.id ?? "").includes(target));
+  const byId = outgoing.find(
+    (e) => norm(e.id ?? "").includes(`-${target}-`) || norm(e.id ?? "").includes(target),
+  );
   if (byId) return byId.target;
   // Último recurso: se houver exatamente 2 saídas, assume ordem sim (1ª) / não (2ª)
   if (outgoing.length === 2) return outgoing[target === "sim" ? 0 : 1].target;
@@ -103,7 +126,13 @@ async function ev(conn: RunnerConn, path: string, body: unknown, timeoutMs = 12_
 async function sendText(conn: RunnerConn, number: string, text: string) {
   return ev(conn, "/message/sendText", buildEvolutionTextPayload(number, text));
 }
-async function sendMedia(conn: RunnerConn, number: string, url: string, kind: "image" | "video" | "audio" | "document", caption?: string) {
+async function sendMedia(
+  conn: RunnerConn,
+  number: string,
+  url: string,
+  kind: "image" | "video" | "audio" | "document",
+  caption?: string,
+) {
   return ev(conn, "/message/sendMedia", { number, mediatype: kind, media: url, caption });
 }
 async function sendWhatsAppAudio(conn: RunnerConn, number: string, url: string) {
@@ -115,17 +144,33 @@ async function sendWhatsAppAudio(conn: RunnerConn, number: string, url: string) 
     timeout.clear();
     if (media.ok) {
       const audio = arrayBufferToBase64(await media.arrayBuffer());
-      const r = await ev(conn, "/message/sendWhatsAppAudio", { number, audio, encoding: true }, 10_000);
+      const r = await ev(
+        conn,
+        "/message/sendWhatsAppAudio",
+        { number, audio, encoding: true },
+        10_000,
+      );
       if (r.ok) return r;
-      const body = await r.clone().text().catch(() => "");
-      console.error("[flow-runner] audio ptt failed", { status: r.status, body: body.slice(0, 500) });
+      const body = await r
+        .clone()
+        .text()
+        .catch(() => "");
+      console.error("[flow-runner] audio ptt failed", {
+        status: r.status,
+        body: body.slice(0, 500),
+      });
     }
   } catch (e) {
     console.error("[flow-runner] audio base64 failed", { error: String(e) });
   }
   return ev(conn, "/message/sendMedia", { number, mediatype: "audio", media: url }, 8_000);
 }
-async function sendPresence(conn: RunnerConn, number: string, presence: "composing" | "recording", ms: number) {
+async function sendPresence(
+  conn: RunnerConn,
+  number: string,
+  presence: "composing" | "recording",
+  ms: number,
+) {
   try {
     return await ev(conn, "/chat/sendPresence", { number, delay: ms, presence }, 4_000);
   } catch (e) {
@@ -135,7 +180,11 @@ async function sendPresence(conn: RunnerConn, number: string, presence: "composi
 }
 
 // Very small, safe expression evaluator: supports ==, !=, contains, >, <, and vars.
-function evalCondition(expr: string | undefined, vars: Record<string, string>, lastText: string): boolean {
+function evalCondition(
+  expr: string | undefined,
+  vars: Record<string, string>,
+  lastText: string,
+): boolean {
   if (!expr) return false;
   const src = expr.replace(/\{\{\s*(\w+)\s*\}\}/g, (_, k) => JSON.stringify(vars[k] ?? ""));
   const s = src.replace(/\bmensagem\b/gi, JSON.stringify(lastText));
@@ -144,18 +193,34 @@ function evalCondition(expr: string | undefined, vars: Record<string, string>, l
     const m = s.match(/^\s*(.+?)\s*(==|!=|>=|<=|>|<|contains)\s*(.+?)\s*$/i);
     if (!m) return Boolean(s.trim());
     const [, a, op, b] = m;
-    const parse = (v: string) => { try { return JSON.parse(v); } catch { return v.replace(/^["']|["']$/g, ""); } };
-    const A = parse(a), B = parse(b);
+    const parse = (v: string) => {
+      try {
+        return JSON.parse(v);
+      } catch {
+        return v.replace(/^["']|["']$/g, "");
+      }
+    };
+    const A = parse(a),
+      B = parse(b);
     switch (op.toLowerCase()) {
-      case "==": return String(A) === String(B);
-      case "!=": return String(A) !== String(B);
-      case ">": return Number(A) > Number(B);
-      case "<": return Number(A) < Number(B);
-      case ">=": return Number(A) >= Number(B);
-      case "<=": return Number(A) <= Number(B);
-      case "contains": return String(A).toLowerCase().includes(String(B).toLowerCase());
+      case "==":
+        return String(A) === String(B);
+      case "!=":
+        return String(A) !== String(B);
+      case ">":
+        return Number(A) > Number(B);
+      case "<":
+        return Number(A) < Number(B);
+      case ">=":
+        return Number(A) >= Number(B);
+      case "<=":
+        return Number(A) <= Number(B);
+      case "contains":
+        return String(A).toLowerCase().includes(String(B).toLowerCase());
     }
-  } catch { /* fall through */ }
+  } catch {
+    /* fall through */
+  }
   return false;
 }
 
@@ -181,7 +246,7 @@ export type RunResult = {
 export async function runFlow(args: {
   db: { from: (t: string) => any };
   conn: RunnerConn;
-  recipient: string;      // full jid (e.g. 55XXXX@s.whatsapp.net)
+  recipient: string; // full jid (e.g. 55XXXX@s.whatsapp.net)
   userText: string;
   def: FlowDef;
   state: FlowState;
@@ -193,7 +258,11 @@ export async function runFlow(args: {
   const convoId = args.conversationId ?? null;
   const userId = args.userId ?? conn.user_id ?? null;
 
-  async function logMsg(type: "text" | "image" | "video" | "audio" | "document", content: string, mediaUrl?: string | null) {
+  async function logMsg(
+    type: "text" | "image" | "video" | "audio" | "document",
+    content: string,
+    mediaUrl?: string | null,
+  ) {
     if (!convoId || !userId) return;
     try {
       await args.db.from("messages").insert({
@@ -203,10 +272,21 @@ export async function runFlow(args: {
         type,
         content,
         media_url: mediaUrl ?? null,
-        metadata: { remoteJid: recipient, flow_id: flowId, source: "flow", pending: false, sent: true },
+        metadata: {
+          remoteJid: recipient,
+          flow_id: flowId,
+          source: "flow",
+          pending: false,
+          sent: true,
+        },
       } as never);
-      await args.db.from("conversations").update({ last_message_at: new Date().toISOString() } as never).eq("id", convoId);
-    } catch { /* best-effort */ }
+      await args.db
+        .from("conversations")
+        .update({ last_message_at: new Date().toISOString() } as never)
+        .eq("id", convoId);
+    } catch {
+      /* best-effort */
+    }
   }
   const state: FlowState = {
     flow_id: flowId,
@@ -245,11 +325,18 @@ export async function runFlow(args: {
     const vars = state.variables ?? {};
     const kind = node.data.kind;
 
-    if (kind === "END") { state.finished = true; state.current_node = null; break; }
+    if (kind === "END") {
+      state.finished = true;
+      state.current_node = null;
+      break;
+    }
 
     if (kind === "MESSAGE") {
       const t = interpolate(node.data.text ?? node.data.label, vars);
-      if (t) { await sendText(conn, recipient, t); await logMsg("text", t); }
+      if (t) {
+        await sendText(conn, recipient, t);
+        await logMsg("text", t);
+      }
       state.current_node = nextNode(def, node.id, "out");
       continue;
     }
@@ -273,7 +360,7 @@ export async function runFlow(args: {
       continue;
     }
     if (kind === "TYPING") {
-      const ms = Math.min(20_000, Math.max(500, (Number(node.data.seconds ?? 2)) * 1000));
+      const ms = Math.min(20_000, Math.max(500, Number(node.data.seconds ?? 2) * 1000));
       // Presence dura `ms` no WhatsApp, mas só bloqueamos o handler por até 2s
       // para não estourar o deadline de execução e travar o fluxo no meio.
       await sendPresence(conn, recipient, "composing", ms);
@@ -282,14 +369,14 @@ export async function runFlow(args: {
       continue;
     }
     if (kind === "RECORDING") {
-      const ms = Math.min(20_000, Math.max(500, (Number(node.data.seconds ?? 3)) * 1000));
+      const ms = Math.min(20_000, Math.max(500, Number(node.data.seconds ?? 3) * 1000));
       await sendPresence(conn, recipient, "recording", ms);
       await sleep(Math.min(ms, 2000));
       state.current_node = nextNode(def, node.id, "out");
       continue;
     }
     if (kind === "WAIT") {
-      const ms = Math.min(20_000, Math.max(0, (Number(node.data.seconds ?? 1)) * 1000));
+      const ms = Math.min(20_000, Math.max(0, Number(node.data.seconds ?? 1) * 1000));
       if (ms) await sleep(Math.min(ms, 2000));
       state.current_node = nextNode(def, node.id, "out");
       continue;
@@ -302,18 +389,25 @@ export async function runFlow(args: {
     if (kind === "YESNO") {
       // Ask (send text) then wait for user reply
       const t = interpolate(node.data.text ?? node.data.label, vars);
-      if (t) { await sendText(conn, recipient, t); await logMsg("text", t); }
+      if (t) {
+        await sendText(conn, recipient, t);
+        await logMsg("text", t);
+      }
       state.awaiting = { node_id: node.id, variable: node.data.variable };
       return { state, waitingForUser: true };
     }
     if (kind === "QUESTION") {
       const t = interpolate(node.data.text ?? node.data.label, vars);
-      if (t) { await sendText(conn, recipient, t); await logMsg("text", t); }
+      if (t) {
+        await sendText(conn, recipient, t);
+        await logMsg("text", t);
+      }
       // Derive a variable name from the label when not explicitly set, so multiple
       // QUESTION nodes don't clobber the same "resposta" slot. Ex.: "Pergunta Empresa" -> "empresa"
       const derived = (node.data.label ?? "")
         .toLowerCase()
-        .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
         .replace(/^\s*(pergunta|question)\s+/i, "")
         .trim()
         .replace(/[^a-z0-9]+/g, "_")
@@ -329,45 +423,63 @@ export async function runFlow(args: {
       return { state, waitingForUser: true };
     }
     if (kind === "TAGS") {
-      const tags = (node.data.text ?? "").split(",").map((s) => s.trim()).filter(Boolean);
+      const tags = (node.data.text ?? "")
+        .split(",")
+        .map((s) => s.trim())
+        .filter(Boolean);
       if (tags.length) {
         // Merge into conversations.metadata.tags (schema has no top-level tags column)
-        const { data: existing } = await args.db.from("conversations")
+        const { data: existing } = await args.db
+          .from("conversations")
           .select("id,metadata")
           .eq("connection_id", conn.id)
           .eq("metadata->>remoteJid", recipient)
           .maybeSingle();
         if (existing) {
           const prev = (existing.metadata ?? {}) as Record<string, unknown>;
-          const prevTags = Array.isArray((prev as { tags?: unknown[] }).tags) ? ((prev as { tags: string[] }).tags) : [];
+          const prevTags = Array.isArray((prev as { tags?: unknown[] }).tags)
+            ? (prev as { tags: string[] }).tags
+            : [];
           const merged = Array.from(new Set([...prevTags, ...tags]));
-          await args.db.from("conversations").update({
-            metadata: { ...prev, tags: merged },
-          } as never).eq("id", existing.id);
+          await args.db
+            .from("conversations")
+            .update({
+              metadata: { ...prev, tags: merged },
+            } as never)
+            .eq("id", existing.id);
         }
       }
       state.current_node = nextNode(def, node.id, "out");
       continue;
     }
     if (kind === "SEQUENCE") {
-      const tags = (node.data.text ?? "").split(",").map((s) => s.trim()).filter(Boolean);
+      const tags = (node.data.text ?? "")
+        .split(",")
+        .map((s) => s.trim())
+        .filter(Boolean);
       const nextTrigger = (node.data.nextTrigger ?? "").trim();
-      const { data: existing } = await args.db.from("conversations")
+      const { data: existing } = await args.db
+        .from("conversations")
         .select("id,metadata")
         .eq("connection_id", conn.id)
         .eq("metadata->>remoteJid", recipient)
         .maybeSingle();
       if (existing) {
         const prev = (existing.metadata ?? {}) as Record<string, unknown>;
-        const prevTags = Array.isArray((prev as { tags?: unknown[] }).tags) ? ((prev as { tags: string[] }).tags) : [];
+        const prevTags = Array.isArray((prev as { tags?: unknown[] }).tags)
+          ? (prev as { tags: string[] }).tags
+          : [];
         const mergedTags = Array.from(new Set([...prevTags, ...tags]));
         const prevSeqs = Array.isArray((prev as { sequences?: unknown[] }).sequences)
-          ? ((prev as { sequences: string[] }).sequences)
+          ? (prev as { sequences: string[] }).sequences
           : [];
         const mergedSeqs = nextTrigger ? Array.from(new Set([...prevSeqs, nextTrigger])) : prevSeqs;
         const patch: Record<string, unknown> = { ...prev, tags: mergedTags, sequences: mergedSeqs };
         if (nextTrigger) patch.pending_flow_trigger = nextTrigger;
-        await args.db.from("conversations").update({ metadata: patch } as never).eq("id", existing.id);
+        await args.db
+          .from("conversations")
+          .update({ metadata: patch } as never)
+          .eq("id", existing.id);
       }
       state.current_node = nextNode(def, node.id, "out");
       continue;
@@ -390,14 +502,16 @@ export async function runFlow(args: {
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ recipient, text: userText, variables: vars }),
           });
-          const json = await res.json().catch(() => null) as Record<string, unknown> | null;
+          const json = (await res.json().catch(() => null)) as Record<string, unknown> | null;
           // Merge string fields into vars
           if (json && typeof json === "object") {
             for (const [k, v] of Object.entries(json)) {
               if (typeof v === "string" || typeof v === "number") state.variables![k] = String(v);
             }
           }
-        } catch { /* ignore */ }
+        } catch {
+          /* ignore */
+        }
       }
       state.current_node = nextNode(def, node.id, "out");
       continue;
@@ -407,17 +521,26 @@ export async function runFlow(args: {
       await sendText(conn, recipient, t);
       await logMsg("text", t);
       // Merge (do not clobber) conversation metadata; pause agent 24h.
-      const { data: existing } = await args.db.from("conversations")
+      const { data: existing } = await args.db
+        .from("conversations")
         .select("id,metadata")
         .eq("connection_id", conn.id)
         .eq("metadata->>remoteJid", recipient)
         .maybeSingle();
       if (existing) {
         const prev = (existing.metadata ?? {}) as Record<string, unknown>;
-        await args.db.from("conversations").update({
-          metadata: { ...prev, remoteJid: recipient, handoff: true, agent_paused_until: new Date(Date.now() + 24 * 3600_000).toISOString() },
-          follow_up_paused: true,
-        } as never).eq("id", existing.id);
+        await args.db
+          .from("conversations")
+          .update({
+            metadata: {
+              ...prev,
+              remoteJid: recipient,
+              handoff: true,
+              agent_paused_until: new Date(Date.now() + 24 * 3600_000).toISOString(),
+            },
+            follow_up_paused: true,
+          } as never)
+          .eq("id", existing.id);
       }
       state.finished = true;
       state.current_node = null;

@@ -1,5 +1,17 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Bot, MessageSquare, RefreshCw, Trash2, Search, Filter, AlertTriangle, Info, CheckCircle2, XCircle, Wifi } from "lucide-react";
+import {
+  Bot,
+  MessageSquare,
+  RefreshCw,
+  Trash2,
+  Search,
+  Filter,
+  AlertTriangle,
+  Info,
+  CheckCircle2,
+  XCircle,
+  Wifi,
+} from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -35,7 +47,10 @@ export function TabLogs() {
     userIdRef.current = uid;
     if (!uid) return;
 
-    const { count } = await supabase.from("agents").select("id", { count: "exact", head: true }).eq("user_id", uid);
+    const { count } = await supabase
+      .from("agents")
+      .select("id", { count: "exact", head: true })
+      .eq("user_id", uid);
     setAgents(count ?? 0);
 
     const { data: ag } = await supabase
@@ -43,22 +58,39 @@ export function TabLogs() {
       .select("id,name,connection_id")
       .eq("user_id", uid)
       .order("name", { ascending: true });
-    const connIds = Array.from(new Set((ag ?? []).map((a) => a.connection_id).filter(Boolean))) as string[];
-    let connMap = new Map<string, string>();
+    const connIds = Array.from(
+      new Set((ag ?? []).map((a) => a.connection_id).filter(Boolean)),
+    ) as string[];
+    const connMap = new Map<string, string>();
     if (connIds.length) {
-      const { data: cs } = await supabase.from("connections").select("id,instance_name").eq("user_id", uid).in("id", connIds);
+      const { data: cs } = await supabase
+        .from("connections")
+        .select("id,instance_name")
+        .eq("user_id", uid)
+        .in("id", connIds);
       (cs ?? []).forEach((c) => connMap.set(c.id, c.instance_name));
     }
-    setAgentOpts((ag ?? []).map((a) => ({ id: a.id, name: a.name, instance: a.connection_id ? connMap.get(a.connection_id) ?? null : null })));
+    setAgentOpts(
+      (ag ?? []).map((a) => ({
+        id: a.id,
+        name: a.name,
+        instance: a.connection_id ? (connMap.get(a.connection_id) ?? null) : null,
+      })),
+    );
 
-    const { data: cs } = await supabase.from("conversations").select("status,agent_id,follow_up_paused").eq("user_id", uid);
+    const { data: cs } = await supabase
+      .from("conversations")
+      .select("status,agent_id,follow_up_paused")
+      .eq("user_id", uid);
     const c = { waiting: 0, active: 0, done: 0, ai: 0 };
-    (cs ?? []).forEach((r: { status: string | null; agent_id: string | null; follow_up_paused: boolean | null }) => {
-      if (r.status === "waiting") c.waiting++;
-      else if (r.status === "active") c.active++;
-      else if (r.status === "closed") c.done++;
-      if (r.agent_id && !r.follow_up_paused) c.ai++;
-    });
+    (cs ?? []).forEach(
+      (r: { status: string | null; agent_id: string | null; follow_up_paused: boolean | null }) => {
+        if (r.status === "waiting") c.waiting++;
+        else if (r.status === "active") c.active++;
+        else if (r.status === "closed") c.done++;
+        if (r.agent_id && !r.follow_up_paused) c.ai++;
+      },
+    );
     setConvs(c);
 
     const { data: lg, error } = await supabase
@@ -70,11 +102,16 @@ export function TabLogs() {
     if (error) toast.error(error.message);
     setLogs((lg ?? []) as LogRow[]);
   }
-  useEffect(() => { load(); }, []);
+  useEffect(() => {
+    load();
+  }, []);
 
   // Realtime subscription for new logs
   useEffect(() => {
-    if (!live) { setConnected(false); return; }
+    if (!live) {
+      setConnected(false);
+      return;
+    }
     const uid = userIdRef.current;
     if (!uid) return;
     const channel = supabase
@@ -88,7 +125,10 @@ export function TabLogs() {
         },
       )
       .subscribe((status) => setConnected(status === "SUBSCRIBED"));
-    return () => { supabase.removeChannel(channel); setConnected(false); };
+    return () => {
+      supabase.removeChannel(channel);
+      setConnected(false);
+    };
   }, [live]);
 
   async function clearAll() {
@@ -114,11 +154,14 @@ export function TabLogs() {
         const meta = l.metadata ?? {};
         const metaAgent = (meta as { agent_id?: string }).agent_id;
         const matchAgent = metaAgent === selectedAgent;
-        const matchInstance = selectedInstance ? (l.source ?? "").includes(selectedInstance) : false;
+        const matchInstance = selectedInstance
+          ? (l.source ?? "").includes(selectedInstance)
+          : false;
         if (!matchAgent && !matchInstance) return false;
       }
       if (term) {
-        const hay = `${l.message} ${l.source ?? ""} ${JSON.stringify(l.metadata ?? {})}`.toLowerCase();
+        const hay =
+          `${l.message} ${l.source ?? ""} ${JSON.stringify(l.metadata ?? {})}`.toLowerCase();
         if (!hay.includes(term)) return false;
       }
       return true;
@@ -129,7 +172,9 @@ export function TabLogs() {
     const t = filtered.length;
     const err = filtered.filter((l) => l.level === "error").length;
     const warn = filtered.filter((l) => l.level === "warn").length;
-    const ok = filtered.filter((l) => l.level === "info" && /success|ok|enviad|entreg|delivered/i.test(l.message)).length;
+    const ok = filtered.filter(
+      (l) => l.level === "info" && /success|ok|enviad|entreg|delivered/i.test(l.message),
+    ).length;
     return { t, err, warn, ok, rate: t ? Math.round((ok / t) * 100) : 0 };
   }, [filtered]);
 
@@ -138,7 +183,9 @@ export function TabLogs() {
       <div className="flex items-start justify-between gap-4">
         <div>
           <h2 className="text-xl font-bold">Painel em Tempo Real</h2>
-          <p className="text-sm text-muted-foreground">Monitore agentes, conversas e logs completos em tempo real</p>
+          <p className="text-sm text-muted-foreground">
+            Monitore agentes, conversas e logs completos em tempo real
+          </p>
         </div>
         <div className="flex items-center gap-2 text-xs">
           <button
@@ -150,15 +197,28 @@ export function TabLogs() {
             }`}
             title="Ativar/pausar stream em tempo real"
           >
-            <Wifi className="h-3 w-3" /> {live ? (connected ? "Ao vivo" : "Conectando…") : "Pausado"}
+            <Wifi className="h-3 w-3" />{" "}
+            {live ? (connected ? "Ao vivo" : "Conectando…") : "Pausado"}
           </button>
-          <button onClick={load} className="p-2 rounded-md hover:bg-primary/10 text-muted-foreground"><RefreshCw className="h-4 w-4" /></button>
-          <button onClick={clearAll} className="p-2 rounded-md hover:bg-destructive/10 text-muted-foreground"><Trash2 className="h-4 w-4" /></button>
+          <button
+            onClick={load}
+            className="p-2 rounded-md hover:bg-primary/10 text-muted-foreground"
+          >
+            <RefreshCw className="h-4 w-4" />
+          </button>
+          <button
+            onClick={clearAll}
+            className="p-2 rounded-md hover:bg-destructive/10 text-muted-foreground"
+          >
+            <Trash2 className="h-4 w-4" />
+          </button>
         </div>
       </div>
 
       <Section icon={<Bot className="h-4 w-4 text-primary" />} title="Agentes" badge={agents}>
-        <p className="text-sm text-muted-foreground">{agents === 0 ? "Nenhum agente configurado" : `${agents} agente(s) configurados`}</p>
+        <p className="text-sm text-muted-foreground">
+          {agents === 0 ? "Nenhum agente configurado" : `${agents} agente(s) configurados`}
+        </p>
       </Section>
 
       <Section icon={<MessageSquare className="h-4 w-4 text-primary" />} title="Conversas">
@@ -179,7 +239,9 @@ export function TabLogs() {
 
       <div className="rounded-2xl border border-border/60 bg-card/40 p-5 space-y-4">
         <div className="flex flex-wrap items-center gap-2">
-          <h3 className="font-semibold flex items-center gap-2 mr-auto"><MessageSquare className="h-4 w-4 text-primary" /> Feed de Atividade</h3>
+          <h3 className="font-semibold flex items-center gap-2 mr-auto">
+            <MessageSquare className="h-4 w-4 text-primary" /> Feed de Atividade
+          </h3>
           <div className="relative">
             <Search className="h-3.5 w-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
             <input
@@ -198,7 +260,10 @@ export function TabLogs() {
             >
               <option value="all">Todos os agentes</option>
               {agentOpts.map((a) => (
-                <option key={a.id} value={a.id}>{a.name}{a.instance ? ` · ${a.instance}` : ""}</option>
+                <option key={a.id} value={a.id}>
+                  {a.name}
+                  {a.instance ? ` · ${a.instance}` : ""}
+                </option>
               ))}
             </select>
           </div>
@@ -206,7 +271,13 @@ export function TabLogs() {
 
         <div className="grid grid-cols-5 gap-1 rounded-xl border border-border/60 p-1">
           {LEVEL_FILTERS.map((k) => {
-            const labels: Record<LevelFilter, string> = { all: "Todos", error: "Erros", warn: "Avisos", info: "Info", debug: "Debug" };
+            const labels: Record<LevelFilter, string> = {
+              all: "Todos",
+              error: "Erros",
+              warn: "Avisos",
+              info: "Info",
+              debug: "Debug",
+            };
             const active = level === k;
             return (
               <button
@@ -240,13 +311,21 @@ export function TabLogs() {
 function LogItem({ log }: { log: LogRow }) {
   const [open, setOpen] = useState(false);
   const Icon =
-    log.level === "error" ? XCircle :
-    log.level === "warn" ? AlertTriangle :
-    log.level === "info" ? Info : CheckCircle2;
+    log.level === "error"
+      ? XCircle
+      : log.level === "warn"
+        ? AlertTriangle
+        : log.level === "info"
+          ? Info
+          : CheckCircle2;
   const color =
-    log.level === "error" ? "text-destructive" :
-    log.level === "warn" ? "text-amber-500" :
-    log.level === "info" ? "text-primary" : "text-muted-foreground";
+    log.level === "error"
+      ? "text-destructive"
+      : log.level === "warn"
+        ? "text-amber-500"
+        : log.level === "info"
+          ? "text-primary"
+          : "text-muted-foreground";
   const hasMeta = !!log.metadata && Object.keys(log.metadata).length > 0;
   return (
     <div className="rounded-lg border border-border/50 bg-background/40 text-xs">
@@ -257,32 +336,60 @@ function LogItem({ log }: { log: LogRow }) {
         <Icon className={`h-3.5 w-3.5 mt-0.5 shrink-0 ${color}`} />
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2">
-            <span className="font-semibold uppercase text-[10px] text-muted-foreground">{log.source ?? log.level}</span>
-            <span className="text-[10px] text-muted-foreground">{new Date(log.created_at).toLocaleString("pt-BR")}</span>
+            <span className="font-semibold uppercase text-[10px] text-muted-foreground">
+              {log.source ?? log.level}
+            </span>
+            <span className="text-[10px] text-muted-foreground">
+              {new Date(log.created_at).toLocaleString("pt-BR")}
+            </span>
           </div>
           <div className="text-foreground/90 break-words whitespace-pre-wrap">{log.message}</div>
         </div>
       </button>
       {open && hasMeta && (
-        <pre className="mx-3 mb-2 mt-0 max-h-56 overflow-auto rounded bg-muted/40 p-2 text-[10px] leading-relaxed"><code>{JSON.stringify(log.metadata, null, 2)}</code></pre>
+        <pre className="mx-3 mb-2 mt-0 max-h-56 overflow-auto rounded bg-muted/40 p-2 text-[10px] leading-relaxed">
+          <code>{JSON.stringify(log.metadata, null, 2)}</code>
+        </pre>
       )}
     </div>
   );
 }
 
-function Section({ icon, title, badge, children }: { icon: React.ReactNode; title: string; badge?: number; children: React.ReactNode }) {
+function Section({
+  icon,
+  title,
+  badge,
+  children,
+}: {
+  icon: React.ReactNode;
+  title: string;
+  badge?: number;
+  children: React.ReactNode;
+}) {
   return (
     <div className="rounded-2xl border border-border/60 bg-card/40 p-5 space-y-3">
       <h3 className="font-semibold flex items-center gap-2">
         {icon} {title}
-        {badge !== undefined && <span className="ml-1 grid h-5 min-w-5 place-items-center rounded-full bg-emerald-500/20 text-emerald-500 text-[10px] font-bold px-1.5">{badge}</span>}
+        {badge !== undefined && (
+          <span className="ml-1 grid h-5 min-w-5 place-items-center rounded-full bg-emerald-500/20 text-emerald-500 text-[10px] font-bold px-1.5">
+            {badge}
+          </span>
+        )}
       </h3>
       {children}
     </div>
   );
 }
 
-function Stat({ value, label, tone }: { value: number; label: string; tone: "amber" | "cyan" | "slate" | "emerald" }) {
+function Stat({
+  value,
+  label,
+  tone,
+}: {
+  value: number;
+  label: string;
+  tone: "amber" | "cyan" | "slate" | "emerald";
+}) {
   const cls = {
     amber: "border-amber-500/30 bg-amber-500/5 text-amber-500",
     cyan: "border-cyan-500/30 bg-cyan-500/5 text-cyan-500",

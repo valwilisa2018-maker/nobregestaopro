@@ -8,11 +8,37 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+  DialogFooter,
+} from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
-import { Plus, RefreshCw, Play, Power, Trash2, QrCode, CheckCircle2, XCircle, Activity, Webhook, Loader2 } from "lucide-react";
+import {
+  Plus,
+  RefreshCw,
+  Play,
+  Power,
+  Trash2,
+  QrCode,
+  CheckCircle2,
+  XCircle,
+  Activity,
+  Webhook,
+  Loader2,
+} from "lucide-react";
 import { toast } from "sonner";
-import { testConnection, connectInstance, disconnectInstance, testWebhook, createAndConnectInstance, deleteInstance } from "@/lib/evolution.functions";
+import {
+  testConnection,
+  connectInstance,
+  disconnectInstance,
+  testWebhook,
+  createAndConnectInstance,
+  deleteInstance,
+} from "@/lib/evolution.functions";
 import { TutorialVideo } from "@/components/tutorial-video";
 
 export const Route = createFileRoute("/_authenticated/connections")({
@@ -21,10 +47,21 @@ export const Route = createFileRoute("/_authenticated/connections")({
 });
 
 type Connection = {
-  id: string; name: string; description: string | null; provider: string;
-  url_api: string; api_key: string; instance_name: string; status: string;
-  phone_number: string | null; profile_name: string | null; profile_picture: string | null;
-  notes: string | null; message_count: number; consumption: number; last_sync: string | null;
+  id: string;
+  name: string;
+  description: string | null;
+  provider: string;
+  url_api: string;
+  api_key: string;
+  instance_name: string;
+  status: string;
+  phone_number: string | null;
+  profile_name: string | null;
+  profile_picture: string | null;
+  notes: string | null;
+  message_count: number;
+  consumption: number;
+  last_sync: string | null;
   created_at: string;
   metadata: { flow_timeout_hours?: number } | null;
 };
@@ -35,7 +72,11 @@ function statusBadge(status: string) {
     connecting: "bg-yellow-500/15 text-yellow-600 border-yellow-500/30",
     offline: "bg-gray-500/15 text-gray-500 border-gray-500/30",
   };
-  return <Badge variant="outline" className={map[status] || map.offline}>{status}</Badge>;
+  return (
+    <Badge variant="outline" className={map[status] || map.offline}>
+      {status}
+    </Badge>
+  );
 }
 
 function ConnectionsPage() {
@@ -43,7 +84,11 @@ function ConnectionsPage() {
   const [items, setItems] = useState<Connection[]>([]);
   const [loading, setLoading] = useState(true);
   const [open, setOpen] = useState(false);
-  const [qr, setQr] = useState<{ open: boolean; data: string | null; name: string }>({ open: false, data: null, name: "" });
+  const [qr, setQr] = useState<{ open: boolean; data: string | null; name: string }>({
+    open: false,
+    data: null,
+    name: "",
+  });
   const [form, setForm] = useState({ name: "", instance_name: "", notes: "" });
   const [creating, setCreating] = useState(false);
 
@@ -52,7 +97,8 @@ function ConnectionsPage() {
   const [busy, setBusy] = useState<Record<string, string | null>>({});
 
   const setDiag = (id: string, d: Diag) => setDiagnostics((prev) => ({ ...prev, [id]: d }));
-  const setBusyFor = (id: string, action: string | null) => setBusy((prev) => ({ ...prev, [id]: action }));
+  const setBusyFor = (id: string, action: string | null) =>
+    setBusy((prev) => ({ ...prev, [id]: action }));
 
   const testFn = useServerFn(testConnection);
   const connectFn = useServerFn(connectInstance);
@@ -64,7 +110,9 @@ function ConnectionsPage() {
   const load = async () => {
     if (!user) return;
     setLoading(true);
-    const { data, error } = await supabase.from("connections").select("*")
+    const { data, error } = await supabase
+      .from("connections")
+      .select("*")
       .eq("user_id", user.id)
       .order("created_at", { ascending: false });
     if (error) toast.error(error.message);
@@ -72,7 +120,9 @@ function ConnectionsPage() {
     setLoading(false);
   };
 
-  useEffect(() => { if (user) load(); }, [user]);
+  useEffect(() => {
+    if (user) load();
+  }, [user]);
 
   const create = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -81,7 +131,11 @@ function ConnectionsPage() {
     try {
       const r = await createFn({ data: { name: form.name, instanceName: form.instance_name } });
       if (form.notes) {
-        await supabase.from("connections").update({ notes: form.notes }).eq("id", r.connectionId).eq("user_id", user.id);
+        await supabase
+          .from("connections")
+          .update({ notes: form.notes })
+          .eq("id", r.connectionId)
+          .eq("user_id", user.id);
       }
       let qrData = r.qr as string | null;
       if (!qrData) {
@@ -89,7 +143,10 @@ function ConnectionsPage() {
         qrData = c.qr ?? null;
       }
       if (qrData) setQr({ open: true, data: qrData, name: form.name });
-      else toast.info("Instância criada — aguarde alguns segundos e clique em Conectar para gerar o QR.");
+      else
+        toast.info(
+          "Instância criada — aguarde alguns segundos e clique em Conectar para gerar o QR.",
+        );
       setOpen(false);
       setForm({ name: "", instance_name: "", notes: "" });
       load();
@@ -101,7 +158,8 @@ function ConnectionsPage() {
   };
 
   const remove = async (id: string) => {
-    if (!confirm("Excluir esta conexão? A instância também será removida da Evolution API.")) return;
+    if (!confirm("Excluir esta conexão? A instância também será removida da Evolution API."))
+      return;
     try {
       await deleteFn({ data: { connectionId: id } });
       toast.success("Conexão removida (local e Evolution)");
@@ -115,13 +173,27 @@ function ConnectionsPage() {
     setBusyFor(c.id, "test");
     try {
       const r = await testFn({ data: { connectionId: c.id } });
-      setDiag(c.id, { ok: true, action: "Testar", message: `Estado: ${r.state}`, details: JSON.stringify(r, null, 2), at: new Date().toISOString() });
+      setDiag(c.id, {
+        ok: true,
+        action: "Testar",
+        message: `Estado: ${r.state}`,
+        details: JSON.stringify(r, null, 2),
+        at: new Date().toISOString(),
+      });
       toast.success(`Estado: ${r.state}`);
       load();
     } catch (e: any) {
-      setDiag(c.id, { ok: false, action: "Testar", message: e?.message ?? "Falha ao testar", details: e?.stack, at: new Date().toISOString() });
+      setDiag(c.id, {
+        ok: false,
+        action: "Testar",
+        message: e?.message ?? "Falha ao testar",
+        details: e?.stack,
+        at: new Date().toISOString(),
+      });
       toast.error(e.message);
-    } finally { setBusyFor(c.id, null); }
+    } finally {
+      setBusyFor(c.id, null);
+    }
   };
 
   const doConnect = async (c: Connection) => {
@@ -130,46 +202,96 @@ function ConnectionsPage() {
       const r = await connectFn({ data: { connectionId: c.id } });
       if (r.qr) setQr({ open: true, data: r.qr, name: c.name });
       else toast.info("Sem QR retornado — verifique o estado.");
-      setDiag(c.id, { ok: true, action: "Conectar", message: r.qr ? "QR Code gerado" : "Sem QR retornado", details: JSON.stringify(r, null, 2), at: new Date().toISOString() });
+      setDiag(c.id, {
+        ok: true,
+        action: "Conectar",
+        message: r.qr ? "QR Code gerado" : "Sem QR retornado",
+        details: JSON.stringify(r, null, 2),
+        at: new Date().toISOString(),
+      });
       load();
     } catch (e: any) {
-      setDiag(c.id, { ok: false, action: "Conectar", message: e?.message ?? "Falha ao conectar", details: e?.stack, at: new Date().toISOString() });
+      setDiag(c.id, {
+        ok: false,
+        action: "Conectar",
+        message: e?.message ?? "Falha ao conectar",
+        details: e?.stack,
+        at: new Date().toISOString(),
+      });
       toast.error(e.message);
-    } finally { setBusyFor(c.id, null); }
+    } finally {
+      setBusyFor(c.id, null);
+    }
   };
 
   const doDisconnect = async (c: Connection) => {
     setBusyFor(c.id, "disconnect");
     try {
       const r = await disconnectFn({ data: { connectionId: c.id } });
-      setDiag(c.id, { ok: true, action: "Desconectar", message: "Desconectado", details: JSON.stringify(r, null, 2), at: new Date().toISOString() });
+      setDiag(c.id, {
+        ok: true,
+        action: "Desconectar",
+        message: "Desconectado",
+        details: JSON.stringify(r, null, 2),
+        at: new Date().toISOString(),
+      });
       toast.success("Desconectado");
       load();
     } catch (e: any) {
-      setDiag(c.id, { ok: false, action: "Desconectar", message: e?.message ?? "Falha ao desconectar", details: e?.stack, at: new Date().toISOString() });
+      setDiag(c.id, {
+        ok: false,
+        action: "Desconectar",
+        message: e?.message ?? "Falha ao desconectar",
+        details: e?.stack,
+        at: new Date().toISOString(),
+      });
       toast.error(e.message);
-    } finally { setBusyFor(c.id, null); }
+    } finally {
+      setBusyFor(c.id, null);
+    }
   };
 
   const doTestWebhook = async (c: Connection) => {
     setBusyFor(c.id, "webhook");
     try {
       const r = await testWebhookFn({ data: { connectionId: c.id } });
-      setDiag(c.id, { ok: r.ok, action: "Testar webhook", message: `HTTP ${r.status} · ${r.url}`, details: JSON.stringify(r, null, 2), at: new Date().toISOString() });
-      r.ok ? toast.success(`Webhook OK (${r.status})`) : toast.error(`Webhook falhou (${r.status})`);
+      setDiag(c.id, {
+        ok: r.ok,
+        action: "Testar webhook",
+        message: `HTTP ${r.status} · ${r.url}`,
+        details: JSON.stringify(r, null, 2),
+        at: new Date().toISOString(),
+      });
+      if (r.ok) {
+        toast.success(`Webhook OK (${r.status})`);
+      } else {
+        toast.error(`Webhook falhou (${r.status})`);
+      }
     } catch (e: any) {
-      setDiag(c.id, { ok: false, action: "Testar webhook", message: e?.message ?? "Falha", details: e?.stack, at: new Date().toISOString() });
+      setDiag(c.id, {
+        ok: false,
+        action: "Testar webhook",
+        message: e?.message ?? "Falha",
+        details: e?.stack,
+        at: new Date().toISOString(),
+      });
       toast.error(e.message);
-    } finally { setBusyFor(c.id, null); }
+    } finally {
+      setBusyFor(c.id, null);
+    }
   };
 
   const saveTimeout = async (c: Connection, hours: number) => {
     if (!user) return;
     const meta = { ...(c.metadata ?? {}), flow_timeout_hours: hours };
-    const { error } = await supabase.from("connections").update({ metadata: meta }).eq("id", c.id).eq("user_id", user.id);
+    const { error } = await supabase
+      .from("connections")
+      .update({ metadata: meta })
+      .eq("id", c.id)
+      .eq("user_id", user.id);
     if (error) return toast.error(error.message);
     toast.success(`Tempo de abandono: ${hours}h`);
-    setItems((prev) => prev.map((x) => x.id === c.id ? { ...x, metadata: meta } : x));
+    setItems((prev) => prev.map((x) => (x.id === c.id ? { ...x, metadata: meta } : x)));
   };
 
   return (
@@ -177,20 +299,56 @@ function ConnectionsPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold">Conexões</h1>
-          <p className="text-muted-foreground">Gerencie as instâncias de WhatsApp via Evolution API.</p>
+          <p className="text-muted-foreground">
+            Gerencie as instâncias de WhatsApp via Evolution API.
+          </p>
         </div>
-        <Dialog open={open} onOpenChange={(v) => { if (!creating) setOpen(v); }}>
+        <Dialog
+          open={open}
+          onOpenChange={(v) => {
+            if (!creating) setOpen(v);
+          }}
+        >
           <DialogTrigger asChild>
-            <Button><Plus className="h-4 w-4 mr-1" /> Nova conexão</Button>
+            <Button>
+              <Plus className="h-4 w-4 mr-1" /> Nova conexão
+            </Button>
           </DialogTrigger>
           <DialogContent>
-            <DialogHeader><DialogTitle>Nova conexão de WhatsApp</DialogTitle></DialogHeader>
+            <DialogHeader>
+              <DialogTitle>Nova conexão de WhatsApp</DialogTitle>
+            </DialogHeader>
             <form onSubmit={create} className="space-y-3">
               <fieldset disabled={creating} className="space-y-3 group">
-                <p className="text-xs text-muted-foreground">A API da Evolution já está configurada pelo administrador. Informe apenas um nome e um identificador da instância para gerar o QR Code.</p>
-                <div className="space-y-1"><Label>Nome</Label><Input required value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} /></div>
-                <div className="space-y-1"><Label>Identificador da instância</Label><Input required placeholder="minha-empresa" pattern="[a-zA-Z0-9_-]+" value={form.instance_name} onChange={(e) => setForm({ ...form, instance_name: e.target.value })} /></div>
-                <div className="space-y-1"><Label>Observações</Label><Textarea value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} /></div>
+                <p className="text-xs text-muted-foreground">
+                  A API da Evolution já está configurada pelo administrador. Informe apenas um nome
+                  e um identificador da instância para gerar o QR Code.
+                </p>
+                <div className="space-y-1">
+                  <Label>Nome</Label>
+                  <Input
+                    required
+                    value={form.name}
+                    onChange={(e) => setForm({ ...form, name: e.target.value })}
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label>Identificador da instância</Label>
+                  <Input
+                    required
+                    placeholder="minha-empresa"
+                    pattern="[a-zA-Z0-9_-]+"
+                    value={form.instance_name}
+                    onChange={(e) => setForm({ ...form, instance_name: e.target.value })}
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label>Observações</Label>
+                  <Textarea
+                    value={form.notes}
+                    onChange={(e) => setForm({ ...form, notes: e.target.value })}
+                  />
+                </div>
                 {creating && (
                   <div className="flex items-center gap-2 rounded-md border border-primary/30 bg-primary/5 px-3 py-2 text-sm text-primary">
                     <Loader2 className="h-4 w-4 animate-spin" />
@@ -199,7 +357,14 @@ function ConnectionsPage() {
                 )}
                 <DialogFooter>
                   <Button type="submit" disabled={creating}>
-                    {creating ? (<><Loader2 className="h-4 w-4 mr-2 animate-spin" />Gerando QR…</>) : "Criar e gerar QR"}
+                    {creating ? (
+                      <>
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        Gerando QR…
+                      </>
+                    ) : (
+                      "Criar e gerar QR"
+                    )}
                   </Button>
                 </DialogFooter>
               </fieldset>
@@ -212,7 +377,11 @@ function ConnectionsPage() {
       {loading ? (
         <p className="text-muted-foreground">Carregando…</p>
       ) : items.length === 0 ? (
-        <Card><CardContent className="py-10 text-center text-muted-foreground">Nenhuma conexão cadastrada.</CardContent></Card>
+        <Card>
+          <CardContent className="py-10 text-center text-muted-foreground">
+            Nenhuma conexão cadastrada.
+          </CardContent>
+        </Card>
       ) : (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           {items.map((c) => (
@@ -228,27 +397,85 @@ function ConnectionsPage() {
               </CardHeader>
               <CardContent className="space-y-3">
                 <div className="text-xs text-muted-foreground space-y-1">
-                  <div className="truncate"><span className="font-medium text-foreground">URL:</span> {c.url_api}</div>
-                  {c.phone_number && <div><span className="font-medium text-foreground">Número:</span> {c.phone_number}</div>}
-                  <div><span className="font-medium text-foreground">Mensagens:</span> {c.message_count}</div>
-                  {c.last_sync && <div><span className="font-medium text-foreground">Sync:</span> {new Date(c.last_sync).toLocaleString()}</div>}
+                  <div className="truncate">
+                    <span className="font-medium text-foreground">URL:</span> {c.url_api}
+                  </div>
+                  {c.phone_number && (
+                    <div>
+                      <span className="font-medium text-foreground">Número:</span> {c.phone_number}
+                    </div>
+                  )}
+                  <div>
+                    <span className="font-medium text-foreground">Mensagens:</span>{" "}
+                    {c.message_count}
+                  </div>
+                  {c.last_sync && (
+                    <div>
+                      <span className="font-medium text-foreground">Sync:</span>{" "}
+                      {new Date(c.last_sync).toLocaleString()}
+                    </div>
+                  )}
                 </div>
                 <div className="flex flex-wrap gap-2">
-                  <Button size="sm" variant="secondary" disabled={!!busy[c.id]} onClick={() => doTest(c)}><Play className="h-3.5 w-3.5 mr-1" />Testar</Button>
-                  <Button size="sm" disabled={!!busy[c.id]} onClick={() => doConnect(c)}><QrCode className="h-3.5 w-3.5 mr-1" />Conectar</Button>
-                  <Button size="sm" variant="outline" disabled={!!busy[c.id]} onClick={() => doConnect(c)}><RefreshCw className="h-3.5 w-3.5 mr-1" />Reconectar</Button>
-                  <Button size="sm" variant="outline" disabled={!!busy[c.id]} onClick={() => doDisconnect(c)}><Power className="h-3.5 w-3.5 mr-1" />Desconectar</Button>
-                  <Button size="sm" variant="outline" disabled={!!busy[c.id]} onClick={() => doTestWebhook(c)}><Webhook className="h-3.5 w-3.5 mr-1" />Testar webhook</Button>
-                  <Button size="sm" variant="ghost" onClick={() => remove(c.id)}><Trash2 className="h-3.5 w-3.5" /></Button>
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    disabled={!!busy[c.id]}
+                    onClick={() => doTest(c)}
+                  >
+                    <Play className="h-3.5 w-3.5 mr-1" />
+                    Testar
+                  </Button>
+                  <Button size="sm" disabled={!!busy[c.id]} onClick={() => doConnect(c)}>
+                    <QrCode className="h-3.5 w-3.5 mr-1" />
+                    Conectar
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    disabled={!!busy[c.id]}
+                    onClick={() => doConnect(c)}
+                  >
+                    <RefreshCw className="h-3.5 w-3.5 mr-1" />
+                    Reconectar
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    disabled={!!busy[c.id]}
+                    onClick={() => doDisconnect(c)}
+                  >
+                    <Power className="h-3.5 w-3.5 mr-1" />
+                    Desconectar
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    disabled={!!busy[c.id]}
+                    onClick={() => doTestWebhook(c)}
+                  >
+                    <Webhook className="h-3.5 w-3.5 mr-1" />
+                    Testar webhook
+                  </Button>
+                  <Button size="sm" variant="ghost" onClick={() => remove(c.id)}>
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </Button>
                 </div>
 
                 <div className="rounded-md border p-2 space-y-1.5">
-                  <Label className="text-xs">Abandono do fluxo (IA volta a responder depois de)</Label>
+                  <Label className="text-xs">
+                    Abandono do fluxo (IA volta a responder depois de)
+                  </Label>
                   <div className="flex flex-wrap gap-1.5">
                     {[12, 24, 48, 72].map((h) => {
                       const cur = Number(c.metadata?.flow_timeout_hours ?? 24);
                       return (
-                        <Button key={h} size="sm" variant={cur === h ? "default" : "outline"} onClick={() => saveTimeout(c, h)}>
+                        <Button
+                          key={h}
+                          size="sm"
+                          variant={cur === h ? "default" : "outline"}
+                          onClick={() => saveTimeout(c, h)}
+                        >
                           {h}h
                         </Button>
                       );
@@ -281,8 +508,12 @@ function ConnectionsPage() {
                       </div>
                       {diagnostics[c.id].details && (
                         <details>
-                          <summary className="cursor-pointer text-muted-foreground hover:text-foreground">Detalhes</summary>
-                          <pre className="mt-1 max-h-40 overflow-auto whitespace-pre-wrap rounded bg-background p-2 text-[10px]">{diagnostics[c.id].details}</pre>
+                          <summary className="cursor-pointer text-muted-foreground hover:text-foreground">
+                            Detalhes
+                          </summary>
+                          <pre className="mt-1 max-h-40 overflow-auto whitespace-pre-wrap rounded bg-background p-2 text-[10px]">
+                            {diagnostics[c.id].details}
+                          </pre>
                         </details>
                       )}
                     </div>
@@ -298,13 +529,21 @@ function ConnectionsPage() {
 
       <Dialog open={qr.open} onOpenChange={(o) => setQr({ ...qr, open: o })}>
         <DialogContent>
-          <DialogHeader><DialogTitle>QR Code — {qr.name}</DialogTitle></DialogHeader>
+          <DialogHeader>
+            <DialogTitle>QR Code — {qr.name}</DialogTitle>
+          </DialogHeader>
           {qr.data && (
             <div className="flex justify-center p-4">
-              <img src={qr.data.startsWith("data:") ? qr.data : `data:image/png;base64,${qr.data}`} alt="QR" className="w-64 h-64" />
+              <img
+                src={qr.data.startsWith("data:") ? qr.data : `data:image/png;base64,${qr.data}`}
+                alt="QR"
+                className="w-64 h-64"
+              />
             </div>
           )}
-          <p className="text-sm text-muted-foreground text-center">Escaneie com o WhatsApp para conectar.</p>
+          <p className="text-sm text-muted-foreground text-center">
+            Escaneie com o WhatsApp para conectar.
+          </p>
         </DialogContent>
       </Dialog>
     </div>

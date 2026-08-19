@@ -1,6 +1,12 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Coins, Check, Loader2, Zap, Rocket, Crown, Gem } from "lucide-react";
 import { toast } from "sonner";
@@ -55,8 +61,13 @@ export function BuyCreditsModal({
   const buy = async (pkg: Pkg) => {
     setBuyingId(pkg.id);
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) { toast.error("Sessão expirada"); return; }
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+      if (!session) {
+        toast.error("Sessão expirada");
+        return;
+      }
       const res = await fetch("/api/v1/buy", {
         method: "POST",
         headers: {
@@ -66,7 +77,10 @@ export function BuyCreditsModal({
         body: JSON.stringify({ package_id: pkg.id }),
       });
       const body = await res.json().catch(() => ({}));
-      if (!res.ok) { toast.error(body?.error ?? "Falha ao criar pedido"); return; }
+      if (!res.ok) {
+        toast.error(body?.error ?? "Falha ao criar pedido");
+        return;
+      }
       toast.success("Pedido criado! Integração de pagamento em breve.");
       onPurchased?.();
       onOpenChange(false);
@@ -148,15 +162,24 @@ export function BuyCreditsModal({
                   <div className="relative my-4 h-px bg-gradient-to-r from-transparent via-border to-transparent" />
                   <ul className="relative space-y-2 flex-grow text-xs text-muted-foreground">
                     <li className="flex items-start gap-2">
-                      <Check className="w-4 h-4 shrink-0 mt-0.5 text-emerald-400" strokeWidth={2.5} />
+                      <Check
+                        className="w-4 h-4 shrink-0 mt-0.5 text-emerald-400"
+                        strokeWidth={2.5}
+                      />
                       <span>Créditos não expiram</span>
                     </li>
                     <li className="flex items-start gap-2">
-                      <Check className="w-4 h-4 shrink-0 mt-0.5 text-emerald-400" strokeWidth={2.5} />
+                      <Check
+                        className="w-4 h-4 shrink-0 mt-0.5 text-emerald-400"
+                        strokeWidth={2.5}
+                      />
                       <span>Saldo adicionado na hora</span>
                     </li>
                     <li className="flex items-start gap-2">
-                      <Check className="w-4 h-4 shrink-0 mt-0.5 text-emerald-400" strokeWidth={2.5} />
+                      <Check
+                        className="w-4 h-4 shrink-0 mt-0.5 text-emerald-400"
+                        strokeWidth={2.5}
+                      />
                       <span>Usado após esgotar o plano</span>
                     </li>
                   </ul>

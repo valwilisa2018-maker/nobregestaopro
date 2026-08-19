@@ -1,5 +1,17 @@
 import { useEffect, useState } from "react";
-import { Bot, Plus, Zap, Sliders, Clock, Copy, Trash2, Loader2, ArrowLeft, ArrowRight, Hash } from "lucide-react";
+import {
+  Bot,
+  Plus,
+  Zap,
+  Sliders,
+  Clock,
+  Copy,
+  Trash2,
+  Loader2,
+  ArrowLeft,
+  ArrowRight,
+  Hash,
+} from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
@@ -15,18 +27,28 @@ export function TabAgents() {
   async function load() {
     if (!user) return;
     setLoading(true);
-    const { data, error } = await supabase.from("agents").select("*").eq("user_id", user.id).order("created_at", { ascending: false });
+    const { data, error } = await supabase
+      .from("agents")
+      .select("*")
+      .eq("user_id", user.id)
+      .order("created_at", { ascending: false });
     if (error) toast.error(error.message);
     setRows((data as unknown as AgentRow[]) ?? []);
     setLoading(false);
   }
-  useEffect(() => { load(); /* eslint-disable-next-line */ }, [user]);
+  useEffect(() => {
+    load(); /* eslint-disable-next-line */
+  }, [user]);
 
   async function duplicate(row: AgentRow) {
     if (!user) return;
     const { id, created_at, updated_at, ...rest } = row as AgentRow & Record<string, unknown>;
-    void id; void created_at; void updated_at;
-    const { error } = await supabase.from("agents").insert({ ...rest, name: `${row.name} (cópia)`, user_id: user.id } as never);
+    void id;
+    void created_at;
+    void updated_at;
+    const { error } = await supabase
+      .from("agents")
+      .insert({ ...rest, name: `${row.name} (cópia)`, user_id: user.id } as never);
     if (error) return toast.error(error.message);
     toast.success("Agente duplicado");
     load();
@@ -34,7 +56,11 @@ export function TabAgents() {
   async function remove(row: AgentRow) {
     if (!user) return;
     if (!confirm(`Excluir "${row.name}"?`)) return;
-    const { error } = await supabase.from("agents").delete().eq("id", row.id).eq("user_id", user.id);
+    const { error } = await supabase
+      .from("agents")
+      .delete()
+      .eq("id", row.id)
+      .eq("user_id", user.id);
     if (error) return toast.error(error.message);
     load();
   }
@@ -45,7 +71,14 @@ export function TabAgents() {
         <Button variant="ghost" size="sm" onClick={() => setEditing(null)}>
           <ArrowLeft className="h-4 w-4" /> Voltar
         </Button>
-        <AgentEditor agent={editing.id ? editing : null} onSaved={() => { setEditing(null); load(); }} onCancel={() => setEditing(null)} />
+        <AgentEditor
+          agent={editing.id ? editing : null}
+          onSaved={() => {
+            setEditing(null);
+            load();
+          }}
+          onCancel={() => setEditing(null)}
+        />
       </div>
     );
   }
@@ -55,7 +88,9 @@ export function TabAgents() {
       <div className="flex items-start justify-between gap-4">
         <div>
           <h2 className="text-xl font-bold">Meus Agentes</h2>
-          <p className="text-sm text-muted-foreground">Gerencie seus agentes de IA. Cada agente tem suas próprias configurações.</p>
+          <p className="text-sm text-muted-foreground">
+            Gerencie seus agentes de IA. Cada agente tem suas próprias configurações.
+          </p>
         </div>
         <Button
           onClick={() => setEditing(emptyAgent(user?.id ?? ""))}
@@ -66,7 +101,9 @@ export function TabAgents() {
       </div>
 
       {loading ? (
-        <div className="grid place-items-center py-16"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>
+        <div className="grid place-items-center py-16">
+          <Loader2 className="h-6 w-6 animate-spin text-primary" />
+        </div>
       ) : rows.length === 0 ? (
         <div className="relative overflow-hidden rounded-3xl border border-violet-500/30 bg-gradient-to-b from-card/40 via-card/20 to-background p-16 text-center">
           {/* ambient glows */}
@@ -86,7 +123,9 @@ export function TabAgents() {
             </div>
             <div className="space-y-2">
               <h3 className="text-2xl font-bold tracking-tight">Nenhum agente criado</h3>
-              <p className="text-sm text-muted-foreground">Crie seu primeiro agente de IA para começar</p>
+              <p className="text-sm text-muted-foreground">
+                Crie seu primeiro agente de IA para começar
+              </p>
             </div>
             <Button
               onClick={() => setEditing(emptyAgent(user?.id ?? ""))}
@@ -108,16 +147,28 @@ export function TabAgents() {
                 <div className="flex items-center justify-between mb-8">
                   <div className="flex items-center gap-3 min-w-0">
                     <div className="relative shrink-0">
-                      <div className={`h-3 w-3 rounded-full ${r.is_active ? "bg-emerald-500" : "bg-muted-foreground"}`} />
-                      {r.is_active && <div className="absolute inset-0 h-3 w-3 rounded-full bg-emerald-500 animate-ping opacity-75" />}
+                      <div
+                        className={`h-3 w-3 rounded-full ${r.is_active ? "bg-emerald-500" : "bg-muted-foreground"}`}
+                      />
+                      {r.is_active && (
+                        <div className="absolute inset-0 h-3 w-3 rounded-full bg-emerald-500 animate-ping opacity-75" />
+                      )}
                     </div>
-                    <h3 className="text-foreground font-semibold text-xl tracking-tight truncate">{r.name || "Sem nome"}</h3>
+                    <h3 className="text-foreground font-semibold text-xl tracking-tight truncate">
+                      {r.name || "Sem nome"}
+                    </h3>
                   </div>
                   <div className="flex gap-2 shrink-0">
-                    <button onClick={() => duplicate(r)} className="p-2 rounded-xl text-muted-foreground hover:bg-muted/40 hover:text-foreground transition-colors">
+                    <button
+                      onClick={() => duplicate(r)}
+                      className="p-2 rounded-xl text-muted-foreground hover:bg-muted/40 hover:text-foreground transition-colors"
+                    >
                       <Copy className="h-4 w-4" />
                     </button>
-                    <button onClick={() => remove(r)} className="p-2 rounded-xl text-muted-foreground hover:bg-red-500/10 hover:text-red-400 transition-colors">
+                    <button
+                      onClick={() => remove(r)}
+                      className="p-2 rounded-xl text-muted-foreground hover:bg-red-500/10 hover:text-red-400 transition-colors"
+                    >
                       <Trash2 className="h-4 w-4" />
                     </button>
                   </div>
@@ -130,8 +181,12 @@ export function TabAgents() {
                       <Zap className="h-4 w-4" />
                     </div>
                     <div className="flex flex-col min-w-0">
-                      <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Model Intelligence</span>
-                      <span className="text-sm text-foreground font-medium truncate">IA · Configurações Globais</span>
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                        Model Intelligence
+                      </span>
+                      <span className="text-sm text-foreground font-medium truncate">
+                        IA · Configurações Globais
+                      </span>
                     </div>
                   </div>
 
@@ -146,7 +201,9 @@ export function TabAgents() {
                     <div className="flex flex-col gap-1 p-3 rounded-2xl bg-white/[0.03] border border-white/[0.05]">
                       <div className="flex items-center gap-2 text-muted-foreground">
                         <Hash className="h-3 w-3" />
-                        <span className="text-[10px] font-bold uppercase tracking-wider">Tokens</span>
+                        <span className="text-[10px] font-bold uppercase tracking-wider">
+                          Tokens
+                        </span>
                       </div>
                       <span className="text-sm text-foreground">{r.max_tokens ?? 2048}</span>
                     </div>

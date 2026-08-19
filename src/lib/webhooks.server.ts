@@ -11,7 +11,11 @@ export type WebhookEvent =
   | "credits.zero"
   | "plan.renewed";
 
-export async function emitWebhook(userId: string, event: WebhookEvent, payload: Record<string, unknown>) {
+export async function emitWebhook(
+  userId: string,
+  event: WebhookEvent,
+  payload: Record<string, unknown>,
+) {
   try {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { data: hooks } = await supabaseAdmin
@@ -19,9 +23,16 @@ export async function emitWebhook(userId: string, event: WebhookEvent, payload: 
       .select("id,url,secret,events,is_active")
       .eq("user_id", userId)
       .eq("is_active", true);
-    const targets = (hooks ?? []).filter((h) => Array.isArray(h.events) && h.events.includes(event));
+    const targets = (hooks ?? []).filter(
+      (h) => Array.isArray(h.events) && h.events.includes(event),
+    );
     if (targets.length === 0) return;
-    const body = JSON.stringify({ event, user_id: userId, occurred_at: new Date().toISOString(), data: payload });
+    const body = JSON.stringify({
+      event,
+      user_id: userId,
+      occurred_at: new Date().toISOString(),
+      data: payload,
+    });
     await Promise.allSettled(
       targets.map((h) => {
         const sig = h.secret ? createHmac("sha256", h.secret).update(body).digest("hex") : "";

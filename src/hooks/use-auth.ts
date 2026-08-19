@@ -31,7 +31,9 @@ export function useAuth() {
     listeners.add(setSession);
     ensureInit()?.then(() => setLoading(false));
     if (initialized) setLoading(false);
-    return () => { listeners.delete(setSession); };
+    return () => {
+      listeners.delete(setSession);
+    };
   }, []);
 
   return { session, user: session?.user ?? null, loading };

@@ -1,6 +1,12 @@
 import {
-  DndContext, DragEndEvent, DragOverlay, DragStartEvent,
-  PointerSensor, useSensor, useSensors, closestCorners,
+  DndContext,
+  DragEndEvent,
+  DragOverlay,
+  DragStartEvent,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  closestCorners,
 } from "@dnd-kit/core";
 import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import { useDroppable } from "@dnd-kit/core";
@@ -56,7 +62,12 @@ export function KanbanBoard({ stages, deals, onOpenDeal, onCreateInStage, onMove
   };
 
   return (
-    <DndContext sensors={sensors} collisionDetection={closestCorners} onDragStart={onDragStart} onDragEnd={onDragEnd}>
+    <DndContext
+      sensors={sensors}
+      collisionDetection={closestCorners}
+      onDragStart={onDragStart}
+      onDragEnd={onDragEnd}
+    >
       <div className="flex gap-3 overflow-x-auto pb-4 -mx-3 sm:-mx-6 px-3 sm:px-6">
         {stages.map((stage) => {
           const stageDeals = dealsByStage.get(stage.id) ?? [];
@@ -87,8 +98,18 @@ export function KanbanBoard({ stages, deals, onOpenDeal, onCreateInStage, onMove
 }
 
 function StageColumn({
-  stage, deals, total, onOpenDeal, onCreate,
-}: { stage: Stage; deals: Deal[]; total: number; onOpenDeal: (d: Deal) => void; onCreate: () => void }) {
+  stage,
+  deals,
+  total,
+  onOpenDeal,
+  onCreate,
+}: {
+  stage: Stage;
+  deals: Deal[];
+  total: number;
+  onOpenDeal: (d: Deal) => void;
+  onCreate: () => void;
+}) {
   const { setNodeRef, isOver } = useDroppable({ id: stage.id });
 
   return (
@@ -98,14 +119,30 @@ function StageColumn({
         isOver ? "ring-2 ring-primary/60 bg-primary/5" : ""
       }`}
     >
-      <div className="p-3 border-b border-border/60" style={{ borderTopLeftRadius: 16, borderTopRightRadius: 16, background: `linear-gradient(180deg, ${stage.color}22, transparent)` }}>
+      <div
+        className="p-3 border-b border-border/60"
+        style={{
+          borderTopLeftRadius: 16,
+          borderTopRightRadius: 16,
+          background: `linear-gradient(180deg, ${stage.color}22, transparent)`,
+        }}
+      >
         <div className="flex items-center justify-between gap-2">
           <div className="flex items-center gap-2 min-w-0">
-            <span className="h-2.5 w-2.5 rounded-full shrink-0" style={{ background: stage.color }} />
+            <span
+              className="h-2.5 w-2.5 rounded-full shrink-0"
+              style={{ background: stage.color }}
+            />
             <h3 className="font-semibold text-sm truncate">{stage.name}</h3>
             <span className="text-xs text-muted-foreground shrink-0">({deals.length})</span>
           </div>
-          <Button size="icon" variant="ghost" className="h-6 w-6" onClick={onCreate} aria-label="Adicionar cartão">
+          <Button
+            size="icon"
+            variant="ghost"
+            className="h-6 w-6"
+            onClick={onCreate}
+            aria-label="Adicionar cartão"
+          >
             <Plus className="h-3.5 w-3.5" />
           </Button>
         </div>

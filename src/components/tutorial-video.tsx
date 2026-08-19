@@ -20,7 +20,7 @@ function toEmbed(url: string): { kind: "iframe" | "video"; src: string } | null 
         const parts = u.pathname.split("/").filter(Boolean);
         const known = ["embed", "shorts", "live", "v"];
         const kIdx = parts.findIndex((p) => known.includes(p));
-        id = kIdx >= 0 ? parts[kIdx + 1] ?? "" : parts[parts.length - 1] ?? "";
+        id = kIdx >= 0 ? (parts[kIdx + 1] ?? "") : (parts[parts.length - 1] ?? "");
       }
       return { kind: "iframe", src: `https://www.youtube.com/embed/${id}` };
     }
@@ -35,17 +35,29 @@ function toEmbed(url: string): { kind: "iframe" | "video"; src: string } | null 
   }
 }
 
-export function TutorialVideo({ moduleKey, title = "Tutorial em vídeo" }: { moduleKey: string; title?: string }) {
+export function TutorialVideo({
+  moduleKey,
+  title = "Tutorial em vídeo",
+}: {
+  moduleKey: string;
+  title?: string;
+}) {
   const [url, setUrl] = useState<string>("");
 
   useEffect(() => {
-    supabase.from("internal_config").select("value").eq("key", "tutorials").maybeSingle()
+    supabase
+      .from("internal_config")
+      .select("value")
+      .eq("key", "tutorials")
+      .maybeSingle()
       .then(({ data }) => {
         if (!data?.value) return;
         try {
           const map = JSON.parse(data.value) as Record<string, string>;
           setUrl(map[moduleKey] ?? "");
-        } catch { /* ignore */ }
+        } catch {
+          /* ignore */
+        }
       });
   }, [moduleKey]);
 
@@ -58,7 +70,10 @@ export function TutorialVideo({ moduleKey, title = "Tutorial em vídeo" }: { mod
         <div className="flex items-center gap-2 text-sm font-medium">
           <PlayCircle className="h-4 w-4 text-primary" /> {title}
         </div>
-        <div className="relative w-full overflow-hidden rounded-xl border border-border/60 bg-background" style={{ aspectRatio: "16 / 9" }}>
+        <div
+          className="relative w-full overflow-hidden rounded-xl border border-border/60 bg-background"
+          style={{ aspectRatio: "16 / 9" }}
+        >
           {embed.kind === "iframe" ? (
             <iframe
               src={embed.src}

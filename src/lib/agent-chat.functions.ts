@@ -14,13 +14,21 @@ export const chatWithAgent = createServerFn({ method: "POST" })
   .inputValidator((raw: unknown) => Input.parse(raw))
   .handler(async ({ data, context }) => {
     const { resolveAIConfig } = await import("./ai-resolver.server");
-    const { checkAiBalance, consumeAiTokens, InsufficientCreditsError } = await import("./ai-credits.server");
-    const { callChatCompletions, chatErrorMessage, extractAssistantText } = await import("./ai-chat-request.server");
-    const { endpoint, apiKey, model: modelId } = await resolveAIConfig(context.supabase, context.userId);
-    if (!apiKey) throw new Error("Nenhum provedor de IA ativo. Configure em Configurações Globais.");
+    const { checkAiBalance, consumeAiTokens, InsufficientCreditsError } =
+      await import("./ai-credits.server");
+    const { callChatCompletions, chatErrorMessage, extractAssistantText } =
+      await import("./ai-chat-request.server");
+    const {
+      endpoint,
+      apiKey,
+      model: modelId,
+    } = await resolveAIConfig(context.supabase, context.userId);
+    if (!apiKey)
+      throw new Error("Nenhum provedor de IA ativo. Configure em Configurações Globais.");
 
     const bal = await checkAiBalance(context.supabase, context.userId);
-    if (!bal.ok) throw new Error("Saldo de créditos de IA esgotado. Compre mais créditos para continuar.");
+    if (!bal.ok)
+      throw new Error("Saldo de créditos de IA esgotado. Compre mais créditos para continuar.");
 
     const { res, json } = await callChatCompletions({
       endpoint,
@@ -29,7 +37,9 @@ export const chatWithAgent = createServerFn({ method: "POST" })
       temperature: data.temperature,
       maxTokens: data.maxTokens,
       messages: [
-        ...(data.systemPrompt.trim() ? [{ role: "system" as const, content: data.systemPrompt }] : []),
+        ...(data.systemPrompt.trim()
+          ? [{ role: "system" as const, content: data.systemPrompt }]
+          : []),
         ...data.messages,
       ],
     });

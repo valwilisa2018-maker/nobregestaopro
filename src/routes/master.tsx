@@ -17,10 +17,16 @@ function MasterLayout() {
 
   useEffect(() => {
     if (loading) return;
-    if (!session) { navigate({ to: "/master-auth" }); return; }
+    if (!session) {
+      navigate({ to: "/master-auth" });
+      return;
+    }
     let cancelled = false;
     (async () => {
-      const { data } = await supabase.rpc("has_role", { _user_id: session.user.id, _role: "master" });
+      const { data } = await supabase.rpc("has_role", {
+        _user_id: session.user.id,
+        _role: "master",
+      });
       if (cancelled) return;
       if (data) setCheck("ok");
       else {
@@ -29,11 +35,17 @@ function MasterLayout() {
         navigate({ to: "/master-auth" });
       }
     })();
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, [loading, session, navigate]);
 
   if (loading || check === "loading") {
-    return <div className="min-h-screen flex items-center justify-center text-muted-foreground">Verificando acesso Master…</div>;
+    return (
+      <div className="min-h-screen flex items-center justify-center text-muted-foreground">
+        Verificando acesso Master…
+      </div>
+    );
   }
   if (check === "deny") return null;
 

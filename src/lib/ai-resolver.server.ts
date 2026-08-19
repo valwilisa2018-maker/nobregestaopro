@@ -17,7 +17,11 @@ export async function resolveAIConfig(
   userId: string,
 ): Promise<ResolvedAI> {
   const lovableKey = process.env.LOVABLE_API_KEY ?? "";
-  const fallback: ResolvedAI = { endpoint: LOVABLE_GATEWAY, apiKey: lovableKey, model: DEFAULT_MODEL };
+  const fallback: ResolvedAI = {
+    endpoint: LOVABLE_GATEWAY,
+    apiKey: lovableKey,
+    model: DEFAULT_MODEL,
+  };
 
   let { data } = await supabase
     .from("ai_providers")
@@ -60,7 +64,11 @@ export async function resolveAIConfig(
   }
   // OpenAI direct (user's own key)
   if (provider === "openai" && data.api_key) {
-    return { endpoint: "https://api.openai.com/v1/chat/completions", apiKey: data.api_key, model: rawModel.replace(/^openai\//, "") };
+    return {
+      endpoint: "https://api.openai.com/v1/chat/completions",
+      apiKey: data.api_key,
+      model: rawModel.replace(/^openai\//, ""),
+    };
   }
   // Gemini / Anthropic → route through Lovable Gateway (OpenAI-compatible) using the platform key.
   // Ensure the model carries the vendor prefix the gateway expects.

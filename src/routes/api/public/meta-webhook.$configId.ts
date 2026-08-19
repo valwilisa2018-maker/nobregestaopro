@@ -10,9 +10,15 @@ export const Route = createFileRoute("/api/public/meta-webhook/$configId")({
         const challenge = url.searchParams.get("hub.challenge");
         const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
         const { data: cfg } = await supabaseAdmin
-          .from("meta_wa_configs").select("webhook_verify_token")
-          .eq("id", params.configId).maybeSingle();
-        if (mode === "subscribe" && cfg?.webhook_verify_token && token === cfg.webhook_verify_token) {
+          .from("meta_wa_configs")
+          .select("webhook_verify_token")
+          .eq("id", params.configId)
+          .maybeSingle();
+        if (
+          mode === "subscribe" &&
+          cfg?.webhook_verify_token &&
+          token === cfg.webhook_verify_token
+        ) {
           return new Response(challenge ?? "", { status: 200 });
         }
         return new Response("forbidden", { status: 403 });

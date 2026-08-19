@@ -5,14 +5,21 @@ export const Route = createFileRoute("/api/public/hooks/broadcasts")({
   server: {
     handlers: {
       POST: async ({ request }) => runBroadcasts(request),
-      GET: async () => Response.json({ ok: true, hint: "POST with Authorization: Bearer <FOLLOWUP_TRIGGER_SECRET>" }),
+      GET: async () =>
+        Response.json({
+          ok: true,
+          hint: "POST with Authorization: Bearer <FOLLOWUP_TRIGGER_SECRET>",
+        }),
     },
   },
 });
 
 async function loadEvolutionCommandKey(db: { from: (table: string) => any }, fallback: string) {
   const { data: setting } = await db
-    .from("settings").select("value").eq("key", "evolution_api").maybeSingle();
+    .from("settings")
+    .select("value")
+    .eq("key", "evolution_api")
+    .maybeSingle();
   try {
     const cfg = typeof setting?.value === "string" ? JSON.parse(setting.value) : setting?.value;
     return cfg?.api_key || fallback;
@@ -38,7 +45,9 @@ async function runBroadcasts(request: Request | undefined) {
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
   const { data: cfg } = await supabaseAdmin
     .from("internal_config" as never)
-    .select("value").eq("key", "followup_trigger_secret").maybeSingle<{ value: string }>();
+    .select("value")
+    .eq("key", "followup_trigger_secret")
+    .maybeSingle<{ value: string }>();
   const expected = cfg?.value ?? process.env.FOLLOWUP_TRIGGER_SECRET ?? "";
   if (!expected || token !== expected) return Response.json({ ok: false }, { status: 401 });
 
@@ -46,30 +55,61 @@ async function runBroadcasts(request: Request | undefined) {
   const { data: broadcasts } = await supabaseAdmin
     .from("broadcasts")
     .select("*")
-    .eq("status", "running")
+    .in("status", ["running", "scheduled"])
     .limit(50);
 
-  let totalSent = 0, totalErr = 0, processed = 0;
+  let totalSent = 0,
+    totalErr = 0,
+    processed = 0;
 
   for (const b of broadcasts ?? []) {
     processed++;
-    if (!inWindow(now, b.window_start as string | null, b.window_end as string | null, (b.weekdays as number[]) ?? [])) continue;
+    if (
+      !inWindow(
+        now,
+        b.window_start as string | null,
+        b.window_end as string | null,
+        (b.weekdays as number[]) ?? [],
+      )
+    )
+      continue;
 
-    const { data: conn } = await supabaseAdmin.from("connections")
-      .select("url_api,api_key,instance_name").eq("id", b.connection_id ?? "").maybeSingle();
+    if (b.status === "scheduled") {
+      await supabaseAdmin
+        .from("broadcasts")
+        .update({
+          status: "running",
+          started_at: (b.started_at as string | null) ?? now.toISOString(),
+          paused_at: null,
+        } as never)
+        .eq("id", b.id)
+        .eq("status", "scheduled");
+    }
+
+    const { data: conn } = await supabaseAdmin
+      .from("connections")
+      .select("url_api,api_key,instance_name")
+      .eq("id", b.connection_id ?? "")
+      .maybeSingle();
     if (!conn?.url_api || !conn?.instance_name) continue;
     const commandKey = await loadEvolutionCommandKey(supabaseAdmin, conn.api_key ?? "");
 
     if (b.mode === "sequential") {
-      const { data: steps } = await supabaseAdmin.from("broadcast_steps")
-        .select("step_order,delay_hours,message").eq("broadcast_id", b.id).order("step_order");
+      const { data: steps } = await supabaseAdmin
+        .from("broadcast_steps")
+        .select("step_order,delay_hours,message")
+        .eq("broadcast_id", b.id)
+        .order("step_order");
       const stepList = steps ?? [];
       if (stepList.length === 0) continue;
 
-      const { data: due } = await supabaseAdmin.from("broadcast_recipients")
+      const { data: due } = await supabaseAdmin
+        .from("broadcast_recipients")
         .select("id,phone,contact_id,current_step,timeline")
-        .eq("broadcast_id", b.id).eq("status", "pending")
-        .lte("next_action_at", now.toISOString()).limit(5);
+        .eq("broadcast_id", b.id)
+        .eq("status", "pending")
+        .lte("next_action_at", now.toISOString())
+        .limit(5);
 
       for (const r of due ?? []) {
         const idx = r.current_step as number;
@@ -77,8 +117,11 @@ async function runBroadcasts(request: Request | undefined) {
         if (!step) continue;
         let contactName = "cliente";
         if (r.contact_id) {
-          const { data: ct } = await supabaseAdmin.from("contacts")
-            .select("name").eq("id", r.contact_id as string).maybeSingle();
+          const { data: ct } = await supabaseAdmin
+            .from("contacts")
+            .select("name")
+            .eq("id", r.contact_id as string)
+            .maybeSingle();
           if (ct?.name) contactName = ct.name;
         }
         const text = (step.message as string)
@@ -87,7 +130,7 @@ async function runBroadcasts(request: Request | undefined) {
         const tl = Array.isArray(r.timeline) ? (r.timeline as any[]) : [];
         try {
           const number = `${(r.phone as string).replace(/\D/g, "")}@s.whatsapp.net`;
-          const url = `${/^https?:\/\//i.test((conn.url_api??"").trim())?(conn.url_api??"").trim().replace(/\/+$/,""):"https://"+(conn.url_api??"").trim().replace(/\/+$/,"")}/message/sendText/${conn.instance_name}`;
+          const url = `${/^https?:\/\//i.test((conn.url_api ?? "").trim()) ? (conn.url_api ?? "").trim().replace(/\/+$/, "") : "https://" + (conn.url_api ?? "").trim().replace(/\/+$/, "")}/message/sendText/${conn.instance_name}`;
           const res = await fetch(url, {
             method: "POST",
             headers: { "Content-Type": "application/json", apikey: commandKey },
@@ -97,20 +140,34 @@ async function runBroadcasts(request: Request | undefined) {
           tl.push({ step: idx, at: new Date().toISOString(), status: "sent" });
           const nextIdx = idx + 1;
           const finished = nextIdx >= stepList.length;
-          const nextAt = finished ? null : new Date(Date.now() + (stepList[nextIdx].delay_hours as number) * 3600_000).toISOString();
-          await supabaseAdmin.from("broadcast_recipients").update({
-            current_step: finished ? idx : nextIdx,
-            status: finished ? "sent" : "pending",
-            sent_at: finished ? new Date().toISOString() : null,
-            next_action_at: nextAt, last_step_at: new Date().toISOString(),
-            timeline: tl as never,
-          } as never).eq("id", r.id);
+          const nextAt = finished
+            ? null
+            : new Date(
+                Date.now() + (stepList[nextIdx].delay_hours as number) * 3600_000,
+              ).toISOString();
+          await supabaseAdmin
+            .from("broadcast_recipients")
+            .update({
+              current_step: finished ? idx : nextIdx,
+              status: finished ? "sent" : "pending",
+              sent_at: finished ? new Date().toISOString() : null,
+              next_action_at: nextAt,
+              last_step_at: new Date().toISOString(),
+              timeline: tl as never,
+            } as never)
+            .eq("id", r.id);
           if (finished) totalSent++;
         } catch (e) {
           tl.push({ step: idx, at: new Date().toISOString(), status: "error", error: String(e) });
-          await supabaseAdmin.from("broadcast_recipients").update({
-            status: "error", error: String(e), timeline: tl as never, last_step_at: new Date().toISOString(),
-          } as never).eq("id", r.id);
+          await supabaseAdmin
+            .from("broadcast_recipients")
+            .update({
+              status: "error",
+              error: String(e),
+              timeline: tl as never,
+              last_step_at: new Date().toISOString(),
+            } as never)
+            .eq("id", r.id);
           totalErr++;
         }
       }
@@ -123,11 +180,18 @@ async function runBroadcasts(request: Request | undefined) {
       if (dLimit > 0 && sentToday >= dLimit) continue;
 
       const batch = dLimit > 0 ? Math.min(5, dLimit - sentToday) : 5;
-      const { data: pending } = await supabaseAdmin.from("broadcast_recipients")
-        .select("id,phone,contact_id").eq("broadcast_id", b.id).eq("status", "pending").limit(batch);
+      const { data: pending } = await supabaseAdmin
+        .from("broadcast_recipients")
+        .select("id,phone,contact_id")
+        .eq("broadcast_id", b.id)
+        .eq("status", "pending")
+        .limit(batch);
       const list = pending ?? [];
       if (list.length === 0) {
-        await supabaseAdmin.from("broadcasts").update({ status: "done", finished_at: now.toISOString() } as never).eq("id", b.id);
+        await supabaseAdmin
+          .from("broadcasts")
+          .update({ status: "done", finished_at: now.toISOString() } as never)
+          .eq("id", b.id);
         continue;
       }
       let sent = b.sent_count as number;
@@ -135,8 +199,11 @@ async function runBroadcasts(request: Request | undefined) {
       for (const r of list) {
         let contactName = "cliente";
         if (r.contact_id) {
-          const { data: ct } = await supabaseAdmin.from("contacts")
-            .select("name").eq("id", r.contact_id as string).maybeSingle();
+          const { data: ct } = await supabaseAdmin
+            .from("contacts")
+            .select("name")
+            .eq("id", r.contact_id as string)
+            .maybeSingle();
           if (ct?.name) contactName = ct.name;
         }
         const text = (b.message as string)
@@ -144,27 +211,44 @@ async function runBroadcasts(request: Request | undefined) {
           .replaceAll("{nome}", contactName);
         try {
           const number = `${(r.phone as string).replace(/\D/g, "")}@s.whatsapp.net`;
-          const url = `${/^https?:\/\//i.test((conn.url_api??"").trim())?(conn.url_api??"").trim().replace(/\/+$/,""):"https://"+(conn.url_api??"").trim().replace(/\/+$/,"")}/message/sendText/${conn.instance_name}`;
+          const url = `${/^https?:\/\//i.test((conn.url_api ?? "").trim()) ? (conn.url_api ?? "").trim().replace(/\/+$/, "") : "https://" + (conn.url_api ?? "").trim().replace(/\/+$/, "")}/message/sendText/${conn.instance_name}`;
           const res = await fetch(url, {
             method: "POST",
             headers: { "Content-Type": "application/json", apikey: commandKey },
             body: JSON.stringify(buildEvolutionTextPayload(number, text)),
           });
           if (!res.ok) throw new Error(`HTTP ${res.status}`);
-          await supabaseAdmin.from("broadcast_recipients").update({
-            status: "sent", sent_at: new Date().toISOString(),
-          } as never).eq("id", r.id);
-          sent++; sentToday++; totalSent++;
+          await supabaseAdmin
+            .from("broadcast_recipients")
+            .update({
+              status: "sent",
+              sent_at: new Date().toISOString(),
+            } as never)
+            .eq("id", r.id);
+          sent++;
+          sentToday++;
+          totalSent++;
         } catch (e) {
-          await supabaseAdmin.from("broadcast_recipients").update({
-            status: "error", error: String(e),
-          } as never).eq("id", r.id);
-          errored++; totalErr++;
+          await supabaseAdmin
+            .from("broadcast_recipients")
+            .update({
+              status: "error",
+              error: String(e),
+            } as never)
+            .eq("id", r.id);
+          errored++;
+          totalErr++;
         }
       }
-      await supabaseAdmin.from("broadcasts").update({
-        sent_count: sent, error_count: errored, sent_today: sentToday, day_marker: today,
-      } as never).eq("id", b.id);
+      await supabaseAdmin
+        .from("broadcasts")
+        .update({
+          sent_count: sent,
+          error_count: errored,
+          sent_today: sentToday,
+          day_marker: today,
+        } as never)
+        .eq("id", b.id);
     }
   }
 

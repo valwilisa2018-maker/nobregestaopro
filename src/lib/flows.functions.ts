@@ -60,13 +60,18 @@ export const generateFlow = createServerFn({ method: "POST" })
     });
     if (!res.ok) {
       const t = await res.text().catch(() => "");
-      if (res.status === 429) throw new Error("Limite de IA atingido. Tente novamente em instantes.");
+      if (res.status === 429)
+        throw new Error("Limite de IA atingido. Tente novamente em instantes.");
       if (res.status === 402) throw new Error("Créditos de IA esgotados.");
       throw new Error(`Erro ${res.status}: ${t.slice(0, 200)}`);
     }
     const json = (await res.json()) as { choices?: Array<{ message?: { content?: string } }> };
     const raw = json.choices?.[0]?.message?.content ?? "{}";
-    try { JSON.parse(raw); } catch { throw new Error("Resposta inválida da IA"); }
+    try {
+      JSON.parse(raw);
+    } catch {
+      throw new Error("Resposta inválida da IA");
+    }
     return { flowJson: raw };
   });
 
@@ -92,11 +97,19 @@ export const saveFlow = createServerFn({ method: "POST" })
       is_active: data.is_active ?? true,
     };
     if (data.id) {
-      const { error } = await context.supabase.from("flows").update(payload).eq("id", data.id).eq("user_id", context.userId);
+      const { error } = await context.supabase
+        .from("flows")
+        .update(payload)
+        .eq("id", data.id)
+        .eq("user_id", context.userId);
       if (error) throw new Error(error.message);
       return { id: data.id };
     }
-    const { data: row, error } = await context.supabase.from("flows").insert(payload).select("id").single();
+    const { data: row, error } = await context.supabase
+      .from("flows")
+      .insert(payload)
+      .select("id")
+      .single();
     if (error) throw new Error(error.message);
     return { id: row.id as string };
   });
@@ -117,7 +130,11 @@ export const deleteFlow = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((raw: unknown) => z.object({ id: z.string().uuid() }).parse(raw))
   .handler(async ({ data, context }) => {
-    const { error } = await context.supabase.from("flows").delete().eq("id", data.id).eq("user_id", context.userId);
+    const { error } = await context.supabase
+      .from("flows")
+      .delete()
+      .eq("id", data.id)
+      .eq("user_id", context.userId);
     if (error) throw new Error(error.message);
     return { ok: true };
   });

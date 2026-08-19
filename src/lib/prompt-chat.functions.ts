@@ -27,21 +27,20 @@ export const promptChat = createServerFn({ method: "POST" })
       body: JSON.stringify({
         model: "google/gemini-2.5-flash",
         temperature: 0.6,
-        messages: [
-          { role: "system", content: MASTER_PROMPT_CONTENT },
-          ...data.messages,
-        ],
+        messages: [{ role: "system", content: MASTER_PROMPT_CONTENT }, ...data.messages],
       }),
     });
     if (!r.ok) {
       const t = await r.text().catch(() => "");
-      if (r.status === 429) throw new Error("Limite de uso atingido. Tente novamente em instantes.");
-      if (r.status === 402) throw new Error("Créditos de IA esgotados. Adicione créditos no workspace.");
+      if (r.status === 429)
+        throw new Error("Limite de uso atingido. Tente novamente em instantes.");
+      if (r.status === 402)
+        throw new Error("Créditos de IA esgotados. Adicione créditos no workspace.");
       throw new Error(`IA ${r.status}: ${t.slice(0, 200)}`);
     }
-    const j = (await r.json().catch(() => null)) as
-      | { choices?: Array<{ message?: { content?: string } }> }
-      | null;
+    const j = (await r.json().catch(() => null)) as {
+      choices?: Array<{ message?: { content?: string } }>;
+    } | null;
     const text = j?.choices?.[0]?.message?.content ?? "";
     return { text };
   });

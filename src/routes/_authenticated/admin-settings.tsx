@@ -1,5 +1,24 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { Settings, Save, Loader2, Zap, ShieldAlert, Brain, Sparkles, MessageSquare, Package, Plus, Trash2, Star, Coins, TrendingUp, DollarSign, CheckCircle2, XCircle, ShieldCheck } from "lucide-react";
+import {
+  Settings,
+  Save,
+  Loader2,
+  Zap,
+  ShieldAlert,
+  Brain,
+  Sparkles,
+  MessageSquare,
+  Package,
+  Plus,
+  Trash2,
+  Star,
+  Coins,
+  TrendingUp,
+  DollarSign,
+  CheckCircle2,
+  XCircle,
+  ShieldCheck,
+} from "lucide-react";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
@@ -10,7 +29,15 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem, SelectGroup, SelectLabel } from "@/components/ui/select";
+import {
+  Select,
+  SelectTrigger,
+  SelectValue,
+  SelectContent,
+  SelectItem,
+  SelectGroup,
+  SelectLabel,
+} from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { validatePackage } from "@/lib/package-schema";
@@ -20,7 +47,11 @@ import { useServerFn } from "@tanstack/react-start";
 
 export const Route = createFileRoute("/_authenticated/admin-settings")({
   head: () => ({ meta: [{ title: "Configurações Globais — Admin" }] }),
-  component: () => <MasterGuard><Page /></MasterGuard>,
+  component: () => (
+    <MasterGuard>
+      <Page />
+    </MasterGuard>
+  ),
 });
 
 type EvoCfg = { url_api: string; api_key: string; webhook_base_url: string };
@@ -128,11 +159,46 @@ const MODELS: Record<ProviderKey, ModelOpt[]> = {
   ],
 };
 
-const PROVIDERS: { key: ProviderKey; name: string; icon: typeof Brain; desc: string; placeholder: string; defaultModel: string }[] = [
-  { key: "lovable", name: "Lovable AI", icon: Sparkles, desc: "Gateway nativo — sem chave necessária. Desative para usar outros provedores.", placeholder: "Gerenciado pela Lovable", defaultModel: "google/gemini-3-flash-preview" },
-  { key: "openai", name: "OpenAI", icon: Brain, desc: "GPT-4o, o1 e modelos da OpenAI.", placeholder: "sk-...", defaultModel: "gpt-4o-mini" },
-  { key: "gemini", name: "Google Gemini", icon: Sparkles, desc: "Modelos Gemini do Google.", placeholder: "AIza...", defaultModel: "gemini-2.0-flash" },
-  { key: "anthropic", name: "Anthropic Claude", icon: Brain, desc: "Modelos Claude da Anthropic.", placeholder: "sk-ant-...", defaultModel: "claude-3-5-sonnet-latest" },
+const PROVIDERS: {
+  key: ProviderKey;
+  name: string;
+  icon: typeof Brain;
+  desc: string;
+  placeholder: string;
+  defaultModel: string;
+}[] = [
+  {
+    key: "lovable",
+    name: "Lovable AI",
+    icon: Sparkles,
+    desc: "Gateway nativo — sem chave necessária. Desative para usar outros provedores.",
+    placeholder: "Gerenciado pela Lovable",
+    defaultModel: "google/gemini-3-flash-preview",
+  },
+  {
+    key: "openai",
+    name: "OpenAI",
+    icon: Brain,
+    desc: "GPT-4o, o1 e modelos da OpenAI.",
+    placeholder: "sk-...",
+    defaultModel: "gpt-4o-mini",
+  },
+  {
+    key: "gemini",
+    name: "Google Gemini",
+    icon: Sparkles,
+    desc: "Modelos Gemini do Google.",
+    placeholder: "AIza...",
+    defaultModel: "gemini-2.0-flash",
+  },
+  {
+    key: "anthropic",
+    name: "Anthropic Claude",
+    icon: Brain,
+    desc: "Modelos Claude da Anthropic.",
+    placeholder: "sk-ant-...",
+    defaultModel: "claude-3-5-sonnet-latest",
+  },
 ];
 
 function Page() {
@@ -151,8 +217,13 @@ function Page() {
   const [saving, setSaving] = useState(false);
   const [savingProv, setSavingProv] = useState<ProviderKey | null>(null);
   const [verifying, setVerifying] = useState<ProviderKey | null>(null);
-  const [verifyStatus, setVerifyStatus] = useState<Record<ProviderKey, { ok: boolean; msg: string } | null>>({
-    lovable: null, openai: null, gemini: null, anthropic: null,
+  const [verifyStatus, setVerifyStatus] = useState<
+    Record<ProviderKey, { ok: boolean; msg: string } | null>
+  >({
+    lovable: null,
+    openai: null,
+    gemini: null,
+    anthropic: null,
   });
   const [plans, setPlans] = useState<PlanRow[]>([]);
   const [savingPlan, setSavingPlan] = useState<string | null>(null);
@@ -160,36 +231,62 @@ function Page() {
   const [savingPkg, setSavingPkg] = useState<string | null>(null);
   const [pricing, setPricing] = useState<PricingCfg>(DEFAULT_PRICING);
   const [savingPricing, setSavingPricing] = useState(false);
-  const [stats, setStats] = useState<{ salesCents: number; salesCount: number; tokensSold: number; tokensUsed: number; costCents: number }>({ salesCents: 0, salesCount: 0, tokensSold: 0, tokensUsed: 0, costCents: 0 });
+  const [stats, setStats] = useState<{
+    salesCents: number;
+    salesCount: number;
+    tokensSold: number;
+    tokensUsed: number;
+    costCents: number;
+  }>({ salesCents: 0, salesCount: 0, tokensSold: 0, tokensUsed: 0, costCents: 0 });
 
   useEffect(() => {
     if (!user) return;
     (async () => {
-      const { data: adminData } = await supabase.rpc("has_role", { _user_id: user.id, _role: "admin" });
+      const { data: adminData } = await supabase.rpc("has_role", {
+        _user_id: user.id,
+        _role: "admin",
+      });
       setIsAdmin(!!adminData);
-      if (!adminData) { setLoading(false); return; }
-      const { data } = await supabase.from("settings").select("value").eq("key", "evolution_api").maybeSingle();
+      if (!adminData) {
+        setLoading(false);
+        return;
+      }
+      const { data } = await supabase
+        .from("settings")
+        .select("value")
+        .eq("key", "evolution_api")
+        .maybeSingle();
       if (data?.value) {
         try {
           const v = typeof data.value === "string" ? JSON.parse(data.value) : data.value;
-          setCfg({ url_api: v.url_api ?? "", api_key: v.api_key ?? "", webhook_base_url: v.webhook_base_url ?? "" });
-        } catch { /* ignore */ }
+          setCfg({
+            url_api: v.url_api ?? "",
+            api_key: v.api_key ?? "",
+            webhook_base_url: v.webhook_base_url ?? "",
+          });
+        } catch {
+          /* ignore */
+        }
       }
       if (typeof window !== "undefined") {
         setCfg((c) => ({ ...c, webhook_base_url: c.webhook_base_url || window.location.origin }));
       }
-      const { data: provs } = await supabase.from("ai_providers").select("*").eq("user_id", user.id);
+      const { data: provs } = await supabase
+        .from("ai_providers")
+        .select("*")
+        .eq("user_id", user.id);
       if (provs) {
         setProviders((prev) => {
           const next = { ...prev };
           for (const p of provs) {
             const k = p.provider as ProviderKey;
-            if (next[k]) next[k] = {
-              id: p.id,
-              api_key: p.api_key ?? "",
-              model: p.model ?? next[k].model,
-              is_active: p.is_active,
-            };
+            if (next[k])
+              next[k] = {
+                id: p.id,
+                api_key: p.api_key ?? "",
+                model: p.model ?? next[k].model,
+                is_active: p.is_active,
+              };
           }
           return next;
         });
@@ -201,24 +298,51 @@ function Page() {
   }, [user]);
 
   async function reloadPlans() {
-    const { data } = await supabase.from("plans").select("*").order("sort_order", { ascending: true });
-    setPlans(((data ?? []) as unknown as PlanRow[]).map((p) => ({
-      ...p,
-      features: Array.isArray(p.features) ? p.features : (p.features ? (p.features as unknown as string[]) : []),
-    })));
+    const { data } = await supabase
+      .from("plans")
+      .select("*")
+      .order("sort_order", { ascending: true });
+    setPlans(
+      ((data ?? []) as unknown as PlanRow[]).map((p) => ({
+        ...p,
+        features: Array.isArray(p.features)
+          ? p.features
+          : p.features
+            ? (p.features as unknown as string[])
+            : [],
+      })),
+    );
   }
 
   async function reloadCredits() {
-    const { data: pkgs } = await supabase.from("credit_packages").select("*").order("sort_order", { ascending: true });
+    const { data: pkgs } = await supabase
+      .from("credit_packages")
+      .select("*")
+      .order("sort_order", { ascending: true });
     setPackages((pkgs ?? []) as unknown as PackageRow[]);
-    const { data: cfgRow } = await supabase.from("internal_config").select("value").eq("key", "credits_pricing").maybeSingle();
+    const { data: cfgRow } = await supabase
+      .from("internal_config")
+      .select("value")
+      .eq("key", "credits_pricing")
+      .maybeSingle();
     if (cfgRow?.value) {
-      try { setPricing({ ...DEFAULT_PRICING, ...JSON.parse(cfgRow.value as string) }); } catch { /* ignore */ }
+      try {
+        setPricing({ ...DEFAULT_PRICING, ...JSON.parse(cfgRow.value as string) });
+      } catch {
+        /* ignore */
+      }
     }
-    const { data: orders } = await supabase.from("credit_orders").select("tokens, price_cents").eq("status", "paid");
+    const { data: orders } = await supabase
+      .from("credit_orders")
+      .select("tokens, price_cents")
+      .eq("status", "paid");
     const salesCents = (orders ?? []).reduce((s, o) => s + (o.price_cents ?? 0), 0);
     const tokensSold = (orders ?? []).reduce((s, o) => s + Number(o.tokens ?? 0), 0);
-    const { data: txs } = await supabase.from("credit_transactions").select("total_tokens, cost_cents").eq("kind", "usage").eq("status", "ok");
+    const { data: txs } = await supabase
+      .from("credit_transactions")
+      .select("total_tokens, cost_cents")
+      .eq("kind", "usage")
+      .eq("status", "ok");
     const tokensUsed = (txs ?? []).reduce((s, t) => s + Number(t.total_tokens ?? 0), 0);
     const costCents = (txs ?? []).reduce((s, t) => s + (t.cost_cents ?? 0), 0);
     setStats({ salesCents, salesCount: orders?.length ?? 0, tokensSold, tokensUsed, costCents });
@@ -229,17 +353,23 @@ function Page() {
 
   const savePkg = async (p: PackageRow) => {
     const parsed = validatePackage({
-      name: p.name, tokens: p.tokens, price_cents: p.price_cents,
+      name: p.name,
+      tokens: p.tokens,
+      price_cents: p.price_cents,
       currency: (p as unknown as { currency?: string }).currency ?? "BRL",
       badge: p.badge && p.badge.length ? p.badge : null,
-      sort_order: p.sort_order, is_active: p.is_active,
+      sort_order: p.sort_order,
+      is_active: p.is_active,
     });
     if (!parsed.ok) return toast.error(parsed.error);
     setSavingPkg(p.id);
     const { currency: _c, ...payload } = parsed.data;
     const { error } = p.id.startsWith("new-")
       ? await supabase.from("credit_packages").insert(payload as never)
-      : await supabase.from("credit_packages").update(payload as never).eq("id", p.id);
+      : await supabase
+          .from("credit_packages")
+          .update(payload as never)
+          .eq("id", p.id);
     setSavingPkg(null);
     if (error) return toast.error(error.message);
     toast.success("Pacote salvo");
@@ -247,7 +377,10 @@ function Page() {
   };
 
   const deletePkg = async (id: string) => {
-    if (id.startsWith("new-")) { setPackages((prev) => prev.filter((p) => p.id !== id)); return; }
+    if (id.startsWith("new-")) {
+      setPackages((prev) => prev.filter((p) => p.id !== id));
+      return;
+    }
     if (!confirm("Excluir pacote?")) return;
     const { error } = await supabase.from("credit_packages").delete().eq("id", id);
     if (error) return toast.error(error.message);
@@ -257,13 +390,28 @@ function Page() {
 
   const addPkg = () => {
     const id = `new-${Date.now()}`;
-    setPackages((prev) => [...prev, { id, name: "Novo pacote", tokens: 100000, price_cents: 2990, badge: null, sort_order: (prev.at(-1)?.sort_order ?? 0) + 1, is_active: false }]);
+    setPackages((prev) => [
+      ...prev,
+      {
+        id,
+        name: "Novo pacote",
+        tokens: 100000,
+        price_cents: 2990,
+        badge: null,
+        sort_order: (prev.at(-1)?.sort_order ?? 0) + 1,
+        is_active: false,
+      },
+    ]);
   };
 
   const savePricing = async () => {
     setSavingPricing(true);
     const value = JSON.stringify(pricing);
-    const { data: existing } = await supabase.from("internal_config").select("key").eq("key", "credits_pricing").maybeSingle();
+    const { data: existing } = await supabase
+      .from("internal_config")
+      .select("key")
+      .eq("key", "credits_pricing")
+      .maybeSingle();
     const { error } = existing
       ? await supabase.from("internal_config").update({ value }).eq("key", "credits_pricing")
       : await supabase.from("internal_config").insert({ key: "credits_pricing", value });
@@ -278,15 +426,25 @@ function Page() {
   const savePlan = async (p: PlanRow) => {
     setSavingPlan(p.id);
     const payload = {
-      name: p.name, description: p.description, price_cents: p.price_cents,
-      price_annual_cents: p.price_annual_cents, currency: p.currency,
-      tokens_included: p.tokens_included, daily_limit: p.daily_limit, monthly_limit: p.monthly_limit,
-      highlight: p.highlight, sort_order: p.sort_order, is_active: p.is_active,
+      name: p.name,
+      description: p.description,
+      price_cents: p.price_cents,
+      price_annual_cents: p.price_annual_cents,
+      currency: p.currency,
+      tokens_included: p.tokens_included,
+      daily_limit: p.daily_limit,
+      monthly_limit: p.monthly_limit,
+      highlight: p.highlight,
+      sort_order: p.sort_order,
+      is_active: p.is_active,
       features: p.features ?? [],
     };
     const { error } = p.id.startsWith("new-")
       ? await supabase.from("plans").insert({ ...payload } as never)
-      : await supabase.from("plans").update(payload as never).eq("id", p.id);
+      : await supabase
+          .from("plans")
+          .update(payload as never)
+          .eq("id", p.id);
     setSavingPlan(null);
     if (error) return toast.error(error.message);
     toast.success("Plano salvo");
@@ -294,7 +452,10 @@ function Page() {
   };
 
   const deletePlan = async (id: string) => {
-    if (id.startsWith("new-")) { setPlans((prev) => prev.filter((p) => p.id !== id)); return; }
+    if (id.startsWith("new-")) {
+      setPlans((prev) => prev.filter((p) => p.id !== id));
+      return;
+    }
     if (!confirm("Excluir este plano?")) return;
     const { error } = await supabase.from("plans").delete().eq("id", id);
     if (error) return toast.error(error.message);
@@ -304,11 +465,24 @@ function Page() {
 
   const addPlan = () => {
     const id = `new-${Date.now()}`;
-    setPlans((prev) => [...prev, {
-      id, name: "Novo Plano", description: "", price_cents: 0, price_annual_cents: 0,
-      currency: "BRL", tokens_included: 0, daily_limit: 0, monthly_limit: 0,
-      highlight: false, sort_order: (prev.at(-1)?.sort_order ?? 0) + 1, is_active: false, features: [],
-    }]);
+    setPlans((prev) => [
+      ...prev,
+      {
+        id,
+        name: "Novo Plano",
+        description: "",
+        price_cents: 0,
+        price_annual_cents: 0,
+        currency: "BRL",
+        tokens_included: 0,
+        daily_limit: 0,
+        monthly_limit: 0,
+        highlight: false,
+        sort_order: (prev.at(-1)?.sort_order ?? 0) + 1,
+        is_active: false,
+        features: [],
+      },
+    ]);
   };
 
   const save = async () => {
@@ -316,7 +490,11 @@ function Page() {
     if (!cfg.url_api || !cfg.api_key) return toast.error("URL e API Key são obrigatórias");
     setSaving(true);
     const payload = { user_id: user.id, key: "evolution_api", value: JSON.stringify(cfg) };
-    const { data: existing } = await supabase.from("settings").select("id").eq("key", "evolution_api").maybeSingle();
+    const { data: existing } = await supabase
+      .from("settings")
+      .select("id")
+      .eq("key", "evolution_api")
+      .maybeSingle();
     const q = existing
       ? supabase.from("settings").update(payload).eq("id", existing.id)
       : supabase.from("settings").insert(payload);
@@ -330,14 +508,18 @@ function Page() {
     if (!user) return;
     const p = providers[k];
     const meta = PROVIDERS.find((x) => x.key === k)!;
-    if (k !== "lovable" && p.is_active && !p.api_key) return toast.error("API Key obrigatória para ativar");
+    if (k !== "lovable" && p.is_active && !p.api_key)
+      return toast.error("API Key obrigatória para ativar");
     // Verifica a chave antes de salvar quando o provedor está ativo
     let verified: { ok: boolean; msg: string } | null = null;
     if (p.is_active) {
       setVerifying(k);
       const res = await verifyFn({ data: { provider: k, api_key: p.api_key, model: p.model } });
       setVerifying(null);
-      verified = { ok: !!res.ok, msg: res.ok ? (res.message ?? "Verificado") : (res.error ?? "Falhou") };
+      verified = {
+        ok: !!res.ok,
+        msg: res.ok ? (res.message ?? "Verificado") : (res.error ?? "Falhou"),
+      };
       setVerifyStatus((s) => ({ ...s, [k]: verified }));
       if (!res.ok) {
         toast.error(`${meta.name}: ${verified.msg}`);
@@ -360,7 +542,8 @@ function Page() {
     const { data, error } = await q;
     setSavingProv(null);
     if (error) return toast.error(error.message);
-    if (!p.id && data && "id" in data) setProviders((prev) => ({ ...prev, [k]: { ...prev[k], id: (data as { id: string }).id } }));
+    if (!p.id && data && "id" in data)
+      setProviders((prev) => ({ ...prev, [k]: { ...prev[k], id: (data as { id: string }).id } }));
     toast.success(verified?.ok ? `${meta.name} ativo · ${verified.msg}` : `${meta.name} salvo`);
   };
 
@@ -369,11 +552,21 @@ function Page() {
 
   if (isAdmin === false) {
     return (
-      <PageShell title="Acesso restrito" description="Área exclusiva de administradores." icon={<ShieldAlert className="h-6 w-6" />}>
-        <Card><CardContent className="py-10 text-center text-muted-foreground">
-          Você não tem permissão para acessar esta página.
-          <div className="mt-4"><Button variant="outline" onClick={() => navigate({ to: "/dashboard" })}>Voltar ao Dashboard</Button></div>
-        </CardContent></Card>
+      <PageShell
+        title="Acesso restrito"
+        description="Área exclusiva de administradores."
+        icon={<ShieldAlert className="h-6 w-6" />}
+      >
+        <Card>
+          <CardContent className="py-10 text-center text-muted-foreground">
+            Você não tem permissão para acessar esta página.
+            <div className="mt-4">
+              <Button variant="outline" onClick={() => navigate({ to: "/dashboard" })}>
+                Voltar ao Dashboard
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
       </PageShell>
     );
   }
@@ -387,10 +580,22 @@ function Page() {
     >
       <Tabs defaultValue="whatsapp" className="space-y-4">
         <TabsList className="grid w-full sm:w-auto grid-cols-4">
-          <TabsTrigger value="whatsapp" className="gap-2"><MessageSquare className="h-4 w-4" />WhatsApp API</TabsTrigger>
-          <TabsTrigger value="ai" className="gap-2"><Brain className="h-4 w-4" />Chaves de IA</TabsTrigger>
-          <TabsTrigger value="plans" className="gap-2"><Package className="h-4 w-4" />Planos</TabsTrigger>
-          <TabsTrigger value="credits" className="gap-2"><Coins className="h-4 w-4" />Créditos</TabsTrigger>
+          <TabsTrigger value="whatsapp" className="gap-2">
+            <MessageSquare className="h-4 w-4" />
+            WhatsApp API
+          </TabsTrigger>
+          <TabsTrigger value="ai" className="gap-2">
+            <Brain className="h-4 w-4" />
+            Chaves de IA
+          </TabsTrigger>
+          <TabsTrigger value="plans" className="gap-2">
+            <Package className="h-4 w-4" />
+            Planos
+          </TabsTrigger>
+          <TabsTrigger value="credits" className="gap-2">
+            <Coins className="h-4 w-4" />
+            Créditos
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="whatsapp" className="mt-0">
@@ -402,34 +607,55 @@ function Page() {
                 </div>
                 <div>
                   <CardTitle>WhatsApp / Evolution API</CardTitle>
-                  <CardDescription>Configuração única — usada por todas as instâncias.</CardDescription>
+                  <CardDescription>
+                    Configuração única — usada por todas as instâncias.
+                  </CardDescription>
                 </div>
               </div>
             </CardHeader>
             <CardContent className="space-y-4">
               {loading ? (
-                <div className="py-8 flex justify-center"><Loader2 className="h-5 w-5 animate-spin text-primary" /></div>
+                <div className="py-8 flex justify-center">
+                  <Loader2 className="h-5 w-5 animate-spin text-primary" />
+                </div>
               ) : (
                 <>
                   <div className="space-y-1.5">
                     <Label>URL da API</Label>
-                    <Input placeholder="https://evo.exemplo.com" value={cfg.url_api}
-                      onChange={(e) => setCfg({ ...cfg, url_api: e.target.value })} />
+                    <Input
+                      placeholder="https://evo.exemplo.com"
+                      value={cfg.url_api}
+                      onChange={(e) => setCfg({ ...cfg, url_api: e.target.value })}
+                    />
                   </div>
                   <div className="space-y-1.5">
                     <Label>API Key global</Label>
-                    <Input type="password" placeholder="••••••••" value={cfg.api_key}
-                      onChange={(e) => setCfg({ ...cfg, api_key: e.target.value })} />
+                    <Input
+                      type="password"
+                      placeholder="••••••••"
+                      value={cfg.api_key}
+                      onChange={(e) => setCfg({ ...cfg, api_key: e.target.value })}
+                    />
                   </div>
                   <div className="space-y-1.5">
                     <Label>URL base para webhooks</Label>
-                    <Input placeholder="https://seuapp.com" value={cfg.webhook_base_url}
-                      onChange={(e) => setCfg({ ...cfg, webhook_base_url: e.target.value })} />
-                    <p className="text-xs text-muted-foreground">Cada instância recebe um webhook em <code>/api/public/evolution/&lt;instance&gt;</code>.</p>
+                    <Input
+                      placeholder="https://seuapp.com"
+                      value={cfg.webhook_base_url}
+                      onChange={(e) => setCfg({ ...cfg, webhook_base_url: e.target.value })}
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Cada instância recebe um webhook em{" "}
+                      <code>/api/public/evolution/&lt;instance&gt;</code>.
+                    </p>
                   </div>
                   <div className="flex justify-end pt-2">
                     <Button onClick={save} disabled={saving}>
-                      {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+                      {saving ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <Save className="h-4 w-4" />
+                      )}
                       Salvar
                     </Button>
                   </div>
@@ -446,7 +672,10 @@ function Page() {
               const Icon = meta.icon;
               const isLovable = meta.key === "lovable";
               return (
-                <Card key={meta.key} className={`border-primary/20 transition ${p.is_active ? "ring-1 ring-primary/40" : "opacity-80"}`}>
+                <Card
+                  key={meta.key}
+                  className={`border-primary/20 transition ${p.is_active ? "ring-1 ring-primary/40" : "opacity-80"}`}
+                >
                   <CardHeader>
                     <div className="flex items-start justify-between gap-3">
                       <div className="flex items-center gap-2 min-w-0">
@@ -456,31 +685,49 @@ function Page() {
                         <div className="min-w-0">
                           <div className="flex items-center gap-2">
                             <CardTitle className="truncate">{meta.name}</CardTitle>
-                            {p.is_active && (verifyStatus[meta.key]?.ok || (isLovable && p.is_active)) ? (
+                            {p.is_active &&
+                            (verifyStatus[meta.key]?.ok || (isLovable && p.is_active)) ? (
                               <Badge className="bg-emerald-500/15 text-emerald-400 border-emerald-500/30 text-[10px] gap-1">
                                 <ShieldCheck className="h-3 w-3" /> Ativo
                               </Badge>
                             ) : p.is_active ? (
-                              <Badge variant="secondary" className="text-[10px]">Aguardando teste</Badge>
+                              <Badge variant="secondary" className="text-[10px]">
+                                Aguardando teste
+                              </Badge>
                             ) : (
-                              <Badge variant="outline" className="text-[10px]">Inativo</Badge>
+                              <Badge variant="outline" className="text-[10px]">
+                                Inativo
+                              </Badge>
                             )}
                           </div>
                           <CardDescription className="text-xs">{meta.desc}</CardDescription>
                         </div>
                       </div>
-                      <Switch checked={p.is_active} onCheckedChange={(v) => updateProv(meta.key, { is_active: v })} />
+                      <Switch
+                        checked={p.is_active}
+                        onCheckedChange={(v) => updateProv(meta.key, { is_active: v })}
+                      />
                     </div>
                   </CardHeader>
                   <CardContent className="space-y-3">
                     {!isLovable && (
                       <div className="space-y-1.5">
                         <Label>API Key</Label>
-                        <Input type="password" placeholder={meta.placeholder} value={p.api_key}
-                          onChange={(e) => updateProv(meta.key, { api_key: e.target.value })} />
+                        <Input
+                          type="password"
+                          placeholder={meta.placeholder}
+                          value={p.api_key}
+                          onChange={(e) => updateProv(meta.key, { api_key: e.target.value })}
+                        />
                         {verifyStatus[meta.key] && (
-                          <p className={`text-xs flex items-center gap-1 ${verifyStatus[meta.key]!.ok ? "text-emerald-400" : "text-destructive"}`}>
-                            {verifyStatus[meta.key]!.ok ? <CheckCircle2 className="h-3 w-3" /> : <XCircle className="h-3 w-3" />}
+                          <p
+                            className={`text-xs flex items-center gap-1 ${verifyStatus[meta.key]!.ok ? "text-emerald-400" : "text-destructive"}`}
+                          >
+                            {verifyStatus[meta.key]!.ok ? (
+                              <CheckCircle2 className="h-3 w-3" />
+                            ) : (
+                              <XCircle className="h-3 w-3" />
+                            )}
                             {verifyStatus[meta.key]!.msg}
                           </p>
                         )}
@@ -488,8 +735,13 @@ function Page() {
                     )}
                     <div className="space-y-1.5">
                       <Label>Modelo padrão</Label>
-                      <Select value={p.model} onValueChange={(v) => updateProv(meta.key, { model: v })}>
-                        <SelectTrigger><SelectValue placeholder="Selecione um modelo" /></SelectTrigger>
+                      <Select
+                        value={p.model}
+                        onValueChange={(v) => updateProv(meta.key, { model: v })}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Selecione um modelo" />
+                        </SelectTrigger>
                         <SelectContent className="max-h-80">
                           {(["econômico", "balanceado", "avançado"] as const).map((g) => {
                             const items = MODELS[meta.key].filter((m) => m.group === g);
@@ -498,13 +750,22 @@ function Page() {
                               <SelectGroup key={g}>
                                 <SelectLabel className="capitalize flex items-center gap-2">
                                   {g}
-                                  {g === "econômico" && <Badge variant="secondary" className="text-[9px] px-1.5 py-0 bg-emerald-500/15 text-emerald-400 border-emerald-500/30">$</Badge>}
+                                  {g === "econômico" && (
+                                    <Badge
+                                      variant="secondary"
+                                      className="text-[9px] px-1.5 py-0 bg-emerald-500/15 text-emerald-400 border-emerald-500/30"
+                                    >
+                                      $
+                                    </Badge>
+                                  )}
                                 </SelectLabel>
                                 {items.map((m) => (
                                   <SelectItem key={m.id} value={m.id}>
                                     <div className="flex items-center gap-2">
                                       <span>{m.label}</span>
-                                      <span className="text-[10px] text-muted-foreground font-mono">{m.id}</span>
+                                      <span className="text-[10px] text-muted-foreground font-mono">
+                                        {m.id}
+                                      </span>
                                     </div>
                                   </SelectItem>
                                 ))}
@@ -516,21 +777,47 @@ function Page() {
                     </div>
                     <div className="flex justify-end gap-2 pt-1">
                       {!isLovable && (
-                        <Button size="sm" variant="outline" disabled={verifying === meta.key || !p.api_key}
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          disabled={verifying === meta.key || !p.api_key}
                           onClick={async () => {
                             setVerifying(meta.key);
-                            const res = await verifyFn({ data: { provider: meta.key, api_key: p.api_key, model: p.model } });
+                            const res = await verifyFn({
+                              data: { provider: meta.key, api_key: p.api_key, model: p.model },
+                            });
                             setVerifying(null);
-                            setVerifyStatus((s) => ({ ...s, [meta.key]: { ok: !!res.ok, msg: res.ok ? (res.message ?? "Verificado") : (res.error ?? "Falhou") } }));
+                            setVerifyStatus((s) => ({
+                              ...s,
+                              [meta.key]: {
+                                ok: !!res.ok,
+                                msg: res.ok
+                                  ? (res.message ?? "Verificado")
+                                  : (res.error ?? "Falhou"),
+                              },
+                            }));
                             if (res.ok) toast.success(`${meta.name}: chave válida`);
                             else toast.error(`${meta.name}: ${res.error}`);
-                          }}>
-                          {verifying === meta.key ? <Loader2 className="h-4 w-4 animate-spin" /> : <ShieldCheck className="h-4 w-4" />}
+                          }}
+                        >
+                          {verifying === meta.key ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : (
+                            <ShieldCheck className="h-4 w-4" />
+                          )}
                           Testar chave
                         </Button>
                       )}
-                      <Button size="sm" onClick={() => saveProvider(meta.key)} disabled={savingProv === meta.key || verifying === meta.key}>
-                        {savingProv === meta.key || verifying === meta.key ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+                      <Button
+                        size="sm"
+                        onClick={() => saveProvider(meta.key)}
+                        disabled={savingProv === meta.key || verifying === meta.key}
+                      >
+                        {savingProv === meta.key || verifying === meta.key ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <Save className="h-4 w-4" />
+                        )}
                         {p.is_active ? "Verificar & Ativar" : "Salvar"}
                       </Button>
                     </div>
@@ -543,12 +830,20 @@ function Page() {
 
         <TabsContent value="plans" className="mt-0 space-y-3">
           <div className="flex justify-end">
-            <Button size="sm" onClick={addPlan}><Plus className="h-4 w-4" /> Novo plano</Button>
+            <Button size="sm" onClick={addPlan}>
+              <Plus className="h-4 w-4" /> Novo plano
+            </Button>
           </div>
           {loading ? (
-            <div className="py-8 flex justify-center"><Loader2 className="h-5 w-5 animate-spin text-primary" /></div>
+            <div className="py-8 flex justify-center">
+              <Loader2 className="h-5 w-5 animate-spin text-primary" />
+            </div>
           ) : plans.length === 0 ? (
-            <Card><CardContent className="py-10 text-center text-muted-foreground">Nenhum plano cadastrado.</CardContent></Card>
+            <Card>
+              <CardContent className="py-10 text-center text-muted-foreground">
+                Nenhum plano cadastrado.
+              </CardContent>
+            </Card>
           ) : (
             <div className="grid gap-4 md:grid-cols-2">
               {plans.map((p) => (
@@ -559,52 +854,107 @@ function Page() {
                         <div className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-primary/15 text-primary ring-1 ring-primary/30">
                           <Package className="h-4 w-4" />
                         </div>
-                        <Input value={p.name} onChange={(e) => updatePlan(p.id, { name: e.target.value })} className="font-semibold" />
+                        <Input
+                          value={p.name}
+                          onChange={(e) => updatePlan(p.id, { name: e.target.value })}
+                          className="font-semibold"
+                        />
                       </div>
                       <div className="flex items-center gap-2">
                         <span className="text-xs text-muted-foreground">Ativo</span>
-                        <Switch checked={p.is_active} onCheckedChange={(v) => updatePlan(p.id, { is_active: v })} />
+                        <Switch
+                          checked={p.is_active}
+                          onCheckedChange={(v) => updatePlan(p.id, { is_active: v })}
+                        />
                       </div>
                     </div>
                   </CardHeader>
                   <CardContent className="space-y-3">
                     <div className="space-y-1.5">
                       <Label className="text-xs">Descrição</Label>
-                      <Input value={p.description ?? ""} onChange={(e) => updatePlan(p.id, { description: e.target.value })} />
+                      <Input
+                        value={p.description ?? ""}
+                        onChange={(e) => updatePlan(p.id, { description: e.target.value })}
+                      />
                     </div>
                     <div className="grid grid-cols-2 gap-2">
                       <div className="space-y-1.5">
                         <Label className="text-xs">Preço mensal (centavos)</Label>
-                        <Input type="number" value={p.price_cents} onChange={(e) => updatePlan(p.id, { price_cents: Number(e.target.value) })} />
+                        <Input
+                          type="number"
+                          value={p.price_cents}
+                          onChange={(e) =>
+                            updatePlan(p.id, { price_cents: Number(e.target.value) })
+                          }
+                        />
                       </div>
                       <div className="space-y-1.5">
                         <Label className="text-xs">Preço anual (centavos)</Label>
-                        <Input type="number" value={p.price_annual_cents ?? 0} onChange={(e) => updatePlan(p.id, { price_annual_cents: Number(e.target.value) })} />
+                        <Input
+                          type="number"
+                          value={p.price_annual_cents ?? 0}
+                          onChange={(e) =>
+                            updatePlan(p.id, { price_annual_cents: Number(e.target.value) })
+                          }
+                        />
                       </div>
                       <div className="space-y-1.5">
                         <Label className="text-xs">Moeda</Label>
-                        <Input value={p.currency} onChange={(e) => updatePlan(p.id, { currency: e.target.value.toUpperCase() })} />
+                        <Input
+                          value={p.currency}
+                          onChange={(e) =>
+                            updatePlan(p.id, { currency: e.target.value.toUpperCase() })
+                          }
+                        />
                       </div>
                       <div className="space-y-1.5">
                         <Label className="text-xs">Tokens IA / mês</Label>
-                        <Input type="number" value={p.tokens_included} onChange={(e) => updatePlan(p.id, { tokens_included: Number(e.target.value) })} />
+                        <Input
+                          type="number"
+                          value={p.tokens_included}
+                          onChange={(e) =>
+                            updatePlan(p.id, { tokens_included: Number(e.target.value) })
+                          }
+                        />
                       </div>
                       <div className="space-y-1.5">
                         <Label className="text-xs">Envios/dia (0 = ilim.)</Label>
-                        <Input type="number" value={p.daily_limit} onChange={(e) => updatePlan(p.id, { daily_limit: Number(e.target.value) })} />
+                        <Input
+                          type="number"
+                          value={p.daily_limit}
+                          onChange={(e) =>
+                            updatePlan(p.id, { daily_limit: Number(e.target.value) })
+                          }
+                        />
                       </div>
                       <div className="space-y-1.5">
                         <Label className="text-xs">Envios/mês (0 = ilim.)</Label>
-                        <Input type="number" value={p.monthly_limit} onChange={(e) => updatePlan(p.id, { monthly_limit: Number(e.target.value) })} />
+                        <Input
+                          type="number"
+                          value={p.monthly_limit}
+                          onChange={(e) =>
+                            updatePlan(p.id, { monthly_limit: Number(e.target.value) })
+                          }
+                        />
                       </div>
                       <div className="space-y-1.5">
                         <Label className="text-xs">Ordem</Label>
-                        <Input type="number" value={p.sort_order} onChange={(e) => updatePlan(p.id, { sort_order: Number(e.target.value) })} />
+                        <Input
+                          type="number"
+                          value={p.sort_order}
+                          onChange={(e) => updatePlan(p.id, { sort_order: Number(e.target.value) })}
+                        />
                       </div>
                       <div className="flex items-end gap-2">
                         <div className="flex items-center gap-2">
-                          <Switch checked={p.highlight} onCheckedChange={(v) => updatePlan(p.id, { highlight: v })} />
-                          <Label className="text-xs flex items-center gap-1"><Star className="h-3 w-3" />Destaque</Label>
+                          <Switch
+                            checked={p.highlight}
+                            onCheckedChange={(v) => updatePlan(p.id, { highlight: v })}
+                          />
+                          <Label className="text-xs flex items-center gap-1">
+                            <Star className="h-3 w-3" />
+                            Destaque
+                          </Label>
                         </div>
                       </div>
                     </div>
@@ -613,7 +963,14 @@ function Page() {
                       <textarea
                         className="w-full min-h-24 rounded-md border border-border bg-background p-2 text-xs"
                         value={(p.features ?? []).join("\n")}
-                        onChange={(e) => updatePlan(p.id, { features: e.target.value.split("\n").map((s) => s.trim()).filter(Boolean) })}
+                        onChange={(e) =>
+                          updatePlan(p.id, {
+                            features: e.target.value
+                              .split("\n")
+                              .map((s) => s.trim())
+                              .filter(Boolean),
+                          })
+                        }
                       />
                     </div>
                     <div className="flex justify-between pt-1">
@@ -621,7 +978,11 @@ function Page() {
                         <Trash2 className="h-4 w-4 text-destructive" />
                       </Button>
                       <Button size="sm" onClick={() => savePlan(p)} disabled={savingPlan === p.id}>
-                        {savingPlan === p.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+                        {savingPlan === p.id ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <Save className="h-4 w-4" />
+                        )}
                         Salvar
                       </Button>
                     </div>
@@ -636,15 +997,36 @@ function Page() {
           {/* Stats */}
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
             {[
-              { label: "Vendas (pagas)", value: `${pricing.currency} ${(stats.salesCents / 100).toFixed(2)}`, sub: `${stats.salesCount} pedidos`, icon: DollarSign },
-              { label: "Tokens vendidos", value: stats.tokensSold.toLocaleString(), sub: "acumulado", icon: Coins },
-              { label: "Tokens consumidos", value: stats.tokensUsed.toLocaleString(), sub: "global", icon: TrendingUp },
-              { label: "Lucro estimado", value: `${pricing.currency} ${((stats.salesCents - stats.costCents * pricing.usd_rate) / 100).toFixed(2)}`, sub: `custo ~US$ ${(stats.costCents / 100).toFixed(2)}`, icon: Sparkles },
+              {
+                label: "Vendas (pagas)",
+                value: `${pricing.currency} ${(stats.salesCents / 100).toFixed(2)}`,
+                sub: `${stats.salesCount} pedidos`,
+                icon: DollarSign,
+              },
+              {
+                label: "Tokens vendidos",
+                value: stats.tokensSold.toLocaleString(),
+                sub: "acumulado",
+                icon: Coins,
+              },
+              {
+                label: "Tokens consumidos",
+                value: stats.tokensUsed.toLocaleString(),
+                sub: "global",
+                icon: TrendingUp,
+              },
+              {
+                label: "Lucro estimado",
+                value: `${pricing.currency} ${((stats.salesCents - stats.costCents * pricing.usd_rate) / 100).toFixed(2)}`,
+                sub: `custo ~US$ ${(stats.costCents / 100).toFixed(2)}`,
+                icon: Sparkles,
+              },
             ].map((s, i) => (
               <Card key={i} className="border-primary/20 backdrop-blur-xl bg-card/50">
                 <CardContent className="py-4 space-y-1">
                   <div className="flex items-center justify-between text-xs text-muted-foreground">
-                    <span>{s.label}</span><s.icon className="h-4 w-4 text-primary" />
+                    <span>{s.label}</span>
+                    <s.icon className="h-4 w-4 text-primary" />
                   </div>
                   <div className="text-lg font-semibold">{s.value}</div>
                   <div className="text-[10px] text-muted-foreground">{s.sub}</div>
@@ -656,22 +1038,42 @@ function Page() {
           {/* Pricing config */}
           <Card className="border-primary/20">
             <CardHeader>
-              <CardTitle className="flex items-center gap-2"><DollarSign className="h-4 w-4 text-primary" />Precificação global</CardTitle>
-              <CardDescription>Cotação, margem e multiplicadores por modelo. Aplicado ao converter custo de provedor em créditos.</CardDescription>
+              <CardTitle className="flex items-center gap-2">
+                <DollarSign className="h-4 w-4 text-primary" />
+                Precificação global
+              </CardTitle>
+              <CardDescription>
+                Cotação, margem e multiplicadores por modelo. Aplicado ao converter custo de
+                provedor em créditos.
+              </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="grid gap-3 sm:grid-cols-3">
                 <div className="space-y-1.5">
                   <Label className="text-xs">Moeda</Label>
-                  <Input value={pricing.currency} onChange={(e) => setPricing({ ...pricing, currency: e.target.value.toUpperCase() })} />
+                  <Input
+                    value={pricing.currency}
+                    onChange={(e) =>
+                      setPricing({ ...pricing, currency: e.target.value.toUpperCase() })
+                    }
+                  />
                 </div>
                 <div className="space-y-1.5">
                   <Label className="text-xs">Cotação do dólar</Label>
-                  <Input type="number" step="0.01" value={pricing.usd_rate} onChange={(e) => setPricing({ ...pricing, usd_rate: Number(e.target.value) })} />
+                  <Input
+                    type="number"
+                    step="0.01"
+                    value={pricing.usd_rate}
+                    onChange={(e) => setPricing({ ...pricing, usd_rate: Number(e.target.value) })}
+                  />
                 </div>
                 <div className="space-y-1.5">
                   <Label className="text-xs">Margem de lucro (%)</Label>
-                  <Input type="number" value={pricing.margin_pct} onChange={(e) => setPricing({ ...pricing, margin_pct: Number(e.target.value) })} />
+                  <Input
+                    type="number"
+                    value={pricing.margin_pct}
+                    onChange={(e) => setPricing({ ...pricing, margin_pct: Number(e.target.value) })}
+                  />
                 </div>
               </div>
               <div className="space-y-2">
@@ -679,26 +1081,65 @@ function Page() {
                 <div className="grid gap-2 sm:grid-cols-2">
                   {Object.entries(pricing.multipliers).map(([model, mult]) => (
                     <div key={model} className="flex items-center gap-2">
-                      <Input value={model} onChange={(e) => {
-                        const next = { ...pricing.multipliers };
-                        delete next[model]; next[e.target.value] = mult;
-                        setPricing({ ...pricing, multipliers: next });
-                      }} className="font-mono text-xs" />
-                      <Input type="number" step="0.1" value={mult} onChange={(e) => setPricing({ ...pricing, multipliers: { ...pricing.multipliers, [model]: Number(e.target.value) } })} className="w-24" />
-                      <Button size="icon" variant="ghost" onClick={() => {
-                        const next = { ...pricing.multipliers }; delete next[model];
-                        setPricing({ ...pricing, multipliers: next });
-                      }}><Trash2 className="h-4 w-4 text-destructive" /></Button>
+                      <Input
+                        value={model}
+                        onChange={(e) => {
+                          const next = { ...pricing.multipliers };
+                          delete next[model];
+                          next[e.target.value] = mult;
+                          setPricing({ ...pricing, multipliers: next });
+                        }}
+                        className="font-mono text-xs"
+                      />
+                      <Input
+                        type="number"
+                        step="0.1"
+                        value={mult}
+                        onChange={(e) =>
+                          setPricing({
+                            ...pricing,
+                            multipliers: {
+                              ...pricing.multipliers,
+                              [model]: Number(e.target.value),
+                            },
+                          })
+                        }
+                        className="w-24"
+                      />
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        onClick={() => {
+                          const next = { ...pricing.multipliers };
+                          delete next[model];
+                          setPricing({ ...pricing, multipliers: next });
+                        }}
+                      >
+                        <Trash2 className="h-4 w-4 text-destructive" />
+                      </Button>
                     </div>
                   ))}
                 </div>
-                <Button size="sm" variant="outline" onClick={() => setPricing({ ...pricing, multipliers: { ...pricing.multipliers, "novo/modelo": 1 } })}>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() =>
+                    setPricing({
+                      ...pricing,
+                      multipliers: { ...pricing.multipliers, "novo/modelo": 1 },
+                    })
+                  }
+                >
                   <Plus className="h-4 w-4" /> Adicionar modelo
                 </Button>
               </div>
               <div className="flex justify-end">
                 <Button onClick={savePricing} disabled={savingPricing}>
-                  {savingPricing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+                  {savingPricing ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Save className="h-4 w-4" />
+                  )}
                   Salvar precificação
                 </Button>
               </div>
@@ -708,35 +1149,77 @@ function Page() {
           {/* Packages CRUD */}
           <div className="flex justify-between items-center">
             <h3 className="text-sm font-semibold text-muted-foreground">Pacotes de créditos</h3>
-            <Button size="sm" onClick={addPkg}><Plus className="h-4 w-4" /> Novo pacote</Button>
+            <Button size="sm" onClick={addPkg}>
+              <Plus className="h-4 w-4" /> Novo pacote
+            </Button>
           </div>
           {packages.length === 0 ? (
-            <Card><CardContent className="py-10 text-center text-muted-foreground">Nenhum pacote cadastrado.</CardContent></Card>
+            <Card>
+              <CardContent className="py-10 text-center text-muted-foreground">
+                Nenhum pacote cadastrado.
+              </CardContent>
+            </Card>
           ) : (
             <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
               {packages.map((p) => (
                 <Card key={p.id} className={`border-primary/20 ${p.is_active ? "" : "opacity-70"}`}>
                   <CardHeader className="pb-2">
                     <div className="flex items-center justify-between gap-2">
-                      <Input value={p.name} onChange={(e) => updatePkg(p.id, { name: e.target.value })} className="font-semibold" />
-                      <Switch checked={p.is_active} onCheckedChange={(v) => updatePkg(p.id, { is_active: v })} />
+                      <Input
+                        value={p.name}
+                        onChange={(e) => updatePkg(p.id, { name: e.target.value })}
+                        className="font-semibold"
+                      />
+                      <Switch
+                        checked={p.is_active}
+                        onCheckedChange={(v) => updatePkg(p.id, { is_active: v })}
+                      />
                     </div>
                   </CardHeader>
                   <CardContent className="space-y-2">
                     <div className="grid grid-cols-2 gap-2">
-                      <div className="space-y-1"><Label className="text-xs">Tokens</Label>
-                        <Input type="number" value={p.tokens} onChange={(e) => updatePkg(p.id, { tokens: Number(e.target.value) })} /></div>
-                      <div className="space-y-1"><Label className="text-xs">Preço (centavos)</Label>
-                        <Input type="number" value={p.price_cents} onChange={(e) => updatePkg(p.id, { price_cents: Number(e.target.value) })} /></div>
-                      <div className="space-y-1"><Label className="text-xs">Selo</Label>
-                        <Input value={p.badge ?? ""} onChange={(e) => updatePkg(p.id, { badge: e.target.value || null })} /></div>
-                      <div className="space-y-1"><Label className="text-xs">Ordem</Label>
-                        <Input type="number" value={p.sort_order} onChange={(e) => updatePkg(p.id, { sort_order: Number(e.target.value) })} /></div>
+                      <div className="space-y-1">
+                        <Label className="text-xs">Tokens</Label>
+                        <Input
+                          type="number"
+                          value={p.tokens}
+                          onChange={(e) => updatePkg(p.id, { tokens: Number(e.target.value) })}
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <Label className="text-xs">Preço (centavos)</Label>
+                        <Input
+                          type="number"
+                          value={p.price_cents}
+                          onChange={(e) => updatePkg(p.id, { price_cents: Number(e.target.value) })}
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <Label className="text-xs">Selo</Label>
+                        <Input
+                          value={p.badge ?? ""}
+                          onChange={(e) => updatePkg(p.id, { badge: e.target.value || null })}
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <Label className="text-xs">Ordem</Label>
+                        <Input
+                          type="number"
+                          value={p.sort_order}
+                          onChange={(e) => updatePkg(p.id, { sort_order: Number(e.target.value) })}
+                        />
+                      </div>
                     </div>
                     <div className="flex justify-between pt-1">
-                      <Button size="sm" variant="ghost" onClick={() => deletePkg(p.id)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
+                      <Button size="sm" variant="ghost" onClick={() => deletePkg(p.id)}>
+                        <Trash2 className="h-4 w-4 text-destructive" />
+                      </Button>
                       <Button size="sm" onClick={() => savePkg(p)} disabled={savingPkg === p.id}>
-                        {savingPkg === p.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+                        {savingPkg === p.id ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <Save className="h-4 w-4" />
+                        )}
                         Salvar
                       </Button>
                     </div>

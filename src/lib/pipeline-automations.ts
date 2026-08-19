@@ -2,10 +2,10 @@
 // Executed client-side after a successful stage move.
 
 export type StageAutomation = {
-  reminderDays?: number;      // sets next_contact_at = now + N days
-  whatsapp?: string;          // template with {name}, {company}, {product}, {value}
+  reminderDays?: number; // sets next_contact_at = now + N days
+  whatsapp?: string; // template with {name}, {company}, {product}, {value}
   email?: { subject: string; body: string };
-  task?: string;              // creates calendar event (localStorage)
+  task?: string; // creates calendar event (localStorage)
   taskDurationMin?: number;
 };
 
@@ -23,7 +23,8 @@ export const STAGE_AUTOMATIONS: Array<{ match: string; a: StageAutomation }> = [
     match: "primeiro contato",
     a: {
       reminderDays: 2,
-      whatsapp: "Oi {name}, tudo bem? Sou da equipe e vou te acompanhar por aqui. Podemos conversar?",
+      whatsapp:
+        "Oi {name}, tudo bem? Sou da equipe e vou te acompanhar por aqui. Podemos conversar?",
       task: "Retornar contato com {name}",
     },
   },
@@ -31,7 +32,8 @@ export const STAGE_AUTOMATIONS: Array<{ match: string; a: StageAutomation }> = [
     match: "qualificac",
     a: {
       reminderDays: 3,
-      whatsapp: "{name}, para eu te apresentar a melhor solução, posso te fazer algumas perguntas rápidas?",
+      whatsapp:
+        "{name}, para eu te apresentar a melhor solução, posso te fazer algumas perguntas rápidas?",
       task: "Qualificar necessidades de {name}",
     },
   },
@@ -48,7 +50,8 @@ export const STAGE_AUTOMATIONS: Array<{ match: string; a: StageAutomation }> = [
     match: "negociac",
     a: {
       reminderDays: 2,
-      whatsapp: "{name}, seguindo com nossa negociação. Preparei condições especiais, posso te enviar?",
+      whatsapp:
+        "{name}, seguindo com nossa negociação. Preparei condições especiais, posso te enviar?",
       task: "Negociar condições com {name}",
     },
   },
@@ -76,7 +79,8 @@ export const STAGE_AUTOMATIONS: Array<{ match: string; a: StageAutomation }> = [
     match: "fechamento",
     a: {
       reminderDays: 1,
-      whatsapp: "{name}, que bom te ter com a gente! 🚀 Vamos alinhar os últimos detalhes para fechar?",
+      whatsapp:
+        "{name}, que bom te ter com a gente! 🚀 Vamos alinhar os últimos detalhes para fechar?",
       task: "Fechar negócio com {name}",
     },
   },
@@ -144,7 +148,12 @@ export function getStageAutomation(stageName: string): StageAutomation | null {
 
 export function renderTemplate(
   tpl: string,
-  vars: { name?: string | null; company?: string | null; product?: string | null; value?: string | null },
+  vars: {
+    name?: string | null;
+    company?: string | null;
+    product?: string | null;
+    value?: string | null;
+  },
 ) {
   return tpl
     .replace(/\{name\}/g, vars.name || "cliente")

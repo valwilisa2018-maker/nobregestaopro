@@ -6,7 +6,13 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Trash2, Loader2, Plus } from "lucide-react";
 import { toast } from "sonner";
@@ -52,7 +58,15 @@ export function DealDrawer({ open, onClose, deal, stages, defaultStageId, onSave
   const [form, setForm] = useState(emptyForm(defaultStageId || stages[0]?.id || ""));
   const [saving, setSaving] = useState(false);
   const [tagInput, setTagInput] = useState("");
-  const [activities, setActivities] = useState<Array<{ id: string; type: string; created_at: string; from_stage: string | null; to_stage: string | null }>>([]);
+  const [activities, setActivities] = useState<
+    Array<{
+      id: string;
+      type: string;
+      created_at: string;
+      from_stage: string | null;
+      to_stage: string | null;
+    }>
+  >([]);
 
   useEffect(() => {
     if (deal) {
@@ -96,11 +110,17 @@ export function DealDrawer({ open, onClose, deal, stages, defaultStageId, onSave
 
   const save = async () => {
     if (!form.title.trim()) return toast.error("Título é obrigatório");
-    if (currentStage?.is_lost && !form.lost_reason.trim()) return toast.error("Informe o motivo da perda");
+    if (currentStage?.is_lost && !form.lost_reason.trim())
+      return toast.error("Informe o motivo da perda");
 
     setSaving(true);
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) { setSaving(false); return; }
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user) {
+      setSaving(false);
+      return;
+    }
 
     const payload: Record<string, unknown> = {
       user_id: user.id,
@@ -123,7 +143,11 @@ export function DealDrawer({ open, onClose, deal, stages, defaultStageId, onSave
     };
 
     const q = deal
-      ? supabase.from("pipeline_deals" as never).update(payload as never).eq("id", deal.id).eq("user_id", user.id)
+      ? supabase
+          .from("pipeline_deals" as never)
+          .update(payload as never)
+          .eq("id", deal.id)
+          .eq("user_id", user.id)
       : supabase.from("pipeline_deals" as never).insert(payload as never);
     const { error } = await q;
     setSaving(false);
@@ -135,7 +159,11 @@ export function DealDrawer({ open, onClose, deal, stages, defaultStageId, onSave
 
   const remove = async () => {
     if (!deal || !confirm("Excluir este cartão?")) return;
-    const { error } = await supabase.from("pipeline_deals" as never).delete().eq("id", deal.id).eq("user_id", deal.user_id);
+    const { error } = await supabase
+      .from("pipeline_deals" as never)
+      .delete()
+      .eq("id", deal.id)
+      .eq("user_id", deal.user_id);
     if (error) return toast.error(error.message);
     toast.success("Excluído");
     onSaved();
@@ -166,37 +194,65 @@ export function DealDrawer({ open, onClose, deal, stages, defaultStageId, onSave
           <TabsContent value="info" className="space-y-3 pt-4">
             <div>
               <Label>Etapa</Label>
-              <Select value={form.stage_id} onValueChange={(v) => setForm((s) => ({ ...s, stage_id: v }))}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
+              <Select
+                value={form.stage_id}
+                onValueChange={(v) => setForm((s) => ({ ...s, stage_id: v }))}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
                 <SelectContent>
-                  {stages.map((s) => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
+                  {stages.map((s) => (
+                    <SelectItem key={s.id} value={s.id}>
+                      {s.name}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
             <div>
               <Label>Título / Nome do cliente *</Label>
-              <Input value={form.title} onChange={(e) => setForm((s) => ({ ...s, title: e.target.value }))} />
+              <Input
+                value={form.title}
+                onChange={(e) => setForm((s) => ({ ...s, title: e.target.value }))}
+              />
             </div>
             <div className="grid grid-cols-2 gap-2">
               <div>
                 <Label>Empresa</Label>
-                <Input value={form.company} onChange={(e) => setForm((s) => ({ ...s, company: e.target.value }))} />
+                <Input
+                  value={form.company}
+                  onChange={(e) => setForm((s) => ({ ...s, company: e.target.value }))}
+                />
               </div>
               <div>
                 <Label>Responsável</Label>
-                <Input value={form.owner_name} onChange={(e) => setForm((s) => ({ ...s, owner_name: e.target.value }))} />
+                <Input
+                  value={form.owner_name}
+                  onChange={(e) => setForm((s) => ({ ...s, owner_name: e.target.value }))}
+                />
               </div>
               <div>
                 <Label>Telefone</Label>
-                <Input value={form.phone} onChange={(e) => setForm((s) => ({ ...s, phone: e.target.value }))} />
+                <Input
+                  value={form.phone}
+                  onChange={(e) => setForm((s) => ({ ...s, phone: e.target.value }))}
+                />
               </div>
               <div>
                 <Label>WhatsApp</Label>
-                <Input value={form.whatsapp} onChange={(e) => setForm((s) => ({ ...s, whatsapp: e.target.value }))} />
+                <Input
+                  value={form.whatsapp}
+                  onChange={(e) => setForm((s) => ({ ...s, whatsapp: e.target.value }))}
+                />
               </div>
               <div className="col-span-2">
                 <Label>E-mail</Label>
-                <Input type="email" value={form.email} onChange={(e) => setForm((s) => ({ ...s, email: e.target.value }))} />
+                <Input
+                  type="email"
+                  value={form.email}
+                  onChange={(e) => setForm((s) => ({ ...s, email: e.target.value }))}
+                />
               </div>
               <div>
                 <Label>Valor (R$)</Label>
@@ -204,47 +260,76 @@ export function DealDrawer({ open, onClose, deal, stages, defaultStageId, onSave
                   type="number"
                   step="0.01"
                   value={form.value_cents / 100}
-                  onChange={(e) => setForm((s) => ({ ...s, value_cents: Math.round(Number(e.target.value) * 100) }))}
+                  onChange={(e) =>
+                    setForm((s) => ({
+                      ...s,
+                      value_cents: Math.round(Number(e.target.value) * 100),
+                    }))
+                  }
                 />
               </div>
               <div>
                 <Label>Prioridade</Label>
-                <Select value={form.priority} onValueChange={(v: Priority) => setForm((s) => ({ ...s, priority: v }))}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
+                <Select
+                  value={form.priority}
+                  onValueChange={(v: Priority) => setForm((s) => ({ ...s, priority: v }))}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
                   <SelectContent>
-                    {(Object.keys(PRIORITY_LABEL) as Priority[]).map((p) =>
-                      <SelectItem key={p} value={p}>{PRIORITY_LABEL[p]}</SelectItem>
-                    )}
+                    {(Object.keys(PRIORITY_LABEL) as Priority[]).map((p) => (
+                      <SelectItem key={p} value={p}>
+                        {PRIORITY_LABEL[p]}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
               <div>
                 <Label>Produto</Label>
-                <Input value={form.product} onChange={(e) => setForm((s) => ({ ...s, product: e.target.value }))} />
+                <Input
+                  value={form.product}
+                  onChange={(e) => setForm((s) => ({ ...s, product: e.target.value }))}
+                />
               </div>
               <div>
                 <Label>Origem</Label>
-                <Input value={form.source} onChange={(e) => setForm((s) => ({ ...s, source: e.target.value }))} />
+                <Input
+                  value={form.source}
+                  onChange={(e) => setForm((s) => ({ ...s, source: e.target.value }))}
+                />
               </div>
               <div className="col-span-2">
                 <Label>Próximo contato</Label>
-                <Input type="datetime-local" value={form.next_contact_at}
-                  onChange={(e) => setForm((s) => ({ ...s, next_contact_at: e.target.value }))} />
+                <Input
+                  type="datetime-local"
+                  value={form.next_contact_at}
+                  onChange={(e) => setForm((s) => ({ ...s, next_contact_at: e.target.value }))}
+                />
               </div>
             </div>
             <div>
               <Label>Etiquetas</Label>
               <div className="flex gap-2">
-                <Input value={tagInput} onChange={(e) => setTagInput(e.target.value)}
+                <Input
+                  value={tagInput}
+                  onChange={(e) => setTagInput(e.target.value)}
                   onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), addTag())}
-                  placeholder="Digite e Enter" />
-                <Button type="button" variant="outline" size="icon" onClick={addTag}><Plus className="h-4 w-4" /></Button>
+                  placeholder="Digite e Enter"
+                />
+                <Button type="button" variant="outline" size="icon" onClick={addTag}>
+                  <Plus className="h-4 w-4" />
+                </Button>
               </div>
               <div className="flex flex-wrap gap-1 mt-2">
                 {form.tags.map((t) => (
-                  <button key={t} type="button"
+                  <button
+                    key={t}
+                    type="button"
                     onClick={() => setForm((s) => ({ ...s, tags: s.tags.filter((x) => x !== t) }))}
-                    className="text-xs rounded-full bg-primary/10 text-primary px-2 py-0.5 hover:bg-primary/20">
+                    className="text-xs rounded-full bg-primary/10 text-primary px-2 py-0.5 hover:bg-primary/20"
+                  >
                     {t} ×
                   </button>
                 ))}
@@ -252,17 +337,35 @@ export function DealDrawer({ open, onClose, deal, stages, defaultStageId, onSave
             </div>
             <div>
               <Label>Observações</Label>
-              <Textarea rows={3} value={form.notes} onChange={(e) => setForm((s) => ({ ...s, notes: e.target.value }))} />
+              <Textarea
+                rows={3}
+                value={form.notes}
+                onChange={(e) => setForm((s) => ({ ...s, notes: e.target.value }))}
+              />
             </div>
             {currentStage?.is_lost && (
               <div>
                 <Label>Motivo da perda *</Label>
-                <Select value={form.lost_reason} onValueChange={(v) => setForm((s) => ({ ...s, lost_reason: v }))}>
-                  <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
+                <Select
+                  value={form.lost_reason}
+                  onValueChange={(v) => setForm((s) => ({ ...s, lost_reason: v }))}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione" />
+                  </SelectTrigger>
                   <SelectContent>
-                    {["Muito caro", "Sem interesse", "Concorrência", "Sem orçamento", "Não respondeu", "Outro"].map((r) =>
-                      <SelectItem key={r} value={r}>{r}</SelectItem>
-                    )}
+                    {[
+                      "Muito caro",
+                      "Sem interesse",
+                      "Concorrência",
+                      "Sem orçamento",
+                      "Não respondeu",
+                      "Outro",
+                    ].map((r) => (
+                      <SelectItem key={r} value={r}>
+                        {r}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
@@ -273,15 +376,22 @@ export function DealDrawer({ open, onClose, deal, stages, defaultStageId, onSave
             {LINK_KEYS.map((l) => (
               <div key={l.key}>
                 <Label>{l.label}</Label>
-                <Input type="url" value={form.links[l.key] || ""}
-                  onChange={(e) => setForm((s) => ({ ...s, links: { ...s.links, [l.key]: e.target.value } }))} />
+                <Input
+                  type="url"
+                  value={form.links[l.key] || ""}
+                  onChange={(e) =>
+                    setForm((s) => ({ ...s, links: { ...s.links, [l.key]: e.target.value } }))
+                  }
+                />
               </div>
             ))}
           </TabsContent>
 
           <TabsContent value="history" className="pt-4">
             {activities.length === 0 ? (
-              <p className="text-sm text-muted-foreground text-center py-8">Sem movimentações registradas.</p>
+              <p className="text-sm text-muted-foreground text-center py-8">
+                Sem movimentações registradas.
+              </p>
             ) : (
               <ul className="space-y-2">
                 {activities.map((a) => {
@@ -308,9 +418,13 @@ export function DealDrawer({ open, onClose, deal, stages, defaultStageId, onSave
             <Button variant="ghost" onClick={remove} className="text-destructive">
               <Trash2 className="h-4 w-4" /> Excluir
             </Button>
-          ) : <div />}
+          ) : (
+            <div />
+          )}
           <div className="flex gap-2">
-            <Button variant="outline" onClick={onClose}>Cancelar</Button>
+            <Button variant="outline" onClick={onClose}>
+              Cancelar
+            </Button>
             <Button onClick={save} disabled={saving}>
               {saving && <Loader2 className="h-4 w-4 animate-spin" />} Salvar
             </Button>

@@ -16,7 +16,13 @@ function baseUrl(url: string) {
   return url.replace(/\/+$/, "");
 }
 
-async function evoSendText(url: string, apiKey: string, instance: string, number: string, text: string) {
+async function evoSendText(
+  url: string,
+  apiKey: string,
+  instance: string,
+  number: string,
+  text: string,
+) {
   const controller = new AbortController();
   const t = setTimeout(() => controller.abort(), EVO_TIMEOUT_MS);
   try {
@@ -104,7 +110,7 @@ export const runStageAutomations = createServerFn({ method: "POST" })
           if (!r.ok) error = `HTTP ${r.status}: ${r.body.slice(0, 200)}`;
         } catch (e) {
           error = e instanceof Error ? e.message : "erro desconhecido";
-          stack = e instanceof Error ? e.stack ?? null : null;
+          stack = e instanceof Error ? (e.stack ?? null) : null;
         }
       } else {
         error = "sem conexão WhatsApp ativa";
@@ -154,7 +160,11 @@ export const runStageAutomations = createServerFn({ method: "POST" })
     }
 
     if (Object.keys(patch).length > 0) {
-      await supabase.from("pipeline_deals").update(patch as never).eq("id", deal.id).eq("user_id", userId);
+      await supabase
+        .from("pipeline_deals")
+        .update(patch as never)
+        .eq("id", deal.id)
+        .eq("user_id", userId);
     }
 
     return { ok: true, ran };

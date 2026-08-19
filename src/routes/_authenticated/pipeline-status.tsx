@@ -6,7 +6,13 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { AlertTriangle, Loader2, RefreshCw } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -64,8 +70,12 @@ function PipelineStatusPage() {
     setLoading(false);
   };
 
-  useEffect(() => { setPage(0); }, [from, to, sort]);
-  useEffect(() => { load(); /* eslint-disable-next-line */ }, [from, to, sort, page]);
+  useEffect(() => {
+    setPage(0);
+  }, [from, to, sort]);
+  useEffect(() => {
+    load(); /* eslint-disable-next-line */
+  }, [from, to, sort, page]);
 
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
 
@@ -77,24 +87,34 @@ function PipelineStatusPage() {
       status={items.length > 0 ? ("beta" as const) : ("ativo" as const)}
       actions={
         <Button variant="outline" onClick={load} disabled={loading}>
-          {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+          {loading ? (
+            <Loader2 className="h-4 w-4 animate-spin" />
+          ) : (
+            <RefreshCw className="h-4 w-4" />
+          )}
           Atualizar
         </Button>
       }
     >
       <div className="mb-4 grid gap-3 sm:grid-cols-[1fr_1fr_180px_auto] sm:items-end">
         <div className="space-y-1">
-          <Label htmlFor="from" className="text-xs">De</Label>
+          <Label htmlFor="from" className="text-xs">
+            De
+          </Label>
           <Input id="from" type="date" value={from} onChange={(e) => setFrom(e.target.value)} />
         </div>
         <div className="space-y-1">
-          <Label htmlFor="to" className="text-xs">Até</Label>
+          <Label htmlFor="to" className="text-xs">
+            Até
+          </Label>
           <Input id="to" type="date" value={to} onChange={(e) => setTo(e.target.value)} />
         </div>
         <div className="space-y-1">
           <Label className="text-xs">Ordenar</Label>
           <Select value={sort} onValueChange={(v) => setSort(v as "asc" | "desc")}>
-            <SelectTrigger><SelectValue /></SelectTrigger>
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
             <SelectContent>
               <SelectItem value="desc">Mais recentes</SelectItem>
               <SelectItem value="asc">Mais antigas</SelectItem>
@@ -102,7 +122,15 @@ function PipelineStatusPage() {
           </Select>
         </div>
         {(from || to) && (
-          <Button variant="ghost" onClick={() => { setFrom(""); setTo(""); }}>Limpar</Button>
+          <Button
+            variant="ghost"
+            onClick={() => {
+              setFrom("");
+              setTo("");
+            }}
+          >
+            Limpar
+          </Button>
         )}
       </div>
       {loading ? (
@@ -136,19 +164,30 @@ function PipelineStatusPage() {
                 <div className="flex flex-wrap items-center gap-2">
                   <Badge variant="destructive">{it.type}</Badge>
                   <span className="text-xs text-muted-foreground">
-                    {formatDistanceToNow(new Date(it.created_at), { addSuffix: true, locale: ptBR })}
+                    {formatDistanceToNow(new Date(it.created_at), {
+                      addSuffix: true,
+                      locale: ptBR,
+                    })}
                   </span>
-                  <span className="text-xs text-muted-foreground ml-auto">deal: {it.deal_id.slice(0, 8)}…</span>
+                  <span className="text-xs text-muted-foreground ml-auto">
+                    deal: {it.deal_id.slice(0, 8)}…
+                  </span>
                 </div>
                 <div className="text-sm font-medium text-destructive break-words">{error}</div>
                 {to && <div className="text-xs text-muted-foreground">Destino: {to}</div>}
                 {text && (
-                  <div className="text-xs bg-muted/50 rounded p-2 whitespace-pre-wrap break-words">{text}</div>
+                  <div className="text-xs bg-muted/50 rounded p-2 whitespace-pre-wrap break-words">
+                    {text}
+                  </div>
                 )}
                 {stack && (
                   <details className="text-xs">
-                    <summary className="cursor-pointer text-muted-foreground hover:text-foreground">Stack trace</summary>
-                    <pre className="mt-2 bg-muted/50 rounded p-2 overflow-x-auto whitespace-pre-wrap break-words">{stack}</pre>
+                    <summary className="cursor-pointer text-muted-foreground hover:text-foreground">
+                      Stack trace
+                    </summary>
+                    <pre className="mt-2 bg-muted/50 rounded p-2 overflow-x-auto whitespace-pre-wrap break-words">
+                      {stack}
+                    </pre>
                   </details>
                 )}
               </div>
@@ -162,10 +201,20 @@ function PipelineStatusPage() {
             {total} falha{total === 1 ? "" : "s"} · página {page + 1} de {totalPages}
           </span>
           <div className="flex gap-2">
-            <Button variant="outline" size="sm" disabled={page === 0 || loading} onClick={() => setPage((p) => Math.max(0, p - 1))}>
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={page === 0 || loading}
+              onClick={() => setPage((p) => Math.max(0, p - 1))}
+            >
               Anterior
             </Button>
-            <Button variant="outline" size="sm" disabled={page + 1 >= totalPages || loading} onClick={() => setPage((p) => p + 1)}>
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={page + 1 >= totalPages || loading}
+              onClick={() => setPage((p) => p + 1)}
+            >
               Próxima
             </Button>
           </div>

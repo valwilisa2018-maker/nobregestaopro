@@ -16,11 +16,19 @@ function Page() {
       singular="Áudio"
       icon={<AudioLines className="h-6 w-6" />}
       fields={[
-    {name:"audio_url", label:"URL do áudio", type:"url"},
-    {name:"direction", label:"Direção", type:"select", options:[{value:"inbound",label:"Recebido"},{value:"outbound",label:"Enviado"}]},
-    {name:"duration_seconds", label:"Duração (s)", type:"number"},
-    {name:"transcription", label:"Transcrição", type:"textarea"},
-    {name:"language", label:"Idioma", type:"text"}
+        { name: "audio_url", label: "URL do áudio", type: "url" },
+        {
+          name: "direction",
+          label: "Direção",
+          type: "select",
+          options: [
+            { value: "inbound", label: "Recebido" },
+            { value: "outbound", label: "Enviado" },
+          ],
+        },
+        { name: "duration_seconds", label: "Duração (s)", type: "number" },
+        { name: "transcription", label: "Transcrição", type: "textarea" },
+        { name: "language", label: "Idioma", type: "text" },
       ]}
     />
   );

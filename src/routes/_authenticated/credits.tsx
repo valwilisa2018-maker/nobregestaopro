@@ -8,14 +8,22 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import {
-  Coins, Loader2, TrendingDown, CalendarDays, Timer, Sparkles, Download, ShoppingCart, Search,
-  AlertCircle, Inbox, RefreshCw,
+  Coins,
+  Loader2,
+  TrendingDown,
+  CalendarDays,
+  Timer,
+  Sparkles,
+  Download,
+  ShoppingCart,
+  Search,
+  AlertCircle,
+  Inbox,
+  RefreshCw,
 } from "lucide-react";
 import { toast } from "sonner";
 import { BuyCreditsModal } from "@/components/buy-credits-modal";
-import {
-  ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid,
-} from "recharts";
+import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid } from "recharts";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 
 export const Route = createFileRoute("/_authenticated/credits")({
@@ -55,7 +63,9 @@ type UsageResp = {
 const PAGE_SIZE = 25;
 
 async function authedFetch(path: string) {
-  const { data: { session } } = await supabase.auth.getSession();
+  const {
+    data: { session },
+  } = await supabase.auth.getSession();
   if (!session) throw new Error("no_session");
   const res = await fetch(path, { headers: { Authorization: `Bearer ${session.access_token}` } });
   const body = await res.json().catch(() => ({}));
@@ -64,11 +74,13 @@ async function authedFetch(path: string) {
 }
 
 const fmtTokens = (n: number) => {
-  if (n >= 1_000_000) return `${(n / 1_000_000).toLocaleString("pt-BR", { maximumFractionDigits: 2 })}M`;
+  if (n >= 1_000_000)
+    return `${(n / 1_000_000).toLocaleString("pt-BR", { maximumFractionDigits: 2 })}M`;
   if (n >= 1_000) return `${(n / 1_000).toLocaleString("pt-BR", { maximumFractionDigits: 1 })}k`;
   return n.toLocaleString("pt-BR");
 };
-const fmtBRL = (c: number) => (c / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+const fmtBRL = (c: number) =>
+  (c / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 const fmtDate = (s: string) => new Date(s).toLocaleString("pt-BR");
 
 function ErrorState({ msg, onRetry }: { msg: string; onRetry: () => void }) {
@@ -110,35 +122,50 @@ function Page() {
   const [historyError, setHistoryError] = useState<string | null>(null);
 
   const loadWallet = async () => {
-    setWalletLoading(true); setWalletError(null);
+    setWalletLoading(true);
+    setWalletError(null);
     try {
       const w = (await authedFetch("/api/v1/credits")) as Wallet;
       setWallet(w);
-    } catch (e) { setWalletError((e as Error).message); }
-    finally { setWalletLoading(false); }
+    } catch (e) {
+      setWalletError((e as Error).message);
+    } finally {
+      setWalletLoading(false);
+    }
   };
 
   const loadUsage = async () => {
-    setUsageLoading(true); setUsageError(null);
+    setUsageLoading(true);
+    setUsageError(null);
     try {
       const u = (await authedFetch("/api/v1/usage?days=90")) as UsageResp;
       setUsage(u);
-    } catch (e) { setUsageError((e as Error).message); }
-    finally { setUsageLoading(false); }
+    } catch (e) {
+      setUsageError((e as Error).message);
+    } finally {
+      setUsageLoading(false);
+    }
   };
 
   const loadHistory = async (pageIndex: number) => {
-    setHistoryLoading(true); setHistoryError(null);
+    setHistoryLoading(true);
+    setHistoryError(null);
     try {
       const offset = pageIndex * PAGE_SIZE;
       const h = (await authedFetch(`/api/v1/history?limit=${PAGE_SIZE}&offset=${offset}`)) as {
-        items: Tx[]; total: number; limit: number; offset: number;
+        items: Tx[];
+        total: number;
+        limit: number;
+        offset: number;
       };
       setTxs(h.items ?? []);
       setTotal(h.total ?? 0);
       setPage(pageIndex);
-    } catch (e) { setHistoryError((e as Error).message); }
-    finally { setHistoryLoading(false); }
+    } catch (e) {
+      setHistoryError((e as Error).message);
+    } finally {
+      setHistoryLoading(false);
+    }
   };
 
   const load = async () => {
@@ -149,13 +176,21 @@ function Page() {
       const uid = userData.user?.id;
       if (uid) {
         const [profileRes, agentsRes] = await Promise.all([
-          supabase.from("profiles").select("plan_id, plans(name, tokens_included)").eq("id", uid).maybeSingle(),
+          supabase
+            .from("profiles")
+            .select("plan_id, plans(name, tokens_included)")
+            .eq("id", uid)
+            .maybeSingle(),
           supabase.from("agents").select("id, name"),
         ]);
-        const p = (profileRes.data as { plans: { name: string; tokens_included: number } | null } | null)?.plans;
+        const p = (
+          profileRes.data as { plans: { name: string; tokens_included: number } | null } | null
+        )?.plans;
         setPlan({ name: p?.name ?? null, tokens_included: p?.tokens_included ?? 0 });
         const map: Record<string, string> = {};
-        (agentsRes.data ?? []).forEach((a: { id: string; name: string }) => { map[a.id] = a.name; });
+        (agentsRes.data ?? []).forEach((a: { id: string; name: string }) => {
+          map[a.id] = a.name;
+        });
         setAgents(map);
       }
     } catch (e) {
@@ -165,7 +200,9 @@ function Page() {
     }
   };
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => {
+    load();
+  }, []);
 
   // Live refresh: wallet + usage every 30s
   useEffect(() => {
@@ -181,10 +218,12 @@ function Page() {
     for (const p of daily) {
       const d = new Date(p.date + "T00:00:00Z");
       const day = d.getUTCDay();
-      const monday = new Date(d); monday.setUTCDate(d.getUTCDate() - ((day + 6) % 7));
+      const monday = new Date(d);
+      monday.setUTCDate(d.getUTCDate() - ((day + 6) % 7));
       const key = monday.toISOString().slice(0, 10);
       if (!map[key]) map[key] = { week: key, tokens: 0, cost_cents: 0 };
-      map[key].tokens += p.tokens; map[key].cost_cents += p.cost_cents;
+      map[key].tokens += p.tokens;
+      map[key].cost_cents += p.cost_cents;
     }
     return Object.values(map).sort((a, b) => a.week.localeCompare(b.week));
   }, [daily]);
@@ -193,14 +232,18 @@ function Page() {
     for (const p of daily) {
       const key = p.date.slice(0, 7);
       if (!map[key]) map[key] = { month: key, tokens: 0, cost_cents: 0 };
-      map[key].tokens += p.tokens; map[key].cost_cents += p.cost_cents;
+      map[key].tokens += p.tokens;
+      map[key].cost_cents += p.cost_cents;
     }
     return Object.values(map).sort((a, b) => a.month.localeCompare(b.month));
   }, [daily]);
 
   const totalAvailable = wallet?.total ?? 0;
   const planIncluded = plan.tokens_included || 1;
-  const planPct = Math.max(0, Math.min(100, Math.round(((wallet?.plan_remaining ?? 0) / planIncluded) * 100)));
+  const planPct = Math.max(
+    0,
+    Math.min(100, Math.round(((wallet?.plan_remaining ?? 0) / planIncluded) * 100)),
+  );
 
   const daysToReset = useMemo(() => {
     if (!wallet?.resets_at) return 0;
@@ -209,7 +252,10 @@ function Page() {
 
   const today = new Date().toDateString();
   const consumoHoje = txs
-    .filter((t) => t.kind === "usage" && t.status === "ok" && new Date(t.occurred_at).toDateString() === today)
+    .filter(
+      (t) =>
+        t.kind === "usage" && t.status === "ok" && new Date(t.occurred_at).toDateString() === today,
+    )
     .reduce((s, t) => s + t.total_tokens, 0);
   const consumoMes = usage?.total_tokens ?? 0;
   const avgDaily = consumoMes / Math.max(1, usage?.days ?? 30);
@@ -243,12 +289,16 @@ function Page() {
         t.status,
       ]),
     ];
-    const csv = "\uFEFF" + rows.map((r) => r.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(";")).join("\n");
+    const csv =
+      "\uFEFF" +
+      rows.map((r) => r.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(";")).join("\n");
     const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
-    a.href = url; a.download = `creditos-ia-${new Date().toISOString().slice(0,10)}.csv`;
-    a.click(); URL.revokeObjectURL(url);
+    a.href = url;
+    a.download = `creditos-ia-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
     toast.success("Histórico exportado.");
   };
 
@@ -268,67 +318,93 @@ function Page() {
       }
     >
       {loading ? (
-        <div className="p-12 flex justify-center"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>
+        <div className="p-12 flex justify-center">
+          <Loader2 className="h-6 w-6 animate-spin text-primary" />
+        </div>
       ) : (
         <>
           {/* Cards topo */}
           {walletError ? (
-            <Card><CardContent className="p-5"><ErrorState msg={walletError} onRetry={loadWallet} /></CardContent></Card>
+            <Card>
+              <CardContent className="p-5">
+                <ErrorState msg={walletError} onRetry={loadWallet} />
+              </CardContent>
+            </Card>
           ) : walletLoading && !wallet ? (
-            <Card><CardContent className="p-5"><SectionLoader /></CardContent></Card>
+            <Card>
+              <CardContent className="p-5">
+                <SectionLoader />
+              </CardContent>
+            </Card>
           ) : (
-          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
-            <Card className="relative overflow-hidden border-emerald-500/40 bg-gradient-to-br from-emerald-500/10 via-card to-card xl:col-span-2">
-              <div className="pointer-events-none absolute -right-10 -top-10 h-32 w-32 rounded-full bg-emerald-500/20 blur-3xl" />
-              <CardContent className="relative p-5 space-y-3">
-                <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-emerald-400">
-                  <Sparkles className="h-4 w-4" /> Créditos Disponíveis
-                </div>
-                <div className="text-4xl font-black tracking-tight text-foreground">{fmtTokens(totalAvailable)}</div>
-                <div className="text-xs text-muted-foreground">
-                  Plano: <span className="text-foreground font-semibold">{fmtTokens(wallet?.plan_remaining ?? 0)}</span>
-                  {" · "}Extras: <span className="text-foreground font-semibold">{fmtTokens(wallet?.extra_remaining ?? 0)}</span>
-                </div>
-                <Progress value={planPct} className="h-2" />
-                <div className="text-[10px] text-muted-foreground uppercase tracking-wider">
-                  {planPct}% do plano ({fmtTokens(plan.tokens_included)}) disponível
-                </div>
-              </CardContent>
-            </Card>
+            <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
+              <Card className="relative overflow-hidden border-emerald-500/40 bg-gradient-to-br from-emerald-500/10 via-card to-card xl:col-span-2">
+                <div className="pointer-events-none absolute -right-10 -top-10 h-32 w-32 rounded-full bg-emerald-500/20 blur-3xl" />
+                <CardContent className="relative p-5 space-y-3">
+                  <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-emerald-400">
+                    <Sparkles className="h-4 w-4" /> Créditos Disponíveis
+                  </div>
+                  <div className="text-4xl font-black tracking-tight text-foreground">
+                    {fmtTokens(totalAvailable)}
+                  </div>
+                  <div className="text-xs text-muted-foreground">
+                    Plano:{" "}
+                    <span className="text-foreground font-semibold">
+                      {fmtTokens(wallet?.plan_remaining ?? 0)}
+                    </span>
+                    {" · "}Extras:{" "}
+                    <span className="text-foreground font-semibold">
+                      {fmtTokens(wallet?.extra_remaining ?? 0)}
+                    </span>
+                  </div>
+                  <Progress value={planPct} className="h-2" />
+                  <div className="text-[10px] text-muted-foreground uppercase tracking-wider">
+                    {planPct}% do plano ({fmtTokens(plan.tokens_included)}) disponível
+                  </div>
+                </CardContent>
+              </Card>
 
-            <Card>
-              <CardContent className="p-5 space-y-2">
-                <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                  <CalendarDays className="h-4 w-4" /> Plano Atual
-                </div>
-                <div className="text-lg font-bold text-foreground">{plan.name ?? "Sem plano"}</div>
-                <div className="text-xs text-muted-foreground">{fmtTokens(plan.tokens_included)} inclusos</div>
-                <Badge variant="outline" className="text-[10px]">Renova em {daysToReset} dias</Badge>
-              </CardContent>
-            </Card>
+              <Card>
+                <CardContent className="p-5 space-y-2">
+                  <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                    <CalendarDays className="h-4 w-4" /> Plano Atual
+                  </div>
+                  <div className="text-lg font-bold text-foreground">
+                    {plan.name ?? "Sem plano"}
+                  </div>
+                  <div className="text-xs text-muted-foreground">
+                    {fmtTokens(plan.tokens_included)} inclusos
+                  </div>
+                  <Badge variant="outline" className="text-[10px]">
+                    Renova em {daysToReset} dias
+                  </Badge>
+                </CardContent>
+              </Card>
 
-            <Card>
-              <CardContent className="p-5 space-y-2">
-                <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                  <TrendingDown className="h-4 w-4" /> Consumo Hoje
-                </div>
-                <div className="text-2xl font-black text-foreground">{fmtTokens(consumoHoje)}</div>
-                <div className="text-xs text-muted-foreground">tokens</div>
-              </CardContent>
-            </Card>
+              <Card>
+                <CardContent className="p-5 space-y-2">
+                  <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                    <TrendingDown className="h-4 w-4" /> Consumo Hoje
+                  </div>
+                  <div className="text-2xl font-black text-foreground">
+                    {fmtTokens(consumoHoje)}
+                  </div>
+                  <div className="text-xs text-muted-foreground">tokens</div>
+                </CardContent>
+              </Card>
 
-            <Card>
-              <CardContent className="p-5 space-y-2">
-                <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                  <Timer className="h-4 w-4" /> Consumo no Mês
-                </div>
-                <div className="text-2xl font-black text-foreground">{fmtTokens(consumoMes)}</div>
-                <div className="text-xs text-muted-foreground">
-                  Estimativa: {daysLeft === null ? "—" : `~${daysLeft} dias`}
-                </div>
-              </CardContent>
-            </Card>
-          </div>
+              <Card>
+                <CardContent className="p-5 space-y-2">
+                  <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                    <Timer className="h-4 w-4" /> Consumo no Mês
+                  </div>
+                  <div className="text-2xl font-black text-foreground">{fmtTokens(consumoMes)}</div>
+                  <div className="text-xs text-muted-foreground">
+                    Estimativa: {daysLeft === null ? "—" : `~${daysLeft} dias`}
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
           )}
 
           {/* Gráficos de consumo */}
@@ -337,74 +413,85 @@ function Page() {
               <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
                 <div>
                   <h2 className="text-lg font-bold text-foreground">Consumo ao longo do tempo</h2>
-                  <p className="text-xs text-muted-foreground">Atualiza automaticamente a cada 30s</p>
+                  <p className="text-xs text-muted-foreground">
+                    Atualiza automaticamente a cada 30s
+                  </p>
                 </div>
               </div>
               {usageError ? (
                 <ErrorState msg={usageError} onRetry={loadUsage} />
               ) : usageLoading && !usage ? (
                 <SectionLoader />
-              ) : (usage && usage.total_tokens === 0) ? (
+              ) : usage && usage.total_tokens === 0 ? (
                 <div className="flex flex-col items-center justify-center py-10 text-center text-muted-foreground">
                   <Inbox className="h-8 w-8 mb-2 opacity-60" />
                   <p className="text-sm">Sem consumo nos últimos {usage.days} dias.</p>
                 </div>
               ) : (
-              <Tabs defaultValue="daily">
-                <TabsList>
-                  <TabsTrigger value="daily">Diário</TabsTrigger>
-                  <TabsTrigger value="weekly">Semanal</TabsTrigger>
-                  <TabsTrigger value="monthly">Mensal</TabsTrigger>
-                </TabsList>
-                <TabsContent value="daily">
-                  <div className="h-64">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <BarChart data={daily.slice(-30)}>
-                        <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
-                        <XAxis dataKey="date" fontSize={10} tickFormatter={(v) => v.slice(5)} />
-                        <YAxis fontSize={10} tickFormatter={(v) => fmtTokens(v as number)} />
-                        <Tooltip
-                          contentStyle={{ background: "var(--card)", border: "1px solid var(--border)" }}
-                          formatter={(v: number) => fmtTokens(v)}
-                        />
-                        <Bar dataKey="tokens" fill="var(--primary)" radius={[4, 4, 0, 0]} />
-                      </BarChart>
-                    </ResponsiveContainer>
-                  </div>
-                </TabsContent>
-                <TabsContent value="weekly">
-                  <div className="h-64">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <BarChart data={weekly}>
-                        <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
-                        <XAxis dataKey="week" fontSize={10} tickFormatter={(v) => v.slice(5)} />
-                        <YAxis fontSize={10} tickFormatter={(v) => fmtTokens(v as number)} />
-                        <Tooltip
-                          contentStyle={{ background: "var(--card)", border: "1px solid var(--border)" }}
-                          formatter={(v: number) => fmtTokens(v)}
-                        />
-                        <Bar dataKey="tokens" fill="var(--primary)" radius={[4, 4, 0, 0]} />
-                      </BarChart>
-                    </ResponsiveContainer>
-                  </div>
-                </TabsContent>
-                <TabsContent value="monthly">
-                  <div className="h-64">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <BarChart data={monthly}>
-                        <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
-                        <XAxis dataKey="month" fontSize={10} />
-                        <YAxis fontSize={10} tickFormatter={(v) => fmtTokens(v as number)} />
-                        <Tooltip
-                          contentStyle={{ background: "var(--card)", border: "1px solid var(--border)" }}
-                          formatter={(v: number) => fmtTokens(v)}
-                        />
-                        <Bar dataKey="tokens" fill="var(--primary)" radius={[4, 4, 0, 0]} />
-                      </BarChart>
-                    </ResponsiveContainer>
-                  </div>
-                </TabsContent>
-              </Tabs>
+                <Tabs defaultValue="daily">
+                  <TabsList>
+                    <TabsTrigger value="daily">Diário</TabsTrigger>
+                    <TabsTrigger value="weekly">Semanal</TabsTrigger>
+                    <TabsTrigger value="monthly">Mensal</TabsTrigger>
+                  </TabsList>
+                  <TabsContent value="daily">
+                    <div className="h-64">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <BarChart data={daily.slice(-30)}>
+                          <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
+                          <XAxis dataKey="date" fontSize={10} tickFormatter={(v) => v.slice(5)} />
+                          <YAxis fontSize={10} tickFormatter={(v) => fmtTokens(v as number)} />
+                          <Tooltip
+                            contentStyle={{
+                              background: "var(--card)",
+                              border: "1px solid var(--border)",
+                            }}
+                            formatter={(v: number) => fmtTokens(v)}
+                          />
+                          <Bar dataKey="tokens" fill="var(--primary)" radius={[4, 4, 0, 0]} />
+                        </BarChart>
+                      </ResponsiveContainer>
+                    </div>
+                  </TabsContent>
+                  <TabsContent value="weekly">
+                    <div className="h-64">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <BarChart data={weekly}>
+                          <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
+                          <XAxis dataKey="week" fontSize={10} tickFormatter={(v) => v.slice(5)} />
+                          <YAxis fontSize={10} tickFormatter={(v) => fmtTokens(v as number)} />
+                          <Tooltip
+                            contentStyle={{
+                              background: "var(--card)",
+                              border: "1px solid var(--border)",
+                            }}
+                            formatter={(v: number) => fmtTokens(v)}
+                          />
+                          <Bar dataKey="tokens" fill="var(--primary)" radius={[4, 4, 0, 0]} />
+                        </BarChart>
+                      </ResponsiveContainer>
+                    </div>
+                  </TabsContent>
+                  <TabsContent value="monthly">
+                    <div className="h-64">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <BarChart data={monthly}>
+                          <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
+                          <XAxis dataKey="month" fontSize={10} />
+                          <YAxis fontSize={10} tickFormatter={(v) => fmtTokens(v as number)} />
+                          <Tooltip
+                            contentStyle={{
+                              background: "var(--card)",
+                              border: "1px solid var(--border)",
+                            }}
+                            formatter={(v: number) => fmtTokens(v)}
+                          />
+                          <Bar dataKey="tokens" fill="var(--primary)" radius={[4, 4, 0, 0]} />
+                        </BarChart>
+                      </ResponsiveContainer>
+                    </div>
+                  </TabsContent>
+                </Tabs>
               )}
             </CardContent>
           </Card>
@@ -416,7 +503,8 @@ function Page() {
                 <div>
                   <h2 className="text-lg font-bold text-foreground">Histórico de Consumo</h2>
                   <p className="text-xs text-muted-foreground">
-                    {total.toLocaleString("pt-BR")} registros · página {page + 1} de {Math.max(1, Math.ceil(total / PAGE_SIZE))}
+                    {total.toLocaleString("pt-BR")} registros · página {page + 1} de{" "}
+                    {Math.max(1, Math.ceil(total / PAGE_SIZE))}
                   </p>
                 </div>
                 <div className="flex items-center gap-2">
@@ -443,72 +531,102 @@ function Page() {
                   <Inbox className="h-10 w-10 mb-3 opacity-60" />
                   <p className="text-sm font-semibold text-foreground">Nenhum registro ainda</p>
                   <p className="text-xs mt-1">
-                    {search ? "Nenhum resultado para sua busca." : "Seu histórico de consumo aparecerá aqui."}
+                    {search
+                      ? "Nenhum resultado para sua busca."
+                      : "Seu histórico de consumo aparecerá aqui."}
                   </p>
                 </div>
               ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead className="text-xs uppercase text-muted-foreground border-b border-border">
-                    <tr>
-                      <th className="text-left py-2 px-2">Data</th>
-                      <th className="text-left py-2 px-2">Agente</th>
-                      <th className="text-left py-2 px-2">Modelo</th>
-                      <th className="text-right py-2 px-2">Entrada</th>
-                      <th className="text-right py-2 px-2">Saída</th>
-                      <th className="text-right py-2 px-2">Total</th>
-                      <th className="text-right py-2 px-2">Custo</th>
-                      <th className="text-left py-2 px-2">Tipo</th>
-                      <th className="text-left py-2 px-2">Status</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {filtered.map((t) => (
-                      <tr key={t.id} className="border-b border-border/40 hover:bg-muted/30">
-                        <td className="py-2 px-2 text-muted-foreground">{fmtDate(t.occurred_at)}</td>
-                        <td className="py-2 px-2">{t.agent_id ? (agents[t.agent_id] ?? "—") : "—"}</td>
-                        <td className="py-2 px-2 text-muted-foreground">{t.model ?? "—"}</td>
-                        <td className="py-2 px-2 text-right">{fmtTokens(t.input_tokens)}</td>
-                        <td className="py-2 px-2 text-right">{fmtTokens(t.output_tokens)}</td>
-                        <td className="py-2 px-2 text-right font-semibold">{fmtTokens(t.total_tokens)}</td>
-                        <td className="py-2 px-2 text-right">{fmtBRL(t.cost_cents)}</td>
-                        <td className="py-2 px-2">
-                          <Badge variant="outline" className={
-                            t.kind === "usage" ? "text-rose-400 border-rose-500/30" :
-                            t.kind === "purchase" ? "text-emerald-400 border-emerald-500/30" :
-                            "text-primary border-primary/30"
-                          }>{
-                            t.kind === "usage" ? "consumo" :
-                            t.kind === "purchase" ? "compra" :
-                            t.kind === "plan_grant" ? "plano" :
-                            t.kind === "grant" ? "concessão" :
-                            t.kind === "adjustment" ? "ajuste" :
-                            t.kind
-                          }</Badge>
-                        </td>
-                        <td className="py-2 px-2">
-                          <span className={
-                            t.status === "ok" ? "text-emerald-400" :
-                            t.status === "pending" ? "text-amber-400" :
-                            "text-rose-400"
-                          }>{
-                            t.status === "ok" ? "ok" :
-                            t.status === "pending" ? "aguardando pagamento" :
-                            t.status
-                          }</span>
-                        </td>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead className="text-xs uppercase text-muted-foreground border-b border-border">
+                      <tr>
+                        <th className="text-left py-2 px-2">Data</th>
+                        <th className="text-left py-2 px-2">Agente</th>
+                        <th className="text-left py-2 px-2">Modelo</th>
+                        <th className="text-right py-2 px-2">Entrada</th>
+                        <th className="text-right py-2 px-2">Saída</th>
+                        <th className="text-right py-2 px-2">Total</th>
+                        <th className="text-right py-2 px-2">Custo</th>
+                        <th className="text-left py-2 px-2">Tipo</th>
+                        <th className="text-left py-2 px-2">Status</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+                    </thead>
+                    <tbody>
+                      {filtered.map((t) => (
+                        <tr key={t.id} className="border-b border-border/40 hover:bg-muted/30">
+                          <td className="py-2 px-2 text-muted-foreground">
+                            {fmtDate(t.occurred_at)}
+                          </td>
+                          <td className="py-2 px-2">
+                            {t.agent_id ? (agents[t.agent_id] ?? "—") : "—"}
+                          </td>
+                          <td className="py-2 px-2 text-muted-foreground">{t.model ?? "—"}</td>
+                          <td className="py-2 px-2 text-right">{fmtTokens(t.input_tokens)}</td>
+                          <td className="py-2 px-2 text-right">{fmtTokens(t.output_tokens)}</td>
+                          <td className="py-2 px-2 text-right font-semibold">
+                            {fmtTokens(t.total_tokens)}
+                          </td>
+                          <td className="py-2 px-2 text-right">{fmtBRL(t.cost_cents)}</td>
+                          <td className="py-2 px-2">
+                            <Badge
+                              variant="outline"
+                              className={
+                                t.kind === "usage"
+                                  ? "text-rose-400 border-rose-500/30"
+                                  : t.kind === "purchase"
+                                    ? "text-emerald-400 border-emerald-500/30"
+                                    : "text-primary border-primary/30"
+                              }
+                            >
+                              {t.kind === "usage"
+                                ? "consumo"
+                                : t.kind === "purchase"
+                                  ? "compra"
+                                  : t.kind === "plan_grant"
+                                    ? "plano"
+                                    : t.kind === "grant"
+                                      ? "concessão"
+                                      : t.kind === "adjustment"
+                                        ? "ajuste"
+                                        : t.kind}
+                            </Badge>
+                          </td>
+                          <td className="py-2 px-2">
+                            <span
+                              className={
+                                t.status === "ok"
+                                  ? "text-emerald-400"
+                                  : t.status === "pending"
+                                    ? "text-amber-400"
+                                    : "text-rose-400"
+                              }
+                            >
+                              {t.status === "ok"
+                                ? "ok"
+                                : t.status === "pending"
+                                  ? "aguardando pagamento"
+                                  : t.status}
+                            </span>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
               )}
               <div className="flex items-center justify-end gap-2 mt-4">
-                <Button variant="outline" size="sm" disabled={page === 0 || loading} onClick={() => loadHistory(page - 1)}>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={page === 0 || loading}
+                  onClick={() => loadHistory(page - 1)}
+                >
                   Anterior
                 </Button>
                 <Button
-                  variant="outline" size="sm"
+                  variant="outline"
+                  size="sm"
                   disabled={loading || (page + 1) * PAGE_SIZE >= total}
                   onClick={() => loadHistory(page + 1)}
                 >

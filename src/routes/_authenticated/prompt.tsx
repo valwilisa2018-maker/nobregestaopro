@@ -1,12 +1,37 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { Brain, Loader2, Send, Mic, Square, Copy, Save, Bot, User as UserIcon, Pencil, Plus, MessageSquare, Trash2, PanelLeftOpen, PanelLeftClose, SquarePen, Sparkles, Zap } from "lucide-react";
+import {
+  Brain,
+  Loader2,
+  Send,
+  Mic,
+  Square,
+  Copy,
+  Save,
+  Bot,
+  User as UserIcon,
+  Pencil,
+  Plus,
+  MessageSquare,
+  Trash2,
+  PanelLeftOpen,
+  PanelLeftClose,
+  SquarePen,
+  Sparkles,
+  Zap,
+} from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 import { useServerFn } from "@tanstack/react-start";
@@ -48,7 +73,9 @@ function Page() {
                 <Zap className="h-3 w-3" /> Premium
               </span>
             </div>
-            <p className="text-sm text-muted-foreground">Converse com o Especialista e gere prompts prontos para seus agentes de IA.</p>
+            <p className="text-sm text-muted-foreground">
+              Converse com o Especialista e gere prompts prontos para seus agentes de IA.
+            </p>
           </div>
         </div>
       </div>
@@ -79,7 +106,9 @@ function PromptChat({ userId }: { userId: string | null }) {
     content:
       "Olá! 👋 Sou seu Especialista em Engenharia de Prompt. Me conte: qual é o seu negócio e qual agente de IA você quer criar (atendimento, vendas, suporte, agendamento, etc.)?",
   };
-  const [threads, setThreads] = useState<Array<{ id: string; title: string; updated_at: string }>>([]);
+  const [threads, setThreads] = useState<Array<{ id: string; title: string; updated_at: string }>>(
+    [],
+  );
   const [threadId, setThreadId] = useState<string | null>(null);
   const [messages, setMessages] = useState<ChatMsg[]>([WELCOME]);
   const [input, setInput] = useState("");
@@ -133,7 +162,10 @@ function PromptChat({ userId }: { userId: string | null }) {
 
   async function deleteThread(id: string) {
     if (!confirm("Excluir esta conversa?")) return;
-    await supabase.from("prompt_chat_threads" as never).delete().eq("id", id);
+    await supabase
+      .from("prompt_chat_threads" as never)
+      .delete()
+      .eq("id", id);
     setThreads((t) => t.filter((x) => x.id !== id));
     if (threadId === id) newThread();
   }
@@ -156,7 +188,10 @@ function PromptChat({ userId }: { userId: string | null }) {
   async function send(text?: string) {
     const content = (text ?? input).trim();
     if (!content || sending) return;
-    if (!userId) { toast.error("Faça login para conversar"); return; }
+    if (!userId) {
+      toast.error("Faça login para conversar");
+      return;
+    }
     const next: ChatMsg[] = [...messages, { role: "user", content }];
     setMessages(next);
     setInput("");
@@ -165,7 +200,10 @@ function PromptChat({ userId }: { userId: string | null }) {
       const tid = await ensureThread(content);
       if (tid) {
         await supabase.from("prompt_chat_messages" as never).insert({
-          thread_id: tid, user_id: userId, role: "user", content,
+          thread_id: tid,
+          user_id: userId,
+          role: "user",
+          content,
         } as never);
       }
       const { text: reply } = await call({ data: { messages: next } });
@@ -173,10 +211,15 @@ function PromptChat({ userId }: { userId: string | null }) {
       setMessages((m) => [...m, { role: "assistant", content: assistant }]);
       if (tid) {
         await supabase.from("prompt_chat_messages" as never).insert({
-          thread_id: tid, user_id: userId, role: "assistant", content: assistant,
+          thread_id: tid,
+          user_id: userId,
+          role: "assistant",
+          content: assistant,
         } as never);
-        await supabase.from("prompt_chat_threads" as never)
-          .update({ updated_at: new Date().toISOString() } as never).eq("id", tid);
+        await supabase
+          .from("prompt_chat_threads" as never)
+          .update({ updated_at: new Date().toISOString() } as never)
+          .eq("id", tid);
         setThreads((t) => {
           const idx = t.findIndex((x) => x.id === tid);
           if (idx < 0) return t;
@@ -218,10 +261,11 @@ function PromptChat({ userId }: { userId: string | null }) {
         "audio/mp4",
         "audio/ogg;codecs=opus",
       ];
-      const pick = candidates.find((t) =>
-        typeof MediaRecorder !== "undefined" &&
-        typeof MediaRecorder.isTypeSupported === "function" &&
-        MediaRecorder.isTypeSupported(t),
+      const pick = candidates.find(
+        (t) =>
+          typeof MediaRecorder !== "undefined" &&
+          typeof MediaRecorder.isTypeSupported === "function" &&
+          MediaRecorder.isTypeSupported(t),
       );
       const mr = pick ? new MediaRecorder(stream, { mimeType: pick }) : new MediaRecorder(stream);
       const chunks: Blob[] = [];
@@ -283,7 +327,10 @@ function PromptChat({ userId }: { userId: string | null }) {
       content: saveContent,
       is_default: false,
     } as never);
-    if (error) { toast.error("Falha ao salvar"); return; }
+    if (error) {
+      toast.error("Falha ao salvar");
+      return;
+    }
     toast.success("Prompt salvo na biblioteca");
     setSaveOpen(false);
   }
@@ -291,132 +338,196 @@ function PromptChat({ userId }: { userId: string | null }) {
   return (
     <Card className="flex h-full overflow-hidden border-white/10 bg-background/60 backdrop-blur-xl shadow-[0_20px_60px_-20px_rgba(0,0,0,0.5)]">
       {sideOpen && (
-      <aside className="flex w-64 shrink-0 flex-col border-r bg-muted/30">
-        <div className="flex items-center gap-2 p-3">
-          <Button onClick={newThread} className="flex-1 gap-2" size="sm">
-            <Plus className="h-4 w-4" /> Nova conversa
-          </Button>
-          <Button variant="ghost" size="icon" onClick={() => setSideOpen(false)} title="Fechar">
-            <PanelLeftClose className="h-4 w-4" />
-          </Button>
-        </div>
-        <div className="flex-1 overflow-y-auto px-2 pb-2">
-          {threads.length === 0 && (
-            <p className="px-2 py-4 text-xs text-muted-foreground">Suas conversas aparecerão aqui.</p>
-          )}
-          {threads.map((t) => (
-            <div
-              key={t.id}
-              className={`group flex items-center gap-2 rounded-md px-2 py-2 text-sm hover:bg-muted ${threadId === t.id ? "bg-muted" : ""}`}
-            >
-              <button
-                type="button"
-                onClick={() => selectThread(t.id)}
-                className="flex flex-1 items-center gap-2 truncate text-left"
+        <aside className="flex w-64 shrink-0 flex-col border-r bg-muted/30">
+          <div className="flex items-center gap-2 p-3">
+            <Button onClick={newThread} className="flex-1 gap-2" size="sm">
+              <Plus className="h-4 w-4" /> Nova conversa
+            </Button>
+            <Button variant="ghost" size="icon" onClick={() => setSideOpen(false)} title="Fechar">
+              <PanelLeftClose className="h-4 w-4" />
+            </Button>
+          </div>
+          <div className="flex-1 overflow-y-auto px-2 pb-2">
+            {threads.length === 0 && (
+              <p className="px-2 py-4 text-xs text-muted-foreground">
+                Suas conversas aparecerão aqui.
+              </p>
+            )}
+            {threads.map((t) => (
+              <div
+                key={t.id}
+                className={`group flex items-center gap-2 rounded-md px-2 py-2 text-sm hover:bg-muted ${threadId === t.id ? "bg-muted" : ""}`}
               >
-                <MessageSquare className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
-                <span className="truncate">{t.title}</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => deleteThread(t.id)}
-                className="opacity-0 transition group-hover:opacity-100"
-                title="Excluir"
-              >
-                <Trash2 className="h-3.5 w-3.5 text-muted-foreground hover:text-destructive" />
-              </button>
-            </div>
-          ))}
-        </div>
-      </aside>
+                <button
+                  type="button"
+                  onClick={() => selectThread(t.id)}
+                  className="flex flex-1 items-center gap-2 truncate text-left"
+                >
+                  <MessageSquare className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+                  <span className="truncate">{t.title}</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => deleteThread(t.id)}
+                  className="opacity-0 transition group-hover:opacity-100"
+                  title="Excluir"
+                >
+                  <Trash2 className="h-3.5 w-3.5 text-muted-foreground hover:text-destructive" />
+                </button>
+              </div>
+            ))}
+          </div>
+        </aside>
       )}
       <div className="flex flex-1 flex-col overflow-hidden">
-      <div className="flex items-center gap-1 border-b p-2">
-        {!sideOpen && (
-          <>
-            <Button variant="ghost" size="icon" onClick={() => setSideOpen(true)} title="Abrir conversas">
-              <PanelLeftOpen className="h-4 w-4" />
-            </Button>
-            <Button variant="ghost" size="icon" onClick={newThread} title="Nova conversa">
-              <SquarePen className="h-4 w-4" />
-            </Button>
-          </>
-        )}
-      </div>
-      <div ref={scrollRef} className="flex-1 space-y-4 overflow-y-auto p-4">
-        {messages.map((m, i) => {
-          const blocks = m.role === "assistant" ? extractPromptBlocks(m.content) : [];
-          return (
-            <div key={i} className={`flex gap-3 ${m.role === "user" ? "justify-end" : "justify-start"}`}>
-              {m.role === "assistant" && (
-                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-primary to-violet-600 text-white shadow-md shadow-primary/30 ring-2 ring-primary/20">
-                  <Bot className="h-4 w-4" />
-                </div>
-              )}
-              <div className={`max-w-[80%] space-y-2 ${m.role === "user" ? "order-first" : ""}`}>
-                <div className={`whitespace-pre-wrap rounded-2xl px-4 py-3 text-sm leading-relaxed shadow-sm ${m.role === "user" ? "bg-gradient-to-br from-primary to-violet-600 text-white shadow-primary/30" : "border border-white/10 bg-muted/60 backdrop-blur-sm"}`}>
-                  {m.content}
-                </div>
-                {blocks.map((b, bi) => (
-                  <div key={bi} className="rounded-lg border bg-background p-3">
-                    <div className="mb-2 flex items-center justify-between">
-                      <span className="text-xs font-medium text-muted-foreground">Prompt gerado</span>
-                      <div className="flex gap-1">
-                        <Button size="sm" variant="ghost" className="h-7 gap-1" onClick={() => copyText(b)}><Copy className="h-3.5 w-3.5" />Copiar</Button>
-                        <Button size="sm" variant="ghost" className="h-7 gap-1" onClick={() => openSave(b)}><Pencil className="h-3.5 w-3.5" />Editar</Button>
-                        <Button size="sm" variant="ghost" className="h-7 gap-1" onClick={() => openSave(b)}><Save className="h-3.5 w-3.5" />Salvar</Button>
-                      </div>
-                    </div>
-                    <pre className="max-h-64 overflow-auto whitespace-pre-wrap text-xs text-foreground/90">{b}</pre>
-                  </div>
-                ))}
-              </div>
-              {m.role === "user" && (
-                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-white/10 bg-muted shadow-sm"><UserIcon className="h-4 w-4" /></div>
-              )}
-            </div>
-          );
-        })}
-        {sending && (
-          <div className="flex items-start gap-3">
-            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary"><Bot className="h-4 w-4" /></div>
-            <div className="rounded-2xl border bg-muted/40 px-4 py-3">
-              <div className="flex items-center gap-1.5">
-                <span className="h-2 w-2 animate-bounce rounded-full bg-primary/60 [animation-delay:-0.3s]" />
-                <span className="h-2 w-2 animate-bounce rounded-full bg-primary/60 [animation-delay:-0.15s]" />
-                <span className="h-2 w-2 animate-bounce rounded-full bg-primary/60" />
-                <span className="ml-2 text-xs text-muted-foreground">digitando…</span>
-              </div>
-            </div>
-          </div>
-        )}
-        {transcribing && (
-          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-            <Loader2 className="h-4 w-4 animate-spin" /> Transcrevendo áudio…
-          </div>
-        )}
-      </div>
-      <div className="border-t bg-background p-3">
-        <div className="flex items-end gap-2">
-          <Textarea
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(); }
-            }}
-            placeholder="Descreva seu negócio ou responda ao especialista…"
-            rows={2}
-            className="min-h-[52px] resize-none"
-            disabled={sending}
-          />
-          {recording ? (
-            <Button variant="destructive" size="icon" onClick={stopRec} title="Parar gravação"><Square className="h-4 w-4" /></Button>
-          ) : (
-            <Button variant="outline" size="icon" onClick={startRec} disabled={sending || transcribing} title="Gravar áudio"><Mic className="h-4 w-4" /></Button>
+        <div className="flex items-center gap-1 border-b p-2">
+          {!sideOpen && (
+            <>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setSideOpen(true)}
+                title="Abrir conversas"
+              >
+                <PanelLeftOpen className="h-4 w-4" />
+              </Button>
+              <Button variant="ghost" size="icon" onClick={newThread} title="Nova conversa">
+                <SquarePen className="h-4 w-4" />
+              </Button>
+            </>
           )}
-          <Button onClick={() => send()} disabled={sending || !input.trim()} size="icon" title="Enviar"><Send className="h-4 w-4" /></Button>
         </div>
-      </div>
+        <div ref={scrollRef} className="flex-1 space-y-4 overflow-y-auto p-4">
+          {messages.map((m, i) => {
+            const blocks = m.role === "assistant" ? extractPromptBlocks(m.content) : [];
+            return (
+              <div
+                key={i}
+                className={`flex gap-3 ${m.role === "user" ? "justify-end" : "justify-start"}`}
+              >
+                {m.role === "assistant" && (
+                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-primary to-violet-600 text-white shadow-md shadow-primary/30 ring-2 ring-primary/20">
+                    <Bot className="h-4 w-4" />
+                  </div>
+                )}
+                <div className={`max-w-[80%] space-y-2 ${m.role === "user" ? "order-first" : ""}`}>
+                  <div
+                    className={`whitespace-pre-wrap rounded-2xl px-4 py-3 text-sm leading-relaxed shadow-sm ${m.role === "user" ? "bg-gradient-to-br from-primary to-violet-600 text-white shadow-primary/30" : "border border-white/10 bg-muted/60 backdrop-blur-sm"}`}
+                  >
+                    {m.content}
+                  </div>
+                  {blocks.map((b, bi) => (
+                    <div key={bi} className="rounded-lg border bg-background p-3">
+                      <div className="mb-2 flex items-center justify-between">
+                        <span className="text-xs font-medium text-muted-foreground">
+                          Prompt gerado
+                        </span>
+                        <div className="flex gap-1">
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="h-7 gap-1"
+                            onClick={() => copyText(b)}
+                          >
+                            <Copy className="h-3.5 w-3.5" />
+                            Copiar
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="h-7 gap-1"
+                            onClick={() => openSave(b)}
+                          >
+                            <Pencil className="h-3.5 w-3.5" />
+                            Editar
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="h-7 gap-1"
+                            onClick={() => openSave(b)}
+                          >
+                            <Save className="h-3.5 w-3.5" />
+                            Salvar
+                          </Button>
+                        </div>
+                      </div>
+                      <pre className="max-h-64 overflow-auto whitespace-pre-wrap text-xs text-foreground/90">
+                        {b}
+                      </pre>
+                    </div>
+                  ))}
+                </div>
+                {m.role === "user" && (
+                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-white/10 bg-muted shadow-sm">
+                    <UserIcon className="h-4 w-4" />
+                  </div>
+                )}
+              </div>
+            );
+          })}
+          {sending && (
+            <div className="flex items-start gap-3">
+              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
+                <Bot className="h-4 w-4" />
+              </div>
+              <div className="rounded-2xl border bg-muted/40 px-4 py-3">
+                <div className="flex items-center gap-1.5">
+                  <span className="h-2 w-2 animate-bounce rounded-full bg-primary/60 [animation-delay:-0.3s]" />
+                  <span className="h-2 w-2 animate-bounce rounded-full bg-primary/60 [animation-delay:-0.15s]" />
+                  <span className="h-2 w-2 animate-bounce rounded-full bg-primary/60" />
+                  <span className="ml-2 text-xs text-muted-foreground">digitando…</span>
+                </div>
+              </div>
+            </div>
+          )}
+          {transcribing && (
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <Loader2 className="h-4 w-4 animate-spin" /> Transcrevendo áudio…
+            </div>
+          )}
+        </div>
+        <div className="border-t bg-background p-3">
+          <div className="flex items-end gap-2">
+            <Textarea
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && !e.shiftKey) {
+                  e.preventDefault();
+                  send();
+                }
+              }}
+              placeholder="Descreva seu negócio ou responda ao especialista…"
+              rows={2}
+              className="min-h-[52px] resize-none"
+              disabled={sending}
+            />
+            {recording ? (
+              <Button variant="destructive" size="icon" onClick={stopRec} title="Parar gravação">
+                <Square className="h-4 w-4" />
+              </Button>
+            ) : (
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={startRec}
+                disabled={sending || transcribing}
+                title="Gravar áudio"
+              >
+                <Mic className="h-4 w-4" />
+              </Button>
+            )}
+            <Button
+              onClick={() => send()}
+              disabled={sending || !input.trim()}
+              size="icon"
+              title="Enviar"
+            >
+              <Send className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
       </div>
 
       <Dialog open={saveOpen} onOpenChange={setSaveOpen}>
@@ -427,19 +538,42 @@ function PromptChat({ userId }: { userId: string | null }) {
           <div className="space-y-3">
             <div className="space-y-1">
               <label className="text-xs font-medium text-muted-foreground">Nome</label>
-              <Input placeholder="Nome do prompt" value={saveName} onChange={(e) => setSaveName(e.target.value)} />
+              <Input
+                placeholder="Nome do prompt"
+                value={saveName}
+                onChange={(e) => setSaveName(e.target.value)}
+              />
             </div>
             <div className="space-y-1">
               <label className="text-xs font-medium text-muted-foreground">Conteúdo</label>
-              <Textarea value={saveContent} onChange={(e) => setSaveContent(e.target.value)} rows={16} className="font-mono text-xs" />
+              <Textarea
+                value={saveContent}
+                onChange={(e) => setSaveContent(e.target.value)}
+                rows={16}
+                className="font-mono text-xs"
+              />
               <p className="text-[11px] text-muted-foreground">{saveContent.length} caracteres</p>
             </div>
           </div>
           <DialogFooter className="gap-2 sm:justify-between">
-            <Button variant="outline" onClick={() => setSaveOpen(false)}>Cancelar</Button>
+            <Button variant="outline" onClick={() => setSaveOpen(false)}>
+              Cancelar
+            </Button>
             <div className="flex gap-2">
-              <Button variant="secondary" onClick={() => { copyText(saveContent); }} className="gap-1"><Copy className="h-4 w-4" />Copiar</Button>
-              <Button onClick={confirmSave} className="gap-1"><Save className="h-4 w-4" />Salvar na biblioteca</Button>
+              <Button
+                variant="secondary"
+                onClick={() => {
+                  copyText(saveContent);
+                }}
+                className="gap-1"
+              >
+                <Copy className="h-4 w-4" />
+                Copiar
+              </Button>
+              <Button onClick={confirmSave} className="gap-1">
+                <Save className="h-4 w-4" />
+                Salvar na biblioteca
+              </Button>
             </div>
           </DialogFooter>
         </DialogContent>

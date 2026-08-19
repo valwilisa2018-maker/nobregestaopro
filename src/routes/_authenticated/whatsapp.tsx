@@ -10,16 +10,36 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import {
-  Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogTrigger,
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+  DialogTrigger,
 } from "@/components/ui/dialog";
 import {
-  MessageCircle, Plus, QrCode, RefreshCw, Power, Trash2, Loader2, Smartphone,
-  Wifi, AlertTriangle, Send,
+  MessageCircle,
+  Plus,
+  QrCode,
+  RefreshCw,
+  Power,
+  Trash2,
+  Loader2,
+  Smartphone,
+  Wifi,
+  AlertTriangle,
+  Send,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Link } from "@tanstack/react-router";
 import {
-  createAndConnectInstance, connectInstance, disconnectInstance, testConnection, deleteInstance, sendTestMessage,
+  createAndConnectInstance,
+  connectInstance,
+  disconnectInstance,
+  testConnection,
+  deleteInstance,
+  sendTestMessage,
 } from "@/lib/evolution.functions";
 
 export const Route = createFileRoute("/_authenticated/whatsapp")({
@@ -28,8 +48,13 @@ export const Route = createFileRoute("/_authenticated/whatsapp")({
 });
 
 type Connection = {
-  id: string; name: string; instance_name: string; status: string;
-  phone_number: string | null; profile_name: string | null; last_sync: string | null;
+  id: string;
+  name: string;
+  instance_name: string;
+  status: string;
+  phone_number: string | null;
+  profile_name: string | null;
+  last_sync: string | null;
 };
 
 function statusBadge(s: string) {
@@ -41,7 +66,9 @@ function statusBadge(s: string) {
   const label = s === "online" ? "Conectado" : s === "connecting" ? "Aguardando" : "Desconectado";
   return (
     <Badge variant="outline" className={`gap-1.5 ${map[s] ?? map.offline}`}>
-      <span className={`h-1.5 w-1.5 rounded-full ${s === "online" ? "bg-[#25D366] animate-pulse" : s === "connecting" ? "bg-amber-500 animate-pulse" : "bg-muted-foreground"}`} />
+      <span
+        className={`h-1.5 w-1.5 rounded-full ${s === "online" ? "bg-[#25D366] animate-pulse" : s === "connecting" ? "bg-amber-500 animate-pulse" : "bg-muted-foreground"}`}
+      />
       {label}
     </Badge>
   );
@@ -54,12 +81,22 @@ function Page() {
   const [openNew, setOpenNew] = useState(false);
   const [form, setForm] = useState({ name: "", instance_name: "" });
   const [creating, setCreating] = useState(false);
-  const [qrModal, setQrModal] = useState<{ open: boolean; qr: string | null; name: string; connectionId: string | null }>({
-    open: false, qr: null, name: "", connectionId: null,
+  const [qrModal, setQrModal] = useState<{
+    open: boolean;
+    qr: string | null;
+    name: string;
+    connectionId: string | null;
+  }>({
+    open: false,
+    qr: null,
+    name: "",
+    connectionId: null,
   });
   const [busy, setBusy] = useState<Record<string, string | null>>({});
   // Per-connection reconnect state: attempts + next allowed retry timestamp
-  const retryRef = useRef<Record<string, { attempts: number; nextAt: number; inFlight: boolean }>>({});
+  const retryRef = useRef<Record<string, { attempts: number; nextAt: number; inFlight: boolean }>>(
+    {},
+  );
   const [retryTick, setRetryTick] = useState(0); // force re-render for feedback
   const MAX_ATTEMPTS = 6;
   const BASE_DELAY = 5000; // 5s, doubles up to ~5min
@@ -75,13 +112,16 @@ function Page() {
     if (!user) return;
     setLoading(true);
     const { data } = await supabase
-      .from("connections").select("id,name,instance_name,status,phone_number,profile_name,last_sync")
+      .from("connections")
+      .select("id,name,instance_name,status,phone_number,profile_name,last_sync")
       .eq("user_id", user.id)
       .order("created_at", { ascending: false });
     setItems((data ?? []) as Connection[]);
     setLoading(false);
   };
-  useEffect(() => { if (user) load(); }, [user]);
+  useEffect(() => {
+    if (user) load();
+  }, [user]);
 
   // Tick every second to refresh retry countdown UI
   useEffect(() => {
@@ -100,7 +140,7 @@ function Page() {
           if (cancelled) return;
           const prevStatus = c.status;
           if (r.status !== prevStatus) {
-            setItems((prev) => prev.map((x) => x.id === c.id ? { ...x, status: r.status } : x));
+            setItems((prev) => prev.map((x) => (x.id === c.id ? { ...x, status: r.status } : x)));
           }
           const st = retryRef.current[c.id] ?? { attempts: 0, nextAt: 0, inFlight: false };
           if (r.status === "online") {
@@ -121,23 +161,31 @@ function Page() {
                 st.attempts += 1;
                 st.nextAt = Date.now() + BASE_DELAY * Math.pow(2, st.attempts - 1);
                 toast.message(`${c.name}: reconectando… (${st.attempts}/${MAX_ATTEMPTS})`);
-              } catch { /* ignore */ }
-              finally {
+              } catch {
+                /* ignore */
+              } finally {
                 st.inFlight = false;
                 retryRef.current[c.id] = st;
                 setRetryTick((t) => t + 1);
                 if (st.attempts >= MAX_ATTEMPTS) {
-                  toast.error(`${c.name}: falha após ${MAX_ATTEMPTS} tentativas. Reconecte manualmente.`);
+                  toast.error(
+                    `${c.name}: falha após ${MAX_ATTEMPTS} tentativas. Reconecte manualmente.`,
+                  );
                 }
               }
             }
           }
-        } catch { /* ignore */ }
+        } catch {
+          /* ignore */
+        }
       }
     };
     tick();
     const id = setInterval(tick, 10000);
-    return () => { cancelled = true; clearInterval(id); };
+    return () => {
+      cancelled = true;
+      clearInterval(id);
+    };
   }, [user, items]);
 
   // Poll QR modal status
@@ -152,7 +200,9 @@ function Page() {
           // (phone number, actions). It can be closed manually.
           load();
         }
-      } catch { /* ignore */ }
+      } catch {
+        /* ignore */
+      }
     }, 4000);
     return () => clearInterval(id);
   }, [qrModal.open, qrModal.connectionId]);
@@ -168,11 +218,16 @@ function Page() {
       try {
         const r = await connectFn({ data: { connectionId: qrModal.connectionId! } });
         if (!cancelled && r.qr) setQrModal((m) => ({ ...m, qr: r.qr }));
-      } catch { /* ignore */ }
+      } catch {
+        /* ignore */
+      }
     };
     fetchQr();
     const id = setInterval(fetchQr, 5000);
-    return () => { cancelled = true; clearInterval(id); };
+    return () => {
+      cancelled = true;
+      clearInterval(id);
+    };
   }, [qrModal.open, qrModal.connectionId, qrModal.qr, items]);
 
   const create = async (e: React.FormEvent) => {
@@ -193,7 +248,9 @@ function Page() {
       load();
     } catch (e: any) {
       toast.error(e.message ?? "Falha ao criar instância");
-    } finally { setCreating(false); }
+    } finally {
+      setCreating(false);
+    }
   };
 
   const reconnect = async (c: Connection) => {
@@ -202,15 +259,24 @@ function Page() {
       const r = await connectFn({ data: { connectionId: c.id } });
       setQrModal({ open: true, qr: r.qr, name: c.name, connectionId: c.id });
       load();
-    } catch (e: any) { toast.error(e.message); }
-    finally { setBusy((b) => ({ ...b, [c.id]: null })); }
+    } catch (e: any) {
+      toast.error(e.message);
+    } finally {
+      setBusy((b) => ({ ...b, [c.id]: null }));
+    }
   };
 
   const disconnect = async (c: Connection) => {
     setBusy((b) => ({ ...b, [c.id]: "disconnect" }));
-    try { await disconnectFn({ data: { connectionId: c.id } }); toast.success("Desconectado"); load(); }
-    catch (e: any) { toast.error(e.message); }
-    finally { setBusy((b) => ({ ...b, [c.id]: null })); }
+    try {
+      await disconnectFn({ data: { connectionId: c.id } });
+      toast.success("Desconectado");
+      load();
+    } catch (e: any) {
+      toast.error(e.message);
+    } finally {
+      setBusy((b) => ({ ...b, [c.id]: null }));
+    }
   };
 
   const remove = async (c: Connection) => {
@@ -251,61 +317,82 @@ function Page() {
 
   const newInstanceDialog = (
     <Dialog open={openNew} onOpenChange={setOpenNew}>
-          <DialogTrigger asChild>
+      <DialogTrigger asChild>
         <Button className="bg-gradient-to-br from-[#25D366] to-[#1ebe5b] text-white shadow-[0_10px_30px_-10px_rgba(37,211,102,0.6)] hover:opacity-90">
           <Plus className="mr-2 h-4 w-4" /> Nova instância
         </Button>
-          </DialogTrigger>
-          <DialogContent className="overflow-hidden border-white/10 bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 p-0 shadow-[0_30px_80px_-20px_rgba(16,185,129,0.35)] sm:max-w-[520px]">
-            <div className="pointer-events-none absolute -right-20 -top-20 h-56 w-56 rounded-full bg-emerald-500/25 blur-3xl" />
-            <div className="pointer-events-none absolute -left-20 -bottom-24 h-56 w-56 rounded-full bg-teal-500/20 blur-3xl" />
-            <div className="relative p-6">
-              <DialogHeader className="space-y-3">
-                <div className="flex items-center gap-3">
-                  <div className="grid h-12 w-12 place-items-center rounded-2xl bg-gradient-to-br from-[#25D366] to-[#1ebe5b] shadow-[0_10px_30px_-10px_rgba(37,211,102,0.7)] ring-1 ring-white/20">
-                    <MessageCircle className="h-6 w-6 text-white" />
-                  </div>
-                  <div>
-                    <DialogTitle className="bg-gradient-to-r from-emerald-300 via-green-200 to-teal-300 bg-clip-text text-2xl font-bold tracking-tight text-transparent">
-                      Nova instância de WhatsApp
-                    </DialogTitle>
-                    <DialogDescription className="text-sm text-muted-foreground">
-                      Dê um nome e um identificador único. O QR Code será gerado em seguida.
-                    </DialogDescription>
-                  </div>
-                </div>
-              </DialogHeader>
-              <form onSubmit={create} className="mt-6 space-y-4">
-                <div className="space-y-1.5 rounded-2xl border border-white/10 bg-white/[0.03] p-4 backdrop-blur-xl">
-                  <Label className="text-xs font-semibold uppercase tracking-wider text-emerald-300/80">Nome</Label>
-                  <Input required placeholder="Ex.: Atendimento Vendas"
-                    className="border-white/10 bg-slate-950/40 text-base focus-visible:ring-emerald-500/50"
-                    value={form.name}
-                    onChange={(e) => {
-                      const name = e.target.value;
-                      const slug = name.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "")
-                        .replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
-                      setForm({ name, instance_name: slug });
-                    }} />
-                </div>
-                <div className="space-y-1.5 rounded-2xl border border-white/10 bg-white/[0.03] p-4 backdrop-blur-xl">
-                  <Label className="text-xs font-semibold uppercase tracking-wider text-emerald-300/80">Identificador (instance name)</Label>
-                  <Input required pattern="[a-zA-Z0-9_-]+"
-                    className="border-white/10 bg-slate-950/40 font-mono text-sm focus-visible:ring-emerald-500/50"
-                    value={form.instance_name}
-                    onChange={(e) => setForm({ ...form, instance_name: e.target.value })} />
-                  <p className="text-xs text-muted-foreground">Somente letras, números, "_" e "-".</p>
-                </div>
-                <DialogFooter className="pt-2">
-                  <Button type="submit" disabled={creating}
-                    className="w-full bg-gradient-to-br from-[#25D366] to-[#1ebe5b] text-white shadow-[0_15px_40px_-10px_rgba(37,211,102,0.7)] hover:opacity-90 sm:w-auto">
-                    {creating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <QrCode className="mr-2 h-4 w-4" />}
-                    Gerar QR Code
-                  </Button>
-                </DialogFooter>
-              </form>
+      </DialogTrigger>
+      <DialogContent className="overflow-hidden border-white/10 bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 p-0 shadow-[0_30px_80px_-20px_rgba(16,185,129,0.35)] sm:max-w-[520px]">
+        <div className="pointer-events-none absolute -right-20 -top-20 h-56 w-56 rounded-full bg-emerald-500/25 blur-3xl" />
+        <div className="pointer-events-none absolute -left-20 -bottom-24 h-56 w-56 rounded-full bg-teal-500/20 blur-3xl" />
+        <div className="relative p-6">
+          <DialogHeader className="space-y-3">
+            <div className="flex items-center gap-3">
+              <div className="grid h-12 w-12 place-items-center rounded-2xl bg-gradient-to-br from-[#25D366] to-[#1ebe5b] shadow-[0_10px_30px_-10px_rgba(37,211,102,0.7)] ring-1 ring-white/20">
+                <MessageCircle className="h-6 w-6 text-white" />
+              </div>
+              <div>
+                <DialogTitle className="bg-gradient-to-r from-emerald-300 via-green-200 to-teal-300 bg-clip-text text-2xl font-bold tracking-tight text-transparent">
+                  Nova instância de WhatsApp
+                </DialogTitle>
+                <DialogDescription className="text-sm text-muted-foreground">
+                  Dê um nome e um identificador único. O QR Code será gerado em seguida.
+                </DialogDescription>
+              </div>
             </div>
-          </DialogContent>
+          </DialogHeader>
+          <form onSubmit={create} className="mt-6 space-y-4">
+            <div className="space-y-1.5 rounded-2xl border border-white/10 bg-white/[0.03] p-4 backdrop-blur-xl">
+              <Label className="text-xs font-semibold uppercase tracking-wider text-emerald-300/80">
+                Nome
+              </Label>
+              <Input
+                required
+                placeholder="Ex.: Atendimento Vendas"
+                className="border-white/10 bg-slate-950/40 text-base focus-visible:ring-emerald-500/50"
+                value={form.name}
+                onChange={(e) => {
+                  const name = e.target.value;
+                  const slug = name
+                    .toLowerCase()
+                    .normalize("NFD")
+                    .replace(/[\u0300-\u036f]/g, "")
+                    .replace(/[^a-z0-9]+/g, "-")
+                    .replace(/^-|-$/g, "");
+                  setForm({ name, instance_name: slug });
+                }}
+              />
+            </div>
+            <div className="space-y-1.5 rounded-2xl border border-white/10 bg-white/[0.03] p-4 backdrop-blur-xl">
+              <Label className="text-xs font-semibold uppercase tracking-wider text-emerald-300/80">
+                Identificador (instance name)
+              </Label>
+              <Input
+                required
+                pattern="[a-zA-Z0-9_-]+"
+                className="border-white/10 bg-slate-950/40 font-mono text-sm focus-visible:ring-emerald-500/50"
+                value={form.instance_name}
+                onChange={(e) => setForm({ ...form, instance_name: e.target.value })}
+              />
+              <p className="text-xs text-muted-foreground">Somente letras, números, "_" e "-".</p>
+            </div>
+            <DialogFooter className="pt-2">
+              <Button
+                type="submit"
+                disabled={creating}
+                className="w-full bg-gradient-to-br from-[#25D366] to-[#1ebe5b] text-white shadow-[0_15px_40px_-10px_rgba(37,211,102,0.7)] hover:opacity-90 sm:w-auto"
+              >
+                {creating ? (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                ) : (
+                  <QrCode className="mr-2 h-4 w-4" />
+                )}
+                Gerar QR Code
+              </Button>
+            </DialogFooter>
+          </form>
+        </div>
+      </DialogContent>
     </Dialog>
   );
 
@@ -325,9 +412,16 @@ function Page() {
                 <h1 className="bg-gradient-to-r from-emerald-300 via-green-200 to-teal-300 bg-clip-text text-3xl font-bold tracking-tight text-transparent">
                   Conexão WhatsApp
                 </h1>
-                <Badge variant="outline" className="border-emerald-500/40 bg-emerald-500/10 text-emerald-300">Ativo</Badge>
+                <Badge
+                  variant="outline"
+                  className="border-emerald-500/40 bg-emerald-500/10 text-emerald-300"
+                >
+                  Ativo
+                </Badge>
               </div>
-              <p className="text-sm text-muted-foreground">Conecte, gerencie e reconecte seus números do WhatsApp.</p>
+              <p className="text-sm text-muted-foreground">
+                Conecte, gerencie e reconecte seus números do WhatsApp.
+              </p>
             </div>
           </div>
           {newInstanceDialog}
@@ -336,13 +430,38 @@ function Page() {
         {/* KPIs */}
         <div className="relative mt-6 grid grid-cols-2 gap-3 md:grid-cols-4">
           {[
-            { label: "Instâncias", value: items.length, tone: "from-blue-500/25 to-cyan-500/10", ring: "ring-blue-500/30" },
-            { label: "Conectadas", value: onlineCount, tone: "from-emerald-500/25 to-teal-500/10", ring: "ring-emerald-500/30" },
-            { label: "Conectando", value: connectingCount, tone: "from-amber-500/25 to-orange-500/10", ring: "ring-amber-500/30" },
-            { label: "Offline", value: offlineCount, tone: "from-rose-500/25 to-red-500/10", ring: "ring-rose-500/30" },
+            {
+              label: "Instâncias",
+              value: items.length,
+              tone: "from-blue-500/25 to-cyan-500/10",
+              ring: "ring-blue-500/30",
+            },
+            {
+              label: "Conectadas",
+              value: onlineCount,
+              tone: "from-emerald-500/25 to-teal-500/10",
+              ring: "ring-emerald-500/30",
+            },
+            {
+              label: "Conectando",
+              value: connectingCount,
+              tone: "from-amber-500/25 to-orange-500/10",
+              ring: "ring-amber-500/30",
+            },
+            {
+              label: "Offline",
+              value: offlineCount,
+              tone: "from-rose-500/25 to-red-500/10",
+              ring: "ring-rose-500/30",
+            },
           ].map((k) => (
-            <div key={k.label} className={`rounded-2xl border border-white/10 bg-gradient-to-br ${k.tone} p-4 ring-1 ${k.ring} backdrop-blur`}>
-              <div className="text-xs uppercase tracking-wider text-muted-foreground">{k.label}</div>
+            <div
+              key={k.label}
+              className={`rounded-2xl border border-white/10 bg-gradient-to-br ${k.tone} p-4 ring-1 ${k.ring} backdrop-blur`}
+            >
+              <div className="text-xs uppercase tracking-wider text-muted-foreground">
+                {k.label}
+              </div>
               <div className="mt-1 text-2xl font-bold tabular-nums">{k.value}</div>
             </div>
           ))}
@@ -354,13 +473,16 @@ function Page() {
           <CardContent className="py-3 flex items-center gap-3 text-sm">
             <AlertTriangle className="h-4 w-4 text-destructive shrink-0" />
             <span className="text-destructive-foreground/90">
-              Algumas instâncias estão desconectadas. Tentativa automática de reconexão em andamento.
+              Algumas instâncias estão desconectadas. Tentativa automática de reconexão em
+              andamento.
             </span>
           </CardContent>
         </Card>
       )}
       {loading ? (
-        <div className="p-12 flex justify-center"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>
+        <div className="p-12 flex justify-center">
+          <Loader2 className="h-6 w-6 animate-spin text-primary" />
+        </div>
       ) : items.length === 0 ? (
         <div className="relative overflow-hidden rounded-3xl border border-white/10 bg-gradient-to-b from-card/60 to-card/30 p-16 text-center backdrop-blur-xl">
           <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(37,211,102,0.10),transparent_60%)]" />
@@ -373,10 +495,14 @@ function Page() {
           </div>
           <h3 className="relative mt-6 text-xl font-semibold">Conecte seu WhatsApp em segundos</h3>
           <p className="relative mx-auto mt-2 max-w-md text-sm text-muted-foreground">
-            Clique em <span className="font-medium text-foreground">Nova instância</span>, escaneie o QR Code e pronto — seu WhatsApp estará conectado em menos de 1 minuto.
+            Clique em <span className="font-medium text-foreground">Nova instância</span>, escaneie
+            o QR Code e pronto — seu WhatsApp estará conectado em menos de 1 minuto.
           </p>
           <div className="relative mt-6 inline-flex">
-            <Button onClick={() => setOpenNew(true)} className="bg-gradient-to-br from-[#25D366] to-[#1ebe5b] text-white shadow-[0_10px_30px_-10px_rgba(37,211,102,0.6)] hover:opacity-90">
+            <Button
+              onClick={() => setOpenNew(true)}
+              className="bg-gradient-to-br from-[#25D366] to-[#1ebe5b] text-white shadow-[0_10px_30px_-10px_rgba(37,211,102,0.6)] hover:opacity-90"
+            >
               <Plus className="mr-2 h-4 w-4" /> Nova instância
             </Button>
           </div>
@@ -385,34 +511,52 @@ function Page() {
         <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-3">
           {items.map((c) => {
             const online = c.status === "online";
-            const phoneFmt = c.phone_number ? (c.phone_number.startsWith("+") ? c.phone_number : `+${c.phone_number}`) : null;
+            const phoneFmt = c.phone_number
+              ? c.phone_number.startsWith("+")
+                ? c.phone_number
+                : `+${c.phone_number}`
+              : null;
             return (
               <div
                 key={c.id}
                 className="group relative overflow-hidden rounded-2xl border border-border/60 bg-card p-6 shadow-2xl transition-all hover:-translate-y-0.5 hover:border-[#25D366]/40 hover:shadow-[0_20px_60px_-20px_rgba(37,211,102,0.35)]"
               >
                 {/* Ambient glow */}
-                <div className={`pointer-events-none absolute -top-16 -right-16 h-40 w-40 rounded-full blur-3xl transition-opacity ${online ? "bg-[#25D366]/20 opacity-100" : "bg-primary/10 opacity-60"}`} />
+                <div
+                  className={`pointer-events-none absolute -top-16 -right-16 h-40 w-40 rounded-full blur-3xl transition-opacity ${online ? "bg-[#25D366]/20 opacity-100" : "bg-primary/10 opacity-60"}`}
+                />
 
                 {/* Header */}
                 <div className="relative mb-5 flex items-start justify-between gap-3">
                   <div className="flex min-w-0 items-center gap-3">
-                    <div className={`grid h-12 w-12 shrink-0 place-items-center rounded-xl border ${online ? "bg-[#25D366]/10 border-[#25D366]/25 text-[#25D366]" : "bg-primary/10 border-primary/20 text-primary"}`}>
+                    <div
+                      className={`grid h-12 w-12 shrink-0 place-items-center rounded-xl border ${online ? "bg-[#25D366]/10 border-[#25D366]/25 text-[#25D366]" : "bg-primary/10 border-primary/20 text-primary"}`}
+                    >
                       <MessageCircle className="h-6 w-6" />
                     </div>
                     <div className="min-w-0">
-                      <h3 className="truncate text-base font-semibold leading-tight text-foreground">{c.name}</h3>
+                      <h3 className="truncate text-base font-semibold leading-tight text-foreground">
+                        {c.name}
+                      </h3>
                       {phoneFmt ? (
-                        <p className="truncate font-mono text-sm text-muted-foreground">{phoneFmt}</p>
+                        <p className="truncate font-mono text-sm text-muted-foreground">
+                          {phoneFmt}
+                        </p>
                       ) : (
                         <p className="truncate text-xs text-muted-foreground">{c.instance_name}</p>
                       )}
                     </div>
                   </div>
-                  <span className={`inline-flex shrink-0 items-center gap-1.5 rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider ${online ? "border-[#25D366]/30 bg-[#25D366]/10 text-[#25D366]" : "border-border bg-muted/40 text-muted-foreground"}`}>
+                  <span
+                    className={`inline-flex shrink-0 items-center gap-1.5 rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider ${online ? "border-[#25D366]/30 bg-[#25D366]/10 text-[#25D366]" : "border-border bg-muted/40 text-muted-foreground"}`}
+                  >
                     <span className={`relative flex h-1.5 w-1.5`}>
-                      {online && <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#25D366] opacity-75" />}
-                      <span className={`relative inline-flex h-1.5 w-1.5 rounded-full ${online ? "bg-[#25D366]" : "bg-muted-foreground"}`} />
+                      {online && (
+                        <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#25D366] opacity-75" />
+                      )}
+                      <span
+                        className={`relative inline-flex h-1.5 w-1.5 rounded-full ${online ? "bg-[#25D366]" : "bg-muted-foreground"}`}
+                      />
                     </span>
                     {online ? "Conectado" : c.status === "connecting" ? "Conectando" : "Offline"}
                   </span>
@@ -422,27 +566,58 @@ function Page() {
                 <div className="relative mb-5 flex items-center gap-2">
                   <div className="h-px flex-1 bg-border/70" />
                   <p className="text-[10px] font-medium uppercase tracking-widest text-muted-foreground">
-                    {c.last_sync ? `Última sync: ${new Date(c.last_sync).toLocaleString("pt-BR")}` : `Instância: ${c.instance_name}`}
+                    {c.last_sync
+                      ? `Última sync: ${new Date(c.last_sync).toLocaleString("pt-BR")}`
+                      : `Instância: ${c.instance_name}`}
                   </p>
                   <div className="h-px flex-1 bg-border/70" />
                 </div>
 
+                {c.status === "connecting" && (
+                  <div className="mb-4 flex items-start gap-2 rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-500">
+                    <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+                    <span>
+                      A instancia ainda nao terminou de conectar. Gere ou atualize o QR Code e
+                      conclua a conexao no WhatsApp para liberar o envio de mensagens.
+                    </span>
+                  </div>
+                )}
+
                 {/* Retry state */}
-                {c.status === "offline" && (() => {
-                  const st = retryRef.current[c.id];
-                  if (!st || st.attempts === 0) return null;
-                  const maxed = st.attempts >= MAX_ATTEMPTS;
-                  const secs = Math.max(0, Math.ceil((st.nextAt - Date.now()) / 1000));
-                  return (
-                    <div className={`mb-4 flex items-center gap-2 rounded-lg border px-3 py-2 text-xs ${maxed ? "border-destructive/30 bg-destructive/10 text-destructive" : "border-amber-500/30 bg-amber-500/10 text-amber-500"}`}>
-                      {st.inFlight ? <Loader2 className="h-3 w-3 animate-spin" /> : <RefreshCw className="h-3 w-3" />}
-                      {maxed ? `Falhou após ${MAX_ATTEMPTS} tentativas` : st.inFlight ? `Reconectando… (${st.attempts}/${MAX_ATTEMPTS})` : `Próxima tentativa em ${secs}s (${st.attempts}/${MAX_ATTEMPTS})`}
-                      {maxed && (
-                        <button className="ml-auto underline" onClick={() => { retryRef.current[c.id] = { attempts: 0, nextAt: 0, inFlight: false }; setRetryTick((t) => t + 1); }}>Resetar</button>
-                      )}
-                    </div>
-                  );
-                })()}
+                {c.status === "offline" &&
+                  (() => {
+                    const st = retryRef.current[c.id];
+                    if (!st || st.attempts === 0) return null;
+                    const maxed = st.attempts >= MAX_ATTEMPTS;
+                    const secs = Math.max(0, Math.ceil((st.nextAt - Date.now()) / 1000));
+                    return (
+                      <div
+                        className={`mb-4 flex items-center gap-2 rounded-lg border px-3 py-2 text-xs ${maxed ? "border-destructive/30 bg-destructive/10 text-destructive" : "border-amber-500/30 bg-amber-500/10 text-amber-500"}`}
+                      >
+                        {st.inFlight ? (
+                          <Loader2 className="h-3 w-3 animate-spin" />
+                        ) : (
+                          <RefreshCw className="h-3 w-3" />
+                        )}
+                        {maxed
+                          ? `Falhou após ${MAX_ATTEMPTS} tentativas`
+                          : st.inFlight
+                            ? `Reconectando… (${st.attempts}/${MAX_ATTEMPTS})`
+                            : `Próxima tentativa em ${secs}s (${st.attempts}/${MAX_ATTEMPTS})`}
+                        {maxed && (
+                          <button
+                            className="ml-auto underline"
+                            onClick={() => {
+                              retryRef.current[c.id] = { attempts: 0, nextAt: 0, inFlight: false };
+                              setRetryTick((t) => t + 1);
+                            }}
+                          >
+                            Resetar
+                          </button>
+                        )}
+                      </div>
+                    );
+                  })()}
 
                 {/* Actions grid */}
                 <div className="relative grid grid-cols-2 gap-2.5">
@@ -468,7 +643,11 @@ function Page() {
                       disabled={!!busy[c.id]}
                       className="flex items-center justify-center gap-2 rounded-xl border border-border/60 bg-muted/40 px-4 py-2.5 text-sm font-medium text-foreground transition-all hover:bg-muted disabled:opacity-60"
                     >
-                      {busy[c.id] === "test-msg" ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4 text-[#25D366]" />}
+                      {busy[c.id] === "test-msg" ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <Send className="h-4 w-4 text-[#25D366]" />
+                      )}
                       Enviar teste
                     </button>
                   ) : (
@@ -521,8 +700,13 @@ function Page() {
                 >
                   <div className="pointer-events-none absolute -right-16 -top-16 h-56 w-56 rounded-full bg-white/20 blur-3xl" />
                   <div className="pointer-events-none absolute -left-16 -bottom-16 h-56 w-56 rounded-full bg-emerald-300/20 blur-3xl" />
-                  <div className="pointer-events-none absolute inset-0 opacity-30"
-                    style={{ backgroundImage: "radial-gradient(circle at 25% 15%, rgba(255,255,255,0.4), transparent 55%)" }} />
+                  <div
+                    className="pointer-events-none absolute inset-0 opacity-30"
+                    style={{
+                      backgroundImage:
+                        "radial-gradient(circle at 25% 15%, rgba(255,255,255,0.4), transparent 55%)",
+                    }}
+                  />
                   <DialogHeader className="relative space-y-0">
                     <div className="flex items-center gap-3">
                       <div className="grid h-12 w-12 place-items-center rounded-2xl bg-white/25 shadow-[0_10px_30px_-8px_rgba(0,0,0,0.4)] ring-1 ring-white/40 backdrop-blur-xl">
@@ -533,7 +717,10 @@ function Page() {
                           {online ? "WhatsApp conectado" : "Conectar WhatsApp"}
                         </DialogTitle>
                         <DialogDescription className="text-xs font-medium text-white/85">
-                          {qrModal.name || (online ? "Instância pronta para atender" : "Sincronizar com seu dispositivo")}
+                          {qrModal.name ||
+                            (online
+                              ? "Instância pronta para atender"
+                              : "Sincronizar com seu dispositivo")}
                         </DialogDescription>
                       </div>
                     </div>
@@ -541,8 +728,12 @@ function Page() {
                   {online && current?.phone_number && (
                     <div className="relative mt-5 flex items-end gap-3 text-foreground">
                       <div>
-                        <div className="text-[10px] uppercase tracking-widest opacity-80">Número conectado</div>
-                        <div className="mt-0.5 font-mono text-xl font-semibold">+{current.phone_number}</div>
+                        <div className="text-[10px] uppercase tracking-widest opacity-80">
+                          Número conectado
+                        </div>
+                        <div className="mt-0.5 font-mono text-xl font-semibold">
+                          +{current.phone_number}
+                        </div>
                         {current.profile_name && (
                           <div className="text-xs opacity-90">{current.profile_name}</div>
                         )}
@@ -564,7 +755,9 @@ function Page() {
                         </div>
                         <div className="text-sm">
                           <div className="font-medium">Tudo pronto! 🎉</div>
-                          <div className="text-xs text-muted-foreground">Seu número já pode enviar e receber mensagens.</div>
+                          <div className="text-xs text-muted-foreground">
+                            Seu número já pode enviar e receber mensagens.
+                          </div>
                         </div>
                       </div>
                       <div className="grid grid-cols-2 gap-2">
@@ -601,8 +794,13 @@ function Page() {
                             <div className="pointer-events-none absolute -inset-3 rounded-3xl bg-gradient-to-br from-emerald-400/40 to-teal-500/30 blur-xl" />
                             <div className="relative rounded-2xl bg-white p-3 shadow-2xl ring-1 ring-white/40">
                               <img
-                                src={qrModal.qr.startsWith("data:") ? qrModal.qr : `data:image/png;base64,${qrModal.qr}`}
-                                alt="QR Code" className="h-52 w-52"
+                                src={
+                                  qrModal.qr.startsWith("data:")
+                                    ? qrModal.qr
+                                    : `data:image/png;base64,${qrModal.qr}`
+                                }
+                                alt="QR Code"
+                                className="h-52 w-52"
                               />
                             </div>
                           </div>
@@ -619,14 +817,19 @@ function Page() {
                             if (!qrModal.connectionId) return;
                             setQrModal((m) => ({ ...m, qr: null }));
                             try {
-                              const r = await connectFn({ data: { connectionId: qrModal.connectionId } });
+                              const r = await connectFn({
+                                data: { connectionId: qrModal.connectionId },
+                              });
                               setQrModal((m) => ({ ...m, qr: r.qr }));
                               if (!r.qr) toast.error("QR ainda não disponível — tente novamente");
-                            } catch (e: any) { toast.error(e.message ?? "Falha ao gerar QR"); }
+                            } catch (e: any) {
+                              toast.error(e.message ?? "Falha ao gerar QR");
+                            }
                           }}
                           className="relative rounded-full bg-gradient-to-br from-[#25D366] to-[#0f766e] px-6 text-white shadow-[0_15px_40px_-10px_rgba(16,185,129,0.7)] ring-1 ring-white/20 hover:opacity-90"
                         >
-                          <RefreshCw className="mr-2 h-4 w-4" /> {qrModal.qr ? "Atualizar QR" : "Gerar QR Code"}
+                          <RefreshCw className="mr-2 h-4 w-4" />{" "}
+                          {qrModal.qr ? "Atualizar QR" : "Gerar QR Code"}
                         </Button>
                         {qrModal.qr && (
                           <div className="flex items-center gap-2 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-3 py-1 text-xs font-medium text-emerald-300 backdrop-blur">

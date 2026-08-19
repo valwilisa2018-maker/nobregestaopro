@@ -17,19 +17,31 @@ export type EmailSettingsInput = {
 export const getEmailSettings = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    const { data: isMaster } = await context.supabase.rpc("has_role", { _user_id: context.userId, _role: "master" });
+    const { data: isMaster } = await context.supabase.rpc("has_role", {
+      _user_id: context.userId,
+      _role: "master",
+    });
     if (!isMaster) throw new Error("forbidden");
     const { loadEmailSettings } = await import("./email-brevo.server");
     const s = await loadEmailSettings();
     const key = process.env.BREVO_API_KEY?.trim();
-    const brevoKeyStatus = !key ? "missing" : key.startsWith("xsmtpsib-") ? "smtp" : key.startsWith("xkeysib-") ? "valid" : "invalid";
+    const brevoKeyStatus = !key
+      ? "missing"
+      : key.startsWith("xsmtpsib-")
+        ? "smtp"
+        : key.startsWith("xkeysib-")
+          ? "valid"
+          : "invalid";
     return { settings: s, hasBrevoKey: brevoKeyStatus === "valid", brevoKeyStatus };
   });
 
 export const checkBrevoStatus = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    const { data: isMaster } = await context.supabase.rpc("has_role", { _user_id: context.userId, _role: "master" });
+    const { data: isMaster } = await context.supabase.rpc("has_role", {
+      _user_id: context.userId,
+      _role: "master",
+    });
     if (!isMaster) throw new Error("forbidden");
     const { loadEmailSettings, checkBrevoSender } = await import("./email-brevo.server");
     const settings = await loadEmailSettings();
@@ -40,7 +52,10 @@ export const saveEmailSettings = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: EmailSettingsInput) => d)
   .handler(async ({ data, context }) => {
-    const { data: isMaster } = await context.supabase.rpc("has_role", { _user_id: context.userId, _role: "master" });
+    const { data: isMaster } = await context.supabase.rpc("has_role", {
+      _user_id: context.userId,
+      _role: "master",
+    });
     if (!isMaster) throw new Error("forbidden");
     const { error } = await context.supabase
       .from("email_settings")
@@ -54,9 +69,13 @@ export const sendTestEmail = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: { to: string; kind: "signup" | "reset" }) => d)
   .handler(async ({ data, context }) => {
-    const { data: isMaster } = await context.supabase.rpc("has_role", { _user_id: context.userId, _role: "master" });
+    const { data: isMaster } = await context.supabase.rpc("has_role", {
+      _user_id: context.userId,
+      _role: "master",
+    });
     if (!isMaster) throw new Error("forbidden");
-    const { loadEmailSettings, sendBrevoEmail, checkBrevoSender } = await import("./email-brevo.server");
+    const { loadEmailSettings, sendBrevoEmail, checkBrevoSender } =
+      await import("./email-brevo.server");
     const settings = await loadEmailSettings();
     if (!settings) throw new Error("Configurações não encontradas.");
     const senderStatus = await checkBrevoSender(settings);

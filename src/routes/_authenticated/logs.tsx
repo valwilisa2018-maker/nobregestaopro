@@ -1,5 +1,23 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { ScrollText, RefreshCw, Loader2, Inbox, Trash2, Search, Activity, AlertTriangle, Info, Bug, XCircle, Download, Filter, CheckCircle2, ChevronLeft, ChevronRight, CalendarRange } from "lucide-react";
+import {
+  ScrollText,
+  RefreshCw,
+  Loader2,
+  Inbox,
+  Trash2,
+  Search,
+  Activity,
+  AlertTriangle,
+  Info,
+  Bug,
+  XCircle,
+  Download,
+  Filter,
+  CheckCircle2,
+  ChevronLeft,
+  ChevronRight,
+  CalendarRange,
+} from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
@@ -20,7 +38,9 @@ function LogRowItem({ r }: { r: LogRow }) {
   const levelLabel = LEVEL_LABELS[r.level] ?? r.level;
   return (
     <div className="px-4 py-3 flex items-start gap-3 text-sm hover:bg-muted/30">
-      <Badge variant="outline" className={`shrink-0 ${LEVEL_STYLES[r.level] ?? ""}`}>{levelLabel}</Badge>
+      <Badge variant="outline" className={`shrink-0 ${LEVEL_STYLES[r.level] ?? ""}`}>
+        {levelLabel}
+      </Badge>
       <div className="flex-1 min-w-0">
         <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
           <span>{new Date(r.created_at).toLocaleString("pt-BR")}</span>
@@ -29,18 +49,24 @@ function LogRowItem({ r }: { r: LogRow }) {
         <div className="text-foreground font-medium break-words">{title}</div>
         <div className="text-muted-foreground text-xs mt-0.5 break-words">{detail}</div>
         <details className="mt-1">
-          <summary className="text-xs text-muted-foreground cursor-pointer">Ver detalhes técnicos</summary>
+          <summary className="text-xs text-muted-foreground cursor-pointer">
+            Ver detalhes técnicos
+          </summary>
           <div className="mt-1 space-y-1">
             <div className="text-[11px] text-muted-foreground">
-              <span className="font-semibold">Código original:</span> <span className="font-mono">{r.message}</span>
+              <span className="font-semibold">Código original:</span>{" "}
+              <span className="font-mono">{r.message}</span>
             </div>
             {r.source && (
               <div className="text-[11px] text-muted-foreground">
-                <span className="font-semibold">Origem:</span> <span className="font-mono">{r.source}</span>
+                <span className="font-semibold">Origem:</span>{" "}
+                <span className="font-mono">{r.source}</span>
               </div>
             )}
             {r.metadata && Object.keys(r.metadata).length > 0 && (
-              <pre className="rounded bg-muted/50 p-2 text-xs overflow-x-auto"><code>{JSON.stringify(r.metadata, null, 2)}</code></pre>
+              <pre className="rounded bg-muted/50 p-2 text-xs overflow-x-auto">
+                <code>{JSON.stringify(r.metadata, null, 2)}</code>
+              </pre>
             )}
           </div>
         </details>
@@ -50,8 +76,12 @@ function LogRowItem({ r }: { r: LogRow }) {
 }
 
 type LogRow = {
-  id: string; level: string; source: string | null; message: string;
-  metadata: Record<string, unknown> | null; created_at: string;
+  id: string;
+  level: string;
+  source: string | null;
+  message: string;
+  metadata: Record<string, unknown> | null;
+  created_at: string;
 };
 
 const LEVEL_STYLES: Record<string, string> = {
@@ -73,30 +103,127 @@ function translateMessage(msg: string): { title: string; detail: string } {
   const m = (msg || "").trim();
   const low = m.toLowerCase();
   const map: Array<{ match: RegExp; title: string; detail: string }> = [
-    { match: /^connection\.update/, title: "Atualização de conexão do WhatsApp", detail: "O status da conexão da instância foi atualizado (conectando, conectado ou desconectado)." },
-    { match: /^qrcode\.updated/, title: "Novo QR Code gerado", detail: "Um novo QR Code foi gerado para parear o WhatsApp com a instância." },
-    { match: /^messages\.upsert/, title: "Nova mensagem recebida", detail: "Uma nova mensagem chegou pelo WhatsApp e foi registrada na conversa." },
-    { match: /^messages\.update/, title: "Mensagem atualizada", detail: "O status de uma mensagem mudou (entregue, lida ou editada)." },
-    { match: /^messages\.delete/, title: "Mensagem apagada", detail: "Uma mensagem foi removida da conversa no WhatsApp." },
-    { match: /^presence\.update/, title: "Presença do contato", detail: "O contato mudou o status (digitando, gravando áudio ou online)." },
-    { match: /^contacts\.(upsert|update)/, title: "Contato sincronizado", detail: "As informações de um contato do WhatsApp foram criadas ou atualizadas." },
-    { match: /^chats\.(upsert|update)/, title: "Conversa sincronizada", detail: "Os dados de uma conversa foram criados ou atualizados." },
-    { match: /^send\b|message.?sent|enviad/, title: "Mensagem enviada", detail: "Uma mensagem foi enviada com sucesso pelo WhatsApp." },
-    { match: /apikey matched: secret/, title: "Webhook autenticado (chave secreta)", detail: "O webhook recebido foi validado com a chave secreta da instância." },
-    { match: /apikey matched: global/, title: "Webhook autenticado (chave global)", detail: "O webhook recebido foi validado com a chave global do sistema." },
-    { match: /apikey (mismatch|invalid|not match)/, title: "Chave de API inválida", detail: "Um webhook foi recebido com chave incorreta e foi rejeitado." },
-    { match: /unauthorized|401/, title: "Acesso não autorizado", detail: "Uma requisição foi bloqueada por falta de autenticação válida." },
-    { match: /forbidden|403/, title: "Acesso proibido", detail: "A operação foi bloqueada por falta de permissão." },
-    { match: /not.?found|404/, title: "Recurso não encontrado", detail: "O item solicitado não foi encontrado no servidor." },
-    { match: /rate.?limit|429/, title: "Limite de requisições atingido", detail: "Muitas requisições em pouco tempo — aguarde alguns segundos e tente novamente." },
-    { match: /timeout/, title: "Tempo esgotado", detail: "A operação demorou demais para responder e foi cancelada." },
-    { match: /webhook/, title: "Evento de webhook recebido", detail: "Um evento externo foi recebido e processado pela plataforma." },
-    { match: /flow/, title: "Fluxo de automação executado", detail: "Um passo de um fluxo de automação foi executado." },
-    { match: /sequence|sequência/, title: "Sequência de mensagens", detail: "Um passo de uma sequência de mensagens foi disparado." },
-    { match: /broadcast|disparo/, title: "Disparo em massa", detail: "Um envio em massa foi processado." },
-    { match: /follow.?up/, title: "Follow-up automático", detail: "Uma mensagem de follow-up foi enviada automaticamente." },
-    { match: /credit/, title: "Movimentação de créditos", detail: "Houve consumo ou adição de créditos na sua conta." },
-    { match: /login|sign.?in|auth/, title: "Autenticação de usuário", detail: "Uma tentativa de login ou autenticação foi registrada." },
+    {
+      match: /^connection\.update/,
+      title: "Atualização de conexão do WhatsApp",
+      detail:
+        "O status da conexão da instância foi atualizado (conectando, conectado ou desconectado).",
+    },
+    {
+      match: /^qrcode\.updated/,
+      title: "Novo QR Code gerado",
+      detail: "Um novo QR Code foi gerado para parear o WhatsApp com a instância.",
+    },
+    {
+      match: /^messages\.upsert/,
+      title: "Nova mensagem recebida",
+      detail: "Uma nova mensagem chegou pelo WhatsApp e foi registrada na conversa.",
+    },
+    {
+      match: /^messages\.update/,
+      title: "Mensagem atualizada",
+      detail: "O status de uma mensagem mudou (entregue, lida ou editada).",
+    },
+    {
+      match: /^messages\.delete/,
+      title: "Mensagem apagada",
+      detail: "Uma mensagem foi removida da conversa no WhatsApp.",
+    },
+    {
+      match: /^presence\.update/,
+      title: "Presença do contato",
+      detail: "O contato mudou o status (digitando, gravando áudio ou online).",
+    },
+    {
+      match: /^contacts\.(upsert|update)/,
+      title: "Contato sincronizado",
+      detail: "As informações de um contato do WhatsApp foram criadas ou atualizadas.",
+    },
+    {
+      match: /^chats\.(upsert|update)/,
+      title: "Conversa sincronizada",
+      detail: "Os dados de uma conversa foram criados ou atualizados.",
+    },
+    {
+      match: /^send\b|message.?sent|enviad/,
+      title: "Mensagem enviada",
+      detail: "Uma mensagem foi enviada com sucesso pelo WhatsApp.",
+    },
+    {
+      match: /apikey matched: secret/,
+      title: "Webhook autenticado (chave secreta)",
+      detail: "O webhook recebido foi validado com a chave secreta da instância.",
+    },
+    {
+      match: /apikey matched: global/,
+      title: "Webhook autenticado (chave global)",
+      detail: "O webhook recebido foi validado com a chave global do sistema.",
+    },
+    {
+      match: /apikey (mismatch|invalid|not match)/,
+      title: "Chave de API inválida",
+      detail: "Um webhook foi recebido com chave incorreta e foi rejeitado.",
+    },
+    {
+      match: /unauthorized|401/,
+      title: "Acesso não autorizado",
+      detail: "Uma requisição foi bloqueada por falta de autenticação válida.",
+    },
+    {
+      match: /forbidden|403/,
+      title: "Acesso proibido",
+      detail: "A operação foi bloqueada por falta de permissão.",
+    },
+    {
+      match: /not.?found|404/,
+      title: "Recurso não encontrado",
+      detail: "O item solicitado não foi encontrado no servidor.",
+    },
+    {
+      match: /rate.?limit|429/,
+      title: "Limite de requisições atingido",
+      detail: "Muitas requisições em pouco tempo — aguarde alguns segundos e tente novamente.",
+    },
+    {
+      match: /timeout/,
+      title: "Tempo esgotado",
+      detail: "A operação demorou demais para responder e foi cancelada.",
+    },
+    {
+      match: /webhook/,
+      title: "Evento de webhook recebido",
+      detail: "Um evento externo foi recebido e processado pela plataforma.",
+    },
+    {
+      match: /flow/,
+      title: "Fluxo de automação executado",
+      detail: "Um passo de um fluxo de automação foi executado.",
+    },
+    {
+      match: /sequence|sequência/,
+      title: "Sequência de mensagens",
+      detail: "Um passo de uma sequência de mensagens foi disparado.",
+    },
+    {
+      match: /broadcast|disparo/,
+      title: "Disparo em massa",
+      detail: "Um envio em massa foi processado.",
+    },
+    {
+      match: /follow.?up/,
+      title: "Follow-up automático",
+      detail: "Uma mensagem de follow-up foi enviada automaticamente.",
+    },
+    {
+      match: /credit/,
+      title: "Movimentação de créditos",
+      detail: "Houve consumo ou adição de créditos na sua conta.",
+    },
+    {
+      match: /login|sign.?in|auth/,
+      title: "Autenticação de usuário",
+      detail: "Uma tentativa de login ou autenticação foi registrada.",
+    },
   ];
   for (const r of map) if (r.match.test(low)) return { title: r.title, detail: r.detail };
   return { title: m || "Evento", detail: "Evento técnico registrado pela plataforma." };
@@ -121,7 +248,11 @@ function translateSource(src: string | null): string {
 // Traduz mensagens de erro comuns do Supabase para português claro.
 function traduzErro(msg: string): string {
   const m = (msg || "").toLowerCase();
-  if (m.includes("failed to fetch") || m.includes("networkerror") || m.includes("network request failed"))
+  if (
+    m.includes("failed to fetch") ||
+    m.includes("networkerror") ||
+    m.includes("network request failed")
+  )
     return "Falha de conexão — verifique sua internet e tente novamente.";
   if (m.includes("timeout") || m.includes("timed out") || m.includes("statement timeout"))
     return "O servidor demorou demais para responder. Tente novamente em instantes.";
@@ -131,9 +262,10 @@ function traduzErro(msg: string): string {
     return "Você não tem permissão para acessar estes logs.";
   if (m.includes("rate limit") || m.includes("429"))
     return "Muitas requisições em pouco tempo. Aguarde alguns segundos e tente novamente.";
-  if (m.includes("not found") || m.includes("404"))
-    return "Nenhum log encontrado no servidor.";
-  return msg ? `Erro ao carregar logs: ${msg}` : "Não foi possível carregar os logs. Tente novamente.";
+  if (m.includes("not found") || m.includes("404")) return "Nenhum log encontrado no servidor.";
+  return msg
+    ? `Erro ao carregar logs: ${msg}`
+    : "Não foi possível carregar os logs. Tente novamente.";
 }
 
 function Page() {
@@ -157,7 +289,9 @@ function Page() {
     return new Date(d.getTime() - off).toISOString().slice(0, 16);
   };
   const now = new Date();
-  const [dateFrom, setDateFrom] = useState<string>(toLocalInput(new Date(now.getTime() - 24 * 3600 * 1000)));
+  const [dateFrom, setDateFrom] = useState<string>(
+    toLocalInput(new Date(now.getTime() - 24 * 3600 * 1000)),
+  );
   const [dateTo, setDateTo] = useState<string>(toLocalInput(now));
   const rangeIso = useMemo(() => {
     const from = dateFrom ? new Date(dateFrom).toISOString() : null;
@@ -171,8 +305,14 @@ function Page() {
     message?: string;
   }>({ status: "idle", processed: 0, total: 0 });
 
-  const loadPage = async (index: number, stack: Array<{ created_at: string; id: string } | null>) => {
-    if (!user) { setLoading(false); return; }
+  const loadPage = async (
+    index: number,
+    stack: Array<{ created_at: string; id: string } | null>,
+  ) => {
+    if (!user) {
+      setLoading(false);
+      return;
+    }
     setLoading(true);
     setLoadError(null);
     const cursor = stack[index] ?? null;
@@ -237,10 +377,18 @@ function Page() {
     // Reset to first page and reload.
     await loadPage(0, [null]);
   };
-  const retry = () => { loadPage(pageIndex, cursors); };
-  const goNext = () => { if (hasNext) loadPage(pageIndex + 1, cursors); };
-  const goPrev = () => { if (pageIndex > 0) loadPage(pageIndex - 1, cursors); };
-  useEffect(() => { load(); /* eslint-disable-next-line */ }, [user, rangeIso.from, rangeIso.to]);
+  const retry = () => {
+    loadPage(pageIndex, cursors);
+  };
+  const goNext = () => {
+    if (hasNext) loadPage(pageIndex + 1, cursors);
+  };
+  const goPrev = () => {
+    if (pageIndex > 0) loadPage(pageIndex - 1, cursors);
+  };
+  useEffect(() => {
+    load(); /* eslint-disable-next-line */
+  }, [user, rangeIso.from, rangeIso.to]);
 
   const applyPreset = (p: RangePreset) => {
     setRangePreset(p);
@@ -257,17 +405,22 @@ function Page() {
     return rows.filter((r) => {
       if (level !== "all" && r.level !== level) return false;
       if (!term) return true;
-      return r.message.toLowerCase().includes(term) || (r.source ?? "").toLowerCase().includes(term);
+      return (
+        r.message.toLowerCase().includes(term) || (r.source ?? "").toLowerCase().includes(term)
+      );
     });
   }, [rows, search, level]);
 
-  const counts = useMemo(() => ({
-    all: rows.length,
-    error: rows.filter((r) => r.level === "error").length,
-    warn: rows.filter((r) => r.level === "warn").length,
-    info: rows.filter((r) => r.level === "info").length,
-    debug: rows.filter((r) => r.level === "debug").length,
-  }), [rows]);
+  const counts = useMemo(
+    () => ({
+      all: rows.length,
+      error: rows.filter((r) => r.level === "error").length,
+      warn: rows.filter((r) => r.level === "warn").length,
+      info: rows.filter((r) => r.level === "info").length,
+      debug: rows.filter((r) => r.level === "debug").length,
+    }),
+    [rows],
+  );
 
   const clearAll = async () => {
     if (!confirm("Limpar todos os logs? Esta ação é irreversível.")) return;
@@ -275,14 +428,19 @@ function Page() {
     // Evita count(exact) — em volumes altos ele estoura o timeout do banco.
     // O total é estimado a partir da lista já carregada; o progresso cresce até 100%.
     const estimatedTotal = Math.max(rows.length, 1);
-    setClearState({ status: "running", processed: 0, total: estimatedTotal, message: "Iniciando limpeza…" });
+    setClearState({
+      status: "running",
+      processed: 0,
+      total: estimatedTotal,
+      message: "Iniciando limpeza…",
+    });
     const t = toast.loading("Limpando logs…");
     try {
       let processed = 0;
       // Apaga em lotes bem pequenos e sem ordenação: para limpeza, a ordem não importa
       // e ordenar milhões de registros pode causar timeout antes mesmo de apagar.
       const BATCH = 50;
-      // eslint-disable-next-line no-constant-condition
+
       while (true) {
         const { data: batch, error: selErr } = await supabase
           .from("logs")
@@ -300,7 +458,12 @@ function Page() {
         if (delErr) throw delErr;
         processed += ids.length;
         const total = Math.max(estimatedTotal, processed);
-        setClearState({ status: "running", processed, total, message: `Removendo em lote (${ids.length})…` });
+        setClearState({
+          status: "running",
+          processed,
+          total,
+          message: `Removendo em lote (${ids.length})…`,
+        });
         toast.loading(`Limpando logs… ${processed} removido(s)`, { id: t });
         await new Promise((resolve) => setTimeout(resolve, 80));
         if (batch.length < BATCH) break;
@@ -332,8 +495,16 @@ function Page() {
         toast.warning("Ainda restam registros após a limpeza — rode novamente", { id: t });
       }
     } catch (e: any) {
-      const msg = traduzErro(e?.message ?? "Falha ao limpar logs").replace("Erro ao carregar logs:", "Erro ao limpar logs:");
-      setClearState((s) => ({ status: "error", processed: s.processed, total: s.total, message: msg }));
+      const msg = traduzErro(e?.message ?? "Falha ao limpar logs").replace(
+        "Erro ao carregar logs:",
+        "Erro ao limpar logs:",
+      );
+      setClearState((s) => ({
+        status: "error",
+        processed: s.processed,
+        total: s.total,
+        message: msg,
+      }));
       toast.error(msg, { id: t });
     }
   };
@@ -342,16 +513,54 @@ function Page() {
     const blob = new Blob([JSON.stringify(filtered, null, 2)], { type: "application/json" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
-    a.href = url; a.download = `logs-${new Date().toISOString().slice(0,10)}.json`; a.click();
+    a.href = url;
+    a.download = `logs-${new Date().toISOString().slice(0, 10)}.json`;
+    a.click();
     URL.revokeObjectURL(url);
   };
 
-  const levelChips: Array<{ id: string; label: string; icon: React.ReactNode; count: number; tone: string }> = [
-    { id: "all", label: "Todos", icon: <Activity className="h-3.5 w-3.5" />, count: counts.all, tone: "primary" },
-    { id: "error", label: "Erros", icon: <XCircle className="h-3.5 w-3.5" />, count: counts.error, tone: "destructive" },
-    { id: "warn", label: "Avisos", icon: <AlertTriangle className="h-3.5 w-3.5" />, count: counts.warn, tone: "warn" },
-    { id: "info", label: "Informações", icon: <Info className="h-3.5 w-3.5" />, count: counts.info, tone: "primary" },
-    { id: "debug", label: "Depuração", icon: <Bug className="h-3.5 w-3.5" />, count: counts.debug, tone: "muted" },
+  const levelChips: Array<{
+    id: string;
+    label: string;
+    icon: React.ReactNode;
+    count: number;
+    tone: string;
+  }> = [
+    {
+      id: "all",
+      label: "Todos",
+      icon: <Activity className="h-3.5 w-3.5" />,
+      count: counts.all,
+      tone: "primary",
+    },
+    {
+      id: "error",
+      label: "Erros",
+      icon: <XCircle className="h-3.5 w-3.5" />,
+      count: counts.error,
+      tone: "destructive",
+    },
+    {
+      id: "warn",
+      label: "Avisos",
+      icon: <AlertTriangle className="h-3.5 w-3.5" />,
+      count: counts.warn,
+      tone: "warn",
+    },
+    {
+      id: "info",
+      label: "Informações",
+      icon: <Info className="h-3.5 w-3.5" />,
+      count: counts.info,
+      tone: "primary",
+    },
+    {
+      id: "debug",
+      label: "Depuração",
+      icon: <Bug className="h-3.5 w-3.5" />,
+      count: counts.debug,
+      tone: "muted",
+    },
   ];
 
   return (
@@ -370,7 +579,10 @@ function Page() {
                 <h1 className="text-3xl font-bold tracking-tight bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text text-transparent">
                   Central de Logs
                 </h1>
-                <Badge variant="outline" className="bg-primary/15 text-primary border-primary/30 gap-1">
+                <Badge
+                  variant="outline"
+                  className="bg-primary/15 text-primary border-primary/30 gap-1"
+                >
                   <span className="relative flex h-2 w-2">
                     <span className="absolute inline-flex h-full w-full rounded-full bg-primary opacity-75 animate-ping" />
                     <span className="relative inline-flex h-2 w-2 rounded-full bg-primary" />
@@ -379,15 +591,31 @@ function Page() {
                 </Badge>
               </div>
               <p className="text-sm text-muted-foreground max-w-2xl">
-                Monitoramento em tempo real de todos os eventos técnicos da plataforma. Filtre, busque e exporte para análise.
+                Monitoramento em tempo real de todos os eventos técnicos da plataforma. Filtre,
+                busque e exporte para análise.
               </p>
             </div>
           </div>
           <div className="flex flex-wrap items-center gap-2">
-            <Button variant="outline" onClick={exportJson} className="gap-2"><Download className="h-4 w-4" />Exportar</Button>
-            <Button variant="outline" onClick={load} className="gap-2"><RefreshCw className={cn("h-4 w-4", loading && "animate-spin")} />Atualizar</Button>
-            <Button variant="outline" onClick={clearAll} disabled={clearState.status === "running"} className="gap-2 text-destructive hover:text-destructive">
-              {clearState.status === "running" ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+            <Button variant="outline" onClick={exportJson} className="gap-2">
+              <Download className="h-4 w-4" />
+              Exportar
+            </Button>
+            <Button variant="outline" onClick={load} className="gap-2">
+              <RefreshCw className={cn("h-4 w-4", loading && "animate-spin")} />
+              Atualizar
+            </Button>
+            <Button
+              variant="outline"
+              onClick={clearAll}
+              disabled={clearState.status === "running"}
+              className="gap-2 text-destructive hover:text-destructive"
+            >
+              {clearState.status === "running" ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Trash2 className="h-4 w-4" />
+              )}
               {clearState.status === "running" ? "Limpando…" : "Limpar"}
             </Button>
           </div>
@@ -398,18 +626,24 @@ function Page() {
           {levelChips.map((c) => {
             const active = level === c.id;
             const toneCls =
-              c.tone === "destructive" ? "from-destructive/20 to-destructive/5 text-destructive" :
-              c.tone === "warn" ? "from-yellow-500/20 to-yellow-500/5 text-yellow-500" :
-              c.tone === "muted" ? "from-muted-foreground/20 to-muted-foreground/5 text-muted-foreground" :
-              "from-primary/20 to-primary/5 text-primary";
+              c.tone === "destructive"
+                ? "from-destructive/20 to-destructive/5 text-destructive"
+                : c.tone === "warn"
+                  ? "from-yellow-500/20 to-yellow-500/5 text-yellow-500"
+                  : c.tone === "muted"
+                    ? "from-muted-foreground/20 to-muted-foreground/5 text-muted-foreground"
+                    : "from-primary/20 to-primary/5 text-primary";
             return (
               <button
                 key={c.id}
                 onClick={() => setLevel(c.id)}
                 className={cn(
                   "group relative overflow-hidden rounded-2xl border p-4 text-left transition-all",
-                  "bg-gradient-to-br", toneCls,
-                  active ? "border-primary/50 ring-2 ring-primary/30 scale-[1.02]" : "border-border hover:border-primary/30 hover:scale-[1.01]",
+                  "bg-gradient-to-br",
+                  toneCls,
+                  active
+                    ? "border-primary/50 ring-2 ring-primary/30 scale-[1.02]"
+                    : "border-border hover:border-primary/30 hover:scale-[1.01]",
                 )}
               >
                 <div className="flex items-center justify-between">
@@ -418,7 +652,9 @@ function Page() {
                     {c.label}
                   </div>
                 </div>
-                <div className="mt-2 text-3xl font-bold text-foreground tabular-nums">{c.count}</div>
+                <div className="mt-2 text-3xl font-bold text-foreground tabular-nums">
+                  {c.count}
+                </div>
               </button>
             );
           })}
@@ -436,7 +672,9 @@ function Page() {
           )}
         >
           <div className="flex items-center gap-3">
-            {clearState.status === "running" && <Loader2 className="h-5 w-5 animate-spin text-primary" />}
+            {clearState.status === "running" && (
+              <Loader2 className="h-5 w-5 animate-spin text-primary" />
+            )}
             {clearState.status === "done" && <CheckCircle2 className="h-5 w-5 text-emerald-500" />}
             {clearState.status === "error" && <XCircle className="h-5 w-5 text-destructive" />}
             <div className="flex-1 min-w-0">
@@ -449,7 +687,8 @@ function Page() {
                 <span className="text-xs tabular-nums text-muted-foreground">
                   {clearState.processed}
                   {clearState.total > 0 && ` / ${clearState.total}`}
-                  {clearState.total > 0 && ` (${Math.min(100, Math.round((clearState.processed / clearState.total) * 100))}%)`}
+                  {clearState.total > 0 &&
+                    ` (${Math.min(100, Math.round((clearState.processed / clearState.total) * 100))}%)`}
                 </span>
               </div>
               {clearState.total > 0 && (
@@ -457,19 +696,30 @@ function Page() {
                   <div
                     className={cn(
                       "h-full transition-all duration-300",
-                      clearState.status === "error" ? "bg-destructive" :
-                      clearState.status === "done" ? "bg-emerald-500" : "bg-primary",
+                      clearState.status === "error"
+                        ? "bg-destructive"
+                        : clearState.status === "done"
+                          ? "bg-emerald-500"
+                          : "bg-primary",
                     )}
-                    style={{ width: `${Math.min(100, (clearState.processed / clearState.total) * 100)}%` }}
+                    style={{
+                      width: `${Math.min(100, (clearState.processed / clearState.total) * 100)}%`,
+                    }}
                   />
                 </div>
               )}
               {clearState.message && (
-                <p className="mt-1.5 text-xs text-muted-foreground truncate">{clearState.message}</p>
+                <p className="mt-1.5 text-xs text-muted-foreground truncate">
+                  {clearState.message}
+                </p>
               )}
             </div>
             {clearState.status !== "running" && (
-              <Button variant="ghost" size="sm" onClick={() => setClearState({ status: "idle", processed: 0, total: 0 })}>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setClearState({ status: "idle", processed: 0, total: 0 })}
+              >
                 Fechar
               </Button>
             )}
@@ -484,12 +734,14 @@ function Page() {
             <div className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground pr-1">
               <CalendarRange className="h-3.5 w-3.5" /> Período:
             </div>
-            {([
-              { id: "24h", label: "Últimas 24h" },
-              { id: "7d", label: "7 dias" },
-              { id: "30d", label: "30 dias" },
-              { id: "custom", label: "Personalizado" },
-            ] as Array<{ id: RangePreset; label: string }>).map((p) => (
+            {(
+              [
+                { id: "24h", label: "Últimas 24h" },
+                { id: "7d", label: "7 dias" },
+                { id: "30d", label: "30 dias" },
+                { id: "custom", label: "Personalizado" },
+              ] as Array<{ id: RangePreset; label: string }>
+            ).map((p) => (
               <button
                 key={p.id}
                 onClick={() => applyPreset(p.id)}
@@ -522,19 +774,21 @@ function Page() {
             )}
           </div>
           <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            <Input
-              placeholder="Buscar por mensagem ou origem…"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="h-11 pl-10 border-0 bg-muted/40 focus-visible:ring-1 focus-visible:ring-primary/40"
-            />
-          </div>
-          <div className="flex items-center gap-2 px-2 text-xs text-muted-foreground">
-            <Filter className="h-3.5 w-3.5" />
-            <span className="tabular-nums">{filtered.length} de {rows.length} nesta página</span>
-          </div>
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                placeholder="Buscar por mensagem ou origem…"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="h-11 pl-10 border-0 bg-muted/40 focus-visible:ring-1 focus-visible:ring-primary/40"
+              />
+            </div>
+            <div className="flex items-center gap-2 px-2 text-xs text-muted-foreground">
+              <Filter className="h-3.5 w-3.5" />
+              <span className="tabular-nums">
+                {filtered.length} de {rows.length} nesta página
+              </span>
+            </div>
           </div>
         </div>
       </div>
@@ -566,7 +820,9 @@ function Page() {
             </div>
             <div>
               <p className="font-medium text-foreground">Nenhum log encontrado</p>
-              <p className="text-sm text-muted-foreground">Ajuste os filtros ou aguarde novos eventos.</p>
+              <p className="text-sm text-muted-foreground">
+                Ajuste os filtros ou aguarde novos eventos.
+              </p>
             </div>
           </div>
         ) : (
@@ -581,13 +837,26 @@ function Page() {
       {/* Pagination */}
       <div className="flex items-center justify-between gap-3 rounded-2xl border border-border bg-card p-3 shadow-sm">
         <span className="text-xs text-muted-foreground tabular-nums">
-          Página {pageIndex + 1}{!hasNext && pageIndex === 0 ? "" : ""}
+          Página {pageIndex + 1}
+          {!hasNext && pageIndex === 0 ? "" : ""}
         </span>
         <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" onClick={goPrev} disabled={pageIndex === 0 || loading} className="gap-1">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={goPrev}
+            disabled={pageIndex === 0 || loading}
+            className="gap-1"
+          >
             <ChevronLeft className="h-4 w-4" /> Anterior
           </Button>
-          <Button variant="outline" size="sm" onClick={goNext} disabled={!hasNext || loading} className="gap-1">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={goNext}
+            disabled={!hasNext || loading}
+            className="gap-1"
+          >
             Próxima <ChevronRight className="h-4 w-4" />
           </Button>
         </div>

@@ -63,30 +63,53 @@ function BookingPage() {
               <CheckCircle2 className="h-12 w-12 text-green-500 mx-auto" />
               <h3 className="font-semibold text-lg">Solicitação enviada!</h3>
               <p className="text-sm text-muted-foreground">
-                Recebemos seu pedido. Em breve entraremos em contato pelo WhatsApp para confirmar o horário.
+                Recebemos seu pedido. Em breve entraremos em contato pelo WhatsApp para confirmar o
+                horário.
               </p>
             </div>
           ) : (
             <form onSubmit={submit} className="space-y-3">
               <div>
                 <Label>Nome completo *</Label>
-                <Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required />
+                <Input
+                  value={form.name}
+                  onChange={(e) => setForm({ ...form, name: e.target.value })}
+                  required
+                />
               </div>
               <div>
                 <Label>WhatsApp *</Label>
-                <Input value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} placeholder="(11) 99999-9999" required />
+                <Input
+                  value={form.phone}
+                  onChange={(e) => setForm({ ...form, phone: e.target.value })}
+                  placeholder="(11) 99999-9999"
+                  required
+                />
               </div>
               <div>
                 <Label>E-mail</Label>
-                <Input type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} />
+                <Input
+                  type="email"
+                  value={form.email}
+                  onChange={(e) => setForm({ ...form, email: e.target.value })}
+                />
               </div>
               <div>
                 <Label>Horário desejado *</Label>
-                <Input value={form.when} onChange={(e) => setForm({ ...form, when: e.target.value })} placeholder="Ex: 15/07 às 14h" required />
+                <Input
+                  value={form.when}
+                  onChange={(e) => setForm({ ...form, when: e.target.value })}
+                  placeholder="Ex: 15/07 às 14h"
+                  required
+                />
               </div>
               <div>
                 <Label>Observações</Label>
-                <Textarea rows={3} value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} />
+                <Textarea
+                  rows={3}
+                  value={form.notes}
+                  onChange={(e) => setForm({ ...form, notes: e.target.value })}
+                />
               </div>
               <Button type="submit" className="w-full" disabled={loading}>
                 {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Enviar solicitação"}
