@@ -104,6 +104,7 @@ function WhiteLabelPage() {
 
   const restore = async () => {
     setSettings(DEFAULTS);
+    setTheme("light");
     setSaving(true);
     try {
       await saveWhiteLabelSettings(DEFAULTS);
@@ -173,16 +174,15 @@ function WhiteLabelPage() {
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2"><Palette className="w-4 h-4" /> Paleta de Cores</CardTitle>
-              <CardDescription>Escolha as cores da sua marca.</CardDescription>
+              <CardDescription>
+                Escolha a cor da marca. Fundo, cards e textos seguem automaticamente o modo claro ou escuro para manter a leitura correta.
+              </CardDescription>
             </CardHeader>
-            <CardContent className="grid gap-4 sm:grid-cols-2">
+            <CardContent className="grid gap-4">
               {([
                 ["primary", "Cor Primária"],
-                ["secondary", "Cor Secundária"],
-                ["background", "Cor de Fundo"],
-                ["foreground", "Cor do Texto"],
               ] as const).map(([key, label]) => (
-                <div key={key} className="space-y-2">
+                <div key={key} className="space-y-2 max-w-md">
                   <Label htmlFor={key}>{label}</Label>
                   <div className="flex items-center gap-2">
                     <input

@@ -11,13 +11,6 @@ export type WhiteLabelSettings = {
 export const WHITE_LABEL_STORAGE_KEY = "wl:settings:v2";
 export const WHITE_LABEL_EVENT = "white-label-settings-changed";
 
-function isLightColor(hex: string) {
-  const value = hex.replace("#", "");
-  if (!/^[0-9a-f]{6}$/i.test(value)) return false;
-  const [r, g, b] = [0, 2, 4].map((index) => parseInt(value.slice(index, index + 2), 16));
-  return (r * 299 + g * 587 + b * 114) / 1000 >= 150;
-}
-
 export const DEFAULT_WHITE_LABEL_SETTINGS: WhiteLabelSettings = {
   logo: null,
   primary: "#dc2626",
@@ -33,19 +26,13 @@ export function applyWhiteLabelSettings(settings: WhiteLabelSettings) {
   style.setProperty("--sidebar-primary", settings.primary);
   style.setProperty("--gradient-primary", `linear-gradient(135deg, ${settings.primary}, ${settings.primary}cc)`);
 
-  // A paleta personalizada complementa apenas o modo a que pertence. Isso
-  // evita misturar fundo escuro com cards e textos do modo claro (e vice-versa).
-  const palette = isLightColor(settings.background) ? "light" : "dark";
-  const other = palette === "light" ? "dark" : "light";
-  style.setProperty(`--wl-${palette}-background`, settings.background);
-  style.setProperty(`--wl-${palette}-foreground`, settings.foreground);
-  style.setProperty(`--wl-${palette}-secondary`, settings.secondary);
-  style.removeProperty(`--wl-${other}-background`);
-  style.removeProperty(`--wl-${other}-foreground`);
-  style.removeProperty(`--wl-${other}-secondary`);
-
-  // Remove valores antigos da primeira versão, que tinham prioridade sobre
-  // as classes .light e .dark e causavam o tema híbrido.
+  // Claro e escuro usam sempre a paleta estrutural padrão. A personalização
+  // controla a identidade (logo e cor principal), mas nunca mais sobrescreve
+  // fundo, cards ou texto e, portanto, não pode criar um tema híbrido.
+  [
+    "--wl-light-background", "--wl-light-foreground", "--wl-light-secondary",
+    "--wl-dark-background", "--wl-dark-foreground", "--wl-dark-secondary",
+  ].forEach((property) => style.removeProperty(property));
   style.removeProperty("--background");
   style.removeProperty("--foreground");
   style.removeProperty("--secondary");
