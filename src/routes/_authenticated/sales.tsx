@@ -665,8 +665,11 @@ function SalesPage() {
     }));
     if (card?.customer?.id) setLinkedCustomerId(card.customer.id);
   }, [alterationCards.data]);
-  const formReceiptRecommended =
-    form.payment_status !== "pendente" || Number(form.paid_amount || 0) > 0;
+  useEffect(() => {
+    if (Number(form.paid_amount || 0) <= 0 && receiptFile) {
+      setReceiptFile(null);
+    }
+  }, [form.paid_amount, receiptFile]);
 
   const producerLockedByInfluencer =
     (optionText(
@@ -913,7 +916,7 @@ function SalesPage() {
       // O comprovante não pode impedir a criação da venda. Primeiro salvamos a
       // venda; se o upload/vínculo do arquivo falhar, registramos o erro e o
       // usuário pode anexar o comprovante depois pela própria venda/financeiro.
-      if (receiptFile && saleRow?.id) {
+      if (receiptFile && paidCents > 0 && saleRow?.id) {
         try {
           const ext = receiptFile.name.split(".").pop() || "bin";
           const path = `${user?.id ?? "anon"}/${saleRow.id}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
@@ -1633,7 +1636,6 @@ function SalesPage() {
           isAlterationSale,
           alterationCards: alterationCards.data ?? [],
           onAlterationCardChange: handleAlterationCardChange,
-          formReceiptRecommended,
           receiptFile,
           onReceiptFileChange: setReceiptFile,
           saving,
