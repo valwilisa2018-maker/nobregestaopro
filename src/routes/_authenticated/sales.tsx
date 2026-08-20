@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useState, useCallback, useMemo, Component, type ErrorInfo, type ReactNode } from "react";
+import { useState, useEffect, useCallback, useMemo, Component, type ErrorInfo, type ReactNode } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import {
   activeSellersQuery,
