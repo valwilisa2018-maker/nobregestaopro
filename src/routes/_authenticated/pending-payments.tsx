@@ -1,7 +1,7 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { PageHero } from "@/components/page-hero";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -41,7 +41,21 @@ function PendingPaymentsPage() {
       if (error) throw error;
       return data ?? [];
     },
+    staleTime: 0,
+    refetchOnMount: "always",
   });
+
+  useEffect(() => {
+    const channel = supabase
+      .channel("pending-sales-live")
+      .on("postgres_changes", { event: "*", schema: "public", table: "sales" }, () => {
+        qc.invalidateQueries({ queryKey: ["pending-sales"] });
+      })
+      .subscribe();
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [qc]);
 
   const [sellerFilter, setSellerFilter] = useState<string>("all");
   const [producerFilter, setProducerFilter] = useState<string>("all");

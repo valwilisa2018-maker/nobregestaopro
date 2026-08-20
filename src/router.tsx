@@ -1,6 +1,7 @@
 import { QueryClient } from "@tanstack/react-query";
 import { createRouter, useRouter } from "@tanstack/react-router";
 import { routeTree } from "./routeTree.gen";
+import { NobreLoader } from "./components/nobre-loader";
 
 function DefaultErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
   console.error(error);
@@ -58,6 +59,9 @@ export const getRouter = () => {
     defaultPreload: "intent",
     defaultPreloadDelay: 50,
     defaultPreloadStaleTime: 0,
+    defaultPendingMs: 150,
+    defaultPendingMinMs: 500,
+    defaultPendingComponent: () => <NobreLoader fullScreen label="Carregando a Nobre..." />,
     defaultErrorComponent: DefaultErrorComponent,
   });
 

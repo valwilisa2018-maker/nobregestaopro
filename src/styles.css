@@ -505,3 +505,42 @@
   0% { transform: translateX(-100%) rotate(12deg); }
   60%, 100% { transform: translateX(400%) rotate(12deg); }
 }
+@keyframes nobre-loader-spin {
+  to { transform: rotate(360deg); }
+}
+
+@keyframes nobre-loader-breathe {
+  0%, 100% { opacity: .3; transform: scale(.9); }
+  50% { opacity: .75; transform: scale(1.12); }
+}
+
+.nobre-loader-mark {
+  position: relative;
+  display: grid;
+  place-items: center;
+  isolation: isolate;
+}
+
+.nobre-loader-ring {
+  position: absolute;
+  inset: 0;
+  border-radius: 9999px;
+  border: 2px solid color-mix(in srgb, hsl(var(--primary)) 22%, transparent);
+  border-top-color: hsl(var(--primary));
+  border-right-color: hsl(var(--primary));
+  animation: nobre-loader-spin .9s linear infinite;
+}
+
+.nobre-loader-glow {
+  position: absolute;
+  inset: 14%;
+  border-radius: 9999px;
+  background: color-mix(in srgb, hsl(var(--primary)) 35%, transparent);
+  filter: blur(12px);
+  animation: nobre-loader-breathe 1.4s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .nobre-loader-ring,
+  .nobre-loader-glow { animation-duration: 2.4s; }
+}

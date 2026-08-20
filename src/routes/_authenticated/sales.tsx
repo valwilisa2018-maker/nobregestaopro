@@ -438,6 +438,20 @@ function SalesPage() {
           updatedForm.paid_amount = "0";
         }
 
+        // O status financeiro acompanha o valor realmente recebido. Assim a
+        // venda aceita entrada zero sem obrigar o usuário a informar R$ 0,01.
+        if (k === "paid_amount") {
+          const paidAmount = Number(v || 0);
+          const totalAmount = Number(updatedForm.total_amount || 0);
+          if (Number.isFinite(paidAmount) && paidAmount <= 0) {
+            updatedForm.payment_status = "pendente";
+          } else if (totalAmount > 0 && paidAmount >= totalAmount) {
+            updatedForm.payment_status = "pago_total";
+          } else if (paidAmount > 0) {
+            updatedForm.payment_status = "pago_parcial";
+          }
+        }
+
         // Auto-set producer for Pamela/Ester
         const checkInfluencer = () => {
           const selectedServiceType = serviceTypes.data?.find(
@@ -784,6 +798,12 @@ function SalesPage() {
     const qty = Number(form.service_quantity || 0);
     const totalCents = toCents(total);
     const paidCents = toCents(paid);
+    const paymentStatusPayload =
+      paidCents <= 0
+        ? "pendente"
+        : paidCents >= totalCents
+          ? "pago_total"
+          : "pago_parcial";
     if (!Number.isFinite(total) || total <= 0) {
       return failVal("total_amount", "Valor total deve ser maior que zero.");
     }
@@ -792,15 +812,6 @@ function SalesPage() {
     }
     if (paid > total) {
       return failVal("paid_amount", "Valor pago não pode ser maior que o valor total.");
-    }
-    if (form.payment_status === "pago_total" && paidCents !== totalCents) {
-      return failVal("payment_status", "Status 'Pago total' exige valor pago igual ao total.");
-    }
-    if (form.payment_status === "pago_parcial" && (paidCents <= 0 || paidCents >= totalCents)) {
-      return failVal("payment_status", "Status 'Pago parcial' exige valor pago entre 0 e o total.");
-    }
-    if (form.payment_status === "pendente" && paidCents > 0) {
-      return failVal("payment_status", "Status 'Pendente' não pode ter valor pago.");
     }
     if (!Number.isFinite(qty) || qty < 1) {
       return failVal("service_quantity", "Quantidade de serviços deve ser ao menos 1.");
@@ -871,7 +882,7 @@ function SalesPage() {
           customer_id: cust.id,
           total_amount: Number(form.total_amount),
           paid_amount: Number(form.paid_amount || 0),
-          payment_status: form.payment_status as any,
+          payment_status: paymentStatusPayload as any,
           payment_method: form.payment_method as any,
           seller_id: form.seller_id || null,
           producer_id: form.producer_id || null,
@@ -990,6 +1001,7 @@ function SalesPage() {
       setReceiptFile(null);
       setLinkedCustomerId(null);
       await qc.invalidateQueries({ queryKey: ["sales-list"] });
+      await qc.invalidateQueries({ queryKey: ["pending-sales"] });
     } catch (e: any) {
       await logger.error(`Erro ao criar venda: ${e?.message ?? "desconhecido"}`, {
         context: "sales/submit",

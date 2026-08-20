@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { SidebarProvider, SidebarTrigger, SidebarInset } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/app-sidebar";
-import { Loader2, Clock } from "lucide-react";
+import { Clock } from "lucide-react";
 import { useTelaoSettingsSync } from "@/hooks/use-telao-settings-sync";
 import { ReleaseNoteCard } from "@/components/release-note-card";
 import { TopWeather } from "@/components/top-weather";
@@ -11,6 +11,7 @@ import { formatBrasiliaTime } from "@/lib/format";
 import { AccessProvider, useAccess } from "@/components/access-provider";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { NobreLoader } from "@/components/nobre-loader";
 
 export const Route = createFileRoute("/_authenticated")({
   component: AuthLayout,
@@ -81,14 +82,7 @@ function AuthLayout() {
   }, [navigate]);
 
   if (!ready || !authed) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <div className="flex flex-col items-center gap-2">
-          <Loader2 className="w-6 h-6 animate-spin text-primary" />
-          <p className="text-xs text-muted-foreground animate-pulse">Autenticando...</p>
-        </div>
-      </div>
-    );
+    return <NobreLoader fullScreen label="Preparando seu acesso..." />;
   }
 
   return (
@@ -109,11 +103,7 @@ function ProtectedWorkspace({ pathname, nowBR }: { pathname: string; nowBR: stri
   }, [access.firstAllowedPath, denied]);
 
   if (access.loading) {
-    return (
-      <div className="min-h-screen grid place-items-center">
-        <Loader2 className="h-6 w-6 animate-spin text-primary" />
-      </div>
-    );
+    return <NobreLoader fullScreen label="Carregando seu workspace..." />;
   }
   if (access.error) {
     return (
@@ -135,14 +125,7 @@ function ProtectedWorkspace({ pathname, nowBR }: { pathname: string; nowBR: stri
     );
   }
   if (denied && access.firstAllowedPath) {
-    return (
-      <div className="min-h-screen grid place-items-center">
-        <div className="flex flex-col items-center gap-2">
-          <Loader2 className="h-6 w-6 animate-spin text-primary" />
-          <p className="text-sm text-muted-foreground">Abrindo um módulo permitido...</p>
-        </div>
-      </div>
-    );
+    return <NobreLoader fullScreen label="Abrindo seu módulo..." />;
   }
   if (denied) {
     return (
