@@ -6,6 +6,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Upload, FileImage, FileVideo, FileAudio, FileText, File as FileIcon, Trash2, Link as LinkIcon, Download, Copy, Folder as FolderIcon, LayoutGrid, List as ListIcon, Save, X, FolderPlus, Pencil } from "lucide-react";
 import { Loader2, CheckCircle2, AlertCircle } from "lucide-react";
+import { NobreLoader } from "@/components/nobre-loader";
 import { toast } from "sonner";
 import { type CategoryId, detectCategory, uploadToFolder, getSignedUrl } from "@/lib/project-folders";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -576,7 +577,7 @@ function FolderDetail() {
     }
   }
 
-  if (folder.isLoading) return <div className="p-6">Carregando...</div>;
+  if (folder.isLoading) return <NobreLoader label="Abrindo a pasta..." className="h-full" />;
   if (!folder.data) return <div className="p-6">Pasta não encontrada.</div>;
 
   const f = folder.data;
@@ -592,10 +593,11 @@ function FolderDetail() {
         <div className="fixed inset-0 z-50 bg-primary/10 border-4 border-dashed border-primary pointer-events-none flex items-center justify-center">
           <div className="bg-background/95 px-6 py-3 rounded-lg font-semibold text-primary shadow-lg">
             {isUploading ? (
-              <div className="flex items-center gap-2">
-                <Loader2 className="w-5 h-5 animate-spin" />
-                Carregando… {uploadingCount} arquivo(s)
-              </div>
+              <NobreLoader
+                compact
+                label={`Enviando ${uploadingCount} arquivo(s)...`}
+                className="min-h-0 bg-transparent"
+              />
             ) : (
               <div className="flex items-center gap-2">
                 <Upload className="w-5 h-5" /> Solte os arquivos aqui

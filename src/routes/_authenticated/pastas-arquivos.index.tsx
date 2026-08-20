@@ -11,6 +11,7 @@ import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogT
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { FolderOpen, Search, Link as LinkIcon, Copy, FileText, Plus, RefreshCw, Trash2, CheckSquare, Square, Loader2, LayoutGrid, List as ListIcon, Pencil } from "lucide-react";
+import { NobreLoader } from "@/components/nobre-loader";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { toast } from "sonner";
@@ -352,7 +353,7 @@ function PastasArquivosPage() {
       </div>
 
       {folders.isLoading ? (
-        <div className="text-muted-foreground">Carregando...</div>
+        <NobreLoader label="Carregando pastas e arquivos..." />
       ) : filtered.length === 0 ? (
         <div className="text-muted-foreground py-12 text-center">Nenhuma pasta encontrada.</div>
       ) : viewMode === "grid" ? (

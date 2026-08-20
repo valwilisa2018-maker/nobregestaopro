@@ -143,7 +143,6 @@ export interface NewSaleDialogProps {
   isAlterationSale: boolean;
   alterationCards: AlterationCardOption[];
   onAlterationCardChange: (cardId: string) => void;
-  formReceiptRecommended: boolean;
   receiptFile: File | null;
   onReceiptFileChange: (file: File | null) => void;
   saving: boolean;
@@ -174,7 +173,6 @@ export function NewSaleDialog({
   isAlterationSale,
   alterationCards,
   onAlterationCardChange,
-  formReceiptRecommended,
   receiptFile,
   onReceiptFileChange,
   saving,
@@ -601,10 +599,10 @@ export function NewSaleDialog({
               />
             </div>
           </div>
+          {Number(form.paid_amount || 0) > 0 && (
           <div className="md:col-span-2" data-sale-field="receipt">
             <Label>
-              Comprovante (imagem ou PDF){" "}
-              {formReceiptRecommended ? "(recomendado)" : "(opcional enquanto pendente)"}
+              Comprovante (imagem ou PDF) (recomendado)
             </Label>
             <label className="group relative mt-1.5 flex cursor-pointer flex-col items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-[#E30613]/40 bg-gradient-to-b from-[#FFF5F6] to-white p-4 text-center transition-all duration-300 hover:border-[#E30613] hover:shadow-[0_10px_40px_-10px_rgba(227,6,19,0.35)] dark:from-white/[0.03] dark:to-transparent">
               <input
@@ -646,6 +644,7 @@ export function NewSaleDialog({
               )}
             </label>
           </div>
+          )}
           <div className="md:col-span-2">
             <Label>Prazo de entrega *</Label>
             <div className="relative mt-1.5">

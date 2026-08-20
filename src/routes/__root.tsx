@@ -4,6 +4,7 @@ import {
   Link,
   createRootRouteWithContext,
   useRouter,
+  useRouterState,
   HeadContent,
   Scripts,
 } from "@tanstack/react-router";
@@ -15,6 +16,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Toaster } from "@/components/ui/sonner";
 import { UpdateBanner } from "@/components/update-banner";
 import { WhiteLabelProvider } from "@/components/white-label-provider";
+import { NobreLoader } from "@/components/nobre-loader";
 import "@fontsource/bebas-neue/400.css";
 import "@fontsource/barlow/400.css";
 import "@fontsource/barlow/500.css";
@@ -135,6 +137,7 @@ function RootShell({ children }: { children: ReactNode }) {
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
   const router = useRouter();
+  const navigationPending = useRouterState({ select: (state) => state.status === "pending" });
 
   useEffect(() => {
     let lastUserId: string | null | undefined;
@@ -161,6 +164,13 @@ function RootComponent() {
     <QueryClientProvider client={queryClient}>
       <div translate="no" className="notranslate">
         <WhiteLabelProvider />
+        {navigationPending && (
+          <NobreLoader
+            fullScreen
+            label="Carregando a página..."
+            className="fixed inset-0 z-[100] bg-background/90 backdrop-blur-sm"
+          />
+        )}
         <Outlet />
         <Toaster richColors closeButton theme="dark" position="top-right" />
         <UpdateBanner />
