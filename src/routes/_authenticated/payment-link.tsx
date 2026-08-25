@@ -1,13 +1,13 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
-import { Calculator, Copy, ExternalLink, Loader2, Link2 } from "lucide-react";
+import { Calculator, Copy, ExternalLink, Loader2, Link2, Save, Table2 } from "lucide-react";
 import { createPaymentLink } from "@/lib/pagarme.functions";
 import { supabase } from "@/integrations/supabase/client";
 import { simulateInstallments, type FeePayer } from "@/lib/installment-simulator";
@@ -21,6 +21,7 @@ const GREEN = "#16a34a";          // emerald-600
 const GREEN_DARK = "#15803d";     // emerald-700
 const GREEN_SOFT = "#dcfce7";     // emerald-100
 const GREEN_BORDER = "#86efac";   // emerald-300
+const DEFAULT_PAGARME_RATES = [5.59, 8.59, 9.84, 11.09, 12.34, 13.59, 15.34, 16.59, 17.84, 19.09, 20.34, 21.59];
 
 function PaymentLinkPage() {
   const callCreate = useServerFn(createPaymentLink);
@@ -34,11 +35,62 @@ function PaymentLinkPage() {
   });
   const [loading, setLoading] = useState(false);
   const [link, setLink] = useState<string | null>(null);
+  const [rates, setRates] = useState<Record<number, string>>(
+    Object.fromEntries(DEFAULT_PAGARME_RATES.map((rate, index) => [index + 1, String(rate)])),
+  );
+  const [ratesLoading, setRatesLoading] = useState(true);
+  const [ratesSaving, setRatesSaving] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
   const numericValue = Number(valueBrl.replace(",", ".")) || 0;
   const numericFee = Number(feePercent.replace(",", ".")) || 0;
   const simulation = simulateInstallments(numericValue, numericFee, Number(installments), feePayer);
   const money = (value: number) =>
     new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(value);
+
+  useEffect(() => {
+    const loadRates = async () => {
+      setRatesLoading(true);
+      const [{ data }, { data: admin }] = await Promise.all([
+        supabase.from("pagarme_installment_rates").select("installments, fee_percent").order("installments"),
+        supabase.rpc("has_role", { _user_id: (await supabase.auth.getUser()).data.user?.id ?? "", _role: "admin" }),
+      ]);
+      if (data?.length) {
+        setRates((current) => ({
+          ...current,
+          ...Object.fromEntries(data.map((row) => [row.installments, String(row.fee_percent)])),
+        }));
+      }
+      setIsAdmin(!!admin);
+      setRatesLoading(false);
+    };
+    loadRates();
+  }, []);
+
+  useEffect(() => {
+    const savedRate = rates[Number(installments)];
+    if (savedRate !== undefined) setFeePercent(savedRate);
+  }, [installments, rates]);
+
+  const saveRates = async () => {
+    setRatesSaving(true);
+    try {
+      const userId = (await supabase.auth.getUser()).data.user?.id ?? null;
+      const rows = Array.from({ length: 12 }, (_, index) => ({
+        installments: index + 1,
+        fee_percent: Math.min(Math.max(Number(String(rates[index + 1]).replace(",", ".")) || 0, 0), 99.999),
+        updated_at: new Date().toISOString(),
+        updated_by: userId,
+      }));
+      const { error } = await supabase.from("pagarme_installment_rates").upsert(rows);
+      if (error) throw error;
+      setFeePercent(rates[Number(installments)] ?? "0");
+      toast.success("Tabela de taxas salva com sucesso");
+    } catch (error: any) {
+      toast.error(error?.message ?? "Não foi possível salvar a tabela de taxas");
+    } finally {
+      setRatesSaving(false);
+    }
+  };
 
   const submit = async () => {
     const v = Number(valueBrl.replace(",", "."));
@@ -87,7 +139,7 @@ function PaymentLinkPage() {
     "focus-visible:ring-emerald-500 focus-visible:border-emerald-500";
 
   return (
-    <div className="space-y-6 max-w-2xl">
+    <div className="w-full max-w-6xl space-y-6">
       {/* Cabeçalho verde */}
       <div
         className="rounded-2xl p-5 text-white"
@@ -114,12 +166,12 @@ function PaymentLinkPage() {
         <CardHeader className="pb-3">
           <CardTitle className="text-base" style={{ color: GREEN_DARK }}>Dados do pagamento</CardTitle>
         </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="space-y-1">
+        <CardContent className="grid gap-5 lg:grid-cols-[minmax(0,0.85fr)_minmax(0,1.15fr)] lg:items-start">
+          <div className="space-y-1 lg:col-start-1">
             <Label style={{ color: GREEN_DARK }}>Descrição</Label>
             <Input className={greenInputClass} value={name} onChange={(e) => setName(e.target.value)} />
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:col-start-1">
             <div className="space-y-1">
               <Label style={{ color: GREEN_DARK }}>Valor (R$)</Label>
               <Input className={greenInputClass} inputMode="decimal" placeholder="0,00" value={valueBrl} onChange={(e) => setValueBrl(e.target.value)} />
@@ -138,7 +190,7 @@ function PaymentLinkPage() {
             </div>
           </div>
           <div
-            className="rounded-xl border p-4 space-y-4"
+            className="rounded-xl border p-4 space-y-4 lg:col-start-2 lg:row-start-1 lg:row-span-5"
             style={{ background: GREEN_SOFT, borderColor: GREEN_BORDER }}
           >
             <div className="flex items-start gap-3">
@@ -236,7 +288,7 @@ function PaymentLinkPage() {
               Simulação estimada. Confirme a taxa vigente no seu contrato Pagar.me antes de enviar a cobrança.
             </p>
           </div>
-          <div className="space-y-2">
+          <div className="space-y-2 lg:col-start-1">
             <Label style={{ color: GREEN_DARK }}>Métodos aceitos</Label>
             <div className="flex gap-4 flex-wrap">
               {([
@@ -263,7 +315,7 @@ function PaymentLinkPage() {
           <Button
             onClick={submit}
             disabled={loading}
-            className="text-white font-semibold"
+            className="w-full text-white font-semibold sm:w-fit lg:col-start-1"
             style={{ background: GREEN, borderColor: GREEN_DARK }}
           >
             {loading ? (<><Loader2 className="w-4 h-4 mr-2 animate-spin" />Gerando…</>) : "Gerar link"}
@@ -271,7 +323,7 @@ function PaymentLinkPage() {
 
           {link && (
             <div
-              className="p-3 rounded-lg space-y-2"
+              className="p-3 rounded-lg space-y-2 lg:col-start-1"
               style={{ background: GREEN_SOFT, border: `1px solid ${GREEN_BORDER}` }}
             >
               <div className="text-xs font-semibold" style={{ color: GREEN_DARK }}>Link gerado</div>
@@ -298,6 +350,71 @@ function PaymentLinkPage() {
               </div>
             </div>
           )}
+        </CardContent>
+      </Card>
+
+      <Card className="border-2" style={greenCardStyle}>
+        <CardHeader className="pb-3">
+          <CardTitle className="flex items-center gap-2 text-base" style={{ color: GREEN_DARK }}>
+            <Table2 className="h-4 w-4" />
+            Tabela de Taxas Pagar.me
+          </CardTitle>
+          <p className="text-xs text-neutral-500">
+            Padrão oficial do Plano Parcelado Pagar.me. O simulador usa esses valores automaticamente.
+          </p>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {ratesLoading ? (
+            <div className="flex items-center gap-2 py-6 text-sm text-neutral-500">
+              <Loader2 className="h-4 w-4 animate-spin" /> Carregando taxas…
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6">
+              {Array.from({ length: 12 }, (_, index) => index + 1).map((number) => (
+                <div key={number} className="rounded-lg border border-emerald-200 bg-emerald-50/60 p-3">
+                  <Label className="font-semibold" style={{ color: GREEN_DARK }}>{number}x</Label>
+                  <div className="relative mt-1.5">
+                    <Input
+                      className={`${greenInputClass} pr-7`}
+                      inputMode="decimal"
+                      value={rates[number] ?? "0"}
+                      disabled={!isAdmin}
+                      onChange={(event) => setRates((current) => ({ ...current, [number]: event.target.value }))}
+                    />
+                    <span className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-xs text-neutral-500">%</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+          {isAdmin ? (
+            <div className="flex flex-wrap gap-2">
+              <Button
+                type="button"
+                onClick={saveRates}
+                disabled={ratesLoading || ratesSaving}
+                className="text-white font-semibold"
+                style={{ background: GREEN, borderColor: GREEN_DARK }}
+              >
+                {ratesSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+                Salvar tabela de taxas
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                disabled={ratesLoading || ratesSaving}
+                onClick={() => setRates(Object.fromEntries(DEFAULT_PAGARME_RATES.map((rate, index) => [index + 1, String(rate)])))}
+                className="bg-white border-emerald-300 text-emerald-700 hover:bg-emerald-50"
+              >
+                Restaurar padrão Pagar.me
+              </Button>
+            </div>
+          ) : (
+            <p className="text-xs text-neutral-500">Somente administradores podem alterar a tabela.</p>
+          )}
+          <p className="text-[11px] text-neutral-500">
+            Referência: Plano Parcelado “Pronto para usar”, recebimento em 15 dias. Contratos Flex ou personalizados podem ter valores diferentes.
+          </p>
         </CardContent>
       </Card>
     </div>

@@ -709,6 +709,27 @@ export type Database = {
         }
         Relationships: []
       }
+      pagarme_installment_rates: {
+        Row: {
+          fee_percent: number
+          installments: number
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          fee_percent?: number
+          installments: number
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          fee_percent?: number
+          installments?: number
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
       pagarme_webhooks: {
         Row: {
           created_at: string | null
