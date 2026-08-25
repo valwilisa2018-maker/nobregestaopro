@@ -7,9 +7,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
-import { Copy, ExternalLink, Loader2, Link2 } from "lucide-react";
+import { Calculator, Copy, ExternalLink, Loader2, Link2 } from "lucide-react";
 import { createPaymentLink } from "@/lib/pagarme.functions";
 import { supabase } from "@/integrations/supabase/client";
+import { simulateInstallments, type FeePayer } from "@/lib/installment-simulator";
 
 export const Route = createFileRoute("/_authenticated/payment-link")({
   component: PaymentLinkPage,
@@ -26,11 +27,18 @@ function PaymentLinkPage() {
   const [name, setName] = useState("Pagamento Nobre MKT");
   const [valueBrl, setValueBrl] = useState("");
   const [installments, setInstallments] = useState("1");
+  const [feePercent, setFeePercent] = useState("0");
+  const [feePayer, setFeePayer] = useState<FeePayer>("customer");
   const [methods, setMethods] = useState<{ credit_card: boolean; pix: boolean; boleto: boolean }>({
     credit_card: true, pix: true, boleto: false,
   });
   const [loading, setLoading] = useState(false);
   const [link, setLink] = useState<string | null>(null);
+  const numericValue = Number(valueBrl.replace(",", ".")) || 0;
+  const numericFee = Number(feePercent.replace(",", ".")) || 0;
+  const simulation = simulateInstallments(numericValue, numericFee, Number(installments), feePayer);
+  const money = (value: number) =>
+    new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(value);
 
   const submit = async () => {
     const v = Number(valueBrl.replace(",", "."));
@@ -111,15 +119,122 @@ function PaymentLinkPage() {
             <Label style={{ color: GREEN_DARK }}>Descrição</Label>
             <Input className={greenInputClass} value={name} onChange={(e) => setName(e.target.value)} />
           </div>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div className="space-y-1">
               <Label style={{ color: GREEN_DARK }}>Valor (R$)</Label>
               <Input className={greenInputClass} inputMode="decimal" placeholder="0,00" value={valueBrl} onChange={(e) => setValueBrl(e.target.value)} />
             </div>
             <div className="space-y-1">
               <Label style={{ color: GREEN_DARK }}>Parcelas</Label>
-              <Input className={greenInputClass} type="number" min={1} max={12} value={installments} onChange={(e) => setInstallments(e.target.value)} />
+              <select
+                className={`flex h-9 w-full rounded-md border px-3 py-1 text-sm shadow-xs outline-none ${greenInputClass}`}
+                value={installments}
+                onChange={(e) => setInstallments(e.target.value)}
+              >
+                {Array.from({ length: 12 }, (_, index) => index + 1).map((number) => (
+                  <option key={number} value={number}>{number}x</option>
+                ))}
+              </select>
             </div>
+          </div>
+          <div
+            className="rounded-xl border p-4 space-y-4"
+            style={{ background: GREEN_SOFT, borderColor: GREEN_BORDER }}
+          >
+            <div className="flex items-start gap-3">
+              <div className="rounded-lg bg-white p-2" style={{ color: GREEN_DARK }}>
+                <Calculator className="h-5 w-5" />
+              </div>
+              <div>
+                <div className="font-semibold" style={{ color: GREEN_DARK }}>Simular taxa do parcelamento</div>
+                <p className="text-xs text-neutral-600">
+                  Informe a taxa da operadora para calcular quanto cobrar do cliente e preservar o valor líquido.
+                </p>
+              </div>
+            </div>
+            <div className="space-y-1">
+              <Label style={{ color: GREEN_DARK }}>Taxa total estimada (%)</Label>
+              <Input
+                className={greenInputClass}
+                inputMode="decimal"
+                placeholder="Ex.: 5,00"
+                value={feePercent}
+                onChange={(e) => setFeePercent(e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label style={{ color: GREEN_DARK }}>Quem assume a taxa?</Label>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={() => setFeePayer("customer")}
+                  className={`rounded-lg border p-3 text-left text-sm transition-colors ${
+                    feePayer === "customer"
+                      ? "border-emerald-600 bg-emerald-600 text-white"
+                      : "border-emerald-200 bg-white text-neutral-700"
+                  }`}
+                >
+                  <span className="block font-semibold">Cliente paga a taxa</span>
+                  <span className={feePayer === "customer" ? "text-white/80" : "text-neutral-500"}>
+                    A taxa é acrescentada ao valor do link.
+                  </span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setFeePayer("seller")}
+                  className={`rounded-lg border p-3 text-left text-sm transition-colors ${
+                    feePayer === "seller"
+                      ? "border-emerald-600 bg-emerald-600 text-white"
+                      : "border-emerald-200 bg-white text-neutral-700"
+                  }`}
+                >
+                  <span className="block font-semibold">Vendedor assume a taxa</span>
+                  <span className={feePayer === "seller" ? "text-white/80" : "text-neutral-500"}>
+                    O cliente paga o valor original.
+                  </span>
+                </button>
+              </div>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-sm">
+              <div className="rounded-lg bg-white p-3 border border-emerald-200">
+                <div className="text-xs text-neutral-500">Taxa estimada</div>
+                <div className="font-semibold text-neutral-900">{money(simulation.feeAmount)}</div>
+              </div>
+              <div className="rounded-lg bg-white p-3 border border-emerald-200">
+                <div className="text-xs text-neutral-500">Total para o cliente</div>
+                <div className="font-semibold text-neutral-900">{money(simulation.totalWithFee)}</div>
+              </div>
+              <div className="rounded-lg bg-white p-3 border border-emerald-200">
+                <div className="text-xs text-neutral-500">{simulation.installments}x de</div>
+                <div className="font-semibold text-neutral-900">{money(simulation.installmentAmount)}</div>
+              </div>
+            </div>
+            <div className="rounded-lg bg-white p-3 border border-emerald-200 text-sm">
+              <span className="text-neutral-500">Valor líquido estimado para a empresa: </span>
+              <strong className="text-neutral-900">{money(simulation.netAmount)}</strong>
+            </div>
+            {feePayer === "customer" ? (
+              <Button
+                type="button"
+                variant="outline"
+                disabled={simulation.totalWithFee <= 0}
+                onClick={() => {
+                  setValueBrl(simulation.totalWithFee.toFixed(2));
+                  setFeePercent("0");
+                  toast.success("Total com a taxa aplicado ao link");
+                }}
+                className="bg-white border-emerald-300 text-emerald-700 hover:bg-emerald-50 hover:text-emerald-800"
+              >
+                Aplicar total de {money(simulation.totalWithFee)} ao link
+              </Button>
+            ) : (
+              <p className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs text-amber-800">
+                O valor do link permanece em {money(simulation.totalWithFee)} e a taxa estimada de {money(simulation.feeAmount)} fica por conta da empresa.
+              </p>
+            )}
+            <p className="text-[11px] text-neutral-500">
+              Simulação estimada. Confirme a taxa vigente no seu contrato Pagar.me antes de enviar a cobrança.
+            </p>
           </div>
           <div className="space-y-2">
             <Label style={{ color: GREEN_DARK }}>Métodos aceitos</Label>
