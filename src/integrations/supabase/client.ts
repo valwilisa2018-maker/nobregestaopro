@@ -17,45 +17,31 @@ function createSupabaseClient() {
     throw new Error(message);
   }
 
-  let client: ReturnType<typeof createClient<Database>>;
-  let refreshPromise: Promise<string | null> | null = null;
-
   const fetchWithJwtRecovery: typeof fetch = async (input, init) => {
     const request = new Request(input, init);
-    const response = await fetch(request);
+    let response = await fetch(request.clone());
 
-    if (response.status !== 401 || !request.url.includes('/rest/v1/')) {
+    if (!request.url.includes('/rest/v1/')) {
       return response;
     }
 
-    const responseBody = await response.clone().text();
-    if (!/JWT issued at future/i.test(responseBody)) {
-      return response;
+    // During Supabase's JWT clock-skew incident, refreshing can create another
+    // token whose timestamp is also rejected. Keep the original token and retry
+    // the exact request after progressively longer waits until it becomes valid.
+    for (const delayMs of [2_000, 4_000, 8_000]) {
+      const responseBody = response.status === 401
+        ? await response.clone().text()
+        : '';
+
+      if (!/JWT issued at future/i.test(responseBody)) {
+        return response;
+      }
+
+      await new Promise((resolve) => setTimeout(resolve, delayMs));
+      response = await fetch(request.clone());
     }
 
-    // Supabase can briefly reject a newly issued token when its servers are
-    // out of sync. Wait for the token timestamp to become valid, refresh the
-    // session once, and repeat only the failed Data API request.
-    await new Promise((resolve) => setTimeout(resolve, 1_500));
-
-    if (!refreshPromise) {
-      refreshPromise = client.auth
-        .refreshSession()
-        .then(({ data, error }) => (error ? null : data.session?.access_token ?? null))
-        .finally(() => {
-          refreshPromise = null;
-        });
-    }
-
-    const accessToken = await refreshPromise;
-    if (!accessToken) {
-      return response;
-    }
-
-    const retryHeaders = new Headers(request.headers);
-    retryHeaders.set('Authorization', `Bearer ${accessToken}`);
-
-    return fetch(new Request(request, { headers: retryHeaders }));
+    return response;
   };
 
   const options: any = {
@@ -73,8 +59,7 @@ function createSupabaseClient() {
     }
   };
 
-  client = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, options);
-  return client;
+  return createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, options);
 }
 
 export const supabase = createSupabaseClient();
