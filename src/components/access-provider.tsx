@@ -62,12 +62,14 @@ async function loadMyAccess(refreshSession = false) {
       supabase.rpc("has_role", { _user_id: userId, _role: "admin" }),
     ]);
 
-  if (activeError || adminError) throw activeError ?? adminError;
+  if (activeError) throw activeError;
   if (!active) {
     throw new Error("Usuário inativo");
   }
-  if (!admin) {
-    throw profileResult.error ?? rolesResult.error ?? permissionsResult.error;
+
+  const recoveredRoles = rolesResult.data?.map((row) => row.role) ?? [];
+  if (!adminError && admin && !recoveredRoles.includes("admin")) {
+    recoveredRoles.push("admin");
   }
 
   return {
@@ -77,10 +79,12 @@ async function loadMyAccess(refreshSession = false) {
       email: sessionData.session.user.email ?? null,
       job_title: null,
       status: "active",
-      managed_access: false,
+      // Sem o perfil, adota o modo restrito. Assim a recuperação nunca concede
+      // acesso amplo por engano a um usuário não administrador.
+      managed_access: !admin,
     },
-    roles: ["admin"],
-    permissions: [],
+    roles: recoveredRoles,
+    permissions: permissionsResult.data ?? [],
   };
 }
 
