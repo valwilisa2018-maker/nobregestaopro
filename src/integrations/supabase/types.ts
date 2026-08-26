@@ -767,6 +767,7 @@ export type Database = {
           description: string | null
           features: Json
           id: string
+          image_url: string | null
           is_active: boolean
           is_highlight: boolean
           limits: Json
@@ -783,6 +784,7 @@ export type Database = {
           description?: string | null
           features?: Json
           id?: string
+          image_url?: string | null
           is_active?: boolean
           is_highlight?: boolean
           limits?: Json
@@ -799,6 +801,7 @@ export type Database = {
           description?: string | null
           features?: Json
           id?: string
+          image_url?: string | null
           is_active?: boolean
           is_highlight?: boolean
           limits?: Json

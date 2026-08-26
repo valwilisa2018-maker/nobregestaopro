@@ -832,7 +832,14 @@ function Dashboard() {
         ]}
       />
 
-      <DashboardHero />
+      <DashboardHero
+        deliveredToday={minutagemStats.hojeQtd}
+        inProduction={ordersInProd}
+        pendingCount={pendingCount}
+        pendingTotal={pendingTotal}
+        salesToday={dayCount}
+        salesTodayTotal={dayTotal}
+      />
 
       <DashboardFilters
         scope={scope}

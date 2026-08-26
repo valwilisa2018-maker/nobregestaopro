@@ -130,6 +130,13 @@ export function ReleaseNoteCard() {
               </div>
 
               <div className="p-6 space-y-6 bg-card">
+                {activeAnnouncement.image_url && (
+                  <img
+                    src={activeAnnouncement.image_url}
+                    alt={activeAnnouncement.title}
+                    className="aspect-[8/3] w-full rounded-xl border border-border/60 object-cover shadow-lg"
+                  />
+                )}
                 <p className="text-sm text-foreground/90 leading-relaxed whitespace-pre-wrap">
                   {activeAnnouncement.message}
                 </p>
