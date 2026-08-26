@@ -17,6 +17,12 @@ function createSupabaseClient() {
     throw new Error(message);
   }
 
+  let client: ReturnType<typeof createClient<Database>>;
+  let refreshPromise: Promise<string | null> | null = null;
+
+  const isFutureJwtError = async (response: Response) =>
+    response.status === 401 && /JWT issued at future/i.test(await response.clone().text());
+
   const fetchWithJwtRecovery: typeof fetch = async (input, init) => {
     const request = new Request(input, init);
     let response = await fetch(request.clone());
@@ -25,23 +31,35 @@ function createSupabaseClient() {
       return response;
     }
 
-    // During Supabase's JWT clock-skew incident, refreshing can create another
-    // token whose timestamp is also rejected. Keep the original token and retry
-    // the exact request after progressively longer waits until it becomes valid.
-    for (const delayMs of [2_000]) {
-      const responseBody = response.status === 401
-        ? await response.clone().text()
-        : '';
-
-      if (!/JWT issued at future/i.test(responseBody)) {
-        return response;
-      }
-
-      await new Promise((resolve) => setTimeout(resolve, delayMs));
-      response = await fetch(request.clone());
+    if (!await isFutureJwtError(response)) {
+      return response;
     }
 
-    return response;
+    // First allow the original JWT timestamp to become valid on PostgREST.
+    await new Promise((resolve) => setTimeout(resolve, 5_000));
+    response = await fetch(request.clone());
+    if (!await isFutureJwtError(response)) {
+      return response;
+    }
+
+    // If the regional clock is still behind, refresh only once for all
+    // concurrent queries and also give the new JWT time before retrying.
+    if (!refreshPromise) {
+      refreshPromise = client.auth
+        .refreshSession()
+        .then(({ data, error }) => error ? null : data.session?.access_token ?? null)
+        .finally(() => {
+          refreshPromise = null;
+        });
+    }
+
+    const accessToken = await refreshPromise;
+    if (!accessToken) return response;
+
+    await new Promise((resolve) => setTimeout(resolve, 5_000));
+    const headers = new Headers(request.headers);
+    headers.set('Authorization', `Bearer ${accessToken}`);
+    return fetch(new Request(request, { headers }));
   };
 
   const options: any = {
@@ -59,7 +77,8 @@ function createSupabaseClient() {
     }
   };
 
-  return createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, options);
+  client = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, options);
+  return client;
 }
 
 export const supabase = createSupabaseClient();
