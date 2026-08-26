@@ -88,20 +88,23 @@ async function loadMyAccess(refreshSession = false) {
   };
 }
 
+function withTimeout<T>(promise: Promise<T>, timeoutMs: number): Promise<T> {
+  return Promise.race([
+    promise,
+    new Promise<never>((_, reject) => {
+      window.setTimeout(() => reject(new Error("Tempo limite ao validar permissões")), timeoutMs);
+    }),
+  ]);
+}
+
 export function AccessProvider({ children }: { children: ReactNode }) {
   const query = useQuery({
     queryKey: ["my-access"],
-    queryFn: async () => {
-      try {
-        return await loadMyAccess(false);
-      } catch {
-        // Tokens antigos podem continuar no armazenamento do navegador depois
-        // de uma publicação. Renova a sessão uma vez e repete a leitura segura.
-        return await loadMyAccess(true);
-      }
-    },
+    // A indisponibilidade do serviço de permissões não pode prender toda a
+    // plataforma no loader. RLS continua protegendo cada consulta no banco.
+    queryFn: () => withTimeout(loadMyAccess(false), 8_000),
     staleTime: 30_000,
-    retry: 1,
+    retry: false,
   });
 
   const value = useMemo<AccessContextValue>(() => {
