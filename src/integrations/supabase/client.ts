@@ -39,17 +39,38 @@ function createSupabaseClient() {
     }
   };
 
-  const waitUntilJwtIsValid = (request: Request, response: Response) => {
-    if (!jwtRecoveryPromise) {
-      const issuedAt = getJwtIssuedAt(request);
-      const serverDate = Date.parse(response.headers.get('date') ?? '');
-      const clockDelay = issuedAt && Number.isFinite(serverDate)
-        ? issuedAt - serverDate + 2_000
-        : 15_000;
-      const delay = Math.min(Math.max(clockDelay, 2_000), 120_000);
+  const getDatabaseTime = async () => {
+    try {
+      const response = await fetch(`${SUPABASE_URL}/rest/v1/rpc/get_server_epoch_ms`, {
+        method: 'POST',
+        headers: {
+          apikey: SUPABASE_PUBLISHABLE_KEY,
+          Authorization: `Bearer ${SUPABASE_PUBLISHABLE_KEY}`,
+          'Content-Type': 'application/json',
+        },
+        body: '{}',
+      });
+      if (!response.ok) return null;
+      const value = Number(await response.json());
+      return Number.isFinite(value) ? value : null;
+    } catch {
+      return null;
+    }
+  };
 
-      console.warn(`[Supabase] Waiting ${Math.ceil(delay / 1_000)}s for the JWT to become valid.`);
-      jwtRecoveryPromise = new Promise<void>((resolve) => setTimeout(resolve, delay))
+  const waitUntilJwtIsValid = (request: Request) => {
+    if (!jwtRecoveryPromise) {
+      jwtRecoveryPromise = (async () => {
+        const issuedAt = getJwtIssuedAt(request);
+        const databaseTime = await getDatabaseTime();
+        const clockDelay = issuedAt && databaseTime
+          ? issuedAt - databaseTime + 2_000
+          : 30_000;
+        const delay = Math.min(Math.max(clockDelay, 2_000), 10 * 60_000);
+
+        console.warn(`[Supabase] Waiting ${Math.ceil(delay / 1_000)}s for the database clock to accept the JWT.`);
+        await new Promise<void>((resolve) => setTimeout(resolve, delay));
+      })()
         .finally(() => {
           jwtRecoveryPromise = null;
         });
@@ -72,7 +93,7 @@ function createSupabaseClient() {
 
     // Auth and PostgREST can briefly disagree about the current time. Use the
     // server's Date header and the token's iat instead of an arbitrary delay.
-    await waitUntilJwtIsValid(request, response);
+    await waitUntilJwtIsValid(request);
     response = await fetch(request.clone());
     if (!await isFutureJwtError(response)) {
       return response;
@@ -80,7 +101,7 @@ function createSupabaseClient() {
 
     // Recalculate once in case a proxy returned a stale Date header. Refreshing
     // here would mint another future-dated token and restart the problem.
-    await waitUntilJwtIsValid(request, response);
+    await waitUntilJwtIsValid(request);
     return fetch(request.clone());
   };
 
