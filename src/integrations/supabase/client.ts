@@ -18,10 +18,45 @@ function createSupabaseClient() {
   }
 
   let client: ReturnType<typeof createClient<Database>>;
-  let refreshPromise: Promise<string | null> | null = null;
+  let jwtRecoveryPromise: Promise<void> | null = null;
 
   const isFutureJwtError = async (response: Response) =>
     response.status === 401 && /JWT issued at future/i.test(await response.clone().text());
+
+  const getJwtIssuedAt = (request: Request) => {
+    const authorization = request.headers.get('authorization');
+    const token = authorization?.match(/^Bearer\s+(.+)$/i)?.[1];
+    const payload = token?.split('.')[1];
+    if (!payload) return null;
+
+    try {
+      const normalized = payload.replace(/-/g, '+').replace(/_/g, '/');
+      const padded = normalized.padEnd(Math.ceil(normalized.length / 4) * 4, '=');
+      const issuedAt = JSON.parse(atob(padded))?.iat;
+      return typeof issuedAt === 'number' ? issuedAt * 1_000 : null;
+    } catch {
+      return null;
+    }
+  };
+
+  const waitUntilJwtIsValid = (request: Request, response: Response) => {
+    if (!jwtRecoveryPromise) {
+      const issuedAt = getJwtIssuedAt(request);
+      const serverDate = Date.parse(response.headers.get('date') ?? '');
+      const clockDelay = issuedAt && Number.isFinite(serverDate)
+        ? issuedAt - serverDate + 2_000
+        : 15_000;
+      const delay = Math.min(Math.max(clockDelay, 2_000), 120_000);
+
+      console.warn(`[Supabase] Waiting ${Math.ceil(delay / 1_000)}s for the JWT to become valid.`);
+      jwtRecoveryPromise = new Promise<void>((resolve) => setTimeout(resolve, delay))
+        .finally(() => {
+          jwtRecoveryPromise = null;
+        });
+    }
+
+    return jwtRecoveryPromise;
+  };
 
   const fetchWithJwtRecovery: typeof fetch = async (input, init) => {
     const request = new Request(input, init);
@@ -35,31 +70,18 @@ function createSupabaseClient() {
       return response;
     }
 
-    // First allow the original JWT timestamp to become valid on PostgREST.
-    await new Promise((resolve) => setTimeout(resolve, 5_000));
+    // Auth and PostgREST can briefly disagree about the current time. Use the
+    // server's Date header and the token's iat instead of an arbitrary delay.
+    await waitUntilJwtIsValid(request, response);
     response = await fetch(request.clone());
     if (!await isFutureJwtError(response)) {
       return response;
     }
 
-    // If the regional clock is still behind, refresh only once for all
-    // concurrent queries and also give the new JWT time before retrying.
-    if (!refreshPromise) {
-      refreshPromise = client.auth
-        .refreshSession()
-        .then(({ data, error }) => error ? null : data.session?.access_token ?? null)
-        .finally(() => {
-          refreshPromise = null;
-        });
-    }
-
-    const accessToken = await refreshPromise;
-    if (!accessToken) return response;
-
-    await new Promise((resolve) => setTimeout(resolve, 5_000));
-    const headers = new Headers(request.headers);
-    headers.set('Authorization', `Bearer ${accessToken}`);
-    return fetch(new Request(request, { headers }));
+    // Recalculate once in case a proxy returned a stale Date header. Refreshing
+    // here would mint another future-dated token and restart the problem.
+    await waitUntilJwtIsValid(request, response);
+    return fetch(request.clone());
   };
 
   const options: any = {
