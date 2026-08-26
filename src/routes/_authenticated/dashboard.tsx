@@ -215,7 +215,7 @@ function Dashboard() {
         .select("id,name,quality_score,average_delivery_days,active")
         .eq("active", true);
       if (error) {
-        toast.error("Erro ao carregar produtores");
+        toast.error(`Erro ao carregar produtores: ${error.code ? `${error.code} — ` : ""}${error.message}`);
         throw error;
       }
       return data ?? [];
@@ -260,7 +260,7 @@ function Dashboard() {
     queryFn: async () => {
       const { data, error } = await supabase.from("service_types").select("id,name");
       if (error) {
-        toast.error("Erro ao carregar serviços");
+        toast.error(`Erro ao carregar serviços: ${error.code ? `${error.code} — ` : ""}${error.message}`);
         throw error;
       }
       return data ?? [];
@@ -286,7 +286,7 @@ function Dashboard() {
     queryFn: async () => {
       const { data, error } = await supabase.from("customers").select("id,name");
       if (error) {
-        toast.error("Erro ao carregar clientes");
+        toast.error(`Erro ao carregar clientes: ${error.code ? `${error.code} — ` : ""}${error.message}`);
         throw error;
       }
       return data ?? [];
