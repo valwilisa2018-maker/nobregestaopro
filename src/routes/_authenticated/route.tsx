@@ -35,20 +35,30 @@ function AuthLayout() {
 
     const checkSession = async (retryCount = 0) => {
       try {
-        const { data, error } = await supabase.auth.getSession();
-        if (error) throw error;
+        const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+        if (sessionError) throw sessionError;
 
         if (!mounted) return;
 
-        if (!data.session) {
+        if (!sessionData.session) {
           console.warn("No session found, redirecting to login");
           // Pequena espera antes de redirecionar para evitar loops rápidos
           setTimeout(() => {
             if (mounted) navigate({ to: "/login" });
           }, 500);
-        } else {
-          setAuthed(true);
+          return;
         }
+
+        // getSession apenas lê o token salvo no navegador. getUser confirma
+        // com o servidor se esse token ainda é válido antes de liberar a área.
+        const { data: userData, error: userError } = await supabase.auth.getUser();
+        if (userError || !userData.user) {
+          await supabase.auth.signOut({ scope: "local" });
+          if (mounted) window.location.replace("/login");
+          return;
+        }
+
+        setAuthed(true);
       } catch (err) {
         console.error(`Session check error (attempt ${retryCount + 1}):`, err);
         if (retryCount < 2 && mounted) {
@@ -99,7 +109,12 @@ function ProtectedWorkspace({ pathname, nowBR }: { pathname: string; nowBR: stri
 
   const renewAccess = async () => {
     setRenewingAccess(true);
-    await supabase.auth.refreshSession();
+    const { data, error } = await supabase.auth.refreshSession();
+    if (error || !data.session) {
+      await supabase.auth.signOut({ scope: "local" });
+      window.location.replace("/login");
+      return;
+    }
     window.location.reload();
   };
 
