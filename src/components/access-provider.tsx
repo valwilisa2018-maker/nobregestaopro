@@ -3,6 +3,7 @@ import { createContext, useContext, useMemo, type ReactNode } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { getMyAccess } from "@/lib/access.functions";
 import { firstAllowedModulePath, moduleForPath, type PermissionAction } from "@/lib/access-control";
+import { supabase } from "@/integrations/supabase/client";
 
 type AccessContextValue = {
   loading: boolean;
@@ -20,7 +21,42 @@ const AccessContext = createContext<AccessContextValue | null>(null);
 export function AccessProvider({ children }: { children: ReactNode }) {
   const query = useQuery({
     queryKey: ["my-access"],
-    queryFn: () => getMyAccess(),
+    queryFn: async () => {
+      try {
+        return await getMyAccess();
+      } catch (serverError) {
+        // Mantém o acesso disponível quando o repasse da sessão para a função
+        // do servidor falhar. As consultas continuam protegidas pelas RLS e
+        // só podem ler o perfil, os papéis e as permissões do próprio usuário.
+        const { data: auth, error: authError } = await supabase.auth.getUser();
+        if (authError || !auth.user) throw serverError;
+
+        const userId = auth.user.id;
+        const [profileResult, rolesResult, permissionsResult] = await Promise.all([
+          supabase
+            .from("profiles")
+            .select("id,full_name,email,job_title,status,managed_access")
+            .eq("id", userId)
+            .single(),
+          supabase.from("user_roles").select("role").eq("user_id", userId),
+          supabase
+            .from("user_permissions")
+            .select("module,can_view,can_create,can_edit,can_delete")
+            .eq("user_id", userId),
+        ]);
+
+        if (profileResult.error || rolesResult.error || permissionsResult.error) throw serverError;
+        if (!profileResult.data || profileResult.data.status !== "active") {
+          throw new Error("Usuário inativo");
+        }
+
+        return {
+          profile: profileResult.data,
+          roles: (rolesResult.data ?? []).map((row) => row.role),
+          permissions: permissionsResult.data ?? [],
+        };
+      }
+    },
     staleTime: 30_000,
     retry: false,
   });
