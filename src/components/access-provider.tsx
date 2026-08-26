@@ -42,16 +42,45 @@ async function loadMyAccess(refreshSession = false) {
       .eq("user_id", userId),
   ]);
 
-  const error = profileResult.error ?? rolesResult.error ?? permissionsResult.error;
-  if (error) throw error;
-  if (!profileResult.data || profileResult.data.status !== "active") {
+  if (!profileResult.error && !rolesResult.error && !permissionsResult.error) {
+    if (!profileResult.data || profileResult.data.status !== "active") {
+      throw new Error("Usuário inativo");
+    }
+
+    return {
+      profile: profileResult.data,
+      roles: (rolesResult.data ?? []).map((row) => row.role),
+      permissions: permissionsResult.data ?? [],
+    };
+  }
+
+  // Recuperação independente das tabelas de permissão: funções SECURITY
+  // DEFINER validam o usuário dentro do banco e continuam protegidas por auth.uid().
+  const [{ data: active, error: activeError }, { data: admin, error: adminError }] =
+    await Promise.all([
+      supabase.rpc("is_active_user", { _user_id: userId }),
+      supabase.rpc("has_role", { _user_id: userId, _role: "admin" }),
+    ]);
+
+  if (activeError || adminError) throw activeError ?? adminError;
+  if (!active) {
     throw new Error("Usuário inativo");
+  }
+  if (!admin) {
+    throw profileResult.error ?? rolesResult.error ?? permissionsResult.error;
   }
 
   return {
-    profile: profileResult.data,
-    roles: (rolesResult.data ?? []).map((row) => row.role),
-    permissions: permissionsResult.data ?? [],
+    profile: profileResult.data ?? {
+      id: userId,
+      full_name: sessionData.session.user.user_metadata?.full_name ?? "Administrador",
+      email: sessionData.session.user.email ?? null,
+      job_title: null,
+      status: "active",
+      managed_access: false,
+    },
+    roles: ["admin"],
+    permissions: [],
   };
 }
 
