@@ -12,9 +12,20 @@ serve(async (req) => {
   }
 
   try {
+    const supabaseAdminKey =
+      Deno.env.get("SUPABASE_SECRET_KEY") ??
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ??
+      "";
+
+    if (!supabaseAdminKey) {
+      throw new Error(
+        "Missing SUPABASE_SECRET_KEY (or legacy SUPABASE_SERVICE_ROLE_KEY)"
+      );
+    }
+
     const supabaseAdmin = createClient(
       Deno.env.get("SUPABASE_URL") ?? "",
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
+      supabaseAdminKey
     );
 
     // Verify authenticity: Pagar.me sends HTTP Basic Auth using the

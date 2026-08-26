@@ -1,8 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import { createClient } from "@supabase/supabase-js";
-import type { Database } from "@/integrations/supabase/types";
+import { supabaseAdmin } from "@/integrations/supabase/client.server";
 
 export const PAGARME_PRODUCTION_URL = "https://api.pagar.me/core/v5/paymentlinks";
 export const PAGARME_TEST_URL = "https://sdx-api.pagar.me/core/v5/paymentlinks";
@@ -63,10 +62,6 @@ export const getPagarmeOrders = createServerFn({ method: "GET" })
     }).parse(input),
   )
   .handler(async ({ data }) => {
-    const supabaseAdmin = createClient<Database>(
-      process.env.SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY!,
-    );
     const { data: row } = await supabaseAdmin
       .from("pagarme_settings")
       .select("api_key")
@@ -130,11 +125,6 @@ export const createPaymentLink = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     // Usamos o service_role para ler a chave, pois a tabela pagarme_settings 
     // está protegida por RLS que exige role 'admin', mas vendedores também geram links.
-    const supabaseAdmin = createClient<Database>(
-      process.env.SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY!
-    );
-    
     const { data: row } = await supabaseAdmin
       .from("pagarme_settings")
       .select("api_key")
