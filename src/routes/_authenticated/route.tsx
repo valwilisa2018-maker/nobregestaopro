@@ -94,7 +94,14 @@ function AuthLayout() {
 
 function ProtectedWorkspace({ pathname, nowBR }: { pathname: string; nowBR: string }) {
   const access = useAccess();
+  const [renewingAccess, setRenewingAccess] = useState(false);
   const denied = !access.loading && !access.error && !access.canVisit(pathname);
+
+  const renewAccess = async () => {
+    setRenewingAccess(true);
+    await supabase.auth.refreshSession();
+    window.location.reload();
+  };
 
   useEffect(() => {
     if (denied && access.firstAllowedPath) {
@@ -116,7 +123,10 @@ function ProtectedWorkspace({ pathname, nowBR }: { pathname: string; nowBR: stri
             <p className="text-sm text-muted-foreground">
               Sua conta está inativa ou não foi possível validar suas permissões.
             </p>
-            <Button className="w-full" onClick={() => supabase.auth.signOut()}>
+            <Button className="w-full" onClick={renewAccess} disabled={renewingAccess}>
+              {renewingAccess ? "Renovando acesso..." : "Tentar novamente"}
+            </Button>
+            <Button variant="outline" className="w-full" onClick={() => supabase.auth.signOut()}>
               Sair
             </Button>
           </CardContent>
