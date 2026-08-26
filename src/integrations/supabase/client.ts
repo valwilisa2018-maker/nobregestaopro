@@ -28,7 +28,7 @@ function createSupabaseClient() {
     // During Supabase's JWT clock-skew incident, refreshing can create another
     // token whose timestamp is also rejected. Keep the original token and retry
     // the exact request after progressively longer waits until it becomes valid.
-    for (const delayMs of [2_000, 4_000, 8_000]) {
+    for (const delayMs of [2_000]) {
       const responseBody = response.status === 401
         ? await response.clone().text()
         : '';
