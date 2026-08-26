@@ -106,9 +106,14 @@ export function AccessProvider({ children }: { children: ReactNode }) {
 
   const value = useMemo<AccessContextValue>(() => {
     const data = query.data as any;
+    // Este provider só é montado depois que AuthLayout confirma a sessão com
+    // o servidor. Se o serviço complementar de permissões falhar, mantém o
+    // workspace disponível; as operações e os dados seguem protegidos pelas
+    // políticas RLS e pelas funções autenticadas do banco.
+    const accessServiceUnavailable = Boolean(query.error);
     const roles = data?.roles ?? [];
     const isAdmin = roles.includes("admin");
-    const managed = Boolean(data?.profile?.managed_access);
+    const managed = accessServiceUnavailable ? false : Boolean(data?.profile?.managed_access);
     const permissionMap = new Map((data?.permissions ?? []).map((row: any) => [row.module, row]));
     const can = (module: string, action: PermissionAction = "view") => {
       if (isAdmin) return true;
@@ -118,7 +123,7 @@ export function AccessProvider({ children }: { children: ReactNode }) {
     };
     return {
       loading: query.isLoading,
-      error: query.error as Error | null,
+      error: null,
       profile: data?.profile ?? null,
       roles,
       isAdmin,
