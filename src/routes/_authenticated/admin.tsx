@@ -10,7 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
-import { CheckCircle2, AlertCircle, AlertTriangle, Loader2, Pencil, Trash2, Bell, Megaphone, Plus, Info, Zap, Activity } from "lucide-react";
+import { CheckCircle2, AlertCircle, AlertTriangle, Loader2, Pencil, Trash2, Bell, Megaphone, Plus, Info, Zap, Activity, ImagePlus, X } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -924,7 +924,6 @@ function AdminPage() {
     </div>
   );
 }
-
 function ResetPlatformTab() {
   const qc = useQueryClient();
   const [confirmText, setConfirmText] = useState("");
@@ -1089,6 +1088,8 @@ function AnnouncementsTab() {
   const qc = useQueryClient();
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState({ title: "", message: "", type: "info", expires_at: "", is_active: true });
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
   
   const announcements = useQuery({
     queryKey: ["admin-announcements"],
@@ -1098,23 +1099,56 @@ function AnnouncementsTab() {
   const save = async () => {
     if (!form.title || !form.message) return toast.error("Título e mensagem são obrigatórios");
     setSaving(true);
+    let uploadedPath: string | null = null;
     try {
+      let imageUrl: string | null = null;
+      if (imageFile) {
+        const extension = imageFile.name.split(".").pop()?.toLowerCase() || "webp";
+        uploadedPath = `${crypto.randomUUID()}.${extension}`;
+        const { error: uploadError } = await supabase.storage
+          .from("announcement-images")
+          .upload(uploadedPath, imageFile, { contentType: imageFile.type, upsert: false });
+        if (uploadError) throw uploadError;
+        imageUrl = supabase.storage.from("announcement-images").getPublicUrl(uploadedPath).data.publicUrl;
+      }
       const { error } = await supabase.from("system_announcements").insert({
         title: form.title,
         message: form.message,
         type: form.type as any,
         is_active: form.is_active,
         expires_at: form.expires_at || null,
+        image_url: imageUrl,
       });
       if (error) throw error;
-      toast.success("Aviso criado com sucesso");
+      toast.success(imageUrl ? "Publicação com imagem criada com sucesso" : "Aviso criado com sucesso");
       setForm({ title: "", message: "", type: "info", expires_at: "", is_active: true });
+      setImageFile(null);
+      if (imagePreview) URL.revokeObjectURL(imagePreview);
+      setImagePreview(null);
       qc.invalidateQueries({ queryKey: ["admin-announcements"] });
     } catch (e: any) {
+      if (uploadedPath) await supabase.storage.from("announcement-images").remove([uploadedPath]);
       toast.error(e.message);
     } finally {
       setSaving(false);
     }
+  };
+
+  const chooseImage = (file?: File) => {
+    if (!file) return;
+    if (!["image/jpeg", "image/png", "image/webp"].includes(file.type)) {
+      return toast.error("Use uma imagem JPG, PNG ou WEBP");
+    }
+    if (file.size > 5 * 1024 * 1024) return toast.error("A imagem pode ter no máximo 5 MB");
+    if (imagePreview) URL.revokeObjectURL(imagePreview);
+    setImageFile(file);
+    setImagePreview(URL.createObjectURL(file));
+  };
+
+  const clearImage = () => {
+    if (imagePreview) URL.revokeObjectURL(imagePreview);
+    setImageFile(null);
+    setImagePreview(null);
   };
 
   const toggle = async (id: string, active: boolean) => {
@@ -1126,11 +1160,16 @@ function AnnouncementsTab() {
     }
   };
 
-  const remove = async (id: string) => {
+  const remove = async (announcement: any) => {
     if (!confirm("Excluir este aviso?")) return;
-    const { error } = await supabase.from("system_announcements").delete().eq("id", id);
+    const { error } = await supabase.from("system_announcements").delete().eq("id", announcement.id);
     if (error) toast.error(error.message);
     else {
+      if (announcement.image_url) {
+        const marker = "/announcement-images/";
+        const path = String(announcement.image_url).split(marker)[1];
+        if (path) await supabase.storage.from("announcement-images").remove([decodeURIComponent(path)]);
+      }
       toast.success("Aviso excluído");
       qc.invalidateQueries({ queryKey: ["admin-announcements"] });
     }
@@ -1168,6 +1207,32 @@ function AnnouncementsTab() {
             <Label>Mensagem</Label>
             <Textarea value={form.message} onChange={(e) => setForm({ ...form, message: e.target.value })} placeholder="Descreva o aviso em detalhes..." />
           </div>
+          <div className="space-y-2">
+            <Label>Imagem do telão (Opcional)</Label>
+            <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_320px]">
+              <label className="group flex min-h-36 cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed border-border bg-muted/20 px-6 text-center transition hover:border-primary/60 hover:bg-primary/5">
+                <ImagePlus className="mb-2 h-8 w-8 text-primary transition group-hover:scale-110" />
+                <span className="text-sm font-semibold">Clique para escolher a imagem</span>
+                <span className="mt-1 text-xs text-muted-foreground">Recomendado: 1600 × 600 px • JPG, PNG ou WEBP • máximo 5 MB</span>
+                <input type="file" accept="image/jpeg,image/png,image/webp" className="sr-only" onChange={(event) => chooseImage(event.target.files?.[0])} />
+              </label>
+              <div className="relative min-h-36 overflow-hidden rounded-2xl border border-border bg-gradient-to-br from-primary/10 to-card">
+                {imagePreview ? (
+                  <>
+                    <img src={imagePreview} alt="Prévia da publicação" className="h-full min-h-36 w-full object-cover" />
+                    <div className="absolute inset-0 bg-gradient-to-r from-black/65 via-black/15 to-transparent" />
+                    <div className="absolute bottom-3 left-3 right-12 text-white">
+                      <p className="line-clamp-1 text-sm font-bold">{form.title || "Título da publicação"}</p>
+                      <p className="line-clamp-1 text-xs text-white/75">{form.message || "Sua mensagem aparecerá aqui"}</p>
+                    </div>
+                    <button type="button" onClick={clearImage} aria-label="Remover imagem" className="absolute right-2 top-2 rounded-full bg-black/55 p-1.5 text-white transition hover:bg-destructive"><X className="h-4 w-4" /></button>
+                  </>
+                ) : (
+                  <div className="flex h-full min-h-36 items-center justify-center px-5 text-center text-xs text-muted-foreground">A prévia premium da publicação aparecerá aqui.</div>
+                )}
+              </div>
+            </div>
+          </div>
           <div className="grid gap-4 md:grid-cols-2 items-end">
             <div className="space-y-2">
               <Label>Data de Expiração (Opcional)</Label>
@@ -1190,7 +1255,7 @@ function AnnouncementsTab() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Título</TableHead>
+                <TableHead>Publicação</TableHead>
                 <TableHead>Tipo</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead>Criado em</TableHead>
@@ -1205,7 +1270,12 @@ function AnnouncementsTab() {
               )}
               {(announcements.data ?? []).map((a: any) => (
                 <TableRow key={a.id}>
-                  <TableCell className="font-medium">{a.title}</TableCell>
+                  <TableCell className="font-medium">
+                    <div className="flex items-center gap-3">
+                      {a.image_url && <img src={a.image_url} alt="" className="h-10 w-16 rounded-md border border-border object-cover" />}
+                      <span>{a.title}</span>
+                    </div>
+                  </TableCell>
                   <TableCell>
                     <Badge variant="outline" className={cn(
                       a.type === 'maintenance' && "border-destructive text-destructive bg-destructive/5",
@@ -1227,7 +1297,7 @@ function AnnouncementsTab() {
                       <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => toggle(a.id, !a.is_active)}>
                         {a.is_active ? <Zap className="w-4 h-4 text-muted-foreground" /> : <Zap className="w-4 h-4 text-primary" />}
                       </Button>
-                      <Button size="icon" variant="ghost" className="h-8 w-8 text-destructive" onClick={() => remove(a.id)}>
+                      <Button size="icon" variant="ghost" className="h-8 w-8 text-destructive" onClick={() => remove(a)}>
                         <Trash2 className="w-4 h-4" />
                       </Button>
                     </div>
