@@ -22,6 +22,11 @@ export function AccessProvider({ children }: { children: ReactNode }) {
   const query = useQuery({
     queryKey: ["my-access"],
     queryFn: async () => {
+      const { data: accessData, error: accessError } = await (supabase.rpc as any)(
+        "get_my_access",
+      );
+      if (!accessError && accessData?.profile) return accessData;
+
       try {
         return await getMyAccess();
       } catch (serverError) {
