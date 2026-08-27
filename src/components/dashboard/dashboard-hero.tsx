@@ -21,6 +21,101 @@ const money = new Intl.NumberFormat("pt-BR", {
   maximumFractionDigits: 0,
 });
 
+const WEATHER_BACKGROUNDS: Record<WeatherKind, { image: string; accent: string }> = {
+  sun: { image: "/dashboard-telao/clima-sol.png", accent: "from-amber-300 to-orange-500" },
+  cloudy: { image: "/dashboard-telao/clima-nublado.png", accent: "from-slate-300 to-sky-500" },
+  rain: { image: "/dashboard-telao/clima-chuva.png", accent: "from-sky-400 to-blue-600" },
+  storm: { image: "/dashboard-telao/clima-tempestade.png", accent: "from-violet-400 to-indigo-600" },
+  night: { image: "/dashboard-telao/clima-noite.png", accent: "from-indigo-300 to-blue-500" },
+  fog: { image: "/dashboard-telao/clima-nublado.png", accent: "from-slate-300 to-slate-500" },
+  snow: { image: "/dashboard-telao/clima-nublado.png", accent: "from-cyan-200 to-sky-400" },
+};
+
+function WeatherScene({ kind }: { kind: WeatherKind }) {
+  return (
+    <div aria-hidden className="pointer-events-none absolute inset-0 overflow-hidden">
+      <style>{`
+        @keyframes weather-rain-fall { 0% { transform: translateY(-100%); } 100% { transform: translateY(100vh); } }
+        @keyframes weather-cloud-drift { 0% { transform: translateX(-10%); } 100% { transform: translateX(110%); } }
+        @keyframes weather-sun-pulse { 0%, 100% { opacity: .55; transform: scale(1); } 50% { opacity: .9; transform: scale(1.12); } }
+        @keyframes weather-star-twinkle { 0%, 100% { opacity: .2; } 50% { opacity: 1; } }
+        @keyframes weather-snow-fall { 0% { transform: translateY(-10%) translateX(0); } 100% { transform: translateY(110%) translateX(24px); } }
+      `}</style>
+
+      {(kind === "rain" || kind === "storm") && (
+        <div className="absolute inset-0">
+          {Array.from({ length: 28 }).map((_, i) => (
+            <span
+              key={i}
+              className="absolute top-0 h-10 w-px bg-gradient-to-b from-transparent via-sky-200/70 to-sky-100/90"
+              style={{
+                left: `${(i * 37) % 100}%`,
+                animation: `weather-rain-fall ${0.7 + (i % 5) * 0.18}s linear ${(i % 7) * 0.22}s infinite`,
+              }}
+            />
+          ))}
+        </div>
+      )}
+
+      {(kind === "cloudy" || kind === "fog") && (
+        <div className="absolute inset-0">
+          {[0, 1, 2].map((i) => (
+            <div
+              key={i}
+              className="absolute rounded-full bg-white/15 blur-3xl"
+              style={{
+                top: `${8 + i * 22}%`,
+                width: `${38 + i * 12}%`,
+                height: 90 + i * 30,
+                animation: `weather-cloud-drift ${26 + i * 14}s linear ${-i * 12}s infinite`,
+              }}
+            />
+          ))}
+        </div>
+      )}
+
+      {kind === "sun" && (
+        <div
+          className="absolute -right-10 -top-16 h-64 w-64 rounded-full bg-amber-300/40 blur-3xl"
+          style={{ animation: "weather-sun-pulse 5s ease-in-out infinite" }}
+        />
+      )}
+
+      {kind === "night" && (
+        <div className="absolute inset-0">
+          {Array.from({ length: 24 }).map((_, i) => (
+            <span
+              key={i}
+              className="absolute h-1 w-1 rounded-full bg-white"
+              style={{
+                left: `${(i * 41) % 100}%`,
+                top: `${(i * 29) % 70}%`,
+                animation: `weather-star-twinkle ${2 + (i % 4)}s ease-in-out ${(i % 6) * 0.4}s infinite`,
+              }}
+            />
+          ))}
+        </div>
+      )}
+
+      {kind === "snow" && (
+        <div className="absolute inset-0">
+          {Array.from({ length: 22 }).map((_, i) => (
+            <span
+              key={i}
+              className="absolute h-1.5 w-1.5 rounded-full bg-white/80"
+              style={{
+                left: `${(i * 43) % 100}%`,
+                top: 0,
+                animation: `weather-snow-fall ${5 + (i % 5)}s linear ${(i % 8) * 0.7}s infinite`,
+              }}
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export function DashboardHero({ deliveredToday, inProduction, pendingCount, pendingTotal, salesToday, salesTodayTotal }: DashboardHeroProps) {
   const queryClient = useQueryClient();
   const [active, setActive] = useState(0);
