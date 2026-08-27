@@ -20,8 +20,16 @@ function createSupabaseClient() {
   let client: ReturnType<typeof createClient<Database>>;
   let jwtRecoveryPromise: Promise<void> | null = null;
 
-  const isFutureJwtError = async (response: Response) =>
-    response.status === 401 && /JWT issued at future/i.test(await response.clone().text());
+  const isFutureJwtError = async (response: Response) => {
+    // PostgREST identifies this failure reliably by code. Depending on the
+    // gateway/version, the HTTP status and human message can vary, so neither
+    // should prevent the clock-skew recovery from running.
+    const body = await response.clone().text();
+    return (
+      /["']?code["']?\s*:\s*["']PGRST303["']/i.test(body) ||
+      /JWT\s+issued(?:\s+at|\s+in\s+the)?\s+future/i.test(body)
+    );
+  };
 
   const getJwtIssuedAt = (request: Request) => {
     const authorization = request.headers.get('authorization');
