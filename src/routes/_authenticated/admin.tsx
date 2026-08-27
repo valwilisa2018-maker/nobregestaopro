@@ -1208,12 +1208,13 @@ function AnnouncementsTab() {
             <Textarea value={form.message} onChange={(e) => setForm({ ...form, message: e.target.value })} placeholder="Descreva o aviso em detalhes..." />
           </div>
           <div className="space-y-2">
-            <Label>Imagem do telão (Opcional)</Label>
+            <Label>Banner do Dashboard (Opcional)</Label>
             <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_320px]">
               <label className="group flex min-h-36 cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed border-border bg-muted/20 px-6 text-center transition hover:border-primary/60 hover:bg-primary/5">
                 <ImagePlus className="mb-2 h-8 w-8 text-primary transition group-hover:scale-110" />
                 <span className="text-sm font-semibold">Clique para escolher a imagem</span>
-                <span className="mt-1 text-xs text-muted-foreground">Recomendado: 1600 × 600 px • JPG, PNG ou WEBP • máximo 5 MB</span>
+                <span className="mt-1 text-xs font-medium text-muted-foreground">Tamanho correto: 1600 × 220 px</span>
+                <span className="mt-0.5 text-[11px] text-muted-foreground/80">JPG, PNG ou WEBP • máximo 5 MB</span>
                 <input type="file" accept="image/jpeg,image/png,image/webp" className="sr-only" onChange={(event) => chooseImage(event.target.files?.[0])} />
               </label>
               <div className="relative min-h-36 overflow-hidden rounded-2xl border border-border bg-gradient-to-br from-primary/10 to-card">
