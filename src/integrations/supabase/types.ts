@@ -10,7 +10,7 @@ export type Database = {
   // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
-    PostgrestVersion: "14.5"
+    PostgrestVersion: "14.17"
   }
   public: {
     Tables: {
@@ -493,7 +493,8 @@ export type Database = {
           id: string
           occurred_at: string
           pontos: number
-          producer_id: string
+          producer_id: string | null
+          producer_name_snapshot: string | null
           raw: Json | null
           trello_card_id: string | null
         }
@@ -505,7 +506,8 @@ export type Database = {
           id?: string
           occurred_at?: string
           pontos?: number
-          producer_id: string
+          producer_id?: string | null
+          producer_name_snapshot?: string | null
           raw?: Json | null
           trello_card_id?: string | null
         }
@@ -517,7 +519,8 @@ export type Database = {
           id?: string
           occurred_at?: string
           pontos?: number
-          producer_id?: string
+          producer_id?: string | null
+          producer_name_snapshot?: string | null
           raw?: Json | null
           trello_card_id?: string | null
         }
@@ -688,27 +691,6 @@ export type Database = {
           },
         ]
       }
-      pagarme_settings: {
-        Row: {
-          api_key: string | null
-          id: boolean
-          updated_at: string
-          updated_by: string | null
-        }
-        Insert: {
-          api_key?: string | null
-          id?: boolean
-          updated_at?: string
-          updated_by?: string | null
-        }
-        Update: {
-          api_key?: string | null
-          id?: boolean
-          updated_at?: string
-          updated_by?: string | null
-        }
-        Relationships: []
-      }
       pagarme_installment_rates: {
         Row: {
           fee_percent: number
@@ -725,6 +707,27 @@ export type Database = {
         Update: {
           fee_percent?: number
           installments?: number
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
+      pagarme_settings: {
+        Row: {
+          api_key: string | null
+          id: boolean
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          api_key?: string | null
+          id?: boolean
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          api_key?: string | null
+          id?: boolean
           updated_at?: string
           updated_by?: string | null
         }
@@ -767,7 +770,6 @@ export type Database = {
           description: string | null
           features: Json
           id: string
-          image_url: string | null
           is_active: boolean
           is_highlight: boolean
           limits: Json
@@ -784,7 +786,6 @@ export type Database = {
           description?: string | null
           features?: Json
           id?: string
-          image_url?: string | null
           is_active?: boolean
           is_highlight?: boolean
           limits?: Json
@@ -801,7 +802,6 @@ export type Database = {
           description?: string | null
           features?: Json
           id?: string
-          image_url?: string | null
           is_active?: boolean
           is_highlight?: boolean
           limits?: Json
@@ -827,7 +827,6 @@ export type Database = {
           id: string
           name: string
           phone: string | null
-          production_started_at: string | null
           quality_score: number | null
           specialty: string | null
           updated_at: string
@@ -845,7 +844,6 @@ export type Database = {
           id?: string
           name: string
           phone?: string | null
-          production_started_at?: string | null
           quality_score?: number | null
           specialty?: string | null
           updated_at?: string
@@ -863,7 +861,6 @@ export type Database = {
           id?: string
           name?: string
           phone?: string | null
-          production_started_at?: string | null
           quality_score?: number | null
           specialty?: string | null
           updated_at?: string
@@ -1124,6 +1121,7 @@ export type Database = {
       }
       sales: {
         Row: {
+          alteration_service_order_id: string | null
           created_at: string
           created_by: string | null
           customer_id: string
@@ -1142,9 +1140,12 @@ export type Database = {
           payment_status: Database["public"]["Enums"]["payment_status"]
           platform_link: string | null
           producer_id: string | null
+          producer_name_snapshot: string | null
           receipt_url: string | null
           sale_date: string
+          sale_kind: string
           seller_id: string | null
+          seller_name_snapshot: string | null
           service_quantity: number
           service_type_id: string | null
           total_amount: number
@@ -1154,6 +1155,7 @@ export type Database = {
           video_duration_seconds: number | null
         }
         Insert: {
+          alteration_service_order_id?: string | null
           created_at?: string
           created_by?: string | null
           customer_id: string
@@ -1172,9 +1174,12 @@ export type Database = {
           payment_status?: Database["public"]["Enums"]["payment_status"]
           platform_link?: string | null
           producer_id?: string | null
+          producer_name_snapshot?: string | null
           receipt_url?: string | null
           sale_date?: string
+          sale_kind?: string
           seller_id?: string | null
+          seller_name_snapshot?: string | null
           service_quantity?: number
           service_type_id?: string | null
           total_amount?: number
@@ -1184,6 +1189,7 @@ export type Database = {
           video_duration_seconds?: number | null
         }
         Update: {
+          alteration_service_order_id?: string | null
           created_at?: string
           created_by?: string | null
           customer_id?: string
@@ -1202,9 +1208,12 @@ export type Database = {
           payment_status?: Database["public"]["Enums"]["payment_status"]
           platform_link?: string | null
           producer_id?: string | null
+          producer_name_snapshot?: string | null
           receipt_url?: string | null
           sale_date?: string
+          sale_kind?: string
           seller_id?: string | null
+          seller_name_snapshot?: string | null
           service_quantity?: number
           service_type_id?: string | null
           total_amount?: number
@@ -1214,6 +1223,13 @@ export type Database = {
           video_duration_seconds?: number | null
         }
         Relationships: [
+          {
+            foreignKeyName: "sales_alteration_service_order_id_fkey"
+            columns: ["alteration_service_order_id"]
+            isOneToOne: false
+            referencedRelation: "service_orders"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "sales_customer_id_fkey"
             columns: ["customer_id"]
@@ -1293,6 +1309,112 @@ export type Database = {
         }
         Relationships: []
       }
+      service_order_alterations: {
+        Row: {
+          amount: number
+          completed_at: string | null
+          created_at: string
+          id: string
+          notes: string | null
+          original_column_id: string | null
+          original_delivered_at: string | null
+          original_producer_id: string | null
+          original_producer_name_snapshot: string | null
+          paid_amount: number
+          producer_id: string | null
+          producer_name_snapshot: string | null
+          sale_id: string
+          seller_id: string | null
+          seller_name_snapshot: string | null
+          service_order_id: string
+          started_at: string
+          status: string
+        }
+        Insert: {
+          amount?: number
+          completed_at?: string | null
+          created_at?: string
+          id?: string
+          notes?: string | null
+          original_column_id?: string | null
+          original_delivered_at?: string | null
+          original_producer_id?: string | null
+          original_producer_name_snapshot?: string | null
+          paid_amount?: number
+          producer_id?: string | null
+          producer_name_snapshot?: string | null
+          sale_id: string
+          seller_id?: string | null
+          seller_name_snapshot?: string | null
+          service_order_id: string
+          started_at?: string
+          status?: string
+        }
+        Update: {
+          amount?: number
+          completed_at?: string | null
+          created_at?: string
+          id?: string
+          notes?: string | null
+          original_column_id?: string | null
+          original_delivered_at?: string | null
+          original_producer_id?: string | null
+          original_producer_name_snapshot?: string | null
+          paid_amount?: number
+          producer_id?: string | null
+          producer_name_snapshot?: string | null
+          sale_id?: string
+          seller_id?: string | null
+          seller_name_snapshot?: string | null
+          service_order_id?: string
+          started_at?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "service_order_alterations_original_column_id_fkey"
+            columns: ["original_column_id"]
+            isOneToOne: false
+            referencedRelation: "kanban_columns"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "service_order_alterations_original_producer_id_fkey"
+            columns: ["original_producer_id"]
+            isOneToOne: false
+            referencedRelation: "producers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "service_order_alterations_producer_id_fkey"
+            columns: ["producer_id"]
+            isOneToOne: false
+            referencedRelation: "producers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "service_order_alterations_sale_id_fkey"
+            columns: ["sale_id"]
+            isOneToOne: true
+            referencedRelation: "sales"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "service_order_alterations_seller_id_fkey"
+            columns: ["seller_id"]
+            isOneToOne: false
+            referencedRelation: "sellers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "service_order_alterations_service_order_id_fkey"
+            columns: ["service_order_id"]
+            isOneToOne: false
+            referencedRelation: "service_orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       service_order_history: {
         Row: {
           created_at: string
@@ -1370,6 +1492,7 @@ export type Database = {
           platform_link: string | null
           priority: number
           producer_id: string | null
+          producer_name_snapshot: string | null
           redo_count: number
           sale_id: string | null
           service_index: number
@@ -1398,6 +1521,7 @@ export type Database = {
           platform_link?: string | null
           priority?: number
           producer_id?: string | null
+          producer_name_snapshot?: string | null
           redo_count?: number
           sale_id?: string | null
           service_index?: number
@@ -1426,6 +1550,7 @@ export type Database = {
           platform_link?: string | null
           priority?: number
           producer_id?: string | null
+          producer_name_snapshot?: string | null
           redo_count?: number
           sale_id?: string | null
           service_index?: number
@@ -1543,6 +1668,7 @@ export type Database = {
           created_by: string | null
           expires_at: string | null
           id: string
+          image_url: string | null
           is_active: boolean
           message: string
           title: string
@@ -1554,6 +1680,7 @@ export type Database = {
           created_by?: string | null
           expires_at?: string | null
           id?: string
+          image_url?: string | null
           is_active?: boolean
           message: string
           title: string
@@ -1565,6 +1692,7 @@ export type Database = {
           created_by?: string | null
           expires_at?: string | null
           id?: string
+          image_url?: string | null
           is_active?: boolean
           message?: string
           title?: string
@@ -1714,6 +1842,39 @@ export type Database = {
         }
         Relationships: []
       }
+      white_label_settings: {
+        Row: {
+          background_color: string
+          foreground_color: string
+          id: boolean
+          logo: string | null
+          primary_color: string
+          secondary_color: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          background_color?: string
+          foreground_color?: string
+          id?: boolean
+          logo?: string | null
+          primary_color?: string
+          secondary_color?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          background_color?: string
+          foreground_color?: string
+          id?: boolean
+          logo?: string | null
+          primary_color?: string
+          secondary_color?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       v_daily_financials: {
@@ -1733,6 +1894,15 @@ export type Database = {
         Args: { _service_order_id: string }
         Returns: string
       }
+      delete_producer_preserving_history: {
+        Args: { p_producer_id: string }
+        Returns: undefined
+      }
+      delete_seller_preserving_history: {
+        Args: { p_seller_id: string }
+        Returns: undefined
+      }
+      get_my_access: { Args: never; Returns: Json }
       get_om_settings_public: {
         Args: never
         Returns: {
@@ -1741,6 +1911,7 @@ export type Database = {
           workdays: number[]
         }[]
       }
+      get_server_epoch_ms: { Args: never; Returns: number }
       get_sinal_totals: {
         Args: { _from: string; _to: string }
         Returns: {
