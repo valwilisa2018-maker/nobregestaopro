@@ -202,11 +202,11 @@ function ProtectedWorkspace({ pathname, nowBR }: { pathname: string; nowBR: stri
           <main className="flex-1 min-h-0 min-w-0 overflow-x-hidden overflow-y-auto overscroll-contain p-4 md:p-6 lg:p-8">
             <div key={pathname} className="animate-fade-up space-y-6">
               <Outlet />
-              <ReleaseNoteCard />
             </div>
           </main>
         </SidebarInset>
       </div>
+      <ReleaseNoteCard />
     </SidebarProvider>
   );
 }
