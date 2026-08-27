@@ -26,6 +26,7 @@ function card(overrides: Partial<KanbanCardData> = {}): KanbanCardData {
     delivered_at: null,
     created_at: "2026-08-01T12:00:00Z",
     sort_order: 10,
+    service_index: null,
     producer: null,
     sales: null,
     ...overrides,
