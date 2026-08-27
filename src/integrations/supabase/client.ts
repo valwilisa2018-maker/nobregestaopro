@@ -19,6 +19,7 @@ function createSupabaseClient() {
 
   let client: ReturnType<typeof createClient<Database>>;
   let jwtRecoveryPromise: Promise<void> | null = null;
+  let sessionRefreshPromise: Promise<string | null> | null = null;
 
   const isFutureJwtError = async (response: Response) => {
     // PostgREST identifies this failure reliably by code. Depending on the
@@ -87,6 +88,41 @@ function createSupabaseClient() {
     return jwtRecoveryPromise;
   };
 
+  const refreshAccessToken = () => {
+    if (!sessionRefreshPromise) {
+      sessionRefreshPromise = client.auth
+        .refreshSession()
+        .then(({ data, error }) => {
+          if (error) throw error;
+          return data.session?.access_token ?? null;
+        })
+        .catch((error) => {
+          console.error('[Supabase] Failed to replace the future-dated JWT.', error);
+          return null;
+        })
+        .finally(() => {
+          sessionRefreshPromise = null;
+        });
+    }
+
+    return sessionRefreshPromise;
+  };
+
+  const requestWithAccessToken = (request: Request, accessToken: string) => {
+    const headers = new Headers(request.headers);
+    headers.set('Authorization', `Bearer ${accessToken}`);
+    return new Request(request, { headers });
+  };
+
+  const discardInvalidLocalSession = async () => {
+    // Keep other devices signed in. This only removes the unusable browser
+    // session so the next login can mint a clean token.
+    await client.auth.signOut({ scope: 'local' }).catch(() => undefined);
+    if (typeof window !== 'undefined' && window.location.pathname !== '/login') {
+      window.location.replace('/login?reason=session-clock');
+    }
+  };
+
   const fetchWithJwtRecovery: typeof fetch = async (input, init) => {
     const request = new Request(input, init);
     let response = await fetch(request.clone());
@@ -99,18 +135,31 @@ function createSupabaseClient() {
       return response;
     }
 
-    // Auth and PostgREST can briefly disagree about the current time. Use the
-    // server's Date header and the token's iat instead of an arbitrary delay.
-    await waitUntilJwtIsValid(request);
-    response = await fetch(request.clone());
+    // Replace a persisted/stale token first. Retrying the original Request
+    // would keep sending the exact same Authorization header even after
+    // refreshSession() updates Supabase's local session.
+    const refreshedAccessToken = await refreshAccessToken();
+    if (!refreshedAccessToken) {
+      await discardInvalidLocalSession();
+      return response;
+    }
+
+    const retryRequest = requestWithAccessToken(request, refreshedAccessToken);
+    response = await fetch(retryRequest.clone());
     if (!await isFutureJwtError(response)) {
       return response;
     }
 
-    // Recalculate once in case a proxy returned a stale Date header. Refreshing
-    // here would mint another future-dated token and restart the problem.
-    await waitUntilJwtIsValid(request);
-    return fetch(request.clone());
+    // If Auth and PostgREST clocks briefly disagree, wait using the refreshed
+    // token's iat and the database clock, then retry exactly once.
+    await waitUntilJwtIsValid(retryRequest);
+    response = await fetch(retryRequest.clone());
+    if (!await isFutureJwtError(response)) {
+      return response;
+    }
+
+    await discardInvalidLocalSession();
+    return response;
   };
 
   const options: any = {
