@@ -225,7 +225,7 @@ export function DashboardHero({ deliveredToday, inProduction, pendingCount, pend
   return (
     <section
       aria-label="Central de informações ao vivo"
-      className="group relative min-h-[270px] overflow-hidden rounded-3xl border border-white/10 bg-zinc-950 shadow-[0_18px_55px_-20px_rgba(220,38,38,0.48)] sm:min-h-[310px]"
+      className="group relative min-h-[190px] overflow-hidden rounded-3xl border border-white/10 bg-zinc-950 shadow-[0_18px_55px_-20px_rgba(220,38,38,0.48)] sm:min-h-[220px]"
       onMouseEnter={() => setPaused(true)}
       onMouseLeave={() => setPaused(false)}
     >
@@ -235,7 +235,7 @@ export function DashboardHero({ deliveredToday, inProduction, pendingCount, pend
       <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-black/25" />
       <div className="absolute inset-y-0 left-0 w-1 bg-gradient-to-b from-red-500 via-primary to-rose-700" />
 
-      <div className="relative flex min-h-[270px] flex-col justify-between p-5 sm:min-h-[310px] sm:p-8 lg:p-10">
+      <div className="relative flex min-h-[190px] flex-col justify-between p-4 sm:min-h-[220px] sm:p-6 lg:p-8">
         <header className="flex items-center justify-between gap-4">
           <div className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-black/30 px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.18em] text-white/75 backdrop-blur-md">
             <span className="relative flex h-2 w-2"><span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" /><span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-400" /></span>
@@ -248,13 +248,13 @@ export function DashboardHero({ deliveredToday, inProduction, pendingCount, pend
         </header>
 
         <div key={slide.key} className="max-w-3xl animate-in fade-in slide-in-from-left-5 duration-700">
-          <div className="mb-3 flex items-center gap-2 text-xs font-bold uppercase tracking-[0.16em] text-white/70">
-            <span className={cn("flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br text-white shadow-lg", slide.accent)}><Icon className="h-4.5 w-4.5" /></span>
+          <div className="mb-2 flex items-center gap-2 text-xs font-bold uppercase tracking-[0.16em] text-white/70">
+            <span className={cn("flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br text-white shadow-lg", slide.accent)}><Icon className="h-4 w-4" /></span>
             {slide.label}
           </div>
-          <h1 className="max-w-3xl text-3xl font-black leading-[1.05] tracking-tight text-white drop-shadow-2xl sm:text-5xl lg:text-6xl">{slide.title}</h1>
-          <div className="mt-3">{slide.content}</div>
-          <p className="mt-3 text-xs font-medium text-white/55 sm:text-sm">{slide.detail}</p>
+          <h1 className="max-w-3xl text-2xl font-black leading-[1.05] tracking-tight text-white drop-shadow-2xl sm:text-4xl lg:text-5xl">{slide.title}</h1>
+          <div className="mt-2">{slide.content}</div>
+          <p className="mt-1.5 text-xs font-medium text-white/55 sm:text-sm">{slide.detail}</p>
         </div>
 
         <footer className="flex items-end justify-between gap-4">
