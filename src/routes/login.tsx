@@ -1,7 +1,6 @@
-import { createFileRoute, useNavigate, redirect } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { lovable } from "@/integrations/lovable";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -126,10 +125,16 @@ function LoginPage() {
 
   const handleGoogle = async () => {
     setLoading(true);
-    const r = await lovable.auth.signInWithOAuth("google", { redirect_uri: window.location.origin });
-    if (r.error) { 
-      await logger.error("Falha ao entrar com Google", { context: "auth/google", details: r.error });
-      setLoading(false); 
+    // Use Supabase Auth directly. Tokens returned by the Lovable bridge were
+    // being rejected by this project's PostgREST service with PGRST303.
+    await supabase.auth.signOut({ scope: "local" }).catch(() => undefined);
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: "google",
+      options: { redirectTo: `${window.location.origin}/dashboard` },
+    });
+    if (error) {
+      await logger.error("Falha ao entrar com Google", { context: "auth/google", details: error });
+      setLoading(false);
     }
   };
 
