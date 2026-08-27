@@ -3,6 +3,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Banknote, ChevronLeft, ChevronRight, Clock3, CloudSun, Megaphone, Sparkles, Video } from "lucide-react";
 import { TopWeather } from "@/components/top-weather";
 import { supabase } from "@/integrations/supabase/client";
+import { getWeatherKind, useWeather, type WeatherKind } from "@/hooks/use-weather";
 import { cn } from "@/lib/utils";
 
 type DashboardHeroProps = {
