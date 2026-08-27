@@ -156,14 +156,30 @@ export function DashboardHero({ deliveredToday, inProduction, pendingCount, pend
     };
   }, [queryClient]);
 
+  function weatherPhrase(code: number, isDay: boolean): string {
+    if (code === 0) return isDay ? "O tempo tá ensolarado" : "Céu limpo esta noite";
+    if (code === 1 || code === 2) return isDay ? "O tempo tá de meia-nuvem" : "Poucas nuvens esta noite";
+    if (code === 3) return "O tempo tá nublado";
+    if (code === 45 || code === 48) return "O tempo tá com neblina";
+    if ([51, 53, 55, 56, 57].includes(code)) return "O tempo tá com garoa";
+    if ([61, 63, 65, 66, 67, 80, 81, 82].includes(code)) return "O tempo tá chuvoso";
+    if ([71, 73, 75, 77, 85, 86].includes(code)) return "O tempo tá nevando";
+    if ([95, 96, 99].includes(code)) return "O tempo tá com trovoada";
+    return "Tempo variável por aí";
+  }
+
   const slides = useMemo(() => [
     {
       key: "weather",
       icon: CloudSun,
       label: "Clima na sua localização",
-      title: "Seu dia começa bem informado",
+      title: weatherState.data
+        ? weatherPhrase(weatherState.data.weatherCode, weatherState.data.isDay)
+        : "Seu dia começa bem informado",
       content: <TopWeather />,
-      detail: `Previsão atualizada pelo GPS • ${now.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}`,
+      detail: weatherState.data
+        ? `${weatherState.data.temperature}°C agora • Máx ${weatherState.data.maxTemp}°C Min ${weatherState.data.minTemp}°C • ${now.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}`
+        : `Previsão atualizada pelo GPS • ${now.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}`,
       background: weatherSceneConfig.image,
       accent: weatherSceneConfig.accent,
       isWeather: true,
