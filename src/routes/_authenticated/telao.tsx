@@ -702,10 +702,13 @@ function Telao() {
 
   const sum = (arr: SaleRow[]) => arr.reduce((a, s) => a + Number(s.total_amount || 0), 0);
 
-  // Ranking vendedores e produtores no mês (com fallback p/ created_by)
-  const rankBy = (resolver: (s: SaleRow) => { id: string; name: string } | null) => {
+  // Ranking vendedores e produtores (com fallback p/ created_by)
+  const rankFrom = (
+    source: SaleRow[],
+    resolver: (s: SaleRow) => { id: string; name: string } | null,
+  ) => {
     const map = new Map<string, { name: string; total: number; qtd: number }>();
-    monthSales.forEach((s) => {
+    source.forEach((s) => {
       const r = resolver(s);
       if (!r) return;
       const cur = map.get(r.id) ?? { name: r.name, total: 0, qtd: 0 };
@@ -715,9 +718,14 @@ function Telao() {
     });
     return Array.from(map.values()).sort((a, b) => b.total - a.total).slice(0, 5);
   };
+  const rankBy = (resolver: (s: SaleRow) => { id: string; name: string } | null) =>
+    rankFrom(monthSales, resolver);
 
-  const topSellers = rankBy(effectiveSellerKey);
+  const topSellersWeek = rankFrom(weekSales, effectiveSellerKey);
+  const topSellersToday = rankFrom(todaySales, effectiveSellerKey);
   const topProducers = rankBy(effectiveProducerKey);
+
+
 
   // Vídeos prontos por produtor (mês) — service_orders entregues ou em coluna "concluído"
   const doneColumnIds = useMemo(
@@ -1464,7 +1472,13 @@ function Telao() {
 
         {/* PÓDIOS */}
         <div className="telao-area-tops">
-          <Podium title="Top Vendedores" rows={topSellers} />
+          <SellersSplitPodium
+            weekRows={topSellersWeek}
+            todayRows={topSellersToday}
+            weekTotal={sum(weekSales)}
+            todayTotal={sum(todaySales)}
+          />
+
         </div>
         <div className="telao-area-topp">
           <Podium title="Top Produtores" rows={topProducers} unitSingular="vídeo produzido" unitPlural="vídeos produzidos" />
@@ -1592,7 +1606,99 @@ function KpiBlock({ label, value, count, accent }: { label: string; value: numbe
   );
 }
 
+function SellersSplitPodium({
+  weekRows,
+  todayRows,
+  weekTotal,
+  todayTotal,
+}: {
+  weekRows: { name: string; total: number; qtd: number }[];
+  todayRows: { name: string; total: number; qtd: number }[];
+  weekTotal: number;
+  todayTotal: number;
+}) {
+  const columns = [
+    { key: "semana", label: "Semana", rows: weekRows, total: weekTotal },
+    { key: "hoje", label: "Hoje", rows: todayRows, total: todayTotal },
+  ];
+  return (
+    <div className="rounded-lg border border-[#c9a84c]/20 bg-[#111]/80 overflow-hidden">
+      <div className="flex items-center justify-between gap-2 px-4 py-3 border-b border-[#c9a84c]/15">
+        <h3
+          style={{ fontFamily: '"Bebas Neue", sans-serif', letterSpacing: "0.08em" }}
+          className="text-xl text-[#f0d78c]"
+        >
+          TOP VENDEDORES
+        </h3>
+        <span className="text-[10px] uppercase tracking-[0.3em] text-[#c9a84c]/60">
+          semana · hoje
+        </span>
+      </div>
+      <div className="grid grid-cols-2 divide-x divide-[#c9a84c]/10">
+        {columns.map((col) => (
+          <div key={col.key} className="min-w-0">
+            <div className="flex items-baseline justify-between gap-2 px-3 py-2 border-b border-[#c9a84c]/10">
+              <span className="text-[10px] uppercase tracking-[0.28em] text-[#c9a84c]/70">
+                {col.label}
+              </span>
+              <span
+                style={{ fontFamily: '"Bebas Neue", sans-serif' }}
+                className="text-base text-[#f0d78c] tabular-nums"
+              >
+                {formatCurrency(col.total)}
+              </span>
+            </div>
+            <ul className="divide-y divide-[#c9a84c]/8">
+              {col.rows.length === 0 && (
+                <li className="px-3 py-6 text-center text-[10px] uppercase tracking-widest text-[#c9a84c]/40">
+                  sem dados
+                </li>
+              )}
+              {col.rows.map((r, i) => (
+                <li
+                  key={`${col.key}-${r.name}-${i}`}
+                  className="grid grid-cols-[auto_1fr] items-center gap-2 px-3 py-2"
+                >
+                  <span
+                    style={{ fontFamily: '"Bebas Neue", sans-serif' }}
+                    className={`w-6 h-6 grid place-items-center rounded text-sm ${
+                      i === 0
+                        ? "bg-gradient-to-br from-[#f0d78c] to-[#c9a84c] text-black"
+                        : i === 1
+                        ? "bg-[#3a3a3a] text-[#f0d78c] border border-[#c9a84c]/40"
+                        : i === 2
+                        ? "bg-[#2a1f0a] text-[#c9a84c] border border-[#c9a84c]/40"
+                        : "bg-[#1a1a1a] text-[#c9a84c]/70 border border-[#c9a84c]/15"
+                    }`}
+                  >
+                    {String(i + 1).padStart(2, "0")}
+                  </span>
+                  <div className="min-w-0">
+                    <div className="flex items-baseline justify-between gap-2">
+                      <span className="font-semibold text-white truncate text-sm">{r.name}</span>
+                      <span
+                        style={{ fontFamily: '"Bebas Neue", sans-serif' }}
+                        className="text-base text-[#f0d78c] tabular-nums shrink-0"
+                      >
+                        {formatCurrency(r.total)}
+                      </span>
+                    </div>
+                    <div className="text-[9px] uppercase tracking-widest text-[#c9a84c]/50">
+                      {r.qtd} venda{r.qtd === 1 ? "" : "s"}
+                    </div>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function Podium({
+
   title,
   rows,
   mode = "sales",
