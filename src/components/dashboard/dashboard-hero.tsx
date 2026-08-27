@@ -224,7 +224,7 @@ export function DashboardHero({ deliveredToday, inProduction, pendingCount, pend
       background: "/dashboard-telao/tecnologia-premium.png",
       accent: "from-red-400 to-rose-600",
     },
-  ], [announcement.data, deliveredToday, inProduction, now, pendingCount, pendingTotal, salesToday, salesTodayTotal, weatherSceneConfig]);
+  ], [announcement.data, deliveredToday, inProduction, now, pendingCount, pendingTotal, salesToday, salesTodayTotal, weatherSceneConfig, weatherState.data]);
 
   useEffect(() => {
     if (paused || slides.length < 2) return;
