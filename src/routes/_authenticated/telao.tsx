@@ -702,10 +702,13 @@ function Telao() {
 
   const sum = (arr: SaleRow[]) => arr.reduce((a, s) => a + Number(s.total_amount || 0), 0);
 
-  // Ranking vendedores e produtores no mês (com fallback p/ created_by)
-  const rankBy = (resolver: (s: SaleRow) => { id: string; name: string } | null) => {
+  // Ranking vendedores e produtores (com fallback p/ created_by)
+  const rankFrom = (
+    source: SaleRow[],
+    resolver: (s: SaleRow) => { id: string; name: string } | null,
+  ) => {
     const map = new Map<string, { name: string; total: number; qtd: number }>();
-    monthSales.forEach((s) => {
+    source.forEach((s) => {
       const r = resolver(s);
       if (!r) return;
       const cur = map.get(r.id) ?? { name: r.name, total: 0, qtd: 0 };
@@ -715,9 +718,12 @@ function Telao() {
     });
     return Array.from(map.values()).sort((a, b) => b.total - a.total).slice(0, 5);
   };
+  const rankBy = (resolver: (s: SaleRow) => { id: string; name: string } | null) =>
+    rankFrom(monthSales, resolver);
 
-  const topSellers = rankBy(effectiveSellerKey);
-  const topProducers = rankBy(effectiveProducerKey);
+  const topSellersWeek = rankFrom(weekSales, effectiveSellerKey);
+  const topSellersToday = rankFrom(todaySales, effectiveSellerKey);
+
 
   // Vídeos prontos por produtor (mês) — service_orders entregues ou em coluna "concluído"
   const doneColumnIds = useMemo(
