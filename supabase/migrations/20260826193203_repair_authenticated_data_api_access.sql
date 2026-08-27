@@ -3,17 +3,10 @@
 -- which rows each signed-in user may read or change.
 
 grant usage on schema public to authenticated;
-grant select, insert, update, delete on all tables in schema public to authenticated;
-grant usage, select on all sequences in schema public to authenticated;
 
--- Keep future tables and sequences reachable by the application as well.
-alter default privileges in schema public
-  grant select, insert, update, delete on tables to authenticated;
-alter default privileges in schema public
-  grant usage, select on sequences to authenticated;
-
--- Every base/partitioned table exposed through the public Data API must use
--- RLS. Existing policies remain unchanged and continue enforcing access.
+-- Work one object at a time. Supabase may keep extension-owned objects such
+-- as spatial_ref_sys in public; lack of ownership over one of those objects
+-- must not roll back access restoration for every application table.
 do $$
 declare
   target record;
@@ -25,7 +18,34 @@ begin
     where n.nspname = 'public'
       and c.relkind in ('r', 'p')
   loop
-    execute format('alter table %s enable row level security', target.qualified_name);
+    begin
+      execute format(
+        'grant select, insert, update, delete on table %s to authenticated',
+        target.qualified_name
+      );
+      execute format('alter table %s enable row level security', target.qualified_name);
+    exception
+      when insufficient_privilege then
+        raise notice 'Skipping extension/internal table %', target.qualified_name;
+    end;
+  end loop;
+
+  for target in
+    select format('%I.%I', n.nspname, c.relname) as qualified_name
+    from pg_class c
+    join pg_namespace n on n.oid = c.relnamespace
+    where n.nspname = 'public'
+      and c.relkind = 'S'
+  loop
+    begin
+      execute format(
+        'grant usage, select on sequence %s to authenticated',
+        target.qualified_name
+      );
+    exception
+      when insufficient_privilege then
+        raise notice 'Skipping extension/internal sequence %', target.qualified_name;
+    end;
   end loop;
 end
 $$;
