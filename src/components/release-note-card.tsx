@@ -99,7 +99,7 @@ export function ReleaseNoteCard() {
     };
 
     return (
-      <div className="fixed inset-0 z-[150] flex items-center justify-center p-4 bg-background/60 backdrop-blur-md animate-in fade-in duration-500">
+      <div className="fixed inset-0 z-[150] flex items-start justify-center p-4 pt-20 bg-background/60 backdrop-blur-md animate-in fade-in duration-500 overflow-y-auto">
         <div className="relative w-full max-w-[440px] animate-in zoom-in-95 slide-in-from-bottom-10 duration-500">
           <div className="relative group">
             <div className={cn(
@@ -157,7 +157,7 @@ export function ReleaseNoteCard() {
 
   // Auto Update Content (Existing Style)
   return (
-    <div className="fixed inset-0 z-[150] flex items-center justify-center p-4 bg-background/40 backdrop-blur-sm animate-in fade-in duration-500">
+    <div className="fixed inset-0 z-[150] flex items-start justify-center p-4 pt-20 bg-background/40 backdrop-blur-sm animate-in fade-in duration-500 overflow-y-auto">
       <div className="relative w-full max-w-[420px] animate-in zoom-in-95 slide-in-from-bottom-10 duration-500">
         <div className="relative group">
           <div className="absolute -inset-0.5 bg-gradient-to-r from-primary/50 via-purple-500/30 to-primary/50 rounded-2xl blur opacity-30 group-hover:opacity-60 transition duration-1000 group-hover:duration-200" />
