@@ -164,8 +164,9 @@ export function DashboardHero({ deliveredToday, inProduction, pendingCount, pend
       title: "Seu dia começa bem informado",
       content: <TopWeather />,
       detail: `Previsão atualizada pelo GPS • ${now.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}`,
-      background: "/dashboard-telao/tecnologia-premium.png",
-      accent: "from-sky-400 to-blue-500",
+      background: weatherSceneConfig.image,
+      accent: weatherSceneConfig.accent,
+      isWeather: true,
     },
     {
       key: "production",
