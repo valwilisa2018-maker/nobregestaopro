@@ -1472,7 +1472,13 @@ function Telao() {
 
         {/* PÓDIOS */}
         <div className="telao-area-tops">
-          <Podium title="Top Vendedores" rows={topSellers} />
+          <SellersSplitPodium
+            weekRows={topSellersWeek}
+            todayRows={topSellersToday}
+            weekTotal={sum(weekSales)}
+            todayTotal={sum(todaySales)}
+          />
+
         </div>
         <div className="telao-area-topp">
           <Podium title="Top Produtores" rows={topProducers} unitSingular="vídeo produzido" unitPlural="vídeos produzidos" />
