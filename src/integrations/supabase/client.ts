@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js';
 import type { Database } from './types';
+import { brokeredPreviewStorage } from './previewAuthStorage';
 
 function createSupabaseClient() {
   // Browser bundles must only read VITE_* values. Referencing `process.env`
@@ -155,7 +156,7 @@ function createSupabaseClient() {
 
   const options: any = {
     auth: {
-      storage: typeof window !== 'undefined' ? localStorage : undefined,
+      storage: brokeredPreviewStorage(),
       persistSession: true,
       autoRefreshToken: true,
     },
