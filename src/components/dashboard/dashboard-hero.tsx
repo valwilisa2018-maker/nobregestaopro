@@ -121,6 +121,11 @@ export function DashboardHero({ deliveredToday, inProduction, pendingCount, pend
   const [active, setActive] = useState(0);
   const [paused, setPaused] = useState(false);
   const [now, setNow] = useState(() => new Date());
+  const weatherState = useWeather();
+  const weatherKind: WeatherKind = weatherState.data
+    ? getWeatherKind(weatherState.data.weatherCode, weatherState.data.isDay)
+    : "sun";
+  const weatherSceneConfig = WEATHER_BACKGROUNDS[weatherKind];
 
   const announcement = useQuery({
     queryKey: ["dashboard-live-announcement"],
