@@ -114,15 +114,6 @@ function createSupabaseClient() {
     return new Request(request, { headers });
   };
 
-  const discardInvalidLocalSession = async () => {
-    // Keep other devices signed in. This only removes the unusable browser
-    // session so the next login can mint a clean token.
-    await client.auth.signOut({ scope: 'local' }).catch(() => undefined);
-    if (typeof window !== 'undefined' && window.location.pathname !== '/login') {
-      window.location.replace('/login?reason=session-clock');
-    }
-  };
-
   const fetchWithJwtRecovery: typeof fetch = async (input, init) => {
     const request = new Request(input, init);
     let response = await fetch(request.clone());
@@ -139,12 +130,12 @@ function createSupabaseClient() {
     // would keep sending the exact same Authorization header even after
     // refreshSession() updates Supabase's local session.
     const refreshedAccessToken = await refreshAccessToken();
-    if (!refreshedAccessToken) {
-      await discardInvalidLocalSession();
-      return response;
-    }
-
-    const retryRequest = requestWithAccessToken(request, refreshedAccessToken);
+    // A refresh token can already have been consumed by another tab. In that
+    // case, preserve the current login and let the original access token age
+    // into validity instead of creating a login redirect loop.
+    const retryRequest = refreshedAccessToken
+      ? requestWithAccessToken(request, refreshedAccessToken)
+      : request;
     response = await fetch(retryRequest.clone());
     if (!await isFutureJwtError(response)) {
       return response;
@@ -158,7 +149,7 @@ function createSupabaseClient() {
       return response;
     }
 
-    await discardInvalidLocalSession();
+    console.error('[Supabase] PostgREST still rejected the JWT after clock recovery.');
     return response;
   };
 
