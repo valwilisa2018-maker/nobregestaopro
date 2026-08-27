@@ -9,8 +9,8 @@ import { useAuth } from "@/hooks/use-auth";
 import { useMemo, useState } from "react";
 import {
   Activity, MessageSquare, MessagesSquare, Timer, Coins, DollarSign, Plug, Bot,
-  Plus, Search, ArrowUpRight, Zap, Users, RefreshCw, Send, Target, CalendarDays,
-  TrendingUp, Trophy, XCircle, Smartphone,
+  Plus, Search, ArrowUpRight, Users, RefreshCw, Send, Target, CalendarDays,
+  TrendingUp, Trophy, XCircle, Smartphone, CloudSun, CloudRain, Wind, Sunrise,
 } from "lucide-react";
 import {
   ResponsiveContainer, AreaChart, Area, BarChart, Bar, LineChart, Line,
@@ -109,6 +109,74 @@ const KPI_TONES = [
   { bg: "from-orange-500/20 to-orange-500/5",   icon: "bg-orange-500/20 text-orange-300 ring-orange-400/30" },
   { bg: "from-pink-500/20 to-pink-500/5",       icon: "bg-pink-500/20 text-pink-300 ring-pink-400/30" },
 ];
+
+function WeatherHeroArt() {
+  return (
+    <div className="relative hidden min-h-[248px] w-full max-w-[430px] flex-1 overflow-hidden rounded-[2rem] border border-white/12 bg-slate-950/35 px-6 py-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)] lg:flex">
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(251,191,36,0.28),transparent_32%),linear-gradient(160deg,rgba(14,116,144,0.58),rgba(2,6,23,0.92)_72%)]" />
+      <div className="absolute inset-x-0 bottom-0 h-28 bg-[linear-gradient(180deg,transparent,rgba(2,6,23,0.92))]" />
+      <div className="absolute right-[-18px] top-[-26px] h-36 w-36 rounded-full bg-amber-200/58 blur-3xl" />
+      <div className="absolute left-6 top-7 h-10 w-24 rounded-full bg-white/10 blur-md" />
+      <div className="absolute left-16 top-12 h-7 w-16 rounded-full bg-white/12 blur-sm" />
+      <div className="absolute right-16 top-16 h-12 w-28 rounded-full bg-white/9 blur-md" />
+      <div className="absolute right-12 top-24 h-8 w-20 rounded-full bg-white/10 blur-sm" />
+      {Array.from({ length: 7 }).map((_, i) => (
+        <span
+          key={i}
+          className="absolute bottom-14 w-px rounded-full bg-gradient-to-b from-sky-200/0 via-sky-200/70 to-sky-300/0"
+          style={{
+            left: `${62 + i * 36}px`,
+            height: `${28 + (i % 3) * 12}px`,
+            opacity: i > 3 ? 0.55 : 0.8,
+            transform: "rotate(18deg)",
+          }}
+        />
+      ))}
+
+      <div className="relative z-10 flex w-full flex-col justify-between text-white">
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <div className="text-[11px] font-semibold uppercase tracking-[0.34em] text-sky-100/70">
+              Radar do Tempo
+            </div>
+            <div className="mt-3 text-6xl font-black leading-none">26 C</div>
+            <div className="mt-2 flex items-center gap-2 text-sm text-sky-50/88">
+              <CloudRain className="h-4 w-4 text-sky-200" />
+              Garoa leve com aberturas de sol
+            </div>
+          </div>
+          <div className="rounded-[1.6rem] border border-white/12 bg-white/10 p-4 shadow-[0_18px_40px_-24px_rgba(125,211,252,0.95)] backdrop-blur-md">
+            <CloudSun className="h-14 w-14 text-amber-200" />
+          </div>
+        </div>
+
+        <div className="grid grid-cols-3 gap-3">
+          <div className="rounded-2xl border border-white/10 bg-black/20 p-3 backdrop-blur-sm">
+            <div className="flex items-center gap-2 text-[11px] uppercase tracking-[0.28em] text-sky-100/60">
+              <Wind className="h-3.5 w-3.5" />
+              Vento
+            </div>
+            <div className="mt-2 text-lg font-bold">11 km/h</div>
+          </div>
+          <div className="rounded-2xl border border-white/10 bg-black/20 p-3 backdrop-blur-sm">
+            <div className="flex items-center gap-2 text-[11px] uppercase tracking-[0.28em] text-sky-100/60">
+              <CloudRain className="h-3.5 w-3.5" />
+              Chuva
+            </div>
+            <div className="mt-2 text-lg font-bold">32%</div>
+          </div>
+          <div className="rounded-2xl border border-white/10 bg-black/20 p-3 backdrop-blur-sm">
+            <div className="flex items-center gap-2 text-[11px] uppercase tracking-[0.28em] text-sky-100/60">
+              <Sunrise className="h-3.5 w-3.5" />
+              Amanhecer
+            </div>
+            <div className="mt-2 text-lg font-bold">05:58</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 function Dashboard() {
   const { user } = useAuth();
@@ -292,80 +360,61 @@ function Dashboard() {
   return (
     <div className="space-y-6 animate-fade-in">
       {/* Hero */}
-      <div className="relative overflow-hidden rounded-3xl border border-border bg-background px-6 py-4 md:px-8 md:py-5">
-        <div className="absolute inset-0 opacity-70" style={{ background: "radial-gradient(1200px 300px at 20% 0%, rgba(59,130,246,0.18), transparent 60%), radial-gradient(800px 260px at 90% 100%, rgba(168,85,247,0.16), transparent 60%)" }} />
-        <div className="relative flex flex-col xl:flex-row xl:items-center xl:justify-between gap-4">
-          <div className="min-w-0 space-y-2 flex-1">
-            <span className="inline-flex items-center gap-1.5 rounded-full border border-blue-400/40 bg-blue-500/10 px-2.5 py-0.5 text-[11px] font-semibold text-blue-300">
-              <Zap className="h-3 w-3" /> Plataforma IA Premium
-            </span>
-            <h1 className="text-3xl md:text-4xl font-black tracking-tight leading-none bg-clip-text text-transparent" style={{ backgroundImage: "linear-gradient(90deg,#3b82f6,#6366f1 45%,#a855f7)" }}>
-              Central de Comando
-            </h1>
-            <p className="text-xs text-muted-foreground max-w-xl">
-              Visão consolidada de agentes, WhatsApp, disparos, pipeline e agenda — {range.label.toLowerCase()}.
-            </p>
-          </div>
-          <div className="flex flex-1 items-center justify-center gap-3 flex-nowrap">
-            <div className="relative shrink-0">
-              <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-              <Input placeholder="Buscar agentes, conversas..." className="pl-11 w-72 md:w-96 h-12 text-base rounded-full bg-background/60 border-border text-foreground placeholder:text-muted-foreground" />
+      <div className="relative overflow-hidden rounded-3xl border border-sky-500/20 bg-slate-950 px-6 py-5 md:px-8 md:py-7">
+        <div
+          className="absolute inset-0 opacity-95"
+          style={{
+            background:
+              "radial-gradient(1000px 260px at 14% 0%, rgba(251,191,36,0.16), transparent 55%), radial-gradient(760px 320px at 82% 14%, rgba(56,189,248,0.2), transparent 54%), linear-gradient(135deg, rgba(12,74,110,0.96), rgba(3,7,18,0.98) 62%)",
+          }}
+        />
+        <div className="absolute inset-x-0 bottom-0 h-24 bg-[linear-gradient(180deg,transparent,rgba(2,6,23,0.9))]" />
+        <div className="relative flex flex-col gap-6 xl:flex-row xl:items-center xl:justify-between">
+          <div className="min-w-0 flex-1 space-y-4">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-400/30 bg-emerald-500/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.26em] text-emerald-200">
+                <span className="h-2 w-2 rounded-full bg-emerald-300" />
+                Central Nobre | Ao vivo
+              </span>
+              <span className="inline-flex items-center gap-2 rounded-full border border-sky-300/20 bg-white/6 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.22em] text-sky-100/80">
+                <CloudSun className="h-3.5 w-3.5 text-sky-200" />
+                Clima na sua localizacao
+              </span>
             </div>
-            <Button onClick={() => dash.refetch()} disabled={dash.isFetching} className="h-12 px-6 text-base shrink-0 rounded-full bg-background text-foreground border border-border hover:bg-muted/60 gap-2">
-              <RefreshCw className={`h-5 w-5 ${dash.isFetching ? "animate-spin" : ""}`} /> Atualizar
-            </Button>
-          </div>
-          <div className="hidden lg:flex items-center relative flex-1 justify-end">
-              <svg viewBox="0 0 340 160" className="h-20 w-[240px]" fill="none">
-                <defs>
-                  <linearGradient id="hudStroke" x1="0" x2="1">
-                    <stop offset="0%" stopColor="#22d3ee" />
-                    <stop offset="100%" stopColor="#a855f7" />
-                  </linearGradient>
-                </defs>
-                {/* Octagonal frame */}
-                <path d="M10 40 L40 15 L200 15 L215 30 L215 130 L200 145 L40 145 L10 120 Z"
-                  stroke="url(#hudStroke)" strokeWidth="1.5" opacity="0.9" />
-                <path d="M18 48 L45 25 L195 25 L207 37 L207 123 L195 135 L45 135 L18 112 Z"
-                  stroke="url(#hudStroke)" strokeWidth="0.75" opacity="0.5" />
-                {/* Waveform inside */}
-                <path d="M30 100 L55 92 L70 96 L88 78 L108 90 L128 82 L150 92 L172 74 L200 88"
-                  stroke="url(#hudStroke)" strokeWidth="1.5" fill="none" opacity="0.9" />
-                {/* Circuit ticks */}
-                <g stroke="url(#hudStroke)" strokeWidth="1" opacity="0.7">
-                  <path d="M215 45 L235 45 L240 50" />
-                  <path d="M215 115 L235 115 L240 110" />
-                  <path d="M40 15 L40 5 L60 5" />
-                  <path d="M180 145 L180 155 L160 155" />
-                </g>
-                {/* Concentric HUD rings */}
-                <circle cx="275" cy="80" r="55" stroke="url(#hudStroke)" strokeWidth="1.5" opacity="0.9" />
-                <circle cx="275" cy="80" r="46" stroke="url(#hudStroke)" strokeWidth="0.75" opacity="0.5" strokeDasharray="3 4" />
-                <circle cx="275" cy="80" r="34" stroke="url(#hudStroke)" strokeWidth="1" opacity="0.8" />
-                <circle cx="275" cy="80" r="22" fill="#0b0620" stroke="url(#hudStroke)" strokeWidth="1" />
-                {/* Ring tick marks */}
-                {Array.from({ length: 24 }).map((_, i) => {
-                  const a = (i / 24) * Math.PI * 2;
-                  const x1 = 275 + Math.cos(a) * 58;
-                  const y1 = 80 + Math.sin(a) * 58;
-                  const x2 = 275 + Math.cos(a) * 63;
-                  const y2 = 80 + Math.sin(a) * 63;
-                  return <line key={i} x1={x1} y1={y1} x2={x2} y2={y2} stroke="url(#hudStroke)" strokeWidth="1" opacity="0.6" />;
-                })}
-                {/* 3x3 dots in center */}
-                {Array.from({ length: 9 }).map((_, i) => (
-                  <circle key={i} cx={267 + (i % 3) * 8} cy={72 + Math.floor(i / 3) * 8} r="1.6" fill="#a855f7" />
-                ))}
-                {/* IA Online label */}
-                <g>
-                  <circle cx="55" cy="80" r="4" fill="#22d3ee" />
-                  <text x="70" y="85" fill="#e0f2fe" fontSize="16" fontWeight="700" fontFamily="ui-sans-serif, system-ui">IA Online</text>
-                </g>
-              </svg>
+
+            <div className="space-y-3">
+              <h1 className="max-w-xl text-4xl font-black leading-none tracking-tight text-white md:text-6xl">
+                Seu dia comeca bem informado
+              </h1>
+              <p className="max-w-2xl text-sm text-sky-50/72 md:text-base">
+                Uma abertura mais visual para o dashboard, com atmosfera de clima, operacao ao vivo e atualizacao rapida do painel em {range.label.toLowerCase()}.
+              </p>
             </div>
+
+            <div className="flex flex-wrap items-center gap-3">
+              <div className="inline-flex max-w-full items-center gap-2 rounded-full border border-white/10 bg-slate-950/55 px-3 py-2 text-sm text-sky-50/88 shadow-[0_12px_30px_-22px_rgba(56,189,248,0.95)]">
+                <CloudRain className="h-4 w-4 shrink-0 text-sky-300" />
+                <span className="font-semibold text-white">16 C</span>
+                <span>Garoa</span>
+                <span className="text-white/45">Max 26 C Min 15 C</span>
+                <span className="hidden truncate text-white/45 md:inline">SAO SEBASTIAO DO PARAISO</span>
+              </div>
+              <span className="text-sm text-sky-100/70">Previsao atualizada pelo GPS | 00:01</span>
+            </div>
+
+            <div className="flex flex-col gap-3 pt-1 md:flex-row md:items-center">
+              <div className="relative shrink-0">
+                <Search className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-sky-100/40" />
+                <Input placeholder="Buscar agentes, conversas..." className="pl-11 w-72 md:w-96 h-12 text-base rounded-full bg-slate-950/55 border-white/10 text-white placeholder:text-sky-100/36" />
+              </div>
+              <Button onClick={() => dash.refetch()} disabled={dash.isFetching} className="h-12 px-6 text-base shrink-0 rounded-full bg-white/8 text-white border border-sky-300/15 hover:bg-white/14 gap-2">
+                <RefreshCw className={`h-5 w-5 ${dash.isFetching ? "animate-spin" : ""}`} /> Atualizar
+              </Button>
+            </div>
+          </div>
+          <WeatherHeroArt />
         </div>
       </div>
-
       {/* Range filter */}
       <Card className="border-border/50">
         <CardContent className="p-3 flex flex-wrap items-center gap-2">
