@@ -148,11 +148,30 @@ function KanbanPage() {
   const cards = useQuery({
     queryKey: ["kanban-cards"],
     queryFn: async () => {
-      const primaryResult = await supabase
-        .from("service_orders")
-        .select(KANBAN_CARDS_SELECT)
-        .order("created_at", { ascending: true })
-        .order("service_index", { ascending: true });
+      // O PostgREST limita cada resposta (max-rows). Sem paginação, os cards
+      // mais recentes ficavam fora do quadro. Buscamos em páginas até o fim.
+      const PAGE = 500;
+      const fetchPage = async (select: string, from: number) =>
+        supabase
+          .from("service_orders")
+          .select(select)
+          .order("created_at", { ascending: true })
+          .order("service_index", { ascending: true })
+          .range(from, from + PAGE - 1);
+
+      const fetchAll = async (select: string) => {
+        const all: any[] = [];
+        for (let from = 0; ; from += PAGE) {
+          const { data, error } = await fetchPage(select, from);
+          if (error) return { data: null, error };
+          const rows = (data ?? []) as any[];
+          all.push(...rows);
+          if (rows.length < PAGE) break;
+        }
+        return { data: all, error: null };
+      };
+
+      const primaryResult = await fetchAll(KANBAN_CARDS_SELECT);
 
       if (
         primaryResult.error &&
@@ -161,11 +180,7 @@ function KanbanPage() {
         console.warn(
           "[kanban] Falling back to legacy cards query because video_duration_breakdown_seconds is missing in remote schema.",
         );
-        const legacyResult = await supabase
-          .from("service_orders")
-          .select(KANBAN_CARDS_SELECT_LEGACY)
-          .order("created_at", { ascending: true })
-          .order("service_index", { ascending: true });
+        const legacyResult = await fetchAll(KANBAN_CARDS_SELECT_LEGACY);
 
         if (legacyResult.error) {
           toast.error("Erro ao carregar cards: " + legacyResult.error.message);
@@ -183,6 +198,7 @@ function KanbanPage() {
       return (primaryResult.data ?? []) as any[];
     },
   });
+
 
   // O telão precisa enxergar também colunas específicas de produtores, mesmo
   // quando o quadro está momentaneamente no filtro "Todos".
