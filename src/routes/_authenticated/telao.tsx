@@ -723,6 +723,8 @@ function Telao() {
 
   const topSellersWeek = rankFrom(weekSales, effectiveSellerKey);
   const topSellersToday = rankFrom(todaySales, effectiveSellerKey);
+  const topProducers = rankBy(effectiveProducerKey);
+
 
 
   // Vídeos prontos por produtor (mês) — service_orders entregues ou em coluna "concluído"
