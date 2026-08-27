@@ -208,7 +208,7 @@ export function DashboardHero({ deliveredToday, inProduction, pendingCount, pend
       background: "/dashboard-telao/tecnologia-premium.png",
       accent: "from-red-400 to-rose-600",
     },
-  ], [announcement.data, deliveredToday, inProduction, now, pendingCount, pendingTotal, salesToday, salesTodayTotal]);
+  ], [announcement.data, deliveredToday, inProduction, now, pendingCount, pendingTotal, salesToday, salesTodayTotal, weatherSceneConfig]);
 
   useEffect(() => {
     if (paused || slides.length < 2) return;
@@ -230,6 +230,7 @@ export function DashboardHero({ deliveredToday, inProduction, pendingCount, pend
       onMouseLeave={() => setPaused(false)}
     >
       <img key={slide.background} src={slide.background} alt="" className="absolute inset-0 h-full w-full animate-in object-cover fade-in zoom-in-105 duration-1000" />
+      {"isWeather" in slide && slide.isWeather && <WeatherScene key={weatherKind} kind={weatherKind} />}
       <div className="absolute inset-0 bg-gradient-to-r from-black/95 via-black/72 to-black/10" />
       <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-black/25" />
       <div className="absolute inset-y-0 left-0 w-1 bg-gradient-to-b from-red-500 via-primary to-rose-700" />
