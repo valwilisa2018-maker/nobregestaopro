@@ -225,7 +225,7 @@ export function DashboardHero({ deliveredToday, inProduction, pendingCount, pend
   return (
     <section
       aria-label="Central de informações ao vivo"
-      className="group relative min-h-[270px] overflow-hidden rounded-3xl border border-white/10 bg-zinc-950 shadow-[0_18px_55px_-20px_rgba(220,38,38,0.48)] sm:min-h-[310px]"
+      className="group relative min-h-[190px] overflow-hidden rounded-3xl border border-white/10 bg-zinc-950 shadow-[0_18px_55px_-20px_rgba(220,38,38,0.48)] sm:min-h-[220px]"
       onMouseEnter={() => setPaused(true)}
       onMouseLeave={() => setPaused(false)}
     >
@@ -235,7 +235,7 @@ export function DashboardHero({ deliveredToday, inProduction, pendingCount, pend
       <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-black/25" />
       <div className="absolute inset-y-0 left-0 w-1 bg-gradient-to-b from-red-500 via-primary to-rose-700" />
 
-      <div className="relative flex min-h-[270px] flex-col justify-between p-5 sm:min-h-[310px] sm:p-8 lg:p-10">
+      <div className="relative flex min-h-[190px] flex-col justify-between p-4 sm:min-h-[220px] sm:p-6 lg:p-8">
         <header className="flex items-center justify-between gap-4">
           <div className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-black/30 px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.18em] text-white/75 backdrop-blur-md">
             <span className="relative flex h-2 w-2"><span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" /><span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-400" /></span>
