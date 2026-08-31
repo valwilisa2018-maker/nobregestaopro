@@ -12,7 +12,7 @@ import {
   normalizeProductionDeliveredAt,
   resolveOrderVideoDurationSeconds,
 } from "@/lib/video-production";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 import { DollarSign, TrendingUp, Calendar } from "lucide-react";
 import { DashboardHero } from "@/components/dashboard/dashboard-hero";
 import { DashboardFilters, type DashboardScope } from "@/components/dashboard/dashboard-filters";

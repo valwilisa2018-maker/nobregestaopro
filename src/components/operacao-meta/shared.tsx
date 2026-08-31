@@ -27,7 +27,7 @@ import {
   Star,
   Settings,
 } from "lucide-react";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 import { useTheme } from "@/hooks/use-theme";
 import { useMidnightRefresh } from "@/hooks/use-midnight-refresh";
 import { fmtDateTime, toDateKey } from "@/lib/format";

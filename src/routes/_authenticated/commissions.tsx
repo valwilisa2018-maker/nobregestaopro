@@ -15,7 +15,7 @@ import { Wallet, TrendingUp, DollarSign, Download } from "lucide-react";
 import { formatCurrency } from "@/lib/auth";
 import { Progress } from "@/components/ui/progress";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Legend } from "recharts";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 
 export const Route = createFileRoute("/_authenticated/commissions")({
   component: CommissionsPage,

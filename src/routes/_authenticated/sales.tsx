@@ -8,7 +8,7 @@ import {
   activeServiceTypesQuery,
   activePackagesQuery,
 } from "@/lib/queries/lookups";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 import { logger } from "@/lib/logger";
 import { formatVideoDuration, dateKey, toDateKey } from "@/lib/format";
 import { isValidVideoDuration, sumVideoDurations } from "@/lib/video-production";

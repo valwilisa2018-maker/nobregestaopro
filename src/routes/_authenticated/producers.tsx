@@ -36,7 +36,7 @@ import {
 } from "lucide-react";
 import { PageHero } from "@/components/page-hero";
 import { PrivateImage } from "@/components/private-image";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 import type { Database } from "@/integrations/supabase/types";
 import { uploadProducerAvatar } from "@/lib/producer-avatar.functions";
 

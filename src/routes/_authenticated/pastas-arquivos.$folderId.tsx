@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { ArrowLeft, Upload, FileImage, FileVideo, FileAudio, FileText, File as FileIcon, Trash2, Link as LinkIcon, Download, Copy, Folder as FolderIcon, LayoutGrid, List as ListIcon, Save, X, FolderPlus, Pencil } from "lucide-react";
 import { Loader2, CheckCircle2, AlertCircle } from "lucide-react";
 import { NobreLoader } from "@/components/nobre-loader";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 import { type CategoryId, detectCategory, uploadToFolder, getSignedUrl } from "@/lib/project-folders";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";

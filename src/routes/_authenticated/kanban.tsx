@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useState, useEffect, useRef } from "react";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 import { logger } from "@/lib/logger";
 import { formatCurrency, formatVideoDuration } from "@/lib/format";
 import { useAuth, isAdmin as isAdminRole } from "@/lib/auth";

@@ -47,7 +47,7 @@ import {
 import { PageHero } from "@/components/page-hero";
 import { formatCurrency, dateKey, toDateKey } from "@/lib/format";
 import { fmtDate } from "@/lib/format";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 import { z } from "zod";
 import { waHref, formatPhoneBR } from "@/lib/phone";
 import { VirtualTableRows } from "@/components/virtual-list";

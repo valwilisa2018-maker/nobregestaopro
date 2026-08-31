@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 import { Calculator, Copy, ExternalLink, Loader2, Link2, Save, Table2 } from "lucide-react";
 import { createPaymentLink } from "@/lib/pagarme.functions";
 import { supabase } from "@/integrations/supabase/client";

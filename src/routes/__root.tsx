@@ -12,6 +12,7 @@ import { useEffect, type ReactNode } from "react";
 
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
+import { getErrorMessage } from "@/lib/error-messages";
 import { supabase } from "@/integrations/supabase/client";
 import { Toaster } from "@/components/ui/sonner";
 import { UpdateBanner } from "@/components/update-banner";
@@ -63,7 +64,7 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
         </p>
         {error?.message && (
           <pre className="mt-4 max-h-40 overflow-auto rounded-md bg-muted/50 p-3 text-left text-xs text-muted-foreground whitespace-pre-wrap break-words">
-            {error.message}
+            {getErrorMessage(error)}
           </pre>
         )}
         <div className="mt-6 flex flex-wrap justify-center gap-2">

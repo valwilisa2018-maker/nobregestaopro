@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useMemo, useState } from "react";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 import { CreditCard, Check, Star, Plus, Pencil, Trash2, Loader2, Sparkles, Ban } from "lucide-react";
 
 import { PageHero } from "@/components/page-hero";

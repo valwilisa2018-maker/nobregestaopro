@@ -1,7 +1,7 @@
 import { MessageCircle, Copy } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { waHref, formatPhoneBR } from "@/lib/phone";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 
 export interface CardWhatsAppButtonsProps {
   phone?: string | null;
