@@ -4,6 +4,7 @@ import { useMutation, useQuery } from "@tanstack/react-query";
 import { CheckCircle2, Eye, EyeOff, Loader2, ShieldCheck, XCircle } from "lucide-react";
 import { useState } from "react";
 import { toast } from "@/lib/toast";
+import { getErrorMessage } from "@/lib/error-messages";
 import logoUrl from "@/assets/logo.png";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -20,7 +21,7 @@ export const Route = createFileRoute("/aceitar-convite")({
 });
 
 function message(error: unknown) {
-  return error instanceof Error ? error.message : "Não foi possível aceitar o convite.";
+  return getErrorMessage(error, "Não foi possível aceitar o convite.");
 }
 
 function AcceptInvitationPage() {
