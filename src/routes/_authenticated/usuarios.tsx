@@ -3,7 +3,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 import { Copy, Loader2, MailPlus, Pencil, RefreshCw, UserCheck, UserX } from "lucide-react";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 import { PageHero } from "@/components/page-hero";
 import { PermissionEditor } from "@/components/permission-editor";
 import { Badge } from "@/components/ui/badge";

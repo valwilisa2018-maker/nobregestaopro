@@ -3,7 +3,7 @@ import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Copy, ExternalLink, QrCode } from "lucide-react";
 import { QRCodeSVG } from "qrcode.react";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 
 export interface PaymentLinkDialogProps {
   paymentLinkData: { url: string; id: string } | null;

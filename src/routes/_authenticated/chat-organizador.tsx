@@ -11,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { MessagesSquare, Send, Paperclip, Mic, Square, Search, FileText, Copy, FolderPlus, FolderOpen, ScrollText } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 import { detectCategory, uploadToFolder, getSignedUrl, type CategoryId } from "@/lib/project-folders";
 import { transcribeAudio } from "@/lib/ai-transcribe.functions";
 

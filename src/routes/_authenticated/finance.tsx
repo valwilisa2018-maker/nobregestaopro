@@ -25,7 +25,7 @@ import {
 import { formatCurrency } from "@/lib/auth";
 import { PageHero } from "@/components/page-hero";
 import { fmtDate } from "@/lib/format";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 
 export const Route = createFileRoute("/_authenticated/finance")({
   component: FinancePage,

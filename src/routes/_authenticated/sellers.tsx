@@ -11,7 +11,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Plus, Trash2, Pencil, ImagePlus, LayoutGrid, List, Users } from "lucide-react";
 import { PageHero } from "@/components/page-hero";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 import { formatCurrency } from "@/lib/auth";
 
 export const Route = createFileRoute("/_authenticated/sellers")({

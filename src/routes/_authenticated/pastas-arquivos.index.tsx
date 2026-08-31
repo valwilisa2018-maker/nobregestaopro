@@ -14,7 +14,7 @@ import { FolderOpen, Search, Link as LinkIcon, Copy, FileText, Plus, RefreshCw, 
 import { NobreLoader } from "@/components/nobre-loader";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 import { synchronizeProjectFolderLinks } from "@/lib/project-folders";
 
 export const Route = createFileRoute("/_authenticated/pastas-arquivos/")({
