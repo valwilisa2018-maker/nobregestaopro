@@ -8,6 +8,7 @@ import { ArrowLeft, Upload, FileImage, FileVideo, FileAudio, FileText, File as F
 import { Loader2, CheckCircle2, AlertCircle } from "lucide-react";
 import { NobreLoader } from "@/components/nobre-loader";
 import { toast } from "@/lib/toast";
+import { getErrorMessage } from "@/lib/error-messages";
 import { type CategoryId, detectCategory, uploadToFolder, getSignedUrl } from "@/lib/project-folders";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
@@ -351,7 +352,7 @@ function FolderDetail() {
       parent_id: folderId,
       created_by: u.user?.id,
     }).select("id").single() as any);
-    if (error) { toast.error(error.message); return; }
+    if (error) { toast.error(getErrorMessage(error)); return; }
     const newId = (inserted as any)?.id;
     if (newId) {
       const url = `${window.location.origin}/pastas-arquivos/${newId}`;
@@ -373,7 +374,7 @@ function FolderDetail() {
       .delete()
       .eq("id", id)
       .select("id");
-    if (error) { toast.error(`Falha ao excluir: ${error.message}`); return; }
+    if (error) { toast.error(getErrorMessage(error, "Falha ao excluir.")); return; }
     if (!data || (data as any[]).length === 0) {
       toast.error("Não foi possível excluir. Você não tem permissão para remover esta pasta.");
       return;
@@ -391,7 +392,7 @@ function FolderDetail() {
       .from("project_folders" as any)
       .update({ folder_name: trimmed })
       .eq("id", id);
-    if (error) { toast.error(error.message); return; }
+    if (error) { toast.error(getErrorMessage(error)); return; }
     toast.success("Pasta renomeada");
     qc.invalidateQueries({ queryKey });
   }
@@ -426,7 +427,7 @@ function FolderDetail() {
           });
           setUploads((prev) => prev.map((u) => (u.id === qid ? { ...u, status: "done" } : u)));
         } catch (err: any) {
-          setUploads((prev) => prev.map((u) => (u.id === qid ? { ...u, status: "error", error: err?.message } : u)));
+          setUploads((prev) => prev.map((u) => (u.id === qid ? { ...u, status: "error", error: getErrorMessage(err) } : u)));
           throw err;
         }
       }
@@ -437,7 +438,7 @@ function FolderDetail() {
         setUploads((prev) => prev.filter((u) => u.status === "uploading"));
       }, 2500);
     } catch (e: any) {
-      toast.error(e?.message ?? "Erro ao enviar");
+      toast.error(getErrorMessage(e, "Erro ao enviar"));
     } finally {
       setBusy(null);
       setDragOver(null);
@@ -482,7 +483,7 @@ function FolderDetail() {
       const url = await getSignedUrl(path);
       window.open(url, "_blank");
     } catch (e: any) {
-      toast.error(e?.message ?? "Erro ao abrir");
+      toast.error(getErrorMessage(e, "Erro ao abrir"));
     }
   }
 
@@ -497,7 +498,7 @@ function FolderDetail() {
       .delete()
       .eq("id", id)
       .select("id");
-    if (error) { toast.error(`Falha ao excluir: ${error.message}`); return; }
+    if (error) { toast.error(getErrorMessage(error, "Falha ao excluir.")); return; }
     if (!data || (data as any[]).length === 0) {
       toast.error("Não foi possível excluir. Você não tem permissão para remover este arquivo.");
       return;
@@ -521,7 +522,7 @@ function FolderDetail() {
       .from("project_folders" as any)
       .update({ google_drive_link: link })
       .eq("id", folderId);
-    if (error) toast.error(error.message);
+    if (error) toast.error(getErrorMessage(error));
     else {
       toast.success("Salvo");
       qc.invalidateQueries({ queryKey: ["project_folder", folderId] });
@@ -571,7 +572,7 @@ function FolderDetail() {
       URL.revokeObjectURL(a.href);
       toast.success("ZIP gerado");
     } catch (e: any) {
-      toast.error(e?.message ?? "Erro ao gerar ZIP");
+      toast.error(getErrorMessage(e, "Erro ao gerar ZIP"));
     } finally {
       setBusy(null);
     }
@@ -896,7 +897,7 @@ function RoteiroEditor({
           setHtml(looksHtml ? sanitizeHtml(text) : text.replace(/\n/g, "<br/>"));
         }
       } catch (e: any) {
-        toast.error(e?.message ?? "Erro ao carregar");
+        toast.error(getErrorMessage(e, "Erro ao carregar"));
       } finally {
         if (alive) setLoading(false);
       }
@@ -967,7 +968,7 @@ function RoteiroEditor({
       toast.success("Roteiro salvo");
       onSaved();
     } catch (e: any) {
-      toast.error(e?.message ?? "Erro ao salvar");
+      toast.error(getErrorMessage(e, "Erro ao salvar"));
     } finally {
       setSaving(false);
     }
