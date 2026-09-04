@@ -847,8 +847,11 @@ function Telao() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [qc, uniqueSales, producers, profiles, customers, soundEnabled, soundId, celebration]);
 
-  // Detecta crescimento por polling como fallback
+  // Detecta crescimento por polling como fallback.
+  // Só considera contagem depois que os dados das vendas foram carregados
+  // de fato, para não "reproduzir" a última venda existente ao entrar no telão.
   useEffect(() => {
+    if (!salesQ.isSuccess) return;
     if (lastCount !== null && todaySales.length > lastCount) {
       if (celebration.confettiEnabled) fireConfetti();
       if (soundEnabled || celebration.soundEnabled) {
@@ -867,7 +870,7 @@ function Telao() {
     }
     setLastCount(todaySales.length);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [todaySales.length, soundEnabled, soundId, celebration, customSoundUrl]);
+  }, [todaySales.length, salesQ.isSuccess, soundEnabled, soundId, celebration, customSoundUrl]);
 
   const now = new Date();
 
