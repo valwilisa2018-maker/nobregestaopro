@@ -25,6 +25,7 @@ import {
   MessagesSquare,
   Smartphone,
   ShieldCheck,
+  Timer,
 } from "lucide-react";
 import logoUrl from "@/assets/logo.png";
 import { useEffect, useState } from "react";
@@ -59,6 +60,7 @@ const groups = [
       { title: "Pastas e Arquivos", url: "/pastas-arquivos", icon: FolderOpen },
       { title: "Chat Organizador", url: "/chat-organizador", icon: MessagesSquare },
       { title: "Operação Metas", url: "/operacao-meta", icon: Clapperboard },
+      { title: "Medidor de Roteiro", url: "/medidor-roteiro", icon: Timer },
     ],
   },
   {
