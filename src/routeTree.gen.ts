@@ -30,6 +30,7 @@ import { Route as AuthenticatedPendingPaymentsRouteImport } from './routes/_auth
 import { Route as AuthenticatedPaymentLinkRouteImport } from './routes/_authenticated/payment-link'
 import { Route as AuthenticatedPagarmeHistoryRouteImport } from './routes/_authenticated/pagarme-history'
 import { Route as AuthenticatedOperacaoMetaRouteImport } from './routes/_authenticated/operacao-meta'
+import { Route as AuthenticatedMedidorRoteiroRouteImport } from './routes/_authenticated/medidor-roteiro'
 import { Route as AuthenticatedKanbanRouteImport } from './routes/_authenticated/kanban'
 import { Route as AuthenticatedInvoicesRouteImport } from './routes/_authenticated/invoices'
 import { Route as AuthenticatedFinanceRouteImport } from './routes/_authenticated/finance'
@@ -159,6 +160,12 @@ const AuthenticatedOperacaoMetaRoute =
     path: '/operacao-meta',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedMedidorRoteiroRoute =
+  AuthenticatedMedidorRoteiroRouteImport.update({
+    id: '/medidor-roteiro',
+    path: '/medidor-roteiro',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedKanbanRoute = AuthenticatedKanbanRouteImport.update({
   id: '/kanban',
   path: '/kanban',
@@ -283,6 +290,7 @@ export interface FileRoutesByFullPath {
   '/finance': typeof AuthenticatedFinanceRoute
   '/invoices': typeof AuthenticatedInvoicesRoute
   '/kanban': typeof AuthenticatedKanbanRoute
+  '/medidor-roteiro': typeof AuthenticatedMedidorRoteiroRoute
   '/operacao-meta': typeof AuthenticatedOperacaoMetaRouteWithChildren
   '/pagarme-history': typeof AuthenticatedPagarmeHistoryRoute
   '/payment-link': typeof AuthenticatedPaymentLinkRoute
@@ -324,6 +332,7 @@ export interface FileRoutesByTo {
   '/finance': typeof AuthenticatedFinanceRoute
   '/invoices': typeof AuthenticatedInvoicesRoute
   '/kanban': typeof AuthenticatedKanbanRoute
+  '/medidor-roteiro': typeof AuthenticatedMedidorRoteiroRoute
   '/pagarme-history': typeof AuthenticatedPagarmeHistoryRoute
   '/payment-link': typeof AuthenticatedPaymentLinkRoute
   '/pending-payments': typeof AuthenticatedPendingPaymentsRoute
@@ -366,6 +375,7 @@ export interface FileRoutesById {
   '/_authenticated/finance': typeof AuthenticatedFinanceRoute
   '/_authenticated/invoices': typeof AuthenticatedInvoicesRoute
   '/_authenticated/kanban': typeof AuthenticatedKanbanRoute
+  '/_authenticated/medidor-roteiro': typeof AuthenticatedMedidorRoteiroRoute
   '/_authenticated/operacao-meta': typeof AuthenticatedOperacaoMetaRouteWithChildren
   '/_authenticated/pagarme-history': typeof AuthenticatedPagarmeHistoryRoute
   '/_authenticated/payment-link': typeof AuthenticatedPaymentLinkRoute
@@ -409,6 +419,7 @@ export interface FileRouteTypes {
     | '/finance'
     | '/invoices'
     | '/kanban'
+    | '/medidor-roteiro'
     | '/operacao-meta'
     | '/pagarme-history'
     | '/payment-link'
@@ -450,6 +461,7 @@ export interface FileRouteTypes {
     | '/finance'
     | '/invoices'
     | '/kanban'
+    | '/medidor-roteiro'
     | '/pagarme-history'
     | '/payment-link'
     | '/pending-payments'
@@ -491,6 +503,7 @@ export interface FileRouteTypes {
     | '/_authenticated/finance'
     | '/_authenticated/invoices'
     | '/_authenticated/kanban'
+    | '/_authenticated/medidor-roteiro'
     | '/_authenticated/operacao-meta'
     | '/_authenticated/pagarme-history'
     | '/_authenticated/payment-link'
@@ -677,6 +690,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedOperacaoMetaRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/medidor-roteiro': {
+      id: '/_authenticated/medidor-roteiro'
+      path: '/medidor-roteiro'
+      fullPath: '/medidor-roteiro'
+      preLoaderRoute: typeof AuthenticatedMedidorRoteiroRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/kanban': {
       id: '/_authenticated/kanban'
       path: '/kanban'
@@ -850,6 +870,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedFinanceRoute: typeof AuthenticatedFinanceRoute
   AuthenticatedInvoicesRoute: typeof AuthenticatedInvoicesRoute
   AuthenticatedKanbanRoute: typeof AuthenticatedKanbanRoute
+  AuthenticatedMedidorRoteiroRoute: typeof AuthenticatedMedidorRoteiroRoute
   AuthenticatedOperacaoMetaRoute: typeof AuthenticatedOperacaoMetaRouteWithChildren
   AuthenticatedPagarmeHistoryRoute: typeof AuthenticatedPagarmeHistoryRoute
   AuthenticatedPaymentLinkRoute: typeof AuthenticatedPaymentLinkRoute
@@ -878,6 +899,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedFinanceRoute: AuthenticatedFinanceRoute,
   AuthenticatedInvoicesRoute: AuthenticatedInvoicesRoute,
   AuthenticatedKanbanRoute: AuthenticatedKanbanRoute,
+  AuthenticatedMedidorRoteiroRoute: AuthenticatedMedidorRoteiroRoute,
   AuthenticatedOperacaoMetaRoute: AuthenticatedOperacaoMetaRouteWithChildren,
   AuthenticatedPagarmeHistoryRoute: AuthenticatedPagarmeHistoryRoute,
   AuthenticatedPaymentLinkRoute: AuthenticatedPaymentLinkRoute,

@@ -59,6 +59,7 @@ const groups = [
       { title: "Pastas e Arquivos", url: "/pastas-arquivos", icon: FolderOpen },
       { title: "Chat Organizador", url: "/chat-organizador", icon: MessagesSquare },
       { title: "Operação Metas", url: "/operacao-meta", icon: Clapperboard },
+      { title: "Medidor de Roteiro", url: "/medidor-roteiro", icon: Timer },
     ],
   },
   {
