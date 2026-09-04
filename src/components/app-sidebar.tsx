@@ -25,6 +25,7 @@ import {
   MessagesSquare,
   Smartphone,
   ShieldCheck,
+  Timer,
 } from "lucide-react";
 import logoUrl from "@/assets/logo.png";
 import { useEffect, useState } from "react";
