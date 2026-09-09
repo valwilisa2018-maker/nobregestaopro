@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { formatCurrency } from "@/lib/auth";
 import { fmtDate, fmtTime } from "@/lib/format";
-import { Maximize2, Minimize2, Volume2, VolumeX, ArrowUpRight, Megaphone, Bell, Coins, Pencil, X, Music } from "lucide-react";
+import { Maximize2, Minimize2, Volume2, VolumeX, ArrowUpRight, Megaphone, Bell, Coins, Pencil, X, Music, Crown } from "lucide-react";
 import { confetti, preloadConfetti } from "@/lib/confetti";
 import { useCelebrationSettings, SoundId as SoundType } from "@/hooks/use-celebration-settings";
 import { useBigSellerOverlaySeconds } from "@/hooks/use-telao-settings";
@@ -1620,68 +1620,82 @@ function SellersSplitPodium({
   weekTotal: number;
   todayTotal: number;
 }) {
+  // Hoje em primeiro, depois Semana
   const columns = [
-    { key: "semana", label: "Semana", rows: weekRows, total: weekTotal },
     { key: "hoje", label: "Hoje", rows: todayRows, total: todayTotal },
+    { key: "semana", label: "Semana", rows: weekRows, total: weekTotal },
   ];
   return (
-    <div className="rounded-lg border border-[#c9a84c]/20 bg-[#111]/80 overflow-hidden">
-      <div className="flex items-center justify-between gap-2 px-4 py-3 border-b border-[#c9a84c]/15">
+    <div className="rounded-lg border border-[#c9a84c]/30 bg-gradient-to-b from-[#1a1a1a] to-[#0d0d0d] overflow-hidden">
+      <div className="flex items-center justify-between gap-2 px-4 py-3 border-b border-[#c9a84c]/20 bg-gradient-to-r from-[#c9a84c]/10 to-transparent">
         <h3
           style={{ fontFamily: '"Bebas Neue", sans-serif', letterSpacing: "0.08em" }}
-          className="text-xl text-[#f0d78c]"
+          className="text-xl text-[#f0d78c] flex items-center gap-2"
         >
+          <Crown className="w-5 h-5 text-[#f0d78c]" />
           TOP VENDEDORES
         </h3>
         <span className="text-[10px] uppercase tracking-[0.3em] text-[#c9a84c]/60">
-          semana · hoje
+          hoje · semana
         </span>
       </div>
       <div className="grid grid-cols-2 divide-x divide-[#c9a84c]/10">
         {columns.map((col) => (
-          <div key={col.key} className="min-w-0">
-            <div className="flex items-baseline justify-between gap-2 px-3 py-2 border-b border-[#c9a84c]/10">
-              <span className="text-[10px] uppercase tracking-[0.28em] text-[#c9a84c]/70">
+          <div key={col.key} className="min-w-0 flex flex-col">
+            <div className="flex items-baseline justify-between gap-2 px-4 py-2.5 border-b border-[#c9a84c]/10 bg-[#c9a84c]/5">
+              <span className="text-[11px] uppercase tracking-[0.28em] text-[#c9a84c]/80 font-semibold">
                 {col.label}
               </span>
               <span
                 style={{ fontFamily: '"Bebas Neue", sans-serif' }}
-                className="text-base text-[#f0d78c] tabular-nums"
+                className="text-lg text-[#f0d78c] tabular-nums"
               >
                 {formatCurrency(col.total)}
               </span>
             </div>
-            <ul className="divide-y divide-[#c9a84c]/8">
+            <ul className="divide-y divide-[#c9a84c]/8 flex-1">
               {col.rows.length === 0 && (
-                <li className="px-3 py-6 text-center text-[10px] uppercase tracking-widest text-[#c9a84c]/40">
-                  sem dados
+                <li className="px-4 py-8 text-center text-[10px] uppercase tracking-widest text-[#c9a84c]/40">
+                  sem vendas
                 </li>
               )}
               {col.rows.map((r, i) => (
                 <li
                   key={`${col.key}-${r.name}-${i}`}
-                  className="grid grid-cols-[auto_1fr] items-center gap-2 px-3 py-2"
+                  className={`grid grid-cols-[auto_1fr] items-center gap-3 px-4 py-2.5 transition-colors ${
+                    i === 0
+                      ? "bg-gradient-to-r from-[#c9a84c]/15 to-transparent"
+                      : ""
+                  }`}
                 >
                   <span
                     style={{ fontFamily: '"Bebas Neue", sans-serif' }}
-                    className={`w-6 h-6 grid place-items-center rounded text-sm ${
+                    className={`grid place-items-center rounded text-sm shrink-0 ${
                       i === 0
-                        ? "bg-gradient-to-br from-[#f0d78c] to-[#c9a84c] text-black"
+                        ? "w-8 h-8 text-base bg-gradient-to-br from-[#f0d78c] to-[#c9a84c] text-black shadow-[0_2px_8px_rgba(201,168,76,0.4)]"
                         : i === 1
-                        ? "bg-[#3a3a3a] text-[#f0d78c] border border-[#c9a84c]/40"
+                        ? "w-7 h-7 bg-[#3a3a3a] text-[#f0d78c] border border-[#c9a84c]/40"
                         : i === 2
-                        ? "bg-[#2a1f0a] text-[#c9a84c] border border-[#c9a84c]/40"
-                        : "bg-[#1a1a1a] text-[#c9a84c]/70 border border-[#c9a84c]/15"
+                        ? "w-7 h-7 bg-[#2a1f0a] text-[#c9a84c] border border-[#c9a84c]/40"
+                        : "w-7 h-7 bg-[#1a1a1a] text-[#c9a84c]/70 border border-[#c9a84c]/15"
                     }`}
                   >
-                    {String(i + 1).padStart(2, "0")}
+                    {i === 0 ? (
+                      <Crown className="w-3.5 h-3.5" strokeWidth={2.5} />
+                    ) : (
+                      String(i + 1).padStart(2, "0")
+                    )}
                   </span>
                   <div className="min-w-0">
                     <div className="flex items-baseline justify-between gap-2">
-                      <span className="font-semibold text-white truncate text-sm">{r.name}</span>
+                      <span
+                        className={`truncate ${i === 0 ? "font-bold text-[#f0d78c] text-base" : "font-semibold text-white text-sm"}`}
+                      >
+                        {r.name}
+                      </span>
                       <span
                         style={{ fontFamily: '"Bebas Neue", sans-serif' }}
-                        className="text-base text-[#f0d78c] tabular-nums shrink-0"
+                        className={`tabular-nums shrink-0 ${i === 0 ? "text-xl text-[#f0d78c]" : "text-base text-[#f0d78c]"}`}
                       >
                         {formatCurrency(r.total)}
                       </span>
