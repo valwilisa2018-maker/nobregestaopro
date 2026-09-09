@@ -1261,7 +1261,7 @@ function AnnouncementsTab() {
               <div className="relative min-h-36 overflow-hidden rounded-2xl border border-border bg-gradient-to-br from-primary/10 to-card">
                 {(imagePreview ?? existingImageUrl) ? (
                   <>
-                    <img src={imagePreview} alt="Prévia da publicação" className="h-full min-h-36 w-full object-cover" />
+                    <img src={imagePreview ?? existingImageUrl ?? ""} alt="Prévia da publicação" className="h-full min-h-36 w-full object-cover" />
                     <div className="absolute inset-0 bg-gradient-to-r from-black/65 via-black/15 to-transparent" />
                     <div className="absolute bottom-3 left-3 right-12 text-white">
                       <p className="line-clamp-1 text-sm font-bold">{form.title || "Título da publicação"}</p>
