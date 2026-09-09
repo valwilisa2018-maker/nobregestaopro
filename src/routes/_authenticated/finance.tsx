@@ -1,4 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { fetchAllPaged } from "@/lib/queries/paginate";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -83,7 +84,12 @@ function FinancePage() {
   const sales = useQuery({
     queryKey: ["fin-sales"],
     queryFn: async () =>
-      (await supabase.from("sales").select("id,customer_id,seller_id,producer_id,service_type_id,total_amount,paid_amount,payment_status,payment_method,sale_date,created_at")).data ?? [],
+      await fetchAllPaged<any>((from, to) =>
+        supabase
+          .from("sales")
+          .select("id,customer_id,seller_id,producer_id,service_type_id,total_amount,paid_amount,payment_status,payment_method,sale_date,created_at")
+          .range(from, to),
+      ),
   });
   const expenses = useQuery({
     queryKey: ["fin-expenses"],
