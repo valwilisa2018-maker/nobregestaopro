@@ -79,6 +79,7 @@ export function SalesTableView({
                 scrollRef={scrollRef}
                 colSpan={8}
                 estimateSize={68}
+                measure={false}
                 keyFor={(s) => s.id}
                 renderRow={(s) => (
                   <TableRow>

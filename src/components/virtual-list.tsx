@@ -98,6 +98,7 @@ export function VirtualTableRows<T>({
   estimateSize = 64,
   overscan = 8,
   threshold = 40,
+  measure = true,
 }: {
   items: T[];
   renderRow: (item: T, index: number) => ReactElement;
@@ -107,6 +108,8 @@ export function VirtualTableRows<T>({
   estimateSize?: number;
   overscan?: number;
   threshold?: number;
+  /** Desative para linhas de altura fixa — evita loop de medição (tela "tremendo"). */
+  measure?: boolean;
 }) {
   const virtualize = items.length > threshold;
 
@@ -141,7 +144,7 @@ export function VirtualTableRows<T>({
           ? cloneElement(element as ReactElement<Record<string, unknown>>, {
               key: keyFor(item, row.index),
               "data-index": row.index,
-              ref: virtualizer.measureElement,
+              ...(measure ? { ref: virtualizer.measureElement } : {}),
             })
           : element;
       })}
