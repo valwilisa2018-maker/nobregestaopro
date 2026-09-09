@@ -1345,9 +1345,13 @@ function AnnouncementsTab() {
                   <TableCell className="text-xs text-muted-foreground">{format(new Date(a.created_at), "dd/MM/yy HH:mm")}</TableCell>
                   <TableCell className="text-right">
                     <div className="flex justify-end gap-1">
-                      <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => toggle(a.id, !a.is_active)}>
+                      <Button size="icon" variant="ghost" className="h-8 w-8" title="Editar aviso" aria-label="Editar aviso" onClick={() => startEdit(a)}>
+                        <Pencil className="w-4 h-4 text-primary" />
+                      </Button>
+                      <Button size="icon" variant="ghost" className="h-8 w-8" title={a.is_active ? "Desativar" : "Ativar"} aria-label={a.is_active ? "Desativar aviso" : "Ativar aviso"} onClick={() => toggle(a.id, !a.is_active)}>
                         {a.is_active ? <Zap className="w-4 h-4 text-muted-foreground" /> : <Zap className="w-4 h-4 text-primary" />}
                       </Button>
+
                       <Button size="icon" variant="ghost" className="h-8 w-8 text-destructive" onClick={() => remove(a)}>
                         <Trash2 className="w-4 h-4" />
                       </Button>
