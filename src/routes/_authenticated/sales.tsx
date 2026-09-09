@@ -243,30 +243,29 @@ function SalesPage() {
     queryKey: ["sales-list"],
     queryFn: async () => {
       // Tentamos o select completo
-      const { data, error } = await supabase
-        .from("sales")
-        .select(
-          "*, customers!inner(name,company,phone,email,document), sellers(name), producers(name), service_types(name), sale_receipts(*)",
-        )
-        .order("sale_date", { ascending: false });
-
-      if (error) {
+      try {
+        return await fetchAllPaged<any>((from, to) =>
+          supabase
+            .from("sales")
+            .select(
+              "*, customers!inner(name,company,phone,email,document), sellers(name), producers(name), service_types(name), sale_receipts(*)",
+            )
+            .order("sale_date", { ascending: false })
+            .range(from, to),
+        );
+      } catch (error) {
         console.error("Supabase error fetching sales:", error);
         // Fallback: tenta sem o join restritivo (pode ser problema de dado órfão)
-        const { data: fb, error: fbe } = await supabase
-          .from("sales")
-          .select(
-            "*, customers(name,company,phone,email,document), sellers(name), producers(name), service_types(name), sale_receipts(*)",
-          )
-          .order("sale_date", { ascending: false });
-
-        if (fbe) {
-          console.error("Fallback error:", fbe);
-          throw fbe;
-        }
-        return fb ?? [];
+        return await fetchAllPaged<any>((from, to) =>
+          supabase
+            .from("sales")
+            .select(
+              "*, customers(name,company,phone,email,document), sellers(name), producers(name), service_types(name), sale_receipts(*)",
+            )
+            .order("sale_date", { ascending: false })
+            .range(from, to),
+        );
       }
-      return data ?? [];
     },
     retry: 3,
     retryDelay: (attempt) => Math.min(1000 * 2 ** attempt, 10000),

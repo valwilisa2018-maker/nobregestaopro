@@ -145,7 +145,10 @@ function Dashboard() {
   const sales = useQuery({
     queryKey: ["dash-sales"],
     queryFn: async () => {
-      const primaryResult = await supabase.from("sales").select(DASHBOARD_SALES_SELECT);
+      const primaryResult = await supabase
+        .from("sales")
+        .select(DASHBOARD_SALES_SELECT)
+        .range(0, 999);
 
       if (
         primaryResult.error &&
@@ -154,13 +157,15 @@ function Dashboard() {
         console.warn(
           "[dashboard] Falling back to legacy sales query because video_duration_breakdown_seconds is missing in remote schema.",
         );
-        const legacyResult = await supabase.from("sales").select(DASHBOARD_SALES_SELECT_LEGACY);
-        if (legacyResult.error) throw legacyResult.error;
-        return (legacyResult.data ?? []) as any[];
+        return (await fetchAllPaged<any>((from, to) =>
+          supabase.from("sales").select(DASHBOARD_SALES_SELECT_LEGACY).range(from, to),
+        )) as any[];
       }
 
       if (primaryResult.error) throw primaryResult.error;
-      return (primaryResult.data ?? []) as any[];
+      return (await fetchAllPaged<any>((from, to) =>
+        supabase.from("sales").select(DASHBOARD_SALES_SELECT).range(from, to),
+      )) as any[];
     },
     staleTime: 60_000,
     refetchOnWindowFocus: false,
