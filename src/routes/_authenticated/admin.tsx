@@ -1212,13 +1212,19 @@ function AnnouncementsTab() {
 
   return (
     <div className="space-y-6">
-      <Card className="border-border/50">
+      <Card className={editingId ? "border-primary/60" : "border-border/50"}>
         <CardHeader>
           <CardTitle className="text-base flex items-center gap-2">
-            <Plus className="w-4 h-4 text-primary" /> Novo Aviso Manual
+            {editingId ? <Pencil className="w-4 h-4 text-primary" /> : <Plus className="w-4 h-4 text-primary" />}
+            {editingId ? "Editar Aviso" : "Novo Aviso Manual"}
           </CardTitle>
-          <CardDescription>Crie comunicados, alertas de manutenção ou atualizações manuais para todos os usuários.</CardDescription>
+          <CardDescription>
+            {editingId
+              ? "Altere o conteúdo, a imagem ou a validade deste aviso e salve as alterações."
+              : "Crie comunicados, alertas de manutenção ou atualizações manuais para todos os usuários."}
+          </CardDescription>
         </CardHeader>
+
         <CardContent className="space-y-4">
           <div className="grid gap-4 md:grid-cols-2">
             <div className="space-y-2">
