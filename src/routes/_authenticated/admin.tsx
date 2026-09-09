@@ -1090,6 +1090,9 @@ function AnnouncementsTab() {
   const [form, setForm] = useState({ title: "", message: "", type: "info", expires_at: "", is_active: true });
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [existingImageUrl, setExistingImageUrl] = useState<string | null>(null);
+
   
   const announcements = useQuery({
     queryKey: ["admin-announcements"],
