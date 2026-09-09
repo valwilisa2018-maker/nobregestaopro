@@ -1280,9 +1280,18 @@ function AnnouncementsTab() {
               <Label>Data de Expiração (Opcional)</Label>
               <Input type="datetime-local" value={form.expires_at} onChange={(e) => setForm({ ...form, expires_at: e.target.value })} />
             </div>
-            <Button onClick={save} disabled={saving} className="w-full md:w-auto">
-              {saving && <Loader2 className="w-4 h-4 mr-2 animate-spin" />} Criar Aviso
-            </Button>
+            <div className="flex flex-wrap gap-2">
+              <Button onClick={save} disabled={saving} className="w-full sm:w-auto">
+                {saving && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+                {editingId ? "Salvar Alterações" : "Criar Aviso"}
+              </Button>
+              {editingId && (
+                <Button variant="outline" onClick={resetForm} disabled={saving} className="w-full sm:w-auto">
+                  Cancelar edição
+                </Button>
+              )}
+            </div>
+
           </div>
         </CardContent>
       </Card>
