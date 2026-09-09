@@ -1099,12 +1099,37 @@ function AnnouncementsTab() {
     queryFn: async () => (await supabase.from("system_announcements").select("*").order("created_at", { ascending: false })).data ?? []
   });
 
+  const resetForm = () => {
+    setForm({ title: "", message: "", type: "info", expires_at: "", is_active: true });
+    setImageFile(null);
+    if (imagePreview) URL.revokeObjectURL(imagePreview);
+    setImagePreview(null);
+    setEditingId(null);
+    setExistingImageUrl(null);
+  };
+
+  const startEdit = (a: any) => {
+    if (imagePreview) URL.revokeObjectURL(imagePreview);
+    setImageFile(null);
+    setImagePreview(null);
+    setEditingId(a.id);
+    setExistingImageUrl(a.image_url ?? null);
+    setForm({
+      title: a.title ?? "",
+      message: a.message ?? "",
+      type: a.type ?? "info",
+      expires_at: a.expires_at ? format(new Date(a.expires_at), "yyyy-MM-dd'T'HH:mm") : "",
+      is_active: Boolean(a.is_active),
+    });
+    if (typeof window !== "undefined") window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
   const save = async () => {
     if (!form.title || !form.message) return toast.error("Título e mensagem são obrigatórios");
     setSaving(true);
     let uploadedPath: string | null = null;
     try {
-      let imageUrl: string | null = null;
+      let imageUrl: string | null = editingId ? existingImageUrl : null;
       if (imageFile) {
         const extension = imageFile.name.split(".").pop()?.toLowerCase() || "webp";
         uploadedPath = `${crypto.randomUUID()}.${extension}`;
@@ -1114,20 +1139,24 @@ function AnnouncementsTab() {
         if (uploadError) throw uploadError;
         imageUrl = supabase.storage.from("announcement-images").getPublicUrl(uploadedPath).data.publicUrl;
       }
-      const { error } = await supabase.from("system_announcements").insert({
+      const payload = {
         title: form.title,
         message: form.message,
         type: form.type as any,
         is_active: form.is_active,
         expires_at: form.expires_at || null,
         image_url: imageUrl,
-      });
-      if (error) throw error;
-      toast.success(imageUrl ? "Publicação com imagem criada com sucesso" : "Aviso criado com sucesso");
-      setForm({ title: "", message: "", type: "info", expires_at: "", is_active: true });
-      setImageFile(null);
-      if (imagePreview) URL.revokeObjectURL(imagePreview);
-      setImagePreview(null);
+      };
+      if (editingId) {
+        const { error } = await supabase.from("system_announcements").update(payload).eq("id", editingId);
+        if (error) throw error;
+        toast.success("Aviso atualizado com sucesso");
+      } else {
+        const { error } = await supabase.from("system_announcements").insert(payload);
+        if (error) throw error;
+        toast.success(imageUrl ? "Publicação com imagem criada com sucesso" : "Aviso criado com sucesso");
+      }
+      resetForm();
       qc.invalidateQueries({ queryKey: ["admin-announcements"] });
     } catch (e: any) {
       if (uploadedPath) await supabase.storage.from("announcement-images").remove([uploadedPath]);
@@ -1136,6 +1165,7 @@ function AnnouncementsTab() {
       setSaving(false);
     }
   };
+
 
   const chooseImage = (file?: File) => {
     if (!file) return;
