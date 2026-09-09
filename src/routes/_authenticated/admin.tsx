@@ -1182,7 +1182,9 @@ function AnnouncementsTab() {
     if (imagePreview) URL.revokeObjectURL(imagePreview);
     setImageFile(null);
     setImagePreview(null);
+    setExistingImageUrl(null);
   };
+
 
   const toggle = async (id: string, active: boolean) => {
     const { error } = await supabase.from("system_announcements").update({ is_active: active }).eq("id", id);
