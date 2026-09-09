@@ -1259,7 +1259,7 @@ function AnnouncementsTab() {
                 <input type="file" accept="image/jpeg,image/png,image/webp" className="sr-only" onChange={(event) => chooseImage(event.target.files?.[0])} />
               </label>
               <div className="relative min-h-36 overflow-hidden rounded-2xl border border-border bg-gradient-to-br from-primary/10 to-card">
-                {imagePreview ? (
+                {(imagePreview ?? existingImageUrl) ? (
                   <>
                     <img src={imagePreview} alt="Prévia da publicação" className="h-full min-h-36 w-full object-cover" />
                     <div className="absolute inset-0 bg-gradient-to-r from-black/65 via-black/15 to-transparent" />
