@@ -1090,18 +1090,46 @@ function AnnouncementsTab() {
   const [form, setForm] = useState({ title: "", message: "", type: "info", expires_at: "", is_active: true });
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [existingImageUrl, setExistingImageUrl] = useState<string | null>(null);
+
   
   const announcements = useQuery({
     queryKey: ["admin-announcements"],
     queryFn: async () => (await supabase.from("system_announcements").select("*").order("created_at", { ascending: false })).data ?? []
   });
 
+  const resetForm = () => {
+    setForm({ title: "", message: "", type: "info", expires_at: "", is_active: true });
+    setImageFile(null);
+    if (imagePreview) URL.revokeObjectURL(imagePreview);
+    setImagePreview(null);
+    setEditingId(null);
+    setExistingImageUrl(null);
+  };
+
+  const startEdit = (a: any) => {
+    if (imagePreview) URL.revokeObjectURL(imagePreview);
+    setImageFile(null);
+    setImagePreview(null);
+    setEditingId(a.id);
+    setExistingImageUrl(a.image_url ?? null);
+    setForm({
+      title: a.title ?? "",
+      message: a.message ?? "",
+      type: a.type ?? "info",
+      expires_at: a.expires_at ? format(new Date(a.expires_at), "yyyy-MM-dd'T'HH:mm") : "",
+      is_active: Boolean(a.is_active),
+    });
+    if (typeof window !== "undefined") window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
   const save = async () => {
     if (!form.title || !form.message) return toast.error("Título e mensagem são obrigatórios");
     setSaving(true);
     let uploadedPath: string | null = null;
     try {
-      let imageUrl: string | null = null;
+      let imageUrl: string | null = editingId ? existingImageUrl : null;
       if (imageFile) {
         const extension = imageFile.name.split(".").pop()?.toLowerCase() || "webp";
         uploadedPath = `${crypto.randomUUID()}.${extension}`;
@@ -1111,20 +1139,24 @@ function AnnouncementsTab() {
         if (uploadError) throw uploadError;
         imageUrl = supabase.storage.from("announcement-images").getPublicUrl(uploadedPath).data.publicUrl;
       }
-      const { error } = await supabase.from("system_announcements").insert({
+      const payload = {
         title: form.title,
         message: form.message,
         type: form.type as any,
         is_active: form.is_active,
         expires_at: form.expires_at || null,
         image_url: imageUrl,
-      });
-      if (error) throw error;
-      toast.success(imageUrl ? "Publicação com imagem criada com sucesso" : "Aviso criado com sucesso");
-      setForm({ title: "", message: "", type: "info", expires_at: "", is_active: true });
-      setImageFile(null);
-      if (imagePreview) URL.revokeObjectURL(imagePreview);
-      setImagePreview(null);
+      };
+      if (editingId) {
+        const { error } = await supabase.from("system_announcements").update(payload).eq("id", editingId);
+        if (error) throw error;
+        toast.success("Aviso atualizado com sucesso");
+      } else {
+        const { error } = await supabase.from("system_announcements").insert(payload);
+        if (error) throw error;
+        toast.success(imageUrl ? "Publicação com imagem criada com sucesso" : "Aviso criado com sucesso");
+      }
+      resetForm();
       qc.invalidateQueries({ queryKey: ["admin-announcements"] });
     } catch (e: any) {
       if (uploadedPath) await supabase.storage.from("announcement-images").remove([uploadedPath]);
@@ -1133,6 +1165,7 @@ function AnnouncementsTab() {
       setSaving(false);
     }
   };
+
 
   const chooseImage = (file?: File) => {
     if (!file) return;
@@ -1149,7 +1182,9 @@ function AnnouncementsTab() {
     if (imagePreview) URL.revokeObjectURL(imagePreview);
     setImageFile(null);
     setImagePreview(null);
+    setExistingImageUrl(null);
   };
+
 
   const toggle = async (id: string, active: boolean) => {
     const { error } = await supabase.from("system_announcements").update({ is_active: active }).eq("id", id);
@@ -1177,13 +1212,19 @@ function AnnouncementsTab() {
 
   return (
     <div className="space-y-6">
-      <Card className="border-border/50">
+      <Card className={editingId ? "border-primary/60" : "border-border/50"}>
         <CardHeader>
           <CardTitle className="text-base flex items-center gap-2">
-            <Plus className="w-4 h-4 text-primary" /> Novo Aviso Manual
+            {editingId ? <Pencil className="w-4 h-4 text-primary" /> : <Plus className="w-4 h-4 text-primary" />}
+            {editingId ? "Editar Aviso" : "Novo Aviso Manual"}
           </CardTitle>
-          <CardDescription>Crie comunicados, alertas de manutenção ou atualizações manuais para todos os usuários.</CardDescription>
+          <CardDescription>
+            {editingId
+              ? "Altere o conteúdo, a imagem ou a validade deste aviso e salve as alterações."
+              : "Crie comunicados, alertas de manutenção ou atualizações manuais para todos os usuários."}
+          </CardDescription>
         </CardHeader>
+
         <CardContent className="space-y-4">
           <div className="grid gap-4 md:grid-cols-2">
             <div className="space-y-2">
@@ -1218,9 +1259,9 @@ function AnnouncementsTab() {
                 <input type="file" accept="image/jpeg,image/png,image/webp" className="sr-only" onChange={(event) => chooseImage(event.target.files?.[0])} />
               </label>
               <div className="relative min-h-36 overflow-hidden rounded-2xl border border-border bg-gradient-to-br from-primary/10 to-card">
-                {imagePreview ? (
+                {(imagePreview ?? existingImageUrl) ? (
                   <>
-                    <img src={imagePreview} alt="Prévia da publicação" className="h-full min-h-36 w-full object-cover" />
+                    <img src={imagePreview ?? existingImageUrl ?? ""} alt="Prévia da publicação" className="h-full min-h-36 w-full object-cover" />
                     <div className="absolute inset-0 bg-gradient-to-r from-black/65 via-black/15 to-transparent" />
                     <div className="absolute bottom-3 left-3 right-12 text-white">
                       <p className="line-clamp-1 text-sm font-bold">{form.title || "Título da publicação"}</p>
@@ -1239,9 +1280,18 @@ function AnnouncementsTab() {
               <Label>Data de Expiração (Opcional)</Label>
               <Input type="datetime-local" value={form.expires_at} onChange={(e) => setForm({ ...form, expires_at: e.target.value })} />
             </div>
-            <Button onClick={save} disabled={saving} className="w-full md:w-auto">
-              {saving && <Loader2 className="w-4 h-4 mr-2 animate-spin" />} Criar Aviso
-            </Button>
+            <div className="flex flex-wrap gap-2">
+              <Button onClick={save} disabled={saving} className="w-full sm:w-auto">
+                {saving && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+                {editingId ? "Salvar Alterações" : "Criar Aviso"}
+              </Button>
+              {editingId && (
+                <Button variant="outline" onClick={resetForm} disabled={saving} className="w-full sm:w-auto">
+                  Cancelar edição
+                </Button>
+              )}
+            </div>
+
           </div>
         </CardContent>
       </Card>
@@ -1295,9 +1345,13 @@ function AnnouncementsTab() {
                   <TableCell className="text-xs text-muted-foreground">{format(new Date(a.created_at), "dd/MM/yy HH:mm")}</TableCell>
                   <TableCell className="text-right">
                     <div className="flex justify-end gap-1">
-                      <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => toggle(a.id, !a.is_active)}>
+                      <Button size="icon" variant="ghost" className="h-8 w-8" title="Editar aviso" aria-label="Editar aviso" onClick={() => startEdit(a)}>
+                        <Pencil className="w-4 h-4 text-primary" />
+                      </Button>
+                      <Button size="icon" variant="ghost" className="h-8 w-8" title={a.is_active ? "Desativar" : "Ativar"} aria-label={a.is_active ? "Desativar aviso" : "Ativar aviso"} onClick={() => toggle(a.id, !a.is_active)}>
                         {a.is_active ? <Zap className="w-4 h-4 text-muted-foreground" /> : <Zap className="w-4 h-4 text-primary" />}
                       </Button>
+
                       <Button size="icon" variant="ghost" className="h-8 w-8 text-destructive" onClick={() => remove(a)}>
                         <Trash2 className="w-4 h-4" />
                       </Button>
