@@ -546,9 +546,10 @@ function FolderDetail() {
         let blob: Blob;
         if (isRoteiro) {
           const htmlText = await res.text();
-          const text = htmlToPlainText(htmlText);
-          blob = new Blob([text], { type: "text/plain;charset=utf-8" });
-          name = name.replace(/\.[^.]+$/, "") + ".txt";
+          const baseName = name.replace(/\.[^.]+$/, "");
+          const { roteiroHtmlToDocxBlob } = await import("@/lib/roteiro-docx");
+          blob = await roteiroHtmlToDocxBlob(htmlText, baseName);
+          name = baseName + ".docx";
         } else {
           blob = await res.blob();
         }
