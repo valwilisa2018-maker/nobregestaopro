@@ -59,7 +59,7 @@ function formatDuration(seconds: number | null) {
   return `${minutes}:${String(rest).padStart(2, "0")}`;
 }
 
-function parseSseChunk(raw: string, onText: (value: string) => void) {
+function parseSseLines(raw: string, onText: (value: string) => void) {
   for (const line of raw.split("\n")) {
     if (!line.startsWith("data:")) continue;
     const payload = line.slice(5).trim();
@@ -159,7 +159,25 @@ function TranscricaoPage() {
     const xhr = new XMLHttpRequest();
     requestRef.current = xhr;
     let consumed = 0;
+    let pendingLine = "";
     let streamingText = "";
+    const consumeResponse = (flush = false) => {
+      const fresh = pendingLine + xhr.responseText.slice(consumed);
+      consumed = xhr.responseText.length;
+      const lastBreak = fresh.lastIndexOf("\n");
+      if (!flush && lastBreak < 0) {
+        pendingLine = fresh;
+        return;
+      }
+      const complete = flush ? fresh : fresh.slice(0, lastBreak + 1);
+      pendingLine = flush ? "" : fresh.slice(lastBreak + 1);
+      parseSseLines(complete, (value) => {
+        if (value.length >= streamingText.length && value.startsWith(streamingText)) streamingText = value;
+        else streamingText += value;
+        setTranscript(streamingText.trimStart());
+        setProgress((current) => Math.min(94, current + 2));
+      });
+    };
     xhr.open("POST", "/api/transcribe");
     xhr.setRequestHeader("Authorization", `Bearer ${data.session.access_token}`);
     xhr.upload.onprogress = (event) => {
@@ -170,16 +188,10 @@ function TranscricaoPage() {
       setProgress(55);
     };
     xhr.onprogress = () => {
-      const fresh = xhr.responseText.slice(consumed);
-      consumed = xhr.responseText.length;
-      parseSseChunk(fresh, (value) => {
-        if (value.length >= streamingText.length && value.startsWith(streamingText)) streamingText = value;
-        else streamingText += value;
-        setTranscript(streamingText.trimStart());
-        setProgress((current) => Math.min(94, current + 2));
-      });
+      consumeResponse();
     };
     xhr.onload = () => {
+      consumeResponse(true);
       requestRef.current = null;
       if (xhr.status >= 200 && xhr.status < 300) {
         if (!streamingText.trim()) {
