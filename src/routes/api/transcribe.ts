@@ -30,10 +30,18 @@ async function authenticate(request: Request) {
   if (!token || !url || !key) return false;
 
   const client = createClient<Database>(url, key, {
+    global: { headers: { Authorization: `Bearer ${token}` } },
     auth: { persistSession: false, autoRefreshToken: false },
   });
   const { data, error } = await client.auth.getClaims(token);
-  return !error && Boolean(data?.claims?.sub);
+  const userId = data?.claims?.sub;
+  if (error || !userId) return false;
+  const { data: permitted, error: permissionError } = await client.rpc("has_permission", {
+    _user_id: userId,
+    _module: "transcription",
+    _action: "create",
+  });
+  return !permissionError && permitted === true;
 }
 
 async function transcribeAudio(file: File, apiKey: string) {
