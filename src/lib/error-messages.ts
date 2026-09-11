@@ -57,6 +57,10 @@ const RULES: Rule[] = [
   { match: /internal server error|status(?: code)? 5\d\d/i, message: "Erro no servidor. Tente novamente em instantes." },
   { match: /not found|status(?: code)? 404/i, message: "Não encontrado." },
   { match: /rate limit|too many attempts/i, message: "Muitas tentativas. Aguarde um pouco e tente novamente." },
+  { match: /payment required|insufficient credits|credit balance/i, message: "Os créditos de inteligência artificial acabaram. O proprietário precisa adicionar créditos no Lovable." },
+  { match: /workspace policy|AI is disabled|credit limit/i, message: "A inteligência artificial está bloqueada para este projeto. Peça ao administrador para liberar o recurso." },
+  { match: /audio file might be corrupted|unsupported audio|document has no pages/i, message: "O arquivo parece vazio, corrompido ou incompatível. Tente outro arquivo." },
+  { match: /speech.to.text not enabled|feature not available/i, message: "A transcrição não está disponível neste projeto." },
 ];
 
 const GENERIC = "Ocorreu um erro inesperado. Tente novamente.";

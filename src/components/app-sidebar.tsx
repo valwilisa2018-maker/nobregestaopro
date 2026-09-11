@@ -26,6 +26,7 @@ import {
   Smartphone,
   ShieldCheck,
   Timer,
+  AudioLines,
 } from "lucide-react";
 import logoUrl from "@/assets/logo.png";
 import { useEffect, useState } from "react";
@@ -61,6 +62,7 @@ const groups = [
       { title: "Chat Organizador", url: "/chat-organizador", icon: MessagesSquare },
       { title: "Operação Metas", url: "/operacao-meta", icon: Clapperboard },
       { title: "Medidor de Roteiro", url: "/medidor-roteiro", icon: Timer },
+      { title: "Transcrição", url: "/transcricao", icon: AudioLines },
     ],
   },
   {

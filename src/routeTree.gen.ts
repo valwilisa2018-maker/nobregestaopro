@@ -17,9 +17,11 @@ import { Route as LoginRouteImport } from './routes/login'
 import { Route as AceitarConviteRouteImport } from './routes/aceitar-convite'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as ApiTranscribeRouteImport } from './routes/api/transcribe'
 import { Route as AuthenticatedWhiteLabelRouteImport } from './routes/_authenticated/white-label'
 import { Route as AuthenticatedWhatsappRouteImport } from './routes/_authenticated/whatsapp'
 import { Route as AuthenticatedUsuariosRouteImport } from './routes/_authenticated/usuarios'
+import { Route as AuthenticatedTranscricaoRouteImport } from './routes/_authenticated/transcricao'
 import { Route as AuthenticatedTelaoRouteImport } from './routes/_authenticated/telao'
 import { Route as AuthenticatedServicesTodoRouteImport } from './routes/_authenticated/services-todo'
 import { Route as AuthenticatedSellersRouteImport } from './routes/_authenticated/sellers'
@@ -90,6 +92,11 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiTranscribeRoute = ApiTranscribeRouteImport.update({
+  id: '/api/transcribe',
+  path: '/api/transcribe',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AuthenticatedWhiteLabelRoute = AuthenticatedWhiteLabelRouteImport.update({
   id: '/white-label',
   path: '/white-label',
@@ -105,6 +112,12 @@ const AuthenticatedUsuariosRoute = AuthenticatedUsuariosRouteImport.update({
   path: '/usuarios',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedTranscricaoRoute =
+  AuthenticatedTranscricaoRouteImport.update({
+    id: '/transcricao',
+    path: '/transcricao',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedTelaoRoute = AuthenticatedTelaoRouteImport.update({
   id: '/telao',
   path: '/telao',
@@ -301,9 +314,11 @@ export interface FileRoutesByFullPath {
   '/sellers': typeof AuthenticatedSellersRoute
   '/services-todo': typeof AuthenticatedServicesTodoRoute
   '/telao': typeof AuthenticatedTelaoRoute
+  '/transcricao': typeof AuthenticatedTranscricaoRoute
   '/usuarios': typeof AuthenticatedUsuariosRoute
   '/whatsapp': typeof AuthenticatedWhatsappRoute
   '/white-label': typeof AuthenticatedWhiteLabelRoute
+  '/api/transcribe': typeof ApiTranscribeRoute
   '/operacao-meta/produtores': typeof AuthenticatedOperacaoMetaProdutoresRoute
   '/operacao-meta/relatorios': typeof AuthenticatedOperacaoMetaRelatoriosRoute
   '/operacao-meta/tendencias': typeof AuthenticatedOperacaoMetaTendenciasRoute
@@ -342,9 +357,11 @@ export interface FileRoutesByTo {
   '/sellers': typeof AuthenticatedSellersRoute
   '/services-todo': typeof AuthenticatedServicesTodoRoute
   '/telao': typeof AuthenticatedTelaoRoute
+  '/transcricao': typeof AuthenticatedTranscricaoRoute
   '/usuarios': typeof AuthenticatedUsuariosRoute
   '/whatsapp': typeof AuthenticatedWhatsappRoute
   '/white-label': typeof AuthenticatedWhiteLabelRoute
+  '/api/transcribe': typeof ApiTranscribeRoute
   '/operacao-meta/produtores': typeof AuthenticatedOperacaoMetaProdutoresRoute
   '/operacao-meta/relatorios': typeof AuthenticatedOperacaoMetaRelatoriosRoute
   '/operacao-meta/tendencias': typeof AuthenticatedOperacaoMetaTendenciasRoute
@@ -386,9 +403,11 @@ export interface FileRoutesById {
   '/_authenticated/sellers': typeof AuthenticatedSellersRoute
   '/_authenticated/services-todo': typeof AuthenticatedServicesTodoRoute
   '/_authenticated/telao': typeof AuthenticatedTelaoRoute
+  '/_authenticated/transcricao': typeof AuthenticatedTranscricaoRoute
   '/_authenticated/usuarios': typeof AuthenticatedUsuariosRoute
   '/_authenticated/whatsapp': typeof AuthenticatedWhatsappRoute
   '/_authenticated/white-label': typeof AuthenticatedWhiteLabelRoute
+  '/api/transcribe': typeof ApiTranscribeRoute
   '/_authenticated/operacao-meta/produtores': typeof AuthenticatedOperacaoMetaProdutoresRoute
   '/_authenticated/operacao-meta/relatorios': typeof AuthenticatedOperacaoMetaRelatoriosRoute
   '/_authenticated/operacao-meta/tendencias': typeof AuthenticatedOperacaoMetaTendenciasRoute
@@ -430,9 +449,11 @@ export interface FileRouteTypes {
     | '/sellers'
     | '/services-todo'
     | '/telao'
+    | '/transcricao'
     | '/usuarios'
     | '/whatsapp'
     | '/white-label'
+    | '/api/transcribe'
     | '/operacao-meta/produtores'
     | '/operacao-meta/relatorios'
     | '/operacao-meta/tendencias'
@@ -471,9 +492,11 @@ export interface FileRouteTypes {
     | '/sellers'
     | '/services-todo'
     | '/telao'
+    | '/transcricao'
     | '/usuarios'
     | '/whatsapp'
     | '/white-label'
+    | '/api/transcribe'
     | '/operacao-meta/produtores'
     | '/operacao-meta/relatorios'
     | '/operacao-meta/tendencias'
@@ -514,9 +537,11 @@ export interface FileRouteTypes {
     | '/_authenticated/sellers'
     | '/_authenticated/services-todo'
     | '/_authenticated/telao'
+    | '/_authenticated/transcricao'
     | '/_authenticated/usuarios'
     | '/_authenticated/whatsapp'
     | '/_authenticated/white-label'
+    | '/api/transcribe'
     | '/_authenticated/operacao-meta/produtores'
     | '/_authenticated/operacao-meta/relatorios'
     | '/_authenticated/operacao-meta/tendencias'
@@ -537,6 +562,7 @@ export interface RootRouteChildren {
   MasterLoginRoute: typeof MasterLoginRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
+  ApiTranscribeRoute: typeof ApiTranscribeRoute
   ApiPublicEvolutionWebhookRoute: typeof ApiPublicEvolutionWebhookRoute
   ApiPublicTrelloWebhookRoute: typeof ApiPublicTrelloWebhookRoute
 }
@@ -599,6 +625,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/transcribe': {
+      id: '/api/transcribe'
+      path: '/api/transcribe'
+      fullPath: '/api/transcribe'
+      preLoaderRoute: typeof ApiTranscribeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/_authenticated/white-label': {
       id: '/_authenticated/white-label'
       path: '/white-label'
@@ -618,6 +651,13 @@ declare module '@tanstack/react-router' {
       path: '/usuarios'
       fullPath: '/usuarios'
       preLoaderRoute: typeof AuthenticatedUsuariosRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/transcricao': {
+      id: '/_authenticated/transcricao'
+      path: '/transcricao'
+      fullPath: '/transcricao'
+      preLoaderRoute: typeof AuthenticatedTranscricaoRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/telao': {
@@ -881,6 +921,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedSellersRoute: typeof AuthenticatedSellersRoute
   AuthenticatedServicesTodoRoute: typeof AuthenticatedServicesTodoRoute
   AuthenticatedTelaoRoute: typeof AuthenticatedTelaoRoute
+  AuthenticatedTranscricaoRoute: typeof AuthenticatedTranscricaoRoute
   AuthenticatedUsuariosRoute: typeof AuthenticatedUsuariosRoute
   AuthenticatedWhatsappRoute: typeof AuthenticatedWhatsappRoute
   AuthenticatedWhiteLabelRoute: typeof AuthenticatedWhiteLabelRoute
@@ -910,6 +951,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedSellersRoute: AuthenticatedSellersRoute,
   AuthenticatedServicesTodoRoute: AuthenticatedServicesTodoRoute,
   AuthenticatedTelaoRoute: AuthenticatedTelaoRoute,
+  AuthenticatedTranscricaoRoute: AuthenticatedTranscricaoRoute,
   AuthenticatedUsuariosRoute: AuthenticatedUsuariosRoute,
   AuthenticatedWhatsappRoute: AuthenticatedWhatsappRoute,
   AuthenticatedWhiteLabelRoute: AuthenticatedWhiteLabelRoute,
@@ -930,6 +972,7 @@ const rootRouteChildren: RootRouteChildren = {
   MasterLoginRoute: MasterLoginRoute,
   ResetPasswordRoute: ResetPasswordRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
+  ApiTranscribeRoute: ApiTranscribeRoute,
   ApiPublicEvolutionWebhookRoute: ApiPublicEvolutionWebhookRoute,
   ApiPublicTrelloWebhookRoute: ApiPublicTrelloWebhookRoute,
 }
