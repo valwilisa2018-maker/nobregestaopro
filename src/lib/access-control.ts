@@ -57,6 +57,13 @@ export const MENU_MODULES: MenuModule[] = [
     actions: ["view", "edit"],
   },
   {
+    key: "transcription",
+    title: "Transcrição",
+    url: "/transcricao",
+    group: "Operação",
+    actions: ["view", "create"],
+  },
+  {
     key: "customers",
     title: "Clientes",
     url: "/customers",

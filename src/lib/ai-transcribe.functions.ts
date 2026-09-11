@@ -8,8 +8,8 @@ const TranscribeInput = z.object({
 });
 
 /**
- * Transcribes a base64-encoded audio clip using the Lovable AI Gateway
- * (google/gemini-2.5-flash supports audio inputs).
+ * Transcribes a base64-encoded audio clip using the dedicated Lovable AI
+ * speech-to-text endpoint. Kept for the organizer chat's short voice notes.
  * Returns plain text in Portuguese.
  */
 export const transcribeAudio = createServerFn({ method: "POST" })
@@ -19,39 +19,46 @@ export const transcribeAudio = createServerFn({ method: "POST" })
     const apiKey = process.env.LOVABLE_API_KEY;
     if (!apiKey) throw new Error("LOVABLE_API_KEY ausente");
 
-    const res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    const mimeByFormat = {
+      webm: "audio/webm",
+      mp3: "audio/mpeg",
+      wav: "audio/wav",
+      m4a: "audio/mp4",
+      ogg: "audio/ogg",
+    } as const;
+    const bytes = Uint8Array.from(atob(data.audio_base64), (character) => character.charCodeAt(0));
+    if (bytes.byteLength < 2_048) throw new Error("O áudio está vazio ou é curto demais. Grave novamente.");
+
+    const form = new FormData();
+    form.append("model", "google/gemini-3.5-transcribe");
+    form.append("file", new Blob([bytes], { type: mimeByFormat[data.format] }), `gravacao.${data.format}`);
+    form.append("stream", "true");
+
+    const res = await fetch("https://ai.gateway.lovable.dev/v1/audio/transcriptions", {
       method: "POST",
       headers: {
-        "content-type": "application/json",
         authorization: `Bearer ${apiKey}`,
       },
-      body: JSON.stringify({
-        model: "google/gemini-2.5-flash",
-        messages: [
-          {
-            role: "system",
-            content:
-              "Você transcreve áudios em português brasileiro. Responda APENAS com a transcrição literal, sem comentários, sem aspas, sem prefixos. Se não houver fala clara, responda com uma string vazia.",
-          },
-          {
-            role: "user",
-            content: [
-              { type: "text", text: "Transcreva este áudio:" },
-              {
-                type: "input_audio",
-                input_audio: { data: data.audio_base64, format: data.format },
-              },
-            ],
-          },
-        ],
-      }),
+      body: form,
     });
 
     if (!res.ok) {
       const body = await res.text().catch(() => "");
       throw new Error(`AI Gateway ${res.status}: ${body.slice(0, 300)}`);
     }
-    const json: any = await res.json();
-    const text: string = json?.choices?.[0]?.message?.content ?? "";
-    return { text: typeof text === "string" ? text.trim() : "" };
+    const stream = await res.text();
+    let text = "";
+    for (const line of stream.split("\n")) {
+      if (!line.startsWith("data:")) continue;
+      const payload = line.slice(5).trim();
+      if (!payload || payload === "[DONE]") continue;
+      try {
+        const event = JSON.parse(payload) as { type?: string; delta?: string; text?: string };
+        if (event.type === "transcript.text.delta" && event.delta) text += event.delta;
+        if (event.type === "transcript.text.done" && event.text) text = event.text;
+      } catch {
+        // Ignora linhas SSE incompletas ou metadados sem texto.
+      }
+    }
+    return { text: text.trim() };
   });
