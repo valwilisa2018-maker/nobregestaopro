@@ -57,6 +57,13 @@ export const MENU_MODULES: MenuModule[] = [
     actions: ["view", "edit"],
   },
   {
+    key: "script_timer",
+    title: "Medidor de Roteiro",
+    url: "/medidor-roteiro",
+    group: "Operação",
+    actions: ["view"],
+  },
+  {
     key: "transcription",
     title: "Transcrição",
     url: "/transcricao",

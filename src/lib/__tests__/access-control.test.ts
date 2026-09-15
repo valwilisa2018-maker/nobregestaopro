@@ -17,7 +17,25 @@ describe("access-control", () => {
   it("resolve rotas filhas para o módulo mais específico", () => {
     expect(moduleForPath("/pastas-arquivos/abc")?.key).toBe("files");
     expect(moduleForPath("/operacao-meta/relatorios")?.key).toBe("goals");
+    expect(moduleForPath("/medidor-roteiro")?.key).toBe("script_timer");
+    expect(moduleForPath("/transcricao")?.key).toBe("transcription");
     expect(moduleForPath("/rota-publica")).toBeUndefined();
+  });
+
+  it("mantém os módulos novos disponíveis no editor de permissões", () => {
+    const permissions = normalizePermissions({});
+    expect(permissions.script_timer).toEqual({
+      view: false,
+      create: false,
+      edit: false,
+      delete: false,
+    });
+    expect(permissions.transcription).toEqual({
+      view: false,
+      create: false,
+      edit: false,
+      delete: false,
+    });
   });
 
   it("encontra o primeiro módulo permitido para o redirecionamento pós-login", () => {

@@ -27,6 +27,7 @@ import {
   ShieldCheck,
   Timer,
   AudioLines,
+  type LucideIcon,
 } from "lucide-react";
 import logoUrl from "@/assets/logo.png";
 import { useEffect, useState } from "react";
@@ -47,56 +48,45 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { useTheme } from "@/hooks/use-theme";
 import { useAccess } from "@/components/access-provider";
-import { moduleForPath } from "@/lib/access-control";
+import { MENU_MODULES } from "@/lib/access-control";
 
-const groups = [
-  {
-    label: "Operação",
-    items: [
-      { title: "Dashboard", url: "/dashboard", icon: LayoutDashboard },
-      { title: "Vendas", url: "/sales", icon: ShoppingCart },
-      { title: "Telão", url: "/telao", icon: Tv },
-      { title: "Produção (Kanban)", url: "/kanban", icon: KanbanSquare },
-      { title: "Serviços a Fazer", url: "/services-todo", icon: ListTodo },
-      { title: "Pastas e Arquivos", url: "/pastas-arquivos", icon: FolderOpen },
-      { title: "Chat Organizador", url: "/chat-organizador", icon: MessagesSquare },
-      { title: "Operação Metas", url: "/operacao-meta", icon: Clapperboard },
-      { title: "Medidor de Roteiro", url: "/medidor-roteiro", icon: Timer },
-      { title: "Transcrição", url: "/transcricao", icon: AudioLines },
-    ],
-  },
-  {
-    label: "Cadastros",
-    items: [
-      { title: "Clientes", url: "/customers", icon: Users },
-      { title: "Vendedores", url: "/sellers", icon: UserCheck },
-      { title: "Produtores", url: "/producers", icon: Briefcase },
-    ],
-  },
-  {
-    label: "Financeiro",
-    items: [
-      { title: "Pagamentos Cartão/PIX", url: "/pagarme-history", icon: CreditCard },
-      { title: "Gerar Pagamento", url: "/payment-link", icon: Link2 },
-      { title: "Financeiro", url: "/finance", icon: DollarSign },
-      { title: "Valores Pendentes", url: "/pending-payments", icon: AlertCircle },
-      { title: "Notas Fiscais", url: "/invoices", icon: FileText },
-      { title: "Comissões", url: "/commissions", icon: Wallet },
-    ],
-  },
-  {
-    label: "Administração",
-    items: [
-      { title: "Planos & Assinatura", url: "/planos", icon: CreditCard },
-      { title: "Backup", url: "/backup", icon: Database },
-      { title: "Conectar WhatsApp", url: "/whatsapp", icon: Smartphone },
-      { title: "Auditoria", url: "/auditoria", icon: ShieldCheck },
-      { title: "Personalização", url: "/white-label", icon: Sparkles },
-      { title: "Configurações", url: "/admin", icon: Settings },
-      { title: "Usuários e Permissões", url: "/usuarios", icon: ShieldCheck },
-    ],
-  },
-];
+const iconByModule: Record<string, LucideIcon> = {
+  dashboard: LayoutDashboard,
+  sales: ShoppingCart,
+  telao: Tv,
+  kanban: KanbanSquare,
+  services_todo: ListTodo,
+  files: FolderOpen,
+  chat: MessagesSquare,
+  goals: Clapperboard,
+  script_timer: Timer,
+  transcription: AudioLines,
+  customers: Users,
+  sellers: UserCheck,
+  producers: Briefcase,
+  payments: CreditCard,
+  payment_link: Link2,
+  finance: DollarSign,
+  pending_payments: AlertCircle,
+  invoices: FileText,
+  commissions: Wallet,
+  plans: CreditCard,
+  backup: Database,
+  whatsapp: Smartphone,
+  audit: ShieldCheck,
+  white_label: Sparkles,
+  settings: Settings,
+  users: ShieldCheck,
+};
+
+const groupLabels = ["Operação", "Cadastros", "Financeiro", "Administração"] as const;
+const groups = groupLabels.map((label) => ({
+  label,
+  items: MENU_MODULES.filter((module) => module.group === label).map((module) => ({
+    ...module,
+    icon: iconByModule[module.key] ?? Settings,
+  })),
+}));
 
 export function AppSidebar() {
   const [customLogo, setCustomLogo] = useState(() => getCachedWhiteLabelSettings().logo);
@@ -114,10 +104,7 @@ export function AppSidebar() {
   const displayedGroups = groups
     .map((group) => ({
       ...group,
-      items: group.items.filter((item) => {
-        const module = moduleForPath(item.url);
-        return !module || access.can(module.key, "view");
-      }),
+      items: group.items.filter((item) => access.can(item.key, "view")),
     }))
     .filter((group) => group.items.length > 0);
 
