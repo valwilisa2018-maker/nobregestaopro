@@ -563,3 +563,92 @@ export const workflowRunAction = createServerFn({ method: "POST" })
     await advanceRun(run.id);
     return { ok: true };
   });
+
+/** Fluxos ativos que o usuário pode iniciar — usado pelo Follow-up. */
+export const workflowActiveList = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const ctx = context as unknown as Ctx;
+    await assertPermission(ctx, "view");
+    const manager = await isManager(ctx);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data } = await supabaseAdmin
+      .from("workflows")
+      .select("id, name, owner_user_id, seller_id, status")
+      .eq("status", "active")
+      .order("name");
+    return {
+      workflows: (data ?? []).filter((w) => manager || w.owner_user_id === ctx.userId),
+    };
+  });
+
+/** Etiquetas do cliente. Adicionar etiqueta dispara os fluxos com esse gatilho. */
+export const customerTags = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: { customerId: string }) => d)
+  .handler(async ({ data, context }) => {
+    const ctx = context as unknown as Ctx;
+    await assertPermission(ctx, "view");
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: customer } = await supabaseAdmin
+      .from("customers")
+      .select("id, tags")
+      .eq("id", data.customerId)
+      .maybeSingle();
+    if (!customer) throw new Error("Cliente não encontrado.");
+    return { tags: (customer.tags ?? []) as string[] };
+  });
+
+export const customerTagsSave = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: { customerId: string; tags: string[] }) => d)
+  .handler(async ({ data, context }) => {
+    const ctx = context as unknown as Ctx;
+    await assertPermission(ctx, "edit");
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: customer } = await supabaseAdmin
+      .from("customers")
+      .select("id, tags")
+      .eq("id", data.customerId)
+      .maybeSingle();
+    if (!customer) throw new Error("Cliente não encontrado.");
+
+    const before = ((customer.tags ?? []) as string[]).map((t) => t.trim().toLowerCase());
+    const after = Array.from(
+      new Set(
+        (data.tags ?? [])
+          .map((t) => t.trim().toLowerCase())
+          .filter(Boolean)
+          .slice(0, 30),
+      ),
+    );
+    const { error } = await supabaseAdmin
+      .from("customers")
+      .update({ tags: after } as never)
+      .eq("id", customer.id);
+    if (error) throw new Error(error.message);
+
+    const added = after.filter((tag) => !before.includes(tag));
+    const startedRuns: string[] = [];
+    const failures: string[] = [];
+    if (added.length) {
+      const { startWorkflowsByTrigger } = await import("@/lib/workflow.server");
+      for (const tag of added) {
+        const result = await startWorkflowsByTrigger({
+          triggerType: "tag_added",
+          customerId: customer.id,
+          tag,
+          startedBy: ctx.userId,
+        });
+        startedRuns.push(...result.started);
+        failures.push(...result.errors);
+      }
+    }
+    await audit(ctx, "customer_tags_updated", {
+      customer: customer.id,
+      tags: after,
+      added,
+      runs: startedRuns.length,
+    });
+    return { tags: after, started: startedRuns.length, errors: failures };
+  });
