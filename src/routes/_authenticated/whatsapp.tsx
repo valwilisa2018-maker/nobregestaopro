@@ -1,492 +1,647 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { PageHero } from "@/components/page-hero";
-import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useRef, useState } from "react";
+import { useServerFn } from "@tanstack/react-start";
+import { PageHero } from "@/components/page-hero";
+import { EvolutionSettingsCard } from "@/components/whatsapp/evolution-settings-card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
-import { toast } from "@/lib/toast";
-import { getErrorMessage as translateError } from "@/lib/error-messages";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
-  AlertCircle,
-  CheckCircle2,
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { toast } from "@/lib/toast";
+import { getErrorMessage } from "@/lib/error-messages";
+import { stateLabel } from "@/lib/followup-shared";
+import { formatPhoneBR } from "@/lib/phone";
+import {
+  whatsappCreateConnection,
+  whatsappDeleteConnection,
+  whatsappDisconnect,
+  whatsappGetQr,
+  whatsappListConnections,
+  whatsappRefreshStatus,
+  whatsappUpdateConnection,
+} from "@/lib/whatsapp.functions";
+import { QRCodeSVG } from "qrcode.react";
+import {
   Loader2,
   LogOut,
+  Plus,
+  QrCode,
   RefreshCw,
+  Settings2,
   Smartphone,
   Trash2,
-  XCircle,
 } from "lucide-react";
-import { QRCodeSVG } from "qrcode.react";
-import { supabase } from "@/integrations/supabase/client";
-import {
-  evolutionCreateInstance,
-  evolutionGetQr,
-  evolutionStatus,
-  evolutionLogout,
-  evolutionDelete,
-  evolutionFetchInstance,
-} from "@/lib/evolution.functions";
-
-type JsonRecord = { [key: string]: unknown };
-type StatusVariant = "default" | "secondary" | "outline";
-
-function asRecord(value: unknown): JsonRecord {
-  return value && typeof value === "object" ? (value as JsonRecord) : {};
-}
-
-function nestedValue(value: unknown, path: string[]) {
-  let current: unknown = value;
-  for (const key of path) {
-    current = asRecord(current)[key];
-  }
-  return current;
-}
-
-function nestedString(value: unknown, path: string[]) {
-  const found = nestedValue(value, path);
-  return typeof found === "string" ? found : null;
-}
-
-function findQrCandidate(value: unknown, depth = 0): string | null {
-  if (!value || depth > 5) return null;
-  if (typeof value === "string") return value.length > 50 ? value : null;
-  if (Array.isArray(value)) {
-    for (const item of value) {
-      const found = findQrCandidate(item, depth + 1);
-      if (found) return found;
-    }
-    return null;
-  }
-  const record = asRecord(value);
-  const priorityKeys = ["base64", "code", "qrcode", "qrCode", "qr_code", "qr"];
-  for (const key of priorityKeys) {
-    const found = findQrCandidate(record[key], depth + 1);
-    if (found) return found;
-  }
-  for (const [key, item] of Object.entries(record)) {
-    if (/qr|code|base64/i.test(key)) {
-      const found = findQrCandidate(item, depth + 1);
-      if (found) return found;
-    }
-  }
-  return null;
-}
-
-function getErrorMessage(error: unknown) {
-  return translateError(error, "");
-}
 
 export const Route = createFileRoute("/_authenticated/whatsapp")({
-  component: WhatsAppConnectPage,
-  head: () => ({ meta: [{ title: "Conectar WhatsApp" }] }),
+  component: WhatsAppPage,
+  head: () => ({
+    meta: [
+      { title: "Conectar WhatsApp | Nobre Gestão" },
+      {
+        name: "description",
+        content:
+          "Conecte vários números de WhatsApp à plataforma pela Evolution API e acompanhe o status de cada conexão.",
+      },
+      { property: "og:title", content: "Conectar WhatsApp | Nobre Gestão" },
+      {
+        property: "og:description",
+        content: "Gerencie as conexões de WhatsApp da sua equipe em um só lugar.",
+      },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
+    ],
+  }),
 });
 
-function extractQrBase64(resp: unknown): string | null {
-  if (!resp) return null;
-  const candidates = [
-    nestedString(resp, ["base64"]),
-    nestedString(resp, ["code"]),
-    nestedString(resp, ["qrcode", "base64"]),
-    nestedString(resp, ["qrcode", "code"]),
-    nestedString(resp, ["qrcode"]),
-    nestedString(resp, ["qr", "base64"]),
-    nestedString(resp, ["qr", "code"]),
-    nestedString(resp, ["data", "base64"]),
-    nestedString(resp, ["data", "code"]),
-    nestedString(resp, ["data", "qrcode", "base64"]),
-    nestedString(resp, ["data", "qrcode", "code"]),
-    nestedString(resp, ["data", "qrCode", "base64"]),
-    nestedString(resp, ["data", "qrCode", "code"]),
-    nestedString(resp, ["qrCode", "base64"]),
-    nestedString(resp, ["qrCode", "code"]),
-    nestedString(resp, ["qrCode"]),
-    nestedString(resp, ["instance", "qrcode", "base64"]),
-    findQrCandidate(resp),
-  ];
-  for (const c of candidates) {
-    if (typeof c === "string" && c.length > 50) {
-      if (c.startsWith("data:image")) return c;
-      if (c.startsWith("iVBOR") || c.startsWith("/9j/") || c.startsWith("R0lGOD")) {
-        return `data:image/png;base64,${c}`;
-      }
-      return c;
-    }
-  }
+type Data = Awaited<ReturnType<typeof whatsappListConnections>>;
+type Connection = Data["connections"][number];
+
+function qrImage(qr: string | null) {
+  if (!qr) return null;
+  if (qr.startsWith("data:image")) return qr;
+  if (qr.startsWith("iVBOR") || qr.startsWith("/9j/")) return `data:image/png;base64,${qr}`;
   return null;
 }
 
-function extractState(resp: unknown): string {
+function StateBadge({ state }: { state?: string | null }) {
+  const info = stateLabel(state);
+  const variant =
+    state === "connected" ? "default" : state === "error" ? "destructive" : "secondary";
   return (
-    nestedString(resp, ["instance", "state"]) ??
-    nestedString(resp, ["state"]) ??
-    nestedString(resp, ["status"]) ??
-    "unknown"
+    <Badge variant={variant} className="gap-1">
+      <span>{info.emoji}</span> {info.label}
+    </Badge>
   );
 }
 
-function extractNumber(resp: unknown): string | null {
-  return (
-    nestedString(resp, ["instance", "owner"]) ??
-    nestedString(resp, ["instance", "number"]) ??
-    nestedString(resp, ["owner"]) ??
-    nestedString(resp, ["number"]) ??
-    null
-  );
-}
+function WhatsAppPage() {
+  const list = useServerFn(whatsappListConnections);
+  const createConnection = useServerFn(whatsappCreateConnection);
+  const getQr = useServerFn(whatsappGetQr);
+  const refreshStatus = useServerFn(whatsappRefreshStatus);
+  const updateConnection = useServerFn(whatsappUpdateConnection);
+  const disconnect = useServerFn(whatsappDisconnect);
+  const removeConnection = useServerFn(whatsappDeleteConnection);
 
-function WhatsAppConnectPage() {
-  const create = useServerFn(evolutionCreateInstance);
-  const getQr = useServerFn(evolutionGetQr);
-  const status = useServerFn(evolutionStatus);
-  const logout = useServerFn(evolutionLogout);
-  const deleteInstance = useServerFn(evolutionDelete);
-  const fetchInstance = useServerFn(evolutionFetchInstance);
+  const [data, setData] = useState<Data | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [busy, setBusy] = useState<string | null>(null);
 
-  const [instanceName, setInstanceName] = useState(
-    () => (typeof window !== "undefined" && localStorage.getItem("evo_instance")) || "nobre-bot",
-  );
+  const [createOpen, setCreateOpen] = useState(false);
+  const [form, setForm] = useState({
+    name: "",
+    responsibleName: "",
+    sellerId: "",
+    instanceName: "",
+    notes: "",
+  });
+  const [qrTarget, setQrTarget] = useState<{ instanceName: string; name: string } | null>(null);
   const [qr, setQr] = useState<string | null>(null);
-  const [state, setState] = useState<string>("idle");
-  const [loading, setLoading] = useState(false);
-  const [number, setNumber] = useState<string | null>(null);
-  const [lastCheck, setLastCheck] = useState<Date | null>(null);
-  const [statusMessage, setStatusMessage] = useState<string | null>(null);
-  const pollRef = useRef<number | null>(null);
-  const statusInFlightRef = useRef(false);
+  const [editTarget, setEditTarget] = useState<Connection | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<Connection | null>(null);
+  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  useEffect(() => {
-    if (typeof window !== "undefined") {
-      localStorage.setItem("evo_instance", instanceName);
-    }
-  }, [instanceName]);
-
-  const stopPolling = () => {
-    if (pollRef.current) {
-      window.clearInterval(pollRef.current);
-      pollRef.current = null;
-    }
-  };
-
-  const syncStatus = async (silent = true) => {
-    if (statusInFlightRef.current) return state;
-    statusInFlightRef.current = true;
+  const refresh = async () => {
     try {
-      const s = await status({ data: { instanceName: instanceName.trim() } });
-      const st = extractState(s);
-      setState(st);
-      setLastCheck(new Date());
-      setStatusMessage(null);
-      if (st === "open" || st === "connected") {
-        if (qr) {
-          setQr(null);
-          toast.success("WhatsApp conectado!");
-        }
-        // try to enrich with phone number
-        try {
-          const info = await fetchInstance({ data: { instanceName: instanceName.trim() } });
-          setNumber(extractNumber(info));
-        } catch {
-          // Número é opcional; status continua válido sem ele.
-        }
-      } else {
-        setNumber(null);
-      }
-      return st;
-    } catch (e: unknown) {
-      const message = getErrorMessage(e) || "Falha ao verificar status";
-      if (!silent) toast.error(message);
-      setState((prev) => (prev === "qrcode" || prev === "connecting" ? prev : "unreachable"));
-      setStatusMessage(
-        "Evolution não respondeu no tempo esperado. A UI vai continuar tentando sincronizar.",
-      );
-      setLastCheck(new Date());
-      setNumber(null);
-      return "unreachable";
+      setData(await list());
+    } catch (e) {
+      toast.error(getErrorMessage(e, "Não foi possível carregar as conexões."));
     } finally {
-      statusInFlightRef.current = false;
+      setLoading(false);
     }
   };
 
-  const startPolling = (fast = false) => {
-    stopPolling();
-    pollRef.current = window.setInterval(
-      () => {
-        syncStatus(true);
-      },
-      fast ? 3000 : 10000,
-    );
-  };
-
-  // Auto-sync on mount and whenever the instance name changes
   useEffect(() => {
-    syncStatus(true);
-    startPolling(false);
-    return stopPolling;
+    void refresh();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [instanceName]);
+  }, []);
 
-  // Realtime: react instantly to webhook-driven status updates
+  // Enquanto o QR Code está aberto, verifica o status sozinho.
   useEffect(() => {
-    const name = instanceName.trim();
-    if (!name) return;
-    const channel = supabase
-      .channel(`whatsapp_status:${name}`)
-      .on(
-        "postgres_changes",
-        {
-          event: "*",
-          schema: "public",
-          table: "whatsapp_status",
-          filter: `instance_name=eq.${name}`,
-        },
-        (payload) => {
-          const row = asRecord(payload.new ?? payload.old);
-          if (!row) return;
-          const st = String(row.state ?? "unknown");
-          setState(st);
-          setLastCheck(new Date());
-          setStatusMessage(null);
-          if (typeof row.number === "string") setNumber(row.number);
-          if (st === "open" || st === "connected") {
-            setQr((prev) => {
-              if (prev) {
-                toast.success("WhatsApp conectado!");
-              }
-              return null;
-            });
-          } else if (st === "close" || st === "disconnected") {
-            setNumber(null);
-            toast.warning("WhatsApp desconectou");
-          } else if (st === "unreachable") {
-            setStatusMessage(
-              "Evolution não respondeu no tempo esperado. A sincronização automática continua ativa.",
-            );
-          }
-        },
-      )
-      .subscribe();
+    if (!qrTarget) {
+      if (pollRef.current) clearInterval(pollRef.current);
+      pollRef.current = null;
+      return;
+    }
+    pollRef.current = setInterval(async () => {
+      try {
+        const result = await refreshStatus({ data: { instanceName: qrTarget.instanceName } });
+        const state = result.results?.[0]?.state;
+        if (state === "connected") {
+          toast.success("WhatsApp conectado com sucesso!");
+          setQrTarget(null);
+          setQr(null);
+          await refresh();
+        }
+      } catch {
+        // silencioso: tenta de novo no próximo ciclo
+      }
+    }, 5000);
     return () => {
-      supabase.removeChannel(channel);
+      if (pollRef.current) clearInterval(pollRef.current);
     };
-  }, [instanceName]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [qrTarget]);
 
-  const handleConnect = async () => {
-    if (!instanceName.trim()) return toast.error("Informe o nome da instância");
-    stopPolling();
-    setLoading(true);
+  const openQr = async (connection: { instance_name: string; name: string }) => {
+    setQrTarget({ instanceName: connection.instance_name, name: connection.name });
     setQr(null);
-    setState("connecting");
-    setStatusMessage(null);
     try {
-      // Check first — if already open on Evolution, just sync UI
-      const resp = await create({ data: { instanceName: instanceName.trim() } });
-      let base64 = extractQrBase64(resp);
-      if (!base64) {
-        const qrResp = await getQr({ data: { instanceName: instanceName.trim() } });
-        base64 = extractQrBase64(qrResp);
-      }
-      if (base64) {
-        setQr(base64);
-        setState("qrcode");
-        startPolling(true);
+      const result = await getQr({ data: { instanceName: connection.instance_name } });
+      setQr(result.qr);
+      if (!result.qr) toast.info("A Evolution API ainda não devolveu o QR Code. Tente novamente.");
+    } catch (e) {
+      toast.error(getErrorMessage(e, "Não foi possível gerar o QR Code."));
+    }
+  };
+
+  const handleCreate = async () => {
+    setBusy("create");
+    try {
+      const result = await createConnection({
+        data: {
+          name: form.name,
+          responsibleName: form.responsibleName,
+          sellerId: form.sellerId || null,
+          instanceName: form.instanceName,
+          notes: form.notes,
+        },
+      });
+      setCreateOpen(false);
+      setForm({ name: "", responsibleName: "", sellerId: "", instanceName: "", notes: "" });
+      await refresh();
+      if (result.qr) {
+        setQrTarget({ instanceName: result.instanceName, name: form.name });
+        setQr(result.qr);
       } else {
-        await syncStatus(false);
-        toast.message("Não retornou QR — verifique o status.");
+        await openQr({ instance_name: result.instanceName, name: form.name });
       }
-    } catch (e: unknown) {
-      const message = getErrorMessage(e) || "Falha ao conectar";
-      setState("unreachable");
-      setStatusMessage(
-        "Evolution não respondeu. Confirme se o serviço externo está ativo e tente gerar o QR novamente.",
-      );
-      startPolling(false);
-      toast.error(message);
+    } catch (e) {
+      toast.error(getErrorMessage(e, "Não foi possível criar a conexão."));
     } finally {
-      setLoading(false);
+      setBusy(null);
     }
   };
 
-  const handleRefreshQr = async () => {
-    stopPolling();
-    setLoading(true);
-    setState("connecting");
-    setStatusMessage(null);
+  const handleRefreshAll = async () => {
+    setBusy("refresh");
     try {
-      const qrResp = await getQr({ data: { instanceName: instanceName.trim() } });
-      const b64 = extractQrBase64(qrResp);
-      if (b64) {
-        setQr(b64);
-        setState("qrcode");
-        setStatusMessage(null);
-        startPolling(true);
-      } else toast.message("QR não disponível agora");
-    } catch (e: unknown) {
-      const message = getErrorMessage(e) || "Erro";
-      setState("unreachable");
-      setStatusMessage(
-        "Evolution não respondeu ao atualizar o QR. Tentaremos sincronizar de novo automaticamente.",
-      );
-      startPolling(false);
-      toast.error(message);
+      await refreshStatus({ data: {} });
+      await refresh();
+      toast.success("Status atualizado.");
+    } catch (e) {
+      toast.error(getErrorMessage(e, "Não foi possível atualizar."));
     } finally {
-      setLoading(false);
+      setBusy(null);
     }
   };
 
-  const handleCheck = async () => {
-    setLoading(true);
-    await syncStatus(false);
-    setLoading(false);
-    toast.success("Status atualizado");
-  };
-
-  const handleLogout = async () => {
-    if (!confirm("Desconectar o número da Evolution?")) return;
-    setLoading(true);
+  const handleSaveEdit = async () => {
+    if (!editTarget) return;
+    setBusy("edit");
     try {
-      await logout({ data: { instanceName: instanceName.trim() } });
-      setQr(null);
-      setState("disconnected");
-      setNumber(null);
-      await syncStatus(true);
-      toast.success("Desconectado");
-    } catch (e: unknown) {
-      toast.error(getErrorMessage(e) || "Erro");
+      await updateConnection({
+        data: {
+          id: editTarget.id,
+          name: editTarget.name,
+          responsibleName: editTarget.responsible_name,
+          sellerId: editTarget.seller_id,
+          notes: editTarget.notes,
+          isDefault: editTarget.is_default,
+        },
+      });
+      setEditTarget(null);
+      await refresh();
+      toast.success("Conexão atualizada.");
+    } catch (e) {
+      toast.error(getErrorMessage(e, "Não foi possível salvar."));
     } finally {
-      setLoading(false);
+      setBusy(null);
     }
   };
 
-  const handleDelete = async () => {
-    if (!confirm("Remover a instância da Evolution? Isso apaga a sessão completamente.")) return;
-    setLoading(true);
-    try {
-      await deleteInstance({ data: { instanceName: instanceName.trim() } });
-      setQr(null);
-      setState("disconnected");
-      setNumber(null);
-      toast.success("Instância removida da Evolution");
-    } catch (e: unknown) {
-      toast.error(getErrorMessage(e) || "Erro");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const isConnected = state === "open" || state === "connected";
-  const stateColor: StatusVariant = isConnected
-    ? "default"
-    : state === "qrcode" || state === "connecting"
-      ? "secondary"
-      : "outline";
-  const StateIcon = isConnected
-    ? CheckCircle2
-    : state === "qrcode" || state === "connecting"
-      ? AlertCircle
-      : XCircle;
+  const configured = data?.configured ?? false;
+  const image = qrImage(qr);
 
   return (
-    <div className="container mx-auto max-w-3xl py-8 space-y-6">
+    <div className="space-y-6">
       <PageHero
         eyebrow="Integração"
         icon={Smartphone}
         title="Conectar WhatsApp"
-        description="Conecte um número via Evolution API. Escaneie o QR Code com o WhatsApp do celular que vai ser o número-robô."
+        description="Conecte quantos números precisar e acompanhe o status de cada um."
+        actions={
+          <>
+            <Button variant="outline" onClick={handleRefreshAll} disabled={busy !== null}>
+              {busy === "refresh" ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : (
+                <RefreshCw className="mr-2 h-4 w-4" />
+              )}
+              Atualizar status
+            </Button>
+            <Button onClick={() => setCreateOpen(true)} disabled={!configured}>
+              <Plus className="mr-2 h-4 w-4" /> Conectar novo WhatsApp
+            </Button>
+          </>
+        }
       />
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Instância</CardTitle>
-          <CardDescription>
-            Nome da instância na Evolution API. Use algo simples como <code>nobre-bot</code>.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="inst">Nome da instância</Label>
-            <Input
-              id="inst"
-              value={instanceName}
-              onChange={(e) => setInstanceName(e.target.value)}
-              placeholder="nobre-bot"
-              disabled={loading}
-            />
-          </div>
-          <div className="flex flex-wrap gap-2">
-            <Button onClick={handleConnect} disabled={loading}>
-              {loading ? (
-                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-              ) : (
-                <Smartphone className="h-4 w-4 mr-2" />
-              )}
-              {isConnected ? "Reconectar / Verificar" : "Ativar / Gerar QR"}
-            </Button>
-            <Button variant="outline" onClick={handleCheck} disabled={loading}>
-              <RefreshCw className="h-4 w-4 mr-2" /> Verificar status
-            </Button>
-            <Button variant="outline" onClick={handleRefreshQr} disabled={loading}>
-              Atualizar QR
-            </Button>
-            <Button variant="destructive" onClick={handleLogout} disabled={loading}>
-              <LogOut className="h-4 w-4 mr-2" /> Desconectar
-            </Button>
-            <Button variant="outline" onClick={handleDelete} disabled={loading}>
-              <Trash2 className="h-4 w-4 mr-2" /> Remover instância
-            </Button>
-          </div>
-          <div className="flex flex-wrap items-center gap-3 text-sm pt-2 border-t">
-            <div className="flex items-center gap-2">
-              <StateIcon className="h-4 w-4" />
-              <span className="text-muted-foreground">Status:</span>
-              <Badge variant={stateColor}>{state}</Badge>
+      <Tabs defaultValue="conexoes" className="space-y-4">
+        <TabsList>
+          <TabsTrigger value="conexoes">WhatsApps conectados</TabsTrigger>
+          <TabsTrigger value="config">
+            <Settings2 className="mr-2 h-4 w-4" /> Configurações
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="conexoes" className="space-y-4">
+          {!loading && !configured && (
+            <Card className="border-amber-500/40">
+              <CardHeader>
+                <CardTitle>Configure a Evolution API primeiro</CardTitle>
+                <CardDescription>
+                  Antes de conectar seu WhatsApp, precisamos configurar a comunicação com a
+                  Evolution API.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <p className="text-sm text-muted-foreground">
+                  Abra a aba <strong>Configurações</strong> aqui em cima para informar a URL e a API
+                  Key.
+                </p>
+              </CardContent>
+            </Card>
+          )}
+
+          {loading ? (
+            <div className="flex items-center gap-2 text-muted-foreground">
+              <Loader2 className="h-4 w-4 animate-spin" /> Carregando conexões...
             </div>
-            {number && (
-              <div className="flex items-center gap-1">
-                <span className="text-muted-foreground">Número:</span>
-                <span className="font-mono">{number}</span>
-              </div>
-            )}
-            {lastCheck && (
-              <span className="text-xs text-muted-foreground ml-auto">
-                Última verificação: {lastCheck.toLocaleTimeString()}
-              </span>
-            )}
-          </div>
-          {statusMessage && (
-            <div className="rounded-md border border-border bg-muted/40 px-3 py-2 text-sm text-muted-foreground">
-              {statusMessage}
+          ) : (data?.connections.length ?? 0) === 0 ? (
+            <Card>
+              <CardContent className="py-10 text-center text-muted-foreground">
+                Nenhum WhatsApp conectado ainda.
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+              {data?.connections.map((connection) => (
+                <Card key={connection.id} className="overflow-hidden">
+                  <CardHeader className="pb-3">
+                    <div className="flex items-start gap-3">
+                      {connection.profile_pic_url ? (
+                        <img
+                          src={connection.profile_pic_url}
+                          alt={`Foto do perfil de ${connection.name}`}
+                          className="h-11 w-11 rounded-full object-cover"
+                        />
+                      ) : (
+                        <div className="flex h-11 w-11 items-center justify-center rounded-full bg-primary/10">
+                          <Smartphone className="h-5 w-5 text-primary" />
+                        </div>
+                      )}
+                      <div className="min-w-0 flex-1">
+                        <CardTitle className="truncate text-base">{connection.name}</CardTitle>
+                        <CardDescription className="truncate">
+                          {connection.responsible_name ?? "Sem responsável"}
+                        </CardDescription>
+                      </div>
+                      {connection.is_default && <Badge variant="outline">Padrão</Badge>}
+                    </div>
+                  </CardHeader>
+                  <CardContent className="space-y-3 text-sm">
+                    <StateBadge state={connection.state} />
+                    <div className="space-y-1 text-muted-foreground">
+                      <p>Número: {connection.phone_number ? formatPhoneBR(connection.phone_number) : "—"}</p>
+                      <p>
+                        Conectado em:{" "}
+                        {connection.connected_at
+                          ? new Date(connection.connected_at).toLocaleString("pt-BR")
+                          : "—"}
+                      </p>
+                      <details>
+                        <summary className="cursor-pointer text-xs">Ver detalhes</summary>
+                        <p className="mt-1 text-xs">Instância: {connection.instance_name}</p>
+                        <p className="text-xs">Último evento: {connection.last_event ?? "—"}</p>
+                        {connection.notes && <p className="text-xs">Obs.: {connection.notes}</p>}
+                      </details>
+                    </div>
+                    <div className="flex flex-wrap gap-2 pt-1">
+                      <Button size="sm" variant="outline" onClick={() => void openQr(connection)}>
+                        <QrCode className="mr-1.5 h-3.5 w-3.5" /> QR Code
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={async () => {
+                          await refreshStatus({ data: { instanceName: connection.instance_name } });
+                          await refresh();
+                        }}
+                      >
+                        <RefreshCw className="mr-1.5 h-3.5 w-3.5" /> Status
+                      </Button>
+                      <Button size="sm" variant="outline" onClick={() => setEditTarget(connection)}>
+                        <Settings2 className="mr-1.5 h-3.5 w-3.5" /> Editar
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={async () => {
+                          try {
+                            await disconnect({ data: { instanceName: connection.instance_name } });
+                            await refresh();
+                            toast.success("WhatsApp desconectado.");
+                          } catch (e) {
+                            toast.error(getErrorMessage(e, "Falha ao desconectar."));
+                          }
+                        }}
+                      >
+                        <LogOut className="mr-1.5 h-3.5 w-3.5" /> Desconectar
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="text-destructive"
+                        onClick={() => setDeleteTarget(connection)}
+                      >
+                        <Trash2 className="mr-1.5 h-3.5 w-3.5" /> Excluir
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
             </div>
           )}
-        </CardContent>
-      </Card>
+        </TabsContent>
 
-      {qr && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Escaneie o QR Code</CardTitle>
-            <CardDescription>
-              No celular: WhatsApp → Configurações → Aparelhos conectados → Conectar um aparelho. O
-              status atualiza sozinho ao conectar.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="flex justify-center">
-            {qr.startsWith("data:image") ? (
-              <img
-                src={qr}
-                alt="QR Code WhatsApp"
-                className="w-72 h-72 border rounded-lg bg-white p-2"
+        <TabsContent value="config">
+          <EvolutionSettingsCard />
+        </TabsContent>
+      </Tabs>
+
+      {/* Nova conexão */}
+      <Dialog open={createOpen} onOpenChange={setCreateOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Conectar novo WhatsApp</DialogTitle>
+            <DialogDescription>Informe os dados da conexão.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div className="space-y-2">
+              <Label htmlFor="conn-name">Nome da conexão</Label>
+              <Input
+                id="conn-name"
+                value={form.name}
+                onChange={(e) => setForm({ ...form, name: e.target.value })}
+                placeholder="WhatsApp Rogério"
               />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="conn-resp">Nome do vendedor/responsável</Label>
+              <Input
+                id="conn-resp"
+                value={form.responsibleName}
+                onChange={(e) => setForm({ ...form, responsibleName: e.target.value })}
+                placeholder="Rogério"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Vendedor cadastrado (opcional)</Label>
+              <Select
+                value={form.sellerId || "none"}
+                onValueChange={(value) => setForm({ ...form, sellerId: value === "none" ? "" : value })}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecionar vendedor" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">Sem vínculo</SelectItem>
+                  {data?.sellers.map((seller) => (
+                    <SelectItem key={seller.id} value={seller.id}>
+                      {seller.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="conn-instance">Nome interno da instância</Label>
+              <Input
+                id="conn-instance"
+                value={form.instanceName}
+                onChange={(e) => setForm({ ...form, instanceName: e.target.value })}
+                placeholder="rogerio-vendas"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="conn-notes">Observação (opcional)</Label>
+              <Textarea
+                id="conn-notes"
+                value={form.notes}
+                onChange={(e) => setForm({ ...form, notes: e.target.value })}
+                rows={2}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setCreateOpen(false)}>
+              Cancelar
+            </Button>
+            <Button onClick={handleCreate} disabled={busy !== null || !form.name.trim()}>
+              {busy === "create" && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Criar e gerar QR Code
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* QR Code */}
+      <Dialog
+        open={qrTarget !== null}
+        onOpenChange={(open) => {
+          if (!open) {
+            setQrTarget(null);
+            setQr(null);
+            void refresh();
+          }
+        }}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Ler o QR Code — {qrTarget?.name}</DialogTitle>
+            <DialogDescription>
+              Abra o WhatsApp no celular, entre em “Aparelhos conectados”, clique em “Conectar um
+              aparelho” e leia o código abaixo. Aguarde a confirmação — a tela atualiza sozinha.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex flex-col items-center gap-4 py-2">
+            {!qr ? (
+              <div className="flex h-56 items-center gap-2 text-muted-foreground">
+                <Loader2 className="h-4 w-4 animate-spin" /> Gerando QR Code...
+              </div>
+            ) : image ? (
+              <img src={image} alt="QR Code do WhatsApp" className="h-56 w-56" />
             ) : (
-              <div className="w-72 h-72 border rounded-lg bg-white p-4 flex items-center justify-center">
-                <QRCodeSVG value={qr} size={248} level="M" includeMargin />
+              <div className="rounded-lg bg-white p-3">
+                <QRCodeSVG value={qr} size={220} />
               </div>
             )}
-          </CardContent>
-        </Card>
-      )}
+            <ol className="list-decimal space-y-1 pl-5 text-sm text-muted-foreground">
+              <li>Abra o WhatsApp no celular.</li>
+              <li>Entre em “Aparelhos conectados”.</li>
+              <li>Clique em “Conectar um aparelho”.</li>
+              <li>Leia o QR Code acima.</li>
+              <li>Aguarde a confirmação da conexão.</li>
+            </ol>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => qrTarget && void openQr({ instance_name: qrTarget.instanceName, name: qrTarget.name })}
+            >
+              Gerar novo QR Code
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Editar conexão */}
+      <Dialog open={editTarget !== null} onOpenChange={(open) => !open && setEditTarget(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Editar conexão</DialogTitle>
+          </DialogHeader>
+          {editTarget && (
+            <div className="space-y-3">
+              <div className="space-y-2">
+                <Label>Nome da conexão</Label>
+                <Input
+                  value={editTarget.name}
+                  onChange={(e) => setEditTarget({ ...editTarget, name: e.target.value })}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Responsável</Label>
+                <Input
+                  value={editTarget.responsible_name ?? ""}
+                  onChange={(e) =>
+                    setEditTarget({ ...editTarget, responsible_name: e.target.value })
+                  }
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Vendedor cadastrado</Label>
+                <Select
+                  value={editTarget.seller_id ?? "none"}
+                  onValueChange={(value) =>
+                    setEditTarget({ ...editTarget, seller_id: value === "none" ? null : value })
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">Sem vínculo</SelectItem>
+                    {data?.sellers.map((seller) => (
+                      <SelectItem key={seller.id} value={seller.id}>
+                        {seller.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>Observação</Label>
+                <Textarea
+                  value={editTarget.notes ?? ""}
+                  onChange={(e) => setEditTarget({ ...editTarget, notes: e.target.value })}
+                  rows={2}
+                />
+              </div>
+              <label className="flex items-center gap-2 text-sm">
+                <input
+                  type="checkbox"
+                  checked={editTarget.is_default}
+                  onChange={(e) => setEditTarget({ ...editTarget, is_default: e.target.checked })}
+                />
+                Usar como conexão padrão dos follow-ups
+              </label>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditTarget(null)}>
+              Cancelar
+            </Button>
+            <Button onClick={handleSaveEdit} disabled={busy !== null}>
+              {busy === "edit" && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Salvar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Excluir */}
+      <AlertDialog open={deleteTarget !== null} onOpenChange={(open) => !open && setDeleteTarget(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir esta conexão?</AlertDialogTitle>
+            <AlertDialogDescription>
+              O número será desconectado e removido da plataforma. Seus clientes, vendas e histórico
+              de follow-up continuam intactos.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={async () => {
+                if (!deleteTarget) return;
+                try {
+                  await removeConnection({
+                    data: { id: deleteTarget.id, instanceName: deleteTarget.instance_name },
+                  });
+                  toast.success("Conexão excluída.");
+                  await refresh();
+                } catch (e) {
+                  toast.error(getErrorMessage(e, "Falha ao excluir."));
+                } finally {
+                  setDeleteTarget(null);
+                }
+              }}
+            >
+              Excluir
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
