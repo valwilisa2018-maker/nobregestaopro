@@ -10,6 +10,8 @@ export interface KanbanSale {
   expected_delivery_date: string | null;
   video_duration_breakdown_seconds?: number[] | null;
   video_duration_seconds: number | null;
+  seller_name_snapshot?: string | null;
+  producer_name_snapshot?: string | null;
   customers: { name: string | null; company: string | null; phone: string | null } | null;
   sellers: { name: string | null; avatar_url?: string | null } | null;
   producers: { name: string | null; avatar_url?: string | null } | null;
@@ -32,6 +34,7 @@ export interface KanbanCardData {
   expected_delivery_date: string | null;
   video_duration_seconds: number | null;
   delivered_at: string | null;
+  producer_name_snapshot?: string | null;
   created_at: string;
   sort_order: number | null;
   producer: { name: string | null; avatar_url?: string | null } | null;

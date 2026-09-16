@@ -45,6 +45,9 @@ export function KanbanGroupCard({
   const duration = sumVideoDurations(cards.map((card) => resolveOrderVideoDurationSeconds(card)));
   const seller = first.sales?.sellers;
   const producer = first.producer ?? first.sales?.producers;
+  const sellerName = seller?.name ?? first.sales?.seller_name_snapshot ?? "-";
+  const producerName =
+    producer?.name ?? first.producer_name_snapshot ?? first.sales?.producer_name_snapshot ?? "-";
 
   return (
     <>
