@@ -231,7 +231,7 @@ export function FlowBuilder({ blocks, onBlocksChange, canEdit, toolbar }: Props)
             </Button>
           )}
           <span className="hidden text-xs text-muted-foreground sm:inline">
-            Rodinha do mouse aproxima e afasta
+            Rodinha aproxima · arraste o fundo para navegar
           </span>
         </div>
         {toolbar}
@@ -283,7 +283,17 @@ export function FlowBuilder({ blocks, onBlocksChange, canEdit, toolbar }: Props)
               transform: `scale(${zoom})`,
             }}
             onPointerDown={(event) => {
-              if (event.target === event.currentTarget) setSelectedId(null);
+              if (event.target !== event.currentTarget) return;
+              setSelectedId(null);
+              const viewport = viewportRef.current;
+              if (!viewport) return;
+              panRef.current = {
+                startX: event.clientX,
+                startY: event.clientY,
+                scrollLeft: viewport.scrollLeft,
+                scrollTop: viewport.scrollTop,
+              };
+              setPanning(true);
             }}
           >
             <svg className="pointer-events-none absolute inset-0 h-full w-full">
