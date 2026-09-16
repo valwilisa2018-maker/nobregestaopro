@@ -61,6 +61,7 @@ type Detail = Awaited<ReturnType<typeof workflowDetail>>;
 type TriggerRow = {
   trigger_type: string;
   keyword?: string | null;
+  tag?: string | null;
   is_default_for_new_customers?: boolean;
   active?: boolean;
 };
