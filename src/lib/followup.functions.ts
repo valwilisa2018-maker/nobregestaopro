@@ -72,6 +72,7 @@ export const followupSaveRule = createServerFn({ method: "POST" })
       allowedEnd: string;
       allowedWeekdays: number[];
       active: boolean;
+      startWorkflowId?: string | null;
     }) => d,
   )
   .handler(async ({ data, context }) => {
