@@ -133,8 +133,8 @@ function FollowupPage() {
     void refresh();
     void (async () => {
       try {
-        const result = (await loadWorkflows()) as { id: string; name: string }[];
-        setWorkflows(result ?? []);
+        const result = (await loadWorkflows()) as { workflows?: { id: string; name: string }[] };
+        setWorkflows(result?.workflows ?? []);
       } catch {
         setWorkflows([]);
       }
