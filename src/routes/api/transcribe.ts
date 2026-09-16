@@ -56,7 +56,10 @@ async function authenticate(request: Request) {
 
 async function transcribeAudio(file: File, apiKey: string) {
   const upstream = new FormData();
-  upstream.append("model", "google/gemini-3.5-transcribe");
+  upstream.append(
+    "model",
+    file.size > GEMINI_AUDIO_LIMIT ? "openai/gpt-4o-transcribe" : "google/gemini-3.5-transcribe",
+  );
   upstream.append("file", file, file.name);
   upstream.append("stream", "true");
 
@@ -67,15 +70,7 @@ async function transcribeAudio(file: File, apiKey: string) {
   });
 }
 
-async function transcribeVideo(file: File, apiKey: string) {
-  const bytes = new Uint8Array(await file.arrayBuffer());
-  let binary = "";
-  const chunkSize = 32_768;
-  for (let index = 0; index < bytes.length; index += chunkSize) {
-    binary += String.fromCharCode(...bytes.subarray(index, index + chunkSize));
-  }
-  const dataUrl = `data:${file.type};base64,${btoa(binary)}`;
-
+async function transcribeVideo(videoUrl: string, apiKey: string) {
   return fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
     method: "POST",
     headers: {
@@ -95,7 +90,7 @@ async function transcribeVideo(file: File, apiKey: string) {
           role: "user",
           content: [
             { type: "text", text: "Transcreva todas as falas deste vídeo." },
-            { type: "video_url", video_url: { url: dataUrl } },
+            { type: "video_url", video_url: { url: videoUrl } },
           ],
         },
       ],
@@ -107,42 +102,73 @@ export const Route = createFileRoute("/api/transcribe")({
   server: {
     handlers: {
       POST: async ({ request }) => {
-        if (!(await authenticate(request))) {
+        const session = await authenticate(request);
+        if (!session) {
           return jsonError("Sua sessão expirou. Entre novamente para continuar.", 401);
         }
 
         const apiKey = process.env["LOVABLE_API_KEY"];
         if (!apiKey) return jsonError("O serviço de transcrição não está configurado.", 503);
 
-        const contentLength = Number(request.headers.get("content-length") ?? 0);
-        if (contentLength > VIDEO_LIMIT + 1024 * 1024) {
-          return jsonError("O arquivo excede o limite permitido.", 413);
+        const contentType = request.headers.get("content-type") ?? "";
+        let upstream: Response;
+
+        if (contentType.includes("application/json")) {
+          // Vídeos grandes: o arquivo já está no armazenamento temporário.
+          let payload: { path?: unknown; mime?: unknown; size?: unknown };
+          try {
+            payload = (await request.json()) as typeof payload;
+          } catch {
+            return jsonError("Não foi possível ler os dados enviados.", 400);
+          }
+          const path = typeof payload.path === "string" ? payload.path : "";
+          const mime = typeof payload.mime === "string" ? payload.mime.toLowerCase() : "";
+          const size = typeof payload.size === "number" ? payload.size : 0;
+          if (!path.startsWith(`${session.userId}/`)) {
+            return jsonError("Arquivo inválido para transcrição.", 400);
+          }
+          if (!VIDEO_TYPES.has(mime)) {
+            return jsonError("Formato de vídeo não aceito. Envie MP4, MOV, WEBM ou MPEG.", 400);
+          }
+          if (size > VIDEO_LIMIT) {
+            return jsonError("O vídeo deve ter no máximo 300 MB.", 413);
+          }
+
+          const { data: signed, error: signError } = await session.client.storage
+            .from(TEMP_BUCKET)
+            .createSignedUrl(path, 60 * 60);
+          if (signError || !signed?.signedUrl) {
+            return jsonError("Não foi possível acessar o vídeo enviado.", 400);
+          }
+          upstream = await transcribeVideo(signed.signedUrl, apiKey);
+        } else {
+          const contentLength = Number(request.headers.get("content-length") ?? 0);
+          if (contentLength > AUDIO_LIMIT + 1024 * 1024) {
+            return jsonError("O arquivo excede o limite permitido.", 413);
+          }
+
+          let form: FormData;
+          try {
+            form = await request.formData();
+          } catch {
+            return jsonError("Não foi possível ler o arquivo enviado.", 400);
+          }
+
+          const entry = form.get("file");
+          if (!(entry instanceof File) || entry.size === 0) {
+            return jsonError("Selecione um arquivo de áudio válido.", 400);
+          }
+
+          const mime = entry.type.toLowerCase();
+          if (!AUDIO_TYPES.has(mime)) {
+            return jsonError("Formato não aceito. Envie MP3, WAV, M4A, OGG, AAC ou FLAC.", 400);
+          }
+          if (entry.size > AUDIO_LIMIT) {
+            return jsonError("O áudio deve ter no máximo 25 MB.", 413);
+          }
+          upstream = await transcribeAudio(entry, apiKey);
         }
 
-        let form: FormData;
-        try {
-          form = await request.formData();
-        } catch {
-          return jsonError("Não foi possível ler o arquivo enviado.", 400);
-        }
-
-        const entry = form.get("file");
-        if (!(entry instanceof File) || entry.size === 0) {
-          return jsonError("Selecione um arquivo de áudio ou vídeo válido.", 400);
-        }
-
-        const mime = entry.type.toLowerCase();
-        const isAudio = AUDIO_TYPES.has(mime);
-        const isVideo = VIDEO_TYPES.has(mime);
-        if (!isAudio && !isVideo) {
-          return jsonError("Formato não aceito. Envie MP3, WAV, M4A, OGG, MP4, MOV ou WEBM.", 400);
-        }
-        if (isAudio && entry.size > AUDIO_LIMIT) {
-          return jsonError("O áudio deve ter no máximo 14 MB.", 413);
-        }
-        if (isVideo && entry.size > VIDEO_LIMIT) {
-          return jsonError("O vídeo deve ter no máximo 12 MB.", 413);
-        }
 
         const upstream = isAudio
           ? await transcribeAudio(entry, apiKey)
