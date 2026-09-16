@@ -115,6 +115,8 @@ function FollowupPage() {
   const [busy, setBusy] = useState<string | null>(null);
   const [ruleForm, setRuleForm] = useState<typeof emptyRule | null>(null);
   const [reschedule, setReschedule] = useState<{ id: string; value: string } | null>(null);
+  const [workflows, setWorkflows] = useState<{ id: string; name: string }[]>([]);
+  const loadWorkflows = useServerFn(workflowActiveList);
 
   const refresh = async () => {
     try {
@@ -128,6 +130,14 @@ function FollowupPage() {
 
   useEffect(() => {
     void refresh();
+    void (async () => {
+      try {
+        const result = (await loadWorkflows()) as { id: string; name: string }[];
+        setWorkflows(result ?? []);
+      } catch {
+        setWorkflows([]);
+      }
+    })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
