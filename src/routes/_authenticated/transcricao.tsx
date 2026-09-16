@@ -28,7 +28,7 @@ import { cn } from "@/lib/utils";
 
 const AUDIO_LIMIT = 25 * 1024 * 1024;
 const VIDEO_LIMIT = 300 * 1024 * 1024;
-const TEMP_BUCKET = "transcription-temp";
+
 
 const ACCEPTED = "audio/mpeg,audio/mp4,audio/wav,audio/x-wav,audio/webm,audio/ogg,audio/aac,audio/flac,video/mp4,video/webm,video/quicktime,video/mpeg,.mp3,.wav,.m4a,.ogg,.aac,.flac,.mp4,.mov,.webm";
 
