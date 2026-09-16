@@ -22,13 +22,14 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Progress } from "@/components/ui/progress";
 import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
+import { extractAudioChunks } from "@/lib/audio-extract";
 import { getErrorMessage } from "@/lib/error-messages";
 import { toast } from "@/lib/toast";
 import { cn } from "@/lib/utils";
 
 const AUDIO_LIMIT = 25 * 1024 * 1024;
 const VIDEO_LIMIT = 300 * 1024 * 1024;
-const TEMP_BUCKET = "transcription-temp";
+
 
 const ACCEPTED = "audio/mpeg,audio/mp4,audio/wav,audio/x-wav,audio/webm,audio/ogg,audio/aac,audio/flac,video/mp4,video/webm,video/quicktime,video/mpeg,.mp3,.wav,.m4a,.ogg,.aac,.flac,.mp4,.mov,.webm";
 
@@ -87,7 +88,7 @@ function parseSseLines(raw: string, onText: (value: string) => void) {
 
 function TranscricaoPage() {
   const inputRef = useRef<HTMLInputElement>(null);
-  const requestRef = useRef<XMLHttpRequest | null>(null);
+  const requestRef = useRef<AbortController | null>(null);
   const [file, setFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [duration, setDuration] = useState<number | null>(null);
@@ -150,122 +151,123 @@ function TranscricaoPage() {
       toast.error("Sua sessão expirou. Entre novamente para continuar.");
       return;
     }
+    const token = data.session.access_token;
 
     setTranscript("");
     setError("");
-    setProgress(2);
+    setProgress(3);
     setStage("uploading");
 
-    let tempPath: string | null = null;
-    let body: FormData | string;
-    let jsonRequest = false;
+    const controller = new AbortController();
+    requestRef.current = controller;
 
-    if (isVideo) {
-      const extension = file.name.match(/\.[^.]+$/)?.[0] ?? ".mp4";
-      const path = `${data.session.user.id}/${crypto.randomUUID()}${extension}`;
-      const { error: uploadError } = await supabase.storage
-        .from(TEMP_BUCKET)
-        .upload(path, file, { contentType: file.type || "video/mp4", upsert: false });
-      if (uploadError) {
-        const message = getErrorMessage(uploadError.message, "Não foi possível enviar este vídeo.");
-        setError(message);
-        setStage("error");
-        toast.error(message);
-        return;
-      }
-      tempPath = path;
-      setProgress(45);
-      setStage("transcribing");
-      body = JSON.stringify({ path, mime: file.type || "video/mp4", size: file.size });
-      jsonRequest = true;
-    } else {
-      const form = new FormData();
-      form.append("file", file, file.name);
-      body = form;
-    }
-
-    const discardTempFile = () => {
-      if (!tempPath) return;
-      const path = tempPath;
-      tempPath = null;
-      void supabase.storage.from(TEMP_BUCKET).remove([path]);
-    };
-
-
-    const xhr = new XMLHttpRequest();
-    requestRef.current = xhr;
-    let consumed = 0;
-    let pendingLine = "";
-    let streamingText = "";
-    const consumeResponse = (flush = false) => {
-      const fresh = pendingLine + xhr.responseText.slice(consumed);
-      consumed = xhr.responseText.length;
-      const lastBreak = fresh.lastIndexOf("\n");
-      if (!flush && lastBreak < 0) {
-        pendingLine = fresh;
-        return;
-      }
-      const complete = flush ? fresh : fresh.slice(0, lastBreak + 1);
-      pendingLine = flush ? "" : fresh.slice(lastBreak + 1);
-      parseSseLines(complete, (value) => {
-        if (value.length >= streamingText.length && value.startsWith(streamingText)) streamingText = value;
-        else streamingText += value;
-        setTranscript(streamingText.trimStart());
-        setProgress((current) => Math.min(94, current + 2));
-      });
-    };
-    xhr.open("POST", "/api/transcribe");
-    xhr.setRequestHeader("Authorization", `Bearer ${data.session.access_token}`);
-    if (jsonRequest) xhr.setRequestHeader("Content-Type", "application/json");
-    xhr.upload.onprogress = (event) => {
-      if (!jsonRequest && event.lengthComputable) {
-        setProgress(Math.min(45, Math.round((event.loaded / event.total) * 45)));
-      }
-    };
-    xhr.upload.onload = () => {
-      setStage("transcribing");
-      setProgress((current) => Math.max(current, 55));
-    };
-    xhr.onprogress = () => {
-      consumeResponse();
-    };
-    xhr.onload = () => {
-      consumeResponse(true);
+    const fail = (message: string) => {
       requestRef.current = null;
-      discardTempFile();
-      if (xhr.status >= 200 && xhr.status < 300) {
-        if (!streamingText.trim()) {
-          setStage("error");
-          setError("Nenhuma fala clara foi encontrada neste arquivo.");
-          return;
-        }
-        setTranscript(streamingText.trim());
-        setProgress(100);
-        setStage("done");
-        toast.success("Transcrição concluída!");
-        return;
-      }
-      let message = xhr.responseText;
-      try { message = (JSON.parse(xhr.responseText) as { error?: string }).error ?? message; } catch { /* resposta textual */ }
-      const translated = getErrorMessage(message, "Não foi possível transcrever este arquivo.");
-      setError(translated);
-      setStage("error");
-      toast.error(translated);
-    };
-    xhr.onerror = () => {
-      requestRef.current = null;
-      discardTempFile();
-      const message = "Sem conexão com o servidor. Verifique sua internet e tente novamente.";
       setError(message);
       setStage("error");
       toast.error(message);
     };
-    xhr.onabort = () => {
-      discardTempFile();
-    };
-    xhr.send(body);
 
+    let chunks: Blob[];
+    try {
+      const extracted = await extractAudioChunks(file);
+      chunks = extracted.chunks;
+      if (extracted.durationSeconds) setDuration(extracted.durationSeconds);
+    } catch (extractError) {
+      fail(getErrorMessage(extractError, "Não foi possível ler o áudio deste arquivo."));
+      return;
+    }
+    if (chunks.length === 0) {
+      fail("Nenhum áudio foi encontrado neste arquivo.");
+      return;
+    }
+
+    setStage("transcribing");
+    setProgress(10);
+    let fullText = "";
+
+    for (let index = 0; index < chunks.length; index += 1) {
+      const chunk = chunks[index];
+      if (!chunk) continue;
+      const form = new FormData();
+      form.append("file", new File([chunk], `parte-${index + 1}.wav`, { type: "audio/wav" }), `parte-${index + 1}.wav`);
+
+      let response: Response;
+      try {
+        response = await fetch("/api/transcribe", {
+          method: "POST",
+          headers: { Authorization: `Bearer ${token}` },
+          body: form,
+          signal: controller.signal,
+        });
+      } catch (networkError) {
+        if (controller.signal.aborted) return;
+        fail(getErrorMessage(networkError, "Sem conexão com o servidor. Verifique sua internet e tente novamente."));
+        return;
+      }
+
+      if (!response.ok) {
+        const detail = await response.text().catch(() => "");
+        let message = detail;
+        try { message = (JSON.parse(detail) as { error?: string }).error ?? detail; } catch { /* resposta textual */ }
+        fail(getErrorMessage(message, "Não foi possível transcrever este arquivo."));
+        return;
+      }
+
+      const reader = response.body?.getReader();
+      const decoder = new TextDecoder();
+      let pendingLine = "";
+      let chunkText = "";
+      const base = 10 + Math.round((index / chunks.length) * 85);
+      const span = Math.round((1 / chunks.length) * 85);
+
+      while (reader) {
+        let read: ReadableStreamReadResult<Uint8Array>;
+        try {
+          read = await reader.read();
+        } catch {
+          if (controller.signal.aborted) return;
+          break;
+        }
+        if (read.done) break;
+        const raw = pendingLine + decoder.decode(read.value, { stream: true });
+        const lastBreak = raw.lastIndexOf("\n");
+        if (lastBreak < 0) {
+          pendingLine = raw;
+          continue;
+        }
+        pendingLine = raw.slice(lastBreak + 1);
+        parseSseLines(raw.slice(0, lastBreak + 1), (value) => {
+          if (value.length >= chunkText.length && value.startsWith(chunkText)) chunkText = value;
+          else chunkText += value;
+          setTranscript(`${fullText}${fullText ? " " : ""}${chunkText}`.trimStart());
+          setProgress((current) => Math.min(base + span, Math.max(current, base) + 1));
+        });
+      }
+      if (pendingLine.trim()) {
+        parseSseLines(`${pendingLine}\n`, (value) => {
+          if (value.length >= chunkText.length && value.startsWith(chunkText)) chunkText = value;
+          else chunkText += value;
+        });
+      }
+
+      fullText = `${fullText}${fullText && chunkText ? " " : ""}${chunkText.trim()}`.trim();
+      setTranscript(fullText);
+      setProgress(Math.min(95, base + span));
+    }
+
+    requestRef.current = null;
+    if (!fullText.trim()) {
+      setStage("error");
+      setError("Nenhuma fala clara foi encontrada neste arquivo.");
+      return;
+    }
+    setTranscript(fullText.trim());
+    setProgress(100);
+    setStage("done");
+    toast.success("Transcrição concluída!");
   };
+
 
   const copyTranscript = async () => {
     if (!transcript.trim()) return;
