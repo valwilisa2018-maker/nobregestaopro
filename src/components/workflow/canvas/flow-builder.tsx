@@ -4,6 +4,7 @@ import {
   BLOCK_TYPES,
   CANVAS_BLOCK_HEIGHT,
   CANVAS_BLOCK_WIDTH,
+  TERMINAL_BLOCKS,
   autoLayout,
   blockTypeLabel,
   newBlock,
@@ -85,14 +86,14 @@ export function FlowBuilder({ blocks, onBlocksChange, canEdit, toolbar }: Props)
     const result: Link[] = [];
     blocks.forEach((block, index) => {
       const fallback = blocks[index + 1];
-      if (block.type === "condition") {
+      if (block.type === "condition" || block.type === "yes_no") {
         const yes = block.nextIfMatch ? byId.get(block.nextIfMatch) : fallback;
         const no = block.nextIfNoMatch ? byId.get(block.nextIfNoMatch) : undefined;
         if (yes) result.push({ from: block, to: yes, label: "sim", color: "#34d399" });
         if (no) result.push({ from: block, to: no, label: "não", color: "#f87171" });
         return;
       }
-      if (block.type === "end" || block.type === "handoff") return;
+      if (TERMINAL_BLOCKS.includes(block.type)) return;
       const next = block.nextId ? byId.get(block.nextId) : fallback;
       if (next) result.push({ from: block, to: next, color: "#60a5fa" });
     });
@@ -185,7 +186,7 @@ export function FlowBuilder({ blocks, onBlocksChange, canEdit, toolbar }: Props)
       </div>
 
       <div className="grid gap-3 lg:grid-cols-[200px_minmax(0,1fr)_300px]">
-        <aside className="rounded-xl border bg-card/60 p-3">
+        <aside className="max-h-[560px] overflow-auto rounded-xl border bg-card/60 p-3">
           <p className="mb-2 text-xs font-semibold tracking-wide text-muted-foreground">BLOCOS</p>
           <div className="space-y-1.5">
             {BLOCK_TYPES.map((type) => {
@@ -316,7 +317,7 @@ export function FlowBuilder({ blocks, onBlocksChange, canEdit, toolbar }: Props)
                     {blockSummary(block)}
                   </p>
 
-                  {block.type === "condition" ? (
+                  {block.type === "condition" || block.type === "yes_no" ? (
                     <>
                       <span style={{ position: "absolute", right: -7, top: 34 }}>
                         {port(block, "nextIfMatch", "bg-emerald-400", "Ligar caminho “sim”")}
@@ -325,7 +326,7 @@ export function FlowBuilder({ blocks, onBlocksChange, canEdit, toolbar }: Props)
                         {port(block, "nextIfNoMatch", "bg-rose-400", "Ligar caminho “não”")}
                       </span>
                     </>
-                  ) : block.type === "end" || block.type === "handoff" ? null : (
+                  ) : TERMINAL_BLOCKS.includes(block.type) ? null : (
                     <span
                       style={{ position: "absolute", right: -7, top: CANVAS_BLOCK_HEIGHT / 2 - 7 }}
                     >

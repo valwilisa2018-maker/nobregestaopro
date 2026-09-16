@@ -1,8 +1,15 @@
 // Server-only Workflow engine. Never import from client code.
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { buildMessage } from "@/lib/followup.server";
-import { normalizePhone, sendWhatsappText } from "@/lib/whatsapp.server";
-import type { WorkflowBlock } from "@/lib/workflow-shared";
+import {
+  normalizePhone,
+  sendWhatsappAudio,
+  sendWhatsappMedia,
+  sendWhatsappPresence,
+  sendWhatsappText,
+} from "@/lib/whatsapp.server";
+import { WAIT_REPLY_BLOCKS, type WorkflowBlock } from "@/lib/workflow-shared";
+
 
 type RunRow = {
   id: string;
@@ -128,48 +135,38 @@ export async function advanceRun(runId: string) {
       return { ok: true, status: "DONE" };
     }
 
-    if (block.type === "send_message") {
-      if (!connection?.instance_name || !phone) {
-        await patchRun(runId, {
-          status: "FAILED",
-          current_block_id: block.id,
-          error: !phone ? "Cliente sem telefone válido." : "WhatsApp do fluxo indisponível.",
-        });
-        await logStep(runId, {
-          blockId: block.id,
-          blockType: block.type,
-          detail: !phone ? "Cliente sem telefone válido." : "WhatsApp do fluxo indisponível.",
-        });
-        return { ok: false, reason: "Envio indisponível." };
+    const goNext = async () => {
+      const next = nextBlockId(blocks, block) ?? "";
+      if (!next) {
+        await patchRun(runId, { status: "DONE", current_block_id: null, context });
+        return "";
       }
-      const text = buildMessage(block.text ?? "", {
+      return next;
+    };
+
+    const requireChannel = async () => {
+      if (connection?.instance_name && phone) return true;
+      const reason = !phone ? "Cliente sem telefone válido." : "WhatsApp do fluxo indisponível.";
+      await patchRun(runId, { status: "FAILED", current_block_id: block.id, error: reason });
+      await logStep(runId, { blockId: block.id, blockType: block.type, detail: reason });
+      return false;
+    };
+
+    const compose = (raw?: string | null) =>
+      buildMessage(raw ?? "", {
         customerName: customer?.name ?? null,
         sellerName,
         company: customer?.company ?? null,
       });
-      const sent = await sendWhatsappText(connection.instance_name, phone, text);
-      if (!sent.ok) {
-        await patchRun(runId, {
-          status: "FAILED",
-          current_block_id: block.id,
-          error: sent.message ?? "Falha no envio.",
-        });
-        await logStep(runId, {
-          blockId: block.id,
-          blockType: block.type,
-          direction: "out",
-          message: text,
-          detail: sent.message ?? "Falha no envio.",
-        });
-        return { ok: false, reason: sent.message ?? "Falha no envio." };
-      }
+
+    const registerOutgoing = async (body: string) => {
       await supabaseAdmin.from("whatsapp_messages").insert({
-        connection_id: connection.id,
-        instance_name: connection.instance_name,
+        connection_id: connection!.id,
+        instance_name: connection!.instance_name,
         customer_id: current.customer_id,
         phone,
         direction: "out",
-        body: text,
+        body,
         origin: "workflow",
         status: "sent",
       } as never);
@@ -177,18 +174,44 @@ export async function advanceRun(runId: string) {
         blockId: block.id,
         blockType: block.type,
         direction: "out",
-        message: text,
+        message: body,
       });
       await patchRun(runId, { last_message_at: new Date().toISOString() });
-      blockId = nextBlockId(blocks, block) ?? "";
-      if (!blockId) {
-        await patchRun(runId, { status: "DONE", current_block_id: null, context });
-        return { ok: true, status: "DONE" };
-      }
-      continue;
-    }
+    };
 
-    if (block.type === "wait_reply") {
+    const failSend = async (message: string, body?: string) => {
+      await patchRun(runId, { status: "FAILED", current_block_id: block.id, error: message });
+      await logStep(runId, {
+        blockId: block.id,
+        blockType: block.type,
+        direction: "out",
+        message: body ?? null,
+        detail: message,
+      });
+    };
+
+    const applyTags = async () => {
+      const wanted = (block.tags ?? []).map((tag) => tag.trim().toLowerCase()).filter(Boolean);
+      if (!wanted.length || !current.customer_id) return;
+      const { data: row } = await supabaseAdmin
+        .from("customers")
+        .select("tags")
+        .eq("id", current.customer_id)
+        .maybeSingle();
+      const currentTags = Array.isArray(row?.tags) ? (row!.tags as string[]) : [];
+      const merged = Array.from(new Set([...currentTags, ...wanted])).slice(0, 30);
+      await supabaseAdmin
+        .from("customers")
+        .update({ tags: merged } as never)
+        .eq("id", current.customer_id);
+      await logStep(runId, {
+        blockId: block.id,
+        blockType: block.type,
+        detail: `Etiquetas aplicadas: ${wanted.join(", ")}`,
+      });
+    };
+
+    const waitForReply = async () => {
       const timeout = Number(block.timeoutMinutes) > 0 ? Number(block.timeoutMinutes) : null;
       await patchRun(runId, {
         status: "WAITING_REPLY",
@@ -196,6 +219,155 @@ export async function advanceRun(runId: string) {
         wait_until: timeout ? new Date(Date.now() + timeout * 60000).toISOString() : null,
         context,
       });
+    };
+
+    if (block.type === "trigger") {
+      blockId = await goNext();
+      if (!blockId) return { ok: true, status: "DONE" };
+      continue;
+    }
+
+    if (block.type === "send_message") {
+      if (!(await requireChannel())) return { ok: false, reason: "Envio indisponível." };
+      const text = compose(block.text);
+      const sent = await sendWhatsappText(connection!.instance_name, phone!, text);
+      if (!sent.ok) {
+        await failSend(sent.message ?? "Falha no envio.", text);
+        return { ok: false, reason: sent.message ?? "Falha no envio." };
+      }
+      await registerOutgoing(text);
+      blockId = await goNext();
+      if (!blockId) return { ok: true, status: "DONE" };
+      continue;
+    }
+
+    if (block.type === "send_image" || block.type === "send_video") {
+      if (!(await requireChannel())) return { ok: false, reason: "Envio indisponível." };
+      const caption = compose(block.caption);
+      const sent = await sendWhatsappMedia(connection!.instance_name, phone!, {
+        mediatype: block.type === "send_image" ? "image" : "video",
+        url: block.mediaUrl ?? "",
+        caption,
+      });
+      if (!sent.ok) {
+        await failSend(sent.message ?? "Falha no envio do arquivo.", caption);
+        return { ok: false, reason: sent.message ?? "Falha no envio do arquivo." };
+      }
+      await registerOutgoing(caption || (block.mediaUrl ?? ""));
+      blockId = await goNext();
+      if (!blockId) return { ok: true, status: "DONE" };
+      continue;
+    }
+
+    if (block.type === "send_audio") {
+      if (!(await requireChannel())) return { ok: false, reason: "Envio indisponível." };
+      const sent = await sendWhatsappAudio(connection!.instance_name, phone!, block.mediaUrl ?? "");
+      if (!sent.ok) {
+        await failSend(sent.message ?? "Falha no envio do áudio.");
+        return { ok: false, reason: sent.message ?? "Falha no envio do áudio." };
+      }
+      await registerOutgoing(block.mediaUrl ?? "");
+      blockId = await goNext();
+      if (!blockId) return { ok: true, status: "DONE" };
+      continue;
+    }
+
+    if (block.type === "typing" || block.type === "recording") {
+      if (!(await requireChannel())) return { ok: false, reason: "Envio indisponível." };
+      const seconds = Number(block.seconds) > 0 ? Number(block.seconds) : 3;
+      await sendWhatsappPresence(
+        connection!.instance_name,
+        phone!,
+        block.type === "typing" ? "composing" : "recording",
+        seconds,
+      );
+      await new Promise((resolve) => setTimeout(resolve, Math.min(20, seconds) * 1000));
+      await logStep(runId, {
+        blockId: block.id,
+        blockType: block.type,
+        detail: block.type === "typing" ? "Mostrou “digitando...”" : "Mostrou “gravando áudio...”",
+      });
+      blockId = await goNext();
+      if (!blockId) return { ok: true, status: "DONE" };
+      continue;
+    }
+
+    if (block.type === "tags") {
+      await applyTags();
+      blockId = await goNext();
+      if (!blockId) return { ok: true, status: "DONE" };
+      continue;
+    }
+
+    if (block.type === "broadcast") {
+      const target = normalizePhone(block.targetPhone ?? null);
+      if (!connection?.instance_name || !target) {
+        await failSend("Aviso não enviado: número inválido ou WhatsApp indisponível.");
+        return { ok: false, reason: "Aviso não enviado." };
+      }
+      const text = compose(block.text);
+      const sent = await sendWhatsappText(connection.instance_name, target, text);
+      await logStep(runId, {
+        blockId: block.id,
+        blockType: block.type,
+        direction: "out",
+        message: text,
+        detail: sent.ok ? `Aviso enviado para ${target}` : (sent.message ?? "Falha no aviso."),
+      });
+      blockId = await goNext();
+      if (!blockId) return { ok: true, status: "DONE" };
+      continue;
+    }
+
+    if (block.type === "webhook") {
+      let detail = "Webhook chamado.";
+      try {
+        const response = await fetch(block.url ?? "", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({
+            workflow_id: current.workflow_id,
+            run_id: runId,
+            customer_id: current.customer_id,
+            customer_name: customer?.name ?? null,
+            phone,
+            last_reply: context.last_reply ?? null,
+          }),
+          signal: AbortSignal.timeout(15000),
+        });
+        detail = response.ok
+          ? "Webhook chamado com sucesso."
+          : `Webhook respondeu com erro (${response.status}).`;
+      } catch {
+        detail = "Não foi possível chamar o webhook.";
+      }
+      await logStep(runId, { blockId: block.id, blockType: block.type, detail });
+      blockId = await goNext();
+      if (!blockId) return { ok: true, status: "DONE" };
+      continue;
+    }
+
+    if (block.type === "question" || block.type === "capture_name" || block.type === "schedule") {
+      if (!(await requireChannel())) return { ok: false, reason: "Envio indisponível." };
+      const text = compose(block.text);
+      const sent = await sendWhatsappText(connection!.instance_name, phone!, text);
+      if (!sent.ok) {
+        await failSend(sent.message ?? "Falha no envio.", text);
+        return { ok: false, reason: sent.message ?? "Falha no envio." };
+      }
+      await registerOutgoing(text);
+      await waitForReply();
+      return { ok: true, status: "WAITING_REPLY" };
+    }
+
+    if (block.type === "sequence") {
+      await applyTags();
+      await waitForReply();
+      return { ok: true, status: "WAITING_REPLY" };
+    }
+
+    if (block.type === "wait_reply") {
+      await waitForReply();
       return { ok: true, status: "WAITING_REPLY" };
     }
 
@@ -210,7 +382,7 @@ export async function advanceRun(runId: string) {
       return { ok: true, status: "WAITING_TIME" };
     }
 
-    if (block.type === "condition") {
+    if (block.type === "condition" || block.type === "yes_no") {
       const reply = String(context.last_reply ?? "").toLowerCase();
       const matched = (block.keywords ?? []).some(
         (word) => word && reply.includes(word.toLowerCase()),
@@ -251,11 +423,8 @@ export async function advanceRun(runId: string) {
         });
         return { ok: true, status: mode === "start_target" ? "HANDOFF" : "DONE" };
       }
-      blockId = nextBlockId(blocks, block) ?? "";
-      if (!blockId) {
-        await patchRun(runId, { status: "DONE", current_block_id: null, context });
-        return { ok: true, status: "DONE" };
-      }
+      blockId = await goNext();
+      if (!blockId) return { ok: true, status: "DONE" };
       continue;
     }
 
@@ -273,6 +442,7 @@ export async function advanceRun(runId: string) {
     await patchRun(runId, { status: "DONE", current_block_id: block.id, context });
     await logStep(runId, { blockId: block.id, blockType: block.type, detail: "Fluxo concluído." });
     return { ok: true, status: "DONE" };
+
   }
 
   await patchRun(runId, { context });
@@ -373,7 +543,11 @@ export async function handleWorkflowIncomingMessage(input: {
     .maybeSingle();
 
   if (run) {
-    const context = { ...((run.context ?? {}) as Record<string, unknown>), last_reply: input.text };
+    const context: Record<string, unknown> = {
+      ...((run.context ?? {}) as Record<string, unknown>),
+      last_reply: input.text,
+    };
+
     await logStep(run.id, { direction: "in", message: input.text, detail: "Resposta do cliente." });
 
     const { data: full } = await supabaseAdmin
@@ -383,10 +557,27 @@ export async function handleWorkflowIncomingMessage(input: {
       .maybeSingle();
     const versionBlocks = await loadBlocks(full?.workflow_version_id ?? null);
     const currentBlock = versionBlocks.find((b) => b.id === full?.current_block_id);
+    const isWaiting = currentBlock ? WAIT_REPLY_BLOCKS.includes(currentBlock.type) : false;
+    if (currentBlock && isWaiting && input.text?.trim()) {
+      if (currentBlock.type === "capture_name" && input.customerId) {
+        const answer = input.text.trim().slice(0, 80);
+        await supabaseAdmin
+          .from("customers")
+          .update({ name: answer } as never)
+          .eq("id", input.customerId);
+        context.captured_name = answer;
+        await logStep(run.id, { detail: `Nome informado pelo cliente: ${answer}` });
+      }
+      if (currentBlock.type === "schedule") {
+        context.schedule_reply = input.text.trim();
+        await logStep(run.id, { detail: `Horário sugerido pelo cliente: ${input.text.trim()}` });
+      }
+    }
     const next =
-      currentBlock && currentBlock.type === "wait_reply"
+      currentBlock && isWaiting
         ? nextBlockId(versionBlocks, currentBlock)
         : (full?.current_block_id ?? null);
+
     await patchRun(run.id, {
       status: "RUNNING",
       wait_until: null,

@@ -312,3 +312,70 @@ export async function logAudit(action: string, details: Record<string, unknown>,
     console.warn("[whatsapp] audit failed", errorMessage(e));
   }
 }
+
+/** Envia imagem ou vídeo por URL. */
+export async function sendWhatsappMedia(
+  instanceName: string,
+  phone: string,
+  input: { mediatype: "image" | "video" | "document"; url: string; caption?: string | null },
+  config?: EvolutionConfig,
+) {
+  const number = normalizePhone(phone);
+  if (!number) return { ok: false, message: "Número de telefone inválido." };
+  if (!input.url) return { ok: false, message: "Informe o endereço do arquivo." };
+  const payload = {
+    number,
+    mediatype: input.mediatype,
+    media: input.url,
+    caption: input.caption ?? "",
+    mediaMessage: { mediatype: input.mediatype, media: input.url, caption: input.caption ?? "" },
+  };
+  const result = await evoCall(`/message/sendMedia/${instanceName}`, {
+    method: "POST",
+    timeoutMs: 45000,
+    body: JSON.stringify(payload),
+    ...(config ? { config } : {}),
+  });
+  if (!result.ok) return { ok: false, message: result.message ?? "Falha no envio do arquivo." };
+  return { ok: true, body: result.body };
+}
+
+/** Envia áudio (mensagem de voz) por URL. */
+export async function sendWhatsappAudio(
+  instanceName: string,
+  phone: string,
+  url: string,
+  config?: EvolutionConfig,
+) {
+  const number = normalizePhone(phone);
+  if (!number) return { ok: false, message: "Número de telefone inválido." };
+  if (!url) return { ok: false, message: "Informe o endereço do áudio." };
+  const result = await evoCall(`/message/sendWhatsAppAudio/${instanceName}`, {
+    method: "POST",
+    timeoutMs: 45000,
+    body: JSON.stringify({ number, audio: url, audioMessage: { audio: url } }),
+    ...(config ? { config } : {}),
+  });
+  if (!result.ok) return { ok: false, message: result.message ?? "Falha no envio do áudio." };
+  return { ok: true, body: result.body };
+}
+
+/** Mostra "digitando..." ou "gravando áudio..." na conversa do cliente. */
+export async function sendWhatsappPresence(
+  instanceName: string,
+  phone: string,
+  presence: "composing" | "recording",
+  seconds: number,
+  config?: EvolutionConfig,
+) {
+  const number = normalizePhone(phone);
+  if (!number) return { ok: false, message: "Número de telefone inválido." };
+  const delay = Math.max(1, Math.min(20, Math.round(seconds || 3))) * 1000;
+  const result = await evoCall(`/chat/sendPresence/${instanceName}`, {
+    method: "POST",
+    timeoutMs: 15000,
+    body: JSON.stringify({ number, presence, delay }),
+    ...(config ? { config } : {}),
+  });
+  return { ok: result.ok, message: result.message, delay };
+}
