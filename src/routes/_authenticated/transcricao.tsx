@@ -216,12 +216,15 @@ function TranscricaoPage() {
     };
     xhr.open("POST", "/api/transcribe");
     xhr.setRequestHeader("Authorization", `Bearer ${data.session.access_token}`);
+    if (jsonRequest) xhr.setRequestHeader("Content-Type", "application/json");
     xhr.upload.onprogress = (event) => {
-      if (event.lengthComputable) setProgress(Math.min(45, Math.round((event.loaded / event.total) * 45)));
+      if (!jsonRequest && event.lengthComputable) {
+        setProgress(Math.min(45, Math.round((event.loaded / event.total) * 45)));
+      }
     };
     xhr.upload.onload = () => {
       setStage("transcribing");
-      setProgress(55);
+      setProgress((current) => Math.max(current, 55));
     };
     xhr.onprogress = () => {
       consumeResponse();
@@ -229,6 +232,7 @@ function TranscricaoPage() {
     xhr.onload = () => {
       consumeResponse(true);
       requestRef.current = null;
+      discardTempFile();
       if (xhr.status >= 200 && xhr.status < 300) {
         if (!streamingText.trim()) {
           setStage("error");
@@ -250,12 +254,17 @@ function TranscricaoPage() {
     };
     xhr.onerror = () => {
       requestRef.current = null;
+      discardTempFile();
       const message = "Sem conexão com o servidor. Verifique sua internet e tente novamente.";
       setError(message);
       setStage("error");
       toast.error(message);
     };
-    xhr.send(form);
+    xhr.onabort = () => {
+      discardTempFile();
+    };
+    xhr.send(body);
+
   };
 
   const copyTranscript = async () => {
