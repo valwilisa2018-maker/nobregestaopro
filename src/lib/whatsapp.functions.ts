@@ -306,11 +306,19 @@ export const whatsappGetQr = createServerFn({ method: "POST" })
     let state: string | null = null;
     for (let attempt = 0; attempt < 3 && !qr; attempt += 1) {
       const result = await evoCall(`/instance/connect/${data.instanceName}`, {
-        timeoutMs: 30000,
+        timeoutMs: 15000,
         config,
       });
-      if (!result.ok && attempt === 2) {
-        throw new Error(result.message ?? "Não foi possível gerar o QR Code.");
+      if (!result.ok) {
+        // Servidor fora do ar ou credencial inválida: não faz sentido repetir.
+        if (result.status === 0 || result.status === 401 || result.status === 403 || attempt === 2) {
+          return {
+            qr: null,
+            error:
+              result.message ??
+              "Não foi possível gerar o QR Code. Verifique a configuração da Evolution API.",
+          };
+        }
       }
       qr = extractQr(result.body);
       state = extractState(result.body);
@@ -323,7 +331,7 @@ export const whatsappGetQr = createServerFn({ method: "POST" })
         last_event: qr ? "QRCODE_UPDATED" : "CONNECT_REQUESTED",
       })
       .eq("instance_name", data.instanceName);
-    return { qr };
+    return { qr, error: null as string | null };
   });
 
 export const whatsappRefreshStatus = createServerFn({ method: "POST" })

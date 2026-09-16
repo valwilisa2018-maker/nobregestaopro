@@ -175,7 +175,8 @@ function WhatsAppPage() {
     try {
       const result = await getQr({ data: { instanceName: connection.instance_name } });
       setQr(result.qr);
-      if (!result.qr) toast.info("A Evolution API ainda não devolveu o QR Code. Tente novamente.");
+      if (result.error) toast.error(result.error);
+      else if (!result.qr) toast.info("A Evolution API ainda não devolveu o QR Code. Tente novamente.");
     } catch (e) {
       toast.error(getErrorMessage(e, "Não foi possível gerar o QR Code."));
     }
