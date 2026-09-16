@@ -155,8 +155,42 @@ function TranscricaoPage() {
     setError("");
     setProgress(2);
     setStage("uploading");
-    const form = new FormData();
-    form.append("file", file, file.name);
+
+    let tempPath: string | null = null;
+    let body: FormData | string;
+    let jsonRequest = false;
+
+    if (isVideo) {
+      const extension = file.name.match(/\.[^.]+$/)?.[0] ?? ".mp4";
+      const path = `${data.session.user.id}/${crypto.randomUUID()}${extension}`;
+      const { error: uploadError } = await supabase.storage
+        .from(TEMP_BUCKET)
+        .upload(path, file, { contentType: file.type || "video/mp4", upsert: false });
+      if (uploadError) {
+        const message = getErrorMessage(uploadError.message, "Não foi possível enviar este vídeo.");
+        setError(message);
+        setStage("error");
+        toast.error(message);
+        return;
+      }
+      tempPath = path;
+      setProgress(45);
+      setStage("transcribing");
+      body = JSON.stringify({ path, mime: file.type || "video/mp4", size: file.size });
+      jsonRequest = true;
+    } else {
+      const form = new FormData();
+      form.append("file", file, file.name);
+      body = form;
+    }
+
+    const discardTempFile = () => {
+      if (!tempPath) return;
+      const path = tempPath;
+      tempPath = null;
+      void supabase.storage.from(TEMP_BUCKET).remove([path]);
+    };
+
 
     const xhr = new XMLHttpRequest();
     requestRef.current = xhr;
