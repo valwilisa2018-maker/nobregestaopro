@@ -186,20 +186,40 @@ function TranscricaoPage() {
     setProgress(10);
     let fullText = "";
 
-    for (let index = 0; index < chunks.length; index += 1) {
+    // Envia até 2 trechos em paralelo, mas exibe na ordem: o texto começa a
+    // aparecer em poucos segundos e continua fluindo durante a transcrição.
+    const sendChunk = (index: number) => {
       const chunk = chunks[index];
-      if (!chunk) continue;
+      if (!chunk) return null;
+      const name = `parte-${index + 1}.wav`;
       const form = new FormData();
-      form.append("file", new File([chunk], `parte-${index + 1}.wav`, { type: "audio/wav" }), `parte-${index + 1}.wav`);
+      form.append("file", new File([chunk], name, { type: "audio/wav" }), name);
+      const request = fetch("/api/transcribe", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
+        body: form,
+        signal: controller.signal,
+      });
+      request.catch(() => undefined); // erro tratado no consumo em ordem
+      return request;
+
+    };
+
+    const inFlight: (Promise<Response> | null)[] = chunks.map(() => null);
+    const LOOKAHEAD = 2;
+    for (let index = 0; index < Math.min(LOOKAHEAD, chunks.length); index += 1) {
+      inFlight[index] = sendChunk(index);
+    }
+
+    for (let index = 0; index < chunks.length; index += 1) {
+      const pending = inFlight[index] ?? sendChunk(index);
+      if (!pending) continue;
+      const next = index + LOOKAHEAD;
+      if (next < chunks.length && !inFlight[next]) inFlight[next] = sendChunk(next);
 
       let response: Response;
       try {
-        response = await fetch("/api/transcribe", {
-          method: "POST",
-          headers: { Authorization: `Bearer ${token}` },
-          body: form,
-          signal: controller.signal,
-        });
+        response = await pending;
       } catch (networkError) {
         if (controller.signal.aborted) return;
         fail(getErrorMessage(networkError, "Sem conexão com o servidor. Verifique sua internet e tente novamente."));
@@ -213,6 +233,7 @@ function TranscricaoPage() {
         fail(getErrorMessage(message, "Não foi possível transcrever este arquivo."));
         return;
       }
+
 
       const reader = response.body?.getReader();
       const decoder = new TextDecoder();
