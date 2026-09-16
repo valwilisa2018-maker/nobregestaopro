@@ -2,8 +2,10 @@ import { createFileRoute } from "@tanstack/react-router";
 import { createClient } from "@supabase/supabase-js";
 import type { Database } from "@/integrations/supabase/types";
 
-const AUDIO_LIMIT = 14 * 1024 * 1024;
-const VIDEO_LIMIT = 12 * 1024 * 1024;
+const AUDIO_LIMIT = 25 * 1024 * 1024;
+const GEMINI_AUDIO_LIMIT = 14 * 1024 * 1024;
+const VIDEO_LIMIT = 300 * 1024 * 1024;
+const TEMP_BUCKET = "transcription-temp";
 const AUDIO_TYPES = new Set([
   "audio/mpeg",
   "audio/mp3",
@@ -22,27 +24,35 @@ function jsonError(message: string, status: number) {
   return Response.json({ error: message }, { status });
 }
 
-async function authenticate(request: Request) {
-  const authorization = request.headers.get("authorization");
-  const token = authorization?.match(/^Bearer\s+(.+)$/i)?.[1];
+function userClient(token: string) {
   const url = process.env["SUPABASE_URL"];
   const key = process.env["SUPABASE_PUBLISHABLE_KEY"];
-  if (!token || !url || !key) return false;
-
-  const client = createClient<Database>(url, key, {
+  if (!url || !key) return null;
+  return createClient<Database>(url, key, {
     global: { headers: { Authorization: `Bearer ${token}` } },
     auth: { persistSession: false, autoRefreshToken: false },
   });
+}
+
+async function authenticate(request: Request) {
+  const authorization = request.headers.get("authorization");
+  const token = authorization?.match(/^Bearer\s+(.+)$/i)?.[1];
+  if (!token) return null;
+  const client = userClient(token);
+  if (!client) return null;
+
   const { data, error } = await client.auth.getClaims(token);
   const userId = data?.claims?.sub;
-  if (error || !userId) return false;
+  if (error || !userId) return null;
   const { data: permitted, error: permissionError } = await client.rpc("has_permission", {
     _user_id: userId,
     _module: "transcription",
     _action: "create",
   });
-  return !permissionError && permitted === true;
+  if (permissionError || permitted !== true) return null;
+  return { client, userId };
 }
+
 
 async function transcribeAudio(file: File, apiKey: string) {
   const upstream = new FormData();
