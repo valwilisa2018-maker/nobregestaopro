@@ -22,6 +22,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Progress } from "@/components/ui/progress";
 import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
+import { extractAudioChunks } from "@/lib/audio-extract";
 import { getErrorMessage } from "@/lib/error-messages";
 import { toast } from "@/lib/toast";
 import { cn } from "@/lib/utils";
@@ -87,7 +88,7 @@ function parseSseLines(raw: string, onText: (value: string) => void) {
 
 function TranscricaoPage() {
   const inputRef = useRef<HTMLInputElement>(null);
-  const requestRef = useRef<XMLHttpRequest | null>(null);
+  const requestRef = useRef<AbortController | null>(null);
   const [file, setFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [duration, setDuration] = useState<number | null>(null);
