@@ -276,7 +276,7 @@ export function FlowBuilder({ blocks, onBlocksChange, canEdit, toolbar }: Props)
         >
           <div
             ref={worldRef}
-            className="relative origin-top-left"
+            className={`relative origin-top-left ${panning ? "cursor-grabbing" : "cursor-grab"}`}
             style={{
               width: WORLD_WIDTH,
               height: WORLD_HEIGHT,
