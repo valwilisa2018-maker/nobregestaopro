@@ -47,6 +47,7 @@ import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/
 import { Route as AuthenticatedWorkflowIndexRouteImport } from './routes/_authenticated/workflow.index'
 import { Route as AuthenticatedPastasArquivosIndexRouteImport } from './routes/_authenticated/pastas-arquivos.index'
 import { Route as AuthenticatedOperacaoMetaIndexRouteImport } from './routes/_authenticated/operacao-meta.index'
+import { Route as ApiPublicWorkflowLeadRouteImport } from './routes/api/public/workflow-lead'
 import { Route as ApiPublicTrelloWebhookRouteImport } from './routes/api/public/trello-webhook'
 import { Route as ApiPublicFollowupWorkerRouteImport } from './routes/api/public/followup-worker'
 import { Route as ApiPublicEvolutionWebhookRouteImport } from './routes/api/public/evolution-webhook'
@@ -258,6 +259,11 @@ const AuthenticatedOperacaoMetaIndexRoute =
     path: '/',
     getParentRoute: () => AuthenticatedOperacaoMetaRoute,
   } as any)
+const ApiPublicWorkflowLeadRoute = ApiPublicWorkflowLeadRouteImport.update({
+  id: '/api/public/workflow-lead',
+  path: '/api/public/workflow-lead',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiPublicTrelloWebhookRoute = ApiPublicTrelloWebhookRouteImport.update({
   id: '/api/public/trello-webhook',
   path: '/api/public/trello-webhook',
@@ -355,6 +361,7 @@ export interface FileRoutesByFullPath {
   '/api/public/evolution-webhook': typeof ApiPublicEvolutionWebhookRoute
   '/api/public/followup-worker': typeof ApiPublicFollowupWorkerRoute
   '/api/public/trello-webhook': typeof ApiPublicTrelloWebhookRoute
+  '/api/public/workflow-lead': typeof ApiPublicWorkflowLeadRoute
   '/operacao-meta/': typeof AuthenticatedOperacaoMetaIndexRoute
   '/pastas-arquivos/': typeof AuthenticatedPastasArquivosIndexRoute
   '/workflow/': typeof AuthenticatedWorkflowIndexRoute
@@ -402,6 +409,7 @@ export interface FileRoutesByTo {
   '/api/public/evolution-webhook': typeof ApiPublicEvolutionWebhookRoute
   '/api/public/followup-worker': typeof ApiPublicFollowupWorkerRoute
   '/api/public/trello-webhook': typeof ApiPublicTrelloWebhookRoute
+  '/api/public/workflow-lead': typeof ApiPublicWorkflowLeadRoute
   '/operacao-meta': typeof AuthenticatedOperacaoMetaIndexRoute
   '/pastas-arquivos': typeof AuthenticatedPastasArquivosIndexRoute
   '/workflow': typeof AuthenticatedWorkflowIndexRoute
@@ -452,6 +460,7 @@ export interface FileRoutesById {
   '/api/public/evolution-webhook': typeof ApiPublicEvolutionWebhookRoute
   '/api/public/followup-worker': typeof ApiPublicFollowupWorkerRoute
   '/api/public/trello-webhook': typeof ApiPublicTrelloWebhookRoute
+  '/api/public/workflow-lead': typeof ApiPublicWorkflowLeadRoute
   '/_authenticated/operacao-meta/': typeof AuthenticatedOperacaoMetaIndexRoute
   '/_authenticated/pastas-arquivos/': typeof AuthenticatedPastasArquivosIndexRoute
   '/_authenticated/workflow/': typeof AuthenticatedWorkflowIndexRoute
@@ -502,6 +511,7 @@ export interface FileRouteTypes {
     | '/api/public/evolution-webhook'
     | '/api/public/followup-worker'
     | '/api/public/trello-webhook'
+    | '/api/public/workflow-lead'
     | '/operacao-meta/'
     | '/pastas-arquivos/'
     | '/workflow/'
@@ -549,6 +559,7 @@ export interface FileRouteTypes {
     | '/api/public/evolution-webhook'
     | '/api/public/followup-worker'
     | '/api/public/trello-webhook'
+    | '/api/public/workflow-lead'
     | '/operacao-meta'
     | '/pastas-arquivos'
     | '/workflow'
@@ -598,6 +609,7 @@ export interface FileRouteTypes {
     | '/api/public/evolution-webhook'
     | '/api/public/followup-worker'
     | '/api/public/trello-webhook'
+    | '/api/public/workflow-lead'
     | '/_authenticated/operacao-meta/'
     | '/_authenticated/pastas-arquivos/'
     | '/_authenticated/workflow/'
@@ -616,6 +628,7 @@ export interface RootRouteChildren {
   ApiPublicEvolutionWebhookRoute: typeof ApiPublicEvolutionWebhookRoute
   ApiPublicFollowupWorkerRoute: typeof ApiPublicFollowupWorkerRoute
   ApiPublicTrelloWebhookRoute: typeof ApiPublicTrelloWebhookRoute
+  ApiPublicWorkflowLeadRoute: typeof ApiPublicWorkflowLeadRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -886,6 +899,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedOperacaoMetaIndexRouteImport
       parentRoute: typeof AuthenticatedOperacaoMetaRoute
     }
+    '/api/public/workflow-lead': {
+      id: '/api/public/workflow-lead'
+      path: '/api/public/workflow-lead'
+      fullPath: '/api/public/workflow-lead'
+      preLoaderRoute: typeof ApiPublicWorkflowLeadRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/trello-webhook': {
       id: '/api/public/trello-webhook'
       path: '/api/public/trello-webhook'
@@ -1061,6 +1081,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicEvolutionWebhookRoute: ApiPublicEvolutionWebhookRoute,
   ApiPublicFollowupWorkerRoute: ApiPublicFollowupWorkerRoute,
   ApiPublicTrelloWebhookRoute: ApiPublicTrelloWebhookRoute,
+  ApiPublicWorkflowLeadRoute: ApiPublicWorkflowLeadRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
