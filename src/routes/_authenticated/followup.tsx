@@ -77,6 +77,7 @@ const emptyRule = {
   connectionId: "",
   sellerId: "",
   message: "Olá {{primeiro_nome}}, tudo bem? Aqui é o {{vendedor}}...",
+  startWorkflowId: "",
   allowedStart: "08:00",
   allowedEnd: "18:00",
   allowedWeekdays: [1, 2, 3, 4, 5],
