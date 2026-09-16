@@ -27,6 +27,7 @@ import {
 } from "@/components/ui/select";
 import { toast } from "@/lib/toast";
 import { getErrorMessage } from "@/lib/error-messages";
+import { workflowActiveList } from "@/lib/workflow.functions";
 import {
   FOLLOWUP_STATUS_LABEL,
   MESSAGE_VARIABLES,
