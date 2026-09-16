@@ -272,19 +272,47 @@ function WorkflowBuilderPage() {
                         Usar como fluxo padrão para clientes novos deste vendedor
                       </label>
                     )}
+                    {current && trigger.value === "tag_added" && (
+                      <Input
+                        disabled={!canEdit}
+                        value={current.tag ?? ""}
+                        onChange={(e) =>
+                          setTriggers((prev) =>
+                            prev.map((t) =>
+                              t.trigger_type === "tag_added" ? { ...t, tag: e.target.value } : t,
+                            ),
+                          )
+                        }
+                        placeholder="cliente-vip"
+                      />
+                    )}
+                    {current && (trigger.value === "form_lead" || trigger.value === "api") && (
+                      <p className="rounded-md bg-muted/40 p-2 text-xs text-muted-foreground">
+                        Endereço para o sistema externo:{" "}
+                        <code>
+                          {trigger.value === "form_lead"
+                            ? "/api/public/workflow-lead"
+                            : "/api/public/workflow-start"}
+                        </code>
+                        . O token de acesso fica guardado no servidor — peça para quem cuida da
+                        integração usar o token da plataforma.
+                      </p>
+                    )}
                   </div>
                 );
               })}
-              <div className="rounded-lg border border-dashed p-3">
-                <p className="text-xs font-medium text-muted-foreground">
-                  Ainda não disponíveis nesta versão
-                </p>
-                <ul className="mt-1 space-y-1 text-xs text-muted-foreground">
-                  {UNAVAILABLE_TRIGGERS.map((item) => (
-                    <li key={item}>• {item}</li>
-                  ))}
-                </ul>
-              </div>
+              {UNAVAILABLE_TRIGGERS.length > 0 && (
+                <div className="rounded-lg border border-dashed p-3">
+                  <p className="text-xs font-medium text-muted-foreground">
+                    Ainda não disponíveis nesta versão
+                  </p>
+                  <ul className="mt-1 space-y-1 text-xs text-muted-foreground">
+                    {UNAVAILABLE_TRIGGERS.map((item) => (
+                      <li key={item}>• {item}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
               {canEdit && (
                 <Button disabled={busy} onClick={persistTriggers}>
                   <Save className="mr-2 h-4 w-4" /> Salvar gatilhos
