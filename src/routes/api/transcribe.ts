@@ -170,9 +170,6 @@ export const Route = createFileRoute("/api/transcribe")({
         }
 
 
-        const upstream = isAudio
-          ? await transcribeAudio(entry, apiKey)
-          : await transcribeVideo(entry, apiKey);
 
         if (!upstream.ok) {
           const detail = await upstream.text().catch(() => "");
