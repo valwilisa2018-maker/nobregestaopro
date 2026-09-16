@@ -12,6 +12,7 @@ import {
 import { MESSAGE_VARIABLES } from "@/lib/followup-shared";
 import { blockTypeLabel, TERMINAL_BLOCKS, type WorkflowBlock } from "@/lib/workflow-shared";
 import { BLOCK_VISUAL } from "./block-meta";
+import { MediaUpload } from "./media-upload";
 import { Trash2 } from "lucide-react";
 
 const NONE = "__none__";
