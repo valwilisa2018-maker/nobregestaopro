@@ -293,13 +293,33 @@ export function ensurePositions(blocks: WorkflowBlock[]): WorkflowBlock[] {
 export function validateBlocks(blocks: WorkflowBlock[]): string | null {
   if (!blocks.length) return "Adicione pelo menos um bloco ao fluxo.";
   const first = blocks[0];
-  if (first && first.type !== "send_message")
-    return "O primeiro bloco precisa ser uma mensagem enviada.";
+  if (first && first.type !== "send_message" && first.type !== "trigger")
+    return "O fluxo precisa começar por um Gatilho ou por uma mensagem.";
   for (const block of blocks) {
     if (block.type === "send_message" && !block.text?.trim())
       return "Escreva o texto de todas as mensagens.";
-    if (block.type === "condition" && !(block.keywords ?? []).filter(Boolean).length)
+    if ((block.type === "question" || block.type === "capture_name") && !block.text?.trim())
+      return "Escreva a pergunta de todos os blocos de pergunta.";
+    if (block.type === "broadcast" && (!block.text?.trim() || !block.targetPhone?.trim()))
+      return "No bloco Disparo, informe o número e o texto do aviso.";
+    if (
+      (block.type === "send_image" || block.type === "send_video" || block.type === "send_audio") &&
+      !block.mediaUrl?.trim()
+    )
+      return "Informe o endereço do arquivo nos blocos de imagem, vídeo e áudio.";
+    if (block.type === "webhook" && !block.url?.trim())
+      return "Informe o endereço do webhook.";
+    if (
+      (block.type === "tags" || block.type === "sequence") &&
+      !(block.tags ?? []).filter(Boolean).length
+    )
+      return "Informe as etiquetas dos blocos de etiqueta.";
+    if (
+      (block.type === "condition" || block.type === "yes_no") &&
+      !(block.keywords ?? []).filter(Boolean).length
+    )
       return "Informe as palavras da condição.";
   }
   return null;
 }
+
