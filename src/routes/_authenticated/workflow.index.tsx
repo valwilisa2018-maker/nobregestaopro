@@ -241,10 +241,18 @@ function WorkflowListPage() {
         </div>
       ) : (data?.workflows ?? []).length === 0 ? (
         <Card>
-          <CardContent className="p-8 text-center text-sm text-muted-foreground">
-            Nenhum workflow aqui ainda. Clique em “Criar Workflow” para montar o seu primeiro fluxo.
+          <CardContent className="space-y-3 p-8 text-center">
+            <p className="text-sm font-medium">Você ainda não tem nenhum fluxo</p>
+            <p className="text-sm text-muted-foreground">
+              Crie um fluxo e você entra direto no quadro, onde arrasta os blocos e liga um no
+              outro com as linhas.
+            </p>
+            <Button onClick={openCreate}>
+              <Plus className="mr-2 h-4 w-4" /> Criar Workflow
+            </Button>
           </CardContent>
         </Card>
+
       ) : (
         <div className="grid gap-4 lg:grid-cols-2">
           {(data?.workflows ?? []).map((workflow) => {
