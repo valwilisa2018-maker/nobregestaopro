@@ -543,7 +543,11 @@ export async function handleWorkflowIncomingMessage(input: {
     .maybeSingle();
 
   if (run) {
-    const context = { ...((run.context ?? {}) as Record<string, unknown>), last_reply: input.text };
+    const context: Record<string, unknown> = {
+      ...((run.context ?? {}) as Record<string, unknown>),
+      last_reply: input.text,
+    };
+
     await logStep(run.id, { direction: "in", message: input.text, detail: "Resposta do cliente." });
 
     const { data: full } = await supabaseAdmin
