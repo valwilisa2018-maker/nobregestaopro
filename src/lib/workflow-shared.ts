@@ -22,6 +22,9 @@ export type WorkflowBlock = {
   transferSellerId?: string | null;
   transferMode?: "keep_owner" | "end_current" | "start_target";
   note?: string;
+  /** Posição no quadro visual (opcional; blocos antigos recebem layout automático). */
+  x?: number;
+  y?: number;
 };
 
 export const BLOCK_TYPES: {
@@ -130,14 +133,36 @@ export function blockTypeLabel(type?: string | null) {
   return BLOCK_TYPES.find((b) => b.value === type)?.label ?? (type ?? "—");
 }
 
-export function newBlock(type: WorkflowBlockType): WorkflowBlock {
+export function newBlock(
+  type: WorkflowBlockType,
+  position?: { x: number; y: number },
+): WorkflowBlock {
   const id = `b${Math.random().toString(36).slice(2, 9)}`;
-  if (type === "send_message") return { id, type, text: "" };
-  if (type === "wait_reply") return { id, type, timeoutMinutes: 1440 };
-  if (type === "delay") return { id, type, waitMinutes: 60 };
-  if (type === "condition") return { id, type, keywords: [] };
-  if (type === "assign_seller") return { id, type, transferMode: "keep_owner" };
-  return { id, type };
+  const at = { x: position?.x ?? 120, y: position?.y ?? 120 };
+  if (type === "send_message") return { id, type, text: "", ...at };
+  if (type === "wait_reply") return { id, type, timeoutMinutes: 1440, ...at };
+  if (type === "delay") return { id, type, waitMinutes: 60, ...at };
+  if (type === "condition") return { id, type, keywords: [], ...at };
+  if (type === "assign_seller") return { id, type, transferMode: "keep_owner", ...at };
+  return { id, type, ...at };
+}
+
+export const CANVAS_BLOCK_WIDTH = 240;
+export const CANVAS_BLOCK_HEIGHT = 104;
+
+/** Coloca em coluna os blocos que ainda não têm posição salva. */
+export function autoLayout(blocks: WorkflowBlock[]): WorkflowBlock[] {
+  return blocks.map((block, index) => ({
+    ...block,
+    x: 40,
+    y: 30 + index * (CANVAS_BLOCK_HEIGHT + 50),
+  }));
+}
+
+/** Garante posição para blocos criados antes do quadro visual. */
+export function ensurePositions(blocks: WorkflowBlock[]): WorkflowBlock[] {
+  const missing = blocks.some((b) => typeof b.x !== "number" || typeof b.y !== "number");
+  return missing ? autoLayout(blocks) : blocks;
 }
 
 /** Validação usada na tela e repetida no servidor. */
