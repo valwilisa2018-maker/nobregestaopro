@@ -159,6 +159,7 @@ function FollowupPage() {
       connectionId: rule.connection_id ?? "",
       sellerId: rule.seller_id ?? "",
       message: rule.message,
+      startWorkflowId: (rule as { start_workflow_id?: string | null }).start_workflow_id ?? "",
       allowedStart: (rule.allowed_start ?? "08:00").slice(0, 5),
       allowedEnd: (rule.allowed_end ?? "18:00").slice(0, 5),
       allowedWeekdays: rule.allowed_weekdays ?? [1, 2, 3, 4, 5],
