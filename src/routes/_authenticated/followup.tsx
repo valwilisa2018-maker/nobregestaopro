@@ -571,28 +571,55 @@ function FollowupPage() {
               </div>
 
               <div className="space-y-2">
-                <Label>Mensagem</Label>
-                <Textarea
-                  value={ruleForm.message}
-                  onChange={(e) => setRuleForm({ ...ruleForm, message: e.target.value })}
-                  rows={5}
-                />
-                <div className="flex flex-wrap gap-1.5">
-                  {MESSAGE_VARIABLES.map((variable) => (
-                    <Button
-                      key={variable}
-                      type="button"
-                      size="sm"
-                      variant="secondary"
-                      onClick={() =>
-                        setRuleForm({ ...ruleForm, message: `${ruleForm.message}${variable}` })
-                      }
-                    >
-                      Inserir {variable}
-                    </Button>
-                  ))}
-                </div>
+                <Label>Ao vencer, o que acontece?</Label>
+                <Select
+                  value={ruleForm.startWorkflowId || "__message__"}
+                  onValueChange={(value) =>
+                    setRuleForm({
+                      ...ruleForm,
+                      startWorkflowId: value === "__message__" ? "" : value,
+                    })
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__message__">Enviar a mensagem abaixo</SelectItem>
+                    {workflows.map((workflow) => (
+                      <SelectItem key={workflow.id} value={workflow.id}>
+                        Iniciar o fluxo: {workflow.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
+
+              {!ruleForm.startWorkflowId && (
+                <div className="space-y-2">
+                  <Label>Mensagem</Label>
+                  <Textarea
+                    value={ruleForm.message}
+                    onChange={(e) => setRuleForm({ ...ruleForm, message: e.target.value })}
+                    rows={5}
+                  />
+                  <div className="flex flex-wrap gap-1.5">
+                    {MESSAGE_VARIABLES.map((variable) => (
+                      <Button
+                        key={variable}
+                        type="button"
+                        size="sm"
+                        variant="secondary"
+                        onClick={() =>
+                          setRuleForm({ ...ruleForm, message: `${ruleForm.message}${variable}` })
+                        }
+                      >
+                        Inserir {variable}
+                      </Button>
+                    ))}
+                  </div>
+                </div>
+              )}
 
               <div className="flex items-center gap-3">
                 <Switch
