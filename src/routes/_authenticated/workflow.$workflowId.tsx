@@ -97,7 +97,7 @@ function WorkflowBuilderPage() {
     try {
       const result = await load({ data: { id: workflowId } });
       setDetail(result);
-      setBlocks(((result.draft?.blocks ?? []) as WorkflowBlock[]) ?? []);
+      setBlocks((result.draft?.blocks ?? []) as WorkflowBlock[]);
       setTriggers((result.triggers ?? []) as TriggerRow[]);
     } catch (e) {
       toast.error(getErrorMessage(e, "Não foi possível abrir este workflow."));
