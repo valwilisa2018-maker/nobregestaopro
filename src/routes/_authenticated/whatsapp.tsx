@@ -1,15 +1,13 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { PageHero } from "@/components/page-hero";
-import { EvolutionSettingsCard } from "@/components/whatsapp/evolution-settings-card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Dialog,
   DialogContent,
@@ -275,15 +273,7 @@ function WhatsAppPage() {
         }
       />
 
-      <Tabs defaultValue="conexoes" className="space-y-4">
-        <TabsList>
-          <TabsTrigger value="conexoes">WhatsApps conectados</TabsTrigger>
-          <TabsTrigger value="config">
-            <Settings2 className="mr-2 h-4 w-4" /> Configurações
-          </TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="conexoes" className="space-y-4">
+      <div className="space-y-4">
           {!loading && !configured && (
             <Card className="border-amber-500/40">
               <CardHeader>
@@ -294,10 +284,9 @@ function WhatsAppPage() {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <p className="text-sm text-muted-foreground">
-                  Abra a aba <strong>Configurações</strong> aqui em cima para informar a URL e a API
-                  Key.
-                </p>
+                <Button asChild variant="outline">
+                  <Link to="/admin">Ir para Configurações</Link>
+                </Button>
               </CardContent>
             </Card>
           )}
@@ -401,12 +390,7 @@ function WhatsAppPage() {
               ))}
             </div>
           )}
-        </TabsContent>
-
-        <TabsContent value="config">
-          <EvolutionSettingsCard />
-        </TabsContent>
-      </Tabs>
+      </div>
 
       {/* Nova conexão */}
       <Dialog open={createOpen} onOpenChange={setCreateOpen}>
