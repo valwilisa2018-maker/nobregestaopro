@@ -54,6 +54,30 @@ export function FlowBuilder({ blocks, onBlocksChange, canEdit, toolbar }: Props)
 
   const selected = blocks.find((b) => b.id === selectedId) ?? null;
 
+  // Zoom com a rodinha do mouse, mantendo o ponto sob o cursor no lugar.
+  useEffect(() => {
+    const viewport = viewportRef.current;
+    if (!viewport) return;
+    const onWheel = (event: WheelEvent) => {
+      event.preventDefault();
+      const direction = event.deltaY < 0 ? 1 : -1;
+      const next = Math.min(1.6, Math.max(0.4, Number((zoom + direction * 0.1).toFixed(2))));
+      if (next === zoom) return;
+      const rect = viewport.getBoundingClientRect();
+      const offsetX = event.clientX - rect.left;
+      const offsetY = event.clientY - rect.top;
+      const worldX = (viewport.scrollLeft + offsetX) / zoom;
+      const worldY = (viewport.scrollTop + offsetY) / zoom;
+      setZoom(next);
+      requestAnimationFrame(() => {
+        viewport.scrollLeft = worldX * next - offsetX;
+        viewport.scrollTop = worldY * next - offsetY;
+      });
+    };
+    viewport.addEventListener("wheel", onWheel, { passive: false });
+    return () => viewport.removeEventListener("wheel", onWheel);
+  }, [zoom]);
+
   const toWorld = useCallback(
     (clientX: number, clientY: number) => {
       const rect = worldRef.current?.getBoundingClientRect();
@@ -224,6 +248,7 @@ export function FlowBuilder({ blocks, onBlocksChange, canEdit, toolbar }: Props)
         </aside>
 
         <div
+          ref={viewportRef}
           className="relative h-[560px] touch-none select-none overflow-auto rounded-xl border bg-muted/20 bg-[radial-gradient(circle,rgba(120,120,140,0.35)_1px,transparent_1px)] [background-size:22px_22px]"
           onPointerMove={onPointerMove}
           onPointerUp={finishLink}
