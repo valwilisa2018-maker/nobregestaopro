@@ -288,19 +288,18 @@ function WorkflowBuilderPage() {
                           <div className="flex flex-wrap gap-1">
                             {MESSAGE_VARIABLES.map((variable) => (
                               <Button
-                                key={variable.token}
+                                key={variable}
                                 size="sm"
                                 variant="outline"
                                 onClick={() =>
-                                  update(index, {
-                                    text: `${block.text ?? ""}${variable.token}`,
-                                  })
+                                  update(index, { text: `${block.text ?? ""}${variable}` })
                                 }
                               >
-                                {variable.token}
+                                {variable}
                               </Button>
                             ))}
                           </div>
+
                         )}
                       </div>
                     )}
