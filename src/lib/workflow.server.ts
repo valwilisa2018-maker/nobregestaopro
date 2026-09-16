@@ -553,10 +553,27 @@ export async function handleWorkflowIncomingMessage(input: {
       .maybeSingle();
     const versionBlocks = await loadBlocks(full?.workflow_version_id ?? null);
     const currentBlock = versionBlocks.find((b) => b.id === full?.current_block_id);
+    const isWaiting = currentBlock ? WAIT_REPLY_BLOCKS.includes(currentBlock.type) : false;
+    if (currentBlock && isWaiting && input.text?.trim()) {
+      if (currentBlock.type === "capture_name" && input.customerId) {
+        const answer = input.text.trim().slice(0, 80);
+        await supabaseAdmin
+          .from("customers")
+          .update({ name: answer } as never)
+          .eq("id", input.customerId);
+        context.captured_name = answer;
+        await logStep(run.id, { detail: `Nome informado pelo cliente: ${answer}` });
+      }
+      if (currentBlock.type === "schedule") {
+        context.schedule_reply = input.text.trim();
+        await logStep(run.id, { detail: `Horário sugerido pelo cliente: ${input.text.trim()}` });
+      }
+    }
     const next =
-      currentBlock && currentBlock.type === "wait_reply"
+      currentBlock && isWaiting
         ? nextBlockId(versionBlocks, currentBlock)
         : (full?.current_block_id ?? null);
+
     await patchRun(run.id, {
       status: "RUNNING",
       wait_until: null,
