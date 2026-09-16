@@ -194,12 +194,15 @@ function TranscricaoPage() {
       const name = `parte-${index + 1}.wav`;
       const form = new FormData();
       form.append("file", new File([chunk], name, { type: "audio/wav" }), name);
-      return fetch("/api/transcribe", {
+      const request = fetch("/api/transcribe", {
         method: "POST",
         headers: { Authorization: `Bearer ${token}` },
         body: form,
         signal: controller.signal,
       });
+      request.catch(() => undefined); // erro tratado no consumo em ordem
+      return request;
+
     };
 
     const inFlight: (Promise<Response> | null)[] = chunks.map(() => null);
