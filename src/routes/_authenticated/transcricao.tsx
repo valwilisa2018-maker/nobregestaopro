@@ -129,7 +129,7 @@ function TranscricaoPage() {
     }
     const limit = video ? VIDEO_LIMIT : AUDIO_LIMIT;
     if (next.size === 0 || next.size > limit) {
-      toast.error(video ? "O vídeo deve ter no máximo 12 MB." : "O áudio deve ter no máximo 14 MB.");
+      toast.error(video ? "O vídeo deve ter no máximo 300 MB." : "O áudio deve ter no máximo 25 MB.");
       return;
     }
     if (previewUrl) URL.revokeObjectURL(previewUrl);
@@ -258,7 +258,7 @@ function TranscricaoPage() {
         <Card className="overflow-hidden border-border/60 bg-card/75 backdrop-blur-xl">
           <CardHeader className="border-b border-border/50 bg-muted/20">
             <CardTitle className="flex items-center gap-2 text-lg"><UploadCloud className="h-5 w-5 text-primary" /> Envie sua mídia</CardTitle>
-            <CardDescription>Áudio até 14 MB ou vídeo até 12 MB.</CardDescription>
+            <CardDescription>Áudio até 25 MB ou vídeo até 300 MB. O arquivo é descartado após a transcrição.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-5 p-5 sm:p-6">
             {!file ? (
