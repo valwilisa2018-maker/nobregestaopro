@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { EvolutionSettingsCard } from "@/components/whatsapp/evolution-settings-card";
 import { toast } from "@/lib/toast";
 import { CheckCircle2, AlertCircle, AlertTriangle, Loader2, Pencil, Trash2, Bell, Megaphone, Plus, Info, Zap, Activity, ImagePlus, X } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
@@ -393,6 +394,7 @@ function AdminPage() {
             <Bell className="w-4 h-4 mr-2" /> Avisos
           </TabsTrigger>
           <TabsTrigger value="pagarme">Pagar.me</TabsTrigger>
+          <TabsTrigger value="evolution">WhatsApp / Evolution API</TabsTrigger>
           <TabsTrigger value="nfe">Nota Fiscal</TabsTrigger>
           <TabsTrigger value="telao">Telão</TabsTrigger>
           <TabsTrigger value="operacao-metas">Operação Metas</TabsTrigger>
@@ -732,6 +734,10 @@ function AdminPage() {
               </div>
             ))}
           </div>
+        </TabsContent>
+
+        <TabsContent value="evolution" className="mt-4 space-y-3">
+          <EvolutionSettingsCard />
         </TabsContent>
 
         <TabsContent value="pagarme" className="mt-4 space-y-3">
