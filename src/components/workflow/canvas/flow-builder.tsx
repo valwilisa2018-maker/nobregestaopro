@@ -140,6 +140,14 @@ export function FlowBuilder({ blocks, onBlocksChange, canEdit, toolbar }: Props)
   }, [blocks]);
 
   const onPointerMove = (event: ReactPointerEvent<HTMLDivElement>) => {
+    if (panRef.current) {
+      const viewport = viewportRef.current;
+      if (viewport) {
+        viewport.scrollLeft = panRef.current.scrollLeft - (event.clientX - panRef.current.startX);
+        viewport.scrollTop = panRef.current.scrollTop - (event.clientY - panRef.current.startY);
+      }
+      return;
+    }
     const point = toWorld(event.clientX, event.clientY);
     if (dragRef.current) {
       const { id, dx, dy } = dragRef.current;
