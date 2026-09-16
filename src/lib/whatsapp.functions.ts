@@ -475,37 +475,59 @@ export const whatsappCustomerHistory = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     await assertPermission(context as unknown as Ctx, "customers", "view");
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const [{ data: messages }, { data: queue }, { data: history }, { data: customer }] =
-      await Promise.all([
-        supabaseAdmin
-          .from("whatsapp_messages")
-          .select("id, direction, body, created_at, status, origin")
-          .eq("customer_id", data.customerId)
-          .order("created_at", { ascending: false })
-          .limit(20),
-        supabaseAdmin
-          .from("followup_queue")
-          .select("id, status, scheduled_at, sent_at, message, reason, rule_id")
-          .eq("customer_id", data.customerId)
-          .order("scheduled_at", { ascending: false })
-          .limit(20),
-        supabaseAdmin
-          .from("followup_history")
-          .select("id, action, detail, created_at")
-          .eq("customer_id", data.customerId)
-          .order("created_at", { ascending: false })
-          .limit(20),
-        supabaseAdmin
-          .from("customers")
-          .select("followup_enabled, followup_paused_until, last_interaction_at")
-          .eq("id", data.customerId)
-          .maybeSingle(),
-      ]);
+    const [
+      { data: messages },
+      { data: queue },
+      { data: history },
+      { data: customer },
+      { data: connections },
+    ] = await Promise.all([
+      supabaseAdmin
+        .from("whatsapp_messages")
+        .select("id, direction, body, created_at, status, origin")
+        .eq("customer_id", data.customerId)
+        .order("created_at", { ascending: false })
+        .limit(20),
+      supabaseAdmin
+        .from("followup_queue")
+        .select("id, status, scheduled_at, sent_at, message, reason, rule_id")
+        .eq("customer_id", data.customerId)
+        .order("scheduled_at", { ascending: false })
+        .limit(20),
+      supabaseAdmin
+        .from("followup_history")
+        .select("id, action, detail, created_at")
+        .eq("customer_id", data.customerId)
+        .order("created_at", { ascending: false })
+        .limit(20),
+      supabaseAdmin
+        .from("customers")
+        .select("followup_enabled, followup_paused_until, last_interaction_at")
+        .eq("id", data.customerId)
+        .maybeSingle(),
+      supabaseAdmin
+        .from("whatsapp_connections")
+        .select("id, name, state")
+        .eq("active", true)
+        .order("is_default", { ascending: false })
+        .order("name"),
+    ]);
+    const rows = queue ?? [];
+    const next =
+      rows
+        .filter((item) => ["SCHEDULED", "PENDING", "WAITING_CONNECTION"].includes(item.status))
+        .sort((a, b) => a.scheduled_at.localeCompare(b.scheduled_at))[0] ?? null;
     return {
       messages: messages ?? [],
-      queue: queue ?? [],
+      queue: rows,
       history: history ?? [],
       customer: customer ?? null,
+      connections: connections ?? [],
+      next,
+      counts: {
+        sent: rows.filter((item) => item.status === "SENT").length,
+        cancelled: rows.filter((item) => item.status === "CANCELLED").length,
+      },
     };
   });
 
