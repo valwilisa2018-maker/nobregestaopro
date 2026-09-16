@@ -248,13 +248,28 @@ export function newBlock(
 ): WorkflowBlock {
   const id = `b${Math.random().toString(36).slice(2, 9)}`;
   const at = { x: position?.x ?? 120, y: position?.y ?? 120 };
-  if (type === "send_message") return { id, type, text: "", ...at };
+  if (type === "send_message" || type === "broadcast") return { id, type, text: "", ...at };
+  if (type === "question") return { id, type, text: "", timeoutMinutes: 1440, ...at };
+  if (type === "capture_name")
+    return { id, type, text: "Como você se chama?", timeoutMinutes: 1440, ...at };
+  if (type === "schedule")
+    return { id, type, text: "Qual o melhor dia e horário para você?", timeoutMinutes: 1440, ...at };
+  if (type === "sequence") return { id, type, tags: [], timeoutMinutes: 1440, ...at };
   if (type === "wait_reply") return { id, type, timeoutMinutes: 1440, ...at };
   if (type === "delay") return { id, type, waitMinutes: 60, ...at };
   if (type === "condition") return { id, type, keywords: [], ...at };
+  if (type === "yes_no")
+    return { id, type, keywords: ["sim", "quero", "pode", "ok"], ...at };
+  if (type === "tags") return { id, type, tags: [], ...at };
+  if (type === "typing" || type === "recording") return { id, type, seconds: 3, ...at };
+  if (type === "send_image" || type === "send_video")
+    return { id, type, mediaUrl: "", caption: "", ...at };
+  if (type === "send_audio") return { id, type, mediaUrl: "", ...at };
+  if (type === "webhook") return { id, type, url: "", ...at };
   if (type === "assign_seller") return { id, type, transferMode: "keep_owner", ...at };
   return { id, type, ...at };
 }
+
 
 export const CANVAS_BLOCK_WIDTH = 240;
 export const CANVAS_BLOCK_HEIGHT = 104;
