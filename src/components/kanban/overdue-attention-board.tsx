@@ -157,7 +157,7 @@ export function OverdueAttentionBoard({
                   <div className="flex items-center gap-2 rounded-lg bg-muted/55 px-2.5 py-2">
                     <KanbanPersonAvatar
                       bucket="producer-avatars"
-                      name={producer?.name}
+                      name={producerName}
                       value={producer?.avatar_url}
                       className="h-9 w-9"
                     />
@@ -166,7 +166,7 @@ export function OverdueAttentionBoard({
                         <User className="h-3 w-3" /> Produtor responsável
                       </div>
                       <div className="truncate text-sm font-black text-foreground">
-                        {producer?.name ?? "Sem produtor"}
+                        {producerName}
                       </div>
                     </div>
                   </div>

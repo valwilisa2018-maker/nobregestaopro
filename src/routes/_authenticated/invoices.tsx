@@ -48,7 +48,7 @@ function InvoicesPage() {
   const detailSale = useQuery({
     queryKey: ["invoice-detail-sale", detail?.sale_id],
     enabled: !!detail?.sale_id,
-    queryFn: async () => (await supabase.from("sales").select("*, sellers(name), service_types(name), producers(name), packages(name)").eq("id", detail!.sale_id).maybeSingle()).data,
+    queryFn: async () => (await supabase.from("sales").select("*, sellers(name), service_types(name), producers(name), packages(name), seller_name_snapshot, producer_name_snapshot").eq("id", detail!.sale_id).maybeSingle()).data,
   });
   const detailCustomer = useQuery({
     queryKey: ["invoice-detail-customer", detail?.customer_id],
@@ -584,8 +584,8 @@ function InvoicesPage() {
                   <div className="font-semibold mb-1">Venda relacionada</div>
                   <div className="flex justify-between gap-2"><span className="text-muted-foreground">Data</span><span className="font-medium">{fmtDate(detailSale.data.sale_date)}</span></div>
                   <div className="flex justify-between gap-2"><span className="text-muted-foreground">Serviço</span><span className="font-medium">{detailSale.data.packages?.name ?? detailSale.data.service_types?.name ?? "—"}</span></div>
-                  <div className="flex justify-between gap-2"><span className="text-muted-foreground">Vendedor</span><span className="font-medium">{detailSale.data.sellers?.name ?? "—"}</span></div>
-                  <div className="flex justify-between gap-2"><span className="text-muted-foreground">Produtor</span><span className="font-medium">{detailSale.data.producers?.name ?? "—"}</span></div>
+                  <div className="flex justify-between gap-2"><span className="text-muted-foreground">Vendedor</span><span className="font-medium">{detailSale.data.sellers?.name ?? detailSale.data.seller_name_snapshot ?? "—"}</span></div>
+                  <div className="flex justify-between gap-2"><span className="text-muted-foreground">Produtor</span><span className="font-medium">{detailSale.data.producers?.name ?? detailSale.data.producer_name_snapshot ?? "—"}</span></div>
                   <div className="flex justify-between gap-2"><span className="text-muted-foreground">Qtd. serviços</span><span className="font-medium">{detailSale.data.service_quantity ?? 1}</span></div>
                   <div className="flex justify-between gap-2"><span className="text-muted-foreground">Total</span><span className="font-medium">{formatCurrency(detailSale.data.total_amount)}</span></div>
                   <div className="flex justify-between gap-2"><span className="text-muted-foreground">Pago</span><span className="font-medium">{formatCurrency(detailSale.data.paid_amount)}</span></div>
