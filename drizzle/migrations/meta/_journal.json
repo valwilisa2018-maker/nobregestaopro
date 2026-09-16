@@ -36,6 +36,13 @@
       "when": 1789582718284,
       "tag": "0004_workflow_triggers_extra",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1789586108362,
+      "tag": "0005_workflow_media_storage_policies",
+      "breakpoints": true
     }
   ]
 }
