@@ -149,6 +149,49 @@ export function CustomerWorkflowPanel({ customerId }: { customerId: string }) {
         </div>
       )}
 
+      <Separator />
+      <div className="space-y-2">
+        <Label>Etiquetas do cliente</Label>
+        <p className="text-xs text-muted-foreground">
+          Ao adicionar uma etiqueta, os fluxos com o gatilho dessa etiqueta começam na hora.
+        </p>
+        <div className="flex flex-wrap gap-2">
+          {tags.length === 0 && (
+            <span className="text-xs text-muted-foreground">Nenhuma etiqueta ainda.</span>
+          )}
+          {tags.map((tag) => (
+            <Badge key={tag} variant="secondary" className="gap-1">
+              {tag}
+              <button
+                type="button"
+                aria-label={`Remover etiqueta ${tag}`}
+                onClick={() => void saveTags(tags.filter((t) => t !== tag))}
+                className="text-muted-foreground hover:text-foreground"
+              >
+                <XCircle className="h-3 w-3" />
+              </button>
+            </Badge>
+          ))}
+        </div>
+        <div className="flex gap-2">
+          <Input
+            value={newTag}
+            onChange={(e) => setNewTag(e.target.value)}
+            placeholder="cliente-vip"
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                e.preventDefault();
+                void addTag();
+              }
+            }}
+          />
+          <Button size="sm" variant="outline" disabled={busy || !newTag.trim()} onClick={addTag}>
+            <Tag className="mr-2 h-4 w-4" /> Adicionar
+          </Button>
+        </div>
+      </div>
+
+
       {(data?.runs ?? []).length > 0 && (
         <>
           <Separator />
