@@ -135,23 +135,22 @@ export function KanbanGroupCard({
             <div className="flex items-center gap-2 rounded-md bg-muted/50 px-2 py-1">
               <KanbanPersonAvatar
                 bucket="seller-avatars"
-                name={seller?.name}
+                name={sellerName}
                 value={seller?.avatar_url}
               />
               <span className="truncate">
-                Vendedor: <span className="font-semibold text-success">{seller?.name ?? "-"}</span>
+                Vendedor: <span className="font-semibold text-success">{sellerName}</span>
               </span>
             </div>
 
             <div className="flex items-center gap-2 rounded-md bg-muted/50 px-2 py-1">
               <KanbanPersonAvatar
                 bucket="producer-avatars"
-                name={producer?.name}
+                name={producerName}
                 value={producer?.avatar_url}
               />
               <span className="truncate">
-                Produtor:{" "}
-                <span className="font-semibold text-success">{producer?.name ?? "-"}</span>
+                Produtor: <span className="font-semibold text-success">{producerName}</span>
               </span>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>

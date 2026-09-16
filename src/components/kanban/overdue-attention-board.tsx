@@ -126,6 +126,11 @@ export function OverdueAttentionBoard({
             {visible.map((item) => {
               const style = severityStyle[item.severity];
               const producer = item.card.producer ?? item.card.sales?.producers;
+              const producerName =
+                producer?.name ??
+                item.card.producer_name_snapshot ??
+                item.card.sales?.producer_name_snapshot ??
+                "Sem produtor";
               return (
                 <button
                   key={item.card.id}
