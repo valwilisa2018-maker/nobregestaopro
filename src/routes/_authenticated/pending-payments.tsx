@@ -35,7 +35,7 @@ function PendingPaymentsPage() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("sales")
-        .select("id, sale_date, total_amount, paid_amount, payment_status, notes, receipt_url, seller_id, producer_id, customer:customers(id, name, company, phone, email), seller:sellers(id, name), producer:producers(id, name)")
+        .select("id, sale_date, total_amount, paid_amount, payment_status, notes, receipt_url, seller_id, producer_id, seller_name_snapshot, producer_name_snapshot, customer:customers(id, name, company, phone, email), seller:sellers(id, name), producer:producers(id, name)")
         .in("payment_status", ["pendente", "pago_parcial"])
         .order("sale_date", { ascending: false });
       if (error) throw error;
@@ -242,8 +242,8 @@ function PendingPaymentsPage() {
                     <TableCell className="whitespace-nowrap">{fmtDate(s.sale_date)}</TableCell>
                     <TableCell className="font-medium">{s.customer?.name ?? "—"}</TableCell>
                     <TableCell>{s.customer?.company ?? "—"}</TableCell>
-                    <TableCell>{s.seller?.name ?? "—"}</TableCell>
-                    <TableCell>{s.producer?.name ?? "—"}</TableCell>
+                    <TableCell>{s.seller?.name ?? s.seller_name_snapshot ?? "—"}</TableCell>
+                    <TableCell>{s.producer?.name ?? s.producer_name_snapshot ?? "—"}</TableCell>
                     <TableCell className="text-right">{formatCurrency(s.total_amount)}</TableCell>
                     <TableCell className="text-right">{formatCurrency(s.paid_amount)}</TableCell>
                     <TableCell className="text-right font-semibold text-red-500">{formatCurrency(remaining)}</TableCell>

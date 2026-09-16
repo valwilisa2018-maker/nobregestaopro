@@ -19,7 +19,7 @@ export const Route = createFileRoute("/_authenticated/services-todo")({
       queryFn: async () => {
         const { data, error } = await supabase
           .from("service_orders")
-          .select("*, kanban_columns(name,is_done,color), sales:sales!service_orders_sale_id_fkey(customers(name,company), producers(name), service_types(name))")
+          .select("*, kanban_columns(name,is_done,color), sales:sales!service_orders_sale_id_fkey(customers(name,company), producers(name), producer_name_snapshot, service_types(name))")
           .order("due_date", { ascending: true });
         
         if (error) {
@@ -101,7 +101,7 @@ export const Route = createFileRoute("/_authenticated/services-todo")({
                         </div>
                       </TableCell>
                       <TableCell>{multi ? `${g.items.length} serviços` : (first.sales?.service_types?.name ?? first.title)}</TableCell>
-                      <TableCell>{first.sales?.producers?.name ?? "—"}</TableCell>
+                      <TableCell>{first.sales?.producers?.name ?? first.producer_name_snapshot ?? first.sales?.producer_name_snapshot ?? "—"}</TableCell>
                       <TableCell>
                         {multi ? (
                           <span className="text-red-600 font-bold text-xs uppercase">Pacote</span>
@@ -119,7 +119,7 @@ export const Route = createFileRoute("/_authenticated/services-todo")({
                         onClick={() => navigate({ to: "/kanban", search: { card: o.id } as any })}>
                         <TableCell className="pl-10 text-xs text-muted-foreground">↳</TableCell>
                         <TableCell>{o.sales?.service_types?.name ?? o.title}</TableCell>
-                        <TableCell>{o.sales?.producers?.name ?? "—"}</TableCell>
+                        <TableCell>{o.sales?.producers?.name ?? o.producer_name_snapshot ?? o.sales?.producer_name_snapshot ?? "—"}</TableCell>
                         <TableCell>
                           <Badge variant="outline" style={{ borderColor: o.kanban_columns?.color, color: o.kanban_columns?.color }}>
                             {o.kanban_columns?.name}
