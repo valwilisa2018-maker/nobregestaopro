@@ -331,7 +331,7 @@ export const whatsappGetQr = createServerFn({ method: "POST" })
         last_event: qr ? "QRCODE_UPDATED" : "CONNECT_REQUESTED",
       })
       .eq("instance_name", data.instanceName);
-    return { qr };
+    return { qr, error: null as string | null };
   });
 
 export const whatsappRefreshStatus = createServerFn({ method: "POST" })
