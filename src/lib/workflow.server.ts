@@ -1,8 +1,15 @@
 // Server-only Workflow engine. Never import from client code.
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { buildMessage } from "@/lib/followup.server";
-import { normalizePhone, sendWhatsappText } from "@/lib/whatsapp.server";
-import type { WorkflowBlock } from "@/lib/workflow-shared";
+import {
+  normalizePhone,
+  sendWhatsappAudio,
+  sendWhatsappMedia,
+  sendWhatsappPresence,
+  sendWhatsappText,
+} from "@/lib/whatsapp.server";
+import { WAIT_REPLY_BLOCKS, type WorkflowBlock } from "@/lib/workflow-shared";
+
 
 type RunRow = {
   id: string;
