@@ -13,13 +13,16 @@ import {
 } from "@/components/ui/select";
 import { toast } from "@/lib/toast";
 import { getErrorMessage } from "@/lib/error-messages";
+import { Input } from "@/components/ui/input";
 import { RUN_STATUS_LABEL } from "@/lib/workflow-shared";
 import {
+  customerTags,
+  customerTagsSave,
   workflowCustomerPanel,
   workflowRunAction,
   workflowStartForCustomer,
 } from "@/lib/workflow.functions";
-import { Loader2, PlayCircle, Workflow as WorkflowIcon, XCircle } from "lucide-react";
+import { Loader2, PlayCircle, Tag, Workflow as WorkflowIcon, XCircle } from "lucide-react";
 
 type Panel = Awaited<ReturnType<typeof workflowCustomerPanel>>;
 
