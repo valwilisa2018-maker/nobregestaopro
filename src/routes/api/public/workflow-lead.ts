@@ -49,7 +49,7 @@ async function run(request: Request) {
 
   let customerId = existing?.id ?? null;
   if (customerId) {
-    const merged = Array.from(new Set([...(((existing?.tags ?? []) as string[]) ?? []), ...tags]));
+    const merged = Array.from(new Set([...((existing?.tags ?? []) as string[]), ...tags]));
     await supabaseAdmin
       .from("customers")
       .update({ tags: merged, last_interaction_at: new Date().toISOString() } as never)
