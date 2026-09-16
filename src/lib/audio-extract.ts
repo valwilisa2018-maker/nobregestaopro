@@ -2,7 +2,7 @@
 // prontos para transcrição. Assim vídeos grandes viram poucos megabytes de áudio.
 
 const TARGET_RATE = 16_000;
-const CHUNK_SECONDS = 600; // 10 minutos por trecho
+const CHUNK_SECONDS = 400; // ~6,5 minutos por trecho (cabe no limite do serviço)
 
 type AudioContextConstructor = typeof AudioContext;
 
