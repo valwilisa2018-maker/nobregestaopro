@@ -71,6 +71,13 @@ export const MENU_MODULES: MenuModule[] = [
     actions: ["view", "create"],
   },
   {
+    key: "followup",
+    title: "Follow-up",
+    url: "/followup",
+    group: "Operação",
+    actions: ["view", "create", "edit", "delete"],
+  },
+  {
     key: "customers",
     title: "Clientes",
     url: "/customers",

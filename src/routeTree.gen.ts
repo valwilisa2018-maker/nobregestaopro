@@ -35,6 +35,7 @@ import { Route as AuthenticatedOperacaoMetaRouteImport } from './routes/_authent
 import { Route as AuthenticatedMedidorRoteiroRouteImport } from './routes/_authenticated/medidor-roteiro'
 import { Route as AuthenticatedKanbanRouteImport } from './routes/_authenticated/kanban'
 import { Route as AuthenticatedInvoicesRouteImport } from './routes/_authenticated/invoices'
+import { Route as AuthenticatedFollowupRouteImport } from './routes/_authenticated/followup'
 import { Route as AuthenticatedFinanceRouteImport } from './routes/_authenticated/finance'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
 import { Route as AuthenticatedCustomersRouteImport } from './routes/_authenticated/customers'
@@ -46,6 +47,7 @@ import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/
 import { Route as AuthenticatedPastasArquivosIndexRouteImport } from './routes/_authenticated/pastas-arquivos.index'
 import { Route as AuthenticatedOperacaoMetaIndexRouteImport } from './routes/_authenticated/operacao-meta.index'
 import { Route as ApiPublicTrelloWebhookRouteImport } from './routes/api/public/trello-webhook'
+import { Route as ApiPublicFollowupWorkerRouteImport } from './routes/api/public/followup-worker'
 import { Route as ApiPublicEvolutionWebhookRouteImport } from './routes/api/public/evolution-webhook'
 import { Route as AuthenticatedPastasArquivosFolderIdRouteImport } from './routes/_authenticated/pastas-arquivos.$folderId'
 import { Route as AuthenticatedOperacaoMetaVisaoGeralRouteImport } from './routes/_authenticated/operacao-meta.visao-geral'
@@ -189,6 +191,11 @@ const AuthenticatedInvoicesRoute = AuthenticatedInvoicesRouteImport.update({
   path: '/invoices',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedFollowupRoute = AuthenticatedFollowupRouteImport.update({
+  id: '/followup',
+  path: '/followup',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedFinanceRoute = AuthenticatedFinanceRouteImport.update({
   id: '/finance',
   path: '/finance',
@@ -248,6 +255,11 @@ const ApiPublicTrelloWebhookRoute = ApiPublicTrelloWebhookRouteImport.update({
   path: '/api/public/trello-webhook',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicFollowupWorkerRoute = ApiPublicFollowupWorkerRouteImport.update({
+  id: '/api/public/followup-worker',
+  path: '/api/public/followup-worker',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiPublicEvolutionWebhookRoute =
   ApiPublicEvolutionWebhookRouteImport.update({
     id: '/api/public/evolution-webhook',
@@ -301,6 +313,7 @@ export interface FileRoutesByFullPath {
   '/customers': typeof AuthenticatedCustomersRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/finance': typeof AuthenticatedFinanceRoute
+  '/followup': typeof AuthenticatedFollowupRoute
   '/invoices': typeof AuthenticatedInvoicesRoute
   '/kanban': typeof AuthenticatedKanbanRoute
   '/medidor-roteiro': typeof AuthenticatedMedidorRoteiroRoute
@@ -325,6 +338,7 @@ export interface FileRoutesByFullPath {
   '/operacao-meta/visao-geral': typeof AuthenticatedOperacaoMetaVisaoGeralRoute
   '/pastas-arquivos/$folderId': typeof AuthenticatedPastasArquivosFolderIdRoute
   '/api/public/evolution-webhook': typeof ApiPublicEvolutionWebhookRoute
+  '/api/public/followup-worker': typeof ApiPublicFollowupWorkerRoute
   '/api/public/trello-webhook': typeof ApiPublicTrelloWebhookRoute
   '/operacao-meta/': typeof AuthenticatedOperacaoMetaIndexRoute
   '/pastas-arquivos/': typeof AuthenticatedPastasArquivosIndexRoute
@@ -345,6 +359,7 @@ export interface FileRoutesByTo {
   '/customers': typeof AuthenticatedCustomersRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/finance': typeof AuthenticatedFinanceRoute
+  '/followup': typeof AuthenticatedFollowupRoute
   '/invoices': typeof AuthenticatedInvoicesRoute
   '/kanban': typeof AuthenticatedKanbanRoute
   '/medidor-roteiro': typeof AuthenticatedMedidorRoteiroRoute
@@ -368,6 +383,7 @@ export interface FileRoutesByTo {
   '/operacao-meta/visao-geral': typeof AuthenticatedOperacaoMetaVisaoGeralRoute
   '/pastas-arquivos/$folderId': typeof AuthenticatedPastasArquivosFolderIdRoute
   '/api/public/evolution-webhook': typeof ApiPublicEvolutionWebhookRoute
+  '/api/public/followup-worker': typeof ApiPublicFollowupWorkerRoute
   '/api/public/trello-webhook': typeof ApiPublicTrelloWebhookRoute
   '/operacao-meta': typeof AuthenticatedOperacaoMetaIndexRoute
   '/pastas-arquivos': typeof AuthenticatedPastasArquivosIndexRoute
@@ -390,6 +406,7 @@ export interface FileRoutesById {
   '/_authenticated/customers': typeof AuthenticatedCustomersRoute
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
   '/_authenticated/finance': typeof AuthenticatedFinanceRoute
+  '/_authenticated/followup': typeof AuthenticatedFollowupRoute
   '/_authenticated/invoices': typeof AuthenticatedInvoicesRoute
   '/_authenticated/kanban': typeof AuthenticatedKanbanRoute
   '/_authenticated/medidor-roteiro': typeof AuthenticatedMedidorRoteiroRoute
@@ -414,6 +431,7 @@ export interface FileRoutesById {
   '/_authenticated/operacao-meta/visao-geral': typeof AuthenticatedOperacaoMetaVisaoGeralRoute
   '/_authenticated/pastas-arquivos/$folderId': typeof AuthenticatedPastasArquivosFolderIdRoute
   '/api/public/evolution-webhook': typeof ApiPublicEvolutionWebhookRoute
+  '/api/public/followup-worker': typeof ApiPublicFollowupWorkerRoute
   '/api/public/trello-webhook': typeof ApiPublicTrelloWebhookRoute
   '/_authenticated/operacao-meta/': typeof AuthenticatedOperacaoMetaIndexRoute
   '/_authenticated/pastas-arquivos/': typeof AuthenticatedPastasArquivosIndexRoute
@@ -436,6 +454,7 @@ export interface FileRouteTypes {
     | '/customers'
     | '/dashboard'
     | '/finance'
+    | '/followup'
     | '/invoices'
     | '/kanban'
     | '/medidor-roteiro'
@@ -460,6 +479,7 @@ export interface FileRouteTypes {
     | '/operacao-meta/visao-geral'
     | '/pastas-arquivos/$folderId'
     | '/api/public/evolution-webhook'
+    | '/api/public/followup-worker'
     | '/api/public/trello-webhook'
     | '/operacao-meta/'
     | '/pastas-arquivos/'
@@ -480,6 +500,7 @@ export interface FileRouteTypes {
     | '/customers'
     | '/dashboard'
     | '/finance'
+    | '/followup'
     | '/invoices'
     | '/kanban'
     | '/medidor-roteiro'
@@ -503,6 +524,7 @@ export interface FileRouteTypes {
     | '/operacao-meta/visao-geral'
     | '/pastas-arquivos/$folderId'
     | '/api/public/evolution-webhook'
+    | '/api/public/followup-worker'
     | '/api/public/trello-webhook'
     | '/operacao-meta'
     | '/pastas-arquivos'
@@ -524,6 +546,7 @@ export interface FileRouteTypes {
     | '/_authenticated/customers'
     | '/_authenticated/dashboard'
     | '/_authenticated/finance'
+    | '/_authenticated/followup'
     | '/_authenticated/invoices'
     | '/_authenticated/kanban'
     | '/_authenticated/medidor-roteiro'
@@ -548,6 +571,7 @@ export interface FileRouteTypes {
     | '/_authenticated/operacao-meta/visao-geral'
     | '/_authenticated/pastas-arquivos/$folderId'
     | '/api/public/evolution-webhook'
+    | '/api/public/followup-worker'
     | '/api/public/trello-webhook'
     | '/_authenticated/operacao-meta/'
     | '/_authenticated/pastas-arquivos/'
@@ -564,6 +588,7 @@ export interface RootRouteChildren {
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   ApiTranscribeRoute: typeof ApiTranscribeRoute
   ApiPublicEvolutionWebhookRoute: typeof ApiPublicEvolutionWebhookRoute
+  ApiPublicFollowupWorkerRoute: typeof ApiPublicFollowupWorkerRoute
   ApiPublicTrelloWebhookRoute: typeof ApiPublicTrelloWebhookRoute
 }
 
@@ -751,6 +776,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedInvoicesRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/followup': {
+      id: '/_authenticated/followup'
+      path: '/followup'
+      fullPath: '/followup'
+      preLoaderRoute: typeof AuthenticatedFollowupRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/finance': {
       id: '/_authenticated/finance'
       path: '/finance'
@@ -826,6 +858,13 @@ declare module '@tanstack/react-router' {
       path: '/api/public/trello-webhook'
       fullPath: '/api/public/trello-webhook'
       preLoaderRoute: typeof ApiPublicTrelloWebhookRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/followup-worker': {
+      id: '/api/public/followup-worker'
+      path: '/api/public/followup-worker'
+      fullPath: '/api/public/followup-worker'
+      preLoaderRoute: typeof ApiPublicFollowupWorkerRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/public/evolution-webhook': {
@@ -908,6 +947,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedCustomersRoute: typeof AuthenticatedCustomersRoute
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
   AuthenticatedFinanceRoute: typeof AuthenticatedFinanceRoute
+  AuthenticatedFollowupRoute: typeof AuthenticatedFollowupRoute
   AuthenticatedInvoicesRoute: typeof AuthenticatedInvoicesRoute
   AuthenticatedKanbanRoute: typeof AuthenticatedKanbanRoute
   AuthenticatedMedidorRoteiroRoute: typeof AuthenticatedMedidorRoteiroRoute
@@ -938,6 +978,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedCustomersRoute: AuthenticatedCustomersRoute,
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
   AuthenticatedFinanceRoute: AuthenticatedFinanceRoute,
+  AuthenticatedFollowupRoute: AuthenticatedFollowupRoute,
   AuthenticatedInvoicesRoute: AuthenticatedInvoicesRoute,
   AuthenticatedKanbanRoute: AuthenticatedKanbanRoute,
   AuthenticatedMedidorRoteiroRoute: AuthenticatedMedidorRoteiroRoute,
@@ -974,6 +1015,7 @@ const rootRouteChildren: RootRouteChildren = {
   SitemapDotxmlRoute: SitemapDotxmlRoute,
   ApiTranscribeRoute: ApiTranscribeRoute,
   ApiPublicEvolutionWebhookRoute: ApiPublicEvolutionWebhookRoute,
+  ApiPublicFollowupWorkerRoute: ApiPublicFollowupWorkerRoute,
   ApiPublicTrelloWebhookRoute: ApiPublicTrelloWebhookRoute,
 }
 export const routeTree = rootRouteImport

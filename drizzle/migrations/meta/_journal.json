@@ -8,6 +8,20 @@
       "when": 1789567271598,
       "tag": "0000_transcription_temp_storage_policies",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1789574523376,
+      "tag": "0001_whatsapp_evolution_followup",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1789574910409,
+      "tag": "0002_followup_worker_cron",
+      "breakpoints": true
     }
   ]
 }

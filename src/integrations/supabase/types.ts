@@ -80,7 +80,10 @@ export type Database = {
           created_at: string
           document: string | null
           email: string | null
+          followup_enabled: boolean
+          followup_paused_until: string | null
           id: string
+          last_interaction_at: string | null
           name: string
           notes: string | null
           phone: string | null
@@ -91,7 +94,10 @@ export type Database = {
           created_at?: string
           document?: string | null
           email?: string | null
+          followup_enabled?: boolean
+          followup_paused_until?: string | null
           id?: string
+          last_interaction_at?: string | null
           name: string
           notes?: string | null
           phone?: string | null
@@ -102,11 +108,56 @@ export type Database = {
           created_at?: string
           document?: string | null
           email?: string | null
+          followup_enabled?: boolean
+          followup_paused_until?: string | null
           id?: string
+          last_interaction_at?: string | null
           name?: string
           notes?: string | null
           phone?: string | null
           updated_at?: string
+        }
+        Relationships: []
+      }
+      evolution_settings: {
+        Row: {
+          api_key: string | null
+          api_url: string | null
+          id: boolean
+          integration_name: string | null
+          last_test_at: string | null
+          last_test_message: string | null
+          last_test_ok: boolean | null
+          updated_at: string
+          updated_by: string | null
+          webhook_secret: string | null
+          worker_token: string | null
+        }
+        Insert: {
+          api_key?: string | null
+          api_url?: string | null
+          id?: boolean
+          integration_name?: string | null
+          last_test_at?: string | null
+          last_test_message?: string | null
+          last_test_ok?: boolean | null
+          updated_at?: string
+          updated_by?: string | null
+          webhook_secret?: string | null
+          worker_token?: string | null
+        }
+        Update: {
+          api_key?: string | null
+          api_url?: string | null
+          id?: boolean
+          integration_name?: string | null
+          last_test_at?: string | null
+          last_test_message?: string | null
+          last_test_ok?: boolean | null
+          updated_at?: string
+          updated_by?: string | null
+          webhook_secret?: string | null
+          worker_token?: string | null
         }
         Relationships: []
       }
@@ -157,6 +208,242 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      followup_history: {
+        Row: {
+          action: string
+          connection_id: string | null
+          created_at: string
+          created_by: string | null
+          customer_id: string | null
+          detail: string | null
+          id: string
+          queue_id: string | null
+          rule_id: string | null
+        }
+        Insert: {
+          action: string
+          connection_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          customer_id?: string | null
+          detail?: string | null
+          id?: string
+          queue_id?: string | null
+          rule_id?: string | null
+        }
+        Update: {
+          action?: string
+          connection_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          customer_id?: string | null
+          detail?: string | null
+          id?: string
+          queue_id?: string | null
+          rule_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "followup_history_connection_id_fkey"
+            columns: ["connection_id"]
+            isOneToOne: false
+            referencedRelation: "whatsapp_connections"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "followup_history_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "followup_history_queue_id_fkey"
+            columns: ["queue_id"]
+            isOneToOne: false
+            referencedRelation: "followup_queue"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "followup_history_rule_id_fkey"
+            columns: ["rule_id"]
+            isOneToOne: false
+            referencedRelation: "followup_rules"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      followup_queue: {
+        Row: {
+          attempts: number
+          connection_id: string | null
+          created_at: string
+          created_by: string | null
+          customer_id: string | null
+          error: string | null
+          id: string
+          idempotency_key: string | null
+          locked_at: string | null
+          message: string
+          phone: string | null
+          reason: string | null
+          rule_id: string | null
+          sale_id: string | null
+          scheduled_at: string
+          seller_id: string | null
+          sent_at: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          attempts?: number
+          connection_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          customer_id?: string | null
+          error?: string | null
+          id?: string
+          idempotency_key?: string | null
+          locked_at?: string | null
+          message: string
+          phone?: string | null
+          reason?: string | null
+          rule_id?: string | null
+          sale_id?: string | null
+          scheduled_at: string
+          seller_id?: string | null
+          sent_at?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          attempts?: number
+          connection_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          customer_id?: string | null
+          error?: string | null
+          id?: string
+          idempotency_key?: string | null
+          locked_at?: string | null
+          message?: string
+          phone?: string | null
+          reason?: string | null
+          rule_id?: string | null
+          sale_id?: string | null
+          scheduled_at?: string
+          seller_id?: string | null
+          sent_at?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "followup_queue_connection_id_fkey"
+            columns: ["connection_id"]
+            isOneToOne: false
+            referencedRelation: "whatsapp_connections"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "followup_queue_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "followup_queue_rule_id_fkey"
+            columns: ["rule_id"]
+            isOneToOne: false
+            referencedRelation: "followup_rules"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "followup_queue_sale_id_fkey"
+            columns: ["sale_id"]
+            isOneToOne: false
+            referencedRelation: "sales"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "followup_queue_seller_id_fkey"
+            columns: ["seller_id"]
+            isOneToOne: false
+            referencedRelation: "sellers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      followup_rules: {
+        Row: {
+          active: boolean
+          allowed_end: string
+          allowed_start: string
+          allowed_weekdays: number[]
+          connection_id: string | null
+          created_at: string
+          created_by: string | null
+          delay_days: number
+          id: string
+          message: string
+          name: string
+          seller_id: string | null
+          trigger_event: string
+          updated_at: string
+          whatsapp_mode: string
+        }
+        Insert: {
+          active?: boolean
+          allowed_end?: string
+          allowed_start?: string
+          allowed_weekdays?: number[]
+          connection_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          delay_days?: number
+          id?: string
+          message: string
+          name: string
+          seller_id?: string | null
+          trigger_event: string
+          updated_at?: string
+          whatsapp_mode?: string
+        }
+        Update: {
+          active?: boolean
+          allowed_end?: string
+          allowed_start?: string
+          allowed_weekdays?: number[]
+          connection_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          delay_days?: number
+          id?: string
+          message?: string
+          name?: string
+          seller_id?: string | null
+          trigger_event?: string
+          updated_at?: string
+          whatsapp_mode?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "followup_rules_connection_id_fkey"
+            columns: ["connection_id"]
+            isOneToOne: false
+            referencedRelation: "whatsapp_connections"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "followup_rules_seller_id_fkey"
+            columns: ["seller_id"]
+            isOneToOne: false
+            referencedRelation: "sellers"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       goals: {
         Row: {
@@ -1818,6 +2105,131 @@ export type Database = {
         }
         Relationships: []
       }
+      whatsapp_connections: {
+        Row: {
+          active: boolean
+          connected_at: string | null
+          created_at: string
+          created_by: string | null
+          id: string
+          instance_name: string
+          is_default: boolean
+          last_event: string | null
+          name: string
+          notes: string | null
+          phone_number: string | null
+          profile_pic_url: string | null
+          responsible_name: string | null
+          seller_id: string | null
+          state: string
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          connected_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          instance_name: string
+          is_default?: boolean
+          last_event?: string | null
+          name: string
+          notes?: string | null
+          phone_number?: string | null
+          profile_pic_url?: string | null
+          responsible_name?: string | null
+          seller_id?: string | null
+          state?: string
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          connected_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          instance_name?: string
+          is_default?: boolean
+          last_event?: string | null
+          name?: string
+          notes?: string | null
+          phone_number?: string | null
+          profile_pic_url?: string | null
+          responsible_name?: string | null
+          seller_id?: string | null
+          state?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "whatsapp_connections_seller_id_fkey"
+            columns: ["seller_id"]
+            isOneToOne: false
+            referencedRelation: "sellers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      whatsapp_messages: {
+        Row: {
+          body: string | null
+          connection_id: string | null
+          created_at: string
+          customer_id: string | null
+          direction: string
+          external_id: string | null
+          id: string
+          instance_name: string | null
+          origin: string
+          phone: string
+          sent_by: string | null
+          status: string
+        }
+        Insert: {
+          body?: string | null
+          connection_id?: string | null
+          created_at?: string
+          customer_id?: string | null
+          direction?: string
+          external_id?: string | null
+          id?: string
+          instance_name?: string | null
+          origin?: string
+          phone: string
+          sent_by?: string | null
+          status?: string
+        }
+        Update: {
+          body?: string | null
+          connection_id?: string | null
+          created_at?: string
+          customer_id?: string | null
+          direction?: string
+          external_id?: string | null
+          id?: string
+          instance_name?: string | null
+          origin?: string
+          phone?: string
+          sent_by?: string | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "whatsapp_messages_connection_id_fkey"
+            columns: ["connection_id"]
+            isOneToOne: false
+            referencedRelation: "whatsapp_connections"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "whatsapp_messages_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       whatsapp_status: {
         Row: {
           instance_name: string
@@ -1839,6 +2251,33 @@ export type Database = {
           number?: string | null
           state?: string
           updated_at?: string
+        }
+        Relationships: []
+      }
+      whatsapp_webhook_events: {
+        Row: {
+          created_at: string
+          event_key: string | null
+          event_type: string | null
+          id: string
+          instance_name: string | null
+          payload: Json
+        }
+        Insert: {
+          created_at?: string
+          event_key?: string | null
+          event_type?: string | null
+          id?: string
+          instance_name?: string | null
+          payload?: Json
+        }
+        Update: {
+          created_at?: string
+          event_key?: string | null
+          event_type?: string | null
+          id?: string
+          instance_name?: string | null
+          payload?: Json
         }
         Relationships: []
       }
@@ -1902,6 +2341,37 @@ export type Database = {
         Args: { p_seller_id: string }
         Returns: undefined
       }
+      followup_claim_due: {
+        Args: { _limit?: number }
+        Returns: {
+          attempts: number
+          connection_id: string | null
+          created_at: string
+          created_by: string | null
+          customer_id: string | null
+          error: string | null
+          id: string
+          idempotency_key: string | null
+          locked_at: string | null
+          message: string
+          phone: string | null
+          reason: string | null
+          rule_id: string | null
+          sale_id: string | null
+          scheduled_at: string
+          seller_id: string | null
+          sent_at: string | null
+          status: string
+          updated_at: string
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "followup_queue"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
+      followup_worker_tick: { Args: never; Returns: undefined }
       get_my_access: { Args: never; Returns: Json }
       get_om_settings_public: {
         Args: never
