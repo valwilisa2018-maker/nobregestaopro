@@ -45,6 +45,13 @@ export function FlowBuilder({ blocks, onBlocksChange, canEdit, toolbar }: Props)
   const [zoom, setZoom] = useState(1);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const dragRef = useRef<{ id: string; dx: number; dy: number } | null>(null);
+  const panRef = useRef<{
+    startX: number;
+    startY: number;
+    scrollLeft: number;
+    scrollTop: number;
+  } | null>(null);
+  const [panning, setPanning] = useState(false);
   const [linking, setLinking] = useState<{
     fromId: string;
     port: "nextId" | "nextIfMatch" | "nextIfNoMatch";
