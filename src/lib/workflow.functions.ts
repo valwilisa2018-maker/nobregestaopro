@@ -1,6 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import { validateBlocks, type WorkflowBlock } from "@/lib/workflow-shared";
+import { TRIGGER_TYPES, validateBlocks, type WorkflowBlock } from "@/lib/workflow-shared";
 
 type Ctx = {
   supabase: {
