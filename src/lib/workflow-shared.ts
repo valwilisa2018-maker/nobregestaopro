@@ -1,10 +1,24 @@
 // Client-safe helpers shared between the Workflow UI and the server engine.
 
 export type WorkflowBlockType =
+  | "trigger"
   | "send_message"
+  | "send_image"
+  | "send_video"
+  | "send_audio"
+  | "typing"
+  | "recording"
+  | "question"
+  | "capture_name"
   | "wait_reply"
   | "condition"
+  | "yes_no"
   | "delay"
+  | "tags"
+  | "sequence"
+  | "schedule"
+  | "broadcast"
+  | "webhook"
   | "assign_seller"
   | "handoff"
   | "end";
@@ -22,20 +36,68 @@ export type WorkflowBlock = {
   transferSellerId?: string | null;
   transferMode?: "keep_owner" | "end_current" | "start_target";
   note?: string;
+  /** Endereço do arquivo (imagem, vídeo ou áudio). */
+  mediaUrl?: string;
+  /** Legenda do arquivo enviado. */
+  caption?: string;
+  /** Segundos de "digitando"/"gravando". */
+  seconds?: number;
+  /** Etiquetas aplicadas ao cliente. */
+  tags?: string[];
+  /** Número que recebe o aviso interno (bloco Disparo). */
+  targetPhone?: string;
+  /** Endereço chamado pelo bloco Webhook. */
+  url?: string;
   /** Posição no quadro visual (opcional; blocos antigos recebem layout automático). */
   x?: number;
   y?: number;
 };
+
+/** Blocos que param o fluxo esperando a resposta do cliente. */
+export const WAIT_REPLY_BLOCKS: WorkflowBlockType[] = [
+  "wait_reply",
+  "question",
+  "capture_name",
+  "sequence",
+  "schedule",
+];
+
+/** Blocos que encerram o caminho (não têm bloco seguinte). */
+export const TERMINAL_BLOCKS: WorkflowBlockType[] = ["end", "handoff"];
 
 export const BLOCK_TYPES: {
   value: WorkflowBlockType;
   label: string;
   description: string;
 }[] = [
+  { value: "trigger", label: "Gatilho", description: "Início do fluxo." },
   {
     value: "send_message",
-    label: "Enviar mensagem",
+    label: "Mensagem",
     description: "Envia um texto pelo WhatsApp do fluxo.",
+  },
+  { value: "send_image", label: "Imagem", description: "Envia uma imagem com legenda." },
+  { value: "send_video", label: "Vídeo", description: "Envia um vídeo com legenda." },
+  { value: "send_audio", label: "Áudio", description: "Envia um áudio de voz." },
+  {
+    value: "typing",
+    label: "Digitando",
+    description: "Mostra “digitando...” por alguns segundos.",
+  },
+  {
+    value: "recording",
+    label: "Gravando",
+    description: "Mostra “gravando áudio...” por alguns segundos.",
+  },
+  {
+    value: "question",
+    label: "Pergunta",
+    description: "Faz uma pergunta e aguarda a resposta.",
+  },
+  {
+    value: "capture_name",
+    label: "Capturar nome",
+    description: "Pergunta o nome e salva na ficha do cliente.",
   },
   {
     value: "wait_reply",
@@ -47,7 +109,37 @@ export const BLOCK_TYPES: {
     label: "Condição",
     description: "Segue caminhos diferentes conforme as palavras da resposta.",
   },
+  {
+    value: "yes_no",
+    label: "Sim / Não",
+    description: "Divide o fluxo entre resposta positiva e negativa.",
+  },
   { value: "delay", label: "Aguardar tempo", description: "Espera um tempo antes de continuar." },
+  {
+    value: "tags",
+    label: "Etiquetas",
+    description: "Adiciona etiquetas na ficha do cliente.",
+  },
+  {
+    value: "sequence",
+    label: "Sequência",
+    description: "Adiciona etiqueta e aguarda a resposta do cliente.",
+  },
+  {
+    value: "schedule",
+    label: "Agendamento",
+    description: "Pede um horário e registra a resposta no histórico.",
+  },
+  {
+    value: "broadcast",
+    label: "Disparo",
+    description: "Envia um aviso para outro número (equipe ou vendedor).",
+  },
+  {
+    value: "webhook",
+    label: "Webhook",
+    description: "Chama um sistema externo com os dados do cliente.",
+  },
   {
     value: "assign_seller",
     label: "Atribuir vendedor",
@@ -55,11 +147,12 @@ export const BLOCK_TYPES: {
   },
   {
     value: "handoff",
-    label: "Encaminhar para atendimento",
-    description: "Para a automação e avisa que alguém deve continuar manualmente.",
+    label: "Atendente",
+    description: "Para a automação e transfere para atendimento humano.",
   },
-  { value: "end", label: "Encerrar fluxo", description: "Finaliza a conversa automática." },
+  { value: "end", label: "Fim", description: "Finaliza a conversa automática." },
 ];
+
 
 export const WORKFLOW_KINDS = [
   { value: "comercial", label: "Comercial" },
