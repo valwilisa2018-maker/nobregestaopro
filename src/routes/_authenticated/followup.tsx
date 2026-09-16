@@ -180,6 +180,7 @@ function FollowupPage() {
           connectionId: ruleForm.connectionId || null,
           sellerId: ruleForm.sellerId || null,
           message: ruleForm.message,
+          startWorkflowId: ruleForm.startWorkflowId || null,
           allowedStart: ruleForm.allowedStart,
           allowedEnd: ruleForm.allowedEnd,
           allowedWeekdays: ruleForm.allowedWeekdays,
