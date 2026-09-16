@@ -171,6 +171,8 @@ export function FlowBuilder({ blocks, onBlocksChange, canEdit, toolbar }: Props)
       setLinking(null);
     }
     dragRef.current = null;
+    panRef.current = null;
+    setPanning(false);
   };
 
   const port = (
