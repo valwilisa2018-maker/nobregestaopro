@@ -26,8 +26,10 @@ import { getErrorMessage } from "@/lib/error-messages";
 import { toast } from "@/lib/toast";
 import { cn } from "@/lib/utils";
 
-const AUDIO_LIMIT = 14 * 1024 * 1024;
-const VIDEO_LIMIT = 12 * 1024 * 1024;
+const AUDIO_LIMIT = 25 * 1024 * 1024;
+const VIDEO_LIMIT = 300 * 1024 * 1024;
+const TEMP_BUCKET = "transcription-temp";
+
 const ACCEPTED = "audio/mpeg,audio/mp4,audio/wav,audio/x-wav,audio/webm,audio/ogg,audio/aac,audio/flac,video/mp4,video/webm,video/quicktime,video/mpeg,.mp3,.wav,.m4a,.ogg,.aac,.flac,.mp4,.mov,.webm";
 
 type Stage = "idle" | "uploading" | "transcribing" | "done" | "error";
@@ -127,7 +129,7 @@ function TranscricaoPage() {
     }
     const limit = video ? VIDEO_LIMIT : AUDIO_LIMIT;
     if (next.size === 0 || next.size > limit) {
-      toast.error(video ? "O vídeo deve ter no máximo 12 MB." : "O áudio deve ter no máximo 14 MB.");
+      toast.error(video ? "O vídeo deve ter no máximo 300 MB." : "O áudio deve ter no máximo 25 MB.");
       return;
     }
     if (previewUrl) URL.revokeObjectURL(previewUrl);
@@ -153,8 +155,42 @@ function TranscricaoPage() {
     setError("");
     setProgress(2);
     setStage("uploading");
-    const form = new FormData();
-    form.append("file", file, file.name);
+
+    let tempPath: string | null = null;
+    let body: FormData | string;
+    let jsonRequest = false;
+
+    if (isVideo) {
+      const extension = file.name.match(/\.[^.]+$/)?.[0] ?? ".mp4";
+      const path = `${data.session.user.id}/${crypto.randomUUID()}${extension}`;
+      const { error: uploadError } = await supabase.storage
+        .from(TEMP_BUCKET)
+        .upload(path, file, { contentType: file.type || "video/mp4", upsert: false });
+      if (uploadError) {
+        const message = getErrorMessage(uploadError.message, "Não foi possível enviar este vídeo.");
+        setError(message);
+        setStage("error");
+        toast.error(message);
+        return;
+      }
+      tempPath = path;
+      setProgress(45);
+      setStage("transcribing");
+      body = JSON.stringify({ path, mime: file.type || "video/mp4", size: file.size });
+      jsonRequest = true;
+    } else {
+      const form = new FormData();
+      form.append("file", file, file.name);
+      body = form;
+    }
+
+    const discardTempFile = () => {
+      if (!tempPath) return;
+      const path = tempPath;
+      tempPath = null;
+      void supabase.storage.from(TEMP_BUCKET).remove([path]);
+    };
+
 
     const xhr = new XMLHttpRequest();
     requestRef.current = xhr;
@@ -180,12 +216,15 @@ function TranscricaoPage() {
     };
     xhr.open("POST", "/api/transcribe");
     xhr.setRequestHeader("Authorization", `Bearer ${data.session.access_token}`);
+    if (jsonRequest) xhr.setRequestHeader("Content-Type", "application/json");
     xhr.upload.onprogress = (event) => {
-      if (event.lengthComputable) setProgress(Math.min(45, Math.round((event.loaded / event.total) * 45)));
+      if (!jsonRequest && event.lengthComputable) {
+        setProgress(Math.min(45, Math.round((event.loaded / event.total) * 45)));
+      }
     };
     xhr.upload.onload = () => {
       setStage("transcribing");
-      setProgress(55);
+      setProgress((current) => Math.max(current, 55));
     };
     xhr.onprogress = () => {
       consumeResponse();
@@ -193,6 +232,7 @@ function TranscricaoPage() {
     xhr.onload = () => {
       consumeResponse(true);
       requestRef.current = null;
+      discardTempFile();
       if (xhr.status >= 200 && xhr.status < 300) {
         if (!streamingText.trim()) {
           setStage("error");
@@ -214,12 +254,17 @@ function TranscricaoPage() {
     };
     xhr.onerror = () => {
       requestRef.current = null;
+      discardTempFile();
       const message = "Sem conexão com o servidor. Verifique sua internet e tente novamente.";
       setError(message);
       setStage("error");
       toast.error(message);
     };
-    xhr.send(form);
+    xhr.onabort = () => {
+      discardTempFile();
+    };
+    xhr.send(body);
+
   };
 
   const copyTranscript = async () => {
@@ -256,7 +301,7 @@ function TranscricaoPage() {
         <Card className="overflow-hidden border-border/60 bg-card/75 backdrop-blur-xl">
           <CardHeader className="border-b border-border/50 bg-muted/20">
             <CardTitle className="flex items-center gap-2 text-lg"><UploadCloud className="h-5 w-5 text-primary" /> Envie sua mídia</CardTitle>
-            <CardDescription>Áudio até 14 MB ou vídeo até 12 MB.</CardDescription>
+            <CardDescription>Áudio até 25 MB ou vídeo até 300 MB. O arquivo é descartado após a transcrição.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-5 p-5 sm:p-6">
             {!file ? (
