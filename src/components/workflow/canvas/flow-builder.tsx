@@ -215,7 +215,7 @@ export function FlowBuilder({ blocks, onBlocksChange, canEdit, toolbar }: Props)
         </aside>
 
         <div
-          className="relative h-[560px] overflow-auto rounded-xl border bg-muted/20 bg-[radial-gradient(circle,rgba(120,120,140,0.35)_1px,transparent_1px)] [background-size:22px_22px]"
+          className="relative h-[560px] touch-none select-none overflow-auto rounded-xl border bg-muted/20 bg-[radial-gradient(circle,rgba(120,120,140,0.35)_1px,transparent_1px)] [background-size:22px_22px]"
           onPointerMove={onPointerMove}
           onPointerUp={finishLink}
           onPointerLeave={finishLink}
