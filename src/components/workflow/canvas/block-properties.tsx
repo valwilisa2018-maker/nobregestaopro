@@ -12,6 +12,7 @@ import {
 import { MESSAGE_VARIABLES } from "@/lib/followup-shared";
 import { blockTypeLabel, TERMINAL_BLOCKS, type WorkflowBlock } from "@/lib/workflow-shared";
 import { BLOCK_VISUAL } from "./block-meta";
+import { MediaUpload } from "./media-upload";
 import { Trash2 } from "lucide-react";
 
 const NONE = "__none__";
@@ -206,15 +207,12 @@ export function BlockProperties({ block, blocks, canEdit, onChange, onDelete }: 
 
       {isMedia && (
         <div className="space-y-3">
-          <div className="space-y-1">
-            <Label>Endereço do arquivo (link)</Label>
-            <Input
-              disabled={!canEdit}
-              value={block.mediaUrl ?? ""}
-              onChange={(e) => onChange({ mediaUrl: e.target.value })}
-              placeholder="https://..."
-            />
-          </div>
+          <MediaUpload
+            kind={block.type as "send_image" | "send_video" | "send_audio"}
+            value={block.mediaUrl ?? ""}
+            canEdit={canEdit}
+            onChange={(value) => onChange({ mediaUrl: value })}
+          />
           {block.type !== "send_audio" && (
             <div className="space-y-1">
               <Label>Legenda</Label>

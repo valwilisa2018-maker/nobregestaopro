@@ -32,11 +32,13 @@ import {
   WORKFLOW_KINDS,
   WORKFLOW_STATUS_LABEL,
 } from "@/lib/workflow-shared";
+import { WORKFLOW_TEMPLATES, templateBlocks } from "@/lib/workflow-templates";
 import {
   workflowDelete,
   workflowDuplicate,
   workflowOverview,
   workflowSave,
+  workflowSaveBlocks,
   workflowSetStatus,
 } from "@/lib/workflow.functions";
 import {
@@ -46,6 +48,7 @@ import {
   PlayCircle,
   Plus,
   Settings2,
+  Sparkles,
   Trash2,
   Workflow as WorkflowIcon,
 } from "lucide-react";
@@ -83,11 +86,13 @@ const emptyForm = {
   defaultConnectionId: "",
   visibility: "private",
   isTemplate: false,
+  templateSlug: "",
 };
 
 function WorkflowListPage() {
   const load = useServerFn(workflowOverview);
   const save = useServerFn(workflowSave);
+  const saveBlocks = useServerFn(workflowSaveBlocks);
   const setStatus = useServerFn(workflowSetStatus);
   const duplicate = useServerFn(workflowDuplicate);
   const remove = useServerFn(workflowDelete);
@@ -145,6 +150,20 @@ function WorkflowListPage() {
     setOpen(true);
   };
 
+  const openTemplate = (slug: string) => {
+    const template = WORKFLOW_TEMPLATES.find((item) => item.slug === slug);
+    if (!template) return;
+    setForm({
+      ...emptyForm,
+      sellerId: data?.me.sellerId ?? "",
+      name: template.name,
+      description: template.description,
+      kind: template.kind,
+      templateSlug: template.slug,
+    });
+    setOpen(true);
+  };
+
   const submit = async () => {
     setBusy(true);
     try {
@@ -160,6 +179,10 @@ function WorkflowListPage() {
           isTemplate: form.isTemplate,
         },
       });
+      const template = WORKFLOW_TEMPLATES.find((item) => item.slug === form.templateSlug);
+      if (!form.id && template) {
+        await saveBlocks({ data: { id: result.id, blocks: templateBlocks(template) } });
+      }
       setOpen(false);
       toast.success("Workflow salvo.");
       if (!form.id) {
@@ -384,6 +407,34 @@ function WorkflowListPage() {
 
       <Card>
         <CardHeader>
+          <CardTitle className="text-base">Modelos prontos</CardTitle>
+          <CardDescription>
+            Comece de um fluxo já montado e ajuste o texto do jeito que você fala.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          {WORKFLOW_TEMPLATES.map((template) => (
+            <div
+              key={template.slug}
+              className="flex flex-col justify-between gap-3 rounded-xl border bg-card/60 p-4"
+            >
+              <div className="space-y-1">
+                <p className="text-sm font-semibold">{template.name}</p>
+                <p className="text-xs text-muted-foreground">{template.description}</p>
+              </div>
+              <div className="flex items-center justify-between gap-2">
+                <Badge variant="outline">{template.steps.length} blocos</Badge>
+                <Button size="sm" variant="outline" onClick={() => openTemplate(template.slug)}>
+                  <Sparkles className="mr-2 h-4 w-4" /> Usar modelo
+                </Button>
+              </div>
+            </div>
+          ))}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
           <CardTitle className="text-base">Conversas</CardTitle>
           <CardDescription>
             {data?.me.manager
@@ -428,7 +479,7 @@ function WorkflowListPage() {
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="max-w-lg">
           <DialogHeader>
-            <DialogTitle>Criar Workflow</DialogTitle>
+            <DialogTitle>{form.templateSlug ? "Usar modelo pronto" : "Criar Workflow"}</DialogTitle>
             <DialogDescription>
               O fluxo pertence a você e envia mensagens pelo WhatsApp escolhido aqui.
             </DialogDescription>

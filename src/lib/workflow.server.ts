@@ -27,6 +27,21 @@ type RunRow = {
 
 const MAX_STEPS_PER_TICK = 25;
 
+/**
+ * Aceita link direto (http) ou arquivo guardado no bucket privado do workflow.
+ * Para arquivos do bucket, gera um endereço temporário de 24h para a Evolution baixar.
+ */
+async function resolveMediaUrl(value?: string | null): Promise<string | null> {
+  const raw = (value ?? "").trim();
+  if (!raw) return null;
+  if (/^https?:\/\//i.test(raw)) return raw;
+  const path = raw.replace(/^workflow-media\//, "");
+  const { data } = await supabaseAdmin.storage
+    .from("workflow-media")
+    .createSignedUrl(path, 60 * 60 * 24);
+  return data?.signedUrl ?? null;
+}
+
 async function logStep(
   runId: string,
   data: {
@@ -244,16 +259,21 @@ export async function advanceRun(runId: string) {
     if (block.type === "send_image" || block.type === "send_video") {
       if (!(await requireChannel())) return { ok: false, reason: "Envio indisponível." };
       const caption = compose(block.caption);
+      const mediaLink = await resolveMediaUrl(block.mediaUrl);
+      if (!mediaLink) {
+        await failSend("Arquivo do bloco indisponível.", caption);
+        return { ok: false, reason: "Arquivo do bloco indisponível." };
+      }
       const sent = await sendWhatsappMedia(connection!.instance_name, phone!, {
         mediatype: block.type === "send_image" ? "image" : "video",
-        url: block.mediaUrl ?? "",
+        url: mediaLink,
         caption,
       });
       if (!sent.ok) {
         await failSend(sent.message ?? "Falha no envio do arquivo.", caption);
         return { ok: false, reason: sent.message ?? "Falha no envio do arquivo." };
       }
-      await registerOutgoing(caption || (block.mediaUrl ?? ""));
+      await registerOutgoing(caption || "Arquivo enviado.");
       blockId = await goNext();
       if (!blockId) return { ok: true, status: "DONE" };
       continue;
@@ -261,12 +281,17 @@ export async function advanceRun(runId: string) {
 
     if (block.type === "send_audio") {
       if (!(await requireChannel())) return { ok: false, reason: "Envio indisponível." };
-      const sent = await sendWhatsappAudio(connection!.instance_name, phone!, block.mediaUrl ?? "");
+      const audioLink = await resolveMediaUrl(block.mediaUrl);
+      if (!audioLink) {
+        await failSend("Áudio do bloco indisponível.");
+        return { ok: false, reason: "Áudio do bloco indisponível." };
+      }
+      const sent = await sendWhatsappAudio(connection!.instance_name, phone!, audioLink);
       if (!sent.ok) {
         await failSend(sent.message ?? "Falha no envio do áudio.");
         return { ok: false, reason: sent.message ?? "Falha no envio do áudio." };
       }
-      await registerOutgoing(block.mediaUrl ?? "");
+      await registerOutgoing("Áudio enviado.");
       blockId = await goNext();
       if (!blockId) return { ok: true, status: "DONE" };
       continue;
