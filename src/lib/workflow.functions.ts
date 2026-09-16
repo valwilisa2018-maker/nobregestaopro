@@ -378,14 +378,19 @@ export const workflowSaveTriggers = createServerFn({ method: "POST" })
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     await supabaseAdmin.from("workflow_triggers").delete().eq("workflow_id", workflow.id);
     const rows = (data.triggers ?? [])
-      .filter((t) => ["customer_created", "keyword", "manual", "followup"].includes(t.trigger_type))
+      .filter((t) => TRIGGER_TYPES.includes(t.trigger_type))
       .map((t) => ({
         workflow_id: workflow.id,
         trigger_type: t.trigger_type,
         keyword: t.trigger_type === "keyword" ? (t.keyword ?? "").trim() || null : null,
+        tag: t.trigger_type === "tag_added" ? (t.tag ?? "").trim().toLowerCase() || null : null,
         is_default_for_new_customers: Boolean(t.is_default_for_new_customers),
         active: t.active !== false,
       }));
+    const invalidKeyword = rows.find((r) => r.trigger_type === "keyword" && !r.keyword);
+    if (invalidKeyword) throw new Error("Informe a palavra-chave do gatilho.");
+    const invalidTag = rows.find((r) => r.trigger_type === "tag_added" && !r.tag);
+    if (invalidTag) throw new Error("Informe a etiqueta do gatilho.");
     if (rows.length) {
       const { error } = await supabaseAdmin.from("workflow_triggers").insert(rows as never);
       if (error) throw new Error(error.message);
