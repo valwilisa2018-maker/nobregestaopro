@@ -366,7 +366,7 @@ export async function deliverQueueItem(item: QueueItem) {
     item.rule_id
       ? supabaseAdmin
           .from("followup_rules")
-          .select("id, active, trigger_event")
+          .select("id, active, trigger_event, start_workflow_id")
           .eq("id", item.rule_id)
           .maybeSingle()
       : Promise.resolve({ data: null }),
