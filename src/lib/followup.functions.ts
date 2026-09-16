@@ -81,7 +81,17 @@ export const followupSaveRule = createServerFn({ method: "POST" })
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { logAudit } = await import("@/lib/whatsapp.server");
     if (!data.name?.trim()) throw new Error("Informe o nome da regra.");
-    if (!data.message?.trim()) throw new Error("Escreva a mensagem.");
+    const startWorkflowId = data.startWorkflowId || null;
+    if (!startWorkflowId && !data.message?.trim()) throw new Error("Escreva a mensagem.");
+    if (startWorkflowId) {
+      const { data: workflow } = await supabaseAdmin
+        .from("workflows")
+        .select("id, status")
+        .eq("id", startWorkflowId)
+        .maybeSingle();
+      if (!workflow) throw new Error("Workflow não encontrado.");
+      if (workflow.status !== "active") throw new Error("Este workflow não está ativo.");
+    }
     const row = {
       name: data.name.trim(),
       trigger_event: data.triggerEvent,
@@ -89,11 +99,12 @@ export const followupSaveRule = createServerFn({ method: "POST" })
       whatsapp_mode: data.whatsappMode,
       connection_id: data.whatsappMode === "specific" ? data.connectionId || null : null,
       seller_id: data.sellerId || null,
-      message: data.message.trim(),
+      message: data.message?.trim() || "Início de workflow pelo follow-up.",
       allowed_start: data.allowedStart || "08:00",
       allowed_end: data.allowedEnd || "18:00",
       allowed_weekdays: data.allowedWeekdays?.length ? data.allowedWeekdays : [1, 2, 3, 4, 5],
       active: data.active,
+      start_workflow_id: startWorkflowId,
       created_by: ctx.userId,
     };
     const query = data.id
