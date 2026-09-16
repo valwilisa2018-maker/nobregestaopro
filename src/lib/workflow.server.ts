@@ -27,6 +27,21 @@ type RunRow = {
 
 const MAX_STEPS_PER_TICK = 25;
 
+/**
+ * Aceita link direto (http) ou arquivo guardado no bucket privado do workflow.
+ * Para arquivos do bucket, gera um endereço temporário de 24h para a Evolution baixar.
+ */
+async function resolveMediaUrl(value?: string | null): Promise<string | null> {
+  const raw = (value ?? "").trim();
+  if (!raw) return null;
+  if (/^https?:\/\//i.test(raw)) return raw;
+  const path = raw.replace(/^workflow-media\//, "");
+  const { data } = await supabaseAdmin.storage
+    .from("workflow-media")
+    .createSignedUrl(path, 60 * 60 * 24);
+  return data?.signedUrl ?? null;
+}
+
 async function logStep(
   runId: string,
   data: {
