@@ -384,6 +384,27 @@ export async function deliverQueueItem(item: QueueItem) {
     await finish(item, "CANCELLED", { reason: "Regra desativada" }, "Regra não está mais ativa.");
     return "CANCELLED";
   }
+  // Regra que inicia um Workflow: em vez de mandar a mensagem, começa a conversa do fluxo.
+  if (rule?.start_workflow_id) {
+    const { startWorkflowsByTrigger } = await import("@/lib/workflow.server");
+    const result = await startWorkflowsByTrigger({
+      triggerType: "followup",
+      customerId: customer.id,
+      workflowId: rule.start_workflow_id,
+      connectionId: item.connection_id ?? null,
+    });
+    if (result.started.length) {
+      await finish(item, "SENT", { workflow: rule.start_workflow_id }, "Workflow iniciado pelo follow-up.");
+      return "SENT";
+    }
+    await finish(
+      item,
+      "FAILED",
+      { error: result.errors[0] ?? "Não foi possível iniciar o workflow." },
+      result.errors[0] ?? "Não foi possível iniciar o workflow.",
+    );
+    return "FAILED";
+  }
   if (rule?.trigger_event === "no_response") {
     const { data: reply } = await supabaseAdmin
       .from("whatsapp_messages")
