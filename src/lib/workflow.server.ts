@@ -455,6 +455,51 @@ export async function processWorkflowTimers(limit = 25) {
   return { advanced };
 }
 
+/**
+ * Inicia todos os fluxos ativos que têm o gatilho pedido.
+ * `tag` filtra apenas gatilhos de etiqueta; `workflowId` limita a um fluxo.
+ */
+export async function startWorkflowsByTrigger(input: {
+  triggerType: "tag_added" | "form_lead" | "api" | "followup";
+  customerId: string;
+  tag?: string | null;
+  workflowId?: string | null;
+  connectionId?: string | null;
+  startedBy?: string | null;
+}) {
+  const { data: triggers } = await supabaseAdmin
+    .from("workflow_triggers")
+    .select("id, tag, workflow_id, active, workflows!inner(id, status, default_connection_id)")
+    .eq("trigger_type", input.triggerType)
+    .eq("active", true);
+
+  const wanted = (input.tag ?? "").trim().toLowerCase();
+  const started: string[] = [];
+  const errors: string[] = [];
+
+  for (const trigger of triggers ?? []) {
+    const workflow = (trigger as unknown as { workflows: { id: string; status: string } }).workflows;
+    if (!workflow || workflow.status !== "active") continue;
+    if (input.workflowId && workflow.id !== input.workflowId) continue;
+    if (input.triggerType === "tag_added") {
+      const tag = (trigger.tag ?? "").trim().toLowerCase();
+      if (!tag || !wanted || tag !== wanted) continue;
+    }
+    try {
+      const run = await startWorkflowRun({
+        workflowId: workflow.id,
+        customerId: input.customerId,
+        connectionId: input.connectionId ?? null,
+        startedBy: input.startedBy ?? null,
+      });
+      started.push(run.runId);
+    } catch (e) {
+      errors.push(e instanceof Error ? e.message : "Falha ao iniciar o fluxo.");
+    }
+  }
+  return { started, errors };
+}
+
 /** Gatilho "cliente novo": inicia o fluxo padrão do vendedor responsável. */
 export async function startWorkflowsForNewCustomers(limit = 20) {
   const since = new Date(Date.now() - 24 * 3600_000).toISOString();
