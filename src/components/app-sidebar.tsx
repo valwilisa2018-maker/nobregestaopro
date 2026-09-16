@@ -20,6 +20,8 @@ import {
   AlertCircle,
   CreditCard,
   Send,
+  Workflow,
+
   Sparkles,
   Clapperboard,
   FolderOpen,
@@ -63,6 +65,8 @@ const iconByModule: Record<string, LucideIcon> = {
   script_timer: Timer,
   transcription: AudioLines,
   followup: Send,
+  workflow: Workflow,
+
   customers: Users,
   sellers: UserCheck,
   producers: Briefcase,

@@ -44,11 +44,13 @@ import { Route as AuthenticatedChatOrganizadorRouteImport } from './routes/_auth
 import { Route as AuthenticatedBackupRouteImport } from './routes/_authenticated/backup'
 import { Route as AuthenticatedAuditoriaRouteImport } from './routes/_authenticated/auditoria'
 import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/admin'
+import { Route as AuthenticatedWorkflowIndexRouteImport } from './routes/_authenticated/workflow.index'
 import { Route as AuthenticatedPastasArquivosIndexRouteImport } from './routes/_authenticated/pastas-arquivos.index'
 import { Route as AuthenticatedOperacaoMetaIndexRouteImport } from './routes/_authenticated/operacao-meta.index'
 import { Route as ApiPublicTrelloWebhookRouteImport } from './routes/api/public/trello-webhook'
 import { Route as ApiPublicFollowupWorkerRouteImport } from './routes/api/public/followup-worker'
 import { Route as ApiPublicEvolutionWebhookRouteImport } from './routes/api/public/evolution-webhook'
+import { Route as AuthenticatedWorkflowWorkflowIdRouteImport } from './routes/_authenticated/workflow.$workflowId'
 import { Route as AuthenticatedPastasArquivosFolderIdRouteImport } from './routes/_authenticated/pastas-arquivos.$folderId'
 import { Route as AuthenticatedOperacaoMetaVisaoGeralRouteImport } from './routes/_authenticated/operacao-meta.visao-geral'
 import { Route as AuthenticatedOperacaoMetaTendenciasRouteImport } from './routes/_authenticated/operacao-meta.tendencias'
@@ -238,6 +240,12 @@ const AuthenticatedAdminRoute = AuthenticatedAdminRouteImport.update({
   path: '/admin',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedWorkflowIndexRoute =
+  AuthenticatedWorkflowIndexRouteImport.update({
+    id: '/workflow/',
+    path: '/workflow/',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedPastasArquivosIndexRoute =
   AuthenticatedPastasArquivosIndexRouteImport.update({
     id: '/pastas-arquivos/',
@@ -265,6 +273,12 @@ const ApiPublicEvolutionWebhookRoute =
     id: '/api/public/evolution-webhook',
     path: '/api/public/evolution-webhook',
     getParentRoute: () => rootRouteImport,
+  } as any)
+const AuthenticatedWorkflowWorkflowIdRoute =
+  AuthenticatedWorkflowWorkflowIdRouteImport.update({
+    id: '/workflow/$workflowId',
+    path: '/workflow/$workflowId',
+    getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
 const AuthenticatedPastasArquivosFolderIdRoute =
   AuthenticatedPastasArquivosFolderIdRouteImport.update({
@@ -337,11 +351,13 @@ export interface FileRoutesByFullPath {
   '/operacao-meta/tendencias': typeof AuthenticatedOperacaoMetaTendenciasRoute
   '/operacao-meta/visao-geral': typeof AuthenticatedOperacaoMetaVisaoGeralRoute
   '/pastas-arquivos/$folderId': typeof AuthenticatedPastasArquivosFolderIdRoute
+  '/workflow/$workflowId': typeof AuthenticatedWorkflowWorkflowIdRoute
   '/api/public/evolution-webhook': typeof ApiPublicEvolutionWebhookRoute
   '/api/public/followup-worker': typeof ApiPublicFollowupWorkerRoute
   '/api/public/trello-webhook': typeof ApiPublicTrelloWebhookRoute
   '/operacao-meta/': typeof AuthenticatedOperacaoMetaIndexRoute
   '/pastas-arquivos/': typeof AuthenticatedPastasArquivosIndexRoute
+  '/workflow/': typeof AuthenticatedWorkflowIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -382,11 +398,13 @@ export interface FileRoutesByTo {
   '/operacao-meta/tendencias': typeof AuthenticatedOperacaoMetaTendenciasRoute
   '/operacao-meta/visao-geral': typeof AuthenticatedOperacaoMetaVisaoGeralRoute
   '/pastas-arquivos/$folderId': typeof AuthenticatedPastasArquivosFolderIdRoute
+  '/workflow/$workflowId': typeof AuthenticatedWorkflowWorkflowIdRoute
   '/api/public/evolution-webhook': typeof ApiPublicEvolutionWebhookRoute
   '/api/public/followup-worker': typeof ApiPublicFollowupWorkerRoute
   '/api/public/trello-webhook': typeof ApiPublicTrelloWebhookRoute
   '/operacao-meta': typeof AuthenticatedOperacaoMetaIndexRoute
   '/pastas-arquivos': typeof AuthenticatedPastasArquivosIndexRoute
+  '/workflow': typeof AuthenticatedWorkflowIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -430,11 +448,13 @@ export interface FileRoutesById {
   '/_authenticated/operacao-meta/tendencias': typeof AuthenticatedOperacaoMetaTendenciasRoute
   '/_authenticated/operacao-meta/visao-geral': typeof AuthenticatedOperacaoMetaVisaoGeralRoute
   '/_authenticated/pastas-arquivos/$folderId': typeof AuthenticatedPastasArquivosFolderIdRoute
+  '/_authenticated/workflow/$workflowId': typeof AuthenticatedWorkflowWorkflowIdRoute
   '/api/public/evolution-webhook': typeof ApiPublicEvolutionWebhookRoute
   '/api/public/followup-worker': typeof ApiPublicFollowupWorkerRoute
   '/api/public/trello-webhook': typeof ApiPublicTrelloWebhookRoute
   '/_authenticated/operacao-meta/': typeof AuthenticatedOperacaoMetaIndexRoute
   '/_authenticated/pastas-arquivos/': typeof AuthenticatedPastasArquivosIndexRoute
+  '/_authenticated/workflow/': typeof AuthenticatedWorkflowIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -478,11 +498,13 @@ export interface FileRouteTypes {
     | '/operacao-meta/tendencias'
     | '/operacao-meta/visao-geral'
     | '/pastas-arquivos/$folderId'
+    | '/workflow/$workflowId'
     | '/api/public/evolution-webhook'
     | '/api/public/followup-worker'
     | '/api/public/trello-webhook'
     | '/operacao-meta/'
     | '/pastas-arquivos/'
+    | '/workflow/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -523,11 +545,13 @@ export interface FileRouteTypes {
     | '/operacao-meta/tendencias'
     | '/operacao-meta/visao-geral'
     | '/pastas-arquivos/$folderId'
+    | '/workflow/$workflowId'
     | '/api/public/evolution-webhook'
     | '/api/public/followup-worker'
     | '/api/public/trello-webhook'
     | '/operacao-meta'
     | '/pastas-arquivos'
+    | '/workflow'
   id:
     | '__root__'
     | '/'
@@ -570,11 +594,13 @@ export interface FileRouteTypes {
     | '/_authenticated/operacao-meta/tendencias'
     | '/_authenticated/operacao-meta/visao-geral'
     | '/_authenticated/pastas-arquivos/$folderId'
+    | '/_authenticated/workflow/$workflowId'
     | '/api/public/evolution-webhook'
     | '/api/public/followup-worker'
     | '/api/public/trello-webhook'
     | '/_authenticated/operacao-meta/'
     | '/_authenticated/pastas-arquivos/'
+    | '/_authenticated/workflow/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -839,6 +865,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/workflow/': {
+      id: '/_authenticated/workflow/'
+      path: '/workflow'
+      fullPath: '/workflow/'
+      preLoaderRoute: typeof AuthenticatedWorkflowIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/pastas-arquivos/': {
       id: '/_authenticated/pastas-arquivos/'
       path: '/pastas-arquivos'
@@ -873,6 +906,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/api/public/evolution-webhook'
       preLoaderRoute: typeof ApiPublicEvolutionWebhookRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/_authenticated/workflow/$workflowId': {
+      id: '/_authenticated/workflow/$workflowId'
+      path: '/workflow/$workflowId'
+      fullPath: '/workflow/$workflowId'
+      preLoaderRoute: typeof AuthenticatedWorkflowWorkflowIdRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/pastas-arquivos/$folderId': {
       id: '/_authenticated/pastas-arquivos/$folderId'
@@ -966,7 +1006,9 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedWhatsappRoute: typeof AuthenticatedWhatsappRoute
   AuthenticatedWhiteLabelRoute: typeof AuthenticatedWhiteLabelRoute
   AuthenticatedPastasArquivosFolderIdRoute: typeof AuthenticatedPastasArquivosFolderIdRoute
+  AuthenticatedWorkflowWorkflowIdRoute: typeof AuthenticatedWorkflowWorkflowIdRoute
   AuthenticatedPastasArquivosIndexRoute: typeof AuthenticatedPastasArquivosIndexRoute
+  AuthenticatedWorkflowIndexRoute: typeof AuthenticatedWorkflowIndexRoute
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
@@ -998,7 +1040,9 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedWhiteLabelRoute: AuthenticatedWhiteLabelRoute,
   AuthenticatedPastasArquivosFolderIdRoute:
     AuthenticatedPastasArquivosFolderIdRoute,
+  AuthenticatedWorkflowWorkflowIdRoute: AuthenticatedWorkflowWorkflowIdRoute,
   AuthenticatedPastasArquivosIndexRoute: AuthenticatedPastasArquivosIndexRoute,
+  AuthenticatedWorkflowIndexRoute: AuthenticatedWorkflowIndexRoute,
 }
 
 const AuthenticatedRouteRouteWithChildren =

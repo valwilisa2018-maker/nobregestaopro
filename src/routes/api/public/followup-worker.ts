@@ -20,10 +20,21 @@ async function run(request: Request) {
 
 
   const { generateScheduledFollowups, processDueFollowups } = await import("@/lib/followup.server");
+  const { processWorkflowTimers, startWorkflowsForNewCustomers } = await import(
+    "@/lib/workflow.server"
+  );
   try {
     const created = await generateScheduledFollowups();
     const processed = await processDueFollowups(25);
-    return Response.json({ ok: true, created, ...processed });
+    const workflowStarted = await startWorkflowsForNewCustomers(20);
+    const workflowAdvanced = await processWorkflowTimers(25);
+    return Response.json({
+      ok: true,
+      created,
+      ...processed,
+      workflowStarted: workflowStarted.started,
+      workflowAdvanced: workflowAdvanced.advanced,
+    });
   } catch (e) {
     console.error("[followup-worker]", e);
     return Response.json(
@@ -31,6 +42,7 @@ async function run(request: Request) {
       { status: 500 },
     );
   }
+
 }
 
 export const Route = createFileRoute("/api/public/followup-worker")({

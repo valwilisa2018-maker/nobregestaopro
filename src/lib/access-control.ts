@@ -78,6 +78,14 @@ export const MENU_MODULES: MenuModule[] = [
     actions: ["view", "create", "edit", "delete"],
   },
   {
+    key: "workflow",
+    title: "Workflow",
+    url: "/workflow",
+    group: "Operação",
+    actions: ["view", "create", "edit", "delete"],
+  },
+
+  {
     key: "customers",
     title: "Clientes",
     url: "/customers",

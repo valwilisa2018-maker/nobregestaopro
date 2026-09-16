@@ -147,8 +147,16 @@ export const Route = createFileRoute("/api/public/evolution-webhook")({
                 if (isIncoming) {
                   const { cancelNoResponseFollowups } = await import("@/lib/followup.server");
                   await cancelNoResponseFollowups(customerId);
+                  // Workflow: resolve conexão → cliente → execução ativa naquela conexão.
+                  const { handleWorkflowIncomingMessage } = await import("@/lib/workflow.server");
+                  await handleWorkflowIncomingMessage({
+                    connectionId: connection?.id ?? null,
+                    customerId,
+                    text: extractText(payload),
+                  });
                 }
               }
+
             }
           }
         } catch (e) {
