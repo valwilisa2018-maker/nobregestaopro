@@ -45,6 +45,13 @@ export function FlowBuilder({ blocks, onBlocksChange, canEdit, toolbar }: Props)
   const [zoom, setZoom] = useState(1);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const dragRef = useRef<{ id: string; dx: number; dy: number } | null>(null);
+  const panRef = useRef<{
+    startX: number;
+    startY: number;
+    scrollLeft: number;
+    scrollTop: number;
+  } | null>(null);
+  const [panning, setPanning] = useState(false);
   const [linking, setLinking] = useState<{
     fromId: string;
     port: "nextId" | "nextIfMatch" | "nextIfNoMatch";
@@ -133,6 +140,14 @@ export function FlowBuilder({ blocks, onBlocksChange, canEdit, toolbar }: Props)
   }, [blocks]);
 
   const onPointerMove = (event: ReactPointerEvent<HTMLDivElement>) => {
+    if (panRef.current) {
+      const viewport = viewportRef.current;
+      if (viewport) {
+        viewport.scrollLeft = panRef.current.scrollLeft - (event.clientX - panRef.current.startX);
+        viewport.scrollTop = panRef.current.scrollTop - (event.clientY - panRef.current.startY);
+      }
+      return;
+    }
     const point = toWorld(event.clientX, event.clientY);
     if (dragRef.current) {
       const { id, dx, dy } = dragRef.current;
@@ -156,6 +171,8 @@ export function FlowBuilder({ blocks, onBlocksChange, canEdit, toolbar }: Props)
       setLinking(null);
     }
     dragRef.current = null;
+    panRef.current = null;
+    setPanning(false);
   };
 
   const port = (
@@ -214,7 +231,7 @@ export function FlowBuilder({ blocks, onBlocksChange, canEdit, toolbar }: Props)
             </Button>
           )}
           <span className="hidden text-xs text-muted-foreground sm:inline">
-            Rodinha do mouse aproxima e afasta
+            Rodinha aproxima · arraste o fundo para navegar
           </span>
         </div>
         {toolbar}
@@ -259,14 +276,24 @@ export function FlowBuilder({ blocks, onBlocksChange, canEdit, toolbar }: Props)
         >
           <div
             ref={worldRef}
-            className="relative origin-top-left"
+            className={`relative origin-top-left ${panning ? "cursor-grabbing" : "cursor-grab"}`}
             style={{
               width: WORLD_WIDTH,
               height: WORLD_HEIGHT,
               transform: `scale(${zoom})`,
             }}
             onPointerDown={(event) => {
-              if (event.target === event.currentTarget) setSelectedId(null);
+              if (event.target !== event.currentTarget) return;
+              setSelectedId(null);
+              const viewport = viewportRef.current;
+              if (!viewport) return;
+              panRef.current = {
+                startX: event.clientX,
+                startY: event.clientY,
+                scrollLeft: viewport.scrollLeft,
+                scrollTop: viewport.scrollTop,
+              };
+              setPanning(true);
             }}
           >
             <svg className="pointer-events-none absolute inset-0 h-full w-full">
