@@ -394,7 +394,12 @@ export async function deliverQueueItem(item: QueueItem) {
       connectionId: item.connection_id ?? null,
     });
     if (result.started.length) {
-      await finish(item, "SENT", { workflow: rule.start_workflow_id }, "Workflow iniciado pelo follow-up.");
+      await finish(
+        item,
+        "SENT",
+        { sent_at: new Date().toISOString(), reason: "Workflow iniciado." },
+        "Workflow iniciado pelo follow-up.",
+      );
       return "SENT";
     }
     await finish(
