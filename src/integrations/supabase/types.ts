@@ -87,6 +87,7 @@ export type Database = {
           name: string
           notes: string | null
           phone: string | null
+          tags: string[]
           updated_at: string
         }
         Insert: {
@@ -101,6 +102,7 @@ export type Database = {
           name: string
           notes?: string | null
           phone?: string | null
+          tags?: string[]
           updated_at?: string
         }
         Update: {
@@ -115,6 +117,7 @@ export type Database = {
           name?: string
           notes?: string | null
           phone?: string | null
+          tags?: string[]
           updated_at?: string
         }
         Relationships: []
@@ -390,6 +393,7 @@ export type Database = {
           message: string
           name: string
           seller_id: string | null
+          start_workflow_id: string | null
           trigger_event: string
           updated_at: string
           whatsapp_mode: string
@@ -407,6 +411,7 @@ export type Database = {
           message: string
           name: string
           seller_id?: string | null
+          start_workflow_id?: string | null
           trigger_event: string
           updated_at?: string
           whatsapp_mode?: string
@@ -424,6 +429,7 @@ export type Database = {
           message?: string
           name?: string
           seller_id?: string | null
+          start_workflow_id?: string | null
           trigger_event?: string
           updated_at?: string
           whatsapp_mode?: string
@@ -441,6 +447,13 @@ export type Database = {
             columns: ["seller_id"]
             isOneToOne: false
             referencedRelation: "sellers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "followup_rules_start_workflow_id_fkey"
+            columns: ["start_workflow_id"]
+            isOneToOne: false
+            referencedRelation: "workflows"
             referencedColumns: ["id"]
           },
         ]
@@ -2499,6 +2512,7 @@ export type Database = {
           id: string
           is_default_for_new_customers: boolean
           keyword: string | null
+          tag: string | null
           trigger_type: string
           workflow_id: string
         }
@@ -2508,6 +2522,7 @@ export type Database = {
           id?: string
           is_default_for_new_customers?: boolean
           keyword?: string | null
+          tag?: string | null
           trigger_type: string
           workflow_id: string
         }
@@ -2517,6 +2532,7 @@ export type Database = {
           id?: string
           is_default_for_new_customers?: boolean
           keyword?: string | null
+          tag?: string | null
           trigger_type?: string
           workflow_id?: string
         }

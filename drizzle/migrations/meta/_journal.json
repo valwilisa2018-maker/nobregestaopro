@@ -29,6 +29,13 @@
       "when": 1789579848524,
       "tag": "0003_create_workflow_module",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1789582718284,
+      "tag": "0004_workflow_triggers_extra",
+      "breakpoints": true
     }
   ]
 }
