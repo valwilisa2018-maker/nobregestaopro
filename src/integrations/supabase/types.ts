@@ -2314,6 +2314,338 @@ export type Database = {
         }
         Relationships: []
       }
+      workflow_run_steps: {
+        Row: {
+          block_id: string | null
+          block_type: string | null
+          created_at: string
+          detail: string | null
+          direction: string
+          id: string
+          message: string | null
+          run_id: string
+        }
+        Insert: {
+          block_id?: string | null
+          block_type?: string | null
+          created_at?: string
+          detail?: string | null
+          direction?: string
+          id?: string
+          message?: string | null
+          run_id: string
+        }
+        Update: {
+          block_id?: string | null
+          block_type?: string | null
+          created_at?: string
+          detail?: string | null
+          direction?: string
+          id?: string
+          message?: string | null
+          run_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workflow_run_steps_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "workflow_runs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      workflow_runs: {
+        Row: {
+          connection_id: string | null
+          context: Json
+          created_at: string
+          current_block_id: string | null
+          customer_id: string | null
+          error: string | null
+          id: string
+          last_message_at: string | null
+          locked_at: string | null
+          owner_user_id: string | null
+          phone: string | null
+          seller_id: string | null
+          started_by: string | null
+          status: string
+          tenant_id: string | null
+          updated_at: string
+          wait_until: string | null
+          workflow_id: string
+          workflow_version_id: string | null
+        }
+        Insert: {
+          connection_id?: string | null
+          context?: Json
+          created_at?: string
+          current_block_id?: string | null
+          customer_id?: string | null
+          error?: string | null
+          id?: string
+          last_message_at?: string | null
+          locked_at?: string | null
+          owner_user_id?: string | null
+          phone?: string | null
+          seller_id?: string | null
+          started_by?: string | null
+          status?: string
+          tenant_id?: string | null
+          updated_at?: string
+          wait_until?: string | null
+          workflow_id: string
+          workflow_version_id?: string | null
+        }
+        Update: {
+          connection_id?: string | null
+          context?: Json
+          created_at?: string
+          current_block_id?: string | null
+          customer_id?: string | null
+          error?: string | null
+          id?: string
+          last_message_at?: string | null
+          locked_at?: string | null
+          owner_user_id?: string | null
+          phone?: string | null
+          seller_id?: string | null
+          started_by?: string | null
+          status?: string
+          tenant_id?: string | null
+          updated_at?: string
+          wait_until?: string | null
+          workflow_id?: string
+          workflow_version_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workflow_runs_connection_id_fkey"
+            columns: ["connection_id"]
+            isOneToOne: false
+            referencedRelation: "whatsapp_connections"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "workflow_runs_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "workflow_runs_seller_id_fkey"
+            columns: ["seller_id"]
+            isOneToOne: false
+            referencedRelation: "sellers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "workflow_runs_workflow_id_fkey"
+            columns: ["workflow_id"]
+            isOneToOne: false
+            referencedRelation: "workflows"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "workflow_runs_workflow_version_id_fkey"
+            columns: ["workflow_version_id"]
+            isOneToOne: false
+            referencedRelation: "workflow_versions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      workflow_shares: {
+        Row: {
+          can_edit: boolean
+          created_at: string
+          created_by: string | null
+          id: string
+          shared_with_user_id: string
+          workflow_id: string
+        }
+        Insert: {
+          can_edit?: boolean
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          shared_with_user_id: string
+          workflow_id: string
+        }
+        Update: {
+          can_edit?: boolean
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          shared_with_user_id?: string
+          workflow_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workflow_shares_workflow_id_fkey"
+            columns: ["workflow_id"]
+            isOneToOne: false
+            referencedRelation: "workflows"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      workflow_triggers: {
+        Row: {
+          active: boolean
+          created_at: string
+          id: string
+          is_default_for_new_customers: boolean
+          keyword: string | null
+          trigger_type: string
+          workflow_id: string
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          id?: string
+          is_default_for_new_customers?: boolean
+          keyword?: string | null
+          trigger_type: string
+          workflow_id: string
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          id?: string
+          is_default_for_new_customers?: boolean
+          keyword?: string | null
+          trigger_type?: string
+          workflow_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workflow_triggers_workflow_id_fkey"
+            columns: ["workflow_id"]
+            isOneToOne: false
+            referencedRelation: "workflows"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      workflow_versions: {
+        Row: {
+          blocks: Json
+          created_at: string
+          created_by: string | null
+          id: string
+          published_at: string | null
+          state: string
+          updated_at: string
+          version: number
+          workflow_id: string
+        }
+        Insert: {
+          blocks?: Json
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          published_at?: string | null
+          state?: string
+          updated_at?: string
+          version?: number
+          workflow_id: string
+        }
+        Update: {
+          blocks?: Json
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          published_at?: string | null
+          state?: string
+          updated_at?: string
+          version?: number
+          workflow_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workflow_versions_workflow_id_fkey"
+            columns: ["workflow_id"]
+            isOneToOne: false
+            referencedRelation: "workflows"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      workflows: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          default_connection_id: string | null
+          description: string | null
+          id: string
+          is_template: boolean
+          kind: string
+          name: string
+          owner_user_id: string | null
+          published_version_id: string | null
+          seller_id: string | null
+          seller_name_snapshot: string | null
+          status: string
+          tenant_id: string | null
+          updated_at: string
+          visibility: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          default_connection_id?: string | null
+          description?: string | null
+          id?: string
+          is_template?: boolean
+          kind?: string
+          name: string
+          owner_user_id?: string | null
+          published_version_id?: string | null
+          seller_id?: string | null
+          seller_name_snapshot?: string | null
+          status?: string
+          tenant_id?: string | null
+          updated_at?: string
+          visibility?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          default_connection_id?: string | null
+          description?: string | null
+          id?: string
+          is_template?: boolean
+          kind?: string
+          name?: string
+          owner_user_id?: string | null
+          published_version_id?: string | null
+          seller_id?: string | null
+          seller_name_snapshot?: string | null
+          status?: string
+          tenant_id?: string | null
+          updated_at?: string
+          visibility?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workflows_default_connection_id_fkey"
+            columns: ["default_connection_id"]
+            isOneToOne: false
+            referencedRelation: "whatsapp_connections"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "workflows_seller_id_fkey"
+            columns: ["seller_id"]
+            isOneToOne: false
+            referencedRelation: "sellers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       v_daily_financials: {
@@ -2329,6 +2661,11 @@ export type Database = {
     }
     Functions: {
       admin_reset_platform: { Args: never; Returns: Json }
+      can_manage_workflows: { Args: { _user_id: string }; Returns: boolean }
+      can_view_workflow: {
+        Args: { _user_id: string; _workflow_id: string }
+        Returns: boolean
+      }
       compute_service_order_title: {
         Args: { _service_order_id: string }
         Returns: string

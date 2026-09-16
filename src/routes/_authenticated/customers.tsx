@@ -51,6 +51,8 @@ import { toast } from "@/lib/toast";
 import { z } from "zod";
 import { waHref, formatPhoneBR } from "@/lib/phone";
 import { CustomerFollowupPanel } from "@/components/whatsapp/customer-followup-panel";
+import { CustomerWorkflowPanel } from "@/components/workflow/customer-workflow-panel";
+
 import { VirtualTableRows } from "@/components/virtual-list";
 import { TableSkeletonRows, TableEmptyRow, CardGridSkeleton, EmptyState } from "@/components/list-states";
 
@@ -745,6 +747,9 @@ function CustomersPage() {
               </div>
 
               <CustomerFollowupPanel customerId={selected.id} />
+
+              <CustomerWorkflowPanel customerId={selected.id} />
+
 
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <Card className="bg-primary/5 border-primary/20">
