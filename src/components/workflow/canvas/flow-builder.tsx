@@ -1,4 +1,11 @@
-import { useCallback, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type PointerEvent as ReactPointerEvent,
+} from "react";
 import { Button } from "@/components/ui/button";
 import {
   BLOCK_TYPES,
@@ -34,6 +41,7 @@ type Props = {
 
 export function FlowBuilder({ blocks, onBlocksChange, canEdit, toolbar }: Props) {
   const worldRef = useRef<HTMLDivElement>(null);
+  const viewportRef = useRef<HTMLDivElement>(null);
   const [zoom, setZoom] = useState(1);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const dragRef = useRef<{ id: string; dx: number; dy: number } | null>(null);
@@ -45,6 +53,30 @@ export function FlowBuilder({ blocks, onBlocksChange, canEdit, toolbar }: Props)
   } | null>(null);
 
   const selected = blocks.find((b) => b.id === selectedId) ?? null;
+
+  // Zoom com a rodinha do mouse, mantendo o ponto sob o cursor no lugar.
+  useEffect(() => {
+    const viewport = viewportRef.current;
+    if (!viewport) return;
+    const onWheel = (event: WheelEvent) => {
+      event.preventDefault();
+      const direction = event.deltaY < 0 ? 1 : -1;
+      const next = Math.min(1.6, Math.max(0.4, Number((zoom + direction * 0.1).toFixed(2))));
+      if (next === zoom) return;
+      const rect = viewport.getBoundingClientRect();
+      const offsetX = event.clientX - rect.left;
+      const offsetY = event.clientY - rect.top;
+      const worldX = (viewport.scrollLeft + offsetX) / zoom;
+      const worldY = (viewport.scrollTop + offsetY) / zoom;
+      setZoom(next);
+      requestAnimationFrame(() => {
+        viewport.scrollLeft = worldX * next - offsetX;
+        viewport.scrollTop = worldY * next - offsetY;
+      });
+    };
+    viewport.addEventListener("wheel", onWheel, { passive: false });
+    return () => viewport.removeEventListener("wheel", onWheel);
+  }, [zoom]);
 
   const toWorld = useCallback(
     (clientX: number, clientY: number) => {
@@ -155,7 +187,7 @@ export function FlowBuilder({ blocks, onBlocksChange, canEdit, toolbar }: Props)
           <Button
             size="icon"
             variant="ghost"
-            onClick={() => setZoom((z) => Math.max(0.5, Number((z - 0.1).toFixed(2))))}
+            onClick={() => setZoom((z) => Math.max(0.4, Number((z - 0.1).toFixed(2))))}
             aria-label="Diminuir zoom"
           >
             <Minus className="h-4 w-4" />
@@ -166,7 +198,7 @@ export function FlowBuilder({ blocks, onBlocksChange, canEdit, toolbar }: Props)
           <Button
             size="icon"
             variant="ghost"
-            onClick={() => setZoom((z) => Math.min(1.4, Number((z + 0.1).toFixed(2))))}
+            onClick={() => setZoom((z) => Math.min(1.6, Number((z + 0.1).toFixed(2))))}
             aria-label="Aumentar zoom"
           >
             <Plus className="h-4 w-4" />
@@ -181,6 +213,9 @@ export function FlowBuilder({ blocks, onBlocksChange, canEdit, toolbar }: Props)
               <LayoutGrid className="h-4 w-4" /> Organizar
             </Button>
           )}
+          <span className="hidden text-xs text-muted-foreground sm:inline">
+            Rodinha do mouse aproxima e afasta
+          </span>
         </div>
         {toolbar}
       </div>
@@ -216,6 +251,7 @@ export function FlowBuilder({ blocks, onBlocksChange, canEdit, toolbar }: Props)
         </aside>
 
         <div
+          ref={viewportRef}
           className="relative h-[560px] touch-none select-none overflow-auto rounded-xl border bg-muted/20 bg-[radial-gradient(circle,rgba(120,120,140,0.35)_1px,transparent_1px)] [background-size:22px_22px]"
           onPointerMove={onPointerMove}
           onPointerUp={finishLink}
