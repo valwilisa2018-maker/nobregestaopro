@@ -4,34 +4,23 @@ import { useServerFn } from "@tanstack/react-start";
 import { PageHero } from "@/components/page-hero";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { toast } from "@/lib/toast";
 import { getErrorMessage } from "@/lib/error-messages";
-import { MESSAGE_VARIABLES } from "@/lib/followup-shared";
 import {
-  BLOCK_TYPES,
   RUN_STATUS_LABEL,
   UNAVAILABLE_TRIGGERS,
   WORKFLOW_STATUS_LABEL,
   WORKFLOW_TRIGGERS,
-  blockTypeLabel,
-  newBlock,
+  ensurePositions,
   validateBlocks,
   type WorkflowBlock,
   type WorkflowBlockType,
 } from "@/lib/workflow-shared";
+import { FlowBuilder } from "@/components/workflow/canvas/flow-builder";
 import {
   workflowDetail,
   workflowRunAction,
@@ -39,14 +28,10 @@ import {
   workflowSaveTriggers,
 } from "@/lib/workflow.functions";
 import {
-  ArrowDown,
   ArrowLeft,
-  ArrowUp,
   CheckCircle2,
   Loader2,
-  Plus,
   Save,
-  Trash2,
   Workflow as WorkflowIcon,
   XCircle,
 } from "lucide-react";
@@ -97,7 +82,7 @@ function WorkflowBuilderPage() {
     try {
       const result = await load({ data: { id: workflowId } });
       setDetail(result);
-      setBlocks((result.draft?.blocks ?? []) as WorkflowBlock[]);
+      setBlocks(ensurePositions((result.draft?.blocks ?? []) as WorkflowBlock[]));
       setTriggers((result.triggers ?? []) as TriggerRow[]);
     } catch (e) {
       toast.error(getErrorMessage(e, "Não foi possível abrir este workflow."));
@@ -113,19 +98,6 @@ function WorkflowBuilderPage() {
 
   const canEdit = detail?.canEdit ?? false;
 
-  const update = (index: number, patch: Partial<WorkflowBlock>) =>
-    setBlocks((prev) => prev.map((block, i) => (i === index ? { ...block, ...patch } : block)));
-
-  const move = (index: number, direction: -1 | 1) =>
-    setBlocks((prev) => {
-      const next = [...prev];
-      const target = index + direction;
-      if (target < 0 || target >= next.length) return prev;
-      const current = next[index]!;
-      next[index] = next[target]!;
-      next[target] = current;
-      return next;
-    });
 
   const persist = async (publish: boolean) => {
     if (publish) {
@@ -217,206 +189,30 @@ function WorkflowBuilderPage() {
             </Card>
           )}
 
-          {canEdit && (
-            <div className="flex flex-wrap items-center gap-2">
-              {BLOCK_TYPES.map((type) => (
-                <Button
-                  key={type.value}
-                  size="sm"
-                  variant="outline"
-                  onClick={() => setBlocks((prev) => [...prev, newBlock(type.value)])}
-                >
-                  <Plus className="mr-2 h-4 w-4" /> {type.label}
-                </Button>
-              ))}
-            </div>
-          )}
-
-          {blocks.length === 0 ? (
-            <Card>
-              <CardContent className="p-8 text-center text-sm text-muted-foreground">
-                O fluxo começa com uma mensagem enviada. Adicione o bloco “Enviar mensagem”.
-              </CardContent>
-            </Card>
-          ) : (
-            <div className="space-y-3">
-              {blocks.map((block, index) => (
-                <Card key={block.id}>
-                  <CardHeader className="pb-3">
-                    <div className="flex flex-wrap items-center justify-between gap-2">
-                      <div>
-                        <CardTitle className="text-sm">
-                          {index + 1}. {blockTypeLabel(block.type)}
-                        </CardTitle>
-                        <CardDescription>
-                          {BLOCK_TYPES.find((t) => t.value === block.type)?.description}
-                        </CardDescription>
-                      </div>
-                      {canEdit && (
-                        <div className="flex items-center gap-1">
-                          <Button size="icon" variant="ghost" onClick={() => move(index, -1)}>
-                            <ArrowUp className="h-4 w-4" />
-                          </Button>
-                          <Button size="icon" variant="ghost" onClick={() => move(index, 1)}>
-                            <ArrowDown className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            size="icon"
-                            variant="ghost"
-                            onClick={() =>
-                              setBlocks((prev) => prev.filter((_, i) => i !== index))
-                            }
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      )}
-                    </div>
-                  </CardHeader>
-                  <CardContent className="space-y-3">
-                    {block.type === "send_message" && (
-                      <div className="space-y-2">
-                        <Label>Mensagem</Label>
-                        <Textarea
-                          rows={3}
-                          disabled={!canEdit}
-                          value={block.text ?? ""}
-                          onChange={(e) => update(index, { text: e.target.value })}
-                          placeholder="Olá {{primeiro_nome}}, tudo bem? Eu sou o {{vendedor}}."
-                        />
-                        {canEdit && (
-                          <div className="flex flex-wrap gap-1">
-                            {MESSAGE_VARIABLES.map((variable) => (
-                              <Button
-                                key={variable}
-                                size="sm"
-                                variant="outline"
-                                onClick={() =>
-                                  update(index, { text: `${block.text ?? ""}${variable}` })
-                                }
-                              >
-                                {variable}
-                              </Button>
-                            ))}
-                          </div>
-
-                        )}
-                      </div>
+          <FlowBuilder
+            blocks={blocks}
+            onBlocksChange={setBlocks}
+            canEdit={canEdit}
+            toolbar={
+              canEdit ? (
+                <div className="flex flex-wrap gap-2">
+                  <Button variant="outline" disabled={busy} onClick={() => persist(false)}>
+                    {busy ? (
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    ) : (
+                      <Save className="mr-2 h-4 w-4" />
                     )}
-
-                    {block.type === "wait_reply" && (
-                      <div className="space-y-1 sm:max-w-xs">
-                        <Label>Esperar até (minutos)</Label>
-                        <Input
-                          type="number"
-                          min={5}
-                          disabled={!canEdit}
-                          value={block.timeoutMinutes ?? 1440}
-                          onChange={(e) =>
-                            update(index, { timeoutMinutes: Number(e.target.value) || 0 })
-                          }
-                        />
-                      </div>
-                    )}
-
-                    {block.type === "delay" && (
-                      <div className="space-y-1 sm:max-w-xs">
-                        <Label>Aguardar (minutos)</Label>
-                        <Input
-                          type="number"
-                          min={1}
-                          disabled={!canEdit}
-                          value={block.waitMinutes ?? 60}
-                          onChange={(e) =>
-                            update(index, { waitMinutes: Number(e.target.value) || 0 })
-                          }
-                        />
-                      </div>
-                    )}
-
-                    {block.type === "condition" && (
-                      <div className="space-y-1">
-                        <Label>Palavras que indicam “sim”</Label>
-                        <Input
-                          disabled={!canEdit}
-                          value={(block.keywords ?? []).join(", ")}
-                          onChange={(e) =>
-                            update(index, {
-                              keywords: e.target.value
-                                .split(",")
-                                .map((word) => word.trim())
-                                .filter(Boolean),
-                            })
-                          }
-                          placeholder="sim, quero, pode enviar"
-                        />
-                        <p className="text-xs text-muted-foreground">
-                          Se a resposta tiver alguma dessas palavras, o fluxo segue. Caso contrário,
-                          é encaminhado para atendimento.
-                        </p>
-                      </div>
-                    )}
-
-                    {block.type === "assign_seller" && (
-                      <div className="grid gap-3 sm:grid-cols-2">
-                        <div className="space-y-1">
-                          <Label>O que fazer com a automação</Label>
-                          <Select
-                            value={block.transferMode ?? "keep_owner"}
-                            onValueChange={(value) =>
-                              update(index, {
-                                transferMode: value as WorkflowBlock["transferMode"],
-                              })
-                            }
-                            disabled={!canEdit}
-                          >
-                            <SelectTrigger>
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="keep_owner">
-                                Continuar o fluxo mantendo o dono atual
-                              </SelectItem>
-                              <SelectItem value="end_current">Encerrar este fluxo</SelectItem>
-                              <SelectItem value="start_target">
-                                Encaminhar para o novo vendedor
-                              </SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </div>
-                        <div className="space-y-1">
-                          <Label>Observação</Label>
-                          <Input
-                            disabled={!canEdit}
-                            value={block.note ?? ""}
-                            onChange={(e) => update(index, { note: e.target.value })}
-                            placeholder="Cliente pediu orçamento"
-                          />
-                        </div>
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          )}
-
-          {canEdit && (
-            <div className="flex flex-wrap gap-2">
-              <Button variant="outline" disabled={busy} onClick={() => persist(false)}>
-                {busy ? (
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                ) : (
-                  <Save className="mr-2 h-4 w-4" />
-                )}
-                Salvar rascunho
-              </Button>
-              <Button disabled={busy} onClick={() => persist(true)}>
-                <CheckCircle2 className="mr-2 h-4 w-4" /> Publicar e ativar
-              </Button>
-            </div>
-          )}
+                    Salvar rascunho
+                  </Button>
+                  <Button disabled={busy} onClick={() => persist(true)}>
+                    <CheckCircle2 className="mr-2 h-4 w-4" /> Publicar e ativar
+                  </Button>
+                </div>
+              ) : null
+            }
+          />
         </TabsContent>
+
 
         <TabsContent value="gatilhos" className="space-y-4 pt-4">
           <Card>
