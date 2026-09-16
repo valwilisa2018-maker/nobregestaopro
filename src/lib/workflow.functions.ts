@@ -365,6 +365,7 @@ export const workflowSaveTriggers = createServerFn({ method: "POST" })
       id: string;
       triggers: {
         trigger_type: string;
+        tag?: string | null;
         keyword?: string | null;
         is_default_for_new_customers?: boolean;
         active?: boolean;
