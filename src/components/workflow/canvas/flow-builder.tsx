@@ -187,7 +187,7 @@ export function FlowBuilder({ blocks, onBlocksChange, canEdit, toolbar }: Props)
           <Button
             size="icon"
             variant="ghost"
-            onClick={() => setZoom((z) => Math.max(0.5, Number((z - 0.1).toFixed(2))))}
+            onClick={() => setZoom((z) => Math.max(0.4, Number((z - 0.1).toFixed(2))))}
             aria-label="Diminuir zoom"
           >
             <Minus className="h-4 w-4" />
@@ -198,7 +198,7 @@ export function FlowBuilder({ blocks, onBlocksChange, canEdit, toolbar }: Props)
           <Button
             size="icon"
             variant="ghost"
-            onClick={() => setZoom((z) => Math.min(1.4, Number((z + 0.1).toFixed(2))))}
+            onClick={() => setZoom((z) => Math.min(1.6, Number((z + 0.1).toFixed(2))))}
             aria-label="Aumentar zoom"
           >
             <Plus className="h-4 w-4" />
@@ -213,6 +213,9 @@ export function FlowBuilder({ blocks, onBlocksChange, canEdit, toolbar }: Props)
               <LayoutGrid className="h-4 w-4" /> Organizar
             </Button>
           )}
+          <span className="hidden text-xs text-muted-foreground sm:inline">
+            Rodinha do mouse aproxima e afasta
+          </span>
         </div>
         {toolbar}
       </div>
