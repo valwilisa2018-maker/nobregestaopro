@@ -27,6 +27,7 @@ import {
 } from "@/components/ui/select";
 import { toast } from "@/lib/toast";
 import { getErrorMessage } from "@/lib/error-messages";
+import { workflowActiveList } from "@/lib/workflow.functions";
 import {
   FOLLOWUP_STATUS_LABEL,
   MESSAGE_VARIABLES,
@@ -77,6 +78,7 @@ const emptyRule = {
   connectionId: "",
   sellerId: "",
   message: "Olá {{primeiro_nome}}, tudo bem? Aqui é o {{vendedor}}...",
+  startWorkflowId: "",
   allowedStart: "08:00",
   allowedEnd: "18:00",
   allowedWeekdays: [1, 2, 3, 4, 5],
@@ -114,6 +116,8 @@ function FollowupPage() {
   const [busy, setBusy] = useState<string | null>(null);
   const [ruleForm, setRuleForm] = useState<typeof emptyRule | null>(null);
   const [reschedule, setReschedule] = useState<{ id: string; value: string } | null>(null);
+  const [workflows, setWorkflows] = useState<{ id: string; name: string }[]>([]);
+  const loadWorkflows = useServerFn(workflowActiveList);
 
   const refresh = async () => {
     try {
@@ -127,6 +131,14 @@ function FollowupPage() {
 
   useEffect(() => {
     void refresh();
+    void (async () => {
+      try {
+        const result = (await loadWorkflows()) as { workflows?: { id: string; name: string }[] };
+        setWorkflows(result?.workflows ?? []);
+      } catch {
+        setWorkflows([]);
+      }
+    })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -159,6 +171,7 @@ function FollowupPage() {
       connectionId: rule.connection_id ?? "",
       sellerId: rule.seller_id ?? "",
       message: rule.message,
+      startWorkflowId: (rule as { start_workflow_id?: string | null }).start_workflow_id ?? "",
       allowedStart: (rule.allowed_start ?? "08:00").slice(0, 5),
       allowedEnd: (rule.allowed_end ?? "18:00").slice(0, 5),
       allowedWeekdays: rule.allowed_weekdays ?? [1, 2, 3, 4, 5],
@@ -180,6 +193,7 @@ function FollowupPage() {
           connectionId: ruleForm.connectionId || null,
           sellerId: ruleForm.sellerId || null,
           message: ruleForm.message,
+          startWorkflowId: ruleForm.startWorkflowId || null,
           allowedStart: ruleForm.allowedStart,
           allowedEnd: ruleForm.allowedEnd,
           allowedWeekdays: ruleForm.allowedWeekdays,
@@ -571,28 +585,55 @@ function FollowupPage() {
               </div>
 
               <div className="space-y-2">
-                <Label>Mensagem</Label>
-                <Textarea
-                  value={ruleForm.message}
-                  onChange={(e) => setRuleForm({ ...ruleForm, message: e.target.value })}
-                  rows={5}
-                />
-                <div className="flex flex-wrap gap-1.5">
-                  {MESSAGE_VARIABLES.map((variable) => (
-                    <Button
-                      key={variable}
-                      type="button"
-                      size="sm"
-                      variant="secondary"
-                      onClick={() =>
-                        setRuleForm({ ...ruleForm, message: `${ruleForm.message}${variable}` })
-                      }
-                    >
-                      Inserir {variable}
-                    </Button>
-                  ))}
-                </div>
+                <Label>Ao vencer, o que acontece?</Label>
+                <Select
+                  value={ruleForm.startWorkflowId || "__message__"}
+                  onValueChange={(value) =>
+                    setRuleForm({
+                      ...ruleForm,
+                      startWorkflowId: value === "__message__" ? "" : value,
+                    })
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__message__">Enviar a mensagem abaixo</SelectItem>
+                    {workflows.map((workflow) => (
+                      <SelectItem key={workflow.id} value={workflow.id}>
+                        Iniciar o fluxo: {workflow.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
+
+              {!ruleForm.startWorkflowId && (
+                <div className="space-y-2">
+                  <Label>Mensagem</Label>
+                  <Textarea
+                    value={ruleForm.message}
+                    onChange={(e) => setRuleForm({ ...ruleForm, message: e.target.value })}
+                    rows={5}
+                  />
+                  <div className="flex flex-wrap gap-1.5">
+                    {MESSAGE_VARIABLES.map((variable) => (
+                      <Button
+                        key={variable}
+                        type="button"
+                        size="sm"
+                        variant="secondary"
+                        onClick={() =>
+                          setRuleForm({ ...ruleForm, message: `${ruleForm.message}${variable}` })
+                        }
+                      >
+                        Inserir {variable}
+                      </Button>
+                    ))}
+                  </div>
+                </div>
+              )}
 
               <div className="flex items-center gap-3">
                 <Switch

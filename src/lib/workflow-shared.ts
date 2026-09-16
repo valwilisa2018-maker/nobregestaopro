@@ -99,13 +99,29 @@ export const WORKFLOW_TRIGGERS: {
     description: "Um follow-up pode iniciar este fluxo.",
     ready: true,
   },
+  {
+    value: "tag_added",
+    label: "Etiqueta adicionada ao cliente",
+    description: "Inicia quando a etiqueta escolhida é adicionada na ficha do cliente.",
+    ready: true,
+  },
+  {
+    value: "form_lead",
+    label: "Formulário gerou lead",
+    description: "Inicia quando um formulário do site envia um novo contato para a plataforma.",
+    ready: true,
+  },
+  {
+    value: "api",
+    label: "Início por sistema externo (API)",
+    description: "Permite que outro sistema inicie este fluxo para um cliente.",
+    ready: true,
+  },
 ];
 
-export const UNAVAILABLE_TRIGGERS = [
-  "Tag adicionada ao cliente",
-  "Formulário gerou lead",
-  "Início por API externa",
-];
+export const TRIGGER_TYPES = WORKFLOW_TRIGGERS.map((t) => t.value);
+
+export const UNAVAILABLE_TRIGGERS: string[] = [];
 
 export const RUN_STATUS_LABEL: Record<string, string> = {
   RUNNING: "Em andamento",

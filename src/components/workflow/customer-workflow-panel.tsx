@@ -13,13 +13,16 @@ import {
 } from "@/components/ui/select";
 import { toast } from "@/lib/toast";
 import { getErrorMessage } from "@/lib/error-messages";
+import { Input } from "@/components/ui/input";
 import { RUN_STATUS_LABEL } from "@/lib/workflow-shared";
 import {
+  customerTags,
+  customerTagsSave,
   workflowCustomerPanel,
   workflowRunAction,
   workflowStartForCustomer,
 } from "@/lib/workflow.functions";
-import { Loader2, PlayCircle, Workflow as WorkflowIcon, XCircle } from "lucide-react";
+import { Loader2, PlayCircle, Tag, Workflow as WorkflowIcon, XCircle } from "lucide-react";
 
 type Panel = Awaited<ReturnType<typeof workflowCustomerPanel>>;
 
@@ -33,16 +36,48 @@ export function CustomerWorkflowPanel({ customerId }: { customerId: string }) {
   const [busy, setBusy] = useState(false);
   const [workflowId, setWorkflowId] = useState("");
   const [connectionId, setConnectionId] = useState("");
+  const [tags, setTags] = useState<string[]>([]);
+  const [newTag, setNewTag] = useState("");
+  const loadTags = useServerFn(customerTags);
+  const persistTags = useServerFn(customerTagsSave);
 
   const refresh = async () => {
     try {
-      const result = await loadPanel({ data: { customerId } });
+      const [result, tagResult] = await Promise.all([
+        loadPanel({ data: { customerId } }),
+        loadTags({ data: { customerId } }),
+      ]);
       setData(result);
+      setTags(((tagResult as { tags?: string[] })?.tags ?? []) as string[]);
     } catch (e) {
       toast.error(getErrorMessage(e, "Não foi possível carregar os workflows."));
     } finally {
       setLoading(false);
     }
+  };
+
+  const saveTags = async (next: string[]) => {
+    setBusy(true);
+    try {
+      await persistTags({ data: { customerId, tags: next } });
+      setTags(next);
+      toast.success("Etiquetas atualizadas.");
+      await refresh();
+    } catch (e) {
+      toast.error(getErrorMessage(e, "Não foi possível salvar as etiquetas."));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const addTag = async () => {
+    const value = newTag.trim().toLowerCase();
+    if (!value || tags.includes(value)) {
+      setNewTag("");
+      return;
+    }
+    setNewTag("");
+    await saveTags([...tags, value]);
   };
 
   useEffect(() => {
@@ -148,6 +183,49 @@ export function CustomerWorkflowPanel({ customerId }: { customerId: string }) {
           </div>
         </div>
       )}
+
+      <Separator />
+      <div className="space-y-2">
+        <Label>Etiquetas do cliente</Label>
+        <p className="text-xs text-muted-foreground">
+          Ao adicionar uma etiqueta, os fluxos com o gatilho dessa etiqueta começam na hora.
+        </p>
+        <div className="flex flex-wrap gap-2">
+          {tags.length === 0 && (
+            <span className="text-xs text-muted-foreground">Nenhuma etiqueta ainda.</span>
+          )}
+          {tags.map((tag) => (
+            <Badge key={tag} variant="secondary" className="gap-1">
+              {tag}
+              <button
+                type="button"
+                aria-label={`Remover etiqueta ${tag}`}
+                onClick={() => void saveTags(tags.filter((t) => t !== tag))}
+                className="text-muted-foreground hover:text-foreground"
+              >
+                <XCircle className="h-3 w-3" />
+              </button>
+            </Badge>
+          ))}
+        </div>
+        <div className="flex gap-2">
+          <Input
+            value={newTag}
+            onChange={(e) => setNewTag(e.target.value)}
+            placeholder="cliente-vip"
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                e.preventDefault();
+                void addTag();
+              }
+            }}
+          />
+          <Button size="sm" variant="outline" disabled={busy || !newTag.trim()} onClick={addTag}>
+            <Tag className="mr-2 h-4 w-4" /> Adicionar
+          </Button>
+        </div>
+      </div>
+
 
       {(data?.runs ?? []).length > 0 && (
         <>
