@@ -36,16 +36,48 @@ export function CustomerWorkflowPanel({ customerId }: { customerId: string }) {
   const [busy, setBusy] = useState(false);
   const [workflowId, setWorkflowId] = useState("");
   const [connectionId, setConnectionId] = useState("");
+  const [tags, setTags] = useState<string[]>([]);
+  const [newTag, setNewTag] = useState("");
+  const loadTags = useServerFn(customerTags);
+  const persistTags = useServerFn(customerTagsSave);
 
   const refresh = async () => {
     try {
-      const result = await loadPanel({ data: { customerId } });
+      const [result, tagResult] = await Promise.all([
+        loadPanel({ data: { customerId } }),
+        loadTags({ data: { customerId } }),
+      ]);
       setData(result);
+      setTags(((tagResult as { tags?: string[] })?.tags ?? []) as string[]);
     } catch (e) {
       toast.error(getErrorMessage(e, "Não foi possível carregar os workflows."));
     } finally {
       setLoading(false);
     }
+  };
+
+  const saveTags = async (next: string[]) => {
+    setBusy(true);
+    try {
+      await persistTags({ data: { customerId, tags: next } });
+      setTags(next);
+      toast.success("Etiquetas atualizadas.");
+      await refresh();
+    } catch (e) {
+      toast.error(getErrorMessage(e, "Não foi possível salvar as etiquetas."));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const addTag = async () => {
+    const value = newTag.trim().toLowerCase();
+    if (!value || tags.includes(value)) {
+      setNewTag("");
+      return;
+    }
+    setNewTag("");
+    await saveTags([...tags, value]);
   };
 
   useEffect(() => {
