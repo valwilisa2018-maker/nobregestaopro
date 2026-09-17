@@ -1,6 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { TICKET_TYPE_OPTIONS, TicketTypeBadge } from "@/components/sales/ticket-type-badge";
 import { Textarea } from "@/components/ui/textarea";
 import {
   Dialog,
@@ -443,6 +444,27 @@ export function EditSaleDialog({
                   <SelectItem value="outros">Outros</SelectItem>
                 </SelectContent>
               </Select>
+            </div>
+            <div className="col-span-2">
+              <Label>Tipo de ticket *</Label>
+              <Select
+                value={editing.ticket_type ?? ""}
+                onValueChange={(v) => editSet("ticket_type", v)}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione o tipo de ticket" />
+                </SelectTrigger>
+                <SelectContent>
+                  {TICKET_TYPE_OPTIONS.map((o) => (
+                    <SelectItem key={o.value} value={o.value}>
+                      {o.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <div className="mt-2">
+                <TicketTypeBadge value={editing.ticket_type} />
+              </div>
             </div>
             <div className="col-span-2">
               <Label>Prazo de entrega *</Label>

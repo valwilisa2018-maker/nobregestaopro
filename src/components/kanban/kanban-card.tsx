@@ -11,6 +11,7 @@ import { AlertCircle, Calendar, CheckCircle2, Clock, UserPlus } from "lucide-rea
 import { fmtDate, fmtDateTime, formatCurrency, formatVideoDuration } from "@/lib/format";
 import { resolveOrderVideoDurationSeconds } from "@/lib/video-production";
 import { cn } from "@/lib/utils";
+import { TicketTypeBadge } from "@/components/sales/ticket-type-badge";
 import { CardLinkButtons } from "./card-link-buttons";
 import { KanbanPersonAvatar } from "./person-avatar";
 import { CardWhatsAppButtons } from "./whatsapp-buttons";
@@ -193,8 +194,10 @@ export function KanbanCard({
               </div>
             </div>
 
-            {c.sales?.payment_status && (
-              <div className="shrink-0">
+            {(c.sales?.payment_status || c.sales?.ticket_type) && (
+              <div className="flex shrink-0 flex-col items-end gap-1">
+                <TicketTypeBadge value={c.sales?.ticket_type} />
+                {c.sales?.payment_status && (
                 <span
                   className="rounded-full px-2 py-0.5 text-[10px] font-semibold"
                   style={{
@@ -204,6 +207,7 @@ export function KanbanCard({
                 >
                   {paymentStyle(c.sales.payment_status).label}
                 </span>
+                )}
               </div>
             )}
           </div>

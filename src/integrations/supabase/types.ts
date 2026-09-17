@@ -1448,6 +1448,7 @@ export type Database = {
           seller_name_snapshot: string | null
           service_quantity: number
           service_type_id: string | null
+          ticket_type: string | null
           total_amount: number
           trello_link: string | null
           updated_at: string
@@ -1482,6 +1483,7 @@ export type Database = {
           seller_name_snapshot?: string | null
           service_quantity?: number
           service_type_id?: string | null
+          ticket_type?: string | null
           total_amount?: number
           trello_link?: string | null
           updated_at?: string
@@ -1516,6 +1518,7 @@ export type Database = {
           seller_name_snapshot?: string | null
           service_quantity?: number
           service_type_id?: string | null
+          ticket_type?: string | null
           total_amount?: number
           trello_link?: string | null
           updated_at?: string

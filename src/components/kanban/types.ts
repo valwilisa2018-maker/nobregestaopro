@@ -2,6 +2,7 @@ export interface KanbanSale {
   total_amount: number | null;
   paid_amount: number | null;
   payment_status: string | null;
+  ticket_type?: string | null;
   service_quantity?: number | null;
   trello_link?: string | null;
   google_drive_link: string | null;

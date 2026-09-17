@@ -8,6 +8,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
+import { TicketTypeBadge } from "@/components/sales/ticket-type-badge";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -35,7 +36,7 @@ function PendingPaymentsPage() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("sales")
-        .select("id, sale_date, total_amount, paid_amount, payment_status, notes, receipt_url, seller_id, producer_id, seller_name_snapshot, producer_name_snapshot, customer:customers(id, name, company, phone, email), seller:sellers(id, name), producer:producers(id, name)")
+        .select("id, sale_date, total_amount, paid_amount, payment_status, ticket_type, notes, receipt_url, seller_id, producer_id, seller_name_snapshot, producer_name_snapshot, customer:customers(id, name, company, phone, email), seller:sellers(id, name), producer:producers(id, name)")
         .in("payment_status", ["pendente", "pago_parcial"])
         .order("sale_date", { ascending: false });
       if (error) throw error;
@@ -240,7 +241,12 @@ function PendingPaymentsPage() {
                 return (
                   <TableRow key={s.id}>
                     <TableCell className="whitespace-nowrap">{fmtDate(s.sale_date)}</TableCell>
-                    <TableCell className="font-medium">{s.customer?.name ?? "—"}</TableCell>
+                    <TableCell className="font-medium">
+                      <div className="flex items-center gap-2">
+                        <span>{s.customer?.name ?? "—"}</span>
+                        <TicketTypeBadge value={s.ticket_type} />
+                      </div>
+                    </TableCell>
                     <TableCell>{s.customer?.company ?? "—"}</TableCell>
                     <TableCell>{s.seller?.name ?? s.seller_name_snapshot ?? "—"}</TableCell>
                     <TableCell>{s.producer?.name ?? s.producer_name_snapshot ?? "—"}</TableCell>
