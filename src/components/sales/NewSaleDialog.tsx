@@ -27,6 +27,7 @@ import {
   Clock,
 } from "lucide-react";
 import { PhoneInputBR } from "@/components/phone-input-br";
+import { TICKET_TYPE_OPTIONS, TicketTypeBadge } from "@/components/sales/ticket-type-badge";
 import { SafeSelect } from "@/components/safe-select";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import {
@@ -597,6 +598,21 @@ export function NewSaleDialog({
                   { value: "outros", label: "Outros" },
                 ]}
               />
+            </div>
+          </div>
+          <div className="md:col-span-2">
+            <Label>Tipo de ticket *</Label>
+            <div className="mt-1.5">
+              <SafeSelect
+                ariaLabel="Tipo de ticket"
+                placeholder="Selecione o tipo de ticket"
+                value={form.ticket_type || ""}
+                onValueChange={(v) => set("ticket_type", v)}
+                options={TICKET_TYPE_OPTIONS.map((o) => ({ value: o.value, label: o.label }))}
+              />
+            </div>
+            <div className="mt-2">
+              <TicketTypeBadge value={form.ticket_type} />
             </div>
           </div>
           {Number(form.paid_amount || 0) > 0 && (
