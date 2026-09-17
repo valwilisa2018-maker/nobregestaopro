@@ -43,6 +43,13 @@
       "when": 1789586108362,
       "tag": "0005_workflow_media_storage_policies",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1789671102311,
+      "tag": "0006_add_sales_ticket_type",
+      "breakpoints": true
     }
   ]
 }
