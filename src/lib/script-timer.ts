@@ -2,10 +2,11 @@
 
 export type SpeechPace = "slow" | "normal" | "fast";
 
+// Regra do usuário: 60 palavras = 30 segundos (ritmo normal = 120 palavras/min).
 export const PACE_WPM: Record<SpeechPace, number> = {
-  slow: 110,
-  normal: 140,
-  fast: 170,
+  slow: 100,
+  normal: 120,
+  fast: 150,
 };
 
 export const PACE_LABEL: Record<SpeechPace, string> = {
@@ -25,14 +26,16 @@ export const TARGET_PRESETS = [
   { label: "5 minutos", seconds: 300 },
 ];
 
+// Proporção: 2 palavras por segundo (60 palavras a cada 30 segundos).
 export const REFERENCE_TABLE = [
-  { label: "15 segundos", words: "30 a 40 palavras" },
-  { label: "30 segundos", words: "60 a 75 palavras" },
-  { label: "45 segundos", words: "90 a 110 palavras" },
-  { label: "1 minuto", words: "130 a 150 palavras" },
-  { label: "1 min e 30 s", words: "195 a 225 palavras" },
-  { label: "2 minutos", words: "260 a 300 palavras" },
-  { label: "3 minutos", words: "390 a 450 palavras" },
+  { label: "15 segundos", words: "30 palavras" },
+  { label: "30 segundos", words: "60 palavras" },
+  { label: "45 segundos", words: "90 palavras" },
+  { label: "1 minuto", words: "120 palavras" },
+  { label: "1 min e 30 s", words: "180 palavras" },
+  { label: "2 minutos", words: "240 palavras" },
+  { label: "3 minutos", words: "360 palavras" },
+  { label: "5 minutos", words: "600 palavras" },
 ];
 
 export function countWords(text: string): number {
