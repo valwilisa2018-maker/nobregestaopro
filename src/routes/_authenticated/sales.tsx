@@ -997,7 +997,6 @@ function SalesPage() {
         sale_date: new Date().toISOString().slice(0, 10),
         lead_source: "",
         ticket_type: "",
-    ticket_type: "",
         with_invoice: "sim",
         installments: "12",
         delivery_deadline: "",
