@@ -57,6 +57,7 @@ export interface SaleRecord {
   trello_link?: string | null;
   platform_link?: string | null;
   lead_source?: string | null;
+  ticket_type?: string | null;
   delivery_deadline?: string | null;
   expected_delivery_date?: string | null;
   video_duration_seconds?: number | null;
@@ -104,6 +105,7 @@ export interface SaleFormState {
   platform_link: string;
   sale_date: string;
   lead_source: string;
+  ticket_type: string;
   with_invoice: string;
   installments: string;
   delivery_deadline: string;
