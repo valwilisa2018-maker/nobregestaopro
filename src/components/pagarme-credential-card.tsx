@@ -22,6 +22,38 @@ export function PagarmeCredentialCard() {
   const [apiKey, setApiKey] = useState("");
   const [savingKey, setSavingKey] = useState(false);
   const [showKey, setShowKey] = useState(false);
+  const [currentKey, setCurrentKey] = useState<string | null>(null);
+  const [revealing, setRevealing] = useState(false);
+
+  const revealCurrentKey = async () => {
+    if (currentKey) return setCurrentKey(null);
+    setRevealing(true);
+    try {
+      const res = await callReveal({});
+      if (!res.ok) return toast.error(res.error);
+      setCurrentKey(res.api_key);
+    } catch (e: any) {
+      toast.error(e?.message ?? "Falha ao carregar a chave");
+    } finally {
+      setRevealing(false);
+    }
+  };
+
+  const copyCurrentKey = async () => {
+    try {
+      let key = currentKey;
+      if (!key) {
+        const res = await callReveal({});
+        if (!res.ok) return toast.error(res.error);
+        key = res.api_key;
+        setCurrentKey(key);
+      }
+      await navigator.clipboard.writeText(key);
+      toast.success("Chave copiada");
+    } catch {
+      toast.error("Não foi possível copiar a chave");
+    }
+  };
 
   const refreshStatus = async () => {
     try {
