@@ -5,8 +5,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "@/lib/toast";
-import { KeyRound, CheckCircle2, AlertCircle, Loader2 } from "lucide-react";
-import { getPagarmeKeyStatus, savePagarmeKey } from "@/lib/pagarme.functions";
+import { KeyRound, CheckCircle2, AlertCircle, Loader2, Eye, EyeOff, Copy } from "lucide-react";
+import { getPagarmeKeyStatus, savePagarmeKey, revealPagarmeKey } from "@/lib/pagarme.functions";
 
 const GREEN = "#16a34a";
 const GREEN_DARK = "#15803d";
@@ -16,11 +16,44 @@ const GREEN_BORDER = "#86efac";
 export function PagarmeCredentialCard() {
   const callStatus = useServerFn(getPagarmeKeyStatus);
   const callSave = useServerFn(savePagarmeKey);
+  const callReveal = useServerFn(revealPagarmeKey);
 
   const [status, setStatus] = useState<{ configured: boolean; masked: string | null; source: "database" | "env" | null } | null>(null);
   const [apiKey, setApiKey] = useState("");
   const [savingKey, setSavingKey] = useState(false);
   const [showKey, setShowKey] = useState(false);
+  const [currentKey, setCurrentKey] = useState<string | null>(null);
+  const [revealing, setRevealing] = useState(false);
+
+  const revealCurrentKey = async () => {
+    if (currentKey) return setCurrentKey(null);
+    setRevealing(true);
+    try {
+      const res = await callReveal({});
+      if (!res.ok) return toast.error(res.error);
+      setCurrentKey(res.api_key);
+    } catch (e: any) {
+      toast.error(e?.message ?? "Falha ao carregar a chave");
+    } finally {
+      setRevealing(false);
+    }
+  };
+
+  const copyCurrentKey = async () => {
+    try {
+      let key = currentKey;
+      if (!key) {
+        const res = await callReveal({});
+        if (!res.ok) return toast.error(res.error);
+        key = res.api_key;
+        setCurrentKey(key);
+      }
+      await navigator.clipboard.writeText(key);
+      toast.success("Chave copiada");
+    } catch {
+      toast.error("Não foi possível copiar a chave");
+    }
+  };
 
   const refreshStatus = async () => {
     try {
@@ -79,8 +112,40 @@ export function PagarmeCredentialCard() {
               <div className="text-sm" style={{ color: GREEN_DARK }}>
                 <div className="font-semibold">Credencial configurada</div>
                 <div className="text-xs opacity-80">
-                  Chave atual: <code className="bg-white/70 px-1 rounded">{status.masked}</code>
+                  Chave atual:{" "}
+                  <code className="bg-white/70 px-1 rounded break-all">
+                    {currentKey ?? status.masked}
+                  </code>
                   {status.source === "env" && " (variável de ambiente)"}
+                </div>
+                <div className="flex flex-wrap gap-2 pt-2">
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    onClick={revealCurrentKey}
+                    disabled={revealing}
+                    className="bg-white border-emerald-300 text-emerald-700 hover:bg-emerald-50 hover:text-emerald-800"
+                  >
+                    {revealing ? (
+                      <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" />
+                    ) : currentKey ? (
+                      <EyeOff className="w-3.5 h-3.5 mr-1.5" />
+                    ) : (
+                      <Eye className="w-3.5 h-3.5 mr-1.5" />
+                    )}
+                    {currentKey ? "Ocultar chave" : "Ver chave completa"}
+                  </Button>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    onClick={copyCurrentKey}
+                    className="bg-white border-emerald-300 text-emerald-700 hover:bg-emerald-50 hover:text-emerald-800"
+                  >
+                    <Copy className="w-3.5 h-3.5 mr-1.5" />
+                    Copiar
+                  </Button>
                 </div>
               </div>
             </>
