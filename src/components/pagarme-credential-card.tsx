@@ -16,6 +16,7 @@ const GREEN_BORDER = "#86efac";
 export function PagarmeCredentialCard() {
   const callStatus = useServerFn(getPagarmeKeyStatus);
   const callSave = useServerFn(savePagarmeKey);
+  const callReveal = useServerFn(revealPagarmeKey);
 
   const [status, setStatus] = useState<{ configured: boolean; masked: string | null; source: "database" | "env" | null } | null>(null);
   const [apiKey, setApiKey] = useState("");
