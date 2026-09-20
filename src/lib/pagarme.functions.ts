@@ -258,6 +258,39 @@ export const getPagarmeKeyStatus = createServerFn({ method: "GET" })
     };
   });
 
+/** Revela a chave completa. Restrito a administradores e registrado na auditoria. */
+export const revealPagarmeKey = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { supabase, userId, claims } = context;
+
+    const [{ data: isAdmin }, { data: isSuper }] = await Promise.all([
+      supabase.rpc("has_role", { _user_id: userId, _role: "admin" }),
+      supabase.rpc("has_role", { _user_id: userId, _role: "super_admin" }),
+    ]);
+    if (isAdmin !== true && isSuper !== true) {
+      return { ok: false as const, error: "Apenas administradores podem ver a chave." };
+    }
+
+    const { data: row } = await supabase
+      .from("pagarme_settings")
+      .select("api_key")
+      .eq("id", true)
+      .maybeSingle();
+
+    const key = (row?.api_key as string | undefined) || process.env.PAGARME_API_KEY || "";
+    if (!key) return { ok: false as const, error: "Nenhuma credencial configurada." };
+
+    await supabase.from("audit_logs").insert({
+      action: "pagarme_key_revealed",
+      performed_by: userId,
+      performed_by_email: (claims as { email?: string } | null)?.email ?? null,
+      details: { source: row?.api_key ? "database" : "env" },
+    });
+
+    return { ok: true as const, api_key: key };
+  });
+
 export const savePagarmeKey = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input) =>
