@@ -112,8 +112,40 @@ export function PagarmeCredentialCard() {
               <div className="text-sm" style={{ color: GREEN_DARK }}>
                 <div className="font-semibold">Credencial configurada</div>
                 <div className="text-xs opacity-80">
-                  Chave atual: <code className="bg-white/70 px-1 rounded">{status.masked}</code>
+                  Chave atual:{" "}
+                  <code className="bg-white/70 px-1 rounded break-all">
+                    {currentKey ?? status.masked}
+                  </code>
                   {status.source === "env" && " (variável de ambiente)"}
+                </div>
+                <div className="flex flex-wrap gap-2 pt-2">
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    onClick={revealCurrentKey}
+                    disabled={revealing}
+                    className="bg-white border-emerald-300 text-emerald-700 hover:bg-emerald-50 hover:text-emerald-800"
+                  >
+                    {revealing ? (
+                      <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" />
+                    ) : currentKey ? (
+                      <EyeOff className="w-3.5 h-3.5 mr-1.5" />
+                    ) : (
+                      <Eye className="w-3.5 h-3.5 mr-1.5" />
+                    )}
+                    {currentKey ? "Ocultar chave" : "Ver chave completa"}
+                  </Button>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    onClick={copyCurrentKey}
+                    className="bg-white border-emerald-300 text-emerald-700 hover:bg-emerald-50 hover:text-emerald-800"
+                  >
+                    <Copy className="w-3.5 h-3.5 mr-1.5" />
+                    Copiar
+                  </Button>
                 </div>
               </div>
             </>
