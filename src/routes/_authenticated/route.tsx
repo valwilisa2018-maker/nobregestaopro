@@ -14,6 +14,9 @@ import { Button } from "@/components/ui/button";
 import { NobreLoader } from "@/components/nobre-loader";
 
 export const Route = createFileRoute("/_authenticated")({
+  // A sessão fica salva no navegador; renderizar no servidor gera divergência
+  // de hidratação (tela branca). Área interna renderiza só no cliente.
+  ssr: false,
   component: AuthLayout,
 });
 
