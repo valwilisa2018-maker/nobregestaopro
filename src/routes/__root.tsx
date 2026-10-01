@@ -7,6 +7,7 @@ import {
   useRouterState,
   HeadContent,
   Scripts,
+  type ErrorComponentProps,
 } from "@tanstack/react-router";
 import { useEffect, type ReactNode } from "react";
 
@@ -46,7 +47,7 @@ function NotFoundComponent() {
   );
 }
 
-function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
+function ErrorComponent({ error, reset }: ErrorComponentProps) {
   console.error(error);
   const router = useRouter();
   useEffect(() => {
@@ -62,7 +63,7 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
         <p className="mt-2 text-sm text-muted-foreground">
           Ocorreu um erro inesperado. Tente atualizar a página ou volte para o início.
         </p>
-        {error?.message && (
+        {Boolean((error as Error)?.message) && (
           <pre className="mt-4 max-h-40 overflow-auto rounded-md bg-muted/50 p-3 text-left text-xs text-muted-foreground whitespace-pre-wrap break-words">
             {getErrorMessage(error)}
           </pre>
