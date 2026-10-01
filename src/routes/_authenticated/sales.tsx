@@ -29,9 +29,9 @@ export const Route = createFileRoute("/_authenticated/sales")({
     // Log to system_logs for post-mortem so we can inspect what actually failed.
     if (typeof window !== "undefined") {
       try {
-        logger.error(`Sales route crashed: ${error?.message ?? "unknown"}`, {
+        logger.error(`Sales route crashed: ${(error as Error)?.message ?? "unknown"}`, {
           context: "sales/route-error",
-          details: { message: error?.message, stack: (error as any)?.stack },
+          details: { message: (error as Error)?.message, stack: (error as any)?.stack },
           silent: true,
         });
       } catch {
@@ -45,7 +45,7 @@ export const Route = createFileRoute("/_authenticated/sales")({
           Tente recarregar. Se persistir, envie o texto abaixo.
         </p>
         <pre className="max-h-48 overflow-auto rounded bg-muted p-3 text-xs whitespace-pre-wrap break-words">
-          {error?.message ?? "Erro desconhecido"}
+          {(error as Error)?.message ?? "Erro desconhecido"}
         </pre>
         <div className="flex gap-2">
           <button

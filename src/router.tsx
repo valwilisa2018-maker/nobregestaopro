@@ -1,9 +1,13 @@
 import { QueryClient } from "@tanstack/react-query";
-import { createRouter, useRouter } from "@tanstack/react-router";
+import {
+  createRouter,
+  useRouter,
+  type ErrorComponentProps,
+} from "@tanstack/react-router";
 import { routeTree } from "./routeTree.gen";
 import { NobreLoader } from "./components/nobre-loader";
 
-function DefaultErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
+function DefaultErrorComponent({ error, reset }: ErrorComponentProps) {
   console.error(error);
   const router = useRouter();
 
